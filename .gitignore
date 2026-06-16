@@ -1,0 +1,42 @@
+# Dependencias
+/node_modules
+/.pnp
+.pnp.*
+
+# Build de Next.js
+/.next/
+/out/
+/build
+next-env.d.ts
+
+# Producción
+/dist
+
+# Variables de entorno (nunca commitear secretos)
+.env
+.env*.local
+.env.production
+
+# Prisma
+/prisma/migrations/dev.db*
+
+# Testing
+/coverage
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operativo / editores
+.DS_Store
+Thumbs.db
+*.pem
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# TypeScript
+*.tsbuildinfo
+
+# Volúmenes de Docker (datos de PostgreSQL)
+/datos-postgres

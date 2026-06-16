@@ -1,0 +1,141 @@
+// Schema de Prisma — capa de persistencia.
+// IMPORTANTE: Prisma vive exclusivamente en /src/infraestructura.
+// El dominio NUNCA conoce estos modelos; trabaja con sus propias entidades.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum RolUsuario {
+  NUTRICIONISTA
+  PACIENTE
+}
+
+enum EstadoTurno {
+  PENDIENTE
+  CONFIRMADO
+  CANCELADO
+  COMPLETADO
+}
+
+enum TipoComida {
+  DESAYUNO
+  ALMUERZO
+  MERIENDA
+  CENA
+}
+
+// ---------------------------------------------------------------------------
+// Modelos
+// ---------------------------------------------------------------------------
+
+/// Persona atendida por el nutricionista.
+model Paciente {
+  id              String   @id @default(cuid())
+  nombre          String
+  apellido        String
+  email           String   @unique
+  telefono        String?
+  fechaNacimiento DateTime?
+  notas           String?
+  creadoEn        DateTime @default(now())
+  actualizadoEn   DateTime @updatedAt
+
+  turnos          Turno[]
+  asignaciones    AsignacionDieta[]
+  usuario         Usuario?
+
+  @@index([apellido, nombre])
+  @@map("pacientes")
+}
+
+/// Cita agendada entre el nutricionista y un paciente.
+model Turno {
+  id              String      @id @default(cuid())
+  pacienteId      String
+  fecha           DateTime    @db.Date
+  hora            String // formato HH:mm
+  duracionMinutos Int         @default(30)
+  estado          EstadoTurno @default(PENDIENTE)
+  notas           String?
+  creadoEn        DateTime    @default(now())
+
+  paciente        Paciente    @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  // La regla de no solapamiento se valida en el caso de uso (ignorando los
+  // turnos CANCELADOS), no con una restricción única en la base: así un turno
+  // cancelado libera el horario para uno nuevo.
+  @@index([pacienteId])
+  @@index([fecha])
+  @@map("turnos")
+}
+
+/// Plantilla de plan alimentario, reutilizable entre pacientes.
+model Dieta {
+  id           String   @id @default(cuid())
+  nombre       String
+  descripcion  String?
+  creadoEn     DateTime @default(now())
+
+  comidas      Comida[]
+  asignaciones AsignacionDieta[]
+
+  @@map("dietas")
+}
+
+/// Comida concreta que compone una dieta.
+model Comida {
+  id          String     @id @default(cuid())
+  dietaId     String
+  tipo        TipoComida
+  descripcion String
+  calorias    Int?
+
+  dieta       Dieta      @relation(fields: [dietaId], references: [id], onDelete: Cascade)
+
+  @@index([dietaId])
+  @@map("comidas")
+}
+
+/// Vincula una dieta a un paciente durante un período.
+/// Regla de negocio: un paciente solo puede tener una dieta activa a la vez.
+model AsignacionDieta {
+  id          String    @id @default(cuid())
+  dietaId     String
+  pacienteId  String
+  fechaInicio DateTime  @db.Date
+  fechaFin    DateTime? @db.Date
+  activa      Boolean   @default(true)
+
+  dieta       Dieta     @relation(fields: [dietaId], references: [id], onDelete: Cascade)
+  paciente    Paciente  @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  // Índice parcial: garantiza una única asignación activa por paciente.
+  @@index([pacienteId])
+  @@index([dietaId])
+  @@map("asignaciones_dieta")
+}
+
+/// Credenciales y rol de acceso al sistema.
+/// Si el rol es PACIENTE debe tener un pacienteId asociado.
+model Usuario {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  rol          RolUsuario @default(PACIENTE)
+  pacienteId   String?    @unique
+  creadoEn     DateTime   @default(now())
+
+  paciente     Paciente?  @relation(fields: [pacienteId], references: [id], onDelete: SetNull)
+
+  @@map("usuarios")
+}

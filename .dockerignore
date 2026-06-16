@@ -1,0 +1,26 @@
+# Dependencias y artefactos de build (se generan dentro de la imagen)
+node_modules
+.next
+out
+build
+dist
+
+# Entorno y secretos (se inyectan por variables, nunca se copian)
+.env
+.env*.local
+.env.production
+
+# Git y metadatos
+.git
+.gitignore
+*.md
+
+# Tooling de desarrollo
+.vscode
+.idea
+.claude
+coverage
+*.log
+
+# Datos locales de Postgres
+datos-postgres

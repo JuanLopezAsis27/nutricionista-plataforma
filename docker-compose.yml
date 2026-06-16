@@ -1,0 +1,35 @@
+# Docker Compose para desarrollo local.
+# Levanta PostgreSQL 18 con un volumen persistente.
+#
+#   docker compose up -d        → inicia la base de datos
+#   docker compose down         → la detiene (conserva los datos)
+#   docker compose down -v      → la detiene y BORRA los datos
+#
+# NOTA: la imagen postgres:18 cambió el layout del directorio de datos.
+# Fijamos PGDATA a un subdirectorio para usar el layout clásico y evitar el
+# error de "major-version-specific directory names". Si ya tenías un volumen
+# inicializado con el layout anterior, recrealo con: docker compose down -v
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: nutricionista_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - datos_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  datos_postgres:
+    name: nutricionista_datos_postgres
