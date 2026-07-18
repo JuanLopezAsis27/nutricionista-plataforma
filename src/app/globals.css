@@ -2,39 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Variables de tema para shadcn/ui (paleta slate, modo claro y oscuro). */
+/*
+ * Variables de tema para shadcn/ui — identidad visual del profesional:
+ * acento coral (#F4535E), fondos gris claro (#F1F1F3) y modo oscuro.
+ * El coral con blanco ronda 3:1 de contraste: válido para botones y texto
+ * grande; para texto chico sobre fondos coral usar --accent-foreground.
+ */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --primary: 142.1 76.2% 36.3%;
-    --primary-foreground: 355.7 100% 97.3%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 142.1 76.2% 36.3%;
-    --radius: 0.5rem;
+    --background: 240 8% 96%;
+    --foreground: 240 10% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 10%;
+    --primary: 356 88% 64%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 91%;
+    --secondary-foreground: 240 6% 15%;
+    --muted: 240 5% 91%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 356 88% 96%;
+    --accent-foreground: 356 65% 42%;
+    --destructive: 0 84% 55%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 6% 88%;
+    --input: 240 6% 88%;
+    --ring: 356 88% 64%;
+    --radius: 0.75rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --primary: 142.1 70.6% 45.3%;
-    --primary-foreground: 144.9 80.4% 10%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 142.4 71.8% 29.2%;
+    --background: 240 6% 9%;
+    --foreground: 0 0% 96%;
+    --card: 240 5% 12%;
+    --card-foreground: 0 0% 96%;
+    --popover: 240 5% 12%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 356 90% 66%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 16%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 240 5% 16%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 356 45% 22%;
+    --accent-foreground: 356 90% 82%;
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5% 19%;
+    --input: 240 5% 19%;
+    --ring: 356 90% 66%;
   }
 
   * {
@@ -42,5 +59,16 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  /* Patrón decorativo de puntos, como en las piezas gráficas del profesional. */
+  .patron-puntos {
+    background-image: radial-gradient(
+      hsl(var(--primary) / 0.18) 1.5px,
+      transparent 1.5px
+    );
+    background-size: 18px 18px;
   }
 }

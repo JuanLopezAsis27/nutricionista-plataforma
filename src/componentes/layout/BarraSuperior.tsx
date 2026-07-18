@@ -12,12 +12,16 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/componentes/ui/dropdown-menu";
+import { ToggleTema } from "@/componentes/comunes/ToggleTema";
+import { CampanaAlertas } from "@/componentes/seguimiento/CampanaAlertas";
 
 /** Asocia el prefijo de ruta con el título de la página. */
 const TITULOS: { prefijo: string; titulo: string; exacto?: boolean }[] = [
   { prefijo: "/dashboard/pacientes", titulo: "Pacientes" },
   { prefijo: "/dashboard/turnos", titulo: "Turnos" },
-  { prefijo: "/dashboard/dietas", titulo: "Dietas" },
+  { prefijo: "/dashboard/planes", titulo: "Planes nutricionales" },
+  { prefijo: "/dashboard/recetas", titulo: "Recetario" },
+  { prefijo: "/dashboard/biblioteca", titulo: "Biblioteca" },
   { prefijo: "/dashboard", titulo: "Panel principal", exacto: true },
 ];
 
@@ -34,9 +38,13 @@ export function BarraSuperior({ email }: { email: string }) {
   const inicial = email.charAt(0).toUpperCase();
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-background px-6">
+    // En móvil la barra del menú (SidebarNav) ya ocupa el tope; esta solo en md+.
+    <header className="hidden h-16 items-center justify-between border-b bg-background px-6 md:flex">
       <h1 className="text-xl font-semibold">{tituloDeRuta(ruta)}</h1>
 
+      <div className="flex items-center gap-2">
+      <CampanaAlertas />
+      <ToggleTema />
       <DropdownMenu>
         <DropdownMenuTrigger className="rounded-full outline-none focus:ring-2 focus:ring-ring">
           <Avatar>
@@ -56,6 +64,7 @@ export function BarraSuperior({ email }: { email: string }) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </header>
   );
 }

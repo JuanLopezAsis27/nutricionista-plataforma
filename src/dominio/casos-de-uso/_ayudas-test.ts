@@ -1,13 +1,57 @@
 import { vi } from "vitest";
 import type { IPacienteRepositorio } from "../repositorios/IPacienteRepositorio";
 import type { ITurnoRepositorio } from "../repositorios/ITurnoRepositorio";
-import type { IDietaRepositorio } from "../repositorios/IDietaRepositorio";
 import type { IUsuarioRepositorio } from "../repositorios/IUsuarioRepositorio";
+import type { IArchivoRepositorio } from "../repositorios/IArchivoRepositorio";
+import type { IHistoriaClinicaRepositorio } from "../repositorios/IHistoriaClinicaRepositorio";
+import type { IAntropometriaRepositorio } from "../repositorios/IAntropometriaRepositorio";
+import type { IAlertaAlimentariaRepositorio } from "../repositorios/IAlertaAlimentariaRepositorio";
+import type { ILaboratorioRepositorio } from "../repositorios/ILaboratorioRepositorio";
+import type { IRegistroDiarioRepositorio } from "../repositorios/IRegistroDiarioRepositorio";
+import type { IRecetaRepositorio } from "../repositorios/IRecetaRepositorio";
+import type { IPlanRepositorio } from "../repositorios/IPlanRepositorio";
+import type { IObjetivoRepositorio } from "../repositorios/IObjetivoRepositorio";
+import type { IMaterialRepositorio } from "../repositorios/IMaterialRepositorio";
+import type { ISuplementoRepositorio } from "../repositorios/ISuplementoRepositorio";
+import type { IAlertaSeguimientoRepositorio } from "../repositorios/IAlertaSeguimientoRepositorio";
 import type { IHasheadorContrasena } from "../servicios/IHasheadorContrasena";
+import type { IAlmacenamientoArchivos } from "../servicios/IAlmacenamientoArchivos";
+import type { IServicioEmail } from "../servicios/IServicioEmail";
+import type { IColaTrabajos } from "../servicios/IColaTrabajos";
+import type { IRelojFecha } from "../servicios/IRelojFecha";
 import { Paciente, type DatosNuevoPaciente } from "../entidades/Paciente";
 import { Turno, type DatosNuevoTurno } from "../entidades/Turno";
-import { Dieta, type DatosNuevaDieta } from "../entidades/Dieta";
 import { Usuario } from "../entidades/Usuario";
+import { Archivo, type DatosNuevoArchivo } from "../entidades/Archivo";
+import {
+  HistoriaClinica,
+  type DatosHistoriaClinica,
+} from "../entidades/HistoriaClinica";
+import {
+  Antropometria,
+  type DatosNuevaAntropometria,
+} from "../entidades/Antropometria";
+import {
+  AlertaAlimentaria,
+  type DatosNuevaAlertaAlimentaria,
+} from "../entidades/AlertaAlimentaria";
+import { Laboratorio, type DatosNuevoLaboratorio } from "../entidades/Laboratorio";
+import { RegistroDiario, type DatosDia } from "../entidades/RegistroDiario";
+import { Receta, type DatosNuevaReceta } from "../entidades/Receta";
+import {
+  PlanNutricional,
+  type DatosNuevoPlan,
+} from "../entidades/PlanNutricional";
+import { Objetivo, type DatosNuevoObjetivo } from "../entidades/Objetivo";
+import {
+  MaterialBiblioteca,
+  type DatosNuevoMaterial,
+} from "../entidades/MaterialBiblioteca";
+import { Suplemento, type DatosNuevoSuplemento } from "../entidades/Suplemento";
+import {
+  AlertaSeguimiento,
+  type DatosNuevaAlertaSeguimiento,
+} from "../entidades/AlertaSeguimiento";
 
 /**
  * Ayudas para los tests de casos de uso.
@@ -46,24 +90,6 @@ export function mockTurnoRepositorio(
   };
 }
 
-export function mockDietaRepositorio(
-  parcial: Partial<IDietaRepositorio> = {},
-): IDietaRepositorio {
-  return {
-    crear: vi.fn(async (d: Dieta) => d),
-    actualizar: vi.fn(async (d: Dieta) => d),
-    eliminar: vi.fn(async () => {}),
-    obtenerPorId: vi.fn(async () => null),
-    listar: vi.fn(async () => []),
-    contarAsignacionesActivasDeDieta: vi.fn(async () => 0),
-    asignarAPaciente: vi.fn(async (a) => a),
-    desactivarAsignacionesDe: vi.fn(async () => {}),
-    obtenerAsignacionActiva: vi.fn(async () => null),
-    obtenerDietaActivaDePaciente: vi.fn(async () => null),
-    ...parcial,
-  };
-}
-
 export function mockUsuarioRepositorio(
   parcial: Partial<IUsuarioRepositorio> = {},
 ): IUsuarioRepositorio {
@@ -82,6 +108,225 @@ export function mockHasheador(): IHasheadorContrasena {
   return {
     hashear: vi.fn(async (plano: string) => `hash:${plano}`),
     verificar: vi.fn(async (plano: string, hash: string) => hash === `hash:${plano}`),
+  };
+}
+
+export function mockArchivoRepositorio(
+  parcial: Partial<IArchivoRepositorio> = {},
+): IArchivoRepositorio {
+  return {
+    crear: vi.fn(async (a: Archivo) => a),
+    obtenerPorId: vi.fn(async () => null),
+    eliminar: vi.fn(async () => {}),
+    listarPorDueno: vi.fn(async () => []),
+    vincularDueno: vi.fn(async () => {}),
+    obtenerDueno: vi.fn(async () => null),
+    listarClaves: vi.fn(async () => []),
+    ...parcial,
+  };
+}
+
+export function mockAlmacenamientoArchivos(
+  parcial: Partial<IAlmacenamientoArchivos> = {},
+): IAlmacenamientoArchivos {
+  return {
+    subir: vi.fn(async () => {}),
+    generarUrlLectura: vi.fn(async (clave: string) => `https://bucket.local/${clave}?firma`),
+    eliminar: vi.fn(async () => {}),
+    listarClaves: vi.fn(async () => []),
+    ...parcial,
+  };
+}
+
+export function mockHistoriaClinicaRepositorio(
+  parcial: Partial<IHistoriaClinicaRepositorio> = {},
+): IHistoriaClinicaRepositorio {
+  return {
+    guardar: vi.fn(async (h: HistoriaClinica) => h),
+    obtenerPorPaciente: vi.fn(async () => null),
+    ...parcial,
+  };
+}
+
+export function mockAntropometriaRepositorio(
+  parcial: Partial<IAntropometriaRepositorio> = {},
+): IAntropometriaRepositorio {
+  return {
+    crear: vi.fn(async (m: Antropometria) => m),
+    actualizar: vi.fn(async (m: Antropometria) => m),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    listarPorPaciente: vi.fn(async () => []),
+    existeEnFecha: vi.fn(async () => false),
+    ...parcial,
+  };
+}
+
+export function mockAlertaAlimentariaRepositorio(
+  parcial: Partial<IAlertaAlimentariaRepositorio> = {},
+): IAlertaAlimentariaRepositorio {
+  return {
+    crear: vi.fn(async (a: AlertaAlimentaria) => a),
+    actualizar: vi.fn(async (a: AlertaAlimentaria) => a),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    listarPorPaciente: vi.fn(async () => []),
+    ...parcial,
+  };
+}
+
+export function mockLaboratorioRepositorio(
+  parcial: Partial<ILaboratorioRepositorio> = {},
+): ILaboratorioRepositorio {
+  return {
+    crear: vi.fn(async (l: Laboratorio) => l),
+    actualizar: vi.fn(async (l: Laboratorio) => l),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    listarPorPaciente: vi.fn(async () => []),
+    ...parcial,
+  };
+}
+
+export function mockRegistroDiarioRepositorio(
+  parcial: Partial<IRegistroDiarioRepositorio> = {},
+): IRegistroDiarioRepositorio {
+  return {
+    crear: vi.fn(async (r: RegistroDiario) => r),
+    actualizarEscalares: vi.fn(async (r: RegistroDiario) => r),
+    obtenerPorPacienteYFecha: vi.fn(async () => null),
+    listarPorRango: vi.fn(async () => []),
+    contarRegistros: vi.fn(async () => 0),
+    agregarComida: vi.fn(async () => {}),
+    eliminarComida: vi.fn(async () => {}),
+    obtenerComida: vi.fn(async () => null),
+    agregarActividad: vi.fn(async () => {}),
+    eliminarActividad: vi.fn(async () => {}),
+    obtenerActividad: vi.fn(async () => null),
+    ...parcial,
+  };
+}
+
+export function mockRecetaRepositorio(
+  parcial: Partial<IRecetaRepositorio> = {},
+): IRecetaRepositorio {
+  return {
+    crear: vi.fn(async (r: Receta) => r),
+    actualizar: vi.fn(async (r: Receta) => r),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    listar: vi.fn(async () => []),
+    asignarAPaciente: vi.fn(async () => {}),
+    desasignarDePaciente: vi.fn(async () => {}),
+    listarPorPaciente: vi.fn(async () => []),
+    listarPacientesAsignados: vi.fn(async () => []),
+    ...parcial,
+  };
+}
+
+export function mockPlanRepositorio(
+  parcial: Partial<IPlanRepositorio> = {},
+): IPlanRepositorio {
+  return {
+    crear: vi.fn(async (p: PlanNutricional) => p),
+    actualizar: vi.fn(async (p: PlanNutricional) => p),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    listar: vi.fn(async () => []),
+    marcarArchivado: vi.fn(async () => {}),
+    contarAsignacionesActivasDePlan: vi.fn(async () => 0),
+    asignarAPaciente: vi.fn(async (a) => a),
+    desactivarAsignacionesDe: vi.fn(async () => {}),
+    obtenerAsignacionActiva: vi.fn(async () => null),
+    obtenerPlanActivoDePaciente: vi.fn(async () => null),
+    listarAsignacionesActivasVencidas: vi.fn(async () => []),
+    ...parcial,
+  };
+}
+
+export function mockSuplementoRepositorio(
+  parcial: Partial<ISuplementoRepositorio> = {},
+): ISuplementoRepositorio {
+  return {
+    crear: vi.fn(async (s: Suplemento) => s),
+    actualizar: vi.fn(async (s: Suplemento) => s),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    listarPorPaciente: vi.fn(async () => []),
+    ...parcial,
+  };
+}
+
+export function mockAlertaSeguimientoRepositorio(
+  parcial: Partial<IAlertaSeguimientoRepositorio> = {},
+): IAlertaSeguimientoRepositorio {
+  return {
+    crearSiNoExistePendiente: vi.fn(async () => true),
+    actualizar: vi.fn(async (a: AlertaSeguimiento) => a),
+    obtenerPorId: vi.fn(async () => null),
+    listarPendientes: vi.fn(async () => []),
+    contarPendientes: vi.fn(async () => 0),
+    ...parcial,
+  };
+}
+
+export function mockObjetivoRepositorio(
+  parcial: Partial<IObjetivoRepositorio> = {},
+): IObjetivoRepositorio {
+  return {
+    crear: vi.fn(async (o: Objetivo) => o),
+    actualizar: vi.fn(async (o: Objetivo) => o),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    listarPorPaciente: vi.fn(async () => []),
+    agregarEstrategia: vi.fn(async () => {}),
+    actualizarEstrategia: vi.fn(async () => {}),
+    eliminarEstrategia: vi.fn(async () => {}),
+    listarHistorial: vi.fn(async () => []),
+    ...parcial,
+  };
+}
+
+export function mockMaterialRepositorio(
+  parcial: Partial<IMaterialRepositorio> = {},
+): IMaterialRepositorio {
+  return {
+    crear: vi.fn(async (m: MaterialBiblioteca) => m),
+    actualizar: vi.fn(async (m: MaterialBiblioteca) => m),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    listar: vi.fn(async () => []),
+    asignarAPaciente: vi.fn(async () => {}),
+    desasignarDePaciente: vi.fn(async () => {}),
+    listarPorPaciente: vi.fn(async () => []),
+    listarPacientesAsignados: vi.fn(async () => []),
+    ...parcial,
+  };
+}
+
+export function mockServicioEmail(parcial: Partial<IServicioEmail> = {}): IServicioEmail {
+  return {
+    enviar: vi.fn(async () => {}),
+    ...parcial,
+  };
+}
+
+export function mockColaTrabajos(parcial: Partial<IColaTrabajos> = {}): IColaTrabajos {
+  return {
+    encolar: vi.fn(async () => {}),
+    ...parcial,
+  };
+}
+
+export function mockReloj(fecha = new Date("2026-07-14T12:00:00Z")): IRelojFecha {
+  return {
+    ahora: vi.fn(() => fecha),
+    hoy: vi.fn(
+      () =>
+        new Date(
+          Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
+        ),
+    ),
   };
 }
 
@@ -116,16 +361,215 @@ export function turnoEjemplo(cambios: Partial<DatosNuevoTurno> = {}, id = "tur-1
   );
 }
 
-export function dietaEjemplo(cambios: Partial<DatosNuevaDieta> = {}, id = "die-1"): Dieta {
-  let contador = 0;
-  return Dieta.crear(
+export function archivoEjemplo(
+  cambios: Partial<DatosNuevoArchivo> = {},
+  id = "arc-1",
+): Archivo {
+  return Archivo.crear(
     {
-      nombre: "Plan estándar",
-      descripcion: null,
-      comidas: [{ tipo: "DESAYUNO", descripcion: "Avena", calorias: 300 }],
+      nombreOriginal: "analisis.pdf",
+      mimeType: "application/pdf",
+      tamanoBytes: 1024,
+      contexto: "laboratorio",
       ...cambios,
     },
     id,
-    () => `com-${++contador}`,
+  );
+}
+
+export function historiaClinicaEjemplo(
+  cambios: Partial<DatosHistoriaClinica> = {},
+  id = "his-1",
+): HistoriaClinica {
+  return HistoriaClinica.crear(
+    {
+      pacienteId: "pac-1",
+      motivoConsulta: "Descenso de peso",
+      ...cambios,
+    },
+    id,
+  );
+}
+
+export function antropometriaEjemplo(
+  cambios: Partial<DatosNuevaAntropometria> = {},
+  id = "ant-1",
+): Antropometria {
+  return Antropometria.crear(
+    {
+      pacienteId: "pac-1",
+      fecha: new Date("2026-07-01"),
+      pesoKg: 80,
+      pliegueTricipital: 10,
+      pliegueSubescapular: 15,
+      pliegueSupraespinal: 12,
+      pliegueAbdominal: 20,
+      pliegueMuslo: 16,
+      plieguePantorrilla: 11,
+      ...cambios,
+    },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function alertaAlimentariaEjemplo(
+  cambios: Partial<DatosNuevaAlertaAlimentaria> = {},
+  id = "ale-1",
+): AlertaAlimentaria {
+  return AlertaAlimentaria.crear(
+    {
+      pacienteId: "pac-1",
+      tipo: "INTOLERANCIA",
+      descripcion: "Lactosa",
+      ...cambios,
+    },
+    id,
+  );
+}
+
+export function laboratorioEjemplo(
+  cambios: Partial<DatosNuevoLaboratorio> = {},
+  id = "lab-1",
+): Laboratorio {
+  return Laboratorio.crear(
+    {
+      pacienteId: "pac-1",
+      fecha: new Date("2026-07-01"),
+      titulo: "Perfil lipídico",
+      ...cambios,
+    },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function registroDiarioEjemplo(
+  cambios: Partial<DatosDia> = {},
+  id = "reg-1",
+): RegistroDiario {
+  return RegistroDiario.crear(
+    {
+      pacienteId: "pac-1",
+      fecha: new Date("2026-07-10"),
+      pesoKg: 78.5,
+      aguaMl: 1500,
+      ...cambios,
+    },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function planEjemplo(
+  cambios: Partial<DatosNuevoPlan> = {},
+  id = "pla-1",
+): PlanNutricional {
+  let contador = 0;
+  return PlanNutricional.crear(
+    {
+      nombre: "Plan descenso",
+      esPlantilla: false,
+      caloriasMeta: 2000,
+      comidas: [
+        {
+          nombre: "Desayuno",
+          horaDesde: "08:00",
+          opciones: [
+            { contenido: "Café con leche + tostadas" },
+            { contenido: "Yogur con granola" },
+          ],
+        },
+      ],
+      equivalencias: [{ titulo: "1 fruta", detalle: "1 manzana o 1 banana chica" }],
+      recomendaciones: [{ tipo: "NUTRICIONAL", texto: "Tomar 2 L de agua por día." }],
+      ...cambios,
+    },
+    id,
+    () => `hijo-${++contador}`,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function objetivoEjemplo(
+  cambios: Partial<DatosNuevoObjetivo> = {},
+  id = "obj-1",
+): Objetivo {
+  return Objetivo.crear(
+    {
+      pacienteId: "pac-1",
+      titulo: "Bajar 5 kg",
+      prioridad: "ALTA",
+      fechaObjetivo: new Date("2026-10-01"),
+      ...cambios,
+    },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function materialEjemplo(
+  cambios: Partial<DatosNuevoMaterial> = {},
+  id = "mat-1",
+): MaterialBiblioteca {
+  return MaterialBiblioteca.crear(
+    {
+      tipo: "ENLACE",
+      titulo: "Guía de porciones",
+      url: "https://ejemplo.com/guia",
+      categoria: "educación",
+      ...cambios,
+    },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function suplementoEjemplo(
+  cambios: Partial<DatosNuevoSuplemento> = {},
+  id = "sup-1",
+): Suplemento {
+  return Suplemento.crear(
+    {
+      pacienteId: "pac-1",
+      nombre: "Creatina monohidrato",
+      dosis: "5 g",
+      frecuencia: "todos los días",
+      ...cambios,
+    },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function alertaSeguimientoEjemplo(
+  cambios: Partial<DatosNuevaAlertaSeguimiento> = {},
+  id = "als-1",
+): AlertaSeguimiento {
+  return AlertaSeguimiento.crear(
+    {
+      pacienteId: "pac-1",
+      tipo: "SIN_REGISTRO_PESO",
+      detalle: "Ana García no registra su peso hace 7 días.",
+      ...cambios,
+    },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function recetaEjemplo(cambios: Partial<DatosNuevaReceta> = {}, id = "rec-1"): Receta {
+  return Receta.crear(
+    {
+      nombre: "Tortilla de espinaca",
+      porciones: 2,
+      preparacion: "Batir, cocinar, servir.",
+      ingredientes: ["2 huevos", "1 taza de espinaca"],
+      etiquetas: ["vegetariano"],
+      calorias: 250,
+      ...cambios,
+    },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
   );
 }

@@ -2,7 +2,14 @@ import { auth } from "@/lib/autenticacion/auth";
 import {
   servicioPaciente,
   servicioTurno,
-  servicioDieta,
+  servicioArchivo,
+  servicioEvaluacion,
+  servicioDiario,
+  servicioReceta,
+  servicioPlan,
+  servicioObjetivo,
+  servicioBiblioteca,
+  servicioSeguimiento,
 } from "@/infraestructura/contenedor/contenedor";
 import type { RolUsuario } from "@/dominio/entidades/Usuario";
 
@@ -42,7 +49,14 @@ export async function crearContexto() {
     servicios: {
       paciente: servicioPaciente,
       turno: servicioTurno,
-      dieta: servicioDieta,
+      archivo: servicioArchivo,
+      evaluacion: servicioEvaluacion,
+      diario: servicioDiario,
+      receta: servicioReceta,
+      plan: servicioPlan,
+      objetivo: servicioObjetivo,
+      biblioteca: servicioBiblioteca,
+      seguimiento: servicioSeguimiento,
     },
   };
 }

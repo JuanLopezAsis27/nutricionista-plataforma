@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, FileDown, UserPlus, CircleOff } from "lucide-react";
 import Link from "next/link";
 import { usePacientes } from "@/lib/hooks/usePacientes";
 import { useTurnos } from "@/lib/hooks/useTurnos";
-import { useDietas } from "@/lib/hooks/useDietas";
+import { usePlanes } from "@/lib/hooks/usePlanes";
 import { formatearFecha } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
@@ -14,8 +14,18 @@ import { Skeleton } from "@/componentes/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/componentes/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/componentes/ui/dialog";
 import { EstadoBadge } from "@/componentes/comunes/EstadoBadge";
+import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { FormularioPaciente } from "@/componentes/pacientes/FormularioPaciente";
-import { VistaDieta } from "@/componentes/dietas/VistaDieta";
+import { VistaPlan } from "@/componentes/planes/VistaPlan";
+import { BadgesAlertas, GestionAlertas } from "@/componentes/evaluacion/AlertasPaciente";
+import { FormularioHistoriaClinica } from "@/componentes/evaluacion/FormularioHistoriaClinica";
+import { SeccionAntropometria } from "@/componentes/evaluacion/SeccionAntropometria";
+import { ListaLaboratorios } from "@/componentes/evaluacion/ListaLaboratorios";
+import { ArchivosPaciente } from "@/componentes/evaluacion/ArchivosPaciente";
+import { DiarioPacienteVista } from "@/componentes/diario/DiarioPacienteVista";
+import { SeccionInformes } from "@/componentes/seguimiento/SeccionInformes";
+import { SeccionSuplementos } from "@/componentes/seguimiento/SeccionSuplementos";
+import { ObjetivosPaciente } from "@/componentes/objetivos/ObjetivosPaciente";
 
 export default function PaginaDetallePaciente() {
   const params = useParams<{ id: string }>();
@@ -23,13 +33,14 @@ export default function PaginaDetallePaciente() {
 
   const { obtenerPorId } = usePacientes();
   const { porPaciente } = useTurnos();
-  const { delPaciente } = useDietas();
+  const { delPaciente, desasignar } = usePlanes();
 
   const [editar, setEditar] = useState(false);
+  const [confirmarDesasignar, setConfirmarDesasignar] = useState(false);
 
   const paciente = obtenerPorId({ id });
   const turnos = porPaciente({ pacienteId: id });
-  const dieta = delPaciente({ pacienteId: id });
+  const plan = delPaciente({ pacienteId: id });
 
   if (paciente.isLoading) {
     return <Skeleton className="h-40 w-full" />;
@@ -61,11 +72,13 @@ export default function PaginaDetallePaciente() {
 
       <Card>
         <CardHeader className="flex flex-row items-start justify-between">
-          <div>
+          <div className="space-y-2">
             <CardTitle className="text-2xl">
               {p.nombre} {p.apellido}
             </CardTitle>
             <p className="text-sm text-muted-foreground">{p.email}</p>
+            {/* Alergias e intolerancias: visibles SIEMPRE, en cualquier pestaña. */}
+            <BadgesAlertas pacienteId={id} />
           </div>
           <Button variant="outline" onClick={() => setEditar(true)}>
             <Pencil className="h-4 w-4" />
@@ -90,12 +103,40 @@ export default function PaginaDetallePaciente() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="turnos">
-        <TabsList>
+      <Tabs defaultValue="evaluacion">
+        <TabsList className="h-auto flex-wrap">
+          <TabsTrigger value="evaluacion">Evaluación</TabsTrigger>
+          <TabsTrigger value="informes">Informes</TabsTrigger>
+          <TabsTrigger value="objetivos">Objetivos</TabsTrigger>
+          <TabsTrigger value="diario">Diario</TabsTrigger>
           <TabsTrigger value="turnos">Turnos</TabsTrigger>
-          <TabsTrigger value="dieta">Dieta actual</TabsTrigger>
-          <TabsTrigger value="historial">Historial</TabsTrigger>
+          <TabsTrigger value="plan">Plan actual</TabsTrigger>
+          <TabsTrigger value="suplementos">Suplementos</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="evaluacion" className="space-y-8">
+          <SeccionAntropometria pacienteId={id} />
+          <GestionAlertas pacienteId={id} />
+          <FormularioHistoriaClinica pacienteId={id} />
+          <ListaLaboratorios pacienteId={id} />
+          <ArchivosPaciente pacienteId={id} />
+        </TabsContent>
+
+        <TabsContent value="informes">
+          <SeccionInformes pacienteId={id} />
+        </TabsContent>
+
+        <TabsContent value="objetivos">
+          <ObjetivosPaciente pacienteId={id} />
+        </TabsContent>
+
+        <TabsContent value="suplementos">
+          <SeccionSuplementos pacienteId={id} />
+        </TabsContent>
+
+        <TabsContent value="diario">
+          <DiarioPacienteVista pacienteId={id} />
+        </TabsContent>
 
         <TabsContent value="turnos">
           {turnos.isLoading ? (
@@ -116,24 +157,62 @@ export default function PaginaDetallePaciente() {
           )}
         </TabsContent>
 
-        <TabsContent value="dieta">
-          {dieta.isLoading ? (
+        <TabsContent value="plan" className="space-y-4">
+          {plan.isLoading ? (
             <Skeleton className="h-32 w-full" />
-          ) : dieta.data ? (
-            <VistaDieta dieta={dieta.data} />
+          ) : plan.data ? (
+            <>
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button asChild variant="outline" size="sm">
+                  <a
+                    href={`/api/planes/${plan.data.id}/pdf?paciente=${id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <FileDown className="h-4 w-4" />
+                    PDF
+                  </a>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmarDesasignar(true)}
+                >
+                  <CircleOff className="h-4 w-4" />
+                  Finalizar plan
+                </Button>
+              </div>
+              <VistaPlan plan={plan.data} />
+            </>
           ) : (
-            <p className="text-sm text-muted-foreground">
-              El paciente no tiene una dieta activa asignada.
-            </p>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                El paciente no tiene un plan activo asignado.
+              </p>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/dashboard/planes">
+                  <UserPlus className="h-4 w-4" />
+                  Ir a planes para asignarle uno
+                </Link>
+              </Button>
+            </div>
           )}
         </TabsContent>
-
-        <TabsContent value="historial">
-          <p className="text-sm text-muted-foreground">
-            El historial de dietas anteriores estará disponible próximamente.
-          </p>
-        </TabsContent>
       </Tabs>
+
+      <ModalConfirmacion
+        abierto={confirmarDesasignar}
+        titulo="Finalizar plan"
+        descripcion={`¿Finalizar el plan activo de ${p.nombre}? El paciente quedará sin plan asignado.`}
+        cargando={desasignar.isPending}
+        onCancelar={() => setConfirmarDesasignar(false)}
+        onConfirmar={() =>
+          desasignar.mutate(
+            { pacienteId: id },
+            { onSuccess: () => setConfirmarDesasignar(false) },
+          )
+        }
+      />
 
       <Dialog open={editar} onOpenChange={setEditar}>
         <DialogContent>

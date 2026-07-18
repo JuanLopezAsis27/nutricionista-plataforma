@@ -1,0 +1,84 @@
+import { Users, Flame } from "lucide-react";
+import type { RecetaSalidaDto } from "@/aplicacion/dtos/receta.dto";
+import { Badge } from "@/componentes/ui/badge";
+
+/**
+ * Vista de solo lectura de una receta (detalle del recetario y portal).
+ * Las fotos se sirven vía /api/archivos/[id] (302 a URL firmada).
+ */
+export function VistaReceta({ receta }: { receta: RecetaSalidaDto }) {
+  const macros = [
+    receta.calorias != null && `${receta.calorias} kcal`,
+    receta.proteinasG != null && `${receta.proteinasG} g prot`,
+    receta.carbohidratosG != null && `${receta.carbohidratosG} g carb`,
+    receta.grasasG != null && `${receta.grasasG} g grasas`,
+  ].filter(Boolean);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+        {receta.porciones != null && (
+          <span className="flex items-center gap-1">
+            <Users className="h-4 w-4" /> {receta.porciones} porción(es)
+          </span>
+        )}
+        {macros.length > 0 && (
+          <span className="flex items-center gap-1">
+            <Flame className="h-4 w-4" /> {macros.join(" · ")}
+          </span>
+        )}
+      </div>
+
+      {receta.descripcion && <p className="text-sm">{receta.descripcion}</p>}
+
+      {receta.etiquetas.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {receta.etiquetas.map((etiqueta) => (
+            <Badge key={etiqueta} variant="secondary">
+              {etiqueta}
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      {receta.fotos.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {receta.fotos.map((foto) => (
+            <a
+              key={foto.id}
+              href={`/api/archivos/${foto.id}`}
+              target="_blank"
+              rel="noreferrer"
+              title={foto.nombreOriginal}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- URL firmada temporal, no optimizable */}
+              <img
+                src={`/api/archivos/${foto.id}`}
+                alt={`Foto de ${receta.nombre}`}
+                className="h-28 w-28 rounded-lg border object-cover"
+              />
+            </a>
+          ))}
+        </div>
+      )}
+
+      {receta.ingredientes.length > 0 && (
+        <div>
+          <h3 className="mb-1 font-semibold">Ingredientes</h3>
+          <ul className="list-inside list-disc space-y-0.5 text-sm">
+            {receta.ingredientes.map((ingrediente, indice) => (
+              <li key={indice}>{ingrediente}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {receta.preparacion && (
+        <div>
+          <h3 className="mb-1 font-semibold">Preparación</h3>
+          <p className="whitespace-pre-line text-sm">{receta.preparacion}</p>
+        </div>
+      )}
+    </div>
+  );
+}

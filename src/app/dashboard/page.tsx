@@ -2,10 +2,11 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { Users, CalendarDays, CalendarClock, Salad } from "lucide-react";
+import { Users, CalendarDays, CalendarClock, ClipboardList } from "lucide-react";
 import { usePacientes } from "@/lib/hooks/usePacientes";
 import { useTurnos } from "@/lib/hooks/useTurnos";
-import { useDietas } from "@/lib/hooks/useDietas";
+import { usePlanes } from "@/lib/hooks/usePlanes";
+import { PanelAlertas } from "@/componentes/seguimiento/PanelAlertas";
 import { aFechaISO } from "@/lib/formato";
 import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
 import { Skeleton } from "@/componentes/ui/skeleton";
@@ -43,11 +44,11 @@ function Metrica({
 export default function PaginaDashboard() {
   const { listar: listarPacientes } = usePacientes();
   const { listar: listarTurnos, actualizarEstado } = useTurnos();
-  const { listar: listarDietas } = useDietas();
+  const { listar: listarPlanes } = usePlanes();
 
   const pacientes = listarPacientes({ pagina: 1, porPagina: 100 });
   const turnos = listarTurnos({});
-  const dietas = listarDietas();
+  const planes = listarPlanes(undefined);
 
   const hoy = aFechaISO(new Date());
 
@@ -70,7 +71,7 @@ export default function PaginaDashboard() {
     return { turnosHoy, cantidadSemana };
   }, [turnos.data, hoy]);
 
-  const cargandoMetricas = pacientes.isLoading || turnos.isLoading || dietas.isLoading;
+  const cargandoMetricas = pacientes.isLoading || turnos.isLoading || planes.isLoading;
 
   return (
     <div className="space-y-6">
@@ -94,10 +95,10 @@ export default function PaginaDashboard() {
           cargando={turnos.isLoading}
         />
         <Metrica
-          titulo="Dietas creadas"
-          valor={dietas.data?.length ?? 0}
-          icono={Salad}
-          cargando={dietas.isLoading}
+          titulo="Planes vigentes"
+          valor={planes.data?.length ?? 0}
+          icono={ClipboardList}
+          cargando={planes.isLoading}
         />
       </div>
 
@@ -145,6 +146,8 @@ export default function PaginaDashboard() {
           )}
         </CardContent>
       </Card>
+
+      <PanelAlertas />
     </div>
   );
 }

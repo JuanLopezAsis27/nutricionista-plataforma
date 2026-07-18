@@ -2,131 +2,160 @@
  * Contenedor de inyección de dependencias (manual, sin librerías).
  *
  * Este es el ÚNICO lugar donde se instancian las implementaciones concretas
- * (Prisma) y se "enchufan" en los casos de uso y servicios. El resto de la
- * aplicación depende solo de interfaces y servicios, nunca de Prisma.
+ * (Prisma, bucket S3, bcrypt) y se "enchufan" en los casos de uso y
+ * servicios. El resto de la aplicación depende solo de interfaces y
+ * servicios, nunca de las implementaciones.
  *
- * Flujo de cableado:
- *   PrismaClient → Repositorios (implementan interfaces del dominio)
- *               → Casos de uso (reciben las interfaces)
- *               → Servicios de aplicación (reciben los casos de uso)
+ * El armado de cada módulo (casos de uso → servicio) vive en ./modulos/*;
+ * acá solo se crean los adaptadores compartidos y se ensambla.
+ *
+ * IMPORTANTE: este archivo no debe importar nada de Next (lo consume también
+ * el worker de trabajos en segundo plano).
  */
 
 import { PrismaClienteSingleton } from "@/infraestructura/repositorios/PrismaClienteSingleton";
-
 import { PrismaRepositorioPaciente } from "@/infraestructura/repositorios/PrismaRepositorioPaciente";
 import { PrismaRepositorioTurno } from "@/infraestructura/repositorios/PrismaRepositorioTurno";
-import { PrismaRepositorioDieta } from "@/infraestructura/repositorios/PrismaRepositorioDieta";
 import { PrismaRepositorioUsuario } from "@/infraestructura/repositorios/PrismaRepositorioUsuario";
+import { PrismaRepositorioArchivo } from "@/infraestructura/repositorios/PrismaRepositorioArchivo";
+import { PrismaRepositorioHistoriaClinica } from "@/infraestructura/repositorios/PrismaRepositorioHistoriaClinica";
+import { PrismaRepositorioAntropometria } from "@/infraestructura/repositorios/PrismaRepositorioAntropometria";
+import { PrismaRepositorioAlertaAlimentaria } from "@/infraestructura/repositorios/PrismaRepositorioAlertaAlimentaria";
+import { PrismaRepositorioLaboratorio } from "@/infraestructura/repositorios/PrismaRepositorioLaboratorio";
+import { PrismaRepositorioRegistroDiario } from "@/infraestructura/repositorios/PrismaRepositorioRegistroDiario";
+import { PrismaRepositorioReceta } from "@/infraestructura/repositorios/PrismaRepositorioReceta";
+import { PrismaRepositorioPlan } from "@/infraestructura/repositorios/PrismaRepositorioPlan";
+import { PrismaRepositorioObjetivo } from "@/infraestructura/repositorios/PrismaRepositorioObjetivo";
+import { PrismaRepositorioMaterial } from "@/infraestructura/repositorios/PrismaRepositorioMaterial";
+import { PrismaRepositorioSuplemento } from "@/infraestructura/repositorios/PrismaRepositorioSuplemento";
+import { PrismaRepositorioAlertaSeguimiento } from "@/infraestructura/repositorios/PrismaRepositorioAlertaSeguimiento";
 import { BcryptHasheador } from "@/infraestructura/seguridad/BcryptHasheador";
+import { AlmacenamientoMinIO } from "@/infraestructura/almacenamiento/AlmacenamientoMinIO";
+import { RelojSistema } from "@/infraestructura/fecha/RelojSistema";
 
-// Casos de uso — Pacientes
-import { CrearPaciente } from "@/dominio/casos-de-uso/pacientes/CrearPaciente";
-import { ObtenerPacientes } from "@/dominio/casos-de-uso/pacientes/ObtenerPacientes";
-import { ObtenerPacientePorId } from "@/dominio/casos-de-uso/pacientes/ObtenerPacientePorId";
-import { ActualizarPaciente } from "@/dominio/casos-de-uso/pacientes/ActualizarPaciente";
-import { EliminarPaciente } from "@/dominio/casos-de-uso/pacientes/EliminarPaciente";
+import { crearServicioPaciente } from "./modulos/pacientes";
+import { crearServicioTurno } from "./modulos/turnos";
+import { crearServicioArchivo } from "./modulos/archivos";
+import { crearServicioEvaluacion } from "./modulos/evaluacion";
+import { crearServicioDiario } from "./modulos/diario";
+import { crearServicioReceta } from "./modulos/recetas";
+import { crearServicioPlan } from "./modulos/planes";
+import { crearServicioObjetivo } from "./modulos/objetivos";
+import { crearServicioBiblioteca } from "./modulos/biblioteca";
+import { crearServicioSeguimiento } from "./modulos/seguimiento";
 
-// Casos de uso — Turnos
-import { AgendarTurno } from "@/dominio/casos-de-uso/turnos/AgendarTurno";
-import { ObtenerTurnos } from "@/dominio/casos-de-uso/turnos/ObtenerTurnos";
-import { ObtenerTurnosPorPaciente } from "@/dominio/casos-de-uso/turnos/ObtenerTurnosPorPaciente";
-import { ActualizarEstadoTurno } from "@/dominio/casos-de-uso/turnos/ActualizarEstadoTurno";
-import { CancelarTurno } from "@/dominio/casos-de-uso/turnos/CancelarTurno";
-import { ReprogramarTurno } from "@/dominio/casos-de-uso/turnos/ReprogramarTurno";
-
-// Casos de uso — Dietas
-import { CrearDieta } from "@/dominio/casos-de-uso/dietas/CrearDieta";
-import { ObtenerDietas } from "@/dominio/casos-de-uso/dietas/ObtenerDietas";
-import { ObtenerDietaPorId } from "@/dominio/casos-de-uso/dietas/ObtenerDietaPorId";
-import { ActualizarDieta } from "@/dominio/casos-de-uso/dietas/ActualizarDieta";
-import { EliminarDieta } from "@/dominio/casos-de-uso/dietas/EliminarDieta";
-import { AsignarDietaAPaciente } from "@/dominio/casos-de-uso/dietas/AsignarDietaAPaciente";
-import { ObtenerDietaDelPaciente } from "@/dominio/casos-de-uso/dietas/ObtenerDietaDelPaciente";
-
-// Servicios de aplicación
-import { ServicioPaciente } from "@/aplicacion/servicios/ServicioPaciente";
-import { ServicioTurno } from "@/aplicacion/servicios/ServicioTurno";
-import { ServicioDieta } from "@/aplicacion/servicios/ServicioDieta";
-
-// --- 1. Cliente de base de datos ---------------------------------------------
+// --- 1. Adaptadores compartidos ------------------------------------------------
 const prisma = PrismaClienteSingleton.obtenerInstancia();
 
-// --- 2. Repositorios (adaptadores de salida) ---------------------------------
 const repositorioPaciente = new PrismaRepositorioPaciente(prisma);
 const repositorioTurno = new PrismaRepositorioTurno(prisma);
-const repositorioDieta = new PrismaRepositorioDieta(prisma);
 const repositorioUsuario = new PrismaRepositorioUsuario(prisma);
+const repositorioArchivo = new PrismaRepositorioArchivo(prisma);
+const repositorioHistoriaClinica = new PrismaRepositorioHistoriaClinica(prisma);
+const repositorioAntropometria = new PrismaRepositorioAntropometria(prisma);
+const repositorioAlertaAlimentaria = new PrismaRepositorioAlertaAlimentaria(prisma);
+const repositorioLaboratorio = new PrismaRepositorioLaboratorio(prisma);
+const repositorioRegistroDiario = new PrismaRepositorioRegistroDiario(prisma);
+const repositorioReceta = new PrismaRepositorioReceta(prisma);
+const repositorioPlan = new PrismaRepositorioPlan(prisma);
+const repositorioObjetivo = new PrismaRepositorioObjetivo(prisma);
+const repositorioMaterial = new PrismaRepositorioMaterial(prisma);
+const repositorioSuplemento = new PrismaRepositorioSuplemento(prisma);
+const repositorioAlertaSeguimiento = new PrismaRepositorioAlertaSeguimiento(prisma);
 
-// Servicios de infraestructura
 const hasheador = new BcryptHasheador();
+const almacenamiento = new AlmacenamientoMinIO();
+const reloj = new RelojSistema();
 
-// --- 3. Casos de uso ---------------------------------------------------------
-// Pacientes
-const crearPaciente = new CrearPaciente(repositorioPaciente, repositorioUsuario, hasheador);
-const obtenerPacientes = new ObtenerPacientes(repositorioPaciente);
-const obtenerPacientePorId = new ObtenerPacientePorId(repositorioPaciente);
-const actualizarPaciente = new ActualizarPaciente(repositorioPaciente, repositorioUsuario);
-const eliminarPaciente = new EliminarPaciente(repositorioPaciente, repositorioUsuario);
+// --- 2. Servicios de aplicación (armados por módulo) ---------------------------
+export const servicioPaciente = crearServicioPaciente({
+  pacientes: repositorioPaciente,
+  usuarios: repositorioUsuario,
+  hasheador,
+});
 
-// Turnos
-const agendarTurno = new AgendarTurno(repositorioTurno, repositorioPaciente);
-const obtenerTurnos = new ObtenerTurnos(repositorioTurno);
-const obtenerTurnosPorPaciente = new ObtenerTurnosPorPaciente(
-  repositorioTurno,
-  repositorioPaciente,
-);
-const actualizarEstadoTurno = new ActualizarEstadoTurno(repositorioTurno);
-const cancelarTurno = new CancelarTurno(repositorioTurno, actualizarEstadoTurno);
-const reprogramarTurno = new ReprogramarTurno(repositorioTurno);
+export const servicioTurno = crearServicioTurno({
+  turnos: repositorioTurno,
+  pacientes: repositorioPaciente,
+});
 
-// Dietas
-const crearDieta = new CrearDieta(repositorioDieta);
-const obtenerDietas = new ObtenerDietas(repositorioDieta);
-const obtenerDietaPorId = new ObtenerDietaPorId(repositorioDieta);
-const actualizarDieta = new ActualizarDieta(repositorioDieta);
-const eliminarDieta = new EliminarDieta(repositorioDieta);
-const asignarDietaAPaciente = new AsignarDietaAPaciente(repositorioDieta, repositorioPaciente);
-const obtenerDietaDelPaciente = new ObtenerDietaDelPaciente(
-  repositorioDieta,
-  repositorioPaciente,
-);
+export const servicioArchivo = crearServicioArchivo({
+  archivos: repositorioArchivo,
+  recetas: repositorioReceta,
+  materiales: repositorioMaterial,
+  almacenamiento,
+});
 
-// --- 4. Servicios de aplicación ----------------------------------------------
-export const servicioPaciente = new ServicioPaciente(
-  crearPaciente,
-  obtenerPacientes,
-  obtenerPacientePorId,
-  actualizarPaciente,
-  eliminarPaciente,
-);
+export const servicioEvaluacion = crearServicioEvaluacion({
+  historias: repositorioHistoriaClinica,
+  antropometrias: repositorioAntropometria,
+  alertas: repositorioAlertaAlimentaria,
+  laboratorios: repositorioLaboratorio,
+  archivos: repositorioArchivo,
+  pacientes: repositorioPaciente,
+  almacenamiento,
+});
 
-export const servicioTurno = new ServicioTurno(
-  agendarTurno,
-  obtenerTurnos,
-  obtenerTurnosPorPaciente,
-  actualizarEstadoTurno,
-  cancelarTurno,
-  reprogramarTurno,
-);
+export const servicioDiario = crearServicioDiario({
+  registros: repositorioRegistroDiario,
+  pacientes: repositorioPaciente,
+  archivos: repositorioArchivo,
+  almacenamiento,
+});
 
-export const servicioDieta = new ServicioDieta(
-  crearDieta,
-  obtenerDietas,
-  obtenerDietaPorId,
-  actualizarDieta,
-  eliminarDieta,
-  asignarDietaAPaciente,
-  obtenerDietaDelPaciente,
-);
+export const servicioReceta = crearServicioReceta({
+  recetas: repositorioReceta,
+  pacientes: repositorioPaciente,
+  archivos: repositorioArchivo,
+  almacenamiento,
+});
+
+export const servicioPlan = crearServicioPlan({
+  planes: repositorioPlan,
+  pacientes: repositorioPaciente,
+});
+
+export const servicioObjetivo = crearServicioObjetivo({
+  objetivos: repositorioObjetivo,
+  pacientes: repositorioPaciente,
+});
+
+export const servicioBiblioteca = crearServicioBiblioteca({
+  materiales: repositorioMaterial,
+  pacientes: repositorioPaciente,
+  archivos: repositorioArchivo,
+  almacenamiento,
+});
+
+export const servicioSeguimiento = crearServicioSeguimiento({
+  suplementos: repositorioSuplemento,
+  alertas: repositorioAlertaSeguimiento,
+  pacientes: repositorioPaciente,
+  registros: repositorioRegistroDiario,
+  antropometrias: repositorioAntropometria,
+  planes: repositorioPlan,
+  turnos: repositorioTurno,
+  reloj,
+});
 
 // El repositorio de usuario se expone para la configuración de Auth.js.
 export const repositorioUsuarioCompartido = repositorioUsuario;
+
+// El reloj se expone para casos de uso futuros que razonan sobre el tiempo.
+export const relojCompartido = reloj;
 
 /** Agrupación opcional para inyectar todo el contenedor en el contexto tRPC. */
 export const contenedor = {
   servicioPaciente,
   servicioTurno,
-  servicioDieta,
+  servicioArchivo,
+  servicioEvaluacion,
+  servicioDiario,
+  servicioReceta,
+  servicioPlan,
+  servicioObjetivo,
+  servicioBiblioteca,
+  servicioSeguimiento,
   repositorioUsuario,
 } as const;
 

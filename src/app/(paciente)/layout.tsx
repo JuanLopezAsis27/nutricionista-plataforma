@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/autenticacion/auth";
-import { NavPaciente } from "@/componentes/layout/NavPaciente";
+import { BarraLateralPaciente } from "@/componentes/layout/BarraLateralPaciente";
 
 /**
  * Layout del portal del paciente.
  *
  * Verifica la sesión en el servidor: sin sesión redirige a /login; si el
- * usuario es NUTRICIONISTA lo manda al panel. Navegación simple superior.
+ * usuario es NUTRICIONISTA lo manda al panel. Sidebar colapsable (como el
+ * panel del nutricionista) y contenido ancho.
  */
 export default async function LayoutPaciente({
   children,
@@ -23,9 +24,11 @@ export default async function LayoutPaciente({
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <NavPaciente email={sesion.user.email} />
-      <main className="mx-auto max-w-4xl p-4">{children}</main>
+    <div className="min-h-screen bg-muted/30 md:flex md:h-screen md:overflow-hidden">
+      <BarraLateralPaciente email={sesion.user.email} />
+      <main className="min-w-0 flex-1 md:overflow-y-auto">
+        <div className="mx-auto w-full max-w-6xl p-4 md:p-6">{children}</div>
+      </main>
     </div>
   );
 }

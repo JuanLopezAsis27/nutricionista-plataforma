@@ -25,11 +25,11 @@ export default async function LayoutDashboard({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="min-h-screen md:flex md:h-screen md:overflow-hidden">
       <BarraLateral email={sesion.user.email} />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col md:overflow-hidden">
         <BarraSuperior email={sesion.user.email} />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 p-4 md:overflow-y-auto md:p-6">{children}</main>
       </div>
     </div>
   );

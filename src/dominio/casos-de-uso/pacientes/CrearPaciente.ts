@@ -15,7 +15,7 @@ export interface DatosNuevoPacienteConAcceso extends DatosNuevoPaciente {
  *
  * La app es multiusuario: el nutricionista crea la ficha del paciente y, en el
  * mismo acto, su usuario con rol PACIENTE (mismo email, contraseña hasheada).
- * Así el paciente puede iniciar sesión y ver sus turnos y su dieta.
+ * Así el paciente puede iniciar sesión y ver sus turnos y su plan.
  *
  * Responsabilidad: validar unicidad del email (en pacientes y usuarios),
  * persistir el paciente, hashear la contraseña y crear el usuario. Si falla la

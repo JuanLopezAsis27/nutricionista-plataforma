@@ -11,6 +11,16 @@ const config: NextConfig = {
   output: "standalone",
   // Las variables de entorno sensibles nunca se exponen al cliente.
   // Solo las que empiezan con NEXT_PUBLIC_ llegan al navegador.
+
+  // Fase 3: el módulo Dietas evolucionó a Planes Nutricionales.
+  // Los enlaces/favoritos viejos siguen funcionando.
+  async redirects() {
+    return [
+      { source: "/dashboard/dietas", destination: "/dashboard/planes", permanent: true },
+      { source: "/dashboard/dietas/:id", destination: "/dashboard/planes", permanent: true },
+      { source: "/mi-dieta", destination: "/mi-plan", permanent: true },
+    ];
+  },
 };
 
 export default config;

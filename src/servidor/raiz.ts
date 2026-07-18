@@ -1,7 +1,14 @@
 import { crearRouter, crearCallerFactory } from "./trpc";
 import { routerPacientes } from "./routers/pacientes";
 import { routerTurnos } from "./routers/turnos";
-import { routerDietas } from "./routers/dietas";
+import { routerEvaluacion } from "./routers/evaluacion";
+import { routerArchivos } from "./routers/archivos";
+import { routerDiario } from "./routers/diario";
+import { routerRecetas } from "./routers/recetas";
+import { routerPlanes } from "./routers/planes";
+import { routerObjetivos } from "./routers/objetivos";
+import { routerBiblioteca } from "./routers/biblioteca";
+import { routerSeguimiento } from "./routers/seguimiento";
 
 /**
  * Router raíz: combina todos los sub-routers de la aplicación.
@@ -11,7 +18,14 @@ import { routerDietas } from "./routers/dietas";
 export const routerApp = crearRouter({
   pacientes: routerPacientes,
   turnos: routerTurnos,
-  dietas: routerDietas,
+  evaluacion: routerEvaluacion,
+  archivos: routerArchivos,
+  diario: routerDiario,
+  recetas: routerRecetas,
+  planes: routerPlanes,
+  objetivos: routerObjetivos,
+  biblioteca: routerBiblioteca,
+  seguimiento: routerSeguimiento,
 });
 
 /** Tipo del router raíz, exportado para el cliente. */

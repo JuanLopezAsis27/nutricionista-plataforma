@@ -4,7 +4,7 @@
  */
 export default function LayoutAuth({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted p-4">
+    <main className="patron-puntos flex min-h-screen items-center justify-center bg-muted p-4">
       {children}
     </main>
   );

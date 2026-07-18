@@ -1,9 +1,10 @@
 # Docker Compose para desarrollo local.
-# Levanta PostgreSQL 18 con un volumen persistente.
+# Levanta PostgreSQL 18, MinIO (bucket S3-compatible para archivos) y
+# Mailpit (sink de emails de desarrollo: SMTP en 1025, UI web en 8025).
 #
-#   docker compose up -d        → inicia la base de datos
-#   docker compose down         → la detiene (conserva los datos)
-#   docker compose down -v      → la detiene y BORRA los datos
+#   docker compose up -d        → inicia los servicios
+#   docker compose down         → los detiene (conserva los datos)
+#   docker compose down -v      → los detiene y BORRA los datos
 #
 # NOTA: la imagen postgres:18 cambió el layout del directorio de datos.
 # Fijamos PGDATA a un subdirectorio para usar el layout clásico y evitar el
@@ -30,6 +31,39 @@ services:
       timeout: 5s
       retries: 5
 
+  # Bucket S3-compatible para archivos (fotos de recetas, laboratorios, etc).
+  # Consola web en http://localhost:9001 (usuario/clave = S3_ACCESS_KEY/S3_SECRET_KEY).
+  minio:
+    image: minio/minio
+    container_name: nutricionista_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minio_admin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-cambiame_en_local}
+    ports:
+      - "${S3_PORT:-9000}:9000"
+      - "${S3_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - datos_minio:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Sink de emails para desarrollo: todo lo que la app "envía" se ve en
+  # http://localhost:8025 (nada sale a internet).
+  mailpit:
+    image: axllent/mailpit
+    container_name: nutricionista_mailpit
+    restart: unless-stopped
+    ports:
+      - "${SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+
 volumes:
   datos_postgres:
     name: nutricionista_datos_postgres
+  datos_minio:
+    name: nutricionista_datos_minio

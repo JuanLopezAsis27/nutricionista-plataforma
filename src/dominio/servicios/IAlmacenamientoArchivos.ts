@@ -1,0 +1,18 @@
+/**
+ * Puerto de almacenamiento de objetos (bucket S3-compatible).
+ * El dominio solo conoce esta interfaz; la implementación concreta
+ * (MinIO en desarrollo, S3/R2 en producción) vive en infraestructura.
+ */
+export interface IAlmacenamientoArchivos {
+  /** Sube el contenido bajo la clave dada. Sobrescribe si ya existe. */
+  subir(clave: string, contenido: Uint8Array, mimeType: string): Promise<void>;
+
+  /** URL firmada de solo lectura, válida por el tiempo indicado. */
+  generarUrlLectura(clave: string, expiraEnSegundos: number): Promise<string>;
+
+  /** Elimina el objeto. No falla si la clave no existe. */
+  eliminar(clave: string): Promise<void>;
+
+  /** Claves existentes bajo un prefijo (para limpieza de huérfanos). */
+  listarClaves(prefijo?: string): Promise<string[]>;
+}

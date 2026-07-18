@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
 import { SessionProvider } from "next-auth/react";
+import { ThemeProvider } from "next-themes";
 import superjson from "superjson";
 import { trpc } from "@/lib/trpc";
 
@@ -12,6 +13,7 @@ import { trpc } from "@/lib/trpc";
  *
  * Envuelve la app con:
  *   - SessionProvider (Auth.js) → sesión disponible en el cliente
+ *   - ThemeProvider (next-themes) → modo claro/oscuro/sistema (clase en <html>)
  *   - QueryClientProvider (React Query) → caché y estados de las queries
  *   - tRPC client → llamadas type-safe al servidor (/api/trpc)
  *
@@ -40,9 +42,16 @@ export function Proveedores({ children }: { children: ReactNode }) {
 
   return (
     <SessionProvider>
-      <trpc.Provider client={clienteTrpc} queryClient={clienteQuery}>
-        <QueryClientProvider client={clienteQuery}>{children}</QueryClientProvider>
-      </trpc.Provider>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+      >
+        <trpc.Provider client={clienteTrpc} queryClient={clienteQuery}>
+          <QueryClientProvider client={clienteQuery}>{children}</QueryClientProvider>
+        </trpc.Provider>
+      </ThemeProvider>
     </SessionProvider>
   );
 }
