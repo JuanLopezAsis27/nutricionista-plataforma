@@ -16,12 +16,15 @@ declare module "next-auth" {
       email: string;
       rol: RolUsuario;
       pacienteId: string | null;
+      /** Inquilino: nutri = su id; paciente = id de su nutri; superadmin = null. */
+      nutricionistaId: string | null;
     };
   }
 
   interface User {
     rol: RolUsuario;
     pacienteId: string | null;
+    nutricionistaId: string | null;
   }
 }
 
@@ -30,5 +33,6 @@ declare module "next-auth/jwt" {
     id: string;
     rol: RolUsuario;
     pacienteId: string | null;
+    nutricionistaId: string | null;
   }
 }

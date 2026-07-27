@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/autenticacion/auth";
 import { servicioArchivo } from "@/infraestructura/contenedor/contenedor";
 import { aRespuestaError } from "@/servidor/errores-http";
+import { conAlcanceDeSesion } from "@/servidor/alcanceRequest";
 
 export const runtime = "nodejs";
 
@@ -14,7 +15,8 @@ type Parametros = { params: Promise<{ id: string }> };
  * él mismo y a lo que le fue compartido (la regla vive en el caso de uso
  * PuedeVerArchivoPaciente y se amplía fase a fase).
  */
-export async function GET(_solicitud: Request, { params }: Parametros): Promise<NextResponse> {
+export function GET(_solicitud: Request, { params }: Parametros): Promise<NextResponse> {
+  return conAlcanceDeSesion(async () => {
   const sesion = await auth();
   if (!sesion?.user) {
     return NextResponse.json({ error: "Necesitás iniciar sesión." }, { status: 401 });
@@ -38,10 +40,12 @@ export async function GET(_solicitud: Request, { params }: Parametros): Promise<
   } catch (error) {
     return aRespuestaError(error);
   }
+  });
 }
 
 /** DELETE /api/archivos/[id] — elimina metadatos + objeto del bucket. */
-export async function DELETE(_solicitud: Request, { params }: Parametros): Promise<NextResponse> {
+export function DELETE(_solicitud: Request, { params }: Parametros): Promise<NextResponse> {
+  return conAlcanceDeSesion(async () => {
   const sesion = await auth();
   if (!sesion?.user || sesion.user.rol !== "NUTRICIONISTA") {
     return NextResponse.json({ error: "Acción exclusiva del nutricionista." }, { status: 403 });
@@ -54,4 +58,5 @@ export async function DELETE(_solicitud: Request, { params }: Parametros): Promi
   } catch (error) {
     return aRespuestaError(error);
   }
+  });
 }

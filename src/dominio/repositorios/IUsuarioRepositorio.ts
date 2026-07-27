@@ -1,4 +1,4 @@
-import type { Usuario } from "../entidades/Usuario";
+import type { Usuario, RolUsuario } from "../entidades/Usuario";
 
 /**
  * Contrato del repositorio de Usuario (puerto de salida del dominio).
@@ -13,5 +13,7 @@ export interface IUsuarioRepositorio {
   obtenerPorId(id: string): Promise<Usuario | null>;
   obtenerPorEmail(email: string): Promise<Usuario | null>;
   obtenerPorPacienteId(pacienteId: string): Promise<Usuario | null>;
+  /** Usuarios con un rol dado (ej. los NUTRICIONISTA para notificarles). */
+  listarPorRol(rol: RolUsuario): Promise<Usuario[]>;
   eliminarPorPacienteId(pacienteId: string): Promise<void>;
 }

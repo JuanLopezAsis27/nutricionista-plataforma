@@ -57,7 +57,9 @@ export function FormularioLogin() {
 
     // Rutea según el rol del usuario autenticado.
     const sesion = await getSession();
-    const destino = sesion?.user.rol === "NUTRICIONISTA" ? "/dashboard" : "/mis-turnos";
+    const rol = sesion?.user.rol;
+    const destino =
+      rol === "SUPERADMIN" ? "/admin" : rol === "NUTRICIONISTA" ? "/dashboard" : "/mi-inicio";
     router.replace(destino);
     router.refresh();
   }

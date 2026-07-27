@@ -10,6 +10,16 @@ import {
   servicioObjetivo,
   servicioBiblioteca,
   servicioSeguimiento,
+  servicioSecretaria,
+  servicioEstadisticas,
+  servicioMensajeria,
+  servicioNotificaciones,
+  servicioConfiguracion,
+  servicioAxiomas,
+  servicioTracking,
+  servicioSuperAdmin,
+  servicioIA,
+  busEventos,
 } from "@/infraestructura/contenedor/contenedor";
 import type { RolUsuario } from "@/dominio/entidades/Usuario";
 
@@ -19,6 +29,8 @@ export interface UsuarioContexto {
   email: string;
   rol: RolUsuario;
   pacienteId: string | null;
+  /** Inquilino: nutri = su id; paciente = id de su nutri; superadmin = null. */
+  nutricionistaId: string | null;
 }
 
 /**
@@ -39,13 +51,20 @@ export async function crearContexto() {
         email: sesion.user.email,
         rol: sesion.user.rol,
         pacienteId: sesion.user.pacienteId,
+        nutricionistaId: sesion.user.nutricionistaId,
       }
     : null;
+
+  // El alcance de inquilino se fija en el entry point HTTP (conAlcanceDeSesion),
+  // que envuelve toda la request en un AsyncLocalStorage.run — así el alcance
+  // llega de forma confiable a los resolvers (enterWith acá no propagaba).
 
   return {
     sesion,
     usuario,
     rol: usuario?.rol ?? null,
+    // El bus se expone para la subscription de tiempo real (routers/tiempoReal).
+    busEventos,
     servicios: {
       paciente: servicioPaciente,
       turno: servicioTurno,
@@ -57,6 +76,15 @@ export async function crearContexto() {
       objetivo: servicioObjetivo,
       biblioteca: servicioBiblioteca,
       seguimiento: servicioSeguimiento,
+      secretaria: servicioSecretaria,
+      estadisticas: servicioEstadisticas,
+      mensajeria: servicioMensajeria,
+      notificaciones: servicioNotificaciones,
+      configuracion: servicioConfiguracion,
+      axiomas: servicioAxiomas,
+      tracking: servicioTracking,
+      superadmin: servicioSuperAdmin,
+      ia: servicioIA,
     },
   };
 }

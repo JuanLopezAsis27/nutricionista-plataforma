@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/autenticacion/auth";
 import { BarraLateralPaciente } from "@/componentes/layout/BarraLateralPaciente";
+import { TiempoReal } from "@/componentes/tiempo-real/TiempoReal";
 
 /**
  * Layout del portal del paciente.
@@ -22,9 +23,13 @@ export default async function LayoutPaciente({
   if (sesion.user.rol === "NUTRICIONISTA") {
     redirect("/dashboard");
   }
+  if (sesion.user.rol === "SUPERADMIN") {
+    redirect("/admin");
+  }
 
   return (
     <div className="min-h-screen bg-muted/30 md:flex md:h-screen md:overflow-hidden">
+      <TiempoReal />
       <BarraLateralPaciente email={sesion.user.email} />
       <main className="min-w-0 flex-1 md:overflow-y-auto">
         <div className="mx-auto w-full max-w-6xl p-4 md:p-6">{children}</div>

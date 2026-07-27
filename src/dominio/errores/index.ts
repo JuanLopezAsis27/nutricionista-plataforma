@@ -19,3 +19,6 @@ export { ErrorObjetivoNoEncontrado } from "./ErrorObjetivoNoEncontrado";
 export { ErrorMaterialNoEncontrado } from "./ErrorMaterialNoEncontrado";
 export { ErrorSuplementoNoEncontrado } from "./ErrorSuplementoNoEncontrado";
 export { ErrorAlertaSeguimientoNoEncontrada } from "./ErrorAlertaSeguimientoNoEncontrada";
+export { ErrorPlantillaNoEncontrada } from "./ErrorPlantillaNoEncontrada";
+export { ErrorConversacionNoEncontrada } from "./ErrorConversacionNoEncontrada";
+export { ErrorAxiomaNoEncontrado } from "./ErrorAxiomaNoEncontrado";

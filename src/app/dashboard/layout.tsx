@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/autenticacion/auth";
 import { BarraLateral } from "@/componentes/layout/BarraLateral";
 import { BarraSuperior } from "@/componentes/layout/BarraSuperior";
+import { TiempoReal } from "@/componentes/tiempo-real/TiempoReal";
 
 /**
  * Layout del panel del nutricionista.
@@ -20,12 +21,16 @@ export default async function LayoutDashboard({
   if (!sesion?.user) {
     redirect("/login");
   }
+  if (sesion.user.rol === "SUPERADMIN") {
+    redirect("/admin");
+  }
   if (sesion.user.rol !== "NUTRICIONISTA") {
-    redirect("/mis-turnos");
+    redirect("/mi-inicio");
   }
 
   return (
     <div className="min-h-screen md:flex md:h-screen md:overflow-hidden">
+      <TiempoReal />
       <BarraLateral email={sesion.user.email} />
       <div className="flex min-w-0 flex-1 flex-col md:overflow-hidden">
         <BarraSuperior email={sesion.user.email} />

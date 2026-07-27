@@ -110,6 +110,7 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
         franja: comida.franja,
         hora: comida.hora,
         descripcion: comida.descripcion,
+        porcion: comida.porcion,
         creadoEn: comida.creadoEn,
       },
     });
@@ -178,6 +179,7 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
         franja: comida.franja,
         hora: comida.hora,
         descripcion: comida.descripcion,
+        porcion: comida.porcion,
         fotoArchivoId: comida.foto?.id ?? null,
         creadoEn: comida.creadoEn,
       })),

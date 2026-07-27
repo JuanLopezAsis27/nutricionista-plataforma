@@ -3,6 +3,7 @@ import type { ObtenerPacientes } from "@/dominio/casos-de-uso/pacientes/ObtenerP
 import type { ObtenerPacientePorId } from "@/dominio/casos-de-uso/pacientes/ObtenerPacientePorId";
 import type { ActualizarPaciente } from "@/dominio/casos-de-uso/pacientes/ActualizarPaciente";
 import type { EliminarPaciente } from "@/dominio/casos-de-uso/pacientes/EliminarPaciente";
+import type { EnviarEmailDeBienvenida } from "@/dominio/casos-de-uso/pacientes/EnviarEmailDeBienvenida";
 import type { Paciente } from "@/dominio/entidades/Paciente";
 import type {
   CrearPacienteConAccesoDto,
@@ -26,10 +27,17 @@ export class ServicioPaciente {
     private readonly obtenerPorIdUC: ObtenerPacientePorId,
     private readonly actualizarUC: ActualizarPaciente,
     private readonly eliminarUC: EliminarPaciente,
+    private readonly enviarBienvenidaUC: EnviarEmailDeBienvenida,
   ) {}
 
   async crearPaciente(datos: CrearPacienteConAccesoDto): Promise<PacienteSalidaDto> {
     const paciente = await this.crearUC.ejecutar(datos);
+    // Email de bienvenida best-effort: nunca hace fallar el alta del paciente.
+    try {
+      await this.enviarBienvenidaUC.ejecutar(paciente.nombreCompleto, paciente.email);
+    } catch (error) {
+      console.error("[bienvenida] no se pudo enviar el email de bienvenida:", error);
+    }
     return ServicioPaciente.aSalida(paciente);
   }
 

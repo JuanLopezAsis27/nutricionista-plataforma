@@ -1,5 +1,6 @@
 import type { PgBoss } from "pg-boss";
 import { servicioArchivo } from "@/infraestructura/contenedor/contenedor";
+import { ejecutarGlobal } from "@/infraestructura/multitenancy/contextoTenant";
 
 export const COLA_LIMPIAR_ARCHIVOS = "limpiar-archivos-huerfanos";
 
@@ -11,7 +12,9 @@ export async function registrarLimpiarArchivosHuerfanos(boss: PgBoss): Promise<v
   await boss.createQueue(COLA_LIMPIAR_ARCHIVOS);
 
   await boss.work(COLA_LIMPIAR_ARCHIVOS, async () => {
-    const resultado = await servicioArchivo.limpiarHuerfanos();
+    // Archivo no es tabla de inquilino, pero corremos en alcance global por las
+    // dudas (la limpieza del bucket es transversal a todos los consultorios).
+    const resultado = await ejecutarGlobal(() => servicioArchivo.limpiarHuerfanos());
     console.log(
       `[worker] limpieza de huérfanos: ${resultado.objetosEliminados} objeto(s) eliminados.`,
     );

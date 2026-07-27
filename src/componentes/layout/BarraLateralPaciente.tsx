@@ -1,29 +1,43 @@
 "use client";
 
 import {
+  Home,
   CalendarDays,
   NotebookPen,
   ClipboardList,
   BookOpen,
   Library,
+  Target,
+  TrendingUp,
+  MessageSquare,
+  Sparkles,
 } from "lucide-react";
 import { SidebarNav, type EnlaceNav } from "@/componentes/layout/SidebarNav";
 import { ToggleTema } from "@/componentes/comunes/ToggleTema";
-
-const ENLACES: EnlaceNav[] = [
-  { href: "/mi-diario", etiqueta: "Mi diario", icono: NotebookPen },
-  { href: "/mi-plan", etiqueta: "Mi plan", icono: ClipboardList },
-  { href: "/mis-recetas", etiqueta: "Mis recetas", icono: BookOpen },
-  { href: "/mi-material", etiqueta: "Mi material", icono: Library },
-  { href: "/mis-turnos", etiqueta: "Mis turnos", icono: CalendarDays },
-];
+import { useMensajeria } from "@/lib/hooks/useMensajeria";
 
 /** Barra lateral del portal del paciente (colapsable, con menú móvil). */
 export function BarraLateralPaciente({ email }: { email: string }) {
+  const { misNoLeidos } = useMensajeria();
+  const sinLeer = misNoLeidos().data ?? 0;
+
+  const enlaces: EnlaceNav[] = [
+    { href: "/mi-inicio", etiqueta: "Inicio", icono: Home, exacto: true },
+    { href: "/mensajes", etiqueta: "Mensajes", icono: MessageSquare, badge: sinLeer },
+    { href: "/mi-diario", etiqueta: "Mi diario", icono: NotebookPen },
+    { href: "/mi-progreso", etiqueta: "Mi progreso", icono: TrendingUp },
+    { href: "/mi-plan", etiqueta: "Mi plan", icono: ClipboardList },
+    { href: "/mis-objetivos", etiqueta: "Mis objetivos", icono: Target },
+    { href: "/mis-recetas", etiqueta: "Mis recetas", icono: BookOpen },
+    { href: "/mi-material", etiqueta: "Mi material", icono: Library },
+    { href: "/mis-turnos", etiqueta: "Mis turnos", icono: CalendarDays },
+    { href: "/asistente", etiqueta: "Asistente IA", icono: Sparkles },
+  ];
+
   return (
     <SidebarNav
       marca="Mi portal"
-      enlaces={ENLACES}
+      enlaces={enlaces}
       email={email}
       claveAlmacen="sidebar-paciente-colapsada"
       accionesMovil={<ToggleTema />}

@@ -29,6 +29,7 @@ import { FormularioTurno } from "@/componentes/turnos/FormularioTurno";
 import { FormularioReprogramar } from "@/componentes/turnos/FormularioReprogramar";
 import { CalendarioTurnos } from "@/componentes/turnos/CalendarioTurnos";
 import { AccionesTurno } from "@/componentes/turnos/AccionesTurno";
+import { CobroTurno } from "@/componentes/turnos/CobroTurno";
 
 type Vista = "lista" | "calendario";
 
@@ -40,6 +41,7 @@ export default function PaginaTurnos() {
   const [filtroEstado, setFiltroEstado] = useState<EstadoTurno | "TODOS">("TODOS");
   const [filtroFecha, setFiltroFecha] = useState("");
   const [agendarAbierto, setAgendarAbierto] = useState(false);
+  const [fechaParaAgendar, setFechaParaAgendar] = useState<string | null>(null);
   const [turnoReprogramar, setTurnoReprogramar] = useState<TurnoSalidaDto | null>(null);
   const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(null);
 
@@ -76,6 +78,7 @@ export default function PaginaTurnos() {
     { clave: "hora", encabezado: "Hora", render: (t) => t.hora },
     { clave: "duracion", encabezado: "Duración", render: (t) => `${t.duracionMinutos} min` },
     { clave: "estado", encabezado: "Estado", render: (t) => <EstadoBadge estado={t.estado} /> },
+    { clave: "cobro", encabezado: "Cobro", render: (t) => <CobroTurno turno={t} /> },
     {
       clave: "acciones",
       encabezado: "Acciones",
@@ -133,7 +136,12 @@ export default function PaginaTurnos() {
             />
           )}
 
-          <Button onClick={() => setAgendarAbierto(true)}>
+          <Button
+            onClick={() => {
+              setFechaParaAgendar(null);
+              setAgendarAbierto(true);
+            }}
+          >
             <Plus className="h-4 w-4" />
             Agendar turno
           </Button>
@@ -171,7 +179,10 @@ export default function PaginaTurnos() {
           <DialogHeader>
             <DialogTitle>Agendar turno</DialogTitle>
           </DialogHeader>
-          <FormularioTurno onTerminado={() => setAgendarAbierto(false)} />
+          <FormularioTurno
+            fechaInicial={fechaParaAgendar ?? undefined}
+            onTerminado={() => setAgendarAbierto(false)}
+          />
         </DialogContent>
       </Dialog>
 
@@ -198,13 +209,16 @@ export default function PaginaTurnos() {
                       <EstadoBadge estado={turno.estado} />
                     </div>
                   </div>
-                  <AccionesTurno
-                    turno={turno}
-                    onReprogramar={(t) => {
-                      setDiaSeleccionado(null);
-                      setTurnoReprogramar(t);
-                    }}
-                  />
+                  <div className="flex items-center gap-1">
+                    <CobroTurno turno={turno} />
+                    <AccionesTurno
+                      turno={turno}
+                      onReprogramar={(t) => {
+                        setDiaSeleccionado(null);
+                        setTurnoReprogramar(t);
+                      }}
+                    />
+                  </div>
                 </li>
               ))}
             </ul>
@@ -212,6 +226,7 @@ export default function PaginaTurnos() {
           <div className="flex justify-end">
             <Button
               onClick={() => {
+                setFechaParaAgendar(diaSeleccionado);
                 setDiaSeleccionado(null);
                 setAgendarAbierto(true);
               }}

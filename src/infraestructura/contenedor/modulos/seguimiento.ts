@@ -5,7 +5,9 @@ import type { IRegistroDiarioRepositorio } from "@/dominio/repositorios/IRegistr
 import type { IAntropometriaRepositorio } from "@/dominio/repositorios/IAntropometriaRepositorio";
 import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
 import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio";
+import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
+import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
 import { RegistrarSuplemento } from "@/dominio/casos-de-uso/seguimiento/RegistrarSuplemento";
 import { ActualizarSuplemento } from "@/dominio/casos-de-uso/seguimiento/ActualizarSuplemento";
 import { EliminarSuplemento } from "@/dominio/casos-de-uso/seguimiento/EliminarSuplemento";
@@ -27,7 +29,9 @@ export function crearServicioSeguimiento(deps: {
   antropometrias: IAntropometriaRepositorio;
   planes: IPlanRepositorio;
   turnos: ITurnoRepositorio;
+  usuarios: IUsuarioRepositorio;
   reloj: IRelojFecha;
+  bus: IBusEventos;
 }): ServicioSeguimiento {
   return new ServicioSeguimiento(
     new RegistrarSuplemento(deps.suplementos, deps.pacientes),
@@ -47,5 +51,7 @@ export function crearServicioSeguimiento(deps: {
     new ResolverAlerta(deps.alertas),
     new ObtenerInformeProgreso(deps.antropometrias, deps.registros, deps.pacientes),
     new ObtenerInformeHabitos(deps.registros, deps.pacientes),
+    deps.usuarios,
+    deps.bus,
   );
 }

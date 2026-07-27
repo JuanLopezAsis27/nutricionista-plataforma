@@ -21,6 +21,8 @@ export interface EnlaceNav {
   etiqueta: string;
   icono: LucideIcon;
   exacto?: boolean;
+  /** Contador (ej. mensajes no leídos); se muestra como badge si es > 0. */
+  badge?: number;
 }
 
 interface PropsSidebarNav {
@@ -82,21 +84,41 @@ export function SidebarNav({
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         {enlaces.map((enlace) => {
           const Icono = enlace.icono;
+          const activo = esActivo(enlace);
+          const tieneBadge = Boolean(enlace.badge && enlace.badge > 0);
           return (
             <Link
               key={enlace.href}
               href={enlace.href}
               title={enlace.etiqueta}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                "relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                 !conEtiquetas && "justify-center px-2",
-                esActivo(enlace)
+                activo
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground",
               )}
             >
               <Icono className="h-4 w-4 shrink-0" />
-              {conEtiquetas && enlace.etiqueta}
+              {conEtiquetas && <span className="flex-1 truncate">{enlace.etiqueta}</span>}
+              {tieneBadge &&
+                (conEtiquetas ? (
+                  <span
+                    className={cn(
+                      "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
+                      activo ? "bg-background text-foreground" : "bg-primary text-primary-foreground",
+                    )}
+                  >
+                    {enlace.badge! > 9 ? "9+" : enlace.badge}
+                  </span>
+                ) : (
+                  <span
+                    className={cn(
+                      "absolute right-1.5 top-1.5 h-2 w-2 rounded-full",
+                      activo ? "bg-background" : "bg-primary",
+                    )}
+                  />
+                ))}
             </Link>
           );
         })}

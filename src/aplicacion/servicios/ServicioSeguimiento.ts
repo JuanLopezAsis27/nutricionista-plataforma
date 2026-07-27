@@ -11,6 +11,8 @@ import type { ContarAlertasPendientes } from "@/dominio/casos-de-uso/seguimiento
 import type { ResolverAlerta } from "@/dominio/casos-de-uso/seguimiento/ResolverAlerta";
 import type { ObtenerInformeProgreso } from "@/dominio/casos-de-uso/seguimiento/ObtenerInformeProgreso";
 import type { ObtenerInformeHabitos } from "@/dominio/casos-de-uso/seguimiento/ObtenerInformeHabitos";
+import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
+import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
 import type { Suplemento } from "@/dominio/entidades/Suplemento";
 import type { AlertaSeguimiento } from "@/dominio/entidades/AlertaSeguimiento";
 import type {
@@ -40,6 +42,8 @@ export class ServicioSeguimiento {
     private readonly resolverAlertaUC: ResolverAlerta,
     private readonly informeProgresoUC: ObtenerInformeProgreso,
     private readonly informeHabitosUC: ObtenerInformeHabitos,
+    private readonly usuarios: IUsuarioRepositorio,
+    private readonly bus: IBusEventos,
   ) {}
 
   // --- Suplementos ---------------------------------------------------------
@@ -74,7 +78,20 @@ export class ServicioSeguimiento {
   // --- Alertas -------------------------------------------------------------
 
   async generarAlertas(): Promise<ResultadoGeneracion> {
-    return this.generarAlertasUC.ejecutar();
+    const resultado = await this.generarAlertasUC.ejecutar();
+    // Notifica en tiempo real a los nutricionistas para que su campana se
+    // actualice al instante (sin polling).
+    if (resultado.generadas > 0) {
+      const nutris = await this.usuarios.listarPorRol("NUTRICIONISTA");
+      for (const nutri of nutris) {
+        await this.bus.publicar({
+          tipo: "alerta.nueva",
+          usuarioId: nutri.id,
+          datos: { generadas: resultado.generadas },
+        });
+      }
+    }
+    return resultado;
   }
 
   async obtenerAlertasPendientes(): Promise<AlertaSalidaDto[]> {

@@ -54,6 +54,33 @@ export function aFechaISO(fecha: Date | string | null | undefined): string {
   return new Date(fecha).toISOString().slice(0, 10);
 }
 
+const ZONA_ARGENTINA = "America/Argentina/Buenos_Aires";
+
+// en-CA formatea como YYYY-MM-DD, ideal para comparar e inicializar inputs date.
+const formateadorFechaArg = new Intl.DateTimeFormat("en-CA", {
+  timeZone: ZONA_ARGENTINA,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+const formateadorHoraArg = new Intl.DateTimeFormat("es-AR", {
+  timeZone: ZONA_ARGENTINA,
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
+/** Fecha de HOY en horario argentino (YYYY-MM-DD), independiente del huso del navegador. */
+export function hoyArgentinaISO(): string {
+  return formateadorFechaArg.format(new Date());
+}
+
+/** Hora actual en horario argentino como "HH:mm". */
+export function horaArgentinaHHmm(): string {
+  return formateadorHoraArg.format(new Date());
+}
+
 export const ETIQUETAS_ESTADO_TURNO: Record<EstadoTurno, string> = {
   PENDIENTE: "Pendiente",
   CONFIRMADO: "Confirmado",
@@ -80,6 +107,17 @@ const formateadorNumero = new Intl.NumberFormat("es-AR", {
 /** Formatea un número con hasta 1 decimal (es-AR); "—" si es null. */
 export function formatearNumero(valor: number | null | undefined): string {
   return valor == null ? "—" : formateadorNumero.format(valor);
+}
+
+const formateadorMoneda = new Intl.NumberFormat("es-AR", {
+  style: "currency",
+  currency: "ARS",
+  maximumFractionDigits: 0,
+});
+
+/** Formatea un monto en pesos argentinos ("$ 15.000"); "—" si es null. */
+export function formatearMoneda(valor: number | null | undefined): string {
+  return valor == null ? "—" : formateadorMoneda.format(valor);
 }
 
 /** Tamaño de archivo legible ("240 KB", "1,2 MB"). */

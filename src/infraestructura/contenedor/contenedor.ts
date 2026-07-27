@@ -29,9 +29,21 @@ import { PrismaRepositorioObjetivo } from "@/infraestructura/repositorios/Prisma
 import { PrismaRepositorioMaterial } from "@/infraestructura/repositorios/PrismaRepositorioMaterial";
 import { PrismaRepositorioSuplemento } from "@/infraestructura/repositorios/PrismaRepositorioSuplemento";
 import { PrismaRepositorioAlertaSeguimiento } from "@/infraestructura/repositorios/PrismaRepositorioAlertaSeguimiento";
+import { PrismaRepositorioPlantillaEmail } from "@/infraestructura/repositorios/PrismaRepositorioPlantillaEmail";
+import { PrismaRepositorioEmailEnviado } from "@/infraestructura/repositorios/PrismaRepositorioEmailEnviado";
+import { PrismaRepositorioEstadisticas } from "@/infraestructura/repositorios/PrismaRepositorioEstadisticas";
+import { PrismaRepositorioMensajeria } from "@/infraestructura/repositorios/PrismaRepositorioMensajeria";
+import { PrismaRepositorioHistorialIA } from "@/infraestructura/repositorios/PrismaRepositorioHistorialIA";
+import { PrismaRepositorioConfiguracion } from "@/infraestructura/repositorios/PrismaRepositorioConfiguracion";
+import { PrismaRepositorioAxioma } from "@/infraestructura/repositorios/PrismaRepositorioAxioma";
+import { AsistenteNutricionalStub } from "@/infraestructura/ia/AsistenteNutricionalStub";
+import { AnalisisComidaIAStub } from "@/infraestructura/ia/AnalisisComidaIAStub";
+import { AnalisisPredictivoStub } from "@/infraestructura/ia/AnalisisPredictivoStub";
 import { BcryptHasheador } from "@/infraestructura/seguridad/BcryptHasheador";
 import { AlmacenamientoMinIO } from "@/infraestructura/almacenamiento/AlmacenamientoMinIO";
 import { RelojSistema } from "@/infraestructura/fecha/RelojSistema";
+import { NodemailerServicioEmail } from "@/infraestructura/email/NodemailerServicioEmail";
+import { BusEventosPostgres } from "@/infraestructura/tiempo-real/BusEventosPostgres";
 
 import { crearServicioPaciente } from "./modulos/pacientes";
 import { crearServicioTurno } from "./modulos/turnos";
@@ -43,6 +55,16 @@ import { crearServicioPlan } from "./modulos/planes";
 import { crearServicioObjetivo } from "./modulos/objetivos";
 import { crearServicioBiblioteca } from "./modulos/biblioteca";
 import { crearServicioSeguimiento } from "./modulos/seguimiento";
+import { crearServicioSecretaria } from "./modulos/secretaria";
+import { crearServicioEstadisticas } from "./modulos/estadisticas";
+import { crearServicioMensajeria } from "./modulos/mensajeria";
+import { crearServicioNotificaciones } from "./modulos/notificaciones";
+import { crearServicioConfiguracion } from "./modulos/configuracion";
+import { crearServicioAxiomas } from "./modulos/axiomas";
+import { crearServicioTracking } from "./modulos/tracking";
+import { crearServicioSuperAdmin } from "./modulos/superadmin";
+import { crearServicioIA } from "./modulos/ia";
+import { ProvisionadorNutricionista } from "@/infraestructura/aprovisionamiento/ProvisionadorNutricionista";
 
 // --- 1. Adaptadores compartidos ------------------------------------------------
 const prisma = PrismaClienteSingleton.obtenerInstancia();
@@ -62,16 +84,40 @@ const repositorioObjetivo = new PrismaRepositorioObjetivo(prisma);
 const repositorioMaterial = new PrismaRepositorioMaterial(prisma);
 const repositorioSuplemento = new PrismaRepositorioSuplemento(prisma);
 const repositorioAlertaSeguimiento = new PrismaRepositorioAlertaSeguimiento(prisma);
+const repositorioPlantillaEmail = new PrismaRepositorioPlantillaEmail(prisma);
+const repositorioEmailEnviado = new PrismaRepositorioEmailEnviado(prisma);
+const repositorioEstadisticas = new PrismaRepositorioEstadisticas(prisma);
+const repositorioMensajeria = new PrismaRepositorioMensajeria(prisma);
+const repositorioHistorialIA = new PrismaRepositorioHistorialIA(prisma);
+const repositorioConfiguracion = new PrismaRepositorioConfiguracion(prisma);
+const repositorioAxioma = new PrismaRepositorioAxioma(prisma);
+
+// Adaptadores de IA: hoy stubs; a futuro, adaptadores Claude (solo se cambia acá).
+const asistenteNutricional = new AsistenteNutricionalStub();
+const analisisComidaIA = new AnalisisComidaIAStub();
+const analisisPredictivo = new AnalisisPredictivoStub();
 
 const hasheador = new BcryptHasheador();
 const almacenamiento = new AlmacenamientoMinIO();
 const reloj = new RelojSistema();
+const servicioEmail = new NodemailerServicioEmail();
+
+// Bus de eventos en tiempo real (Postgres LISTEN/NOTIFY). Lo usan los
+// servicios (publicar) y la subscription tRPC (suscribir); el worker solo
+// publica desde su propio proceso.
+export const busEventos = new BusEventosPostgres();
+
+/** Nombre del profesional para membretes y firmas de emails. */
+const NOMBRE_PROFESIONAL = process.env.NOMBRE_PROFESIONAL ?? "Lic. López Asis Nicolás";
 
 // --- 2. Servicios de aplicación (armados por módulo) ---------------------------
 export const servicioPaciente = crearServicioPaciente({
   pacientes: repositorioPaciente,
   usuarios: repositorioUsuario,
+  plantillas: repositorioPlantillaEmail,
   hasheador,
+  servicioEmail,
+  nombreProfesional: NOMBRE_PROFESIONAL,
 });
 
 export const servicioTurno = crearServicioTurno({
@@ -135,7 +181,77 @@ export const servicioSeguimiento = crearServicioSeguimiento({
   antropometrias: repositorioAntropometria,
   planes: repositorioPlan,
   turnos: repositorioTurno,
+  usuarios: repositorioUsuario,
   reloj,
+  bus: busEventos,
+});
+
+export const servicioSecretaria = crearServicioSecretaria({
+  plantillas: repositorioPlantillaEmail,
+  emails: repositorioEmailEnviado,
+  turnos: repositorioTurno,
+  pacientes: repositorioPaciente,
+  usuarios: repositorioUsuario,
+  servicioEmail,
+  reloj,
+  bus: busEventos,
+  nombreProfesional: NOMBRE_PROFESIONAL,
+});
+
+export const servicioEstadisticas = crearServicioEstadisticas({
+  estadisticas: repositorioEstadisticas,
+});
+
+export const servicioMensajeria = crearServicioMensajeria({
+  mensajeria: repositorioMensajeria,
+  usuarios: repositorioUsuario,
+  bus: busEventos,
+});
+
+// Centro de notificaciones: compone alertas, mensajería y correos (solo lectura).
+export const servicioNotificaciones = crearServicioNotificaciones({
+  alertas: repositorioAlertaSeguimiento,
+  mensajeria: repositorioMensajeria,
+  emails: repositorioEmailEnviado,
+});
+
+export const servicioConfiguracion = crearServicioConfiguracion({
+  configuracion: repositorioConfiguracion,
+});
+
+export const servicioAxiomas = crearServicioAxiomas({
+  axiomas: repositorioAxioma,
+});
+
+// Tracking del paciente: read-model compuesto (diario + plan + axiomas + antropometría).
+export const servicioTracking = crearServicioTracking({
+  pacientes: repositorioPaciente,
+  registros: repositorioRegistroDiario,
+  planes: repositorioPlan,
+  axiomas: repositorioAxioma,
+  antropometrias: repositorioAntropometria,
+});
+
+// SuperAdmin: alta/gestión de cuentas de nutricionista (cada una un inquilino).
+const provisionadorNutricionista = new ProvisionadorNutricionista(
+  repositorioConfiguracion,
+  repositorioPlantillaEmail,
+  repositorioAxioma,
+);
+export const servicioSuperAdmin = crearServicioSuperAdmin({
+  usuarios: repositorioUsuario,
+  hasheador,
+  provisionador: provisionadorNutricionista,
+});
+
+export const servicioIA = crearServicioIA({
+  pacientes: repositorioPaciente,
+  objetivos: repositorioObjetivo,
+  planes: repositorioPlan,
+  historial: repositorioHistorialIA,
+  asistente: asistenteNutricional,
+  analisisComida: analisisComidaIA,
+  analisisPredictivo,
 });
 
 // El repositorio de usuario se expone para la configuración de Auth.js.
@@ -156,6 +272,15 @@ export const contenedor = {
   servicioObjetivo,
   servicioBiblioteca,
   servicioSeguimiento,
+  servicioSecretaria,
+  servicioEstadisticas,
+  servicioMensajeria,
+  servicioNotificaciones,
+  servicioConfiguracion,
+  servicioAxiomas,
+  servicioTracking,
+  servicioSuperAdmin,
+  servicioIA,
   repositorioUsuario,
 } as const;
 

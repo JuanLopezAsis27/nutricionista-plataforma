@@ -43,6 +43,13 @@ export type ListarTurnosDto = z.infer<typeof listarTurnosDto>;
 export const idPacienteTurnosDto = z.object({ pacienteId: z.string().min(1) });
 export type IdPacienteTurnosDto = z.infer<typeof idPacienteTurnosDto>;
 
+export const registrarCobroTurnoDto = z.object({
+  id: z.string().min(1),
+  precio: z.number().min(0).max(10_000_000).nullable(),
+  pagado: z.boolean(),
+});
+export type RegistrarCobroTurnoDto = z.infer<typeof registrarCobroTurnoDto>;
+
 export const turnoSalidaDto = z.object({
   id: z.string(),
   pacienteId: z.string(),
@@ -51,6 +58,8 @@ export const turnoSalidaDto = z.object({
   duracionMinutos: z.number(),
   estado: z.enum(ESTADOS_TURNO),
   notas: z.string().nullable(),
+  precio: z.number().nullable(),
+  pagado: z.boolean(),
   creadoEn: z.date(),
 });
 export type TurnoSalidaDto = z.infer<typeof turnoSalidaDto>;

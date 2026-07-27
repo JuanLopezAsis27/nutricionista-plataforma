@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { httpBatchLink } from "@trpc/client";
+import { httpBatchLink, httpSubscriptionLink, splitLink } from "@trpc/client";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import superjson from "superjson";
@@ -32,9 +32,11 @@ export function Proveedores({ children }: { children: ReactNode }) {
   const [clienteTrpc] = useState(() =>
     trpc.createClient({
       links: [
-        httpBatchLink({
-          url: "/api/trpc",
-          transformer: superjson,
+        // Las subscriptions (tiempo real) van por SSE; el resto por batch HTTP.
+        splitLink({
+          condition: (op) => op.type === "subscription",
+          true: httpSubscriptionLink({ url: "/api/trpc", transformer: superjson }),
+          false: httpBatchLink({ url: "/api/trpc", transformer: superjson }),
         }),
       ],
     }),

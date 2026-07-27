@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { crearRouter, nutricionistaProcedimiento } from "../trpc";
+import { crearRouter, nutricionistaProcedimiento, protegidoProcedimiento } from "../trpc";
 import { aTRPCError } from "../errores-trpc";
+import { ErrorAccesoDenegado } from "@/dominio/errores/ErrorAccesoDenegado";
 import {
   crearObjetivoDto,
   actualizarObjetivoDto,
@@ -26,6 +27,18 @@ export const routerObjetivos = crearRouter({
         throw aTRPCError(error);
       }
     }),
+
+  // Portal: el paciente ve sus objetivos en modo lectura (pacienteId de sesión).
+  mios: protegidoProcedimiento.query(async ({ ctx }) => {
+    try {
+      if (!ctx.usuario.pacienteId) {
+        throw new ErrorAccesoDenegado("Tu usuario no tiene un paciente asociado.");
+      }
+      return await ctx.servicios.objetivo.obtenerObjetivosDePaciente(ctx.usuario.pacienteId);
+    } catch (error) {
+      throw aTRPCError(error);
+    }
+  }),
 
   crear: nutricionistaProcedimiento
     .input(crearObjetivoDto)

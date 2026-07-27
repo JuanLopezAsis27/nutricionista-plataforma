@@ -4,6 +4,7 @@ import { servicioArchivo } from "@/infraestructura/contenedor/contenedor";
 import { subirArchivoDto } from "@/aplicacion/dtos/archivo.dto";
 import type { ContextoArchivo } from "@/dominio/entidades/Archivo";
 import { aRespuestaError } from "@/servidor/errores-http";
+import { conAlcanceDeSesion } from "@/servidor/alcanceRequest";
 
 // La subida de archivos va por route handler (multipart), nunca por tRPC.
 export const runtime = "nodejs";
@@ -15,7 +16,8 @@ export const runtime = "nodejs";
  * Autorización: el nutricionista puede subir en cualquier contexto; el
  * paciente solo fotos de sus comidas ("foto-comida", usado desde la Fase 2).
  */
-export async function POST(request: Request): Promise<NextResponse> {
+export function POST(request: Request): Promise<NextResponse> {
+  return conAlcanceDeSesion(async () => {
   const sesion = await auth();
   if (!sesion?.user) {
     return NextResponse.json({ error: "Necesitás iniciar sesión." }, { status: 401 });
@@ -69,4 +71,5 @@ export async function POST(request: Request): Promise<NextResponse> {
   } catch (error) {
     return aRespuestaError(error);
   }
+  });
 }

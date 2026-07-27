@@ -47,6 +47,14 @@ export function useTurnos() {
     onError: (error) => toast.error(error.message),
   });
 
+  const registrarCobro = trpc.turnos.registrarCobro.useMutation({
+    onSuccess: () => {
+      toast.success("Cobro actualizado.");
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
   return {
     utils,
     listar: trpc.turnos.obtenerTodos.useQuery,
@@ -55,5 +63,6 @@ export function useTurnos() {
     actualizarEstado,
     cancelar,
     reprogramar,
+    registrarCobro,
   };
 }

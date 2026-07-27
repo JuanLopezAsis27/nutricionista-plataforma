@@ -86,6 +86,7 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
   const [franja, setFranja] = useState<string>("Desayuno");
   const [horaComida, setHoraComida] = useState("");
   const [descripcionComida, setDescripcionComida] = useState("");
+  const [porcionComida, setPorcionComida] = useState("");
   const [fotoPara, setFotoPara] = useState<string | null>(null);
 
   // Alta de actividad
@@ -124,11 +125,13 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
         franja,
         hora: horaComida || null,
         descripcion: descripcionComida,
+        porcion: porcionComida.trim() || null,
       },
       {
         onSuccess: () => {
           setDescripcionComida("");
           setHoraComida("");
+          setPorcionComida("");
         },
       },
     );
@@ -257,8 +260,14 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
                   <p className="font-medium">
                     {comida.franja}
                     {comida.hora ? ` · ${comida.hora}` : ""}
+                    {comida.porcion ? (
+                      <span className="font-normal text-muted-foreground">
+                        {" · "}
+                        {comida.porcion}
+                      </span>
+                    ) : null}
                   </p>
-                  <p className="text-muted-foreground">{comida.descripcion}</p>
+                  <p className="whitespace-pre-wrap text-muted-foreground">{comida.descripcion}</p>
                 </div>
                 <span className="flex gap-0.5">
                   {comida.fotoArchivoId ? (
@@ -310,39 +319,47 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
             </div>
           ))}
 
-          <div className="grid gap-2 rounded-md border border-dashed p-3 sm:grid-cols-[10rem_6rem_1fr_auto]">
-            <Select value={franja} onValueChange={setFranja}>
-              <SelectTrigger aria-label="Franja">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {FRANJAS_SUGERIDAS.map((sugerida) => (
-                  <SelectItem key={sugerida} value={sugerida}>
-                    {sugerida}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              type="time"
-              aria-label="Hora"
-              value={horaComida}
-              onChange={(e) => setHoraComida(e.target.value)}
-            />
-            <Input
-              placeholder="¿Qué comiste?"
+          <div className="space-y-2 rounded-md border border-dashed p-3">
+            <div className="grid gap-2 sm:grid-cols-[10rem_6rem_1fr]">
+              <Select value={franja} onValueChange={setFranja}>
+                <SelectTrigger aria-label="Franja">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FRANJAS_SUGERIDAS.map((sugerida) => (
+                    <SelectItem key={sugerida} value={sugerida}>
+                      {sugerida}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                type="time"
+                aria-label="Hora"
+                value={horaComida}
+                onChange={(e) => setHoraComida(e.target.value)}
+              />
+              <Input
+                aria-label="Porción"
+                placeholder="Porción (ej. 1 plato, 200 g)"
+                value={porcionComida}
+                onChange={(e) => setPorcionComida(e.target.value)}
+              />
+            </div>
+            <Textarea
+              rows={2}
+              placeholder="¿Qué comiste? Detallá lo más posible (ingredientes, cantidades, preparación)…"
               value={descripcionComida}
               onChange={(e) => setDescripcionComida(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && descripcionComida.trim()) registrarComida();
-              }}
             />
-            <Button
-              onClick={registrarComida}
-              disabled={agregarComida.isPending || !descripcionComida.trim()}
-            >
-              Agregar
-            </Button>
+            <div className="flex justify-end">
+              <Button
+                onClick={registrarComida}
+                disabled={agregarComida.isPending || !descripcionComida.trim()}
+              >
+                Agregar
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

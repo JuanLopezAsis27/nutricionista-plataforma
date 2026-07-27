@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { authConfig } from "./auth.config";
 import { repositorioUsuarioCompartido } from "@/infraestructura/contenedor/contenedor";
+import { ejecutarGlobal } from "@/infraestructura/multitenancy/contextoTenant";
 
 /**
  * Configuración completa de Auth.js v5 (runtime Node).
@@ -39,8 +40,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         const { email, password } = resultado.data;
-        const usuario = await repositorioUsuarioCompartido.obtenerPorEmail(email);
-        if (!usuario) {
+        // El login busca por email GLOBALMENTE (aún no hay inquilino resuelto).
+        const usuario = await ejecutarGlobal(() =>
+          repositorioUsuarioCompartido.obtenerPorEmail(email),
+        );
+        if (!usuario || !usuario.activo) {
           return null;
         }
 
@@ -55,6 +59,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: usuario.email,
           rol: usuario.rol,
           pacienteId: usuario.pacienteId,
+          nutricionistaId: usuario.nutricionistaId,
         };
       },
     }),

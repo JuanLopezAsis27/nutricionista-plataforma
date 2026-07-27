@@ -23,9 +23,11 @@ import { SeccionAntropometria } from "@/componentes/evaluacion/SeccionAntropomet
 import { ListaLaboratorios } from "@/componentes/evaluacion/ListaLaboratorios";
 import { ArchivosPaciente } from "@/componentes/evaluacion/ArchivosPaciente";
 import { DiarioPacienteVista } from "@/componentes/diario/DiarioPacienteVista";
+import { SeccionTracking } from "@/componentes/tracking/SeccionTracking";
 import { SeccionInformes } from "@/componentes/seguimiento/SeccionInformes";
 import { SeccionSuplementos } from "@/componentes/seguimiento/SeccionSuplementos";
 import { ObjetivosPaciente } from "@/componentes/objetivos/ObjetivosPaciente";
+import { MensajesDePaciente } from "@/componentes/mensajeria/MensajesDePaciente";
 
 export default function PaginaDetallePaciente() {
   const params = useParams<{ id: string }>();
@@ -106,12 +108,14 @@ export default function PaginaDetallePaciente() {
       <Tabs defaultValue="evaluacion">
         <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="evaluacion">Evaluación</TabsTrigger>
+          <TabsTrigger value="progreso">Progreso</TabsTrigger>
           <TabsTrigger value="informes">Informes</TabsTrigger>
           <TabsTrigger value="objetivos">Objetivos</TabsTrigger>
           <TabsTrigger value="diario">Diario</TabsTrigger>
           <TabsTrigger value="turnos">Turnos</TabsTrigger>
           <TabsTrigger value="plan">Plan actual</TabsTrigger>
           <TabsTrigger value="suplementos">Suplementos</TabsTrigger>
+          <TabsTrigger value="mensajes">Mensajes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="evaluacion" className="space-y-8">
@@ -120,6 +124,10 @@ export default function PaginaDetallePaciente() {
           <FormularioHistoriaClinica pacienteId={id} />
           <ListaLaboratorios pacienteId={id} />
           <ArchivosPaciente pacienteId={id} />
+        </TabsContent>
+
+        <TabsContent value="progreso">
+          <SeccionTracking pacienteId={id} />
         </TabsContent>
 
         <TabsContent value="informes">
@@ -132,6 +140,10 @@ export default function PaginaDetallePaciente() {
 
         <TabsContent value="suplementos">
           <SeccionSuplementos pacienteId={id} />
+        </TabsContent>
+
+        <TabsContent value="mensajes">
+          <MensajesDePaciente pacienteId={id} />
         </TabsContent>
 
         <TabsContent value="diario">

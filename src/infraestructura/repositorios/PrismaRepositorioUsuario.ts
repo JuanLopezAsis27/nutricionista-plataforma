@@ -18,6 +18,8 @@ export class PrismaRepositorioUsuario implements IUsuarioRepositorio {
         passwordHash: datos.passwordHash,
         rol: datos.rol,
         pacienteId: datos.pacienteId,
+        nutricionistaId: datos.nutricionistaId,
+        activo: datos.activo,
         creadoEn: datos.creadoEn,
       },
     });
@@ -33,6 +35,7 @@ export class PrismaRepositorioUsuario implements IUsuarioRepositorio {
         passwordHash: datos.passwordHash,
         rol: datos.rol,
         pacienteId: datos.pacienteId,
+        activo: datos.activo,
       },
     });
     return this.mapearAUsuario(fila);
@@ -46,6 +49,11 @@ export class PrismaRepositorioUsuario implements IUsuarioRepositorio {
   async obtenerPorPacienteId(pacienteId: string): Promise<Usuario | null> {
     const fila = await this.prisma.usuario.findUnique({ where: { pacienteId } });
     return fila ? this.mapearAUsuario(fila) : null;
+  }
+
+  async listarPorRol(rol: RolUsuario): Promise<Usuario[]> {
+    const filas = await this.prisma.usuario.findMany({ where: { rol } });
+    return filas.map((fila) => this.mapearAUsuario(fila));
   }
 
   async eliminarPorPacienteId(pacienteId: string): Promise<void> {
@@ -67,6 +75,8 @@ export class PrismaRepositorioUsuario implements IUsuarioRepositorio {
       passwordHash: fila.passwordHash,
       rol: fila.rol as RolUsuario,
       pacienteId: fila.pacienteId,
+      nutricionistaId: fila.nutricionistaId,
+      activo: fila.activo,
       creadoEn: fila.creadoEn,
     });
   }

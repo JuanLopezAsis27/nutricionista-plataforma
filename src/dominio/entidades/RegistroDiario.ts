@@ -26,6 +26,8 @@ export interface ComidaConsumida {
   franja: string;
   hora: string | null;
   descripcion: string;
+  /** Cantidad/porción estimada ("1 plato", "200 g"); null si no se indicó. */
+  porcion: string | null;
   /** Id del Archivo con la foto (null si no tiene). */
   fotoArchivoId: string | null;
   creadoEn: Date;
@@ -36,6 +38,7 @@ export interface DatosNuevaComidaConsumida {
   franja: string;
   hora?: string | null;
   descripcion: string;
+  porcion?: string | null;
 }
 
 /** Actividad física registrada en el diario (hijo del agregado). */
@@ -163,6 +166,7 @@ export class RegistroDiario {
       franja,
       hora: datos.hora ?? null,
       descripcion,
+      porcion: datos.porcion?.trim() || null,
       fotoArchivoId: null,
       creadoEn: ahora,
     };

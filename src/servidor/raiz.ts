@@ -9,6 +9,16 @@ import { routerPlanes } from "./routers/planes";
 import { routerObjetivos } from "./routers/objetivos";
 import { routerBiblioteca } from "./routers/biblioteca";
 import { routerSeguimiento } from "./routers/seguimiento";
+import { routerSecretaria } from "./routers/secretaria";
+import { routerEstadisticas } from "./routers/estadisticas";
+import { routerTiempoReal } from "./routers/tiempoReal";
+import { routerMensajeria } from "./routers/mensajeria";
+import { routerNotificaciones } from "./routers/notificaciones";
+import { routerConfiguracion } from "./routers/configuracion";
+import { routerAxiomas } from "./routers/axiomas";
+import { routerTracking } from "./routers/tracking";
+import { routerSuperAdmin } from "./routers/superadmin";
+import { routerIA } from "./routers/ia";
 
 /**
  * Router raíz: combina todos los sub-routers de la aplicación.
@@ -26,6 +36,16 @@ export const routerApp = crearRouter({
   objetivos: routerObjetivos,
   biblioteca: routerBiblioteca,
   seguimiento: routerSeguimiento,
+  secretaria: routerSecretaria,
+  estadisticas: routerEstadisticas,
+  tiempoReal: routerTiempoReal,
+  mensajeria: routerMensajeria,
+  notificaciones: routerNotificaciones,
+  configuracion: routerConfiguracion,
+  axiomas: routerAxiomas,
+  tracking: routerTracking,
+  superadmin: routerSuperAdmin,
+  ia: routerIA,
 });
 
 /** Tipo del router raíz, exportado para el cliente. */

@@ -1,7 +1,7 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
 
 /** Roles de acceso al sistema. */
-export const ROLES_USUARIO = ["NUTRICIONISTA", "PACIENTE"] as const;
+export const ROLES_USUARIO = ["SUPERADMIN", "NUTRICIONISTA", "PACIENTE"] as const;
 export type RolUsuario = (typeof ROLES_USUARIO)[number];
 
 /** Datos para crear un usuario nuevo (la contraseña ya viene hasheada). */
@@ -10,6 +10,12 @@ export interface DatosNuevoUsuario {
   passwordHash: string;
   rol: RolUsuario;
   pacienteId?: string | null;
+  /**
+   * Inquilino (tenant): el NUTRICIONISTA es su propio inquilino (= su id); un
+   * PACIENTE apunta al id de su nutricionista; el SUPERADMIN es global (null).
+   */
+  nutricionistaId?: string | null;
+  activo?: boolean;
 }
 
 /** Estado completo de un usuario persistido. */
@@ -19,6 +25,8 @@ export interface PropiedadesUsuario {
   passwordHash: string;
   rol: RolUsuario;
   pacienteId: string | null;
+  nutricionistaId: string | null;
+  activo: boolean;
   creadoEn: Date;
 }
 
@@ -51,6 +59,8 @@ export class Usuario {
       passwordHash: datos.passwordHash,
       rol: datos.rol,
       pacienteId: datos.pacienteId ?? null,
+      nutricionistaId: datos.nutricionistaId ?? null,
+      activo: datos.activo ?? true,
       creadoEn: ahora,
     });
   }
@@ -68,18 +78,34 @@ export class Usuario {
     return new Usuario({ ...this.props, email });
   }
 
+  /** Devuelve una copia del usuario activado/desactivado. */
+  cambiarActivo(activo: boolean): Usuario {
+    return new Usuario({ ...this.props, activo });
+  }
+
   /** Garantiza que el rol y el pacienteId sean coherentes entre sí. */
   private static validarCoherenciaRol(rol: RolUsuario, pacienteId: string | null): void {
     if (rol === "PACIENTE" && !pacienteId) {
       throw new ErrorValidacion("Un usuario con rol PACIENTE debe tener un paciente asociado.");
     }
-    if (rol === "NUTRICIONISTA" && pacienteId) {
-      throw new ErrorValidacion("Un usuario NUTRICIONISTA no debe tener un paciente asociado.");
+    if (rol !== "PACIENTE" && pacienteId) {
+      throw new ErrorValidacion(
+        "Solo un usuario con rol PACIENTE puede tener un paciente asociado.",
+      );
     }
   }
 
   get esNutricionista(): boolean {
     return this.props.rol === "NUTRICIONISTA";
+  }
+  get esSuperAdmin(): boolean {
+    return this.props.rol === "SUPERADMIN";
+  }
+  get nutricionistaId(): string | null {
+    return this.props.nutricionistaId;
+  }
+  get activo(): boolean {
+    return this.props.activo;
   }
 
   get id(): string {

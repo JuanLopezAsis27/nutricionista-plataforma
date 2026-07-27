@@ -67,6 +67,7 @@ export function useObjetivos() {
   return {
     utils,
     dePaciente: trpc.objetivos.obtenerDePaciente.useQuery,
+    mios: trpc.objetivos.mios.useQuery,
     historial: trpc.objetivos.historial.useQuery,
     crear,
     actualizar,

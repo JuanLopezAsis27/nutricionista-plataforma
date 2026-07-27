@@ -85,3 +85,14 @@ export const nutricionistaProcedimiento = protegidoProcedimiento.use(({ ctx, nex
   }
   return next();
 });
+
+/** Procedimiento de superadministrador: gestiona todas las cuentas (global). */
+export const superadminProcedimiento = protegidoProcedimiento.use(({ ctx, next }) => {
+  if (ctx.usuario.rol !== "SUPERADMIN") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Esta acción es exclusiva del superadministrador.",
+    });
+  }
+  return next();
+});

@@ -6,6 +6,7 @@ import { ObtenerTurnosPorPaciente } from "@/dominio/casos-de-uso/turnos/ObtenerT
 import { ActualizarEstadoTurno } from "@/dominio/casos-de-uso/turnos/ActualizarEstadoTurno";
 import { CancelarTurno } from "@/dominio/casos-de-uso/turnos/CancelarTurno";
 import { ReprogramarTurno } from "@/dominio/casos-de-uso/turnos/ReprogramarTurno";
+import { RegistrarCobroTurno } from "@/dominio/casos-de-uso/turnos/RegistrarCobroTurno";
 import { ServicioTurno } from "@/aplicacion/servicios/ServicioTurno";
 
 /** Arma el servicio de Turnos con sus casos de uso. */
@@ -23,5 +24,6 @@ export function crearServicioTurno(deps: {
     actualizarEstadoTurno,
     new CancelarTurno(deps.turnos, actualizarEstadoTurno),
     new ReprogramarTurno(deps.turnos),
+    new RegistrarCobroTurno(deps.turnos),
   );
 }

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { TurnoSalidaDto } from "@/aplicacion/dtos/turno.dto";
-import { aFechaISO } from "@/lib/formato";
+import { aFechaISO, hoyArgentinaISO } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import { Button } from "@/componentes/ui/button";
 
@@ -59,6 +59,9 @@ export function CalendarioTurnos({ turnos, mapaPacientes, onSeleccionarDia }: Pr
     setReferencia(new Date(Date.UTC(anio, mes + delta, 1)));
   }
 
+  // "Hoy" en horario argentino: los días anteriores no son seleccionables.
+  const hoyISO = hoyArgentinaISO();
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -84,21 +87,45 @@ export function CalendarioTurnos({ turnos, mapaPacientes, onSeleccionarDia }: Pr
         {celdas.map((dia, i) => {
           const claveFecha = dia ? aFechaISO(new Date(Date.UTC(anio, mes, dia))) : "";
           const turnosDia = dia ? (porFecha.get(claveFecha) ?? []) : [];
-          const clickeable = Boolean(dia && onSeleccionarDia);
+          const esPasado = Boolean(dia) && claveFecha < hoyISO;
+          const esHoy = claveFecha === hoyISO;
+          const clickeable = Boolean(dia && onSeleccionarDia && !esPasado);
           return (
             <div
               key={i}
               role={clickeable ? "button" : undefined}
               tabIndex={clickeable ? 0 : undefined}
               onClick={clickeable ? () => onSeleccionarDia!(claveFecha) : undefined}
+              onKeyDown={
+                clickeable
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onSeleccionarDia!(claveFecha);
+                      }
+                    }
+                  : undefined
+              }
               className={cn(
-                "min-h-24 bg-background p-1",
+                // Altura fija: los días con muchos turnos hacen scroll interno,
+                // así la grilla nunca se deforma.
+                "flex h-28 flex-col bg-background p-1",
                 !dia && "bg-muted/30",
+                esPasado && dia && "bg-muted/20 text-muted-foreground",
                 clickeable && "cursor-pointer transition-colors hover:bg-secondary/60",
               )}
             >
-              {dia && <div className="mb-1 text-xs font-medium text-muted-foreground">{dia}</div>}
-              <div className="space-y-1">
+              {dia && (
+                <div
+                  className={cn(
+                    "mb-1 shrink-0 text-xs font-medium",
+                    esHoy ? "font-bold text-primary" : "text-muted-foreground",
+                  )}
+                >
+                  {dia}
+                </div>
+              )}
+              <div className="min-h-0 flex-1 space-y-1 overflow-y-auto">
                 {turnosDia
                   .sort((a, b) => a.hora.localeCompare(b.hora))
                   .map((turno) => (

@@ -1,13 +1,17 @@
 "use client";
 
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTurnos } from "@/lib/hooks/useTurnos";
-import { hoyISO } from "@/lib/formato";
+import { useConfiguracion } from "@/lib/hooks/useConfiguracion";
+import type { ConfiguracionSalidaDto } from "@/aplicacion/dtos/configuracion.dto";
+import { hoyArgentinaISO, horaArgentinaHHmm } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { Textarea } from "@/componentes/ui/textarea";
+import { Skeleton } from "@/componentes/ui/skeleton";
 import {
   Select,
   SelectTrigger,
@@ -25,19 +29,6 @@ import {
 } from "@/componentes/ui/form";
 import { SelectorPaciente } from "@/componentes/pacientes/SelectorPaciente";
 
-/** Slots horarios de 30 minutos entre 08:00 y 20:00. */
-const HORARIOS: string[] = (() => {
-  const slots: string[] = [];
-  for (let minutos = 8 * 60; minutos <= 20 * 60; minutos += 30) {
-    const h = String(Math.floor(minutos / 60)).padStart(2, "0");
-    const m = String(minutos % 60).padStart(2, "0");
-    slots.push(`${h}:${m}`);
-  }
-  return slots;
-})();
-
-const DURACIONES = ["30", "45", "60", "90"];
-
 const esquema = z.object({
   pacienteId: z.string().min(1, "Elegí un paciente"),
   fecha: z.string().min(1, "Elegí una fecha"),
@@ -50,22 +41,85 @@ type DatosFormulario = z.infer<typeof esquema>;
 interface PropsFormularioTurno {
   onTerminado: () => void;
   pacienteIdInicial?: string;
+  /** Fecha (YYYY-MM-DD) con la que abrir el formulario (ej. la casilla del calendario). */
+  fechaInicial?: string;
 }
 
-/** Formulario para agendar un turno. */
-export function FormularioTurno({ onTerminado, pacienteIdInicial }: PropsFormularioTurno) {
+function aMinutos(hora: string): number {
+  const [h, m] = hora.split(":").map(Number);
+  return (h ?? 0) * 60 + (m ?? 0);
+}
+
+/**
+ * Formulario para agendar un turno. Los horarios (paso/rango) y la duración por
+ * defecto salen de la Configuración del consultorio; se espera a que cargue para
+ * inicializar los valores correctos.
+ */
+export function FormularioTurno(props: PropsFormularioTurno) {
+  const { obtener } = useConfiguracion();
+  const consulta = obtener();
+  if (consulta.isLoading || !consulta.data) {
+    return <Skeleton className="h-96 w-full" />;
+  }
+  return <FormularioTurnoInterno {...props} config={consulta.data} />;
+}
+
+function FormularioTurnoInterno({
+  onTerminado,
+  pacienteIdInicial,
+  fechaInicial,
+  config,
+}: PropsFormularioTurno & { config: ConfiguracionSalidaDto }) {
   const { agendar } = useTurnos();
+
+  const hoy = hoyArgentinaISO();
+  const fechaResuelta = fechaInicial && fechaInicial >= hoy ? fechaInicial : hoy;
+
+  const horarios = useMemo(() => {
+    const paso = config.turnoPasoMinutos;
+    const desde = aMinutos(config.atencionHoraDesde ?? "08:00");
+    const hasta = aMinutos(config.atencionHoraHasta ?? "20:00");
+    const slots: string[] = [];
+    for (let minutos = desde; minutos <= hasta; minutos += paso) {
+      const h = String(Math.floor(minutos / 60)).padStart(2, "0");
+      const m = String(minutos % 60).padStart(2, "0");
+      slots.push(`${h}:${m}`);
+    }
+    return slots;
+  }, [config.turnoPasoMinutos, config.atencionHoraDesde, config.atencionHoraHasta]);
+
+  const duraciones = useMemo(() => {
+    const base = new Set([30, 45, 60, 90, config.turnoDuracionMinutos]);
+    return [...base].sort((a, b) => a - b).map(String);
+  }, [config.turnoDuracionMinutos]);
+
+  /** Un horario no está disponible si ya pasó (solo aplica cuando la fecha es hoy). */
+  const horarioNoDisponible = (fecha: string, hora: string): boolean =>
+    fecha === hoy && hora <= horaArgentinaHHmm();
+
+  const primerDisponible = (fecha: string): string =>
+    horarios.find((h) => !horarioNoDisponible(fecha, h)) ?? horarios[0] ?? "09:00";
 
   const form = useForm<DatosFormulario>({
     resolver: zodResolver(esquema),
     defaultValues: {
       pacienteId: pacienteIdInicial ?? "",
-      fecha: hoyISO(),
-      hora: "09:00",
-      duracion: "30",
+      fecha: fechaResuelta,
+      hora: primerDisponible(fechaResuelta),
+      duracion: String(config.turnoDuracionMinutos),
       notas: "",
     },
   });
+
+  // Si cambia la fecha y la hora elegida ya no está disponible, la reubica.
+  const fechaActual = form.watch("fecha");
+  const horaActual = form.watch("hora");
+  useEffect(() => {
+    if (fechaActual && horarioNoDisponible(fechaActual, horaActual)) {
+      form.setValue("hora", primerDisponible(fechaActual));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fechaActual]);
 
   function alEnviar(datos: DatosFormulario) {
     agendar.mutate(
@@ -105,7 +159,7 @@ export function FormularioTurno({ onTerminado, pacienteIdInicial }: PropsFormula
               <FormItem>
                 <FormLabel>Fecha</FormLabel>
                 <FormControl>
-                  <Input type="date" min={hoyISO()} {...field} />
+                  <Input type="date" min={hoy} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -124,8 +178,12 @@ export function FormularioTurno({ onTerminado, pacienteIdInicial }: PropsFormula
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {HORARIOS.map((hora) => (
-                      <SelectItem key={hora} value={hora}>
+                    {horarios.map((hora) => (
+                      <SelectItem
+                        key={hora}
+                        value={hora}
+                        disabled={horarioNoDisponible(fechaActual, hora)}
+                      >
                         {hora}
                       </SelectItem>
                     ))}
@@ -150,7 +208,7 @@ export function FormularioTurno({ onTerminado, pacienteIdInicial }: PropsFormula
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {DURACIONES.map((d) => (
+                  {duraciones.map((d) => (
                     <SelectItem key={d} value={d}>
                       {d} minutos
                     </SelectItem>

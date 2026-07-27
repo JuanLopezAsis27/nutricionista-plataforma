@@ -23,6 +23,8 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
         duracionMinutos: datos.duracionMinutos,
         estado: datos.estado,
         notas: datos.notas,
+        precio: datos.precio,
+        pagado: datos.pagado,
         creadoEn: datos.creadoEn,
       },
     });
@@ -40,6 +42,8 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
         duracionMinutos: datos.duracionMinutos,
         estado: datos.estado,
         notas: datos.notas,
+        precio: datos.precio,
+        pagado: datos.pagado,
       },
     });
     return this.mapearATurno(fila);
@@ -96,6 +100,9 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
       duracionMinutos: fila.duracionMinutos,
       estado: fila.estado as EstadoTurno,
       notas: fila.notas,
+      // Decimal nunca cruza infraestructura: se mapea a number.
+      precio: fila.precio == null ? null : Number(fila.precio),
+      pagado: fila.pagado,
       creadoEn: fila.creadoEn,
     });
   }

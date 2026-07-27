@@ -4,12 +4,14 @@ import type { ObtenerTurnosPorPaciente } from "@/dominio/casos-de-uso/turnos/Obt
 import type { ActualizarEstadoTurno } from "@/dominio/casos-de-uso/turnos/ActualizarEstadoTurno";
 import type { CancelarTurno } from "@/dominio/casos-de-uso/turnos/CancelarTurno";
 import type { ReprogramarTurno } from "@/dominio/casos-de-uso/turnos/ReprogramarTurno";
+import type { RegistrarCobroTurno } from "@/dominio/casos-de-uso/turnos/RegistrarCobroTurno";
 import type { Turno } from "@/dominio/entidades/Turno";
 import type {
   AgendarTurnoDto,
   ListarTurnosDto,
   ActualizarEstadoTurnoDto,
   ReprogramarTurnoDto,
+  RegistrarCobroTurnoDto,
   TurnoSalidaDto,
 } from "../dtos/turno.dto";
 
@@ -25,6 +27,7 @@ export class ServicioTurno {
     private readonly actualizarEstadoUC: ActualizarEstadoTurno,
     private readonly cancelarUC: CancelarTurno,
     private readonly reprogramarUC: ReprogramarTurno,
+    private readonly registrarCobroUC: RegistrarCobroTurno,
   ) {}
 
   async agendarTurno(datos: AgendarTurnoDto): Promise<TurnoSalidaDto> {
@@ -54,6 +57,11 @@ export class ServicioTurno {
 
   async reprogramarTurno(datos: ReprogramarTurnoDto): Promise<TurnoSalidaDto> {
     const turno = await this.reprogramarUC.ejecutar(datos);
+    return ServicioTurno.aSalida(turno);
+  }
+
+  async registrarCobroTurno(datos: RegistrarCobroTurnoDto): Promise<TurnoSalidaDto> {
+    const turno = await this.registrarCobroUC.ejecutar(datos.id, datos.precio, datos.pagado);
     return ServicioTurno.aSalida(turno);
   }
 

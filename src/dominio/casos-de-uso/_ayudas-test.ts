@@ -14,11 +14,22 @@ import type { IObjetivoRepositorio } from "../repositorios/IObjetivoRepositorio"
 import type { IMaterialRepositorio } from "../repositorios/IMaterialRepositorio";
 import type { ISuplementoRepositorio } from "../repositorios/ISuplementoRepositorio";
 import type { IAlertaSeguimientoRepositorio } from "../repositorios/IAlertaSeguimientoRepositorio";
+import type { IPlantillaEmailRepositorio } from "../repositorios/IPlantillaEmailRepositorio";
+import type { IEmailEnviadoRepositorio } from "../repositorios/IEmailEnviadoRepositorio";
+import type { IEstadisticasRepositorio } from "../repositorios/IEstadisticasRepositorio";
+import type { IMensajeriaRepositorio } from "../repositorios/IMensajeriaRepositorio";
+import type { IHistorialIARepositorio } from "../repositorios/IHistorialIARepositorio";
+import type { IConfiguracionRepositorio } from "../repositorios/IConfiguracionRepositorio";
+import type { IAxiomaRepositorio } from "../repositorios/IAxiomaRepositorio";
 import type { IHasheadorContrasena } from "../servicios/IHasheadorContrasena";
 import type { IAlmacenamientoArchivos } from "../servicios/IAlmacenamientoArchivos";
 import type { IServicioEmail } from "../servicios/IServicioEmail";
 import type { IColaTrabajos } from "../servicios/IColaTrabajos";
 import type { IRelojFecha } from "../servicios/IRelojFecha";
+import type { IBusEventos } from "../servicios/IBusEventos";
+import type { IAsistenteNutricional } from "../servicios/IAsistenteNutricional";
+import type { IAnalisisComidaIA } from "../servicios/IAnalisisComidaIA";
+import type { IAnalisisPredictivo } from "../servicios/IAnalisisPredictivo";
 import { Paciente, type DatosNuevoPaciente } from "../entidades/Paciente";
 import { Turno, type DatosNuevoTurno } from "../entidades/Turno";
 import { Usuario } from "../entidades/Usuario";
@@ -52,6 +63,11 @@ import {
   AlertaSeguimiento,
   type DatosNuevaAlertaSeguimiento,
 } from "../entidades/AlertaSeguimiento";
+import { PlantillaEmail, type DatosNuevaPlantilla } from "../entidades/PlantillaEmail";
+import { Conversacion } from "../entidades/Conversacion";
+import { Mensaje, type DatosNuevoMensaje } from "../entidades/Mensaje";
+import { ConfiguracionConsultorio } from "../entidades/ConfiguracionConsultorio";
+import { AxiomaNutricional, type DatosNuevoAxioma } from "../entidades/AxiomaNutricional";
 
 /**
  * Ayudas para los tests de casos de uso.
@@ -99,6 +115,7 @@ export function mockUsuarioRepositorio(
     obtenerPorId: vi.fn(async () => null),
     obtenerPorEmail: vi.fn(async () => null),
     obtenerPorPacienteId: vi.fn(async () => null),
+    listarPorRol: vi.fn(async () => []),
     eliminarPorPacienteId: vi.fn(async () => {}),
     ...parcial,
   };
@@ -300,6 +317,147 @@ export function mockMaterialRepositorio(
     desasignarDePaciente: vi.fn(async () => {}),
     listarPorPaciente: vi.fn(async () => []),
     listarPacientesAsignados: vi.fn(async () => []),
+    ...parcial,
+  };
+}
+
+export function mockPlantillaEmailRepositorio(
+  parcial: Partial<IPlantillaEmailRepositorio> = {},
+): IPlantillaEmailRepositorio {
+  return {
+    crear: vi.fn(async (p: PlantillaEmail) => p),
+    actualizar: vi.fn(async (p: PlantillaEmail) => p),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    obtenerPorClave: vi.fn(async () => null),
+    listar: vi.fn(async () => []),
+    ...parcial,
+  };
+}
+
+export function mockEmailEnviadoRepositorio(
+  parcial: Partial<IEmailEnviadoRepositorio> = {},
+): IEmailEnviadoRepositorio {
+  return {
+    registrar: vi.fn(async () => {}),
+    yaEnviado: vi.fn(async () => false),
+    listarRecientes: vi.fn(async () => []),
+    ...parcial,
+  };
+}
+
+export function mockEstadisticasRepositorio(
+  parcial: Partial<IEstadisticasRepositorio> = {},
+): IEstadisticasRepositorio {
+  return {
+    obtener: vi.fn(async () => ({
+      pacientesActivos: 0,
+      pacientesNuevos: 0,
+      pacientesEnRiesgo: 0,
+      turnosPorEstado: { PENDIENTE: 0, CONFIRMADO: 0, CANCELADO: 0, COMPLETADO: 0 },
+      ingresoCobrado: 0,
+      ingresoPendiente: 0,
+      serieMensual: [],
+    })),
+    listarPacientes: vi.fn(async () => []),
+    ...parcial,
+  };
+}
+
+export function mockMensajeriaRepositorio(
+  parcial: Partial<IMensajeriaRepositorio> = {},
+): IMensajeriaRepositorio {
+  return {
+    obtenerConversacionPorId: vi.fn(async () => null),
+    obtenerConversacionPorPaciente: vi.fn(async () => null),
+    crearConversacion: vi.fn(async (c: Conversacion) => c),
+    actualizarConversacion: vi.fn(async (c: Conversacion) => c),
+    listarResumen: vi.fn(async () => []),
+    crearMensaje: vi.fn(async (m: Mensaje) => m),
+    listarMensajes: vi.fn(async () => []),
+    marcarLeidos: vi.fn(async () => {}),
+    contarNoLeidos: vi.fn(async () => 0),
+    ...parcial,
+  };
+}
+
+export function mockBusEventos(parcial: Partial<IBusEventos> = {}): IBusEventos {
+  return {
+    publicar: vi.fn(async () => {}),
+    // eslint-disable-next-line require-yield
+    suscribir: vi.fn(async function* () {}),
+    ...parcial,
+  };
+}
+
+export function mockHistorialIARepositorio(
+  parcial: Partial<IHistorialIARepositorio> = {},
+): IHistorialIARepositorio {
+  return {
+    guardarConsulta: vi.fn(async () => {}),
+    listarConsultas: vi.fn(async () => []),
+    guardarAnalisis: vi.fn(async () => {}),
+    listarAnalisis: vi.fn(async () => []),
+    ...parcial,
+  };
+}
+
+export function mockConfiguracionRepositorio(
+  parcial: Partial<IConfiguracionRepositorio> = {},
+): IConfiguracionRepositorio {
+  return {
+    obtener: vi.fn(async () => null),
+    guardar: vi.fn(async (c: ConfiguracionConsultorio) => c),
+    ...parcial,
+  };
+}
+
+export function mockAxiomaRepositorio(
+  parcial: Partial<IAxiomaRepositorio> = {},
+): IAxiomaRepositorio {
+  return {
+    crear: vi.fn(async (a: AxiomaNutricional) => a),
+    actualizar: vi.fn(async (a: AxiomaNutricional) => a),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    listar: vi.fn(async () => []),
+    listarActivos: vi.fn(async () => []),
+    ...parcial,
+  };
+}
+
+export function mockAsistenteNutricional(
+  parcial: Partial<IAsistenteNutricional> = {},
+): IAsistenteNutricional {
+  return {
+    responder: vi.fn(async () => "respuesta de demostración"),
+    ...parcial,
+  };
+}
+
+export function mockAnalisisComidaIA(
+  parcial: Partial<IAnalisisComidaIA> = {},
+): IAnalisisComidaIA {
+  return {
+    analizar: vi.fn(async () => ({
+      descripcion: "plato demo",
+      porcionEstimada: "1 plato",
+      calorias: 500,
+      proteinasG: 30,
+      carbohidratosG: 40,
+      grasasG: 20,
+      confianza: 0.4,
+      nota: "demo",
+    })),
+    ...parcial,
+  };
+}
+
+export function mockAnalisisPredictivo(
+  parcial: Partial<IAnalisisPredictivo> = {},
+): IAnalisisPredictivo {
+  return {
+    insights: vi.fn(async () => []),
     ...parcial,
   };
 }
@@ -567,6 +725,67 @@ export function recetaEjemplo(cambios: Partial<DatosNuevaReceta> = {}, id = "rec
       ingredientes: ["2 huevos", "1 taza de espinaca"],
       etiquetas: ["vegetariano"],
       calorias: 250,
+      ...cambios,
+    },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function conversacionEjemplo(pacienteId = "pac-1", id = "conv-1"): Conversacion {
+  return Conversacion.crear(pacienteId, id, new Date("2026-07-14T12:00:00Z"));
+}
+
+export function mensajeEjemplo(
+  cambios: Partial<DatosNuevoMensaje> = {},
+  id = "msj-1",
+): Mensaje {
+  return Mensaje.crear(
+    {
+      conversacionId: "conv-1",
+      autorId: "usr-nutri",
+      cuerpo: "Hola, ¿cómo venís con el plan?",
+      ...cambios,
+    },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function plantillaEmailEjemplo(
+  cambios: Partial<DatosNuevaPlantilla> = {},
+  id = "pla-1",
+): PlantillaEmail {
+  return PlantillaEmail.crear(
+    {
+      clave: "RECORDATORIO_TURNO",
+      nombre: "Recordatorio de turno",
+      asunto: "Recordatorio de tu turno del {{fecha}}",
+      cuerpoHtml: "<p>Hola {{paciente}}, te esperamos el {{fecha}} a las {{hora}}.</p>",
+      deSistema: true,
+      ...cambios,
+    },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function configuracionEjemplo(): ConfiguracionConsultorio {
+  return ConfiguracionConsultorio.porDefecto(new Date("2026-07-14T12:00:00Z"));
+}
+
+export function axiomaEjemplo(
+  cambios: Partial<DatosNuevoAxioma> = {},
+  id = "axi-1",
+): AxiomaNutricional {
+  return AxiomaNutricional.crear(
+    {
+      ambito: "SUENO",
+      parametro: "horasSueno",
+      operador: "MAYOR_IGUAL",
+      valor: 7,
+      unidad: "h",
+      texto: "Dormir al menos 7 horas favorece la recuperación.",
       ...cambios,
     },
     id,

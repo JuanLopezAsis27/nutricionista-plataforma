@@ -3,6 +3,7 @@ import { auth } from "@/lib/autenticacion/auth";
 import { servicioPlan, servicioPaciente } from "@/infraestructura/contenedor/contenedor";
 import { renderizarPlanPdf } from "@/infraestructura/pdf/PlanNutricionalPdf";
 import { aRespuestaError } from "@/servidor/errores-http";
+import { conAlcanceDeSesion } from "@/servidor/alcanceRequest";
 
 export const runtime = "nodejs";
 
@@ -27,7 +28,8 @@ function nombreArchivo(nombrePlan: string): string {
  * membrete incluye el nombre del paciente); el paciente solo su plan activo.
  * Los PDF se generan al vuelo, nunca por tRPC (transporte binario).
  */
-export async function GET(solicitud: Request, { params }: Parametros): Promise<NextResponse> {
+export function GET(solicitud: Request, { params }: Parametros): Promise<NextResponse> {
+  return conAlcanceDeSesion(async () => {
   const sesion = await auth();
   if (!sesion?.user) {
     return NextResponse.json({ error: "Necesitás iniciar sesión." }, { status: 401 });
@@ -72,4 +74,5 @@ export async function GET(solicitud: Request, { params }: Parametros): Promise<N
   } catch (error) {
     return aRespuestaError(error);
   }
+  });
 }

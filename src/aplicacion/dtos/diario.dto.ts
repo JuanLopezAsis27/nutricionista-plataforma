@@ -29,7 +29,8 @@ export const agregarComidaDto = z.object({
   fecha: z.coerce.date(),
   franja: z.string().min(1, "Indicá la franja").max(50),
   hora: horaHHmm.optional().nullable(),
-  descripcion: z.string().min(1, "Describí qué comiste").max(500),
+  descripcion: z.string().min(1, "Describí qué comiste").max(1000),
+  porcion: z.string().max(120).optional().nullable(),
 });
 export type AgregarComidaDto = z.infer<typeof agregarComidaDto>;
 
@@ -67,6 +68,7 @@ export const comidaConsumidaSalidaDto = z.object({
   franja: z.string(),
   hora: z.string().nullable(),
   descripcion: z.string(),
+  porcion: z.string().nullable(),
   fotoArchivoId: z.string().nullable(),
   creadoEn: z.date(),
 });

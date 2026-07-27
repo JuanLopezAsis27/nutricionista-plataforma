@@ -27,6 +27,12 @@ export const authConfig = {
         token.id = user.id as string;
         token.rol = user.rol;
         token.pacienteId = user.pacienteId;
+        token.nutricionistaId = user.nutricionistaId;
+      }
+      // Compat con sesiones viejas (pre multi-inquilino): el NUTRICIONISTA es su
+      // propio inquilino, así que su nutricionistaId se deriva de su id sin DB.
+      if (token.nutricionistaId == null && token.rol === "NUTRICIONISTA") {
+        token.nutricionistaId = token.id;
       }
       return token;
     },
@@ -35,6 +41,7 @@ export const authConfig = {
         session.user.id = token.id;
         session.user.rol = token.rol;
         session.user.pacienteId = token.pacienteId;
+        session.user.nutricionistaId = token.nutricionistaId;
       }
       return session;
     },
@@ -46,6 +53,7 @@ export const authConfig = {
       const estaLogueado = !!auth?.user;
       const rutaProtegida =
         nextUrl.pathname.startsWith("/dashboard") ||
+        nextUrl.pathname.startsWith("/admin") ||
         nextUrl.pathname.startsWith("/mis-") ||
         nextUrl.pathname.startsWith("/mi-");
 

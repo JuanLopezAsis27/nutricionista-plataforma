@@ -27,6 +27,8 @@ export interface PropiedadesTurno {
   duracionMinutos: number;
   estado: EstadoTurno;
   notas: string | null;
+  precio: number | null;
+  pagado: boolean;
   creadoEn: Date;
 }
 
@@ -63,6 +65,8 @@ export class Turno {
       duracionMinutos: duracion,
       estado: "PENDIENTE",
       notas: datos.notas?.trim() || null,
+      precio: null,
+      pagado: false,
       creadoEn: ahora,
     });
   }
@@ -135,6 +139,23 @@ export class Turno {
     this.cambiarEstado("CANCELADO");
   }
 
+  /**
+   * Registra el cobro de la consulta: precio (o null para "sin cargo") y si
+   * ya está pagado. Un turno sin precio no puede marcarse como pagado.
+   */
+  registrarCobro(precio: number | null, pagado: boolean): void {
+    if (precio != null) {
+      if (typeof precio !== "number" || Number.isNaN(precio) || precio < 0) {
+        throw new ErrorValidacion("El precio del turno no puede ser negativo.");
+      }
+    }
+    if (pagado && precio == null) {
+      throw new ErrorValidacion("No se puede marcar como pagado un turno sin precio.");
+    }
+    this.props.precio = precio;
+    this.props.pagado = pagado;
+  }
+
   /** Determina si este turno se solapa en el tiempo con otro. */
   seSolapaCon(otro: Turno): boolean {
     if (this.props.fecha.getTime() !== otro.props.fecha.getTime()) {
@@ -172,6 +193,12 @@ export class Turno {
   }
   get notas(): string | null {
     return this.props.notas;
+  }
+  get precio(): number | null {
+    return this.props.precio;
+  }
+  get pagado(): boolean {
+    return this.props.pagado;
   }
   get creadoEn(): Date {
     return this.props.creadoEn;

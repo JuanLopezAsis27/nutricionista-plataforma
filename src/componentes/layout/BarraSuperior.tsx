@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
 } from "@/componentes/ui/dropdown-menu";
 import { ToggleTema } from "@/componentes/comunes/ToggleTema";
-import { CampanaAlertas } from "@/componentes/seguimiento/CampanaAlertas";
+import { CampanaNotificaciones } from "@/componentes/notificaciones/CampanaNotificaciones";
 
 /** Asocia el prefijo de ruta con el título de la página. */
 const TITULOS: { prefijo: string; titulo: string; exacto?: boolean }[] = [
@@ -43,7 +43,7 @@ export function BarraSuperior({ email }: { email: string }) {
       <h1 className="text-xl font-semibold">{tituloDeRuta(ruta)}</h1>
 
       <div className="flex items-center gap-2">
-      <CampanaAlertas />
+      <CampanaNotificaciones />
       <ToggleTema />
       <DropdownMenu>
         <DropdownMenuTrigger className="rounded-full outline-none focus:ring-2 focus:ring-ring">

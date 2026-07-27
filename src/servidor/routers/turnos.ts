@@ -8,6 +8,7 @@ import {
   actualizarEstadoTurnoDto,
   cancelarTurnoDto,
   reprogramarTurnoDto,
+  registrarCobroTurnoDto,
 } from "@/aplicacion/dtos/turno.dto";
 
 /**
@@ -81,6 +82,16 @@ export const routerTurnos = crearRouter({
     .mutation(async ({ ctx, input }) => {
       try {
         return await ctx.servicios.turno.reprogramarTurno(input);
+      } catch (error) {
+        throw aTRPCError(error);
+      }
+    }),
+
+  registrarCobro: nutricionistaProcedimiento
+    .input(registrarCobroTurnoDto)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await ctx.servicios.turno.registrarCobroTurno(input);
       } catch (error) {
         throw aTRPCError(error);
       }
