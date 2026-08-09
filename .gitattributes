@@ -1,0 +1,17 @@
+# Normaliza finales de línea. Los scripts que corren en contenedores Linux
+# DEBEN quedar con LF (si quedan con CRLF, el intérprete falla con "bad
+# interpreter" / "no such file or directory").
+* text=auto eol=lf
+
+*.sh          text eol=lf
+Dockerfile    text eol=lf
+*.yml         text eol=lf
+*.yaml        text eol=lf
+
+# Binarios (por si acaso): sin conversión.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary

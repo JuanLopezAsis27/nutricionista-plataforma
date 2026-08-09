@@ -94,7 +94,8 @@ export class ObtenerCentroDeNotificaciones {
         detalle: c.ultimoMensajeTexto ?? "Nuevo mensaje",
         // Si no hubiera fecha (no debería, si hay no-leídos), va al final.
         fecha: c.ultimoMensajeEn ?? new Date(0),
-        enlace: "/dashboard/mensajes",
+        // Deep-link: abre directamente la conversación de ese paciente.
+        enlace: `/dashboard/mensajes?paciente=${c.pacienteId}`,
         alertaId: null,
         pacienteId: c.pacienteId,
         noLeidos: c.noLeidos,
@@ -103,12 +104,16 @@ export class ObtenerCentroDeNotificaciones {
 
     for (const correo of correos) {
       const e = correo.aPrimitivos();
-      const exitoso = e.error == null;
+      // Solo los correos que FALLARON son accionables (un mail que no llegó al
+      // paciente). Los envíos exitosos son un registro automático (recordatorios,
+      // bienvenidas): no van a la campana para no llenarla de ruido — quedan en
+      // el log de Secretaría.
+      if (e.error == null) continue;
       items.push({
         id: `correo:${e.id}`,
         tipo: "CORREO",
-        titulo: exitoso ? "Correo enviado" : "Falló un envío de correo",
-        detalle: exitoso ? `${e.asunto} → ${e.para}` : `${e.para}: ${e.error}`,
+        titulo: "Falló un envío de correo",
+        detalle: `${e.para}: ${e.error}`,
         fecha: e.creadoEn,
         enlace: "/dashboard/plantillas",
         alertaId: null,

@@ -1,0 +1,36 @@
+name: Deploy
+
+# Despliegue manual al VPS (Run workflow → botón). Para desplegar automáticamente
+# al mergear a main, descomentá el bloque `push` de abajo.
+on:
+  workflow_dispatch:
+  # push:
+  #   branches: [main]
+
+# Nunca dos despliegues a la vez.
+concurrency:
+  group: deploy-produccion
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Desplegar a producción (VPS)
+    runs-on: ubuntu-latest
+    # Requiere estos secrets del repo (Settings → Secrets and variables → Actions):
+    #   VPS_HOST        IP o dominio del VPS
+    #   VPS_USER        usuario SSH (con permiso para docker/compose)
+    #   VPS_SSH_KEY     clave privada SSH (la pública va en ~/.ssh/authorized_keys del VPS)
+    #   VPS_DEPLOY_PATH ruta del repo en el VPS (ej. /home/deploy/nutricionista-app)
+    steps:
+      - name: Conectar por SSH y desplegar
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            cd "${{ secrets.VPS_DEPLOY_PATH }}"
+            git pull --ff-only
+            # Reconstruye la imagen, aplica migraciones (servicio migrate) y reinicia app/worker.
+            ./scripts/desplegar.sh prod

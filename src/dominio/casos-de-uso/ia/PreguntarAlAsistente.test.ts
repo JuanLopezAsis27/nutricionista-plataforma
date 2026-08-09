@@ -5,19 +5,25 @@ import {
   mockPacienteRepositorio,
   mockObjetivoRepositorio,
   mockPlanRepositorio,
+  mockRecetaRepositorio,
+  mockAlertaAlimentariaRepositorio,
+  mockAxiomaRepositorio,
   mockAsistenteNutricional,
   mockHistorialIARepositorio,
   pacienteEjemplo,
 } from "../_ayudas-test";
 
 describe("PreguntarAlAsistente", () => {
-  it("arma el contexto, delega en el puerto y guarda la consulta", async () => {
+  it("arma el contexto, delega en el puerto (con herramientas) y guarda la consulta", async () => {
     const responder = vi.fn(async () => "respuesta demo");
     const guardarConsulta = vi.fn(async () => {});
     const uc = new PreguntarAlAsistente(
       mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => pacienteEjemplo()) }),
       mockObjetivoRepositorio({ listarPorPaciente: vi.fn(async () => []) }),
       mockPlanRepositorio({ obtenerPlanActivoDePaciente: vi.fn(async () => null) }),
+      mockRecetaRepositorio({ listarPorPaciente: vi.fn(async () => []) }),
+      mockAlertaAlimentariaRepositorio({ listarPorPaciente: vi.fn(async () => []) }),
+      mockAxiomaRepositorio({ listarActivos: vi.fn(async () => []) }),
       mockAsistenteNutricional({ responder }),
       mockHistorialIARepositorio({ guardarConsulta }),
     );
@@ -28,6 +34,7 @@ describe("PreguntarAlAsistente", () => {
     expect(responder).toHaveBeenCalledWith(
       "¿Cuántas calorías tiene mi plan?",
       expect.objectContaining({ nombrePaciente: "Ana García", tienePlan: false }),
+      expect.arrayContaining([expect.objectContaining({ nombre: "obtener_plan_nutricional" })]),
     );
     expect(guardarConsulta).toHaveBeenCalledOnce();
   });
@@ -37,6 +44,9 @@ describe("PreguntarAlAsistente", () => {
       mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => null) }),
       mockObjetivoRepositorio(),
       mockPlanRepositorio(),
+      mockRecetaRepositorio(),
+      mockAlertaAlimentariaRepositorio(),
+      mockAxiomaRepositorio(),
       mockAsistenteNutricional(),
       mockHistorialIARepositorio(),
     );

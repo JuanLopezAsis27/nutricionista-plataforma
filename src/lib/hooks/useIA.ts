@@ -16,11 +16,22 @@ export function useIA() {
     onError: (error) => toast.error(error.message),
   });
 
+  const analizar = trpc.ia.analizar.useMutation({
+    onError: (error) => toast.error(error.message),
+  });
+
+  const feedbackInsight = trpc.ia.feedbackInsight.useMutation({
+    onError: (error) => toast.error(error.message),
+  });
+
   return {
     utils,
     misConsultas: trpc.ia.misConsultas.useQuery,
     insights: trpc.ia.insights.useQuery,
+    estado: trpc.ia.estado.useQuery,
     preguntar,
     analizarFoto,
+    analizar,
+    feedbackInsight,
   };
 }

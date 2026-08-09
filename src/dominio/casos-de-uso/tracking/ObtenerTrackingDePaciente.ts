@@ -3,6 +3,8 @@ import type { IPlanRepositorio } from "../../repositorios/IPlanRepositorio";
 import type { IAxiomaRepositorio } from "../../repositorios/IAxiomaRepositorio";
 import type { IAntropometriaRepositorio } from "../../repositorios/IAntropometriaRepositorio";
 import type { IPacienteRepositorio } from "../../repositorios/IPacienteRepositorio";
+import type { IMetricaDispositivoRepositorio } from "../../repositorios/IMetricaDispositivoRepositorio";
+import type { MetricaDispositivo } from "../../entidades/MetricaDispositivo";
 import type { AmbitoAxioma, OperadorAxioma } from "../../entidades/AxiomaNutricional";
 import { AxiomaNutricional } from "../../entidades/AxiomaNutricional";
 import { ErrorPacienteNoEncontrado } from "../../errores/ErrorPacienteNoEncontrado";
@@ -91,6 +93,7 @@ export class ObtenerTrackingDePaciente {
     private readonly planes: IPlanRepositorio,
     private readonly axiomas: IAxiomaRepositorio,
     private readonly antropometrias: IAntropometriaRepositorio,
+    private readonly metricas: IMetricaDispositivoRepositorio,
   ) {}
 
   async ejecutar(pacienteId: string, desde: Date, hasta: Date): Promise<TrackingPaciente> {
@@ -99,24 +102,98 @@ export class ObtenerTrackingDePaciente {
       throw new ErrorPacienteNoEncontrado(pacienteId);
     }
 
-    const [diario, plan, axiomasActivos, mediciones] = await Promise.all([
+    const [diario, plan, axiomasActivos, mediciones, metricas] = await Promise.all([
       this.registros.listarPorRango(pacienteId, desde, hasta),
       this.planes.obtenerPlanActivoDePaciente(pacienteId),
       this.axiomas.listarActivos(),
       this.antropometrias.listarPorPaciente(pacienteId),
+      this.metricas.listarPorRango(pacienteId, desde, hasta),
     ]);
 
     const dias = diario.map((r) => r.aPrimitivos());
+    // Para la adherencia a los axiomas, los días del diario se completan con los
+    // datos del wearable de los días que el paciente decidió INCLUIR (opt-in).
+    const diasAdherencia = fusionarConMetricas(dias, metricas);
 
     return {
       desde,
       hasta,
       diasConRegistro: dias.length,
-      adherencia: calcularAdherencia(axiomasActivos, dias),
+      adherencia: calcularAdherencia(axiomasActivos, diasAdherencia),
       concordancia: calcularConcordancia(plan, dias),
       peso: calcularPeso(dias, mediciones, desde, hasta),
     };
   }
+}
+
+/** Día con los campos que la adherencia necesita (diario + wearable fusionados). */
+interface DiaAdherencia {
+  horasSueno: number | null;
+  aguaMl: number | null;
+  actividades: ReadonlyArray<{ duracionMinutos: number }>;
+}
+
+/**
+ * Fusiona los días del diario con las métricas del wearable INCLUIDAS: si el
+ * diario no tiene horas de sueño o actividad ese día, se usa el dato del
+ * dispositivo. Los días con métrica incluida y sin registro de diario también
+ * cuentan. El agua no proviene del wearable.
+ */
+function fusionarConMetricas(
+  dias: {
+    fecha: Date;
+    horasSueno: number | null;
+    aguaMl: number | null;
+    actividades: ReadonlyArray<{ duracionMinutos: number }>;
+  }[],
+  metricas: MetricaDispositivo[],
+): DiaAdherencia[] {
+  const incluidas = new Map<string, { horasSueno: number | null; minutosActividad: number | null }>();
+  for (const metrica of metricas) {
+    if (!metrica.incluir) continue;
+    const m = metrica.aPrimitivos();
+    const clave = claveFecha(m.fecha);
+    const previa = incluidas.get(clave);
+    // Si un día tiene varias fuentes, se conserva el primer valor no nulo.
+    incluidas.set(clave, {
+      horasSueno: previa?.horasSueno ?? m.horasSueno,
+      minutosActividad: previa?.minutosActividad ?? m.minutosActividad,
+    });
+  }
+
+  const usadas = new Set<string>();
+  const resultado: DiaAdherencia[] = dias.map((dia) => {
+    const clave = claveFecha(dia.fecha);
+    usadas.add(clave);
+    const m = incluidas.get(clave);
+    if (!m) {
+      return { horasSueno: dia.horasSueno, aguaMl: dia.aguaMl, actividades: dia.actividades };
+    }
+    return {
+      horasSueno: dia.horasSueno ?? m.horasSueno,
+      aguaMl: dia.aguaMl,
+      actividades:
+        dia.actividades.length > 0
+          ? dia.actividades
+          : m.minutosActividad != null
+            ? [{ duracionMinutos: m.minutosActividad }]
+            : [],
+    };
+  });
+
+  for (const [clave, m] of incluidas) {
+    if (usadas.has(clave)) continue;
+    resultado.push({
+      horasSueno: m.horasSueno,
+      aguaMl: null,
+      actividades: m.minutosActividad != null ? [{ duracionMinutos: m.minutosActividad }] : [],
+    });
+  }
+  return resultado;
+}
+
+function claveFecha(fecha: Date): string {
+  return fecha.toISOString().slice(0, 10);
 }
 
 function calcularAdherencia(

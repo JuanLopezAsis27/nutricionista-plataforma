@@ -10,10 +10,12 @@ import {
   mockPlanRepositorio,
   mockAxiomaRepositorio,
   mockAntropometriaRepositorio,
+  mockMetricaDispositivoRepositorio,
   pacienteEjemplo,
   axiomaEjemplo,
   planEjemplo,
   antropometriaEjemplo,
+  metricaEjemplo,
 } from "../_ayudas-test";
 
 /** Construye un RegistroDiario completo (con hijos) para los tests. */
@@ -44,6 +46,7 @@ function tracking(deps: {
   plan?: ReturnType<typeof planEjemplo> | null;
   axiomas?: ReturnType<typeof axiomaEjemplo>[];
   mediciones?: ReturnType<typeof antropometriaEjemplo>[];
+  metricas?: ReturnType<typeof metricaEjemplo>[];
 }) {
   return new ObtenerTrackingDePaciente(
     mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => pacienteEjemplo()) }),
@@ -56,6 +59,9 @@ function tracking(deps: {
     mockAxiomaRepositorio({ listarActivos: vi.fn(async () => deps.axiomas ?? []) }),
     mockAntropometriaRepositorio({
       listarPorPaciente: vi.fn(async () => deps.mediciones ?? []),
+    }),
+    mockMetricaDispositivoRepositorio({
+      listarPorRango: vi.fn(async () => deps.metricas ?? []),
     }),
   ).ejecutar("pac-1", DESDE, HASTA);
 }
@@ -114,6 +120,33 @@ describe("ObtenerTrackingDePaciente", () => {
     expect(desayuno.registrados).toBe(1);
     const almuerzo = t.concordancia.porFranja.find((f) => f.franja === "Almuerzo")!;
     expect(almuerzo.registrados).toBe(0);
+  });
+
+  it("usa el sueño del wearable (día incluido) cuando el diario no lo tiene", async () => {
+    const t = await tracking({
+      registros: [registro({ fecha: new Date("2026-07-10") })], // sin horasSueno
+      axiomas: [axiomaEjemplo()], // sueño ≥ 7 h
+      metricas: [
+        metricaEjemplo({ fecha: new Date("2026-07-10"), horasSueno: 8, minutosActividad: null }),
+      ],
+    });
+
+    const suenio = t.adherencia[0]!;
+    expect(suenio.diasEvaluados).toBe(1);
+    expect(suenio.diasCumplidos).toBe(1);
+    expect(suenio.promedioPaciente).toBe(8);
+  });
+
+  it("ignora las métricas del wearable de días excluidos (opt-in)", async () => {
+    const t = await tracking({
+      registros: [registro({ fecha: new Date("2026-07-10") })],
+      axiomas: [axiomaEjemplo()],
+      metricas: [
+        metricaEjemplo({ fecha: new Date("2026-07-10"), horasSueno: 8, incluir: false }),
+      ],
+    });
+
+    expect(t.adherencia[0]!.diasEvaluados).toBe(0);
   });
 
   it("arma la serie de peso combinando diario y antropometría", async () => {

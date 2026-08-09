@@ -8,13 +8,22 @@ const PATRON_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 // --- Estado persistido -------------------------------------------------------
 
-/** Opción intercambiable de una franja (el nombre de la receta lo completa el repositorio). */
+/** Macros por porción de la receta vinculada a una opción (los completa el repositorio). */
+export interface MacrosOpcion {
+  calorias: number | null;
+  proteinasG: number | null;
+  carbohidratosG: number | null;
+  grasasG: number | null;
+}
+
+/** Opción intercambiable de una franja (nombre y macros de la receta los completa el repositorio). */
 export interface OpcionDelPlan {
   id: string;
   numero: number;
   contenido: string;
   recetaId: string | null;
   recetaNombre: string | null;
+  recetaMacros: MacrosOpcion | null;
   orden: number;
 }
 
@@ -155,6 +164,7 @@ export class PlanNutricional {
           contenido,
           recetaId: opcion.recetaId ?? null,
           recetaNombre: null,
+          recetaMacros: null,
           orden: indiceOpcion,
         };
       });

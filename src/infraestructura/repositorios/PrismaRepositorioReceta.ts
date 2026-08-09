@@ -3,21 +3,42 @@ import type {
   IRecetaRepositorio,
   FiltroRecetas,
 } from "@/dominio/repositorios/IRecetaRepositorio";
-import { Receta } from "@/dominio/entidades/Receta";
+import { Receta, type IngredienteDeReceta } from "@/dominio/entidades/Receta";
 
-/** Fila de receta con sus fotos (archivos) incluidas. */
-type RecetaConFotos = Prisma.RecetaGetPayload<{ include: { fotos: true } }>;
+/** Fila de receta con sus fotos e ingredientes incluidos. */
+type RecetaConDetalle = Prisma.RecetaGetPayload<{
+  include: { fotos: true; ingredientes: true };
+}>;
 
-const INCLUIR_FOTOS = { fotos: true } as const;
+const INCLUIR = {
+  fotos: true,
+  ingredientes: { orderBy: { orden: "asc" } },
+} satisfies Prisma.RecetaInclude;
 
 /** Decimal (o null) → number (o null). El Decimal nunca cruza a capas altas. */
 function aNumero(valor: Prisma.Decimal | null): number | null {
   return valor === null ? null : Number(valor);
 }
 
+/** Datos de una fila de ingrediente a persistir (orden = posición en la lista). */
+function datosIngrediente(ing: IngredienteDeReceta, orden: number) {
+  return {
+    nombre: ing.nombre,
+    cantidadGramos: ing.cantidadGramos,
+    caloriasPor100: ing.caloriasPor100,
+    proteinasPor100: ing.proteinasPor100,
+    carbohidratosPor100: ing.carbohidratosPor100,
+    grasasPor100: ing.grasasPor100,
+    fuente: ing.fuente,
+    referenciaExterna: ing.referenciaExterna,
+    orden,
+  };
+}
+
 /**
  * Implementación con Prisma del repositorio del Recetario.
- * Convierte Decimal↔number, vincula fotos ya subidas (fija Archivo.recetaId)
+ * Persiste los ingredientes estructurados (borrar-y-recrear como agregado),
+ * convierte Decimal↔number, vincula fotos ya subidas (fija Archivo.recetaId)
  * y gestiona las asignaciones receta⇄paciente.
  */
 export class PrismaRepositorioReceta implements IRecetaRepositorio {
@@ -33,7 +54,6 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
           descripcion: d.descripcion,
           porciones: d.porciones,
           preparacion: d.preparacion,
-          ingredientes: d.ingredientes,
           etiquetas: d.etiquetas,
           calorias: d.calorias,
           proteinasG: d.proteinasG,
@@ -41,10 +61,11 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
           grasasG: d.grasasG,
           creadoEn: d.creadoEn,
           actualizadoEn: d.actualizadoEn,
+          ingredientes: { create: d.ingredientes.map(datosIngrediente) },
         },
       });
       await this.vincularFotos(tx, d.id, fotoIds);
-      return tx.receta.findUniqueOrThrow({ where: { id: d.id }, include: INCLUIR_FOTOS });
+      return tx.receta.findUniqueOrThrow({ where: { id: d.id }, include: INCLUIR });
     });
     return this.mapear(fila);
   }
@@ -59,22 +80,23 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
           descripcion: d.descripcion,
           porciones: d.porciones,
           preparacion: d.preparacion,
-          ingredientes: d.ingredientes,
           etiquetas: d.etiquetas,
           calorias: d.calorias,
           proteinasG: d.proteinasG,
           carbohidratosG: d.carbohidratosG,
           grasasG: d.grasasG,
+          // Reemplaza la lista completa de ingredientes (agregado).
+          ingredientes: { deleteMany: {}, create: d.ingredientes.map(datosIngrediente) },
         },
       });
       await this.vincularFotos(tx, d.id, fotoIdsNuevos);
-      return tx.receta.findUniqueOrThrow({ where: { id: d.id }, include: INCLUIR_FOTOS });
+      return tx.receta.findUniqueOrThrow({ where: { id: d.id }, include: INCLUIR });
     });
     return this.mapear(fila);
   }
 
   async eliminar(id: string): Promise<void> {
-    // Fotos (archivos) y asignaciones caen en cascada; los objetos del bucket
+    // Fotos, ingredientes y asignaciones caen en cascada; los objetos del bucket
     // los borra el caso de uso (EliminarReceta).
     await this.prisma.receta.delete({ where: { id } });
   }
@@ -82,7 +104,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
   async obtenerPorId(id: string): Promise<Receta | null> {
     const fila = await this.prisma.receta.findUnique({
       where: { id },
-      include: INCLUIR_FOTOS,
+      include: INCLUIR,
     });
     return fila ? this.mapear(fila) : null;
   }
@@ -100,7 +122,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
     }
     const filas = await this.prisma.receta.findMany({
       where,
-      include: INCLUIR_FOTOS,
+      include: INCLUIR,
       orderBy: { nombre: "asc" },
     });
     return filas.map((fila) => this.mapear(fila));
@@ -121,7 +143,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
   async listarPorPaciente(pacienteId: string): Promise<Receta[]> {
     const filas = await this.prisma.receta.findMany({
       where: { asignaciones: { some: { pacienteId } } },
-      include: INCLUIR_FOTOS,
+      include: INCLUIR,
       orderBy: { nombre: "asc" },
     });
     return filas.map((fila) => this.mapear(fila));
@@ -149,14 +171,23 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
     }
   }
 
-  private mapear(fila: RecetaConFotos): Receta {
+  private mapear(fila: RecetaConDetalle): Receta {
     return Receta.reconstruir({
       id: fila.id,
       nombre: fila.nombre,
       descripcion: fila.descripcion,
       porciones: fila.porciones,
       preparacion: fila.preparacion,
-      ingredientes: fila.ingredientes,
+      ingredientes: fila.ingredientes.map((ing) => ({
+        nombre: ing.nombre,
+        cantidadGramos: aNumero(ing.cantidadGramos),
+        caloriasPor100: aNumero(ing.caloriasPor100),
+        proteinasPor100: aNumero(ing.proteinasPor100),
+        carbohidratosPor100: aNumero(ing.carbohidratosPor100),
+        grasasPor100: aNumero(ing.grasasPor100),
+        fuente: ing.fuente,
+        referenciaExterna: ing.referenciaExterna,
+      })),
       etiquetas: fila.etiquetas,
       calorias: fila.calorias,
       proteinasG: aNumero(fila.proteinasG),

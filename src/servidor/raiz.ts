@@ -6,6 +6,7 @@ import { routerArchivos } from "./routers/archivos";
 import { routerDiario } from "./routers/diario";
 import { routerRecetas } from "./routers/recetas";
 import { routerPlanes } from "./routers/planes";
+import { routerNutricion } from "./routers/nutricion";
 import { routerObjetivos } from "./routers/objetivos";
 import { routerBiblioteca } from "./routers/biblioteca";
 import { routerSeguimiento } from "./routers/seguimiento";
@@ -17,7 +18,10 @@ import { routerNotificaciones } from "./routers/notificaciones";
 import { routerConfiguracion } from "./routers/configuracion";
 import { routerAxiomas } from "./routers/axiomas";
 import { routerTracking } from "./routers/tracking";
+import { routerMetricas } from "./routers/metricas";
+import { routerCredenciales } from "./routers/credenciales";
 import { routerSuperAdmin } from "./routers/superadmin";
+import { routerIntegraciones } from "./routers/integraciones";
 import { routerIA } from "./routers/ia";
 
 /**
@@ -33,6 +37,7 @@ export const routerApp = crearRouter({
   diario: routerDiario,
   recetas: routerRecetas,
   planes: routerPlanes,
+  nutricion: routerNutricion,
   objetivos: routerObjetivos,
   biblioteca: routerBiblioteca,
   seguimiento: routerSeguimiento,
@@ -44,7 +49,10 @@ export const routerApp = crearRouter({
   configuracion: routerConfiguracion,
   axiomas: routerAxiomas,
   tracking: routerTracking,
+  metricas: routerMetricas,
+  credenciales: routerCredenciales,
   superadmin: routerSuperAdmin,
+  integraciones: routerIntegraciones,
   ia: routerIA,
 });
 

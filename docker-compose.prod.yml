@@ -1,23 +1,66 @@
-# Docker Compose de PRODUCCIÓN: despliega toda la aplicación en un servidor.
+# =============================================================================
+# Docker Compose de PRODUCCIÓN — stack completo en un VPS.
 #
-#   1. Copiá .env.example a .env y completá los valores (sobre todo AUTH_SECRET).
-#   2. Levantá todo:   docker compose -f docker-compose.prod.yml up -d --build
-#   3. (Opcional) sembrá el primer nutricionista:
-#        docker compose -f docker-compose.prod.yml run --rm migrate npm run db:seed
+# Diseño de discos (según el VPS del profesional):
+#   - App + PostgreSQL  → DISCO PRINCIPAL  (volúmenes Docker por defecto, en
+#     /var/lib/docker, que vive en el disco principal).
+#   - Bucket MinIO      → DISCO SECUNDARIO (bind-mount a ${RUTA_BUCKET}, la ruta
+#     donde montaste el disco extra, p. ej. /mnt/bucket).
 #
-# Flujo de arranque:
-#   postgres (sano) → migrate (aplica migraciones, one-shot) → app (Next.js)
+# El MISMO archivo sirve para PRODUCCIÓN y STAGING en el mismo VPS: se corre dos
+# veces con distinto proyecto (-p) y distinto env:
+#   Prod:     docker compose -p nutri_prod    --env-file .env.produccion -f docker-compose.prod.yml --profile respaldos up -d --build
+#   Staging:  docker compose -p nutri_staging --env-file .env.staging    -f docker-compose.prod.yml up -d --build
+# El reverse proxy es nginx en el HOST (ver docs/nginx.conf.ejemplo): cada entorno
+# publica su puerto en 127.0.0.1 (APP_PORT) y nginx proxea ahí por dominio.
+#
+# Arranque: postgres(sano) → migrate(one-shot) + crear_bucket(one-shot) → app/worker.
+# =============================================================================
+
+# Entorno compartido por la app y el worker (misma imagen lógica, distinto rol).
+x-app-env: &app-env
+  NODE_ENV: production
+  DATABASE_URL: ${DATABASE_URL}
+  AUTH_SECRET: ${AUTH_SECRET}
+  AUTH_URL: ${AUTH_URL}
+  AUTH_TRUST_HOST: "true"
+  APP_URL: ${APP_URL}
+  # Almacenamiento (MinIO interno de este stack).
+  S3_ENDPOINT: ${S3_ENDPOINT}
+  S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+  S3_SECRET_KEY: ${S3_SECRET_KEY}
+  S3_BUCKET: ${S3_BUCKET}
+  S3_REGION: ${S3_REGION:-us-east-1}
+  S3_FORCE_PATH_STYLE: "true"
+  # Email (SMTP real en producción).
+  SMTP_HOST: ${SMTP_HOST}
+  SMTP_PORT: ${SMTP_PORT}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASS: ${SMTP_PASS:-}
+  SMTP_SECURE: ${SMTP_SECURE:-false}
+  EMAIL_FROM: ${EMAIL_FROM}
+  NOMBRE_PROFESIONAL: ${NOMBRE_PROFESIONAL:-}
+  # Integraciones (opcionales; si faltan, la app degrada).
+  TOKENS_SECRET: ${TOKENS_SECRET:-}
+  GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+  GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+  ML_SERVICE_URL: ${ML_SERVICE_URL:-}
+  ML_SERVICE_TOKEN: ${ML_SERVICE_TOKEN:-}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
+  NUTRICION_DESHABILITADA: ${NUTRICION_DESHABILITADA:-false}
+  OFF_BASE_URL: ${OFF_BASE_URL:-https://es.openfoodfacts.org}
+  TZ: ${TZ:-America/Argentina/Buenos_Aires}
 
 services:
+  # --- PostgreSQL (disco principal) ---
   postgres:
     image: postgres:18
-    container_name: nutricionista_postgres_prod
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      # Layout clásico del directorio de datos (compatible con postgres:18).
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - datos_postgres:/var/lib/postgresql/data
@@ -26,8 +69,46 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks: [interna]
 
-  # Servicio one-shot: aplica las migraciones y termina.
+  # --- Bucket MinIO (disco SECUNDARIO vía bind-mount) ---
+  minio:
+    image: minio/minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+    volumes:
+      # ${RUTA_BUCKET} = punto de montaje del disco extra (p. ej. /mnt/bucket).
+      - ${RUTA_BUCKET}:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [interna]
+
+  # --- One-shot: crea el bucket si no existe ---
+  crear_bucket:
+    image: minio/mc
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: ${S3_BUCKET}
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 $$S3_ACCESS_KEY $$S3_SECRET_KEY &&
+      mc mb --ignore-existing local/$$S3_BUCKET &&
+      echo 'bucket listo: '$$S3_BUCKET
+      "
+    restart: "no"
+    networks: [interna]
+
+  # --- One-shot: aplica migraciones de Prisma y termina ---
   migrate:
     build:
       context: .
@@ -39,29 +120,79 @@ services:
       postgres:
         condition: service_healthy
     restart: "no"
+    networks: [interna]
 
-  # Aplicación Next.js (servidor autónomo).
+  # --- Aplicación Next.js (servidor autónomo, detrás de nginx del host) ---
   app:
     build:
       context: .
       target: runner
     image: nutricionista-app
     restart: unless-stopped
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: ${DATABASE_URL}
-      AUTH_SECRET: ${AUTH_SECRET}
-      AUTH_URL: ${AUTH_URL}
-      # Necesario detrás de un proxy/servidor para que Auth.js confíe en el host.
-      AUTH_TRUST_HOST: "true"
-    ports:
-      - "${APP_PORT:-3000}:3000"
+    environment: *app-env
     depends_on:
       postgres:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+      crear_bucket:
+        condition: service_completed_successfully
+    # El tráfico entra por nginx (en el host) → publicamos el puerto SOLO en
+    # localhost (127.0.0.1). Nginx proxea a http://127.0.0.1:${APP_PORT}.
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    networks: [interna]
+
+  # --- Worker de trabajos en segundo plano (pg-boss) ---
+  worker:
+    build:
+      context: .
+      target: worker
+    image: nutricionista-app-worker
+    restart: unless-stopped
+    environment: *app-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks: [interna]
+
+  # --- Respaldos offsite a OVH Object Storage (solo con --profile respaldos) ---
+  respaldo:
+    build:
+      context: ./respaldos
+    image: nutricionista-respaldo
+    restart: unless-stopped
+    profiles: ["respaldos"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      # MinIO de este stack (origen del bucket a respaldar).
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: ${S3_BUCKET}
+      # Destino OFFSITE (OVH Object Storage, S3-compatible).
+      OVH_S3_ENDPOINT: ${OVH_S3_ENDPOINT:-}
+      OVH_S3_ACCESS_KEY: ${OVH_S3_ACCESS_KEY:-}
+      OVH_S3_SECRET_KEY: ${OVH_S3_SECRET_KEY:-}
+      OVH_S3_BUCKET: ${OVH_S3_BUCKET:-}
+      OVH_S3_REGION: ${OVH_S3_REGION:-}
+      RETENCION_DIAS: ${RETENCION_DIAS:-14}
+      HORA_RESPALDO: ${HORA_RESPALDO:-03:00}
+      TZ: ${TZ:-America/Argentina/Buenos_Aires}
+    volumes:
+      - datos_respaldos:/respaldos
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [interna]
 
 volumes:
   datos_postgres:
-    name: nutricionista_datos_postgres_prod
+  datos_respaldos:
+
+networks:
+  # Red interna del proyecto (aislada por -p: prod y staging no se ven entre sí).
+  # No hay red del proxy: nginx corre en el host y proxea al puerto de localhost.
+  interna:

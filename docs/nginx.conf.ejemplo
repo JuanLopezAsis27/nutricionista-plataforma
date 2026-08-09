@@ -1,0 +1,84 @@
+# =============================================================================
+# nginx como reverse proxy de la app (corre en el HOST del VPS, no en Docker).
+# La app publica su puerto solo en localhost (docker-compose.prod.yml →
+# 127.0.0.1:3000). nginx termina TLS y proxea a ese puerto.
+#
+# Instalar:
+#   sudo cp docs/nginx.conf.ejemplo /etc/nginx/sites-available/nutricionista
+#   # editá `server_name` con tu dominio real
+#   sudo ln -s /etc/nginx/sites-available/nutricionista /etc/nginx/sites-enabled/
+#   sudo nginx -t && sudo systemctl reload nginx
+#
+# TLS (Let's Encrypt):
+#   sudo apt install certbot python3-certbot-nginx
+#   sudo certbot --nginx -d tudominio.com
+#   (certbot agrega los `ssl_certificate*` y el redirect 80→443 automáticamente y
+#    renueva solo con un timer de systemd)
+# =============================================================================
+
+# --- HTTP: redirige a HTTPS (certbot suele generarlo; si no, dejá este bloque) ---
+server {
+    listen 80;
+    listen [::]:80;
+    server_name tudominio.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name tudominio.com;
+
+    # certbot completa estas dos líneas al correr `certbot --nginx`:
+    # ssl_certificate     /etc/letsencrypt/live/tudominio.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/tudominio.com/privkey.pem;
+
+    # Subida de archivos: el módulo Archivos limita a 10 MB; damos margen.
+    # (nginx por defecto corta en 1 MB → sin esto fallan las subidas.)
+    client_max_body_size 16m;
+
+    # Seguridad básica.
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript image/svg+xml;
+    gzip_min_length 1024;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+
+        # Cabeceras estándar de reverse proxy.
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host  $host;
+
+        # Soporte para Upgrade (por si se usa en el futuro).
+        proxy_set_header Upgrade    $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    # CRÍTICO: la app usa notificaciones en tiempo real por SSE (tRPC
+    # subscriptions sobre /api/trpc). nginx BUFEA las respuestas por defecto, lo
+    # que ROMPE el stream (los eventos no llegan hasta cerrar la conexión). Para
+    # las rutas de tRPC desactivamos el buffering y alargamos el timeout.
+    location /api/trpc {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;        # no bufear (SSE)
+        proxy_cache off;
+        proxy_read_timeout 24h;     # el stream vive mucho tiempo
+        chunked_transfer_encoding off;
+    }
+}

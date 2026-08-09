@@ -29,6 +29,13 @@ export class PrismaRepositorioConfiguracion implements IConfiguracionRepositorio
       nombreProfesional: d.nombreProfesional,
       matricula: d.matricula,
       logoArchivoId: d.logoArchivoId,
+      pdfColorPrimario: d.pdfColorPrimario,
+      pdfSubtitulo: d.pdfSubtitulo,
+      pdfPieTexto: d.pdfPieTexto,
+      pdfMostrarRecetas: d.pdfMostrarRecetas,
+      pdfMostrarMacros: d.pdfMostrarMacros,
+      pdfMostrarEquivalencias: d.pdfMostrarEquivalencias,
+      pdfMostrarRecomendaciones: d.pdfMostrarRecomendaciones,
     };
     // La config del inquilino es única; si ya existe se actualiza, si no se crea.
     const existente = await this.prisma.configuracionConsultorio.findFirst();
@@ -54,6 +61,13 @@ export class PrismaRepositorioConfiguracion implements IConfiguracionRepositorio
       nombreProfesional: fila.nombreProfesional,
       matricula: fila.matricula,
       logoArchivoId: fila.logoArchivoId,
+      pdfColorPrimario: fila.pdfColorPrimario,
+      pdfSubtitulo: fila.pdfSubtitulo,
+      pdfPieTexto: fila.pdfPieTexto,
+      pdfMostrarRecetas: fila.pdfMostrarRecetas,
+      pdfMostrarMacros: fila.pdfMostrarMacros,
+      pdfMostrarEquivalencias: fila.pdfMostrarEquivalencias,
+      pdfMostrarRecomendaciones: fila.pdfMostrarRecomendaciones,
       creadoEn: fila.creadoEn,
       actualizadoEn: fila.actualizadoEn,
     });

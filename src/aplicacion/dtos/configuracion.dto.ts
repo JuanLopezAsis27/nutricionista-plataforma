@@ -15,6 +15,17 @@ export const guardarConfiguracionDto = z.object({
   nombreProfesional: z.string().max(200).nullable().optional(),
   matricula: z.string().max(100).nullable().optional(),
   logoArchivoId: z.string().nullable().optional(),
+  pdfColorPrimario: z
+    .string()
+    .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, "Color hexadecimal inválido")
+    .nullable()
+    .optional(),
+  pdfSubtitulo: z.string().max(200).nullable().optional(),
+  pdfPieTexto: z.string().max(500).nullable().optional(),
+  pdfMostrarRecetas: z.boolean().optional(),
+  pdfMostrarMacros: z.boolean().optional(),
+  pdfMostrarEquivalencias: z.boolean().optional(),
+  pdfMostrarRecomendaciones: z.boolean().optional(),
 });
 export type GuardarConfiguracionDto = z.infer<typeof guardarConfiguracionDto>;
 
@@ -28,6 +39,13 @@ export const configuracionSalidaDto = z.object({
   nombreProfesional: z.string().nullable(),
   matricula: z.string().nullable(),
   logoArchivoId: z.string().nullable(),
+  pdfColorPrimario: z.string().nullable(),
+  pdfSubtitulo: z.string().nullable(),
+  pdfPieTexto: z.string().nullable(),
+  pdfMostrarRecetas: z.boolean(),
+  pdfMostrarMacros: z.boolean(),
+  pdfMostrarEquivalencias: z.boolean(),
+  pdfMostrarRecomendaciones: z.boolean(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
 });

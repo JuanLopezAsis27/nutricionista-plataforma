@@ -40,7 +40,7 @@ export function BarraLateral({ email }: { email: string }) {
 
   return (
     <SidebarNav
-      marca="Nutricionista"
+      marca="Lic. López Asis"
       enlaces={enlaces}
       email={email}
       claveAlmacen="sidebar-nutri-colapsada"

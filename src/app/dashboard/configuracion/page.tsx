@@ -3,6 +3,7 @@
 import { Settings } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/componentes/ui/tabs";
 import { FormularioConfiguracion } from "@/componentes/configuracion/FormularioConfiguracion";
+import { FormularioPdfPlan } from "@/componentes/configuracion/FormularioPdfPlan";
 import { GestionAxiomas } from "@/componentes/configuracion/GestionAxiomas";
 
 /** Configuración del consultorio: turnos, membrete y base de conocimiento. */
@@ -21,11 +22,16 @@ export default function PaginaConfiguracion() {
       <Tabs defaultValue="general">
         <TabsList>
           <TabsTrigger value="general">Turnos y membrete</TabsTrigger>
+          <TabsTrigger value="pdf">PDF del plan</TabsTrigger>
           <TabsTrigger value="axiomas">Base de conocimiento</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
           <FormularioConfiguracion />
+        </TabsContent>
+
+        <TabsContent value="pdf">
+          <FormularioPdfPlan />
         </TabsContent>
 
         <TabsContent value="axiomas">

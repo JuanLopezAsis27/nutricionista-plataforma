@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancela corridas viejas de la misma rama/PR cuando llega un push nuevo.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: App (typecheck · tests · build)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: nutricionista
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: nutricionista
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nutricionista"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://nutricionista:ci@localhost:5432/nutricionista?schema=public
+      # Secretos ficticios: la CI no habla con servicios reales, solo compila y testea.
+      AUTH_SECRET: ci-auth-secret-no-usar-en-produccion
+      AUTH_URL: http://localhost:3000
+      APP_URL: http://localhost:3000
+      TOKENS_SECRET: ci-tokens-secret-no-usar-en-produccion
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Generar cliente Prisma
+        run: npx prisma generate
+
+      - name: Aplicar migraciones
+        run: npx prisma migrate deploy
+
+      - name: Typecheck (tsc estricto)
+        run: npx tsc --noEmit
+
+      - name: Tests (vitest)
+        run: npx vitest run
+
+      - name: Build (next)
+        run: npx next build
+
+  go:
+    name: Servicio de nutrición (Go)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nutricion-servicio
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache-dependency-path: nutricion-servicio/go.sum
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...

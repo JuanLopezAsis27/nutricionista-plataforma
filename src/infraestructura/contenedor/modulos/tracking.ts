@@ -3,6 +3,7 @@ import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
 import type { IAxiomaRepositorio } from "@/dominio/repositorios/IAxiomaRepositorio";
 import type { IAntropometriaRepositorio } from "@/dominio/repositorios/IAntropometriaRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
+import type { IMetricaDispositivoRepositorio } from "@/dominio/repositorios/IMetricaDispositivoRepositorio";
 import { ObtenerTrackingDePaciente } from "@/dominio/casos-de-uso/tracking/ObtenerTrackingDePaciente";
 import { ServicioTracking } from "@/aplicacion/servicios/ServicioTracking";
 
@@ -13,6 +14,7 @@ export function crearServicioTracking(deps: {
   planes: IPlanRepositorio;
   axiomas: IAxiomaRepositorio;
   antropometrias: IAntropometriaRepositorio;
+  metricas: IMetricaDispositivoRepositorio;
 }): ServicioTracking {
   return new ServicioTracking(
     new ObtenerTrackingDePaciente(
@@ -21,6 +23,7 @@ export function crearServicioTracking(deps: {
       deps.planes,
       deps.axiomas,
       deps.antropometrias,
+      deps.metricas,
     ),
   );
 }

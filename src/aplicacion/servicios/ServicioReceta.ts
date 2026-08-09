@@ -75,6 +75,10 @@ export class ServicioReceta {
   }
 
   private static aSalida(receta: Receta): RecetaSalidaDto {
-    return receta.aPrimitivos();
+    return {
+      ...receta.aPrimitivos(),
+      totales: receta.totales(),
+      macrosCalculados: receta.macrosCalculados,
+    };
   }
 }

@@ -20,7 +20,17 @@ const INCLUIR_HIJOS = {
     include: {
       opciones: {
         orderBy: { orden: "asc" },
-        include: { receta: { select: { nombre: true } } },
+        include: {
+          receta: {
+            select: {
+              nombre: true,
+              calorias: true,
+              proteinasG: true,
+              carbohidratosG: true,
+              grasasG: true,
+            },
+          },
+        },
       },
     },
   },
@@ -273,6 +283,14 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
           contenido: opcion.contenido,
           recetaId: opcion.recetaId,
           recetaNombre: opcion.receta?.nombre ?? null,
+          recetaMacros: opcion.receta
+            ? {
+                calorias: opcion.receta.calorias,
+                proteinasG: aNumero(opcion.receta.proteinasG),
+                carbohidratosG: aNumero(opcion.receta.carbohidratosG),
+                grasasG: aNumero(opcion.receta.grasasG),
+              }
+            : null,
           orden: opcion.orden,
         })),
       })),

@@ -14,6 +14,13 @@ export function VistaReceta({ receta }: { receta: RecetaSalidaDto }) {
     receta.grasasG != null && `${receta.grasasG} g grasas`,
   ].filter(Boolean);
 
+  const totales = [
+    receta.totales.calorias != null && `${receta.totales.calorias} kcal`,
+    receta.totales.proteinasG != null && `${receta.totales.proteinasG} g prot`,
+    receta.totales.carbohidratosG != null && `${receta.totales.carbohidratosG} g carb`,
+    receta.totales.grasasG != null && `${receta.totales.grasasG} g grasas`,
+  ].filter(Boolean);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
@@ -25,9 +32,16 @@ export function VistaReceta({ receta }: { receta: RecetaSalidaDto }) {
         {macros.length > 0 && (
           <span className="flex items-center gap-1">
             <Flame className="h-4 w-4" /> {macros.join(" · ")}
+            {receta.porciones != null && receta.porciones > 1 ? " / porción" : ""}
           </span>
         )}
       </div>
+
+      {receta.macrosCalculados && totales.length > 0 && receta.porciones != null && receta.porciones > 1 && (
+        <p className="text-xs text-muted-foreground">
+          Total de la receta: {totales.join(" · ")} (calculado de los ingredientes)
+        </p>
+      )}
 
       {receta.descripcion && <p className="text-sm">{receta.descripcion}</p>}
 
@@ -67,7 +81,12 @@ export function VistaReceta({ receta }: { receta: RecetaSalidaDto }) {
           <h3 className="mb-1 font-semibold">Ingredientes</h3>
           <ul className="list-inside list-disc space-y-0.5 text-sm">
             {receta.ingredientes.map((ingrediente, indice) => (
-              <li key={indice}>{ingrediente}</li>
+              <li key={indice}>
+                {ingrediente.nombre}
+                {ingrediente.cantidadGramos != null && (
+                  <span className="text-muted-foreground"> — {ingrediente.cantidadGramos} g</span>
+                )}
+              </li>
             ))}
           </ul>
         </div>

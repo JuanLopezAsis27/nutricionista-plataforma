@@ -14,6 +14,16 @@ export default function PaginaMensajes() {
   const lista = conversaciones();
   const [pacienteId, setPacienteId] = useState<string | null>(null);
 
+  // Deep-link desde la campana de notificaciones (?paciente=…): abre esa
+  // conversación al entrar y limpia el query de la URL.
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get("paciente");
+    if (p) {
+      setPacienteId(p);
+      window.history.replaceState({}, "", "/dashboard/mensajes");
+    }
+  }, []);
+
   const hilo = hiloDe({ pacienteId: pacienteId ?? "" }, { enabled: Boolean(pacienteId) });
   const mensajes = hilo.data?.mensajes ?? [];
   const cantidad = mensajes.length;
@@ -116,6 +126,7 @@ export default function PaginaMensajes() {
               </div>
               <div className="min-h-0 flex-1">
                 <HiloMensajes
+                  key={pacienteId}
                   mensajes={mensajes}
                   cargando={hilo.isLoading}
                   enviando={enviarA.isPending}

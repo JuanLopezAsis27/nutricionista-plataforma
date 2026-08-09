@@ -7,11 +7,14 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 import type { PlanSalidaDto } from "@/aplicacion/dtos/plan.dto";
+import type { RecetaSalidaDto } from "@/aplicacion/dtos/receta.dto";
+import type { ConfiguracionSalidaDto } from "@/aplicacion/dtos/configuracion.dto";
 
 /**
- * Documento PDF del plan nutricional, con el membrete del profesional.
- * Vive en infraestructura: es un adaptador de salida (representación
- * imprimible), igual que un repositorio lo es hacia la base.
+ * Documento PDF del plan nutricional. La APARIENCIA (color, membrete, pie y qué
+ * secciones se muestran) sale de la configuración del profesional; las recetas
+ * referenciadas por el plan se imprimen completas al final. Vive en
+ * infraestructura: es un adaptador de salida (representación imprimible).
  */
 
 const CORAL = "#F4535E";
@@ -21,23 +24,16 @@ const FONDO_SUAVE = "#fafafa";
 const BORDE = "#e4e4e7";
 
 const estilos = StyleSheet.create({
-  pagina: {
-    padding: 48,
-    paddingBottom: 64,
-    fontSize: 10,
-    color: GRIS_TEXTO,
-    fontFamily: "Helvetica",
-  },
+  pagina: { padding: 48, paddingBottom: 64, fontSize: 10, color: GRIS_TEXTO, fontFamily: "Helvetica" },
   membrete: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
     borderBottomWidth: 2,
-    borderBottomColor: CORAL,
     paddingBottom: 10,
     marginBottom: 18,
   },
-  profesional: { fontSize: 14, fontFamily: "Helvetica-Bold", color: CORAL },
+  profesional: { fontSize: 14, fontFamily: "Helvetica-Bold" },
   subtituloMembrete: { fontSize: 9, color: GRIS_SUAVE, marginTop: 2 },
   fecha: { fontSize: 9, color: GRIS_SUAVE },
 
@@ -45,11 +41,7 @@ const estilos = StyleSheet.create({
   paciente: { fontSize: 11, color: GRIS_SUAVE, marginBottom: 4 },
   descripcion: { fontSize: 10, color: GRIS_SUAVE, marginBottom: 10 },
 
-  metas: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 16,
-  },
+  metas: { flexDirection: "row", gap: 8, marginBottom: 16 },
   meta: {
     backgroundColor: FONDO_SUAVE,
     borderWidth: 1,
@@ -65,7 +57,6 @@ const estilos = StyleSheet.create({
   franjaCabecera: {
     flexDirection: "row",
     justifyContent: "space-between",
-    backgroundColor: CORAL,
     borderRadius: 4,
     paddingVertical: 4,
     paddingHorizontal: 10,
@@ -74,7 +65,7 @@ const estilos = StyleSheet.create({
   franjaNombre: { fontSize: 11, fontFamily: "Helvetica-Bold", color: "#ffffff" },
   franjaHora: { fontSize: 9, color: "#ffffff" },
   opcion: { marginBottom: 5, paddingHorizontal: 4 },
-  opcionNumero: { fontFamily: "Helvetica-Bold", color: CORAL },
+  opcionNumero: { fontFamily: "Helvetica-Bold" },
   opcionTexto: { fontSize: 10, lineHeight: 1.4 },
   opcionReceta: { fontSize: 8, color: GRIS_SUAVE, marginTop: 1 },
 
@@ -82,16 +73,21 @@ const estilos = StyleSheet.create({
   seccionTitulo: {
     fontSize: 12,
     fontFamily: "Helvetica-Bold",
-    color: CORAL,
     borderBottomWidth: 1,
     borderBottomColor: BORDE,
     paddingBottom: 3,
     marginBottom: 6,
   },
   item: { flexDirection: "row", marginBottom: 3 },
-  vineta: { width: 12, color: CORAL, fontSize: 10 },
+  vineta: { width: 12, fontSize: 10 },
   itemTexto: { flex: 1, fontSize: 10, lineHeight: 1.4 },
   equivalenciaTitulo: { fontFamily: "Helvetica-Bold" },
+
+  receta: { marginBottom: 12 },
+  recetaNombre: { fontSize: 11, fontFamily: "Helvetica-Bold" },
+  recetaMeta: { fontSize: 8, color: GRIS_SUAVE, marginBottom: 3 },
+  recetaSubtitulo: { fontSize: 9, fontFamily: "Helvetica-Bold", marginTop: 3, marginBottom: 1 },
+  recetaTexto: { fontSize: 9, lineHeight: 1.4 },
 
   pie: {
     position: "absolute",
@@ -103,16 +99,18 @@ const estilos = StyleSheet.create({
     paddingTop: 6,
     flexDirection: "row",
     justifyContent: "space-between",
+    gap: 12,
   },
   pieTexto: { fontSize: 8, color: GRIS_SUAVE },
 });
 
-const NOMBRE_PROFESIONAL = "Lic. López Asis Nicolás";
-const SUBTITULO_PROFESIONAL = "Nutrición deportiva y clínica";
-
 interface Props {
   plan: PlanSalidaDto;
   nombrePaciente?: string | null;
+  /** Recetas referenciadas por el plan, para imprimirlas completas. */
+  recetas?: RecetaSalidaDto[];
+  /** Configuración del profesional (membrete y apariencia del PDF). */
+  config?: ConfiguracionSalidaDto | null;
 }
 
 function formatearFecha(fecha: Date): string {
@@ -123,12 +121,26 @@ function formatearFecha(fecha: Date): string {
   }).format(fecha);
 }
 
+function macro(valor: number | null | undefined, sufijo: string): string | null {
+  return valor != null ? `${valor}${sufijo}` : null;
+}
+
 /** Renderiza el plan a un buffer PDF (la única API que consume la presentación). */
 export async function renderizarPlanPdf(props: Props): Promise<Buffer> {
   return renderToBuffer(<PlanNutricionalPdf {...props} />);
 }
 
-function PlanNutricionalPdf({ plan, nombrePaciente }: Props) {
+function PlanNutricionalPdf({ plan, nombrePaciente, recetas = [], config }: Props) {
+  const color = config?.pdfColorPrimario || CORAL;
+  const nombreProfesional = config?.nombreProfesional?.trim() || "Consultorio de Nutrición";
+  const subtitulo = config?.pdfSubtitulo?.trim() || null;
+  const matricula = config?.matricula?.trim() || null;
+  const pieTexto = config?.pdfPieTexto?.trim() || null;
+  const mostrarMacros = config?.pdfMostrarMacros ?? true;
+  const mostrarEquivalencias = config?.pdfMostrarEquivalencias ?? true;
+  const mostrarRecomendaciones = config?.pdfMostrarRecomendaciones ?? true;
+  const mostrarRecetas = (config?.pdfMostrarRecetas ?? true) && recetas.length > 0;
+
   const metas = [
     plan.caloriasMeta != null && { valor: `${plan.caloriasMeta} kcal`, etiqueta: "Calorías" },
     plan.proteinasMetaG != null && { valor: `${plan.proteinasMetaG} g`, etiqueta: "Proteínas" },
@@ -143,13 +155,14 @@ function PlanNutricionalPdf({ plan, nombrePaciente }: Props) {
   const salud = plan.recomendaciones.filter((r) => r.tipo === "SALUD");
 
   return (
-    <Document title={plan.nombre} author={NOMBRE_PROFESIONAL}>
+    <Document title={plan.nombre} author={nombreProfesional}>
       <Page size="A4" style={estilos.pagina}>
         {/* Membrete */}
-        <View style={estilos.membrete} fixed>
+        <View style={[estilos.membrete, { borderBottomColor: color }]} fixed>
           <View>
-            <Text style={estilos.profesional}>{NOMBRE_PROFESIONAL}</Text>
-            <Text style={estilos.subtituloMembrete}>{SUBTITULO_PROFESIONAL}</Text>
+            <Text style={[estilos.profesional, { color }]}>{nombreProfesional}</Text>
+            {subtitulo && <Text style={estilos.subtituloMembrete}>{subtitulo}</Text>}
+            {matricula && <Text style={estilos.subtituloMembrete}>Mat. {matricula}</Text>}
           </View>
           <Text style={estilos.fecha}>{formatearFecha(new Date())}</Text>
         </View>
@@ -160,7 +173,7 @@ function PlanNutricionalPdf({ plan, nombrePaciente }: Props) {
         {plan.descripcion && <Text style={estilos.descripcion}>{plan.descripcion}</Text>}
 
         {/* Metas de macros */}
-        {metas.length > 0 && (
+        {mostrarMacros && metas.length > 0 && (
           <View style={estilos.metas}>
             {metas.map((meta) => (
               <View key={meta.etiqueta} style={estilos.meta}>
@@ -174,7 +187,7 @@ function PlanNutricionalPdf({ plan, nombrePaciente }: Props) {
         {/* Franjas con opciones */}
         {plan.comidas.map((comida) => (
           <View key={comida.id} style={estilos.franja} wrap={false}>
-            <View style={estilos.franjaCabecera}>
+            <View style={[estilos.franjaCabecera, { backgroundColor: color }]}>
               <Text style={estilos.franjaNombre}>{comida.nombre}</Text>
               {(comida.horaDesde || comida.horaHasta) && (
                 <Text style={estilos.franjaHora}>
@@ -186,7 +199,7 @@ function PlanNutricionalPdf({ plan, nombrePaciente }: Props) {
               <View key={opcion.id} style={estilos.opcion}>
                 <Text style={estilos.opcionTexto}>
                   {comida.opciones.length > 1 && (
-                    <Text style={estilos.opcionNumero}>Opción {opcion.numero} · </Text>
+                    <Text style={[estilos.opcionNumero, { color }]}>Opción {opcion.numero} · </Text>
                   )}
                   {opcion.contenido}
                 </Text>
@@ -199,12 +212,12 @@ function PlanNutricionalPdf({ plan, nombrePaciente }: Props) {
         ))}
 
         {/* Equivalencias */}
-        {plan.equivalencias.length > 0 && (
+        {mostrarEquivalencias && plan.equivalencias.length > 0 && (
           <View style={estilos.seccion}>
-            <Text style={estilos.seccionTitulo}>Equivalencias</Text>
+            <Text style={[estilos.seccionTitulo, { color }]}>Equivalencias</Text>
             {plan.equivalencias.map((equivalencia) => (
               <View key={equivalencia.id} style={estilos.item}>
-                <Text style={estilos.vineta}>•</Text>
+                <Text style={[estilos.vineta, { color }]}>•</Text>
                 <Text style={estilos.itemTexto}>
                   <Text style={estilos.equivalenciaTitulo}>{equivalencia.titulo}: </Text>
                   {equivalencia.detalle}
@@ -215,23 +228,23 @@ function PlanNutricionalPdf({ plan, nombrePaciente }: Props) {
         )}
 
         {/* Recomendaciones */}
-        {nutricionales.length > 0 && (
+        {mostrarRecomendaciones && nutricionales.length > 0 && (
           <View style={estilos.seccion}>
-            <Text style={estilos.seccionTitulo}>Recomendaciones nutricionales</Text>
+            <Text style={[estilos.seccionTitulo, { color }]}>Recomendaciones nutricionales</Text>
             {nutricionales.map((recomendacion) => (
               <View key={recomendacion.id} style={estilos.item}>
-                <Text style={estilos.vineta}>•</Text>
+                <Text style={[estilos.vineta, { color }]}>•</Text>
                 <Text style={estilos.itemTexto}>{recomendacion.texto}</Text>
               </View>
             ))}
           </View>
         )}
-        {salud.length > 0 && (
+        {mostrarRecomendaciones && salud.length > 0 && (
           <View style={estilos.seccion}>
-            <Text style={estilos.seccionTitulo}>Recomendaciones de salud</Text>
+            <Text style={[estilos.seccionTitulo, { color }]}>Recomendaciones de salud</Text>
             {salud.map((recomendacion) => (
               <View key={recomendacion.id} style={estilos.item}>
-                <Text style={estilos.vineta}>•</Text>
+                <Text style={[estilos.vineta, { color }]}>•</Text>
                 <Text style={estilos.itemTexto}>{recomendacion.texto}</Text>
               </View>
             ))}
@@ -241,14 +254,58 @@ function PlanNutricionalPdf({ plan, nombrePaciente }: Props) {
         {/* Contactos útiles */}
         {plan.contactosUtiles && (
           <View style={estilos.seccion}>
-            <Text style={estilos.seccionTitulo}>Contactos útiles</Text>
+            <Text style={[estilos.seccionTitulo, { color }]}>Contactos útiles</Text>
             <Text style={estilos.itemTexto}>{plan.contactosUtiles}</Text>
+          </View>
+        )}
+
+        {/* Recetario: recetas del plan, completas */}
+        {mostrarRecetas && (
+          <View style={estilos.seccion} break>
+            <Text style={[estilos.seccionTitulo, { color }]}>Recetas del plan</Text>
+            {recetas.map((receta) => (
+              <View key={receta.id} style={estilos.receta} wrap={false}>
+                <Text style={estilos.recetaNombre}>{receta.nombre}</Text>
+                <Text style={estilos.recetaMeta}>
+                  {[
+                    receta.porciones != null ? `${receta.porciones} porción(es)` : null,
+                    ...(mostrarMacros
+                      ? [
+                          macro(receta.calorias, " kcal"),
+                          macro(receta.proteinasG, " g P"),
+                          macro(receta.carbohidratosG, " g C"),
+                          macro(receta.grasasG, " g G"),
+                        ]
+                      : []),
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") + (mostrarMacros ? " (por porción)" : "")}
+                </Text>
+                {receta.ingredientes.length > 0 && (
+                  <>
+                    <Text style={estilos.recetaSubtitulo}>Ingredientes</Text>
+                    {receta.ingredientes.map((ing, i) => (
+                      <Text key={i} style={estilos.recetaTexto}>
+                        • {ing.nombre}
+                        {ing.cantidadGramos != null ? ` — ${ing.cantidadGramos} g` : ""}
+                      </Text>
+                    ))}
+                  </>
+                )}
+                {receta.preparacion && (
+                  <>
+                    <Text style={estilos.recetaSubtitulo}>Preparación</Text>
+                    <Text style={estilos.recetaTexto}>{receta.preparacion}</Text>
+                  </>
+                )}
+              </View>
+            ))}
           </View>
         )}
 
         {/* Pie de página */}
         <View style={estilos.pie} fixed>
-          <Text style={estilos.pieTexto}>{NOMBRE_PROFESIONAL}</Text>
+          <Text style={estilos.pieTexto}>{pieTexto || nombreProfesional}</Text>
           <Text
             style={estilos.pieTexto}
             render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`}

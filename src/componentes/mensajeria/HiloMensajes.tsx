@@ -38,6 +38,16 @@ export function HiloMensajes({
   const [borrador, setBorrador] = useState("");
   const finRef = useRef<HTMLDivElement>(null);
 
+  // Al abrir el hilo, captura (una sola vez) el primer mensaje NO leído del otro,
+  // para marcar dónde arrancan los nuevos. Se fija antes de marcarlos como leídos,
+  // así el divisor no desaparece cuando `leidoEn` se actualiza.
+  const [primerNuevoId, setPrimerNuevoId] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (primerNuevoId !== undefined || cargando || mensajes.length === 0) return;
+    const nuevo = mensajes.find((m) => m.autorId !== miId && m.leidoEn === null);
+    setPrimerNuevoId(nuevo?.id ?? null);
+  }, [cargando, mensajes, miId, primerNuevoId]);
+
   useEffect(() => {
     finRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensajes.length]);
@@ -62,11 +72,19 @@ export function HiloMensajes({
         ) : (
           mensajes.map((mensaje) => {
             const mio = mensaje.autorId === miId;
+            const esPrimerNuevo = mensaje.id === primerNuevoId;
             return (
-              <div
-                key={mensaje.id}
-                className={cn("flex flex-col", mio ? "items-end" : "items-start")}
-              >
+              <div key={mensaje.id} className="flex flex-col">
+                {esPrimerNuevo && (
+                  <div className="my-2 flex items-center gap-2" aria-label="Mensajes nuevos">
+                    <span className="h-px flex-1 bg-primary/40" />
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">
+                      Mensajes nuevos
+                    </span>
+                    <span className="h-px flex-1 bg-primary/40" />
+                  </div>
+                )}
+                <div className={cn("flex flex-col", mio ? "items-end" : "items-start")}>
                 <div
                   className={cn(
                     "max-w-[80%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm",
@@ -77,9 +95,10 @@ export function HiloMensajes({
                 >
                   {mensaje.cuerpo}
                 </div>
-                <span className="mt-0.5 px-1 text-[10px] text-muted-foreground">
-                  {hora(mensaje.creadoEn)}
-                </span>
+                  <span className="mt-0.5 px-1 text-[10px] text-muted-foreground">
+                    {hora(mensaje.creadoEn)}
+                  </span>
+                </div>
               </div>
             );
           })

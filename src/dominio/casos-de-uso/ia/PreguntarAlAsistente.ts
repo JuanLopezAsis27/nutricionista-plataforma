@@ -1,8 +1,14 @@
 import type { IPacienteRepositorio } from "../../repositorios/IPacienteRepositorio";
 import type { IObjetivoRepositorio } from "../../repositorios/IObjetivoRepositorio";
 import type { IPlanRepositorio } from "../../repositorios/IPlanRepositorio";
+import type { IRecetaRepositorio } from "../../repositorios/IRecetaRepositorio";
+import type { IAlertaAlimentariaRepositorio } from "../../repositorios/IAlertaAlimentariaRepositorio";
+import type { IAxiomaRepositorio } from "../../repositorios/IAxiomaRepositorio";
 import type { IHistorialIARepositorio } from "../../repositorios/IHistorialIARepositorio";
-import type { IAsistenteNutricional } from "../../servicios/IAsistenteNutricional";
+import type {
+  IAsistenteNutricional,
+  HerramientaAsistente,
+} from "../../servicios/IAsistenteNutricional";
 import { ConsultaIA } from "../../entidades/ConsultaIA";
 import { ErrorPacienteNoEncontrado } from "../../errores/ErrorPacienteNoEncontrado";
 
@@ -12,16 +18,25 @@ export interface RespuestaAsistente {
   respuesta: string;
 }
 
+/** Esquema de una herramienta sin argumentos. */
+const SIN_ARGUMENTOS = { type: "object", properties: {}, additionalProperties: false };
+
 /**
  * Caso de uso: responder una pregunta del paciente al asistente. Arma el
- * contexto real (nombre, objetivos en curso, si tiene plan), delega en el
- * puerto (stub hoy, Claude a futuro) y guarda la consulta como historial.
+ * contexto real (nombre, objetivos, restricciones alimentarias e indicaciones
+ * del nutricionista) y le da al asistente HERRAMIENTAS para consultar los datos
+ * del paciente (plan, recetas, objetivos) según lo que pregunte. Guarda la
+ * consulta como historial. Las herramientas cierran sobre los repositorios: el
+ * adaptador de IA nunca toca la persistencia.
  */
 export class PreguntarAlAsistente {
   constructor(
     private readonly pacientes: IPacienteRepositorio,
     private readonly objetivos: IObjetivoRepositorio,
     private readonly planes: IPlanRepositorio,
+    private readonly recetas: IRecetaRepositorio,
+    private readonly alertas: IAlertaAlimentariaRepositorio,
+    private readonly axiomas: IAxiomaRepositorio,
     private readonly asistente: IAsistenteNutricional,
     private readonly historial: IHistorialIARepositorio,
   ) {}
@@ -32,24 +47,120 @@ export class PreguntarAlAsistente {
       throw new ErrorPacienteNoEncontrado(pacienteId);
     }
 
-    const [objetivos, planActivo] = await Promise.all([
+    const [objetivos, planActivo, alertas, axiomas] = await Promise.all([
       this.objetivos.listarPorPaciente(pacienteId),
       this.planes.obtenerPlanActivoDePaciente(pacienteId),
+      this.alertas.listarPorPaciente(pacienteId),
+      this.axiomas.listarActivos(),
     ]);
 
-    const respuesta = await this.asistente.responder(pregunta, {
-      nombrePaciente: paciente.nombreCompleto,
-      objetivos: objetivos
-        .map((o) => o.aPrimitivos())
-        .filter((o) => o.estado === "EN_CURSO")
-        .map((o) => o.titulo),
-      tienePlan: planActivo != null,
-    });
+    const respuesta = await this.asistente.responder(
+      pregunta,
+      {
+        nombrePaciente: paciente.nombreCompleto,
+        objetivos: objetivos
+          .map((o) => o.aPrimitivos())
+          .filter((o) => o.estado === "EN_CURSO")
+          .map((o) => o.titulo),
+        tienePlan: planActivo != null,
+        restricciones: alertas.map((a) => {
+          const p = a.aPrimitivos();
+          return `${p.tipo}: ${p.descripcion} (severidad ${p.severidad})`;
+        }),
+        recomendacionesNutricionista: axiomas.map((a) => a.aPrimitivos().texto),
+      },
+      this.construirHerramientas(pacienteId),
+    );
 
     await this.historial.guardarConsulta(
       ConsultaIA.crear({ pacienteId, pregunta, respuesta }, crypto.randomUUID()),
     );
 
     return { pregunta, respuesta };
+  }
+
+  /** Herramientas que el asistente puede invocar para traer datos del paciente. */
+  private construirHerramientas(pacienteId: string): HerramientaAsistente[] {
+    return [
+      {
+        nombre: "obtener_plan_nutricional",
+        descripcion:
+          "Devuelve el plan nutricional activo del paciente: sus comidas por franja con las " +
+          "opciones, y las metas de macros. Usalo cuando pregunte por su plan, sus comidas o qué comer.",
+        esquema: SIN_ARGUMENTOS,
+        ejecutar: async () => {
+          const plan = await this.planes.obtenerPlanActivoDePaciente(pacienteId);
+          if (!plan) return "El paciente no tiene un plan activo asignado.";
+          const p = plan.aPrimitivos();
+          return JSON.stringify({
+            nombre: p.nombre,
+            descripcion: p.descripcion,
+            metas: {
+              caloriasMeta: p.caloriasMeta,
+              proteinasMetaG: p.proteinasMetaG,
+              carbohidratosMetaG: p.carbohidratosMetaG,
+              grasasMetaG: p.grasasMetaG,
+            },
+            comidas: p.comidas.map((c) => ({
+              franja: c.nombre,
+              opciones: c.opciones.map((o) => o.contenido),
+            })),
+            recomendaciones: p.recomendaciones.map((r) => r.texto),
+          });
+        },
+      },
+      {
+        nombre: "obtener_recetas_asignadas",
+        descripcion:
+          "Devuelve las recetas asignadas al paciente, con ingredientes, preparación y macros por " +
+          "porción. Usalo cuando pregunte cómo preparar algo o por sus recetas.",
+        esquema: SIN_ARGUMENTOS,
+        ejecutar: async () => {
+          const recetas = await this.recetas.listarPorPaciente(pacienteId);
+          if (recetas.length === 0) return "El paciente no tiene recetas asignadas.";
+          return JSON.stringify(
+            recetas.map((r) => {
+              const p = r.aPrimitivos();
+              return {
+                nombre: p.nombre,
+                porciones: p.porciones,
+                macrosPorPorcion: {
+                  calorias: p.calorias,
+                  proteinasG: p.proteinasG,
+                  carbohidratosG: p.carbohidratosG,
+                  grasasG: p.grasasG,
+                },
+                ingredientes: p.ingredientes.map((i) =>
+                  i.cantidadGramos != null ? `${i.nombre} (${i.cantidadGramos} g)` : i.nombre,
+                ),
+                preparacion: p.preparacion,
+              };
+            }),
+          );
+        },
+      },
+      {
+        nombre: "obtener_objetivos",
+        descripcion:
+          "Devuelve los objetivos del paciente con su estado y prioridad. Usalo cuando pregunte " +
+          "por sus metas o su progreso hacia ellas.",
+        esquema: SIN_ARGUMENTOS,
+        ejecutar: async () => {
+          const objetivos = await this.objetivos.listarPorPaciente(pacienteId);
+          if (objetivos.length === 0) return "El paciente no tiene objetivos cargados.";
+          return JSON.stringify(
+            objetivos.map((o) => {
+              const p = o.aPrimitivos();
+              return {
+                titulo: p.titulo,
+                estado: p.estado,
+                prioridad: p.prioridad,
+                descripcion: p.descripcion,
+              };
+            }),
+          );
+        },
+      },
+    ];
   }
 }

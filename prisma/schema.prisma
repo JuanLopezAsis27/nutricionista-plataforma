@@ -142,6 +142,7 @@ model Paciente {
   conversacion         Conversacion?
   consultasIA          ConsultaIA[]
   analisisComida       AnalisisComida[]
+  metricasDispositivo  MetricaDispositivo[]
 
   @@index([apellido, nombre])
   @@index([nutricionistaId])
@@ -280,6 +281,102 @@ model RegistroDiario {
 
   @@unique([pacienteId, fecha])
   @@map("registros_diarios")
+}
+
+/// Origen de una métrica de dispositivo (wearable).
+enum FuenteMetrica {
+  APPLE_WATCH
+  HEALTH_CONNECT
+  MANUAL
+}
+
+/// Métricas diarias importadas de un wearable (Apple Watch / Health Connect).
+/// El paciente decide por día si el registro cuenta para su seguimiento
+/// (`incluir`, opt-in por día). Alimenta la adherencia a los axiomas de sueño
+/// y actividad cuando el diario no tiene el dato. Hijo del paciente,
+/// tenant-scoped como RegistroDiario.
+model MetricaDispositivo {
+  id                       String        @id @default(cuid())
+  nutricionistaId          String        @default("")
+  pacienteId               String
+  fecha                    DateTime      @db.Date
+  fuente                   FuenteMetrica @default(MANUAL)
+  pasos                    Int?
+  minutosActividad         Int?
+  caloriasActivas          Int?
+  frecuenciaCardiacaReposo Int?
+  horasSueno               Decimal?      @db.Decimal(3, 1)
+  incluir                  Boolean       @default(true)
+  creadoEn                 DateTime      @default(now())
+  actualizadoEn            DateTime      @updatedAt
+
+  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@unique([pacienteId, fecha, fuente])
+  @@index([pacienteId, fecha])
+  @@index([nutricionistaId])
+  @@map("metricas_dispositivo")
+}
+
+/// Credenciales de integraciones externas por profesional (nutricionista),
+/// guardadas CIFRADAS (AES-256-GCM, CifradorTokens). Una por inquilino. El
+/// profesional las carga desde la app; los adaptadores las resuelven por
+/// request (con fallback a variables de entorno y luego a los stubs).
+model CredencialesIntegracion {
+  id                           String   @id @default(cuid())
+  nutricionistaId              String   @unique @default("")
+  proveedorIA                  String? // "ANTHROPIC" (defecto) | "OPENROUTER"
+  anthropicApiKeyCifrada       String? // clave de IA (Anthropic u OpenRouter), cifrada
+  anthropicModelo              String? // modelo elegido (texto plano)
+  fatsecretClientIdCifrado     String? // FatSecret OAuth2 client_id, cifrado
+  fatsecretClientSecretCifrado String? // FatSecret OAuth2 client_secret, cifrado
+  // Criterios de ingredientes: filtran los alimentos que trae la búsqueda.
+  criterioExcluirMarcas     Boolean  @default(false) // solo genéricos (sin marca)
+  criterioRequiereMacros    Boolean  @default(false) // descartar sin macros completos
+  criterioMaxCaloriasPor100 Float? // tope opcional de kcal/100 g
+  criterioExcluirTexto      String[] @default([]) // descartar si el nombre contiene
+  creadoEn                     DateTime @default(now())
+  actualizadoEn                DateTime @updatedAt
+
+  @@map("credenciales_integracion")
+}
+
+/// Corrección del profesional sobre un insight predictivo (👍 útil / 👎 no).
+/// Es la ETIQUETA del loop de feedback: el ml-servicio la lee (por la réplica RO)
+/// para entrenar modelos a futuro. Una por (nutri, paciente, tipo): el último voto
+/// reemplaza al anterior. Tenant-scoped por nutricionistaId.
+model RetroalimentacionInsight {
+  id              String   @id @default(cuid())
+  nutricionistaId String   @default("")
+  pacienteId      String
+  tipoInsight     String // RIESGO_ABANDONO | ADHERENCIA | TENDENCIA_PESO
+  util            Boolean // true = acertado (👍), false = no (👎)
+  detalle         String // texto del insight al momento del voto (contexto)
+  comentario      String? // aclaración opcional del profesional
+  creadoEn        DateTime @default(now())
+  actualizadoEn   DateTime @updatedAt
+
+  @@unique([nutricionistaId, pacienteId, tipoInsight])
+  @@map("retroalimentacion_insight")
+}
+
+/// Alimento/insumo cargado por el nutricionista desde un Excel/CSV. Si el
+/// inquilino tiene al menos uno, la búsqueda de ingredientes usa SU lista y se
+/// desactiva FatSecret. Macros por 100 g. Tenant-scoped por nutricionistaId.
+model AlimentoPropio {
+  id                  String   @id @default(cuid())
+  nutricionistaId     String   @default("")
+  nombre              String
+  nombreNormalizado   String // minúsculas/trim, para búsqueda case-insensitive
+  marca               String?
+  caloriasPor100      Float?
+  proteinasPor100     Float?
+  carbohidratosPor100 Float?
+  grasasPor100        Float?
+  creadoEn            DateTime @default(now())
+
+  @@index([nutricionistaId, nombreNormalizado])
+  @@map("alimentos_propios")
 }
 
 /// Comida registrada por el paciente en su diario, con foto opcional
@@ -445,9 +542,9 @@ model Receta {
   descripcion     String?
   porciones       Int?
   preparacion     String? // texto largo, pasos
-  ingredientes    String[] // lista ordenada como texto
   etiquetas       String[] // "vegetariano", "sin TACC"…
-  // Macros por porción (opcionales)
+  // Macros POR PORCIÓN (opcionales). Si la receta tiene ingredientes con datos
+  // nutricionales, se calculan de ellos al guardar; si no, se cargan a mano.
   calorias        Int?
   proteinasG      Decimal? @db.Decimal(6, 1)
   carbohidratosG  Decimal? @db.Decimal(6, 1)
@@ -455,13 +552,38 @@ model Receta {
   creadoEn        DateTime @default(now())
   actualizadoEn   DateTime @updatedAt
 
-  fotos        Archivo[]
-  opciones     OpcionComida[]
-  asignaciones AsignacionReceta[]
+  fotos         Archivo[]
+  opciones      OpcionComida[]
+  asignaciones  AsignacionReceta[]
+  ingredientes  IngredienteReceta[]
 
   @@index([nombre])
   @@index([nutricionistaId])
   @@map("recetas")
+}
+
+/// Ingrediente estructurado de una receta: cantidad en gramos + macros por 100 g
+/// (traídos de una base externa —Open Food Facts— o cargados a mano). La receta
+/// suma estos valores para obtener sus totales y macros por porción. Hijo del
+/// agregado Receta (hereda el inquilino por su receta; sin nutricionistaId).
+model IngredienteReceta {
+  id                  String   @id @default(cuid())
+  recetaId            String
+  nombre              String
+  cantidadGramos      Decimal? @db.Decimal(8, 1)
+  // Macros por 100 g del alimento (base de datos nutricional o manual)
+  caloriasPor100      Decimal? @db.Decimal(6, 1)
+  proteinasPor100     Decimal? @db.Decimal(5, 1)
+  carbohidratosPor100 Decimal? @db.Decimal(5, 1)
+  grasasPor100        Decimal? @db.Decimal(5, 1)
+  fuente              String? // "OFF" (Open Food Facts) | "MANUAL"
+  referenciaExterna   String? // código de barras / id en la fuente
+  orden               Int      @default(0)
+
+  receta Receta @relation(fields: [recetaId], references: [id], onDelete: Cascade)
+
+  @@index([recetaId])
+  @@map("ingredientes_receta")
 }
 
 /// Vincula una receta a un paciente (compartida en su portal).
@@ -751,23 +873,27 @@ model CuentaConectada {
 
   sincronizaciones SincronizacionTurno[]
 
-  @@unique([proveedor, emailCuenta])
+  // Una conexión por nutricionista y proveedor (reconectar reemplaza).
+  @@unique([nutricionistaId, proveedor])
+  @@index([nutricionistaId])
   @@map("cuentas_conectadas")
 }
 
 /// Correspondencia entre un turno y su evento en el calendario externo.
 /// `turnoId` no lleva FK (feature futura, se evita acoplar el modelo Turno).
 model SincronizacionTurno {
-  id            String   @id @default(cuid())
-  cuentaId      String
-  turnoId       String
-  googleEventId String
-  creadoEn      DateTime @default(now())
+  id              String   @id @default(cuid())
+  nutricionistaId String   @default("")
+  cuentaId        String
+  turnoId         String
+  googleEventId   String
+  creadoEn        DateTime @default(now())
 
   cuenta CuentaConectada @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
 
   @@unique([cuentaId, turnoId])
   @@index([turnoId])
+  @@index([nutricionistaId])
   @@map("sincronizaciones_turno")
 }
 
@@ -887,6 +1013,14 @@ model ConfiguracionConsultorio {
   nombreProfesional    String?
   matricula            String?
   logoArchivoId        String?
+  // Apariencia del PDF del plan nutricional.
+  pdfColorPrimario         String? // hex, ej "#F4535E" (default: coral)
+  pdfSubtitulo             String? // bajo el nombre en el membrete
+  pdfPieTexto              String? // nota al pie / aclaración
+  pdfMostrarRecetas        Boolean @default(true)
+  pdfMostrarMacros         Boolean @default(true)
+  pdfMostrarEquivalencias  Boolean @default(true)
+  pdfMostrarRecomendaciones Boolean @default(true)
   creadoEn             DateTime @default(now())
   actualizadoEn        DateTime @updatedAt
 

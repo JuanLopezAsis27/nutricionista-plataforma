@@ -13,6 +13,7 @@ import { Skeleton } from "@/componentes/ui/skeleton";
 import { Card, CardContent } from "@/componentes/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/componentes/ui/tabs";
 import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
+import { PensandoAnimado } from "@/componentes/ia/PensandoAnimado";
 
 function BannerDemo() {
   return (
@@ -27,6 +28,9 @@ function BannerDemo() {
 }
 
 export default function PaginaAsistente() {
+  const { estado } = useIA();
+  const asistenteActivo = estado().data?.asistenteActivo ?? false;
+
   return (
     <div className="space-y-4">
       <div>
@@ -38,7 +42,7 @@ export default function PaginaAsistente() {
         </p>
       </div>
 
-      <BannerDemo />
+      {!asistenteActivo && <BannerDemo />}
 
       <Tabs defaultValue="chat">
         <TabsList>
@@ -99,11 +103,15 @@ function Chat() {
             </div>
           ))
         )}
-        {preguntar.isPending && (
-          <div className="flex justify-start">
-            <div className="rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-sm text-muted-foreground">
-              Pensando…
+        {/* Optimista: el mensaje enviado se muestra al instante + "pensando" animado. */}
+        {preguntar.isPending && preguntar.variables && (
+          <div className="space-y-2">
+            <div className="flex justify-end">
+              <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground">
+                {preguntar.variables.pregunta}
+              </div>
             </div>
+            <PensandoAnimado />
           </div>
         )}
         <div ref={finRef} />
@@ -189,10 +197,13 @@ function AnalizarComida() {
             </div>
             <p
               className={cn(
-                "rounded-md bg-muted/60 p-2 text-xs text-muted-foreground",
+                "flex items-start gap-1.5 rounded-md bg-muted/60 p-2 text-xs text-muted-foreground",
               )}
             >
-              {resultado.nota}
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>
+                <strong>Estimado, no exacto.</strong> {resultado.nota}
+              </span>
             </p>
           </CardContent>
         </Card>

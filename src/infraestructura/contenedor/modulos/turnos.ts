@@ -1,5 +1,6 @@
 import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
+import type { ISincronizadorCalendario } from "@/dominio/servicios/ISincronizadorCalendario";
 import { AgendarTurno } from "@/dominio/casos-de-uso/turnos/AgendarTurno";
 import { ObtenerTurnos } from "@/dominio/casos-de-uso/turnos/ObtenerTurnos";
 import { ObtenerTurnosPorPaciente } from "@/dominio/casos-de-uso/turnos/ObtenerTurnosPorPaciente";
@@ -13,6 +14,7 @@ import { ServicioTurno } from "@/aplicacion/servicios/ServicioTurno";
 export function crearServicioTurno(deps: {
   turnos: ITurnoRepositorio;
   pacientes: IPacienteRepositorio;
+  sincronizador: ISincronizadorCalendario;
 }): ServicioTurno {
   // CancelarTurno compone ActualizarEstadoTurno: comparten instancia.
   const actualizarEstadoTurno = new ActualizarEstadoTurno(deps.turnos);
@@ -25,5 +27,6 @@ export function crearServicioTurno(deps: {
     new CancelarTurno(deps.turnos, actualizarEstadoTurno),
     new ReprogramarTurno(deps.turnos),
     new RegistrarCobroTurno(deps.turnos),
+    deps.sincronizador,
   );
 }

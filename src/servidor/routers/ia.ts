@@ -1,7 +1,7 @@
 import { crearRouter, nutricionistaProcedimiento, protegidoProcedimiento } from "../trpc";
 import { aTRPCError } from "../errores-trpc";
 import { ErrorAccesoDenegado } from "@/dominio/errores/ErrorAccesoDenegado";
-import { preguntarDto, analizarComidaDto } from "@/aplicacion/dtos/ia.dto";
+import { preguntarDto, analizarComidaDto, feedbackInsightDto } from "@/aplicacion/dtos/ia.dto";
 
 function pacienteDeSesion(pacienteId: string | null): string {
   if (!pacienteId) {
@@ -50,6 +50,16 @@ export const routerIA = crearRouter({
     }
   }),
 
+  // Si la IA está activa (clave/servicio configurados) para ocultar los banners
+  // de "demostración". Cualquier usuario autenticado (el paciente usa la del nutri).
+  estado: protegidoProcedimiento.query(async ({ ctx }) => {
+    try {
+      return await ctx.servicios.ia.estado();
+    } catch (error) {
+      throw aTRPCError(error);
+    }
+  }),
+
   // --- Nutricionista -------------------------------------------------------
   insights: nutricionistaProcedimiento.query(async ({ ctx }) => {
     try {
@@ -58,4 +68,27 @@ export const routerIA = crearRouter({
       throw aTRPCError(error);
     }
   }),
+
+  // Asistente analítico del nutri: chat con herramientas sobre la base.
+  analizar: nutricionistaProcedimiento
+    .input(preguntarDto)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await ctx.servicios.ia.analizar(input.pregunta);
+      } catch (error) {
+        throw aTRPCError(error);
+      }
+    }),
+
+  // Loop de feedback: el nutri corrige un insight (👍/👎) → etiqueta para el ML.
+  feedbackInsight: nutricionistaProcedimiento
+    .input(feedbackInsightDto)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        await ctx.servicios.ia.registrarFeedback(input);
+        return { ok: true };
+      } catch (error) {
+        throw aTRPCError(error);
+      }
+    }),
 });

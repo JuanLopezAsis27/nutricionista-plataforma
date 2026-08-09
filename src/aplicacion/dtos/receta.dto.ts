@@ -9,12 +9,24 @@ const macros = {
   grasasG: z.number().min(0).max(10000).optional().nullable(),
 };
 
+/** Ingrediente estructurado de entrada: nombre + gramos + macros por 100 g. */
+const ingredienteEntradaDto = z.object({
+  nombre: z.string().min(1).max(200),
+  cantidadGramos: z.number().min(0).max(100000).optional().nullable(),
+  caloriasPor100: z.number().min(0).max(1000).optional().nullable(),
+  proteinasPor100: z.number().min(0).max(100).optional().nullable(),
+  carbohidratosPor100: z.number().min(0).max(100).optional().nullable(),
+  grasasPor100: z.number().min(0).max(100).optional().nullable(),
+  fuente: z.string().max(20).optional().nullable(),
+  referenciaExterna: z.string().max(100).optional().nullable(),
+});
+
 const recetaBase = z.object({
   nombre: z.string().min(1, "El nombre es obligatorio").max(160),
   descripcion: z.string().max(1000).optional().nullable(),
   porciones: z.number().int().min(1).max(100).optional().nullable(),
   preparacion: z.string().max(5000).optional().nullable(),
-  ingredientes: z.array(z.string().max(300)).max(100).optional(),
+  ingredientes: z.array(ingredienteEntradaDto).max(100).optional(),
   etiquetas: z.array(z.string().max(60)).max(30).optional(),
   ...macros,
 });
@@ -53,18 +65,41 @@ const fotoRecetaSalidaDto = z.object({
   mimeType: z.string(),
 });
 
+const ingredienteSalidaDto = z.object({
+  nombre: z.string(),
+  cantidadGramos: z.number().nullable(),
+  caloriasPor100: z.number().nullable(),
+  proteinasPor100: z.number().nullable(),
+  carbohidratosPor100: z.number().nullable(),
+  grasasPor100: z.number().nullable(),
+  fuente: z.string().nullable(),
+  referenciaExterna: z.string().nullable(),
+});
+
+const macrosSalidaDto = z.object({
+  calorias: z.number().nullable(),
+  proteinasG: z.number().nullable(),
+  carbohidratosG: z.number().nullable(),
+  grasasG: z.number().nullable(),
+});
+
 export const recetaSalidaDto = z.object({
   id: z.string(),
   nombre: z.string(),
   descripcion: z.string().nullable(),
   porciones: z.number().nullable(),
   preparacion: z.string().nullable(),
-  ingredientes: z.array(z.string()),
+  ingredientes: z.array(ingredienteSalidaDto),
   etiquetas: z.array(z.string()),
+  // Macros por porción (calculados de los ingredientes o cargados a mano).
   calorias: z.number().nullable(),
   proteinasG: z.number().nullable(),
   carbohidratosG: z.number().nullable(),
   grasasG: z.number().nullable(),
+  /** Macros TOTALES de la receta (suma de ingredientes con datos). */
+  totales: macrosSalidaDto,
+  /** true si los macros por porción salen del cálculo de ingredientes. */
+  macrosCalculados: z.boolean(),
   fotos: z.array(fotoRecetaSalidaDto),
   creadoEn: z.date(),
   actualizadoEn: z.date(),

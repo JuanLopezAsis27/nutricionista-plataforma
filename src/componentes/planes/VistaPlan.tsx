@@ -69,8 +69,13 @@ export function VistaPlan({ plan }: { plan: PlanSalidaDto }) {
                   )}
                   <p className="whitespace-pre-line">{opcion.contenido}</p>
                   {opcion.recetaNombre && (
-                    <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                    <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
                       <BookOpen className="h-3.5 w-3.5" /> Receta: {opcion.recetaNombre}
+                      {opcion.recetaMacros && macrosReceta(opcion.recetaMacros) && (
+                        <span className="text-muted-foreground/80">
+                          · {macrosReceta(opcion.recetaMacros)} / porción
+                        </span>
+                      )}
                     </p>
                   )}
                 </div>
@@ -143,4 +148,21 @@ export function VistaPlan({ plan }: { plan: PlanSalidaDto }) {
       )}
     </div>
   );
+}
+
+/** Resume los macros por porción de una receta en una línea (o "" si no hay datos). */
+function macrosReceta(m: {
+  calorias: number | null;
+  proteinasG: number | null;
+  carbohidratosG: number | null;
+  grasasG: number | null;
+}): string {
+  return [
+    m.calorias != null && `${m.calorias} kcal`,
+    m.proteinasG != null && `${m.proteinasG} g P`,
+    m.carbohidratosG != null && `${m.carbohidratosG} g C`,
+    m.grasasG != null && `${m.grasasG} g G`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }

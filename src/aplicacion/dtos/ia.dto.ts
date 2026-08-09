@@ -44,5 +44,16 @@ export const insightPacienteDto = z.object({
   titulo: z.string(),
   detalle: z.string(),
   severidad: z.enum(["INFO", "ATENCION", "CRITICO"]),
+  pacienteId: z.string().nullable(),
 });
 export type InsightPacienteDto = z.infer<typeof insightPacienteDto>;
+
+/** Corrección del profesional sobre un insight (loop de feedback). */
+export const feedbackInsightDto = z.object({
+  pacienteId: z.string().min(1),
+  tipoInsight: z.string().min(1).max(60),
+  util: z.boolean(),
+  detalle: z.string().max(1000),
+  comentario: z.string().max(1000).nullable().optional(),
+});
+export type FeedbackInsightDto = z.infer<typeof feedbackInsightDto>;

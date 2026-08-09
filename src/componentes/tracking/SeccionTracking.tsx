@@ -18,6 +18,7 @@ import { cn } from "@/lib/utilidades";
 import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
+import { MetricasDispositivo } from "./MetricasDispositivo";
 
 /**
  * Paletas por tema (mismas superficies validadas que GraficoEvolucion):
@@ -109,6 +110,14 @@ export function SeccionTracking({ pacienteId }: { pacienteId?: string }) {
           <TarjetaConcordancia concordancia={datos.concordancia} />
         </>
       )}
+
+      {/* Datos del wearable (independiente del diario): opt-in por día. */}
+      <MetricasDispositivo
+        pacienteId={pacienteId}
+        editable={!esNutri}
+        desde={desde}
+        hasta={hasta}
+      />
     </div>
   );
 }

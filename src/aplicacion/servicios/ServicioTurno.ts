@@ -5,6 +5,7 @@ import type { ActualizarEstadoTurno } from "@/dominio/casos-de-uso/turnos/Actual
 import type { CancelarTurno } from "@/dominio/casos-de-uso/turnos/CancelarTurno";
 import type { ReprogramarTurno } from "@/dominio/casos-de-uso/turnos/ReprogramarTurno";
 import type { RegistrarCobroTurno } from "@/dominio/casos-de-uso/turnos/RegistrarCobroTurno";
+import type { ISincronizadorCalendario } from "@/dominio/servicios/ISincronizadorCalendario";
 import type { Turno } from "@/dominio/entidades/Turno";
 import type {
   AgendarTurnoDto,
@@ -28,10 +29,12 @@ export class ServicioTurno {
     private readonly cancelarUC: CancelarTurno,
     private readonly reprogramarUC: ReprogramarTurno,
     private readonly registrarCobroUC: RegistrarCobroTurno,
+    private readonly sincronizador: ISincronizadorCalendario,
   ) {}
 
   async agendarTurno(datos: AgendarTurnoDto): Promise<TurnoSalidaDto> {
     const turno = await this.agendarUC.ejecutar(datos);
+    await this.sincronizador.alAgendar(ServicioTurno.datosSync(turno));
     return ServicioTurno.aSalida(turno);
   }
 
@@ -52,11 +55,13 @@ export class ServicioTurno {
 
   async cancelarTurno(id: string): Promise<TurnoSalidaDto> {
     const turno = await this.cancelarUC.ejecutar(id);
+    await this.sincronizador.alCancelar(id);
     return ServicioTurno.aSalida(turno);
   }
 
   async reprogramarTurno(datos: ReprogramarTurnoDto): Promise<TurnoSalidaDto> {
     const turno = await this.reprogramarUC.ejecutar(datos);
+    await this.sincronizador.alReprogramar(ServicioTurno.datosSync(turno));
     return ServicioTurno.aSalida(turno);
   }
 
@@ -67,5 +72,17 @@ export class ServicioTurno {
 
   private static aSalida(turno: Turno): TurnoSalidaDto {
     return turno.aPrimitivos();
+  }
+
+  /** Datos mínimos del turno para el sincronizador de calendario. */
+  private static datosSync(turno: Turno) {
+    const d = turno.aPrimitivos();
+    return {
+      id: d.id,
+      pacienteId: d.pacienteId,
+      fecha: d.fecha,
+      hora: d.hora,
+      duracionMinutos: d.duracionMinutos,
+    };
   }
 }

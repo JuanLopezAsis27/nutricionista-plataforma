@@ -44,6 +44,11 @@ const MODELOS_INQUILINO = new Set<string>([
   "AnalisisComida",
   "ConfiguracionConsultorio",
   "AxiomaNutricional",
+  "SincronizacionTurno",
+  "MetricaDispositivo",
+  "CredencialesIntegracion",
+  "AlimentoPropio",
+  "RetroalimentacionInsight",
 ]);
 
 function crearCliente(): PrismaClient {

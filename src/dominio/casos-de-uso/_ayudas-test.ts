@@ -9,6 +9,7 @@ import type { IAlertaAlimentariaRepositorio } from "../repositorios/IAlertaAlime
 import type { ILaboratorioRepositorio } from "../repositorios/ILaboratorioRepositorio";
 import type { IRegistroDiarioRepositorio } from "../repositorios/IRegistroDiarioRepositorio";
 import type { IRecetaRepositorio } from "../repositorios/IRecetaRepositorio";
+import type { IMetricaDispositivoRepositorio } from "../repositorios/IMetricaDispositivoRepositorio";
 import type { IPlanRepositorio } from "../repositorios/IPlanRepositorio";
 import type { IObjetivoRepositorio } from "../repositorios/IObjetivoRepositorio";
 import type { IMaterialRepositorio } from "../repositorios/IMaterialRepositorio";
@@ -21,6 +22,10 @@ import type { IMensajeriaRepositorio } from "../repositorios/IMensajeriaReposito
 import type { IHistorialIARepositorio } from "../repositorios/IHistorialIARepositorio";
 import type { IConfiguracionRepositorio } from "../repositorios/IConfiguracionRepositorio";
 import type { IAxiomaRepositorio } from "../repositorios/IAxiomaRepositorio";
+import type { IAlimentoPropioRepositorio } from "../repositorios/IAlimentoPropioRepositorio";
+import type { IAsistenteAnalitico } from "../servicios/IAsistenteAnalitico";
+import type { IRetroalimentacionInsightRepositorio } from "../repositorios/IRetroalimentacionInsightRepositorio";
+import type { ICuentaConectadaRepositorio } from "../repositorios/ICuentaConectadaRepositorio";
 import type { IHasheadorContrasena } from "../servicios/IHasheadorContrasena";
 import type { IAlmacenamientoArchivos } from "../servicios/IAlmacenamientoArchivos";
 import type { IServicioEmail } from "../servicios/IServicioEmail";
@@ -50,6 +55,10 @@ import { Laboratorio, type DatosNuevoLaboratorio } from "../entidades/Laboratori
 import { RegistroDiario, type DatosDia } from "../entidades/RegistroDiario";
 import { Receta, type DatosNuevaReceta } from "../entidades/Receta";
 import {
+  MetricaDispositivo,
+  type DatosMetricaDispositivo,
+} from "../entidades/MetricaDispositivo";
+import {
   PlanNutricional,
   type DatosNuevoPlan,
 } from "../entidades/PlanNutricional";
@@ -68,6 +77,7 @@ import { Conversacion } from "../entidades/Conversacion";
 import { Mensaje, type DatosNuevoMensaje } from "../entidades/Mensaje";
 import { ConfiguracionConsultorio } from "../entidades/ConfiguracionConsultorio";
 import { AxiomaNutricional, type DatosNuevoAxioma } from "../entidades/AxiomaNutricional";
+import { CuentaConectada } from "../entidades/CuentaConectada";
 
 /**
  * Ayudas para los tests de casos de uso.
@@ -241,6 +251,17 @@ export function mockRecetaRepositorio(
   };
 }
 
+export function mockMetricaDispositivoRepositorio(
+  parcial: Partial<IMetricaDispositivoRepositorio> = {},
+): IMetricaDispositivoRepositorio {
+  return {
+    guardar: vi.fn(async () => {}),
+    listarPorRango: vi.fn(async () => []),
+    fijarInclusion: vi.fn(async () => {}),
+    ...parcial,
+  };
+}
+
 export function mockPlanRepositorio(
   parcial: Partial<IPlanRepositorio> = {},
 ): IPlanRepositorio {
@@ -402,6 +423,36 @@ export function mockHistorialIARepositorio(
   };
 }
 
+export function mockCuentaConectadaRepositorio(
+  parcial: Partial<ICuentaConectadaRepositorio> = {},
+): ICuentaConectadaRepositorio {
+  return {
+    obtener: vi.fn(async () => null),
+    guardar: vi.fn(async (c: CuentaConectada) => c),
+    eliminar: vi.fn(async () => {}),
+    ...parcial,
+  };
+}
+
+export function cuentaConectadaEjemplo(
+  cambios: Partial<Parameters<typeof CuentaConectada.crear>[0]> = {},
+  id = "cta-1",
+): CuentaConectada {
+  return CuentaConectada.crear(
+    {
+      proveedor: "GOOGLE",
+      emailCuenta: "pro@gmail.com",
+      accessToken: "access-x",
+      refreshToken: "refresh-x",
+      scopes: ["https://www.googleapis.com/auth/gmail.send"],
+      expiraEn: null,
+      ...cambios,
+    },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
 export function mockConfiguracionRepositorio(
   parcial: Partial<IConfiguracionRepositorio> = {},
 ): IConfiguracionRepositorio {
@@ -422,6 +473,36 @@ export function mockAxiomaRepositorio(
     obtenerPorId: vi.fn(async () => null),
     listar: vi.fn(async () => []),
     listarActivos: vi.fn(async () => []),
+    ...parcial,
+  };
+}
+
+export function mockAlimentoPropioRepositorio(
+  parcial: Partial<IAlimentoPropioRepositorio> = {},
+): IAlimentoPropioRepositorio {
+  return {
+    reemplazarTodos: vi.fn(async (a) => a.length),
+    buscar: vi.fn(async () => []),
+    contar: vi.fn(async () => 0),
+    vaciar: vi.fn(async () => {}),
+    ...parcial,
+  };
+}
+
+export function mockAsistenteAnalitico(
+  parcial: Partial<IAsistenteAnalitico> = {},
+): IAsistenteAnalitico {
+  return {
+    responder: vi.fn(async () => "respuesta analítica de demostración"),
+    ...parcial,
+  };
+}
+
+export function mockRetroalimentacionInsightRepositorio(
+  parcial: Partial<IRetroalimentacionInsightRepositorio> = {},
+): IRetroalimentacionInsightRepositorio {
+  return {
+    registrar: vi.fn(async () => {}),
     ...parcial,
   };
 }
@@ -722,13 +803,48 @@ export function recetaEjemplo(cambios: Partial<DatosNuevaReceta> = {}, id = "rec
       nombre: "Tortilla de espinaca",
       porciones: 2,
       preparacion: "Batir, cocinar, servir.",
-      ingredientes: ["2 huevos", "1 taza de espinaca"],
+      ingredientes: [
+        {
+          nombre: "Huevo",
+          cantidadGramos: 100,
+          caloriasPor100: 155,
+          proteinasPor100: 13,
+          carbohidratosPor100: 1.1,
+          grasasPor100: 11,
+        },
+        {
+          nombre: "Espinaca",
+          cantidadGramos: 50,
+          caloriasPor100: 23,
+          proteinasPor100: 2.9,
+          carbohidratosPor100: 3.6,
+          grasasPor100: 0.4,
+        },
+      ],
       etiquetas: ["vegetariano"],
-      calorias: 250,
       ...cambios,
     },
     id,
     new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function metricaEjemplo(
+  cambios: Partial<DatosMetricaDispositivo> = {},
+  id = "met-1",
+): MetricaDispositivo {
+  return MetricaDispositivo.crear(
+    {
+      pacienteId: "pac-1",
+      fecha: new Date("2026-07-10"),
+      fuente: "APPLE_WATCH",
+      pasos: 8000,
+      minutosActividad: 40,
+      horasSueno: 7.5,
+      ...cambios,
+    },
+    id,
+    new Date("2026-07-10T12:00:00Z"),
   );
 }
 

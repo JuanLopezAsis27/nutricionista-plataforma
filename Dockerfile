@@ -49,6 +49,16 @@ RUN npx prisma generate
 # (El seed se puede correr con: ... run --rm migrate npm run db:seed)
 CMD ["npx", "prisma", "migrate", "deploy"]
 
+# ----------------------------- worker --------------------------------------
+# Proceso de trabajos en segundo plano (pg-boss: recordatorios de turnos,
+# alertas de seguimiento, limpieza de archivos huérfanos). Reutiliza la imagen
+# migrator (ya tiene src + tsx + node_modules); solo cambia el comando.
+# Necesita TZ (America/Argentina/Buenos_Aires) para que los crons disparen en
+# hora local del profesional (se pasa por entorno en el compose).
+FROM migrator AS worker
+ENV NODE_ENV=production
+CMD ["npm", "run", "worker:prod"]
+
 # ----------------------------- runner --------------------------------------
 FROM base AS runner
 ENV NODE_ENV=production

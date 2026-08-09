@@ -13,6 +13,14 @@ export interface DatosConfiguracion {
   nombreProfesional: string | null;
   matricula: string | null;
   logoArchivoId: string | null;
+  // Apariencia del PDF del plan.
+  pdfColorPrimario: string | null;
+  pdfSubtitulo: string | null;
+  pdfPieTexto: string | null;
+  pdfMostrarRecetas: boolean;
+  pdfMostrarMacros: boolean;
+  pdfMostrarEquivalencias: boolean;
+  pdfMostrarRecomendaciones: boolean;
 }
 
 /** Estado completo persistido. */
@@ -45,6 +53,13 @@ export class ConfiguracionConsultorio {
       nombreProfesional: null,
       matricula: null,
       logoArchivoId: null,
+      pdfColorPrimario: null,
+      pdfSubtitulo: null,
+      pdfPieTexto: null,
+      pdfMostrarRecetas: true,
+      pdfMostrarMacros: true,
+      pdfMostrarEquivalencias: true,
+      pdfMostrarRecomendaciones: true,
       creadoEn: ahora,
       actualizadoEn: ahora,
     });
@@ -71,6 +86,19 @@ export class ConfiguracionConsultorio {
       nombreProfesional: fusionar(cambios.nombreProfesional, this.props.nombreProfesional),
       matricula: fusionar(cambios.matricula, this.props.matricula),
       logoArchivoId: fusionar(cambios.logoArchivoId, this.props.logoArchivoId),
+      pdfColorPrimario: fusionar(cambios.pdfColorPrimario, this.props.pdfColorPrimario),
+      pdfSubtitulo: fusionar(cambios.pdfSubtitulo, this.props.pdfSubtitulo),
+      pdfPieTexto: fusionar(cambios.pdfPieTexto, this.props.pdfPieTexto),
+      pdfMostrarRecetas: fusionar(cambios.pdfMostrarRecetas, this.props.pdfMostrarRecetas),
+      pdfMostrarMacros: fusionar(cambios.pdfMostrarMacros, this.props.pdfMostrarMacros),
+      pdfMostrarEquivalencias: fusionar(
+        cambios.pdfMostrarEquivalencias,
+        this.props.pdfMostrarEquivalencias,
+      ),
+      pdfMostrarRecomendaciones: fusionar(
+        cambios.pdfMostrarRecomendaciones,
+        this.props.pdfMostrarRecomendaciones,
+      ),
     };
     validar(datos);
     return new ConfiguracionConsultorio({ ...this.props, ...datos, actualizadoEn: ahora });
@@ -104,5 +132,8 @@ function validar(d: DatosConfiguracion): void {
   }
   if (d.diasAtencion.some((n) => !Number.isInteger(n) || n < 0 || n > 6)) {
     throw new ErrorValidacion("Los días de atención deben ser números entre 0 y 6.");
+  }
+  if (d.pdfColorPrimario != null && !/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(d.pdfColorPrimario)) {
+    throw new ErrorValidacion("El color del PDF debe ser un hexadecimal, ej. #F4535E.");
   }
 }

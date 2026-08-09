@@ -11,7 +11,7 @@ describe("CrearReceta", () => {
 
     const receta = await casoUso.ejecutar({
       nombre: "Bowl de pollo",
-      ingredientes: ["pollo", "arroz"],
+      ingredientes: [{ nombre: "pollo" }, { nombre: "arroz" }],
       fotoIds: ["arc-1", "arc-2"],
     });
 
@@ -36,9 +36,12 @@ describe("CrearReceta", () => {
 
     const receta = await casoUso.ejecutar({
       nombre: "Ensalada",
-      ingredientes: ["lechuga", "  ", "tomate"],
+      ingredientes: [{ nombre: "lechuga" }, { nombre: "  " }, { nombre: "tomate" }],
     });
 
-    expect(receta.aPrimitivos().ingredientes).toEqual(["lechuga", "tomate"]);
+    expect(receta.aPrimitivos().ingredientes.map((i) => i.nombre)).toEqual([
+      "lechuga",
+      "tomate",
+    ]);
   });
 });

@@ -102,6 +102,14 @@ const opcionSalida = z.object({
   contenido: z.string(),
   recetaId: z.string().nullable(),
   recetaNombre: z.string().nullable(),
+  recetaMacros: z
+    .object({
+      calorias: z.number().nullable(),
+      proteinasG: z.number().nullable(),
+      carbohidratosG: z.number().nullable(),
+      grasasG: z.number().nullable(),
+    })
+    .nullable(),
   orden: z.number(),
 });
 

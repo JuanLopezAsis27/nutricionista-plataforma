@@ -7,6 +7,8 @@ export interface InsightPaciente {
   titulo: string;
   detalle: string;
   severidad: SeveridadInsight;
+  /** Paciente al que refiere (null en tarjetas informativas). Permite el feedback. */
+  pacienteId: string | null;
 }
 
 /**

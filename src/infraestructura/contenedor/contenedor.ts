@@ -36,6 +36,7 @@ import { PrismaRepositorioMensajeria } from "@/infraestructura/repositorios/Pris
 import { PrismaRepositorioHistorialIA } from "@/infraestructura/repositorios/PrismaRepositorioHistorialIA";
 import { PrismaRepositorioConfiguracion } from "@/infraestructura/repositorios/PrismaRepositorioConfiguracion";
 import { PrismaRepositorioAxioma } from "@/infraestructura/repositorios/PrismaRepositorioAxioma";
+import { PrismaRepositorioMetricaDispositivo } from "@/infraestructura/repositorios/PrismaRepositorioMetricaDispositivo";
 import { AsistenteNutricionalStub } from "@/infraestructura/ia/AsistenteNutricionalStub";
 import { AnalisisComidaIAStub } from "@/infraestructura/ia/AnalisisComidaIAStub";
 import { AnalisisPredictivoStub } from "@/infraestructura/ia/AnalisisPredictivoStub";
@@ -62,9 +63,62 @@ import { crearServicioNotificaciones } from "./modulos/notificaciones";
 import { crearServicioConfiguracion } from "./modulos/configuracion";
 import { crearServicioAxiomas } from "./modulos/axiomas";
 import { crearServicioTracking } from "./modulos/tracking";
+import { crearServicioMetricas } from "./modulos/metricas";
 import { crearServicioSuperAdmin } from "./modulos/superadmin";
 import { crearServicioIA } from "./modulos/ia";
 import { ProvisionadorNutricionista } from "@/infraestructura/aprovisionamiento/ProvisionadorNutricionista";
+// Integraciones (Google) — F10.
+import type { IProveedorGoogle } from "@/dominio/servicios/IProveedorGoogle";
+import type { ISincronizadorCalendario } from "@/dominio/servicios/ISincronizadorCalendario";
+import type { ICuentaConectadaRepositorio } from "@/dominio/repositorios/ICuentaConectadaRepositorio";
+import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
+import { obtenerConfigGoogle } from "@/infraestructura/integraciones/configGoogle";
+import { ProveedorGoogle } from "@/infraestructura/integraciones/ProveedorGoogle";
+import { CifradorTokens } from "@/infraestructura/seguridad/CifradorTokens";
+import { PrismaRepositorioCuentaConectada } from "@/infraestructura/repositorios/PrismaRepositorioCuentaConectada";
+import { PrismaRepositorioSincronizacionTurno } from "@/infraestructura/repositorios/PrismaRepositorioSincronizacionTurno";
+import { SincronizadorCalendarioGoogle } from "@/infraestructura/integraciones/SincronizadorCalendarioGoogle";
+import { SincronizadorNulo } from "@/infraestructura/integraciones/SincronizadorNulo";
+import { ServicioEmailConGoogle } from "@/infraestructura/integraciones/ServicioEmailConGoogle";
+import { ObtenerCuentaGoogle } from "@/dominio/casos-de-uso/integraciones/ObtenerCuentaGoogle";
+import { GuardarConexionGoogle } from "@/dominio/casos-de-uso/integraciones/GuardarConexionGoogle";
+import { DesconectarGoogle } from "@/dominio/casos-de-uso/integraciones/DesconectarGoogle";
+import { ServicioIntegraciones } from "@/aplicacion/servicios/ServicioIntegraciones";
+// ML — F11.
+import { obtenerConfigML } from "@/infraestructura/ml/configML";
+import { ClienteML } from "@/infraestructura/ml/clienteML";
+import { AnalisisPredictivoHTTP } from "@/infraestructura/ml/AnalisisPredictivoHTTP";
+import { AnalisisComidaIAHTTP } from "@/infraestructura/ml/AnalisisComidaIAHTTP";
+// Adaptadores Claude (asistente + visión de comida) — F13/F15.
+import { AsistenteNutricionalClaude } from "@/infraestructura/ia/AsistenteNutricionalClaude";
+import { AsistenteAnaliticoClaude } from "@/infraestructura/ia/AsistenteAnaliticoClaude";
+import { AsistenteAnaliticoStub } from "@/infraestructura/ia/AsistenteAnaliticoStub";
+import { AnalisisComidaIAClaude } from "@/infraestructura/ia/AnalisisComidaIAClaude";
+import { ResolvedorConfigIA } from "@/infraestructura/ia/ResolvedorConfigIA";
+import { TraductorIngredientesIA } from "@/infraestructura/ia/TraductorIngredientesIA";
+import type { IAnalisisComidaIA } from "@/dominio/servicios/IAnalisisComidaIA";
+// Datos nutricionales de ingredientes (F12/F15): FatSecret o Open Food Facts.
+import { obtenerConfigNutricion } from "@/infraestructura/nutricion/configNutricion";
+import { ProveedorOpenFoodFacts } from "@/infraestructura/nutricion/ProveedorOpenFoodFacts";
+import { ProveedorNutricionNulo } from "@/infraestructura/nutricion/ProveedorNutricionNulo";
+import { obtenerConfigFatSecret } from "@/infraestructura/nutricion/configFatSecret";
+import { ClienteFatSecret } from "@/infraestructura/nutricion/ClienteFatSecret";
+import { ProveedorNutricionApp } from "@/infraestructura/nutricion/ProveedorNutricionApp";
+import { obtenerConfigNutricionServicio } from "@/infraestructura/nutricion/configNutricionServicio";
+import { ProveedorNutricionHTTP } from "@/infraestructura/nutricion/ProveedorNutricionHTTP";
+import { ProveedorNutricionPropio } from "@/infraestructura/nutricion/ProveedorNutricionPropio";
+import { ProveedorNutricionDespachador } from "@/infraestructura/nutricion/ProveedorNutricionDespachador";
+import { PrismaRepositorioAlimentoPropio } from "@/infraestructura/repositorios/PrismaRepositorioAlimentoPropio";
+import { PrismaRepositorioRetroalimentacionInsight } from "@/infraestructura/repositorios/PrismaRepositorioRetroalimentacionInsight";
+import { ServicioAlimentosPropios } from "@/aplicacion/servicios/ServicioAlimentosPropios";
+import { ImportarAlimentos } from "@/dominio/casos-de-uso/nutricion/ImportarAlimentos";
+import { ObtenerEstadoAlimentosPropios } from "@/dominio/casos-de-uso/nutricion/ObtenerEstadoAlimentosPropios";
+import { VaciarAlimentosPropios } from "@/dominio/casos-de-uso/nutricion/VaciarAlimentosPropios";
+import type { IProveedorDatosNutricionales } from "@/dominio/servicios/IProveedorDatosNutricionales";
+import { crearServicioNutricion } from "./modulos/nutricion";
+// Credenciales de integración por profesional — F15.
+import { PrismaRepositorioCredenciales } from "@/infraestructura/repositorios/PrismaRepositorioCredenciales";
+import { crearServicioCredenciales } from "./modulos/credenciales";
 
 // --- 1. Adaptadores compartidos ------------------------------------------------
 const prisma = PrismaClienteSingleton.obtenerInstancia();
@@ -91,16 +145,115 @@ const repositorioMensajeria = new PrismaRepositorioMensajeria(prisma);
 const repositorioHistorialIA = new PrismaRepositorioHistorialIA(prisma);
 const repositorioConfiguracion = new PrismaRepositorioConfiguracion(prisma);
 const repositorioAxioma = new PrismaRepositorioAxioma(prisma);
+const repositorioMetrica = new PrismaRepositorioMetricaDispositivo(prisma);
 
-// Adaptadores de IA: hoy stubs; a futuro, adaptadores Claude (solo se cambia acá).
-const asistenteNutricional = new AsistenteNutricionalStub();
-const analisisComidaIA = new AnalisisComidaIAStub();
-const analisisPredictivo = new AnalisisPredictivoStub();
+// ML (F11): si hay microservicio configurado (ML_SERVICE_URL), se usa el
+// adaptador HTTP con FALLBACK al stub; si no, el stub directo. La UI no cambia.
+const configML = obtenerConfigML();
+const clienteML = configML ? new ClienteML(configML) : null;
 
 const hasheador = new BcryptHasheador();
 const almacenamiento = new AlmacenamientoMinIO();
 const reloj = new RelojSistema();
-const servicioEmail = new NodemailerServicioEmail();
+
+// Credenciales por profesional (F15): cifrador (solo si hay TOKENS_SECRET),
+// repo cifrado y resolver de Claude (clave del inquilino → entorno → null),
+// resuelto POR REQUEST. Así el profesional carga su clave desde la app.
+const cifradorCredenciales = process.env.TOKENS_SECRET ? new CifradorTokens() : null;
+export const repositorioCredenciales = new PrismaRepositorioCredenciales(
+  prisma,
+  cifradorCredenciales,
+);
+const resolvedorIA = new ResolvedorConfigIA(repositorioCredenciales);
+
+// IA con Claude (F13/F15): el asistente (chat) y el análisis de comida (visión)
+// usan Claude si hay clave (del profesional o del entorno) y DEGRADAN al
+// stub/ML si no. El análisis predictivo del nutricionista lo sirve el ML.
+const asistenteNutricional = new AsistenteNutricionalClaude(
+  resolvedorIA,
+  new AsistenteNutricionalStub(),
+);
+// Asistente analítico del nutricionista (chat sobre los datos del consultorio).
+const asistenteAnalitico = new AsistenteAnaliticoClaude(
+  resolvedorIA,
+  new AsistenteAnaliticoStub(),
+);
+const respaldoComida: IAnalisisComidaIA = clienteML
+  ? new AnalisisComidaIAHTTP(clienteML, new AnalisisComidaIAStub())
+  : new AnalisisComidaIAStub();
+const analisisComidaIA = new AnalisisComidaIAClaude(
+  resolvedorIA,
+  almacenamiento,
+  respaldoComida,
+);
+
+const analisisPredictivo = clienteML
+  ? new AnalisisPredictivoHTTP(clienteML, new AnalisisPredictivoStub())
+  : new AnalisisPredictivoStub();
+
+// Datos nutricionales (F12/F15): FatSecret si el profesional cargó credenciales
+// (o están en el entorno); si no, Open Food Facts (gratis, sin key) o el nulo.
+const configNutricion = obtenerConfigNutricion();
+const respaldoNutricion = configNutricion
+  ? new ProveedorOpenFoodFacts(configNutricion)
+  : new ProveedorNutricionNulo();
+const proveedorNutricionLocal = new ProveedorNutricionApp(
+  repositorioCredenciales,
+  new ClienteFatSecret(),
+  respaldoNutricion,
+  obtenerConfigFatSecret(),
+  // Traduce ES↔EN con la clave de Claude del profesional (si la cargó).
+  new TraductorIngredientesIA(resolvedorIA),
+);
+// Si hay un microservicio de nutrición (Go/Lambda) configurado, lo usamos como
+// primario (traduce y filtra afuera) con el proveedor local como respaldo; si no,
+// el proveedor local va directo.
+const configNutricionServicio = obtenerConfigNutricionServicio();
+const proveedorNutricionExterno: IProveedorDatosNutricionales = configNutricionServicio
+  ? new ProveedorNutricionHTTP(configNutricionServicio, proveedorNutricionLocal)
+  : proveedorNutricionLocal;
+
+// Alimentos propios (F17): si el nutricionista cargó su Excel, la búsqueda usa SU
+// lista y desactiva FatSecret. El despachador decide por request (según si hay
+// alimentos cargados en el inquilino).
+const repositorioAlimentoPropio = new PrismaRepositorioAlimentoPropio(prisma);
+const proveedorNutricion: IProveedorDatosNutricionales = new ProveedorNutricionDespachador(
+  new ProveedorNutricionPropio(repositorioAlimentoPropio),
+  proveedorNutricionExterno,
+  repositorioAlimentoPropio,
+);
+export const servicioAlimentosPropios = new ServicioAlimentosPropios(
+  new ImportarAlimentos(repositorioAlimentoPropio),
+  new ObtenerEstadoAlimentosPropios(repositorioAlimentoPropio),
+  new VaciarAlimentosPropios(repositorioAlimentoPropio),
+);
+
+// --- Integraciones (Google): degradación elegante -----------------------------
+// Si NO hay credenciales configuradas (obtenerConfigGoogle devuelve null), la app
+// funciona igual que siempre: email por SMTP y sin sincronización de calendario.
+const configGoogle = obtenerConfigGoogle();
+export const proveedorGoogle: IProveedorGoogle | null = configGoogle
+  ? new ProveedorGoogle(configGoogle)
+  : null;
+
+const smtp = new NodemailerServicioEmail();
+let servicioEmail: IServicioEmail = smtp;
+let sincronizadorCalendario: ISincronizadorCalendario = new SincronizadorNulo();
+let repositorioCuentaConectada: ICuentaConectadaRepositorio | null = null;
+
+if (configGoogle && proveedorGoogle) {
+  const cifrador = new CifradorTokens();
+  repositorioCuentaConectada = new PrismaRepositorioCuentaConectada(prisma, cifrador);
+  const repositorioSincronizacionTurno = new PrismaRepositorioSincronizacionTurno(prisma);
+  sincronizadorCalendario = new SincronizadorCalendarioGoogle(
+    repositorioCuentaConectada,
+    repositorioSincronizacionTurno,
+    proveedorGoogle,
+    repositorioPaciente,
+  );
+  // El email sale de la casilla del profesional (Gmail) si la conectó; si no, SMTP.
+  servicioEmail = new ServicioEmailConGoogle(repositorioCuentaConectada, proveedorGoogle, smtp);
+}
 
 // Bus de eventos en tiempo real (Postgres LISTEN/NOTIFY). Lo usan los
 // servicios (publicar) y la subscription tRPC (suscribir); el worker solo
@@ -123,6 +276,7 @@ export const servicioPaciente = crearServicioPaciente({
 export const servicioTurno = crearServicioTurno({
   turnos: repositorioTurno,
   pacientes: repositorioPaciente,
+  sincronizador: sincronizadorCalendario,
 });
 
 export const servicioArchivo = crearServicioArchivo({
@@ -159,6 +313,12 @@ export const servicioReceta = crearServicioReceta({
 export const servicioPlan = crearServicioPlan({
   planes: repositorioPlan,
   pacientes: repositorioPaciente,
+});
+
+// Búsqueda de datos nutricionales para autocompletar ingredientes de recetas.
+export const servicioNutricion = crearServicioNutricion({
+  proveedor: proveedorNutricion,
+  credenciales: repositorioCredenciales,
 });
 
 export const servicioObjetivo = crearServicioObjetivo({
@@ -230,6 +390,15 @@ export const servicioTracking = crearServicioTracking({
   planes: repositorioPlan,
   axiomas: repositorioAxioma,
   antropometrias: repositorioAntropometria,
+  metricas: repositorioMetrica,
+});
+
+// Métricas de dispositivo (wearables): importación, consulta y opt-in por día.
+export const servicioMetricas = crearServicioMetricas({ metricas: repositorioMetrica });
+
+// Credenciales de integración del profesional (clave de Claude / FatSecret).
+export const servicioCredenciales = crearServicioCredenciales({
+  credenciales: repositorioCredenciales,
 });
 
 // SuperAdmin: alta/gestión de cuentas de nutricionista (cada una un inquilino).
@@ -244,14 +413,32 @@ export const servicioSuperAdmin = crearServicioSuperAdmin({
   provisionador: provisionadorNutricionista,
 });
 
+// Integraciones (Google). Los casos de uso son null si no está configurada.
+export const servicioIntegraciones = new ServicioIntegraciones(
+  configGoogle != null,
+  repositorioCuentaConectada ? new ObtenerCuentaGoogle(repositorioCuentaConectada) : null,
+  repositorioCuentaConectada ? new GuardarConexionGoogle(repositorioCuentaConectada) : null,
+  repositorioCuentaConectada ? new DesconectarGoogle(repositorioCuentaConectada) : null,
+);
+
 export const servicioIA = crearServicioIA({
   pacientes: repositorioPaciente,
   objetivos: repositorioObjetivo,
   planes: repositorioPlan,
+  recetas: repositorioReceta,
+  turnos: repositorioTurno,
+  alertas: repositorioAlertaAlimentaria,
+  axiomas: repositorioAxioma,
   historial: repositorioHistorialIA,
   asistente: asistenteNutricional,
+  asistenteAnalitico,
   analisisComida: analisisComidaIA,
   analisisPredictivo,
+  retroalimentacion: new PrismaRepositorioRetroalimentacionInsight(prisma),
+  estado: {
+    asistenteActivo: () => resolvedorIA.tieneIA(),
+    insightsActivo: clienteML != null,
+  },
 });
 
 // El repositorio de usuario se expone para la configuración de Auth.js.
@@ -269,6 +456,7 @@ export const contenedor = {
   servicioDiario,
   servicioReceta,
   servicioPlan,
+  servicioNutricion,
   servicioObjetivo,
   servicioBiblioteca,
   servicioSeguimiento,
@@ -279,7 +467,10 @@ export const contenedor = {
   servicioConfiguracion,
   servicioAxiomas,
   servicioTracking,
+  servicioMetricas,
+  servicioCredenciales,
   servicioSuperAdmin,
+  servicioIntegraciones,
   servicioIA,
   repositorioUsuario,
 } as const;

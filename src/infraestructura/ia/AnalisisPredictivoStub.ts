@@ -17,6 +17,7 @@ export class AnalisisPredictivoStub implements IAnalisisPredictivo {
         detalle:
           "A futuro, un modelo estimará qué pacientes tienen más riesgo de dejar el tratamiento, combinando turnos, registros del diario y adherencia al plan, para anticiparse.",
         severidad: "ATENCION",
+        pacienteId: null,
       },
       {
         tipo: "ADHERENCIA",
@@ -24,6 +25,7 @@ export class AnalisisPredictivoStub implements IAnalisisPredictivo {
         detalle:
           "Se analizará qué tan seguido cada paciente registra sus comidas y respeta las franjas de su plan, para detectar quién necesita más acompañamiento.",
         severidad: "INFO",
+        pacienteId: null,
       },
       {
         tipo: "TENDENCIA_PESO",
@@ -31,6 +33,7 @@ export class AnalisisPredictivoStub implements IAnalisisPredictivo {
         detalle:
           "Con el histórico de peso (consulta + diario) se proyectará la evolución esperada y se detectarán estancamientos a tiempo.",
         severidad: "INFO",
+        pacienteId: null,
       },
     ];
   }

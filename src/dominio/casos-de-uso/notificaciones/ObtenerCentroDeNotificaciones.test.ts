@@ -35,7 +35,7 @@ function correoEjemplo(cambios: { error?: string | null; creadoEn?: Date } = {})
 }
 
 describe("ObtenerCentroDeNotificaciones", () => {
-  it("une alertas, mensajes sin leer y correos en un feed ordenado por fecha desc", async () => {
+  it("une alertas, mensajes sin leer y correos FALLIDOS en un feed ordenado por fecha desc", async () => {
     const caso = new ObtenerCentroDeNotificaciones(
       mockAlertaSeguimientoRepositorio({
         listarPendientes: vi.fn(async () => [
@@ -46,7 +46,7 @@ describe("ObtenerCentroDeNotificaciones", () => {
         listarResumen: vi.fn(async () => [resumenEjemplo()]), // 2026-07-20
       }),
       mockEmailEnviadoRepositorio({
-        listarRecientes: vi.fn(async () => [correoEjemplo()]), // 2026-07-19
+        listarRecientes: vi.fn(async () => [correoEjemplo({ error: "SMTP timeout" })]), // 2026-07-19
       }),
     );
 
@@ -55,6 +55,33 @@ describe("ObtenerCentroDeNotificaciones", () => {
     expect(centro.items).toHaveLength(3);
     expect(centro.items.map((n) => n.tipo)).toEqual(["MENSAJE", "CORREO", "ALERTA"]);
     expect(centro.total).toBe(2); // 1 alerta + 1 conversación con no-leídos
+  });
+
+  it("NO muestra los correos enviados con éxito (son log, no notificación)", async () => {
+    const caso = new ObtenerCentroDeNotificaciones(
+      mockAlertaSeguimientoRepositorio(),
+      mockMensajeriaRepositorio(),
+      mockEmailEnviadoRepositorio({
+        listarRecientes: vi.fn(async () => [correoEjemplo(), correoEjemplo()]), // ambos OK
+      }),
+    );
+
+    const centro = await caso.ejecutar("usr-nutri");
+
+    expect(centro.items).toHaveLength(0);
+    expect(centro.total).toBe(0);
+  });
+
+  it("enlaza el mensaje directo a la conversación del paciente", async () => {
+    const caso = new ObtenerCentroDeNotificaciones(
+      mockAlertaSeguimientoRepositorio(),
+      mockMensajeriaRepositorio({ listarResumen: vi.fn(async () => [resumenEjemplo()]) }),
+      mockEmailEnviadoRepositorio(),
+    );
+
+    const centro = await caso.ejecutar("usr-nutri");
+
+    expect(centro.items[0]!.enlace).toBe("/dashboard/mensajes?paciente=pac-1");
   });
 
   it("ignora conversaciones sin mensajes sin leer", async () => {
