@@ -36,6 +36,8 @@ const MODELOS_INQUILINO = new Set<string>([
   "PlanNutricional",
   "MaterialBiblioteca",
   "Objetivo",
+  "PerfilDeportivo",
+  "Competencia",
   "PlantillaEmail",
   "EmailEnviado",
   "CuentaConectada",

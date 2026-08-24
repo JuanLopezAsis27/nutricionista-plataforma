@@ -11,6 +11,8 @@ import type { IAnalisisPredictivo } from "@/dominio/servicios/IAnalisisPredictiv
 import type { IAsistenteAnalitico } from "@/dominio/servicios/IAsistenteAnalitico";
 import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio";
 import type { IRetroalimentacionInsightRepositorio } from "@/dominio/repositorios/IRetroalimentacionInsightRepositorio";
+import type { IPerfilDeportivoRepositorio } from "@/dominio/repositorios/IPerfilDeportivoRepositorio";
+import type { ICompetenciaRepositorio } from "@/dominio/repositorios/ICompetenciaRepositorio";
 import { PreguntarAlAsistente } from "@/dominio/casos-de-uso/ia/PreguntarAlAsistente";
 import { AnalizarFotoDeComida } from "@/dominio/casos-de-uso/ia/AnalizarFotoDeComida";
 import { ListarConsultasIA } from "@/dominio/casos-de-uso/ia/ListarConsultasIA";
@@ -29,6 +31,8 @@ export function crearServicioIA(deps: {
   alertas: IAlertaAlimentariaRepositorio;
   axiomas: IAxiomaRepositorio;
   historial: IHistorialIARepositorio;
+  perfilesDeportivos: IPerfilDeportivoRepositorio;
+  competencias: ICompetenciaRepositorio;
   asistente: IAsistenteNutricional;
   asistenteAnalitico: IAsistenteAnalitico;
   analisisComida: IAnalisisComidaIA;
@@ -46,6 +50,8 @@ export function crearServicioIA(deps: {
       deps.axiomas,
       deps.asistente,
       deps.historial,
+      deps.perfilesDeportivos,
+      deps.competencias,
     ),
     new AnalizarFotoDeComida(deps.analisisComida, deps.historial),
     new ListarConsultasIA(deps.historial),

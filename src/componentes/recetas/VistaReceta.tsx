@@ -1,4 +1,4 @@
-import { Users, Flame } from "lucide-react";
+import { Users, Flame, FileText, ExternalLink } from "lucide-react";
 import type { RecetaSalidaDto } from "@/aplicacion/dtos/receta.dto";
 import { Badge } from "@/componentes/ui/badge";
 
@@ -96,6 +96,48 @@ export function VistaReceta({ receta }: { receta: RecetaSalidaDto }) {
         <div>
           <h3 className="mb-1 font-semibold">Preparación</h3>
           <p className="whitespace-pre-line text-sm">{receta.preparacion}</p>
+        </div>
+      )}
+
+      {receta.documentos.length > 0 && (
+        <div>
+          <h3 className="mb-1 font-semibold">Documentos</h3>
+          <ul className="space-y-1">
+            {receta.documentos.map((doc) => (
+              <li key={doc.id}>
+                <a
+                  href={`/api/archivos/${doc.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm text-primary underline-offset-4 hover:underline"
+                >
+                  <FileText className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{doc.nombreOriginal}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {receta.enlaces.length > 0 && (
+        <div>
+          <h3 className="mb-1 font-semibold">Enlaces</h3>
+          <ul className="space-y-1">
+            {receta.enlaces.map((enlace) => (
+              <li key={enlace}>
+                <a
+                  href={enlace}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="inline-flex items-center gap-1.5 break-all text-sm text-primary underline-offset-4 hover:underline"
+                >
+                  <ExternalLink className="h-4 w-4 shrink-0" />
+                  <span className="break-all">{enlace}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>

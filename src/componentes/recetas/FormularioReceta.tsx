@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm, useFieldArray, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ImagePlus, X, Plus, Trash2, Search, Loader2 } from "lucide-react";
+import { ImagePlus, FileText, LinkIcon, X, Plus, Trash2, Search, Loader2 } from "lucide-react";
 import type { RecetaSalidaDto } from "@/aplicacion/dtos/receta.dto";
 import type { AlimentoNutricionalSalidaDto } from "@/aplicacion/dtos/nutricion.dto";
 import type { ArchivoSalidaDto } from "@/aplicacion/dtos/archivo.dto";
@@ -45,6 +45,7 @@ const esquema = z.object({
   ingredientes: z.array(ingredienteEsquema).max(100),
   preparacion: z.string().max(5000),
   etiquetas: z.string().max(500),
+  enlaces: z.string().max(5000),
   calorias: numeroOpcional,
   proteinasG: numeroOpcional,
   carbohidratosG: numeroOpcional,
@@ -155,6 +156,7 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
   const enviando = crear.isPending || actualizar.isPending;
 
   const [fotosNuevas, setFotosNuevas] = useState<ArchivoSalidaDto[]>([]);
+  const [documentosNuevos, setDocumentosNuevos] = useState<ArchivoSalidaDto[]>([]);
 
   const form = useForm<DatosFormulario>({
     resolver: zodResolver(esquema),
@@ -174,6 +176,7 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
       })),
       preparacion: recetaInicial?.preparacion ?? "",
       etiquetas: (recetaInicial?.etiquetas ?? []).join(", "),
+      enlaces: (recetaInicial?.enlaces ?? []).join("\n"),
       calorias: recetaInicial?.calorias?.toString() ?? "",
       proteinasG: recetaInicial?.proteinasG?.toString() ?? "",
       carbohidratosG: recetaInicial?.carbohidratosG?.toString() ?? "",
@@ -226,6 +229,10 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
         .split(",")
         .map((etiqueta) => etiqueta.trim())
         .filter(Boolean),
+      enlaces: datos.enlaces
+        .split(/[\n,]/)
+        .map((enlace) => enlace.trim())
+        .filter(Boolean),
       // Fallback manual (se usa solo si ningún ingrediente trae macros).
       calorias: aNumero(datos.calorias) != null ? Math.round(aNumero(datos.calorias)!) : null,
       proteinasG: aNumero(datos.proteinasG),
@@ -233,14 +240,20 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
       grasasG: aNumero(datos.grasasG),
     };
     const fotoIds = fotosNuevas.map((foto) => foto.id);
+    const documentoIds = documentosNuevos.map((doc) => doc.id);
 
     if (recetaInicial) {
       actualizar.mutate(
-        { id: recetaInicial.id, ...cuerpo, fotoIdsNuevos: fotoIds },
+        {
+          id: recetaInicial.id,
+          ...cuerpo,
+          fotoIdsNuevos: fotoIds,
+          documentoIdsNuevos: documentoIds,
+        },
         { onSuccess: onTerminado },
       );
     } else {
-      crear.mutate({ ...cuerpo, fotoIds }, { onSuccess: onTerminado });
+      crear.mutate({ ...cuerpo, fotoIds, documentoIds }, { onSuccess: onTerminado });
     }
   }
 
@@ -439,6 +452,68 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
             onSubido={(archivo) => setFotosNuevas((previas) => [...previas, archivo])}
           />
         </div>
+
+        {/* Documentos adjuntos (PDF/Word) */}
+        <div className="space-y-2">
+          <p className="flex items-center gap-1.5 text-sm font-medium">
+            <FileText className="h-4 w-4" /> Documentos adjuntos
+          </p>
+          {(recetaInicial?.documentos.length ?? 0) > 0 && (
+            <p className="text-xs text-muted-foreground">
+              La receta ya tiene {recetaInicial!.documentos.length} documento(s). Los nuevos se
+              agregan.
+            </p>
+          )}
+          {documentosNuevos.length > 0 && (
+            <ul className="space-y-1">
+              {documentosNuevos.map((doc) => (
+                <li
+                  key={doc.id}
+                  className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm"
+                >
+                  <span className="truncate">{doc.nombreOriginal}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Quitar documento"
+                    onClick={() =>
+                      setDocumentosNuevos((previos) => previos.filter((d) => d.id !== doc.id))
+                    }
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <SubidorArchivo
+            contexto="receta"
+            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            onSubido={(archivo) => setDocumentosNuevos((previos) => [...previos, archivo])}
+          />
+        </div>
+
+        {/* Enlaces de referencia */}
+        <FormField
+          control={form.control}
+          name="enlaces"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-1.5">
+                <LinkIcon className="h-4 w-4" /> Enlaces de referencia (uno por línea)
+              </FormLabel>
+              <FormControl>
+                <Textarea
+                  rows={2}
+                  placeholder="https://youtube.com/…&#10;https://blog-de-cocina.com/receta"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onTerminado} disabled={enviando}>

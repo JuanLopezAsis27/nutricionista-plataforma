@@ -4,6 +4,7 @@ import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoReposit
 import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamientoArchivos";
 import { CrearReceta } from "@/dominio/casos-de-uso/recetas/CrearReceta";
 import { ObtenerRecetas } from "@/dominio/casos-de-uso/recetas/ObtenerRecetas";
+import { ObtenerRecetasPaginado } from "@/dominio/casos-de-uso/recetas/ObtenerRecetasPaginado";
 import { ObtenerRecetaPorId } from "@/dominio/casos-de-uso/recetas/ObtenerRecetaPorId";
 import { ActualizarReceta } from "@/dominio/casos-de-uso/recetas/ActualizarReceta";
 import { EliminarReceta } from "@/dominio/casos-de-uso/recetas/EliminarReceta";
@@ -23,6 +24,7 @@ export function crearServicioReceta(deps: {
   return new ServicioReceta(
     new CrearReceta(deps.recetas),
     new ObtenerRecetas(deps.recetas),
+    new ObtenerRecetasPaginado(deps.recetas),
     new ObtenerRecetaPorId(deps.recetas),
     new ActualizarReceta(deps.recetas),
     new EliminarReceta(deps.recetas, deps.archivos, deps.almacenamiento),

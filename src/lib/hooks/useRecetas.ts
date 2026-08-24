@@ -51,6 +51,7 @@ export function useRecetas() {
   return {
     utils,
     listar: trpc.recetas.obtenerTodas.useQuery,
+    listarPaginado: trpc.recetas.listarPaginado.useQuery,
     obtenerPorId: trpc.recetas.obtenerPorId.useQuery,
     pacientesAsignados: trpc.recetas.pacientesAsignados.useQuery,
     delPaciente: trpc.recetas.obtenerDelPaciente.useQuery,

@@ -2,6 +2,7 @@ import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import { CrearPlan } from "@/dominio/casos-de-uso/planes/CrearPlan";
 import { ObtenerPlanes } from "@/dominio/casos-de-uso/planes/ObtenerPlanes";
+import { ObtenerPlanesPaginado } from "@/dominio/casos-de-uso/planes/ObtenerPlanesPaginado";
 import { ObtenerPlanPorId } from "@/dominio/casos-de-uso/planes/ObtenerPlanPorId";
 import { ActualizarPlan } from "@/dominio/casos-de-uso/planes/ActualizarPlan";
 import { EliminarPlan } from "@/dominio/casos-de-uso/planes/EliminarPlan";
@@ -20,6 +21,7 @@ export function crearServicioPlan(deps: {
   return new ServicioPlan(
     new CrearPlan(deps.planes),
     new ObtenerPlanes(deps.planes),
+    new ObtenerPlanesPaginado(deps.planes),
     new ObtenerPlanPorId(deps.planes),
     new ActualizarPlan(deps.planes),
     new EliminarPlan(deps.planes),

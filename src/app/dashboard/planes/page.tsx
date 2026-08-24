@@ -30,8 +30,23 @@ import { FormularioPlan } from "@/componentes/planes/FormularioPlan";
 import { FormularioAsignacionPlan } from "@/componentes/planes/FormularioAsignacionPlan";
 
 export default function PaginaPlanes() {
-  const { listar, eliminar, archivar, crearDesdePlantilla } = usePlanes();
-  const consulta = listar({ incluirArchivados: true });
+  const { listarPaginado, eliminar, archivar, crearDesdePlantilla } = usePlanes();
+  const [paginaPlanes, setPaginaPlanes] = useState(1);
+  const [paginaPlantillas, setPaginaPlantillas] = useState(1);
+
+  // Server-side, 10/página, y por tab (planes vs plantillas) por separado.
+  const consultaPlanes = listarPaginado({
+    esPlantilla: false,
+    incluirArchivados: true,
+    pagina: paginaPlanes,
+    porPagina: 10,
+  });
+  const consultaPlantillas = listarPaginado({
+    esPlantilla: true,
+    incluirArchivados: true,
+    pagina: paginaPlantillas,
+    porPagina: 10,
+  });
 
   const [formAbierto, setFormAbierto] = useState(false);
   const [comoPlantilla, setComoPlantilla] = useState(false);
@@ -39,9 +54,8 @@ export default function PaginaPlanes() {
   const [planEliminar, setPlanEliminar] = useState<PlanSalidaDto | null>(null);
   const [planAsignar, setPlanAsignar] = useState<PlanSalidaDto | null>(null);
 
-  const todos = consulta.data ?? [];
-  const planes = todos.filter((plan) => !plan.esPlantilla);
-  const plantillas = todos.filter((plan) => plan.esPlantilla);
+  const planes = consultaPlanes.data?.planes ?? [];
+  const plantillas = consultaPlantillas.data?.planes ?? [];
 
   function abrirNuevo(plantilla: boolean) {
     setPlanEditar(null);
@@ -147,14 +161,16 @@ export default function PaginaPlanes() {
 
   return (
     <div className="space-y-4">
-      {consulta.isError ? (
+      {consultaPlanes.isError || consultaPlantillas.isError ? (
         <p className="text-sm text-destructive">No se pudieron cargar los planes.</p>
       ) : (
         <Tabs defaultValue="planes">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <TabsList>
-              <TabsTrigger value="planes">Planes ({planes.length})</TabsTrigger>
-              <TabsTrigger value="plantillas">Plantillas ({plantillas.length})</TabsTrigger>
+              <TabsTrigger value="planes">Planes ({consultaPlanes.data?.total ?? 0})</TabsTrigger>
+              <TabsTrigger value="plantillas">
+                Plantillas ({consultaPlantillas.data?.total ?? 0})
+              </TabsTrigger>
             </TabsList>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => abrirNuevo(true)}>
@@ -173,8 +189,11 @@ export default function PaginaPlanes() {
               columnas={columnas(false)}
               datos={planes}
               obtenerClave={(plan) => plan.id}
-              cargando={consulta.isLoading}
+              cargando={consultaPlanes.isLoading}
               mensajeVacio="Todavía no hay planes. Creá uno desde cero o desde una plantilla."
+              pagina={paginaPlanes}
+              totalPaginas={consultaPlanes.data?.paginas ?? 1}
+              onCambiarPagina={setPaginaPlanes}
             />
           </TabsContent>
           <TabsContent value="plantillas">
@@ -182,8 +201,11 @@ export default function PaginaPlanes() {
               columnas={columnas(true)}
               datos={plantillas}
               obtenerClave={(plan) => plan.id}
-              cargando={consulta.isLoading}
+              cargando={consultaPlantillas.isLoading}
               mensajeVacio="Todavía no hay plantillas."
+              pagina={paginaPlantillas}
+              totalPaginas={consultaPlantillas.data?.paginas ?? 1}
+              onCambiarPagina={setPaginaPlantillas}
             />
           </TabsContent>
         </Tabs>

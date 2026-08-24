@@ -7,6 +7,7 @@ import {
   actualizarRecetaDto,
   idRecetaDto,
   filtroRecetasDto,
+  listarRecetasPaginadoDto,
   asignarRecetaDto,
 } from "@/aplicacion/dtos/receta.dto";
 
@@ -17,11 +18,23 @@ import {
  * fueron compartidas (obtenerMisRecetas, con pacienteId tomado de la sesión).
  */
 export const routerRecetas = crearRouter({
+  // Lista completa (sin paginar): la usan los selectores (ej. editor de planes).
   obtenerTodas: nutricionistaProcedimiento
     .input(filtroRecetasDto)
     .query(async ({ ctx, input }) => {
       try {
         return await ctx.servicios.receta.obtenerRecetas(input);
+      } catch (error) {
+        throw aTRPCError(error);
+      }
+    }),
+
+  // Listado paginado (10/página, server-side) para la página del recetario.
+  listarPaginado: nutricionistaProcedimiento
+    .input(listarRecetasPaginadoDto)
+    .query(async ({ ctx, input }) => {
+      try {
+        return await ctx.servicios.receta.obtenerRecetasPaginado(input);
       } catch (error) {
         throw aTRPCError(error);
       }

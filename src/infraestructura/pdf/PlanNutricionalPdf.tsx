@@ -281,6 +281,9 @@ function PlanNutricionalPdf({ plan, nombrePaciente, recetas = [], config }: Prop
                     .filter(Boolean)
                     .join(" · ") + (mostrarMacros ? " (por porción)" : "")}
                 </Text>
+                {receta.descripcion && (
+                  <Text style={estilos.recetaTexto}>{receta.descripcion}</Text>
+                )}
                 {receta.ingredientes.length > 0 && (
                   <>
                     <Text style={estilos.recetaSubtitulo}>Ingredientes</Text>
@@ -296,6 +299,16 @@ function PlanNutricionalPdf({ plan, nombrePaciente, recetas = [], config }: Prop
                   <>
                     <Text style={estilos.recetaSubtitulo}>Preparación</Text>
                     <Text style={estilos.recetaTexto}>{receta.preparacion}</Text>
+                  </>
+                )}
+                {receta.enlaces.length > 0 && (
+                  <>
+                    <Text style={estilos.recetaSubtitulo}>Enlaces</Text>
+                    {receta.enlaces.map((enlace, i) => (
+                      <Text key={i} style={estilos.recetaTexto}>
+                        • {enlace}
+                      </Text>
+                    ))}
                   </>
                 )}
               </View>

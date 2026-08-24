@@ -44,7 +44,7 @@ function datosIngrediente(ing: IngredienteDeReceta, orden: number) {
 export class PrismaRepositorioReceta implements IRecetaRepositorio {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async crear(receta: Receta, fotoIds: string[]): Promise<Receta> {
+  async crear(receta: Receta, archivoIds: string[]): Promise<Receta> {
     const d = receta.aPrimitivos();
     const fila = await this.prisma.$transaction(async (tx) => {
       await tx.receta.create({
@@ -55,6 +55,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
           porciones: d.porciones,
           preparacion: d.preparacion,
           etiquetas: d.etiquetas,
+          enlaces: d.enlaces,
           calorias: d.calorias,
           proteinasG: d.proteinasG,
           carbohidratosG: d.carbohidratosG,
@@ -64,13 +65,13 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
           ingredientes: { create: d.ingredientes.map(datosIngrediente) },
         },
       });
-      await this.vincularFotos(tx, d.id, fotoIds);
+      await this.vincularArchivos(tx, d.id, archivoIds);
       return tx.receta.findUniqueOrThrow({ where: { id: d.id }, include: INCLUIR });
     });
     return this.mapear(fila);
   }
 
-  async actualizar(receta: Receta, fotoIdsNuevos: string[]): Promise<Receta> {
+  async actualizar(receta: Receta, archivoIdsNuevos: string[]): Promise<Receta> {
     const d = receta.aPrimitivos();
     const fila = await this.prisma.$transaction(async (tx) => {
       await tx.receta.update({
@@ -81,6 +82,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
           porciones: d.porciones,
           preparacion: d.preparacion,
           etiquetas: d.etiquetas,
+          enlaces: d.enlaces,
           calorias: d.calorias,
           proteinasG: d.proteinasG,
           carbohidratosG: d.carbohidratosG,
@@ -89,7 +91,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
           ingredientes: { deleteMany: {}, create: d.ingredientes.map(datosIngrediente) },
         },
       });
-      await this.vincularFotos(tx, d.id, fotoIdsNuevos);
+      await this.vincularArchivos(tx, d.id, archivoIdsNuevos);
       return tx.receta.findUniqueOrThrow({ where: { id: d.id }, include: INCLUIR });
     });
     return this.mapear(fila);
@@ -110,6 +112,21 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
   }
 
   async listar(filtro?: FiltroRecetas): Promise<Receta[]> {
+    const filas = await this.prisma.receta.findMany({
+      where: this.construirWhere(filtro),
+      include: INCLUIR,
+      orderBy: { nombre: "asc" },
+      skip: filtro?.desplazamiento,
+      take: filtro?.limite,
+    });
+    return filas.map((fila) => this.mapear(fila));
+  }
+
+  contar(filtro?: FiltroRecetas): Promise<number> {
+    return this.prisma.receta.count({ where: this.construirWhere(filtro) });
+  }
+
+  private construirWhere(filtro?: FiltroRecetas): Prisma.RecetaWhereInput {
     const where: Prisma.RecetaWhereInput = {};
     if (filtro?.texto) {
       where.OR = [
@@ -120,12 +137,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
     if (filtro?.etiqueta) {
       where.etiquetas = { has: filtro.etiqueta };
     }
-    const filas = await this.prisma.receta.findMany({
-      where,
-      include: INCLUIR,
-      orderBy: { nombre: "asc" },
-    });
-    return filas.map((fila) => this.mapear(fila));
+    return where;
   }
 
   async asignarAPaciente(recetaId: string, pacienteId: string, id: string): Promise<void> {
@@ -158,14 +170,14 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
   }
 
   /** Vincula archivos ya subidos a la receta (fija su recetaId). */
-  private async vincularFotos(
+  private async vincularArchivos(
     tx: Prisma.TransactionClient,
     recetaId: string,
-    fotoIds: string[],
+    archivoIds: string[],
   ): Promise<void> {
-    if (fotoIds.length > 0) {
+    if (archivoIds.length > 0) {
       await tx.archivo.updateMany({
-        where: { id: { in: fotoIds } },
+        where: { id: { in: archivoIds } },
         data: { recetaId },
       });
     }
@@ -189,15 +201,27 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
         referenciaExterna: ing.referenciaExterna,
       })),
       etiquetas: fila.etiquetas,
+      enlaces: fila.enlaces,
       calorias: fila.calorias,
       proteinasG: aNumero(fila.proteinasG),
       carbohidratosG: aNumero(fila.carbohidratosG),
       grasasG: aNumero(fila.grasasG),
-      fotos: fila.fotos.map((foto) => ({
-        id: foto.id,
-        nombreOriginal: foto.nombreOriginal,
-        mimeType: foto.mimeType,
-      })),
+      // Los archivos vinculados a la receta se separan por tipo: las imágenes
+      // son fotos; el resto (PDF, Word) son documentos adjuntos.
+      fotos: fila.fotos
+        .filter((a) => a.mimeType.startsWith("image/"))
+        .map((foto) => ({
+          id: foto.id,
+          nombreOriginal: foto.nombreOriginal,
+          mimeType: foto.mimeType,
+        })),
+      documentos: fila.fotos
+        .filter((a) => !a.mimeType.startsWith("image/"))
+        .map((doc) => ({
+          id: doc.id,
+          nombreOriginal: doc.nombreOriginal,
+          mimeType: doc.mimeType,
+        })),
       creadoEn: fila.creadoEn,
       actualizadoEn: fila.actualizadoEn,
     });

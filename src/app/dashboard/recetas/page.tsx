@@ -15,17 +15,23 @@ import {
   DialogTitle,
 } from "@/componentes/ui/dialog";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
+import { ControlesPaginacion } from "@/componentes/comunes/ControlesPaginacion";
 import { TarjetaReceta } from "@/componentes/recetas/TarjetaReceta";
 import { VistaReceta } from "@/componentes/recetas/VistaReceta";
 import { FormularioReceta } from "@/componentes/recetas/FormularioReceta";
 import { CompartirReceta } from "@/componentes/recetas/CompartirReceta";
 
 export default function PaginaRecetas() {
-  const { listar, eliminar } = useRecetas();
+  const { listarPaginado, eliminar } = useRecetas();
 
   const [busqueda, setBusqueda] = useState("");
+  const [pagina, setPagina] = useState(1);
   const debounced = useDebounce(busqueda, 300);
-  const consulta = listar(debounced ? { texto: debounced } : undefined);
+  const consulta = listarPaginado({
+    texto: debounced || undefined,
+    pagina,
+    porPagina: 10,
+  });
 
   const [formAbierto, setFormAbierto] = useState(false);
   const [recetaEditar, setRecetaEditar] = useState<RecetaSalidaDto | null>(null);
@@ -33,7 +39,7 @@ export default function PaginaRecetas() {
   const [recetaCompartir, setRecetaCompartir] = useState<RecetaSalidaDto | null>(null);
   const [recetaEliminar, setRecetaEliminar] = useState<RecetaSalidaDto | null>(null);
 
-  const recetas = consulta.data ?? [];
+  const recetas = consulta.data?.recetas ?? [];
 
   return (
     <div className="space-y-4">
@@ -44,7 +50,10 @@ export default function PaginaRecetas() {
             placeholder="Buscar receta…"
             className="pl-8"
             value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            onChange={(e) => {
+              setBusqueda(e.target.value);
+              setPagina(1);
+            }}
           />
         </div>
         <Button
@@ -114,6 +123,12 @@ export default function PaginaRecetas() {
           ))}
         </div>
       )}
+
+      <ControlesPaginacion
+        pagina={pagina}
+        totalPaginas={consulta.data?.paginas ?? 1}
+        onCambiar={setPagina}
+      />
 
       {/* Alta / edición */}
       <Dialog open={formAbierto} onOpenChange={setFormAbierto}>

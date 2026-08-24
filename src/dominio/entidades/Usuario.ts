@@ -83,6 +83,18 @@ export class Usuario {
     return new Usuario({ ...this.props, activo });
   }
 
+  /**
+   * Devuelve una copia del usuario con una contraseña nueva (ya hasheada).
+   * El hasheo ocurre en infraestructura; acá solo se guarda el hash, nunca
+   * la contraseña en texto plano.
+   */
+  cambiarPassword(nuevoHash: string): Usuario {
+    if (!nuevoHash || nuevoHash.length === 0) {
+      throw new ErrorValidacion("El usuario debe tener una contraseña hasheada.");
+    }
+    return new Usuario({ ...this.props, passwordHash: nuevoHash });
+  }
+
   /** Garantiza que el rol y el pacienteId sean coherentes entre sí. */
   private static validarCoherenciaRol(rol: RolUsuario, pacienteId: string | null): void {
     if (rol === "PACIENTE" && !pacienteId) {

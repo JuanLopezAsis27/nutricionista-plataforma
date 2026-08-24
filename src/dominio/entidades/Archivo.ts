@@ -33,7 +33,9 @@ export const CONTEXTOS_ARCHIVO = {
   },
   receta: {
     prefijo: "recetas",
-    mimes: [...MIMES_IMAGEN],
+    // Fotos (imágenes) y documentos adjuntos (PDF/Word) de la receta. Al leer,
+    // el repositorio los separa por MIME (imágenes = fotos; resto = documentos).
+    mimes: [...MIMES_IMAGEN, ...MIMES_DOCUMENTO],
     maxBytes: 10 * MB,
   },
   biblioteca: {

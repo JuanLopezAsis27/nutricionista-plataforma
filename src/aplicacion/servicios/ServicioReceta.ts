@@ -1,5 +1,6 @@
 import type { CrearReceta } from "@/dominio/casos-de-uso/recetas/CrearReceta";
 import type { ObtenerRecetas } from "@/dominio/casos-de-uso/recetas/ObtenerRecetas";
+import type { ObtenerRecetasPaginado } from "@/dominio/casos-de-uso/recetas/ObtenerRecetasPaginado";
 import type { ObtenerRecetaPorId } from "@/dominio/casos-de-uso/recetas/ObtenerRecetaPorId";
 import type { ActualizarReceta } from "@/dominio/casos-de-uso/recetas/ActualizarReceta";
 import type { EliminarReceta } from "@/dominio/casos-de-uso/recetas/EliminarReceta";
@@ -12,6 +13,8 @@ import type {
   CrearRecetaDto,
   ActualizarRecetaDto,
   FiltroRecetasDto,
+  ListarRecetasPaginadoDto,
+  RecetasPaginadas,
   AsignarRecetaDto,
   RecetaSalidaDto,
 } from "../dtos/receta.dto";
@@ -24,6 +27,7 @@ export class ServicioReceta {
   constructor(
     private readonly crearUC: CrearReceta,
     private readonly obtenerTodasUC: ObtenerRecetas,
+    private readonly obtenerPaginadoUC: ObtenerRecetasPaginado,
     private readonly obtenerPorIdUC: ObtenerRecetaPorId,
     private readonly actualizarUC: ActualizarReceta,
     private readonly eliminarUC: EliminarReceta,
@@ -41,6 +45,12 @@ export class ServicioReceta {
   async obtenerRecetas(filtro?: FiltroRecetasDto): Promise<RecetaSalidaDto[]> {
     const recetas = await this.obtenerTodasUC.ejecutar(filtro);
     return recetas.map(ServicioReceta.aSalida);
+  }
+
+  /** Recetario paginado (trae solo la página pedida). */
+  async obtenerRecetasPaginado(datos: ListarRecetasPaginadoDto): Promise<RecetasPaginadas> {
+    const { items, total, paginas } = await this.obtenerPaginadoUC.ejecutar(datos);
+    return { recetas: items.map(ServicioReceta.aSalida), total, paginas };
   }
 
   async obtenerRecetaPorId(id: string): Promise<RecetaSalidaDto> {

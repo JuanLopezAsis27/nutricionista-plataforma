@@ -7,6 +7,7 @@ import {
   actualizarMaterialDto,
   idMaterialDto,
   filtroMaterialesDto,
+  listarMaterialesPaginadoDto,
   asignarMaterialDto,
 } from "@/aplicacion/dtos/material.dto";
 
@@ -17,11 +18,23 @@ import {
  * fue compartido (obtenerMiMaterial, con pacienteId tomado de la sesión).
  */
 export const routerBiblioteca = crearRouter({
+  // Lista completa (sin paginar): para selectores.
   obtenerTodos: nutricionistaProcedimiento
     .input(filtroMaterialesDto)
     .query(async ({ ctx, input }) => {
       try {
         return await ctx.servicios.biblioteca.obtenerMateriales(input);
+      } catch (error) {
+        throw aTRPCError(error);
+      }
+    }),
+
+  // Listado paginado (10/página, server-side) para la página de la biblioteca.
+  listarPaginado: nutricionistaProcedimiento
+    .input(listarMaterialesPaginadoDto)
+    .query(async ({ ctx, input }) => {
+      try {
+        return await ctx.servicios.biblioteca.obtenerMaterialesPaginado(input);
       } catch (error) {
         throw aTRPCError(error);
       }

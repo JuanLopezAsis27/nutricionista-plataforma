@@ -1,5 +1,6 @@
 import type { CrearPlan } from "@/dominio/casos-de-uso/planes/CrearPlan";
 import type { ObtenerPlanes } from "@/dominio/casos-de-uso/planes/ObtenerPlanes";
+import type { ObtenerPlanesPaginado } from "@/dominio/casos-de-uso/planes/ObtenerPlanesPaginado";
 import type { ObtenerPlanPorId } from "@/dominio/casos-de-uso/planes/ObtenerPlanPorId";
 import type { ActualizarPlan } from "@/dominio/casos-de-uso/planes/ActualizarPlan";
 import type { EliminarPlan } from "@/dominio/casos-de-uso/planes/EliminarPlan";
@@ -14,6 +15,8 @@ import type {
   CrearPlanDto,
   ActualizarPlanDto,
   FiltroPlanesDto,
+  ListarPlanesPaginadoDto,
+  PlanesPaginados,
   ArchivarPlanDto,
   CrearDesdePlantillaDto,
   AsignarPlanDto,
@@ -28,6 +31,7 @@ export class ServicioPlan {
   constructor(
     private readonly crearUC: CrearPlan,
     private readonly obtenerTodosUC: ObtenerPlanes,
+    private readonly obtenerPaginadoUC: ObtenerPlanesPaginado,
     private readonly obtenerPorIdUC: ObtenerPlanPorId,
     private readonly actualizarUC: ActualizarPlan,
     private readonly eliminarUC: EliminarPlan,
@@ -41,6 +45,11 @@ export class ServicioPlan {
   async crearPlan(datos: CrearPlanDto): Promise<PlanSalidaDto> {
     const plan = await this.crearUC.ejecutar(datos);
     return ServicioPlan.aSalida(plan);
+  }
+
+  async obtenerPlanesPaginado(datos: ListarPlanesPaginadoDto): Promise<PlanesPaginados> {
+    const { items, total, paginas } = await this.obtenerPaginadoUC.ejecutar(datos);
+    return { planes: items.map(ServicioPlan.aSalida), total, paginas };
   }
 
   async obtenerPlanes(filtro?: FiltroPlanesDto): Promise<PlanSalidaDto[]> {

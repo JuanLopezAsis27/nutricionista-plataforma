@@ -5,6 +5,8 @@ import type { IRecetaRepositorio } from "../../repositorios/IRecetaRepositorio";
 import type { IAlertaAlimentariaRepositorio } from "../../repositorios/IAlertaAlimentariaRepositorio";
 import type { IAxiomaRepositorio } from "../../repositorios/IAxiomaRepositorio";
 import type { IHistorialIARepositorio } from "../../repositorios/IHistorialIARepositorio";
+import type { IPerfilDeportivoRepositorio } from "../../repositorios/IPerfilDeportivoRepositorio";
+import type { ICompetenciaRepositorio } from "../../repositorios/ICompetenciaRepositorio";
 import type {
   IAsistenteNutricional,
   HerramientaAsistente,
@@ -39,6 +41,8 @@ export class PreguntarAlAsistente {
     private readonly axiomas: IAxiomaRepositorio,
     private readonly asistente: IAsistenteNutricional,
     private readonly historial: IHistorialIARepositorio,
+    private readonly perfilesDeportivos: IPerfilDeportivoRepositorio,
+    private readonly competencias: ICompetenciaRepositorio,
   ) {}
 
   async ejecutar(pacienteId: string, pregunta: string): Promise<RespuestaAsistente> {
@@ -159,6 +163,49 @@ export class PreguntarAlAsistente {
               };
             }),
           );
+        },
+      },
+      {
+        nombre: "obtener_contexto_deportivo",
+        descripcion:
+          "Devuelve el perfil deportivo del paciente (deporte, disciplina, nivel, fase de la " +
+          "temporada, carga de entrenamiento, categoría de peso) y sus próximas competencias. " +
+          "Usalo si es deportista o pregunta sobre entrenamiento, competencias o alimentación " +
+          "según su deporte.",
+        esquema: SIN_ARGUMENTOS,
+        ejecutar: async () => {
+          const [perfil, competencias] = await Promise.all([
+            this.perfilesDeportivos.obtenerPorPaciente(pacienteId),
+            this.competencias.listarPorPaciente(pacienteId),
+          ]);
+          if (!perfil && competencias.length === 0) {
+            return "El paciente no tiene perfil deportivo cargado.";
+          }
+          const p = perfil?.aPrimitivos();
+          return JSON.stringify({
+            perfil: p
+              ? {
+                  deporte: p.deporte,
+                  disciplina: p.disciplina,
+                  nivel: p.nivel,
+                  faseTemporada: p.fase,
+                  diasEntrenamientoSemana: p.diasEntrenamientoSemana,
+                  horasSemana: p.horasSemana,
+                  pesoCategoriaKg: p.pesoCategoriaKg,
+                  posicion: p.posicion,
+                  objetivo: p.objetivo,
+                }
+              : null,
+            competencias: competencias.map((c) => {
+              const cp = c.aPrimitivos();
+              return {
+                nombre: cp.nombre,
+                fecha: cp.fecha.toISOString().slice(0, 10),
+                importancia: cp.importancia,
+                objetivo: cp.objetivo,
+              };
+            }),
+          });
         },
       },
     ];

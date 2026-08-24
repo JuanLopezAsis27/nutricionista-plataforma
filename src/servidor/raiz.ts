@@ -23,6 +23,8 @@ import { routerCredenciales } from "./routers/credenciales";
 import { routerSuperAdmin } from "./routers/superadmin";
 import { routerIntegraciones } from "./routers/integraciones";
 import { routerIA } from "./routers/ia";
+import { routerAutenticacion } from "./routers/autenticacion";
+import { routerDeportivo } from "./routers/deportivo";
 
 /**
  * Router raíz: combina todos los sub-routers de la aplicación.
@@ -54,6 +56,8 @@ export const routerApp = crearRouter({
   superadmin: routerSuperAdmin,
   integraciones: routerIntegraciones,
   ia: routerIA,
+  autenticacion: routerAutenticacion,
+  deportivo: routerDeportivo,
 });
 
 /** Tipo del router raíz, exportado para el cliente. */

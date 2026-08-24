@@ -26,6 +26,7 @@ import { DiarioPacienteVista } from "@/componentes/diario/DiarioPacienteVista";
 import { SeccionTracking } from "@/componentes/tracking/SeccionTracking";
 import { SeccionInformes } from "@/componentes/seguimiento/SeccionInformes";
 import { SeccionSuplementos } from "@/componentes/seguimiento/SeccionSuplementos";
+import { SeccionDeportiva } from "@/componentes/deportivo/SeccionDeportiva";
 import { ObjetivosPaciente } from "@/componentes/objetivos/ObjetivosPaciente";
 import { MensajesDePaciente } from "@/componentes/mensajeria/MensajesDePaciente";
 
@@ -115,6 +116,7 @@ export default function PaginaDetallePaciente() {
           <TabsTrigger value="turnos">Turnos</TabsTrigger>
           <TabsTrigger value="plan">Plan actual</TabsTrigger>
           <TabsTrigger value="suplementos">Suplementos</TabsTrigger>
+          <TabsTrigger value="deporte">Deporte</TabsTrigger>
           <TabsTrigger value="mensajes">Mensajes</TabsTrigger>
         </TabsList>
 
@@ -140,6 +142,10 @@ export default function PaginaDetallePaciente() {
 
         <TabsContent value="suplementos">
           <SeccionSuplementos pacienteId={id} />
+        </TabsContent>
+
+        <TabsContent value="deporte">
+          <SeccionDeportiva pacienteId={id} />
         </TabsContent>
 
         <TabsContent value="mensajes">

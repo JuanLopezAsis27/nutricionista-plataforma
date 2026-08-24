@@ -70,6 +70,7 @@ export function usePlanes() {
   return {
     utils,
     listar: trpc.planes.obtenerTodos.useQuery,
+    listarPaginado: trpc.planes.listarPaginado.useQuery,
     obtenerPorId: trpc.planes.obtenerPorId.useQuery,
     delPaciente: trpc.planes.obtenerDelPaciente.useQuery,
     miPlan: trpc.planes.obtenerMiPlan.useQuery,

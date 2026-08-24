@@ -24,6 +24,8 @@ import {
   servicioSuperAdmin,
   servicioIntegraciones,
   servicioIA,
+  servicioAutenticacion,
+  servicioDeportivo,
   busEventos,
 } from "@/infraestructura/contenedor/contenedor";
 import type { RolUsuario } from "@/dominio/entidades/Usuario";
@@ -95,6 +97,8 @@ export async function crearContexto() {
       superadmin: servicioSuperAdmin,
       integraciones: servicioIntegraciones,
       ia: servicioIA,
+      autenticacion: servicioAutenticacion,
+      deportivo: servicioDeportivo,
     },
   };
 }

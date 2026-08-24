@@ -17,6 +17,7 @@ import { PrismaClienteSingleton } from "@/infraestructura/repositorios/PrismaCli
 import { PrismaRepositorioPaciente } from "@/infraestructura/repositorios/PrismaRepositorioPaciente";
 import { PrismaRepositorioTurno } from "@/infraestructura/repositorios/PrismaRepositorioTurno";
 import { PrismaRepositorioUsuario } from "@/infraestructura/repositorios/PrismaRepositorioUsuario";
+import { PrismaRepositorioTokenRecuperacion } from "@/infraestructura/repositorios/PrismaRepositorioTokenRecuperacion";
 import { PrismaRepositorioArchivo } from "@/infraestructura/repositorios/PrismaRepositorioArchivo";
 import { PrismaRepositorioHistoriaClinica } from "@/infraestructura/repositorios/PrismaRepositorioHistoriaClinica";
 import { PrismaRepositorioAntropometria } from "@/infraestructura/repositorios/PrismaRepositorioAntropometria";
@@ -26,6 +27,8 @@ import { PrismaRepositorioRegistroDiario } from "@/infraestructura/repositorios/
 import { PrismaRepositorioReceta } from "@/infraestructura/repositorios/PrismaRepositorioReceta";
 import { PrismaRepositorioPlan } from "@/infraestructura/repositorios/PrismaRepositorioPlan";
 import { PrismaRepositorioObjetivo } from "@/infraestructura/repositorios/PrismaRepositorioObjetivo";
+import { PrismaRepositorioPerfilDeportivo } from "@/infraestructura/repositorios/PrismaRepositorioPerfilDeportivo";
+import { PrismaRepositorioCompetencia } from "@/infraestructura/repositorios/PrismaRepositorioCompetencia";
 import { PrismaRepositorioMaterial } from "@/infraestructura/repositorios/PrismaRepositorioMaterial";
 import { PrismaRepositorioSuplemento } from "@/infraestructura/repositorios/PrismaRepositorioSuplemento";
 import { PrismaRepositorioAlertaSeguimiento } from "@/infraestructura/repositorios/PrismaRepositorioAlertaSeguimiento";
@@ -41,6 +44,7 @@ import { AsistenteNutricionalStub } from "@/infraestructura/ia/AsistenteNutricio
 import { AnalisisComidaIAStub } from "@/infraestructura/ia/AnalisisComidaIAStub";
 import { AnalisisPredictivoStub } from "@/infraestructura/ia/AnalisisPredictivoStub";
 import { BcryptHasheador } from "@/infraestructura/seguridad/BcryptHasheador";
+import { GeneradorTokensCrypto } from "@/infraestructura/seguridad/GeneradorTokensCrypto";
 import { AlmacenamientoMinIO } from "@/infraestructura/almacenamiento/AlmacenamientoMinIO";
 import { RelojSistema } from "@/infraestructura/fecha/RelojSistema";
 import { NodemailerServicioEmail } from "@/infraestructura/email/NodemailerServicioEmail";
@@ -66,6 +70,8 @@ import { crearServicioTracking } from "./modulos/tracking";
 import { crearServicioMetricas } from "./modulos/metricas";
 import { crearServicioSuperAdmin } from "./modulos/superadmin";
 import { crearServicioIA } from "./modulos/ia";
+import { crearServicioAutenticacion } from "./modulos/autenticacion";
+import { crearServicioDeportivo } from "./modulos/deportivo";
 import { ProvisionadorNutricionista } from "@/infraestructura/aprovisionamiento/ProvisionadorNutricionista";
 // Integraciones (Google) — F10.
 import type { IProveedorGoogle } from "@/dominio/servicios/IProveedorGoogle";
@@ -126,6 +132,7 @@ const prisma = PrismaClienteSingleton.obtenerInstancia();
 const repositorioPaciente = new PrismaRepositorioPaciente(prisma);
 const repositorioTurno = new PrismaRepositorioTurno(prisma);
 const repositorioUsuario = new PrismaRepositorioUsuario(prisma);
+const repositorioTokenRecuperacion = new PrismaRepositorioTokenRecuperacion(prisma);
 const repositorioArchivo = new PrismaRepositorioArchivo(prisma);
 const repositorioHistoriaClinica = new PrismaRepositorioHistoriaClinica(prisma);
 const repositorioAntropometria = new PrismaRepositorioAntropometria(prisma);
@@ -135,6 +142,8 @@ const repositorioRegistroDiario = new PrismaRepositorioRegistroDiario(prisma);
 const repositorioReceta = new PrismaRepositorioReceta(prisma);
 const repositorioPlan = new PrismaRepositorioPlan(prisma);
 const repositorioObjetivo = new PrismaRepositorioObjetivo(prisma);
+const repositorioPerfilDeportivo = new PrismaRepositorioPerfilDeportivo(prisma);
+const repositorioCompetencia = new PrismaRepositorioCompetencia(prisma);
 const repositorioMaterial = new PrismaRepositorioMaterial(prisma);
 const repositorioSuplemento = new PrismaRepositorioSuplemento(prisma);
 const repositorioAlertaSeguimiento = new PrismaRepositorioAlertaSeguimiento(prisma);
@@ -153,6 +162,7 @@ const configML = obtenerConfigML();
 const clienteML = configML ? new ClienteML(configML) : null;
 
 const hasheador = new BcryptHasheador();
+const generadorTokens = new GeneradorTokensCrypto();
 const almacenamiento = new AlmacenamientoMinIO();
 const reloj = new RelojSistema();
 
@@ -396,6 +406,13 @@ export const servicioTracking = crearServicioTracking({
 // Métricas de dispositivo (wearables): importación, consulta y opt-in por día.
 export const servicioMetricas = crearServicioMetricas({ metricas: repositorioMetrica });
 
+// Módulo deportivo: perfil del deportista + calendario de competencias.
+export const servicioDeportivo = crearServicioDeportivo({
+  perfiles: repositorioPerfilDeportivo,
+  competencias: repositorioCompetencia,
+  pacientes: repositorioPaciente,
+});
+
 // Credenciales de integración del profesional (clave de Claude / FatSecret).
 export const servicioCredenciales = crearServicioCredenciales({
   credenciales: repositorioCredenciales,
@@ -430,6 +447,8 @@ export const servicioIA = crearServicioIA({
   alertas: repositorioAlertaAlimentaria,
   axiomas: repositorioAxioma,
   historial: repositorioHistorialIA,
+  perfilesDeportivos: repositorioPerfilDeportivo,
+  competencias: repositorioCompetencia,
   asistente: asistenteNutricional,
   asistenteAnalitico,
   analisisComida: analisisComidaIA,
@@ -439,6 +458,20 @@ export const servicioIA = crearServicioIA({
     asistenteActivo: () => resolvedorIA.tieneIA(),
     insightsActivo: clienteML != null,
   },
+});
+
+// Autenticación: recuperación de contraseña (endpoints públicos, alcance global).
+// El enlace del email usa la URL pública de la app.
+const URL_APP = process.env.APP_URL ?? process.env.AUTH_URL ?? "http://localhost:3000";
+export const servicioAutenticacion = crearServicioAutenticacion({
+  usuarios: repositorioUsuario,
+  tokens: repositorioTokenRecuperacion,
+  generador: generadorTokens,
+  hasheador,
+  servicioEmail,
+  reloj,
+  baseUrl: URL_APP,
+  nombreProfesional: NOMBRE_PROFESIONAL,
 });
 
 // El repositorio de usuario se expone para la configuración de Auth.js.
@@ -472,6 +505,8 @@ export const contenedor = {
   servicioSuperAdmin,
   servicioIntegraciones,
   servicioIA,
+  servicioAutenticacion,
+  servicioDeportivo,
   repositorioUsuario,
 } as const;
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { signIn, getSession } from "next-auth/react";
@@ -126,6 +127,14 @@ export function FormularioLogin() {
             <Button type="submit" className="w-full" disabled={enviando}>
               {enviando ? "Ingresando…" : "Ingresar"}
             </Button>
+            <div className="text-center">
+              <Link
+                href="/recuperar"
+                className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
           </form>
         </Form>
       </CardContent>

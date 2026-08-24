@@ -5,6 +5,9 @@ export interface FiltroMateriales {
   texto?: string; // busca en título/descripción
   categoria?: string;
   etiqueta?: string;
+  /** Paginación server-side. */
+  limite?: number;
+  desplazamiento?: number;
 }
 
 /**
@@ -18,6 +21,8 @@ export interface IMaterialRepositorio {
   eliminar(id: string): Promise<void>;
   obtenerPorId(id: string): Promise<MaterialBiblioteca | null>;
   listar(filtro?: FiltroMateriales): Promise<MaterialBiblioteca[]>;
+  /** Cuenta los materiales que matchean el filtro (ignora la paginación). */
+  contar(filtro?: FiltroMateriales): Promise<number>;
 
   // --- Asignaciones a pacientes ---
   asignarAPaciente(materialId: string, pacienteId: string, id: string): Promise<void>;

@@ -2,6 +2,8 @@ import { vi } from "vitest";
 import type { IPacienteRepositorio } from "../repositorios/IPacienteRepositorio";
 import type { ITurnoRepositorio } from "../repositorios/ITurnoRepositorio";
 import type { IUsuarioRepositorio } from "../repositorios/IUsuarioRepositorio";
+import type { ITokenRecuperacionRepositorio } from "../repositorios/ITokenRecuperacionRepositorio";
+import type { IGeneradorTokens } from "../servicios/IGeneradorTokens";
 import type { IArchivoRepositorio } from "../repositorios/IArchivoRepositorio";
 import type { IHistoriaClinicaRepositorio } from "../repositorios/IHistoriaClinicaRepositorio";
 import type { IAntropometriaRepositorio } from "../repositorios/IAntropometriaRepositorio";
@@ -12,6 +14,8 @@ import type { IRecetaRepositorio } from "../repositorios/IRecetaRepositorio";
 import type { IMetricaDispositivoRepositorio } from "../repositorios/IMetricaDispositivoRepositorio";
 import type { IPlanRepositorio } from "../repositorios/IPlanRepositorio";
 import type { IObjetivoRepositorio } from "../repositorios/IObjetivoRepositorio";
+import type { IPerfilDeportivoRepositorio } from "../repositorios/IPerfilDeportivoRepositorio";
+import type { ICompetenciaRepositorio } from "../repositorios/ICompetenciaRepositorio";
 import type { IMaterialRepositorio } from "../repositorios/IMaterialRepositorio";
 import type { ISuplementoRepositorio } from "../repositorios/ISuplementoRepositorio";
 import type { IAlertaSeguimientoRepositorio } from "../repositorios/IAlertaSeguimientoRepositorio";
@@ -37,7 +41,8 @@ import type { IAnalisisComidaIA } from "../servicios/IAnalisisComidaIA";
 import type { IAnalisisPredictivo } from "../servicios/IAnalisisPredictivo";
 import { Paciente, type DatosNuevoPaciente } from "../entidades/Paciente";
 import { Turno, type DatosNuevoTurno } from "../entidades/Turno";
-import { Usuario } from "../entidades/Usuario";
+import { Usuario, type DatosNuevoUsuario } from "../entidades/Usuario";
+import { TokenRecuperacion } from "../entidades/TokenRecuperacion";
 import { Archivo, type DatosNuevoArchivo } from "../entidades/Archivo";
 import {
   HistoriaClinica,
@@ -63,6 +68,8 @@ import {
   type DatosNuevoPlan,
 } from "../entidades/PlanNutricional";
 import { Objetivo, type DatosNuevoObjetivo } from "../entidades/Objetivo";
+import { PerfilDeportivo, type DatosPerfilDeportivo } from "../entidades/PerfilDeportivo";
+import { Competencia, type DatosCompetencia } from "../entidades/Competencia";
 import {
   MaterialBiblioteca,
   type DatosNuevoMaterial,
@@ -127,6 +134,27 @@ export function mockUsuarioRepositorio(
     obtenerPorPacienteId: vi.fn(async () => null),
     listarPorRol: vi.fn(async () => []),
     eliminarPorPacienteId: vi.fn(async () => {}),
+    ...parcial,
+  };
+}
+
+export function mockTokenRecuperacionRepositorio(
+  parcial: Partial<ITokenRecuperacionRepositorio> = {},
+): ITokenRecuperacionRepositorio {
+  return {
+    crear: vi.fn(async (t: TokenRecuperacion) => t),
+    obtenerPorHash: vi.fn(async () => null),
+    marcarUsado: vi.fn(async () => {}),
+    eliminarDeUsuario: vi.fn(async () => {}),
+    ...parcial,
+  };
+}
+
+export function mockGeneradorTokens(parcial: Partial<IGeneradorTokens> = {}): IGeneradorTokens {
+  return {
+    // Genera un token determinista y su "hash" (prefijo) para tests.
+    generar: vi.fn(() => ({ token: "token-claro", hash: "hash:token-claro" })),
+    hashear: vi.fn((token: string) => `hash:${token}`),
     ...parcial,
   };
 }
@@ -243,6 +271,7 @@ export function mockRecetaRepositorio(
     eliminar: vi.fn(async () => {}),
     obtenerPorId: vi.fn(async () => null),
     listar: vi.fn(async () => []),
+    contar: vi.fn(async () => 0),
     asignarAPaciente: vi.fn(async () => {}),
     desasignarDePaciente: vi.fn(async () => {}),
     listarPorPaciente: vi.fn(async () => []),
@@ -271,6 +300,7 @@ export function mockPlanRepositorio(
     eliminar: vi.fn(async () => {}),
     obtenerPorId: vi.fn(async () => null),
     listar: vi.fn(async () => []),
+    contar: vi.fn(async () => 0),
     marcarArchivado: vi.fn(async () => {}),
     contarAsignacionesActivasDePlan: vi.fn(async () => 0),
     asignarAPaciente: vi.fn(async (a) => a),
@@ -325,6 +355,30 @@ export function mockObjetivoRepositorio(
   };
 }
 
+export function mockPerfilDeportivoRepositorio(
+  parcial: Partial<IPerfilDeportivoRepositorio> = {},
+): IPerfilDeportivoRepositorio {
+  return {
+    obtenerPorPaciente: vi.fn(async () => null),
+    guardar: vi.fn(async (p: PerfilDeportivo) => p),
+    eliminarPorPaciente: vi.fn(async () => {}),
+    ...parcial,
+  };
+}
+
+export function mockCompetenciaRepositorio(
+  parcial: Partial<ICompetenciaRepositorio> = {},
+): ICompetenciaRepositorio {
+  return {
+    crear: vi.fn(async (c: Competencia) => c),
+    actualizar: vi.fn(async (c: Competencia) => c),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    listarPorPaciente: vi.fn(async () => []),
+    ...parcial,
+  };
+}
+
 export function mockMaterialRepositorio(
   parcial: Partial<IMaterialRepositorio> = {},
 ): IMaterialRepositorio {
@@ -334,6 +388,7 @@ export function mockMaterialRepositorio(
     eliminar: vi.fn(async () => {}),
     obtenerPorId: vi.fn(async () => null),
     listar: vi.fn(async () => []),
+    contar: vi.fn(async () => 0),
     asignarAPaciente: vi.fn(async () => {}),
     desasignarDePaciente: vi.fn(async () => {}),
     listarPorPaciente: vi.fn(async () => []),
@@ -586,6 +641,20 @@ export function pacienteEjemplo(cambios: Partial<DatosNuevoPaciente> = {}, id = 
   );
 }
 
+export function usuarioEjemplo(cambios: Partial<DatosNuevoUsuario> = {}, id = "usr-1"): Usuario {
+  return Usuario.crear(
+    {
+      email: "nutri@mail.com",
+      passwordHash: "hash:vieja",
+      rol: "NUTRICIONISTA",
+      nutricionistaId: id,
+      ...cambios,
+    },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
 export function turnoEjemplo(cambios: Partial<DatosNuevoTurno> = {}, id = "tur-1"): Turno {
   return Turno.crear(
     {
@@ -740,6 +809,42 @@ export function objetivoEjemplo(
       titulo: "Bajar 5 kg",
       prioridad: "ALTA",
       fechaObjetivo: new Date("2026-10-01"),
+      ...cambios,
+    },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function perfilDeportivoEjemplo(
+  cambios: Partial<DatosPerfilDeportivo> = {},
+  id = "dep-1",
+): PerfilDeportivo {
+  return PerfilDeportivo.crear(
+    {
+      pacienteId: "pac-1",
+      deporte: "Atletismo",
+      disciplina: "Maratón",
+      nivel: "COMPETITIVO",
+      fase: "COMPETENCIA",
+      diasEntrenamientoSemana: 6,
+      ...cambios,
+    },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function competenciaEjemplo(
+  cambios: Partial<DatosCompetencia> = {},
+  id = "com-1",
+): Competencia {
+  return Competencia.crear(
+    {
+      pacienteId: "pac-1",
+      nombre: "Maratón de Buenos Aires",
+      fecha: new Date("2026-09-20"),
+      importancia: "A",
       ...cambios,
     },
     id,

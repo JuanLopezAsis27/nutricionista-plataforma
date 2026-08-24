@@ -68,6 +68,16 @@ export const filtroPlanesDto = z
   .optional();
 export type FiltroPlanesDto = z.infer<typeof filtroPlanesDto>;
 
+/** Listado paginado de planes (10 por página por defecto). */
+export const listarPlanesPaginadoDto = z.object({
+  esPlantilla: z.boolean().optional(),
+  incluirArchivados: z.boolean().optional(),
+  texto: z.string().max(160).optional(),
+  pagina: z.number().int().positive().default(1),
+  porPagina: z.number().int().positive().max(100).default(10),
+});
+export type ListarPlanesPaginadoDto = z.infer<typeof listarPlanesPaginadoDto>;
+
 export const archivarPlanDto = z.object({
   id: z.string().min(1),
   archivado: z.boolean(),
@@ -150,3 +160,10 @@ export const planSalidaDto = z.object({
   actualizadoEn: z.date(),
 });
 export type PlanSalidaDto = z.infer<typeof planSalidaDto>;
+
+/** Resultado paginado del listado de planes. */
+export interface PlanesPaginados {
+  planes: PlanSalidaDto[];
+  total: number;
+  paginas: number;
+}

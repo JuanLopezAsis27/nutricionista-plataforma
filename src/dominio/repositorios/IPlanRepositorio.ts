@@ -18,6 +18,9 @@ export interface FiltroPlanes {
   esPlantilla?: boolean;
   incluirArchivados?: boolean;
   texto?: string;
+  /** Paginación server-side. */
+  limite?: number;
+  desplazamiento?: number;
 }
 
 /**
@@ -34,6 +37,8 @@ export interface IPlanRepositorio {
   eliminar(id: string): Promise<void>;
   obtenerPorId(id: string): Promise<PlanNutricional | null>;
   listar(filtro?: FiltroPlanes): Promise<PlanNutricional[]>;
+  /** Cuenta los planes que matchean el filtro (ignora la paginación). */
+  contar(filtro?: FiltroPlanes): Promise<number>;
   marcarArchivado(id: string, archivado: boolean): Promise<void>;
   /** Cantidad de asignaciones activas que apuntan a un plan. */
   contarAsignacionesActivasDePlan(planId: string): Promise<number>;

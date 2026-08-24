@@ -28,17 +28,20 @@ const recetaBase = z.object({
   preparacion: z.string().max(5000).optional().nullable(),
   ingredientes: z.array(ingredienteEntradaDto).max(100).optional(),
   etiquetas: z.array(z.string().max(60)).max(30).optional(),
+  enlaces: z.array(z.string().url("Debe ser una URL válida").max(500)).max(20).optional(),
   ...macros,
 });
 
 export const crearRecetaDto = recetaBase.extend({
   fotoIds: z.array(z.string().min(1)).max(10).optional(),
+  documentoIds: z.array(z.string().min(1)).max(10).optional(),
 });
 export type CrearRecetaDto = z.infer<typeof crearRecetaDto>;
 
 export const actualizarRecetaDto = recetaBase.extend({
   id: z.string().min(1),
   fotoIdsNuevos: z.array(z.string().min(1)).max(10).optional(),
+  documentoIdsNuevos: z.array(z.string().min(1)).max(10).optional(),
 });
 export type ActualizarRecetaDto = z.infer<typeof actualizarRecetaDto>;
 
@@ -53,6 +56,15 @@ export const filtroRecetasDto = z
   .optional();
 export type FiltroRecetasDto = z.infer<typeof filtroRecetasDto>;
 
+/** Listado paginado del recetario (10 por página por defecto). */
+export const listarRecetasPaginadoDto = z.object({
+  texto: z.string().max(160).optional(),
+  etiqueta: z.string().max(60).optional(),
+  pagina: z.number().int().positive().default(1),
+  porPagina: z.number().int().positive().max(100).default(10),
+});
+export type ListarRecetasPaginadoDto = z.infer<typeof listarRecetasPaginadoDto>;
+
 export const asignarRecetaDto = z.object({
   recetaId: z.string().min(1),
   pacienteId: z.string().min(1),
@@ -64,6 +76,8 @@ const fotoRecetaSalidaDto = z.object({
   nombreOriginal: z.string(),
   mimeType: z.string(),
 });
+
+const documentoRecetaSalidaDto = fotoRecetaSalidaDto;
 
 const ingredienteSalidaDto = z.object({
   nombre: z.string(),
@@ -91,6 +105,7 @@ export const recetaSalidaDto = z.object({
   preparacion: z.string().nullable(),
   ingredientes: z.array(ingredienteSalidaDto),
   etiquetas: z.array(z.string()),
+  enlaces: z.array(z.string()),
   // Macros por porción (calculados de los ingredientes o cargados a mano).
   calorias: z.number().nullable(),
   proteinasG: z.number().nullable(),
@@ -101,7 +116,15 @@ export const recetaSalidaDto = z.object({
   /** true si los macros por porción salen del cálculo de ingredientes. */
   macrosCalculados: z.boolean(),
   fotos: z.array(fotoRecetaSalidaDto),
+  documentos: z.array(documentoRecetaSalidaDto),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
 });
 export type RecetaSalidaDto = z.infer<typeof recetaSalidaDto>;
+
+/** Resultado paginado del recetario. */
+export interface RecetasPaginadas {
+  recetas: RecetaSalidaDto[];
+  total: number;
+  paginas: number;
+}

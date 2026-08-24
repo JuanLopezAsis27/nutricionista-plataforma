@@ -183,6 +183,21 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
   }
 
   async listar(filtro?: FiltroPlanes): Promise<PlanNutricional[]> {
+    const filas = await this.prisma.planNutricional.findMany({
+      where: this.construirWhere(filtro),
+      include: INCLUIR_HIJOS,
+      orderBy: { creadoEn: "desc" },
+      skip: filtro?.desplazamiento,
+      take: filtro?.limite,
+    });
+    return filas.map((fila) => this.mapear(fila));
+  }
+
+  contar(filtro?: FiltroPlanes): Promise<number> {
+    return this.prisma.planNutricional.count({ where: this.construirWhere(filtro) });
+  }
+
+  private construirWhere(filtro?: FiltroPlanes): Prisma.PlanNutricionalWhereInput {
     const where: Prisma.PlanNutricionalWhereInput = {};
     if (filtro?.esPlantilla !== undefined) {
       where.esPlantilla = filtro.esPlantilla;
@@ -193,12 +208,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
     if (filtro?.texto) {
       where.nombre = { contains: filtro.texto, mode: "insensitive" };
     }
-    const filas = await this.prisma.planNutricional.findMany({
-      where,
-      include: INCLUIR_HIJOS,
-      orderBy: { creadoEn: "desc" },
-    });
-    return filas.map((fila) => this.mapear(fila));
+    return where;
   }
 
   async marcarArchivado(id: string, archivado: boolean): Promise<void> {

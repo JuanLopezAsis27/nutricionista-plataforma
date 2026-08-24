@@ -90,6 +90,26 @@ enum TipoMaterial {
   ENLACE
 }
 
+enum NivelDeportivo {
+  RECREATIVO
+  AMATEUR
+  COMPETITIVO
+  ELITE
+}
+
+enum FaseTemporada {
+  PRETEMPORADA
+  COMPETENCIA
+  TRANSICION
+  DESCANSO
+}
+
+enum ImportanciaCompetencia {
+  A
+  B
+  C
+}
+
 enum TipoAlertaSeguimiento {
   SIN_REGISTRO_PESO
   SIN_ACTIVIDAD
@@ -136,6 +156,8 @@ model Paciente {
   asignacionesPlan     AsignacionPlan[]
   asignacionesReceta   AsignacionReceta[]
   objetivos            Objetivo[]
+  perfilDeportivo      PerfilDeportivo?
+  competencias         Competencia[]
   asignacionesMaterial AsignacionMaterial[]
   suplementos          Suplemento[]
   alertasSeguimiento   AlertaSeguimiento[]
@@ -170,6 +192,54 @@ model Suplemento {
   @@index([pacienteId])
   @@index([nutricionistaId])
   @@map("suplementos")
+}
+
+/// Perfil deportivo del paciente (uno por paciente): caracteriza al deportista
+/// (deporte, disciplina, nivel, fase de temporada, carga de entrenamiento,
+/// categoría de peso) para ajustar su plan y el contexto del asistente.
+model PerfilDeportivo {
+  id                      String         @id @default(cuid())
+  nutricionistaId         String         @default("")
+  pacienteId              String         @unique
+  deporte                 String
+  disciplina              String?
+  nivel                   NivelDeportivo @default(AMATEUR)
+  fase                    FaseTemporada  @default(PRETEMPORADA)
+  diasEntrenamientoSemana Int?
+  horasSemana             Decimal?       @db.Decimal(4, 1)
+  pesoCategoriaKg         Decimal?       @db.Decimal(5, 2)
+  posicion                String?
+  objetivo                String?
+  notas                   String?
+  creadoEn                DateTime       @default(now())
+  actualizadoEn           DateTime       @updatedAt
+
+  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@index([nutricionistaId])
+  @@map("perfiles_deportivos")
+}
+
+/// Competencia del calendario deportivo del paciente (carrera, torneo, pelea).
+/// Permite planificar la nutrición según las fechas y su importancia (A/B/C).
+model Competencia {
+  id              String                 @id @default(cuid())
+  nutricionistaId String                 @default("")
+  pacienteId      String
+  nombre          String
+  fecha           DateTime               @db.Date
+  lugar           String?
+  objetivo        String?
+  resultado       String?
+  importancia     ImportanciaCompetencia @default(B)
+  notas           String?
+  creadoEn        DateTime               @default(now())
+
+  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@index([pacienteId, fecha])
+  @@index([nutricionistaId])
+  @@map("competencias")
 }
 
 /// Alerta de seguimiento generada por el cron diario del worker (paciente
@@ -524,8 +594,27 @@ model Usuario {
 
   paciente Paciente? @relation(fields: [pacienteId], references: [id], onDelete: SetNull)
 
+  tokensRecuperacion TokenRecuperacion[]
+
   @@index([nutricionistaId])
   @@map("usuarios")
+}
+
+/// Token de un solo uso para restablecer la contraseña. Se guarda solo el hash
+/// del token (SHA-256), nunca el valor en claro que llegó al email. No es tabla
+/// de inquilino: los usuarios son globales y el flujo corre con alcance global.
+model TokenRecuperacion {
+  id        String    @id @default(cuid())
+  usuarioId String
+  tokenHash String    @unique
+  expiraEn  DateTime
+  usadoEn   DateTime?
+  creadoEn  DateTime  @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@map("tokens_recuperacion")
 }
 
 // ---------------------------------------------------------------------------
@@ -543,6 +632,7 @@ model Receta {
   porciones       Int?
   preparacion     String? // texto largo, pasos
   etiquetas       String[] // "vegetariano", "sin TACC"…
+  enlaces         String[] @default([]) // URLs de referencia (video, blog, fuente)
   // Macros POR PORCIÓN (opcionales). Si la receta tiene ingredientes con datos
   // nutricionales, se calculan de ellos al guardar; si no, se cargan a mano.
   calorias        Int?

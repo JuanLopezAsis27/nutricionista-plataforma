@@ -38,7 +38,7 @@ export type IdPacienteDto = z.infer<typeof idPacienteDto>;
 export const listarPacientesDto = z.object({
   busqueda: z.string().optional(),
   pagina: z.number().int().positive().default(1),
-  porPagina: z.number().int().positive().max(100).default(20),
+  porPagina: z.number().int().positive().max(100).default(10),
 });
 export type ListarPacientesDto = z.infer<typeof listarPacientesDto>;
 

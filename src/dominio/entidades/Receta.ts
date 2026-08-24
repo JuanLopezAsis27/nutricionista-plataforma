@@ -7,6 +7,9 @@ export interface FotoReceta {
   mimeType: string;
 }
 
+/** Resumen de un documento adjunto de la receta (PDF, Word). */
+export type DocumentoReceta = FotoReceta;
+
 /** Macros (por porción o totales de la receta; todas opcionales). */
 export interface MacrosReceta {
   calorias: number | null;
@@ -47,6 +50,8 @@ export interface DatosNuevaReceta {
   preparacion?: string | null;
   ingredientes?: DatosIngredienteReceta[];
   etiquetas?: string[];
+  /** Enlaces de referencia (videos, blogs, fuentes). URLs http/https. */
+  enlaces?: string[];
   /** Macros por porción cargados a mano (fallback si no hay datos de ingredientes). */
   calorias?: number | null;
   proteinasG?: number | null;
@@ -63,12 +68,14 @@ export interface PropiedadesReceta {
   preparacion: string | null;
   ingredientes: IngredienteDeReceta[];
   etiquetas: string[];
+  enlaces: string[];
   /** Macros POR PORCIÓN (calculados de los ingredientes o cargados a mano). */
   calorias: number | null;
   proteinasG: number | null;
   carbohidratosG: number | null;
   grasasG: number | null;
   fotos: FotoReceta[];
+  documentos: DocumentoReceta[];
   creadoEn: Date;
   actualizadoEn: Date;
 }
@@ -123,11 +130,13 @@ export class Receta {
       preparacion: datos.preparacion?.trim() || null,
       ingredientes,
       etiquetas: normalizarLista(datos.etiquetas),
+      enlaces: normalizarEnlaces(datos.enlaces),
       calorias: macros.calorias,
       proteinasG: macros.proteinasG,
       carbohidratosG: macros.carbohidratosG,
       grasasG: macros.grasasG,
       fotos: [],
+      documentos: [],
       creadoEn: ahora,
       actualizadoEn: ahora,
     });
@@ -137,12 +146,13 @@ export class Receta {
     return new Receta(props);
   }
 
-  /** Versión actualizada e inmutable (preserva id, fotos y creadoEn). */
+  /** Versión actualizada e inmutable (preserva id, fotos, documentos y creadoEn). */
   actualizar(datos: DatosNuevaReceta, ahora: Date = new Date()): Receta {
     const actualizada = Receta.crear(datos, this.props.id, ahora);
     return new Receta({
       ...actualizada.props,
       fotos: this.props.fotos.map((f) => ({ ...f })),
+      documentos: this.props.documentos.map((d) => ({ ...d })),
       creadoEn: this.props.creadoEn,
     });
   }
@@ -156,8 +166,14 @@ export class Receta {
   get etiquetas(): ReadonlyArray<string> {
     return this.props.etiquetas;
   }
+  get enlaces(): ReadonlyArray<string> {
+    return this.props.enlaces;
+  }
   get fotos(): ReadonlyArray<FotoReceta> {
     return this.props.fotos;
+  }
+  get documentos(): ReadonlyArray<DocumentoReceta> {
+    return this.props.documentos;
   }
 
   /** Macros TOTALES de la receta (suma de todos los ingredientes con datos). */
@@ -175,9 +191,41 @@ export class Receta {
       ...this.props,
       ingredientes: this.props.ingredientes.map((i) => ({ ...i })),
       etiquetas: [...this.props.etiquetas],
+      enlaces: [...this.props.enlaces],
       fotos: this.props.fotos.map((f) => ({ ...f })),
+      documentos: this.props.documentos.map((d) => ({ ...d })),
     };
   }
+}
+
+/** Máximo de enlaces por receta y longitud máxima de cada URL. */
+const MAX_ENLACES = 20;
+const MAX_LARGO_ENLACE = 500;
+
+/**
+ * Normaliza los enlaces: recorta, descarta vacíos, valida que sean URLs
+ * http/https, deduplica y limita la cantidad. Lanza si alguna URL es inválida.
+ */
+function normalizarEnlaces(valores: string[] | undefined): string[] {
+  const limpios = (valores ?? []).map((v) => v.trim()).filter((v) => v.length > 0);
+  const vistos = new Set<string>();
+  const resultado: string[] = [];
+  for (const enlace of limpios) {
+    if (enlace.length > MAX_LARGO_ENLACE) {
+      throw new ErrorValidacion("Un enlace es demasiado largo.");
+    }
+    if (!/^https?:\/\//i.test(enlace)) {
+      throw new ErrorValidacion(`El enlace «${enlace}» debe empezar con http:// o https://`);
+    }
+    if (!vistos.has(enlace)) {
+      vistos.add(enlace);
+      resultado.push(enlace);
+    }
+  }
+  if (resultado.length > MAX_ENLACES) {
+    throw new ErrorValidacion(`No se pueden agregar más de ${MAX_ENLACES} enlaces.`);
+  }
+  return resultado;
 }
 
 /** Limpia una lista de texto: recorta y descarta entradas vacías. */

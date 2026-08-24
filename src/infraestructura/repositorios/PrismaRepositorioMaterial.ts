@@ -84,6 +84,21 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
   }
 
   async listar(filtro?: FiltroMateriales): Promise<MaterialBiblioteca[]> {
+    const filas = await this.prisma.materialBiblioteca.findMany({
+      where: this.construirWhere(filtro),
+      include: INCLUIR_ARCHIVO,
+      orderBy: { titulo: "asc" },
+      skip: filtro?.desplazamiento,
+      take: filtro?.limite,
+    });
+    return filas.map((fila) => this.mapear(fila));
+  }
+
+  contar(filtro?: FiltroMateriales): Promise<number> {
+    return this.prisma.materialBiblioteca.count({ where: this.construirWhere(filtro) });
+  }
+
+  private construirWhere(filtro?: FiltroMateriales): Prisma.MaterialBibliotecaWhereInput {
     const where: Prisma.MaterialBibliotecaWhereInput = {};
     if (filtro?.texto) {
       where.OR = [
@@ -97,12 +112,7 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
     if (filtro?.etiqueta) {
       where.etiquetas = { has: filtro.etiqueta };
     }
-    const filas = await this.prisma.materialBiblioteca.findMany({
-      where,
-      include: INCLUIR_ARCHIVO,
-      orderBy: { titulo: "asc" },
-    });
-    return filas.map((fila) => this.mapear(fila));
+    return where;
   }
 
   async asignarAPaciente(materialId: string, pacienteId: string, id: string): Promise<void> {

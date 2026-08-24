@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 
 import type { Contexto } from "./contexto";
 import { ErrorDominio, type CodigoErrorDominio } from "@/dominio/errores/ErrorDominio";
+import { monitorErrores } from "@/infraestructura/monitoreo/monitor";
 
 /**
  * Inicialización de tRPC con el contexto de la aplicación.
@@ -42,7 +43,7 @@ const MAPA_CODIGOS: Record<CodigoErrorDominio, TRPCError["code"]> = {
  * en un TRPCError con el código correcto, preservando el error original
  * como `cause` (lo usa el errorFormatter).
  */
-const traducirErroresDominio = t.middleware(async ({ next }) => {
+const traducirErroresDominio = t.middleware(async ({ next, path, ctx }) => {
   try {
     return await next();
   } catch (error) {
@@ -51,6 +52,15 @@ const traducirErroresDominio = t.middleware(async ({ next }) => {
         code: MAPA_CODIGOS[error.codigo],
         message: error.message,
         cause: error,
+      });
+    }
+    // Error NO esperado (ni de dominio ni un TRPCError de control como 401/403):
+    // se reporta al monitor. Los TRPCError explícitos son flujo esperado.
+    if (!(error instanceof TRPCError)) {
+      monitorErrores.capturar(error, {
+        origen: "trpc",
+        ruta: path,
+        usuarioId: (ctx as Contexto).usuario?.id,
       });
     }
     throw error;

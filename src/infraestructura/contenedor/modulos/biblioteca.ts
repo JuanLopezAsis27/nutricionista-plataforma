@@ -6,6 +6,7 @@ import { CrearMaterial } from "@/dominio/casos-de-uso/biblioteca/CrearMaterial";
 import { ActualizarMaterial } from "@/dominio/casos-de-uso/biblioteca/ActualizarMaterial";
 import { EliminarMaterial } from "@/dominio/casos-de-uso/biblioteca/EliminarMaterial";
 import { ObtenerMateriales } from "@/dominio/casos-de-uso/biblioteca/ObtenerMateriales";
+import { ObtenerMaterialesPaginado } from "@/dominio/casos-de-uso/biblioteca/ObtenerMaterialesPaginado";
 import { AsignarMaterialAPaciente } from "@/dominio/casos-de-uso/biblioteca/AsignarMaterialAPaciente";
 import { DesasignarMaterialDePaciente } from "@/dominio/casos-de-uso/biblioteca/DesasignarMaterialDePaciente";
 import { ObtenerMaterialesDelPaciente } from "@/dominio/casos-de-uso/biblioteca/ObtenerMaterialesDelPaciente";
@@ -24,6 +25,7 @@ export function crearServicioBiblioteca(deps: {
     new ActualizarMaterial(deps.materiales),
     new EliminarMaterial(deps.materiales, deps.archivos, deps.almacenamiento),
     new ObtenerMateriales(deps.materiales),
+    new ObtenerMaterialesPaginado(deps.materiales),
     new AsignarMaterialAPaciente(deps.materiales, deps.pacientes),
     new DesasignarMaterialDePaciente(deps.materiales),
     new ObtenerMaterialesDelPaciente(deps.materiales),

@@ -10,6 +10,8 @@ import {
   mockAxiomaRepositorio,
   mockAsistenteNutricional,
   mockHistorialIARepositorio,
+  mockPerfilDeportivoRepositorio,
+  mockCompetenciaRepositorio,
   pacienteEjemplo,
 } from "../_ayudas-test";
 
@@ -26,6 +28,8 @@ describe("PreguntarAlAsistente", () => {
       mockAxiomaRepositorio({ listarActivos: vi.fn(async () => []) }),
       mockAsistenteNutricional({ responder }),
       mockHistorialIARepositorio({ guardarConsulta }),
+      mockPerfilDeportivoRepositorio(),
+      mockCompetenciaRepositorio(),
     );
 
     const resultado = await uc.ejecutar("pac-1", "¿Cuántas calorías tiene mi plan?");
@@ -49,6 +53,8 @@ describe("PreguntarAlAsistente", () => {
       mockAxiomaRepositorio(),
       mockAsistenteNutricional(),
       mockHistorialIARepositorio(),
+      mockPerfilDeportivoRepositorio(),
+      mockCompetenciaRepositorio(),
     );
 
     await expect(uc.ejecutar("x", "hola")).rejects.toBeInstanceOf(ErrorPacienteNoEncontrado);

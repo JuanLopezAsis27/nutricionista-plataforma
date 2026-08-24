@@ -7,6 +7,7 @@ import {
   actualizarPlanDto,
   idPlanDto,
   filtroPlanesDto,
+  listarPlanesPaginadoDto,
   archivarPlanDto,
   crearDesdePlantillaDto,
   asignarPlanDto,
@@ -19,11 +20,23 @@ import {
  * (obtenerMiPlan, con pacienteId tomado de la sesión).
  */
 export const routerPlanes = crearRouter({
+  // Lista completa (sin paginar): para selectores.
   obtenerTodos: nutricionistaProcedimiento
     .input(filtroPlanesDto)
     .query(async ({ ctx, input }) => {
       try {
         return await ctx.servicios.plan.obtenerPlanes(input);
+      } catch (error) {
+        throw aTRPCError(error);
+      }
+    }),
+
+  // Listado paginado (10/página, server-side) para la página de planes.
+  listarPaginado: nutricionistaProcedimiento
+    .input(listarPlanesPaginadoDto)
+    .query(async ({ ctx, input }) => {
+      try {
+        return await ctx.servicios.plan.obtenerPlanesPaginado(input);
       } catch (error) {
         throw aTRPCError(error);
       }

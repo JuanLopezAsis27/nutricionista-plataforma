@@ -1,26 +1,11 @@
 "use client";
 
-import { Sparkles, Info, TrendingUp, AlertTriangle, Activity } from "lucide-react";
-import type { InsightPacienteDto } from "@/aplicacion/dtos/ia.dto";
+import { Sparkles, Info } from "lucide-react";
 import { useIA } from "@/lib/hooks/useIA";
-import { cn } from "@/lib/utilidades";
 import { Skeleton } from "@/componentes/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
 import { AsistenteAnaliticoChat } from "@/componentes/ia/AsistenteAnaliticoChat";
-import { FeedbackInsight } from "@/componentes/ia/FeedbackInsight";
 import { PanelKpisAnalisis } from "@/componentes/ia/PanelKpisAnalisis";
-
-const ICONO_TIPO: Record<string, typeof TrendingUp> = {
-  RIESGO_ABANDONO: AlertTriangle,
-  ADHERENCIA: Activity,
-  TENDENCIA_PESO: TrendingUp,
-};
-
-const ESTILO_SEVERIDAD: Record<InsightPacienteDto["severidad"], string> = {
-  INFO: "text-muted-foreground",
-  ATENCION: "text-primary",
-  CRITICO: "text-destructive",
-};
+import { ListaInsights } from "@/componentes/ia/ListaInsights";
 
 export default function PaginaAnalisisIA() {
   const { insights, estado } = useIA();
@@ -65,33 +50,7 @@ export default function PaginaAnalisisIA() {
           ))}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {lista.map((insight, i) => {
-            const Icono = ICONO_TIPO[insight.tipo] ?? Sparkles;
-            return (
-              <Card
-                key={`${insight.tipo}:${insight.pacienteId ?? i}`}
-                className={cn(!insightsActivo && "opacity-90")}
-              >
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Icono className={cn("h-5 w-5", ESTILO_SEVERIDAD[insight.severidad])} />
-                    {insight.titulo}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{insight.detalle}</p>
-                  {!insightsActivo && (
-                    <span className="mt-3 inline-block rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">
-                      Próximamente
-                    </span>
-                  )}
-                  <FeedbackInsight insight={insight} />
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        <ListaInsights insights={lista} insightsActivo={insightsActivo} />
       )}
     </div>
   );
