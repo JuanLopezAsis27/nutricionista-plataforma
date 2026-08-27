@@ -152,48 +152,137 @@ enum ProveedorCuenta {
   GOOGLE
 }
 
+/// Servicio externo al que pertenece una credencial guardada.
+enum ProveedorIntegracion {
+  ANTHROPIC
+  OPENROUTER
+  FATSECRET
+  WHATSAPP
+}
+
 // ---------------------------------------------------------------------------
 // Modelos
 // ---------------------------------------------------------------------------
 
+/// Inquilino de la plataforma: el consultorio de un nutricionista.
+///
+/// Existe para que `nutricionistaId` sea una CLAVE FORÁNEA de verdad y no un
+/// texto suelto. Antes la columna era `TEXT NOT NULL DEFAULT ''` sin FK: una
+/// escritura fuera de la extensión multi-inquilino (un script, el seed, psql)
+/// creaba filas con inquilino `''` que ninguna consulta de la app volvía a ver.
+/// Su `id` es el `Usuario.id` del nutricionista (que es su propio inquilino).
+model Nutricionista {
+  id       String   @id
+  creadoEn DateTime @default(now())
+
+  // Tablas de inquilino. Esta lista es la contraparte de MODELOS_INQUILINO en
+  // PrismaClienteSingleton: si aparece acá, la extensión debe filtrarla.
+  pacientes             Paciente[]
+  suplementos           Suplemento[]
+  perfilesDeportivos    PerfilDeportivo[]
+  competencias          Competencia[]
+  alertasSeguimiento    AlertaSeguimiento[]
+  turnos                Turno[]
+  recordatoriosWhatsapp RecordatorioWhatsapp[]
+  mensajesWhatsapp      MensajeWhatsapp[]
+  registrosDiarios      RegistroDiario[]
+  metricasDispositivo   MetricaDispositivo[]
+  credenciales          CredencialProveedor[]
+  preferencias          PreferenciasIntegracion[]
+  retroalimentaciones   RetroalimentacionInsight[]
+  alimentosPropios      AlimentoPropio[]
+  historiasClinicas     HistoriaClinica[]
+  alertasAlimentarias   AlertaAlimentaria[]
+  laboratorios          Laboratorio[]
+  antropometrias        Antropometria[]
+  usuarios              Usuario[]
+  recetas               Receta[]
+  planesNutricionales   PlanNutricional[]
+  objetivos             Objetivo[]
+  materialesBiblioteca  MaterialBiblioteca[]
+  plantillasEmail       PlantillaEmail[]
+  emailsEnviados        EmailEnviado[]
+  cuentasConectadas     CuentaConectada[]
+  sincronizacionesTurno SincronizacionTurno[]
+  conversaciones        Conversacion[]
+  consultasIA           ConsultaIA[]
+  analisisComida        AnalisisComida[]
+  configuraciones       ConfiguracionConsultorio[]
+  axiomasNutricionales  AxiomaNutricional[]
+
+  // Hijas del agregado: heredan el inquilino de su padre, pero lo llevan
+  // materializado para que la extensión pueda filtrarlas por id directo.
+  archivos             Archivo[]
+  mensajes             Mensaje[]
+  comidasConsumidas    ComidaConsumida[]
+  actividadesFisicas   ActividadFisica[]
+  comidasPlan          ComidaPlan[]
+  opcionesComida       OpcionComida[]
+  equivalenciasPlan    EquivalenciaPlan[]
+  recomendacionesPlan  RecomendacionPlan[]
+  ingredientesReceta   IngredienteReceta[]
+  estrategias          Estrategia[]
+  historialObjetivos   HistorialObjetivo[]
+  asignacionesPlan     AsignacionPlan[]
+  asignacionesReceta   AsignacionReceta[]
+  asignacionesMaterial AsignacionMaterial[]
+
+  @@map("nutricionistas")
+}
+
 /// Persona atendida por el nutricionista.
 model Paciente {
-  id              String    @id @default(cuid())
-  nutricionistaId String    @default("")
+  id              String    @id @default(uuid(4))
+  nutricionistaId String
   nombre          String
   apellido        String
-  email           String    @unique
+  email           String
   telefono        String?
+  /// Teléfono normalizado a E.164 sin "+", derivado de `telefono` al guardar.
+  /// Existe para que la ingesta de WhatsApp resuelva al paciente con un índice
+  /// en vez de traer la tabla entera y normalizar en memoria. Null cuando el
+  /// teléfono está vacío o no se puede interpretar (no bloquea el alta).
+  telefonoE164    String?
   fechaNacimiento DateTime?
   notas           String?
-  activo          Boolean   @default(true)
+  /// Baja lógica del paciente: null = vigente. Reemplaza al viejo `activo`,
+  /// que se leía en las estadísticas pero no lo escribía nadie (y por eso
+  /// "pacientes activos" era en realidad "pacientes totales").
+  archivadoEn     DateTime?
+  motivoArchivado String?
   creadoEn        DateTime  @default(now())
   actualizadoEn   DateTime  @updatedAt
 
-  turnos               Turno[]
-  usuario              Usuario?
-  historiaClinica      HistoriaClinica?
-  antropometrias       Antropometria[]
-  laboratorios         Laboratorio[]
-  alertasAlimentarias  AlertaAlimentaria[]
-  archivos             Archivo[]
-  registrosDiarios     RegistroDiario[]
-  asignacionesPlan     AsignacionPlan[]
-  asignacionesReceta   AsignacionReceta[]
-  objetivos            Objetivo[]
-  perfilDeportivo      PerfilDeportivo?
-  competencias         Competencia[]
-  asignacionesMaterial AsignacionMaterial[]
-  suplementos          Suplemento[]
-  alertasSeguimiento   AlertaSeguimiento[]
-  conversacion         Conversacion?
-  consultasIA          ConsultaIA[]
-  analisisComida       AnalisisComida[]
-  metricasDispositivo  MetricaDispositivo[]
-  mensajesWhatsapp     MensajeWhatsapp[]
+  turnos                Turno[]
+  usuario               Usuario?
+  historiaClinica       HistoriaClinica?
+  antropometrias        Antropometria[]
+  laboratorios          Laboratorio[]
+  alertasAlimentarias   AlertaAlimentaria[]
+  archivos              Archivo[]
+  registrosDiarios      RegistroDiario[]
+  asignacionesPlan      AsignacionPlan[]
+  asignacionesReceta    AsignacionReceta[]
+  objetivos             Objetivo[]
+  perfilDeportivo       PerfilDeportivo?
+  competencias          Competencia[]
+  asignacionesMaterial  AsignacionMaterial[]
+  suplementos           Suplemento[]
+  alertasSeguimiento    AlertaSeguimiento[]
+  conversacion          Conversacion?
+  consultasIA           ConsultaIA[]
+  analisisComida        AnalisisComida[]
+  metricasDispositivo   MetricaDispositivo[]
+  mensajesWhatsapp      MensajeWhatsapp[]
+  recordatoriosWhatsapp RecordatorioWhatsapp[]
+  nutricionista         Nutricionista          @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([apellido, nombre])
-  @@index([nutricionistaId])
+  @@unique([nutricionistaId, id])
+  // El email es único POR INQUILINO, no global: una misma persona puede ser
+  // paciente de dos consultorios distintos.
+  @@unique([nutricionistaId, email])
+  @@unique([nutricionistaId, telefonoE164])
+  @@index([nutricionistaId, apellido, nombre])
   @@map("pacientes")
 }
 
@@ -201,8 +290,8 @@ model Paciente {
 /// frecuencia y vigencia. Lo gestiona el nutricionista; el paciente lo ve
 /// en su portal junto al plan.
 model Suplemento {
-  id              String    @id @default(cuid())
-  nutricionistaId String    @default("")
+  id              String    @id @default(uuid(4))
+  nutricionistaId String
   pacienteId      String
   nombre          String
   dosis           String? // "5 g", "1 cápsula"
@@ -212,11 +301,12 @@ model Suplemento {
   activo          Boolean   @default(true)
   notas           String?
   creadoEn        DateTime  @default(now())
+  actualizadoEn   DateTime  @updatedAt
 
-  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([pacienteId])
-  @@index([nutricionistaId])
+  @@index([nutricionistaId, pacienteId])
   @@map("suplementos")
 }
 
@@ -224,8 +314,8 @@ model Suplemento {
 /// (deporte, disciplina, nivel, fase de temporada, carga de entrenamiento,
 /// categoría de peso) para ajustar su plan y el contexto del asistente.
 model PerfilDeportivo {
-  id                      String         @id @default(cuid())
-  nutricionistaId         String         @default("")
+  id                      String         @id @default(uuid(4))
+  nutricionistaId         String
   pacienteId              String         @unique
   deporte                 String
   disciplina              String?
@@ -240,7 +330,8 @@ model PerfilDeportivo {
   creadoEn                DateTime       @default(now())
   actualizadoEn           DateTime       @updatedAt
 
-  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@index([nutricionistaId])
   @@map("perfiles_deportivos")
@@ -249,8 +340,8 @@ model PerfilDeportivo {
 /// Competencia del calendario deportivo del paciente (carrera, torneo, pelea).
 /// Permite planificar la nutrición según las fechas y su importancia (A/B/C).
 model Competencia {
-  id              String                 @id @default(cuid())
-  nutricionistaId String                 @default("")
+  id              String                 @id @default(uuid(4))
+  nutricionistaId String
   pacienteId      String
   nombre          String
   fecha           DateTime               @db.Date
@@ -260,11 +351,12 @@ model Competencia {
   importancia     ImportanciaCompetencia @default(B)
   notas           String?
   creadoEn        DateTime               @default(now())
+  actualizadoEn   DateTime               @updatedAt
 
-  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([pacienteId, fecha])
-  @@index([nutricionistaId])
+  @@index([nutricionistaId, pacienteId, fecha])
   @@map("competencias")
 }
 
@@ -273,8 +365,8 @@ model Competencia {
 /// `referenciaId` identifica el disparador (turno/asignación) y evita
 /// duplicados; `datos` acumula señales extra para el ML futuro.
 model AlertaSeguimiento {
-  id              String                  @id @default(cuid())
-  nutricionistaId String                  @default("")
+  id              String                  @id @default(uuid(4))
+  nutricionistaId String
   pacienteId      String
   tipo            TipoAlertaSeguimiento
   estado          EstadoAlertaSeguimiento @default(PENDIENTE)
@@ -282,41 +374,53 @@ model AlertaSeguimiento {
   referenciaId    String?
   datos           Json?
   creadoEn        DateTime                @default(now())
+  actualizadoEn   DateTime                @updatedAt
   resueltaEn      DateTime?
 
-  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([estado])
-  @@index([pacienteId, tipo, estado])
-  @@index([nutricionistaId])
+  @@index([nutricionistaId, estado])
+  @@index([nutricionistaId, pacienteId, tipo, estado])
   @@map("alertas_seguimiento")
 }
 
 /// Cita agendada entre el nutricionista y un paciente.
 model Turno {
-  id              String      @id @default(cuid())
-  nutricionistaId String      @default("")
+  id              String                  @id @default(uuid(4))
+  nutricionistaId String
   pacienteId      String
-  fecha           DateTime    @db.Date
+  fecha           DateTime                @db.Date
   hora            String // formato HH:mm
-  duracionMinutos Int         @default(30)
-  estado          EstadoTurno @default(PENDIENTE)
+  duracionMinutos Int                     @default(30)
+  estado          EstadoTurno             @default(PENDIENTE)
   notas           String?
   // Cobro de la consulta (secretaría). Decimal nunca cruza infraestructura:
   // los repositorios lo mapean a number. `pagado` habilita el cálculo de
   // ingresos cobrados vs. pendientes en las estadísticas.
-  precio          Decimal?    @db.Decimal(10, 2)
-  pagado          Boolean     @default(false)
-  creadoEn        DateTime    @default(now())
+  precio          Decimal?                @db.Decimal(10, 2)
+  pagado          Boolean                 @default(false)
+  /// Rango [inicio, fin) del turno, columna GENERADA por Postgres a partir de
+  /// `fecha` + `hora` + `duracionMinutos` (ver migración 27). Sostiene el
+  /// EXCLUDE que impide dos turnos superpuestos. Prisma no sabe expresar una
+  /// columna generada: se declara como Unsupported para que sepa que existe y
+  /// no intente borrarla en cada `migrate diff`. Nunca se lee ni se escribe
+  /// desde la app.
+  periodo         Unsupported("tsrange")?
+  creadoEn        DateTime                @default(now())
+  actualizadoEn   DateTime                @updatedAt
 
-  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  recordatoriosWhatsapp RecordatorioWhatsapp[]
+  paciente              Paciente               @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
 
   // La regla de no solapamiento se valida en el caso de uso (ignorando los
   // turnos CANCELADOS), no con una restricción única en la base: así un turno
   // cancelado libera el horario para uno nuevo.
-  @@index([pacienteId])
-  @@index([fecha])
-  @@index([nutricionistaId])
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@index([nutricionistaId, pacienteId])
+  @@index([nutricionistaId, fecha])
+  @@index([nutricionistaId, estado, fecha])
   @@map("turnos")
 }
 
@@ -325,21 +429,27 @@ model Turno {
 /// texto efectivamente usado (auditoría) y es donde aterrizarán los estados
 /// reales de entrega cuando entre la Cloud API oficial.
 model RecordatorioWhatsapp {
-  id              String                     @id @default(cuid())
-  nutricionistaId String                     @default("")
+  id              String                     @id @default(uuid(4))
+  nutricionistaId String
   turnoId         String
   pacienteId      String
   telefono        String // el E.164 efectivamente usado
   mensaje         String // texto final enviado, para auditoría
   estado          EstadoRecordatorioWhatsapp @default(PREPARADO)
-  usuarioId       String // quién lo disparó
+  /// Quién lo disparó. Nullable a propósito: el log de auditoría sobrevive al
+  /// borrado del usuario que lo generó (SET NULL, no CASCADE).
+  usuarioId       String?
   /// wamid del mensaje cuando se envió por la API oficial; null con enlace wa.me.
   idExterno       String?
   creadoEn        DateTime                   @default(now())
   confirmadoEn    DateTime?
 
-  @@index([nutricionistaId])
-  @@index([turnoId, creadoEn])
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  turno         Turno         @relation(fields: [turnoId], references: [id], onDelete: Cascade)
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  usuario       Usuario?      @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([nutricionistaId, turnoId, creadoEn])
   @@index([idExterno])
   @@map("recordatorios_whatsapp")
 }
@@ -349,8 +459,8 @@ model RecordatorioWhatsapp {
 /// llegan de cualquier otro número se descartan en la ingesta y nunca tocan la
 /// base, así el WhatsApp personal del profesional no entra a la app.
 model MensajeWhatsapp {
-  id              String                @id @default(cuid())
-  nutricionistaId String                @default("")
+  id              String                @id @default(uuid(4))
+  nutricionistaId String
   pacienteId      String
   direccion       DireccionWhatsapp
   telefono        String // E.164 del paciente, sin "+"
@@ -362,10 +472,10 @@ model MensajeWhatsapp {
   creadoEn        DateTime              @default(now())
   actualizadoEn   DateTime              @updatedAt
 
-  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([nutricionistaId])
-  @@index([pacienteId, creadoEn])
+  @@index([nutricionistaId, pacienteId, creadoEn])
   @@map("mensajes_whatsapp")
 }
 
@@ -375,15 +485,16 @@ model MensajeWhatsapp {
 /// (arco exclusivo): integridad referencial real y borrado en cascada, sin
 /// polimorfismo por strings. Las FKs de dueños se agregan fase a fase.
 model Archivo {
-  id             String   @id @default(cuid())
-  clave          String   @unique // key en el bucket, ej: "laboratorios/<cuid>.pdf"
-  nombreOriginal String
-  mimeType       String
-  tamanoBytes    Int
-  titulo         String?
-  categoria      String?
-  subidoPorId    String? // Usuario.id (informativo, sin FK para no acoplar borrados)
-  creadoEn       DateTime @default(now())
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
+  clave           String   @unique // key en el bucket, ej: "laboratorios/<cuid>.pdf"
+  nombreOriginal  String
+  mimeType        String
+  tamanoBytes     Int
+  titulo          String?
+  categoria       String?
+  subidoPorId     String? // Usuario.id (informativo, sin FK para no acoplar borrados)
+  creadoEn        DateTime @default(now())
 
   // Dueños (arco exclusivo; se agregan columnas fase a fase).
   pacienteId        String? // "Archivos y registros" de la ficha del paciente
@@ -392,15 +503,17 @@ model Archivo {
   recetaId          String? // fotos de una receta (1 a muchas)
   materialId        String? @unique // material de la biblioteca (1 a 1)
 
-  paciente        Paciente?           @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
-  laboratorio     Laboratorio?        @relation(fields: [laboratorioId], references: [id], onDelete: Cascade)
-  comidaConsumida ComidaConsumida?    @relation(fields: [comidaConsumidaId], references: [id], onDelete: Cascade)
-  receta          Receta?             @relation(fields: [recetaId], references: [id], onDelete: Cascade)
-  material        MaterialBiblioteca? @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  paciente        Paciente?                  @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  laboratorio     Laboratorio?               @relation(fields: [laboratorioId], references: [id], onDelete: Cascade)
+  comidaConsumida ComidaConsumida?           @relation(fields: [comidaConsumidaId], references: [id], onDelete: Cascade)
+  receta          Receta?                    @relation(fields: [recetaId], references: [id], onDelete: Cascade)
+  material        MaterialBiblioteca?        @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  configuraciones ConfiguracionConsultorio[]
+  nutricionista   Nutricionista              @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([pacienteId])
-  @@index([laboratorioId])
-  @@index([recetaId])
+  @@index([nutricionistaId, pacienteId])
+  @@index([nutricionistaId, laboratorioId])
+  @@index([nutricionistaId, recetaId])
   @@map("archivos")
 }
 
@@ -408,8 +521,8 @@ model Archivo {
 /// de consulta), agua, sueño y notas, con comidas y actividades como hijos.
 /// Un registro por paciente y fecha. Los timestamps alimentan el futuro ML.
 model RegistroDiario {
-  id              String        @id @default(cuid())
-  nutricionistaId String        @default("")
+  id              String        @id @default(uuid(4))
+  nutricionistaId String
   pacienteId      String
   fecha           DateTime      @db.Date
   pesoKg          Decimal?      @db.Decimal(5, 2)
@@ -420,11 +533,13 @@ model RegistroDiario {
   creadoEn        DateTime      @default(now())
   actualizadoEn   DateTime      @updatedAt
 
-  paciente    Paciente          @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
-  comidas     ComidaConsumida[]
-  actividades ActividadFisica[]
+  paciente      Paciente          @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  comidas       ComidaConsumida[]
+  actividades   ActividadFisica[]
+  nutricionista Nutricionista     @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@unique([pacienteId, fecha])
+  @@index([nutricionistaId, fecha])
   @@map("registros_diarios")
 }
 
@@ -441,8 +556,8 @@ enum FuenteMetrica {
 /// y actividad cuando el diario no tiene el dato. Hijo del paciente,
 /// tenant-scoped como RegistroDiario.
 model MetricaDispositivo {
-  id                       String        @id @default(cuid())
-  nutricionistaId          String        @default("")
+  id                       String        @id @default(uuid(4))
+  nutricionistaId          String
   pacienteId               String
   fecha                    DateTime      @db.Date
   fuente                   FuenteMetrica @default(MANUAL)
@@ -455,41 +570,63 @@ model MetricaDispositivo {
   creadoEn                 DateTime      @default(now())
   actualizadoEn            DateTime      @updatedAt
 
-  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@unique([pacienteId, fecha, fuente])
-  @@index([pacienteId, fecha])
-  @@index([nutricionistaId])
+  @@index([nutricionistaId, pacienteId, fecha])
   @@map("metricas_dispositivo")
 }
 
-/// Credenciales de integraciones externas por profesional (nutricionista),
-/// guardadas CIFRADAS (AES-256-GCM, CifradorTokens). Una por inquilino. El
-/// profesional las carga desde la app; los adaptadores las resuelven por
-/// request (con fallback a variables de entorno y luego a los stubs).
-model CredencialesIntegracion {
-  id                           String   @id @default(cuid())
-  nutricionistaId              String   @unique @default("")
-  proveedorIA                  String? // "ANTHROPIC" (defecto) | "OPENROUTER"
-  anthropicApiKeyCifrada       String? // clave de IA (Anthropic u OpenRouter), cifrada
-  anthropicModelo              String? // modelo elegido (texto plano)
-  fatsecretClientIdCifrado     String? // FatSecret OAuth2 client_id, cifrado
-  fatsecretClientSecretCifrado String? // FatSecret OAuth2 client_secret, cifrado
-  // WhatsApp Cloud API (Meta). El phone_number_id va en claro: es lo que
-  // identifica al inquilino cuando entra un webhook, antes de descifrar nada.
-  whatsappTokenCifrado         String? // access token permanente del System User
-  whatsappPhoneNumberId        String?
-  whatsappVerifyTokenCifrado   String? // token de verificación del webhook
-  whatsappAppSecretCifrado     String? // app secret, para validar x-hub-signature-256
-  // Criterios de ingredientes: filtran los alimentos que trae la búsqueda.
-  criterioExcluirMarcas        Boolean  @default(false) // solo genéricos (sin marca)
-  criterioRequiereMacros       Boolean  @default(false) // descartar sin macros completos
-  criterioMaxCaloriasPor100    Float? // tope opcional de kcal/100 g
-  criterioExcluirTexto         String[] @default([]) // descartar si el nombre contiene
-  creadoEn                     DateTime @default(now())
-  actualizadoEn                DateTime @updatedAt
+/// Un secreto de integración del inquilino: UNA FILA POR VALOR.
+///
+/// Antes esto era una tabla ancha con un juego de columnas por proveedor, y
+/// cada integración nueva era un `ALTER TABLE` (fases 15, 16 y 26 agregaron
+/// ocho columnas entre las tres). Con una fila por clave, sumar un proveedor
+/// no toca el esquema, y además se sabe CUÁNDO se rotó cada secreto.
+///
+/// `valor` está cifrado (AES-256-GCM) salvo para las claves que la aplicación
+/// necesita leer antes de poder descifrar nada —hoy solo
+/// WHATSAPP/PHONE_NUMBER_ID, que es lo que identifica al inquilino cuando
+/// entra un webhook—. Cuáles son esas lo decide el repositorio, no la base.
+model CredencialProveedor {
+  id              String               @id @default(uuid(4))
+  nutricionistaId String
+  proveedor       ProveedorIntegracion
+  clave           String // API_KEY | CLIENT_ID | CLIENT_SECRET | TOKEN | PHONE_NUMBER_ID…
+  valor           String
+  rotadoEn        DateTime             @default(now())
+  creadoEn        DateTime             @default(now())
 
-  @@map("credenciales_integracion")
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@unique([nutricionistaId, proveedor, clave])
+  // Ruteo del webhook de WhatsApp: entra sin sesión y la única pista es el
+  // phone_number_id, así que se busca por (proveedor, clave, valor) en alcance
+  // global. Sin este índice era un recorrido de toda la tabla por mensaje.
+  @@index([proveedor, clave, valor])
+  @@map("credenciales_proveedor")
+}
+
+/// Preferencias de integración del inquilino que NO son secretos: qué modelo
+/// de IA usar y con qué criterios filtrar los ingredientes de la búsqueda.
+/// Vivían mezcladas con los tokens cifrados en la misma fila.
+model PreferenciasIntegracion {
+  nutricionistaId   String   @id
+  /// "ANTHROPIC" (defecto) | "OPENROUTER"
+  proveedorIA       String?
+  modeloIA          String?
+  /// Criterios de ingredientes: filtran los alimentos que trae la búsqueda.
+  excluirMarcas     Boolean  @default(false) // solo genéricos (sin marca)
+  requiereMacros    Boolean  @default(false) // descartar sin macros completos
+  maxCaloriasPor100 Float? // tope opcional de kcal/100 g
+  excluirTexto      String[] @default([]) // descartar si el nombre contiene
+  creadoEn          DateTime @default(now())
+  actualizadoEn     DateTime @updatedAt
+
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@map("preferencias_integracion")
 }
 
 /// Corrección del profesional sobre un insight predictivo (👍 útil / 👎 no).
@@ -497,15 +634,16 @@ model CredencialesIntegracion {
 /// para entrenar modelos a futuro. Una por (nutri, paciente, tipo): el último voto
 /// reemplaza al anterior. Tenant-scoped por nutricionistaId.
 model RetroalimentacionInsight {
-  id              String   @id @default(cuid())
-  nutricionistaId String   @default("")
+  id              String        @id @default(uuid(4))
+  nutricionistaId String
   pacienteId      String
   tipoInsight     String // RIESGO_ABANDONO | ADHERENCIA | TENDENCIA_PESO
   util            Boolean // true = acertado (👍), false = no (👎)
   detalle         String // texto del insight al momento del voto (contexto)
   comentario      String? // aclaración opcional del profesional
-  creadoEn        DateTime @default(now())
-  actualizadoEn   DateTime @updatedAt
+  creadoEn        DateTime      @default(now())
+  actualizadoEn   DateTime      @updatedAt
+  nutricionista   Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@unique([nutricionistaId, pacienteId, tipoInsight])
   @@map("retroalimentacion_insight")
@@ -515,16 +653,17 @@ model RetroalimentacionInsight {
 /// inquilino tiene al menos uno, la búsqueda de ingredientes usa SU lista y se
 /// desactiva FatSecret. Macros por 100 g. Tenant-scoped por nutricionistaId.
 model AlimentoPropio {
-  id                  String   @id @default(cuid())
-  nutricionistaId     String   @default("")
+  id                  String        @id @default(uuid(4))
+  nutricionistaId     String
   nombre              String
   nombreNormalizado   String // minúsculas/trim, para búsqueda case-insensitive
   marca               String?
-  caloriasPor100      Float?
-  proteinasPor100     Float?
-  carbohidratosPor100 Float?
-  grasasPor100        Float?
-  creadoEn            DateTime @default(now())
+  caloriasPor100      Decimal?      @db.Decimal(7, 2)
+  proteinasPor100     Decimal?      @db.Decimal(7, 2)
+  carbohidratosPor100 Decimal?      @db.Decimal(7, 2)
+  grasasPor100        Decimal?      @db.Decimal(7, 2)
+  creadoEn            DateTime      @default(now())
+  nutricionista       Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@index([nutricionistaId, nombreNormalizado])
   @@map("alimentos_propios")
@@ -533,41 +672,47 @@ model AlimentoPropio {
 /// Comida registrada por el paciente en su diario, con foto opcional
 /// (vía Archivo.comidaConsumidaId — insumo para la futura IA de visión).
 model ComidaConsumida {
-  id          String   @id @default(cuid())
-  registroId  String
-  franja      String // "Desayuno", "Media mañana"… texto libre con sugeridos
-  hora        String? // HH:mm
-  descripcion String
-  porcion     String? // cantidad/porción estimada ("1 plato", "200 g")
-  creadoEn    DateTime @default(now())
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
+  registroId      String
+  franja          String // "Desayuno", "Media mañana"… texto libre con sugeridos
+  hora            String? // HH:mm
+  descripcion     String
+  porcion         String? // cantidad/porción estimada ("1 plato", "200 g")
+  creadoEn        DateTime @default(now())
+  actualizadoEn   DateTime @updatedAt
 
-  registro RegistroDiario @relation(fields: [registroId], references: [id], onDelete: Cascade)
-  foto     Archivo?
+  registro      RegistroDiario @relation(fields: [registroId], references: [id], onDelete: Cascade)
+  foto          Archivo?
+  nutricionista Nutricionista  @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([registroId])
+  @@index([nutricionistaId, registroId])
   @@map("comidas_consumidas")
 }
 
 /// Actividad física registrada por el paciente en su diario.
 model ActividadFisica {
-  id              String               @id @default(cuid())
+  id              String               @id @default(uuid(4))
+  nutricionistaId String
   registroId      String
   tipo            String // "Pesas", "Running"…
   duracionMinutos Int
   intensidad      IntensidadActividad?
   notas           String?
   creadoEn        DateTime             @default(now())
+  actualizadoEn   DateTime             @updatedAt
 
-  registro RegistroDiario @relation(fields: [registroId], references: [id], onDelete: Cascade)
+  registro      RegistroDiario @relation(fields: [registroId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista  @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([registroId])
+  @@index([nutricionistaId, registroId])
   @@map("actividades_fisicas")
 }
 
 /// Historia clínica del paciente (1 a 1). Texto libre estructurado por la UI.
 model HistoriaClinica {
-  id                     String   @id @default(cuid())
-  nutricionistaId        String   @default("")
+  id                     String   @id @default(uuid(4))
+  nutricionistaId        String
   pacienteId             String   @unique
   motivoConsulta         String?
   diagnosticos           String?
@@ -578,7 +723,8 @@ model HistoriaClinica {
   contexto               String?
   actualizadoEn          DateTime @updatedAt
 
-  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@map("historias_clinicas")
 }
@@ -586,35 +732,39 @@ model HistoriaClinica {
 /// Alergia, intolerancia o restricción alimentaria del paciente.
 /// Se muestran como alertas destacadas en toda la ficha.
 model AlertaAlimentaria {
-  id              String                @id @default(cuid())
-  nutricionistaId String                @default("")
+  id              String                @id @default(uuid(4))
+  nutricionistaId String
   pacienteId      String
   tipo            TipoAlertaAlimentaria
   descripcion     String // "Lactosa", "Maní", "Celiaquía"…
   severidad       SeveridadAlerta       @default(MODERADA)
   notas           String?
   creadoEn        DateTime              @default(now())
+  actualizadoEn   DateTime              @updatedAt
 
-  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([pacienteId])
+  @@index([nutricionistaId, pacienteId])
   @@map("alertas_alimentarias")
 }
 
 /// Estudio de laboratorio con adjuntos (vía Archivo.laboratorioId).
 model Laboratorio {
-  id              String   @id @default(cuid())
-  nutricionistaId String   @default("")
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
   pacienteId      String
   fecha           DateTime @db.Date
   titulo          String // "Perfil lipídico marzo 2026"
   notas           String?
   creadoEn        DateTime @default(now())
+  actualizadoEn   DateTime @updatedAt
 
-  paciente Paciente  @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
-  archivos Archivo[]
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  archivos      Archivo[]
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([pacienteId, fecha])
+  @@index([nutricionistaId, pacienteId, fecha])
   @@map("laboratorios")
 }
 
@@ -624,8 +774,8 @@ model Laboratorio {
 /// Los derivados (kg bajados, sumatoria de 6 pliegues) se CALCULAN en la
 /// entidad de dominio, nunca se persisten.
 model Antropometria {
-  id              String   @id @default(cuid())
-  nutricionistaId String   @default("")
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
   pacienteId      String
   fecha           DateTime @db.Date
   pesoKg          Decimal  @db.Decimal(5, 2)
@@ -652,8 +802,10 @@ model Antropometria {
   kgGrasa       Decimal? @db.Decimal(5, 2)
   observaciones String?
   creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
 
-  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@unique([pacienteId, fecha])
   @@map("antropometrias")
@@ -662,7 +814,7 @@ model Antropometria {
 /// Credenciales y rol de acceso al sistema.
 /// Si el rol es PACIENTE debe tener un pacienteId asociado.
 model Usuario {
-  id              String     @id @default(cuid())
+  id              String     @id @default(uuid(4))
   email           String     @unique
   passwordHash    String
   rol             RolUsuario @default(PACIENTE)
@@ -675,7 +827,9 @@ model Usuario {
 
   paciente Paciente? @relation(fields: [pacienteId], references: [id], onDelete: SetNull)
 
-  tokensRecuperacion TokenRecuperacion[]
+  tokensRecuperacion    TokenRecuperacion[]
+  recordatoriosWhatsapp RecordatorioWhatsapp[]
+  nutricionista         Nutricionista?         @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@index([nutricionistaId])
   @@map("usuarios")
@@ -685,7 +839,7 @@ model Usuario {
 /// del token (SHA-256), nunca el valor en claro que llegó al email. No es tabla
 /// de inquilino: los usuarios son globales y el flujo corre con alcance global.
 model TokenRecuperacion {
-  id        String    @id @default(cuid())
+  id        String    @id @default(uuid(4))
   usuarioId String
   tokenHash String    @unique
   expiraEn  DateTime
@@ -706,8 +860,8 @@ model TokenRecuperacion {
 /// preparación, macros por porción opcionales, etiquetas y fotos (vía
 /// Archivo.recetaId). Puede referenciarse desde una opción de comida del plan.
 model Receta {
-  id              String   @id @default(cuid())
-  nutricionistaId String   @default("")
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
   nombre          String
   descripcion     String?
   porciones       Int?
@@ -716,20 +870,22 @@ model Receta {
   enlaces         String[] @default([]) // URLs de referencia (video, blog, fuente)
   // Macros POR PORCIÓN (opcionales). Si la receta tiene ingredientes con datos
   // nutricionales, se calculan de ellos al guardar; si no, se cargan a mano.
-  calorias        Int?
-  proteinasG      Decimal? @db.Decimal(6, 1)
-  carbohidratosG  Decimal? @db.Decimal(6, 1)
-  grasasG         Decimal? @db.Decimal(6, 1)
+  calorias        Decimal? @db.Decimal(7, 2)
+  proteinasG      Decimal? @db.Decimal(7, 2)
+  carbohidratosG  Decimal? @db.Decimal(7, 2)
+  grasasG         Decimal? @db.Decimal(7, 2)
   creadoEn        DateTime @default(now())
   actualizadoEn   DateTime @updatedAt
 
-  fotos        Archivo[]
-  opciones     OpcionComida[]
-  asignaciones AsignacionReceta[]
-  ingredientes IngredienteReceta[]
+  fotos         Archivo[]
+  opciones      OpcionComida[]
+  asignaciones  AsignacionReceta[]
+  ingredientes  IngredienteReceta[]
+  nutricionista Nutricionista       @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([nombre])
-  @@index([nutricionistaId])
+  @@unique([nutricionistaId, id])
+  @@index([nutricionistaId, nombre])
+  @@index([etiquetas], type: Gin)
   @@map("recetas")
 }
 
@@ -738,37 +894,41 @@ model Receta {
 /// suma estos valores para obtener sus totales y macros por porción. Hijo del
 /// agregado Receta (hereda el inquilino por su receta; sin nutricionistaId).
 model IngredienteReceta {
-  id                  String   @id @default(cuid())
+  id                  String   @id @default(uuid(4))
+  nutricionistaId     String
   recetaId            String
   nombre              String
   cantidadGramos      Decimal? @db.Decimal(8, 1)
   // Macros por 100 g del alimento (base de datos nutricional o manual)
-  caloriasPor100      Decimal? @db.Decimal(6, 1)
-  proteinasPor100     Decimal? @db.Decimal(5, 1)
-  carbohidratosPor100 Decimal? @db.Decimal(5, 1)
-  grasasPor100        Decimal? @db.Decimal(5, 1)
+  caloriasPor100      Decimal? @db.Decimal(7, 2)
+  proteinasPor100     Decimal? @db.Decimal(7, 2)
+  carbohidratosPor100 Decimal? @db.Decimal(7, 2)
+  grasasPor100        Decimal? @db.Decimal(7, 2)
   fuente              String? // "OFF" (Open Food Facts) | "MANUAL"
   referenciaExterna   String? // código de barras / id en la fuente
   orden               Int      @default(0)
 
-  receta Receta @relation(fields: [recetaId], references: [id], onDelete: Cascade)
+  receta        Receta        @relation(fields: [recetaId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([recetaId])
+  @@index([nutricionistaId, recetaId])
   @@map("ingredientes_receta")
 }
 
 /// Vincula una receta a un paciente (compartida en su portal).
 model AsignacionReceta {
-  id         String   @id @default(cuid())
-  recetaId   String
-  pacienteId String
-  creadoEn   DateTime @default(now())
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
+  recetaId        String
+  pacienteId      String
+  creadoEn        DateTime @default(now())
 
-  receta   Receta   @relation(fields: [recetaId], references: [id], onDelete: Cascade)
-  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  receta        Receta        @relation(fields: [recetaId], references: [id], onDelete: Cascade)
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@unique([recetaId, pacienteId])
-  @@index([pacienteId])
+  @@index([nutricionistaId, pacienteId])
   @@map("asignaciones_receta")
 }
 
@@ -776,8 +936,8 @@ model AsignacionReceta {
 /// concreto, con metas de macros, comidas por franja con opciones, tabla de
 /// equivalencias y recomendaciones. Reemplaza al módulo Dieta.
 model PlanNutricional {
-  id                 String   @id @default(cuid())
-  nutricionistaId    String   @default("")
+  id                 String   @id @default(uuid(4))
+  nutricionistaId    String
   nombre             String
   descripcion        String?
   esPlantilla        Boolean  @default(false)
@@ -785,9 +945,9 @@ model PlanNutricional {
   archivado          Boolean  @default(false)
   // Metas de macros del plan (opcionales)
   caloriasMeta       Int?
-  proteinasMetaG     Decimal? @db.Decimal(6, 1)
-  carbohidratosMetaG Decimal? @db.Decimal(6, 1)
-  grasasMetaG        Decimal? @db.Decimal(6, 1)
+  proteinasMetaG     Decimal? @db.Decimal(7, 2)
+  carbohidratosMetaG Decimal? @db.Decimal(7, 2)
+  grasasMetaG        Decimal? @db.Decimal(7, 2)
   contactosUtiles    String? // teléfonos/contactos útiles del profesional
   creadoEn           DateTime @default(now())
   actualizadoEn      DateTime @updatedAt
@@ -796,72 +956,85 @@ model PlanNutricional {
   equivalencias   EquivalenciaPlan[]
   recomendaciones RecomendacionPlan[]
   asignaciones    AsignacionPlan[]
+  nutricionista   Nutricionista       @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  // Plantilla de la que se clonó: FK real con SET NULL, para que borrar la
+  // plantilla no deje ids colgando en los planes que salieron de ella.
+  planOrigen      PlanNutricional?    @relation("PlanClonado", fields: [planOrigenId], references: [id], onDelete: SetNull)
+  clones          PlanNutricional[]   @relation("PlanClonado")
 
-  @@index([esPlantilla])
-  @@index([nutricionistaId])
+  @@unique([nutricionistaId, id])
+  @@index([nutricionistaId, esPlantilla, archivado])
   @@map("planes_nutricionales")
 }
 
 /// Franja de comida dentro de un plan (Desayuno, Colación…), con horario
 /// sugerido y sus opciones intercambiables.
 model ComidaPlan {
-  id        String  @id @default(cuid())
-  planId    String
-  nombre    String // "Desayuno", "Media mañana"…
-  horaDesde String? // HH:mm
-  horaHasta String? // HH:mm
-  orden     Int     @default(0)
+  id              String  @id @default(uuid(4))
+  nutricionistaId String
+  planId          String
+  nombre          String // "Desayuno", "Media mañana"…
+  horaDesde       String? // HH:mm
+  horaHasta       String? // HH:mm
+  orden           Int     @default(0)
 
-  plan     PlanNutricional @relation(fields: [planId], references: [id], onDelete: Cascade)
-  opciones OpcionComida[]
+  plan          PlanNutricional @relation(fields: [planId], references: [id], onDelete: Cascade)
+  opciones      OpcionComida[]
+  nutricionista Nutricionista   @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([planId])
+  @@index([nutricionistaId, planId])
   @@map("comidas_plan")
 }
 
 /// Opción intercambiable de una franja (Opción 1, 2, 3…), texto rico y una
 /// receta vinculada opcional.
 model OpcionComida {
-  id        String  @id @default(cuid())
-  comidaId  String
-  numero    Int     @default(1)
-  contenido String // texto rico (varias líneas)
-  recetaId  String?
-  orden     Int     @default(0)
+  id              String  @id @default(uuid(4))
+  nutricionistaId String
+  comidaId        String
+  numero          Int     @default(1)
+  contenido       String // texto rico (varias líneas)
+  recetaId        String?
+  orden           Int     @default(0)
 
-  comida ComidaPlan @relation(fields: [comidaId], references: [id], onDelete: Cascade)
-  receta Receta?    @relation(fields: [recetaId], references: [id], onDelete: SetNull)
+  comida        ComidaPlan    @relation(fields: [comidaId], references: [id], onDelete: Cascade)
+  receta        Receta?       @relation(fields: [recetaId], references: [id], onDelete: SetNull)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([comidaId])
-  @@index([recetaId])
+  @@index([nutricionistaId, comidaId])
+  @@index([nutricionistaId, recetaId])
   @@map("opciones_comida")
 }
 
 /// Tabla de equivalencias del plan (porciones/reemplazos).
 model EquivalenciaPlan {
-  id      String @id @default(cuid())
-  planId  String
-  titulo  String
-  detalle String
-  orden   Int    @default(0)
+  id              String @id @default(uuid(4))
+  nutricionistaId String
+  planId          String
+  titulo          String
+  detalle         String
+  orden           Int    @default(0)
 
-  plan PlanNutricional @relation(fields: [planId], references: [id], onDelete: Cascade)
+  plan          PlanNutricional @relation(fields: [planId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista   @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([planId])
+  @@index([nutricionistaId, planId])
   @@map("equivalencias_plan")
 }
 
 /// Recomendación del plan (nutricional o de salud), en texto libre.
 model RecomendacionPlan {
-  id     String                @id @default(cuid())
-  planId String
-  tipo   TipoRecomendacionPlan @default(NUTRICIONAL)
-  texto  String
-  orden  Int                   @default(0)
+  id              String                @id @default(uuid(4))
+  nutricionistaId String
+  planId          String
+  tipo            TipoRecomendacionPlan @default(NUTRICIONAL)
+  texto           String
+  orden           Int                   @default(0)
 
-  plan PlanNutricional @relation(fields: [planId], references: [id], onDelete: Cascade)
+  plan          PlanNutricional @relation(fields: [planId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista   @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([planId])
+  @@index([nutricionistaId, planId])
   @@map("recomendaciones_plan")
 }
 
@@ -873,8 +1046,8 @@ model RecomendacionPlan {
 /// Todo cambio relevante queda auditado en HistorialObjetivo, escrito por
 /// los casos de uso (nunca por la UI directamente).
 model Objetivo {
-  id              String            @id @default(cuid())
-  nutricionistaId String            @default("")
+  id              String            @id @default(uuid(4))
+  nutricionistaId String
   pacienteId      String
   titulo          String
   descripcion     String?
@@ -884,51 +1057,56 @@ model Objetivo {
   creadoEn        DateTime          @default(now())
   actualizadoEn   DateTime          @updatedAt
 
-  paciente    Paciente            @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
-  estrategias Estrategia[]
-  historial   HistorialObjetivo[]
+  paciente      Paciente            @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  estrategias   Estrategia[]
+  historial     HistorialObjetivo[]
+  nutricionista Nutricionista       @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([pacienteId, estado])
-  @@index([nutricionistaId])
+  @@index([nutricionistaId, pacienteId, estado])
   @@map("objetivos")
 }
 
 /// Estrategia concreta para alcanzar un objetivo. El motivo es obligatorio:
 /// documenta POR QUÉ el profesional eligió esa estrategia.
 model Estrategia {
-  id          String           @id @default(cuid())
-  objetivoId  String
-  descripcion String
-  motivo      String
-  estado      EstadoEstrategia @default(ACTIVA)
-  creadoEn    DateTime         @default(now())
+  id              String           @id @default(uuid(4))
+  nutricionistaId String
+  objetivoId      String
+  descripcion     String
+  motivo          String
+  estado          EstadoEstrategia @default(ACTIVA)
+  creadoEn        DateTime         @default(now())
+  actualizadoEn   DateTime         @updatedAt
 
-  objetivo Objetivo @relation(fields: [objetivoId], references: [id], onDelete: Cascade)
+  objetivo      Objetivo      @relation(fields: [objetivoId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([objetivoId])
+  @@index([nutricionistaId, objetivoId])
   @@map("estrategias")
 }
 
 /// Auditoría del objetivo: qué pasó, cuándo y por qué.
 model HistorialObjetivo {
-  id         String             @id @default(cuid())
-  objetivoId String
-  tipo       TipoEventoObjetivo
-  detalle    String
-  motivo     String?
-  creadoEn   DateTime           @default(now())
+  id              String             @id @default(uuid(4))
+  nutricionistaId String
+  objetivoId      String
+  tipo            TipoEventoObjetivo
+  detalle         String
+  motivo          String?
+  creadoEn        DateTime           @default(now())
 
-  objetivo Objetivo @relation(fields: [objetivoId], references: [id], onDelete: Cascade)
+  objetivo      Objetivo      @relation(fields: [objetivoId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([objetivoId, creadoEn])
+  @@index([nutricionistaId, objetivoId, creadoEn])
   @@map("historial_objetivos")
 }
 
 /// Material educativo de la biblioteca profesional: un archivo del bucket
 /// (vía Archivo.materialId) o un enlace externo.
 model MaterialBiblioteca {
-  id              String       @id @default(cuid())
-  nutricionistaId String       @default("")
+  id              String       @id @default(uuid(4))
+  nutricionistaId String
   tipo            TipoMaterial
   titulo          String
   descripcion     String?
@@ -938,45 +1116,52 @@ model MaterialBiblioteca {
   creadoEn        DateTime     @default(now())
   actualizadoEn   DateTime     @updatedAt
 
-  archivo      Archivo?
-  asignaciones AsignacionMaterial[]
+  archivo       Archivo?
+  asignaciones  AsignacionMaterial[]
+  nutricionista Nutricionista        @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([titulo])
-  @@index([nutricionistaId])
+  @@unique([nutricionistaId, id])
+  @@index([nutricionistaId, titulo])
+  @@index([etiquetas], type: Gin)
   @@map("materiales_biblioteca")
 }
 
 /// Vincula un material a un paciente (visible en su portal).
 model AsignacionMaterial {
-  id         String   @id @default(cuid())
-  materialId String
-  pacienteId String
-  creadoEn   DateTime @default(now())
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
+  materialId      String
+  pacienteId      String
+  creadoEn        DateTime @default(now())
 
-  material MaterialBiblioteca @relation(fields: [materialId], references: [id], onDelete: Cascade)
-  paciente Paciente           @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  material      MaterialBiblioteca @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  paciente      Paciente           @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista      @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@unique([materialId, pacienteId])
-  @@index([pacienteId])
+  @@index([nutricionistaId, pacienteId])
   @@map("asignaciones_material")
 }
 
 /// Vincula un plan a un paciente durante un período.
 /// Regla de negocio: un paciente solo puede tener un plan activo a la vez.
 model AsignacionPlan {
-  id          String    @id @default(cuid())
-  planId      String
-  pacienteId  String
-  fechaInicio DateTime  @db.Date
-  fechaFin    DateTime? @db.Date
-  activa      Boolean   @default(true)
-  creadoEn    DateTime  @default(now())
+  id              String    @id @default(uuid(4))
+  nutricionistaId String
+  planId          String
+  pacienteId      String
+  fechaInicio     DateTime  @db.Date
+  fechaFin        DateTime? @db.Date
+  activa          Boolean   @default(true)
+  creadoEn        DateTime  @default(now())
 
-  plan     PlanNutricional @relation(fields: [planId], references: [id], onDelete: Cascade)
-  paciente Paciente        @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  plan          PlanNutricional @relation(fields: [planId], references: [id], onDelete: Cascade)
+  paciente      Paciente        @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista   @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([pacienteId])
-  @@index([planId])
+  @@index([nutricionistaId, pacienteId])
+  @@index([nutricionistaId, planId])
+  @@index([nutricionistaId, activa, fechaFin])
   @@map("asignaciones_plan")
 }
 
@@ -989,16 +1174,17 @@ model AsignacionPlan {
 /// enviar. `clave` identifica plantillas de sistema (RECORDATORIO_TURNO,
 /// BIENVENIDA), sembradas y no borrables.
 model PlantillaEmail {
-  id              String   @id @default(cuid())
-  nutricionistaId String   @default("")
+  id              String        @id @default(uuid(4))
+  nutricionistaId String
   clave           String
   nombre          String
   asunto          String
   cuerpoHtml      String
   descripcion     String?
-  deSistema       Boolean  @default(false)
-  creadoEn        DateTime @default(now())
-  actualizadoEn   DateTime @updatedAt
+  deSistema       Boolean       @default(false)
+  creadoEn        DateTime      @default(now())
+  actualizadoEn   DateTime      @updatedAt
+  nutricionista   Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@unique([nutricionistaId, clave])
   @@map("plantillas_email")
@@ -1010,19 +1196,19 @@ model PlantillaEmail {
 /// La unicidad (plantillaClave, referenciaId) evita reenviar el mismo
 /// recordatorio de turno; con referenciaId nulo (ej. prueba) no hay tope.
 model EmailEnviado {
-  id              String   @id @default(cuid())
-  nutricionistaId String   @default("")
+  id              String        @id @default(uuid(4))
+  nutricionistaId String
   plantillaClave  String
   para            String
   asunto          String
   referenciaId    String? // ej. turnoId, para idempotencia del recordatorio
   pacienteId      String?
   error           String? // null = enviado con éxito
-  creadoEn        DateTime @default(now())
+  creadoEn        DateTime      @default(now())
+  nutricionista   Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@unique([plantillaClave, referenciaId])
-  @@index([creadoEn])
-  @@index([nutricionistaId])
+  @@unique([nutricionistaId, plantillaClave, referenciaId])
+  @@index([nutricionistaId, creadoEn])
   @@map("emails_enviados")
 }
 
@@ -1031,8 +1217,8 @@ model EmailEnviado {
 /// claro. La implementación del flujo OAuth queda para más adelante: por
 /// ahora solo el modelo y el cifrador están listos.
 model CuentaConectada {
-  id                  String          @id @default(cuid())
-  nutricionistaId     String          @default("")
+  id                  String          @id @default(uuid(4))
+  nutricionistaId     String
   proveedor           ProveedorCuenta
   emailCuenta         String
   accessTokenCifrado  String
@@ -1045,26 +1231,27 @@ model CuentaConectada {
   sincronizaciones SincronizacionTurno[]
 
   // Una conexión por nutricionista y proveedor (reconectar reemplaza).
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
   @@unique([nutricionistaId, proveedor])
-  @@index([nutricionistaId])
   @@map("cuentas_conectadas")
 }
 
 /// Correspondencia entre un turno y su evento en el calendario externo.
 /// `turnoId` no lleva FK (feature futura, se evita acoplar el modelo Turno).
 model SincronizacionTurno {
-  id              String   @id @default(cuid())
-  nutricionistaId String   @default("")
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
   cuentaId        String
   turnoId         String
   googleEventId   String
   creadoEn        DateTime @default(now())
 
-  cuenta CuentaConectada @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
+  cuenta        CuentaConectada @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista   @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@unique([cuentaId, turnoId])
-  @@index([turnoId])
-  @@index([nutricionistaId])
+  @@index([nutricionistaId, turnoId])
   @@map("sincronizaciones_turno")
 }
 
@@ -1075,18 +1262,19 @@ model SincronizacionTurno {
 /// Conversación entre el nutricionista (único) y un paciente. Una por
 /// paciente; el otro extremo siempre es el profesional.
 model Conversacion {
-  id                 String    @id @default(cuid())
-  nutricionistaId    String    @default("")
+  id                 String    @id @default(uuid(4))
+  nutricionistaId    String
   pacienteId         String    @unique
   ultimoMensajeTexto String?
   ultimoMensajeEn    DateTime?
   creadoEn           DateTime  @default(now())
   actualizadoEn      DateTime  @updatedAt
 
-  paciente Paciente  @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
-  mensajes Mensaje[]
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  mensajes      Mensaje[]
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([nutricionistaId])
+  @@index([nutricionistaId, ultimoMensajeEn])
   @@map("conversaciones")
 }
 
@@ -1095,16 +1283,18 @@ model Conversacion {
 /// del usuario (la conversación ya cae en cascada con el paciente).
 /// `leidoEn` null = no leído por el destinatario.
 model Mensaje {
-  id             String    @id @default(cuid())
-  conversacionId String
-  autorId        String
-  cuerpo         String
-  leidoEn        DateTime?
-  creadoEn       DateTime  @default(now())
+  id              String    @id @default(uuid(4))
+  nutricionistaId String
+  conversacionId  String
+  autorId         String
+  cuerpo          String
+  leidoEn         DateTime?
+  creadoEn        DateTime  @default(now())
 
-  conversacion Conversacion @relation(fields: [conversacionId], references: [id], onDelete: Cascade)
+  conversacion  Conversacion  @relation(fields: [conversacionId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([conversacionId, creadoEn])
+  @@index([nutricionistaId, conversacionId, creadoEn])
   @@map("mensajes")
 }
 
@@ -1116,16 +1306,17 @@ model Mensaje {
 /// genera un adaptador stub; a futuro, un adaptador Claude. Se guarda el
 /// historial como señal para el ML.
 model ConsultaIA {
-  id              String   @id @default(cuid())
-  nutricionistaId String   @default("")
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
   pacienteId      String
   pregunta        String
   respuesta       String
   creadoEn        DateTime @default(now())
 
-  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([pacienteId, creadoEn])
+  @@index([nutricionistaId, pacienteId, creadoEn])
   @@map("consultas_ia")
 }
 
@@ -1134,16 +1325,17 @@ model ConsultaIA {
 /// `archivoId` referencia el Archivo subido (sin FK: entrada transitoria del
 /// análisis, no un adjunto clínico del paciente).
 model AnalisisComida {
-  id              String   @id @default(cuid())
-  nutricionistaId String   @default("")
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
   pacienteId      String
   archivoId       String?
   resultado       Json
   creadoEn        DateTime @default(now())
 
-  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([pacienteId, creadoEn])
+  @@index([nutricionistaId, pacienteId, creadoEn])
   @@map("analisis_comida")
 }
 
@@ -1170,14 +1362,16 @@ enum OperadorAxioma {
   INFORMATIVO
 }
 
-/// Configuración del consultorio (fila única, id constante "default"). Reemplaza
+/// Configuración del consultorio: UNA FILA POR INQUILINO (no una fila única
+/// global, como decía este comentario antes: la unicidad es sobre
+/// `nutricionistaId`). Reemplaza
 /// los valores incrustados (ej. duración de turno por defecto) y guarda el
 /// membrete del profesional para PDF/emails.
 model ConfiguracionConsultorio {
-  id                        String   @id @default(cuid())
-  nutricionistaId           String   @unique @default("")
-  turnoDuracionMinutos      Int      @default(30)
-  turnoPasoMinutos          Int      @default(15)
+  id                        String        @id @default(uuid(4))
+  nutricionistaId           String        @unique
+  turnoDuracionMinutos      Int           @default(30)
+  turnoPasoMinutos          Int           @default(15)
   atencionHoraDesde         String? // HH:mm
   atencionHoraHasta         String? // HH:mm
   diasAtencion              Int[] // 0=domingo … 6=sábado
@@ -1188,15 +1382,19 @@ model ConfiguracionConsultorio {
   pdfColorPrimario          String? // hex, ej "#F4535E" (default: coral)
   pdfSubtitulo              String? // bajo el nombre en el membrete
   pdfPieTexto               String? // nota al pie / aclaración
-  pdfMostrarRecetas         Boolean  @default(true)
-  pdfMostrarMacros          Boolean  @default(true)
-  pdfMostrarEquivalencias   Boolean  @default(true)
-  pdfMostrarRecomendaciones Boolean  @default(true)
+  pdfMostrarRecetas         Boolean       @default(true)
+  pdfMostrarMacros          Boolean       @default(true)
+  pdfMostrarEquivalencias   Boolean       @default(true)
+  pdfMostrarRecomendaciones Boolean       @default(true)
   // Recordatorio de turno por WhatsApp (enlace wa.me).
   whatsappPlantilla         String? // texto con {{paciente}} {{fecha}} {{hora}} {{profesional}}
   whatsappPrefijoPais       String? // prefijo internacional sin "+", ej "54"
-  creadoEn                  DateTime @default(now())
-  actualizadoEn             DateTime @updatedAt
+  creadoEn                  DateTime      @default(now())
+  actualizadoEn             DateTime      @updatedAt
+  nutricionista             Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  // El logo del membrete es un Archivo del bucket: FK real con SET NULL, así
+  // borrarlo deja la configuración sin logo en vez de con un id inexistente.
+  logo                      Archivo?      @relation(fields: [logoArchivoId], references: [id], onDelete: SetNull)
 
   @@map("configuracion_consultorio")
 }
@@ -1205,8 +1403,8 @@ model ConfiguracionConsultorio {
 /// comportamiento óptimo (ej. "dormir 7–9 h es lo óptimo"). Doble uso: mide el
 /// tracking del paciente hoy (verde/rojo) y a futuro es grounding de la IA.
 model AxiomaNutricional {
-  id              String         @id @default(cuid())
-  nutricionistaId String         @default("")
+  id              String         @id @default(uuid(4))
+  nutricionistaId String
   ambito          AmbitoAxioma
   parametro       String // "horasSueno", "aguaMl", "actividadMinutosDia"…
   operador        OperadorAxioma
@@ -1218,8 +1416,8 @@ model AxiomaNutricional {
   activo          Boolean        @default(true)
   creadoEn        DateTime       @default(now())
   actualizadoEn   DateTime       @updatedAt
+  nutricionista   Nutricionista  @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([activo])
-  @@index([nutricionistaId])
+  @@index([nutricionistaId, activo])
   @@map("axiomas_nutricionales")
 }

@@ -2,7 +2,7 @@ import type { Turno } from "../../entidades/Turno";
 import type { Paciente } from "../../entidades/Paciente";
 import type { ConfiguracionConsultorio } from "../../entidades/ConfiguracionConsultorio";
 import { variablesRecordatorio } from "../secretaria/variables";
-import { normalizarTelefonoE164, PREFIJO_PAIS_POR_DEFECTO } from "./telefono";
+import { normalizarTelefonoE164, PREFIJO_PAIS_POR_DEFECTO } from "../../servicios/telefono";
 import { PLANTILLA_WHATSAPP_POR_DEFECTO, renderizarPlantilla } from "./plantilla";
 
 /** Recordatorio ya resuelto a teléfono y texto concretos, listo para enviar. */

@@ -4,6 +4,7 @@ import type {
   DuenoArchivo,
 } from "@/dominio/repositorios/IArchivoRepositorio";
 import { Archivo } from "@/dominio/entidades/Archivo";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Implementación con Prisma del repositorio de metadatos de Archivo. */
 export class PrismaRepositorioArchivo implements IArchivoRepositorio {
@@ -13,6 +14,7 @@ export class PrismaRepositorioArchivo implements IArchivoRepositorio {
     const datos = archivo.aPrimitivos();
     const fila = await this.prisma.archivo.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         ...datos,
         pacienteId: dueno?.pacienteId ?? null,
         laboratorioId: dueno?.laboratorioId ?? null,

@@ -3,6 +3,7 @@ import type {
   ISincronizacionTurnoRepositorio,
   SincronizacionTurno,
 } from "@/dominio/repositorios/ISincronizacionTurnoRepositorio";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Implementación con Prisma del mapeo turno ↔ evento de calendario. */
 export class PrismaRepositorioSincronizacionTurno implements ISincronizacionTurnoRepositorio {
@@ -26,7 +27,12 @@ export class PrismaRepositorioSincronizacionTurno implements ISincronizacionTurn
       });
     } else {
       await this.prisma.sincronizacionTurno.create({
-        data: { cuentaId: s.cuentaId, turnoId: s.turnoId, googleEventId: s.googleEventId },
+        data: {
+          nutricionistaId: inquilinoActual(),
+          cuentaId: s.cuentaId,
+          turnoId: s.turnoId,
+          googleEventId: s.googleEventId,
+        },
       });
     }
   }

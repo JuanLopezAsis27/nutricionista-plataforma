@@ -4,6 +4,7 @@ import type {
 } from "@prisma/client";
 import type { IRecordatorioWhatsappRepositorio } from "@/dominio/repositorios/IRecordatorioWhatsappRepositorio";
 import { RecordatorioWhatsapp } from "@/dominio/entidades/RecordatorioWhatsapp";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /**
  * Implementación con Prisma del log de recordatorios por WhatsApp.
@@ -18,6 +19,7 @@ export class PrismaRepositorioRecordatorioWhatsapp implements IRecordatorioWhats
     const d = recordatorio.aPrimitivos();
     const fila = await this.prisma.recordatorioWhatsapp.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         id: d.id,
         turnoId: d.turnoId,
         pacienteId: d.pacienteId,

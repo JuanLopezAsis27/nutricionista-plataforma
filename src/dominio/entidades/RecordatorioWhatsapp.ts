@@ -27,7 +27,12 @@ export interface PropiedadesRecordatorioWhatsapp {
   telefono: string;
   mensaje: string;
   estado: EstadoRecordatorioWhatsapp;
-  usuarioId: string;
+  /**
+   * Quién lo disparó. Al registrarlo siempre se conoce, pero queda nullable
+   * porque el log es de auditoría y sobrevive al borrado de ese usuario
+   * (la FK es ON DELETE SET NULL, no CASCADE).
+   */
+  usuarioId: string | null;
   idExterno: string | null;
   creadoEn: Date;
   confirmadoEn: Date | null;

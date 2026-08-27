@@ -1,6 +1,8 @@
 import type { IPacienteRepositorio } from "../../repositorios/IPacienteRepositorio";
 import type { IUsuarioRepositorio } from "../../repositorios/IUsuarioRepositorio";
+import type { IConfiguracionRepositorio } from "../../repositorios/IConfiguracionRepositorio";
 import { Paciente, type DatosNuevoPaciente } from "../../entidades/Paciente";
+import { PREFIJO_PAIS_POR_DEFECTO } from "../../servicios/telefono";
 import { ErrorPacienteNoEncontrado } from "../../errores/ErrorPacienteNoEncontrado";
 import { ErrorValidacion } from "../../errores/ErrorValidacion";
 
@@ -20,6 +22,7 @@ export class ActualizarPaciente {
   constructor(
     private readonly repositorio: IPacienteRepositorio,
     private readonly usuarios: IUsuarioRepositorio,
+    private readonly configuracion: IConfiguracionRepositorio,
   ) {}
 
   async ejecutar(datos: DatosActualizarPaciente): Promise<Paciente> {
@@ -44,7 +47,12 @@ export class ActualizarPaciente {
       }
     }
 
-    const actualizado = existente.actualizar(cambios);
+    const config = await this.configuracion.obtener();
+    const actualizado = existente.actualizar(
+      cambios,
+      new Date(),
+      config?.whatsappPrefijoPais ?? PREFIJO_PAIS_POR_DEFECTO,
+    );
     const guardado = await this.repositorio.actualizar(actualizado);
 
     // Sincroniza el email en la cuenta de acceso del paciente.

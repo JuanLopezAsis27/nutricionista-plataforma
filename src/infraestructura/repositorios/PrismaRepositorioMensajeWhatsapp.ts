@@ -1,6 +1,7 @@
 import type { PrismaClient, MensajeWhatsapp as MensajeFila } from "@prisma/client";
 import type { IMensajeWhatsappRepositorio } from "@/dominio/repositorios/IMensajeWhatsappRepositorio";
 import { MensajeWhatsapp } from "@/dominio/entidades/MensajeWhatsapp";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /**
  * Implementación con Prisma del hilo de WhatsApp.
@@ -15,6 +16,7 @@ export class PrismaRepositorioMensajeWhatsapp implements IMensajeWhatsappReposit
     const d = mensaje.aPrimitivos();
     const fila = await this.prisma.mensajeWhatsapp.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         id: d.id,
         pacienteId: d.pacienteId,
         direccion: d.direccion,

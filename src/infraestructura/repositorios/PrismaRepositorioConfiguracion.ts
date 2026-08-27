@@ -4,6 +4,7 @@ import type {
 } from "@prisma/client";
 import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
 import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /**
  * Implementación con Prisma de la configuración del consultorio.
@@ -47,7 +48,7 @@ export class PrismaRepositorioConfiguracion implements IConfiguracionRepositorio
           data: datos,
         })
       : await this.prisma.configuracionConsultorio.create({
-          data: { id: d.id, ...datos },
+          data: { id: d.id, nutricionistaId: inquilinoActual(), ...datos },
         });
     return this.mapear(fila);
   }

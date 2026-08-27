@@ -6,6 +6,7 @@ import {
   mockPacienteRepositorio,
   mockUsuarioRepositorio,
   pacienteEjemplo,
+  mockConfiguracionRepositorio,
 } from "../_ayudas-test";
 
 describe("ActualizarPaciente", () => {
@@ -13,7 +14,7 @@ describe("ActualizarPaciente", () => {
     const repositorio = mockPacienteRepositorio({
       obtenerPorId: vi.fn(async () => pacienteEjemplo({}, "pac-1")),
     });
-    const casoUso = new ActualizarPaciente(repositorio, mockUsuarioRepositorio());
+    const casoUso = new ActualizarPaciente(repositorio, mockUsuarioRepositorio(), mockConfiguracionRepositorio());
 
     const actualizado = await casoUso.ejecutar({ id: "pac-1", nombre: "Anita" });
 
@@ -23,7 +24,7 @@ describe("ActualizarPaciente", () => {
 
   it("lanza ErrorPacienteNoEncontrado si el paciente no existe", async () => {
     const repositorio = mockPacienteRepositorio();
-    const casoUso = new ActualizarPaciente(repositorio, mockUsuarioRepositorio());
+    const casoUso = new ActualizarPaciente(repositorio, mockUsuarioRepositorio(), mockConfiguracionRepositorio());
 
     await expect(casoUso.ejecutar({ id: "x", nombre: "Z" })).rejects.toBeInstanceOf(
       ErrorPacienteNoEncontrado,
@@ -37,7 +38,7 @@ describe("ActualizarPaciente", () => {
         pacienteEjemplo({ email: "otro@mail.com" }, "pac-2"),
       ),
     });
-    const casoUso = new ActualizarPaciente(repositorio, mockUsuarioRepositorio());
+    const casoUso = new ActualizarPaciente(repositorio, mockUsuarioRepositorio(), mockConfiguracionRepositorio());
 
     await expect(
       casoUso.ejecutar({ id: "pac-1", email: "otro@mail.com" }),
@@ -55,7 +56,7 @@ describe("ActualizarPaciente", () => {
     const repositorio = mockPacienteRepositorio({
       obtenerPorId: vi.fn(async () => pacienteEjemplo({ email: "ana@mail.com" }, "pac-1")),
     });
-    const casoUso = new ActualizarPaciente(repositorio, usuarios);
+    const casoUso = new ActualizarPaciente(repositorio, usuarios, mockConfiguracionRepositorio());
 
     await casoUso.ejecutar({ id: "pac-1", email: "nueva@mail.com" });
 

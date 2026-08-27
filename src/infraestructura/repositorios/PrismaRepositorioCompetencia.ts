@@ -1,6 +1,7 @@
 import type { PrismaClient, Competencia as CompetenciaFila } from "@prisma/client";
 import type { ICompetenciaRepositorio } from "@/dominio/repositorios/ICompetenciaRepositorio";
 import { Competencia, type ImportanciaCompetencia } from "@/dominio/entidades/Competencia";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /**
  * Implementación con Prisma del repositorio de competencias.
@@ -13,6 +14,7 @@ export class PrismaRepositorioCompetencia implements ICompetenciaRepositorio {
     const d = competencia.aPrimitivos();
     const fila = await this.prisma.competencia.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         id: d.id,
         pacienteId: d.pacienteId,
         nombre: d.nombre,

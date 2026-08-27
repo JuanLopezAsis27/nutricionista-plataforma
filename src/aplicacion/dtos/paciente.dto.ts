@@ -35,10 +35,19 @@ export type ActualizarPacienteDto = z.infer<typeof actualizarPacienteDto>;
 export const idPacienteDto = z.object({ id: z.string().min(1) });
 export type IdPacienteDto = z.infer<typeof idPacienteDto>;
 
+/** Baja lógica del paciente: conserva toda su historia clínica. */
+export const archivarPacienteDto = z.object({
+  id: z.string().min(1),
+  motivo: z.string().max(500).optional().nullable(),
+});
+export type ArchivarPacienteDto = z.infer<typeof archivarPacienteDto>;
+
 export const listarPacientesDto = z.object({
   busqueda: z.string().optional(),
   pagina: z.number().int().positive().default(1),
   porPagina: z.number().int().positive().max(100).default(10),
+  /** Los archivados quedan fuera salvo que se pidan explícitamente. */
+  incluirArchivados: z.boolean().default(false),
 });
 export type ListarPacientesDto = z.infer<typeof listarPacientesDto>;
 
@@ -49,8 +58,11 @@ export const pacienteSalidaDto = z.object({
   apellido: z.string(),
   email: z.string(),
   telefono: z.string().nullable(),
+  telefonoE164: z.string().nullable(),
   fechaNacimiento: z.date().nullable(),
   notas: z.string().nullable(),
+  archivadoEn: z.date().nullable(),
+  motivoArchivado: z.string().nullable(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
 });

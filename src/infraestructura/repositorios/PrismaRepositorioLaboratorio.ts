@@ -1,6 +1,7 @@
 import type { PrismaClient, Prisma } from "@prisma/client";
 import type { ILaboratorioRepositorio } from "@/dominio/repositorios/ILaboratorioRepositorio";
 import { Laboratorio } from "@/dominio/entidades/Laboratorio";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Fila de laboratorio con sus archivos incluidos. */
 type LaboratorioConArchivos = Prisma.LaboratorioGetPayload<{
@@ -20,6 +21,7 @@ export class PrismaRepositorioLaboratorio implements ILaboratorioRepositorio {
     const fila = await this.prisma.$transaction(async (tx) => {
       await tx.laboratorio.create({
         data: {
+          nutricionistaId: inquilinoActual(),
           id: datos.id,
           pacienteId: datos.pacienteId,
           fecha: this.soloFecha(datos.fecha),

@@ -38,6 +38,7 @@ import { PrismaRepositorioEstadisticas } from "@/infraestructura/repositorios/Pr
 import { PrismaRepositorioMensajeria } from "@/infraestructura/repositorios/PrismaRepositorioMensajeria";
 import { PrismaRepositorioHistorialIA } from "@/infraestructura/repositorios/PrismaRepositorioHistorialIA";
 import { PrismaRepositorioConfiguracion } from "@/infraestructura/repositorios/PrismaRepositorioConfiguracion";
+import { PrismaRepositorioNutricionista } from "@/infraestructura/repositorios/PrismaRepositorioNutricionista";
 import { PrismaRepositorioRecordatorioWhatsapp } from "@/infraestructura/repositorios/PrismaRepositorioRecordatorioWhatsapp";
 import { PrismaRepositorioMensajeWhatsapp } from "@/infraestructura/repositorios/PrismaRepositorioMensajeWhatsapp";
 import { ResolvedorProveedorWhatsapp } from "@/infraestructura/whatsapp/ResolvedorProveedorWhatsapp";
@@ -158,6 +159,9 @@ const repositorioEstadisticas = new PrismaRepositorioEstadisticas(prisma);
 const repositorioMensajeria = new PrismaRepositorioMensajeria(prisma);
 const repositorioHistorialIA = new PrismaRepositorioHistorialIA(prisma);
 const repositorioConfiguracion = new PrismaRepositorioConfiguracion(prisma);
+// Registro de inquilinos: la fila que ahora referencian por FK las 45 tablas
+// de inquilino. No es una tabla de inquilino, es la tabla DE los inquilinos.
+const repositorioNutricionista = new PrismaRepositorioNutricionista(prisma);
 const repositorioRecordatorioWhatsapp = new PrismaRepositorioRecordatorioWhatsapp(prisma);
 const repositorioMensajeWhatsapp = new PrismaRepositorioMensajeWhatsapp(prisma);
 const repositorioAxioma = new PrismaRepositorioAxioma(prisma);
@@ -287,6 +291,9 @@ export const servicioPaciente = crearServicioPaciente({
   plantillas: repositorioPlantillaEmail,
   hasheador,
   servicioEmail,
+  // El prefijo de país del consultorio define cómo se canoniza el teléfono
+  // del paciente a E.164 al darlo de alta o editarlo.
+  configuracion: repositorioConfiguracion,
   nombreProfesional: NOMBRE_PROFESIONAL,
 });
 
@@ -454,6 +461,7 @@ export const servicioSuperAdmin = crearServicioSuperAdmin({
   usuarios: repositorioUsuario,
   hasheador,
   provisionador: provisionadorNutricionista,
+  nutricionistas: repositorioNutricionista,
 });
 
 // Integraciones (Google). Los casos de uso son null si no está configurada.

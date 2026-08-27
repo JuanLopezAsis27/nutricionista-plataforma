@@ -2,6 +2,7 @@ import type { PrismaClient, Prisma } from "@prisma/client";
 import type {
   IRegistroDiarioRepositorio,
   HijoDiario,
+  ResumenDiario,
 } from "@/dominio/repositorios/IRegistroDiarioRepositorio";
 import {
   RegistroDiario,
@@ -10,6 +11,7 @@ import {
   type CalidadSueno,
   type IntensidadActividad,
 } from "@/dominio/entidades/RegistroDiario";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Fila del registro con hijos incluidos (foto solo como id). */
 type RegistroConHijos = Prisma.RegistroDiarioGetPayload<{
@@ -38,6 +40,7 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
     const datos = registro.aPrimitivos();
     const fila = await this.prisma.registroDiario.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         id: datos.id,
         pacienteId: datos.pacienteId,
         fecha: this.soloFecha(datos.fecha),
@@ -102,9 +105,51 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
     return this.prisma.registroDiario.count({ where: { pacienteId } });
   }
 
+  /**
+   * Tres consultas agregadas para TODOS los pacientes, en vez de dos por
+   * paciente. El filtro por inquilino lo agrega la extensión de Prisma.
+   */
+  async resumenPorPacienteEnRango(
+    desde: Date,
+    hasta: Date,
+  ): Promise<Map<string, ResumenDiario>> {
+    const rango = { gte: this.soloFecha(desde), lte: this.soloFecha(hasta) };
+
+    const [totales, conPeso, conActividad] = await Promise.all([
+      // Cuántos registros tiene cada paciente en toda su historia.
+      this.prisma.registroDiario.groupBy({ by: ["pacienteId"], _count: { _all: true } }),
+      // Quiénes registraron peso dentro del rango.
+      this.prisma.registroDiario.findMany({
+        where: { fecha: rango, pesoKg: { not: null } },
+        select: { pacienteId: true },
+        distinct: ["pacienteId"],
+      }),
+      // Quiénes cargaron alguna actividad dentro del rango.
+      this.prisma.registroDiario.findMany({
+        where: { fecha: rango, actividades: { some: {} } },
+        select: { pacienteId: true },
+        distinct: ["pacienteId"],
+      }),
+    ]);
+
+    const pesoDe = new Set(conPeso.map((r) => r.pacienteId));
+    const actividadDe = new Set(conActividad.map((r) => r.pacienteId));
+
+    const resumen = new Map<string, ResumenDiario>();
+    for (const fila of totales) {
+      resumen.set(fila.pacienteId, {
+        totalRegistros: fila._count._all,
+        registroPeso: pesoDe.has(fila.pacienteId),
+        huboActividad: actividadDe.has(fila.pacienteId),
+      });
+    }
+    return resumen;
+  }
+
   async agregarComida(registroId: string, comida: ComidaConsumida): Promise<void> {
     await this.prisma.comidaConsumida.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         id: comida.id,
         registroId,
         franja: comida.franja,
@@ -133,6 +178,7 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
   async agregarActividad(registroId: string, actividad: ActividadFisica): Promise<void> {
     await this.prisma.actividadFisica.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         id: actividad.id,
         registroId,
         tipo: actividad.tipo,

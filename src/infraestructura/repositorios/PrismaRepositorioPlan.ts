@@ -12,6 +12,7 @@ import {
   PlanNutricional,
   type TipoRecomendacionPlan,
 } from "@/dominio/entidades/PlanNutricional";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Include estándar: franjas ordenadas con opciones (y nombre de receta), extras. */
 const INCLUIR_HIJOS = {
@@ -55,8 +56,11 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
 
   async crear(plan: PlanNutricional): Promise<PlanNutricional> {
     const d = plan.aPrimitivos();
+    // Las hijas del agregado llevan el inquilino materializado (migración 27).
+    const inquilino = inquilinoActual();
     const fila = await this.prisma.planNutricional.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         id: d.id,
         nombre: d.nombre,
         descripcion: d.descripcion,
@@ -73,6 +77,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
         comidas: {
           create: d.comidas.map((comida) => ({
             id: comida.id,
+            nutricionistaId: inquilino,
             nombre: comida.nombre,
             horaDesde: comida.horaDesde,
             horaHasta: comida.horaHasta,
@@ -80,6 +85,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
             opciones: {
               create: comida.opciones.map((opcion) => ({
                 id: opcion.id,
+                nutricionistaId: inquilino,
                 numero: opcion.numero,
                 contenido: opcion.contenido,
                 recetaId: opcion.recetaId,
@@ -91,6 +97,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
         equivalencias: {
           create: d.equivalencias.map((equivalencia) => ({
             id: equivalencia.id,
+            nutricionistaId: inquilino,
             titulo: equivalencia.titulo,
             detalle: equivalencia.detalle,
             orden: equivalencia.orden,
@@ -99,6 +106,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
         recomendaciones: {
           create: d.recomendaciones.map((recomendacion) => ({
             id: recomendacion.id,
+            nutricionistaId: inquilino,
             tipo: recomendacion.tipo,
             texto: recomendacion.texto,
             orden: recomendacion.orden,
@@ -112,6 +120,8 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
 
   async actualizar(plan: PlanNutricional): Promise<PlanNutricional> {
     const d = plan.aPrimitivos();
+    // Las hijas del agregado llevan el inquilino materializado (migración 27).
+    const inquilino = inquilinoActual();
     // Reemplaza el conjunto de hijos: borra los viejos y crea los nuevos
     // (las opciones caen en cascada con sus comidas).
     const fila = await this.prisma.$transaction(async (tx) => {
@@ -131,6 +141,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
           comidas: {
             create: d.comidas.map((comida) => ({
               id: comida.id,
+              nutricionistaId: inquilino,
               nombre: comida.nombre,
               horaDesde: comida.horaDesde,
               horaHasta: comida.horaHasta,
@@ -138,6 +149,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
               opciones: {
                 create: comida.opciones.map((opcion) => ({
                   id: opcion.id,
+                  nutricionistaId: inquilino,
                   numero: opcion.numero,
                   contenido: opcion.contenido,
                   recetaId: opcion.recetaId,
@@ -149,6 +161,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
           equivalencias: {
             create: d.equivalencias.map((equivalencia) => ({
               id: equivalencia.id,
+              nutricionistaId: inquilino,
               titulo: equivalencia.titulo,
               detalle: equivalencia.detalle,
               orden: equivalencia.orden,
@@ -157,6 +170,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
           recomendaciones: {
             create: d.recomendaciones.map((recomendacion) => ({
               id: recomendacion.id,
+              nutricionistaId: inquilino,
               tipo: recomendacion.tipo,
               texto: recomendacion.texto,
               orden: recomendacion.orden,
@@ -222,6 +236,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
   async asignarAPaciente(asignacion: AsignacionPlan): Promise<AsignacionPlan> {
     const fila = await this.prisma.asignacionPlan.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         id: asignacion.id,
         planId: asignacion.planId,
         pacienteId: asignacion.pacienteId,
@@ -295,7 +310,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
           recetaNombre: opcion.receta?.nombre ?? null,
           recetaMacros: opcion.receta
             ? {
-                calorias: opcion.receta.calorias,
+                calorias: aNumero(opcion.receta.calorias),
                 proteinasG: aNumero(opcion.receta.proteinasG),
                 carbohidratosG: aNumero(opcion.receta.carbohidratosG),
                 grasasG: aNumero(opcion.receta.grasasG),

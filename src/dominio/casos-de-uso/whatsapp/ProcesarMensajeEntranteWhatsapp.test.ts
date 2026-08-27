@@ -25,7 +25,15 @@ function armar(pacientes = [pacienteEjemplo({ telefono: "011 15 5555-4444" })]) 
   const caso = new ProcesarMensajeEntranteWhatsapp(
     mensajes,
     new ResolverPacientePorTelefono(
-      mockPacienteRepositorio({ listar: vi.fn(async () => pacientes) }),
+      // El repositorio real resuelve por el E.164 persistido en el paciente
+      // (índice único por inquilino), no recorriendo la tabla. El mock imita
+      // esa búsqueda: la canonización del teléfono ya la hizo la entidad al
+      // crearlo, que es donde ahora vive.
+      mockPacienteRepositorio({
+        obtenerPorTelefonoE164: vi.fn(
+          async (e164: string) => pacientes.find((p) => p.telefonoE164 === e164) ?? null,
+        ),
+      }),
       mockConfiguracionRepositorio(),
     ),
     mockUsuarioRepositorio({

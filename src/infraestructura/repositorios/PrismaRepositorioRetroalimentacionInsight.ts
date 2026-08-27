@@ -3,6 +3,7 @@ import type {
   IRetroalimentacionInsightRepositorio,
   DatosRetroalimentacion,
 } from "@/dominio/repositorios/IRetroalimentacionInsightRepositorio";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /**
  * Repositorio Prisma de la retroalimentación de insights. Upsert por
@@ -32,6 +33,7 @@ export class PrismaRepositorioRetroalimentacionInsight
       await this.prisma.retroalimentacionInsight.create({
         data: {
           id: crypto.randomUUID(),
+          nutricionistaId: inquilinoActual(),
           pacienteId: datos.pacienteId,
           tipoInsight: datos.tipoInsight,
           ...valores,

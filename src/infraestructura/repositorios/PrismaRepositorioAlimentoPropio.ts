@@ -1,6 +1,7 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient, Prisma } from "@prisma/client";
 import type { IAlimentoPropioRepositorio } from "@/dominio/repositorios/IAlimentoPropioRepositorio";
 import { AlimentoPropio } from "@/dominio/entidades/AlimentoPropio";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 const TAMANO_LOTE = 500; // filas por INSERT (evita el límite de parámetros de PG)
 
@@ -9,6 +10,11 @@ const TAMANO_LOTE = 500; // filas por INSERT (evita el límite de parámetros de
  * (agrega `nutricionistaId` en escrituras y filtra en lecturas). `reemplazarTodos`
  * borra la lista del inquilino e inserta la nueva de forma atómica.
  */
+/** Decimal nunca cruza infraestructura: se mapea a number. */
+function aNumero(valor: Prisma.Decimal | null): number | null {
+  return valor === null ? null : valor.toNumber();
+}
+
 export class PrismaRepositorioAlimentoPropio implements IAlimentoPropioRepositorio {
   constructor(private readonly prisma: PrismaClient) {}
 
@@ -34,7 +40,11 @@ export class PrismaRepositorioAlimentoPropio implements IAlimentoPropioRepositor
 
     await this.prisma.$transaction([
       this.prisma.alimentoPropio.deleteMany({}),
-      ...lotes.map((lote) => this.prisma.alimentoPropio.createMany({ data: lote })),
+      ...lotes.map((lote) =>
+        this.prisma.alimentoPropio.createMany({
+          data: lote.map((f) => ({ ...f, nutricionistaId: inquilinoActual() })),
+        }),
+      ),
     ]);
     return filas.length;
   }
@@ -52,10 +62,10 @@ export class PrismaRepositorioAlimentoPropio implements IAlimentoPropioRepositor
         id: f.id,
         nombre: f.nombre,
         marca: f.marca,
-        caloriasPor100: f.caloriasPor100,
-        proteinasPor100: f.proteinasPor100,
-        carbohidratosPor100: f.carbohidratosPor100,
-        grasasPor100: f.grasasPor100,
+        caloriasPor100: aNumero(f.caloriasPor100),
+        proteinasPor100: aNumero(f.proteinasPor100),
+        carbohidratosPor100: aNumero(f.carbohidratosPor100),
+        grasasPor100: aNumero(f.grasasPor100),
       }),
     );
   }

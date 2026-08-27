@@ -1,6 +1,7 @@
 import type { PrismaClient, EmailEnviado as EmailFila } from "@prisma/client";
 import type { IEmailEnviadoRepositorio } from "@/dominio/repositorios/IEmailEnviadoRepositorio";
 import { EmailEnviado } from "@/dominio/entidades/EmailEnviado";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Implementación con Prisma del log de emails enviados. */
 export class PrismaRepositorioEmailEnviado implements IEmailEnviadoRepositorio {
@@ -11,6 +12,7 @@ export class PrismaRepositorioEmailEnviado implements IEmailEnviadoRepositorio {
     await this.prisma.emailEnviado.create({
       data: {
         id: d.id,
+        nutricionistaId: inquilinoActual(),
         plantillaClave: d.plantillaClave,
         para: d.para,
         asunto: d.asunto,
@@ -23,8 +25,11 @@ export class PrismaRepositorioEmailEnviado implements IEmailEnviadoRepositorio {
   }
 
   async yaEnviado(plantillaClave: string, referenciaId: string): Promise<boolean> {
-    const fila = await this.prisma.emailEnviado.findUnique({
-      where: { plantillaClave_referenciaId: { plantillaClave, referenciaId } },
+    // La unicidad pasó a ser (nutricionistaId, plantillaClave, referenciaId):
+    // antes dos consultorios con el mismo referenciaId se pisaban la
+    // idempotencia y al segundo no le llegaba el recordatorio.
+    const fila = await this.prisma.emailEnviado.findFirst({
+      where: { plantillaClave, referenciaId },
     });
     return fila != null;
   }

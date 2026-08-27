@@ -4,6 +4,16 @@ import type {
   ActividadFisica,
 } from "../entidades/RegistroDiario";
 
+/** Señales del diario de un paciente dentro de un rango de fechas. */
+export interface ResumenDiario {
+  /** Registros del paciente en toda su historia (no solo en el rango). */
+  totalRegistros: number;
+  /** Registró el peso al menos una vez dentro del rango. */
+  registroPeso: boolean;
+  /** Cargó al menos una actividad física dentro del rango. */
+  huboActividad: boolean;
+}
+
 /** Hijo del diario con los datos mínimos para autorizar y limpiar fotos. */
 export interface HijoDiario {
   id: string;
@@ -24,6 +34,16 @@ export interface IRegistroDiarioRepositorio {
   listarPorRango(pacienteId: string, desde: Date, hasta: Date): Promise<RegistroDiario[]>;
   /** Cantidad total de registros del paciente (¿inició su diario?). */
   contarRegistros(pacienteId: string): Promise<number>;
+
+  /**
+   * Resumen del diario de TODOS los pacientes del inquilino en un rango, en una
+   * sola lectura. Existe para el barrido nocturno de seguimiento, que antes
+   * hacía dos consultas por paciente (~1.600 idas y vueltas con 800 pacientes).
+   *
+   * Solo aparecen los pacientes que alguna vez usaron el diario: no haber
+   * registrado nunca nada no es una señal de abandono.
+   */
+  resumenPorPacienteEnRango(desde: Date, hasta: Date): Promise<Map<string, ResumenDiario>>;
 
   agregarComida(registroId: string, comida: ComidaConsumida): Promise<void>;
   eliminarComida(comidaId: string): Promise<void>;

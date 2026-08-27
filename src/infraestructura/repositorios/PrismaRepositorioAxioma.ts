@@ -8,6 +8,7 @@ import {
   type AmbitoAxioma,
   type OperadorAxioma,
 } from "@/dominio/entidades/AxiomaNutricional";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Implementación con Prisma del repositorio de axiomas (base de conocimiento). */
 export class PrismaRepositorioAxioma implements IAxiomaRepositorio {
@@ -18,6 +19,7 @@ export class PrismaRepositorioAxioma implements IAxiomaRepositorio {
     const fila = await this.prisma.axiomaNutricional.create({
       data: {
         id: d.id,
+        nutricionistaId: inquilinoActual(),
         ambito: d.ambito,
         parametro: d.parametro,
         operador: d.operador,

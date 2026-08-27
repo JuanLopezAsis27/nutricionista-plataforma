@@ -8,6 +8,7 @@ import {
   type ProveedorCuenta,
 } from "@/dominio/entidades/CuentaConectada";
 import type { CifradorTokens } from "@/infraestructura/seguridad/CifradorTokens";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /**
  * Implementación con Prisma del repositorio de cuentas externas conectadas.
@@ -41,7 +42,7 @@ export class PrismaRepositorioCuentaConectada implements ICuentaConectadaReposit
     });
     const fila = existente
       ? await this.prisma.cuentaConectada.update({ where: { id: existente.id }, data: datos })
-      : await this.prisma.cuentaConectada.create({ data: { id: d.id, ...datos } });
+      : await this.prisma.cuentaConectada.create({ data: { id: d.id, nutricionistaId: inquilinoActual(), ...datos } });
     return this.mapear(fila);
   }
 

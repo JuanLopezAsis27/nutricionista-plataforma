@@ -6,7 +6,7 @@ import { ConfiguracionConsultorio } from "../../entidades/ConfiguracionConsultor
 import { MensajeWhatsapp } from "../../entidades/MensajeWhatsapp";
 import { ErrorPacienteNoEncontrado } from "../../errores/ErrorPacienteNoEncontrado";
 import { ErrorValidacion } from "../../errores/ErrorValidacion";
-import { normalizarTelefonoE164, PREFIJO_PAIS_POR_DEFECTO } from "./telefono";
+import { normalizarTelefonoE164, PREFIJO_PAIS_POR_DEFECTO } from "../../servicios/telefono";
 
 /**
  * Caso de uso: escribirle a un paciente por WhatsApp desde la app.

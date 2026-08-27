@@ -5,6 +5,7 @@ import {
   actualizarPacienteDto,
   idPacienteDto,
   listarPacientesDto,
+  archivarPacienteDto,
 } from "@/aplicacion/dtos/paciente.dto";
 
 /**
@@ -49,6 +50,31 @@ export const routerPacientes = crearRouter({
     .mutation(async ({ ctx, input }) => {
       try {
         return await ctx.servicios.paciente.actualizarPaciente(input);
+      } catch (error) {
+        throw aTRPCError(error);
+      }
+    }),
+
+  /**
+   * Baja lógica: saca al paciente de los listados y de las estadísticas pero
+   * conserva su historia clínica. Es la alternativa a `eliminar`, que borra en
+   * cascada turnos, antropometrías y laboratorios.
+   */
+  archivar: nutricionistaProcedimiento
+    .input(archivarPacienteDto)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await ctx.servicios.paciente.archivarPaciente(input.id, input.motivo ?? null);
+      } catch (error) {
+        throw aTRPCError(error);
+      }
+    }),
+
+  reactivar: nutricionistaProcedimiento
+    .input(idPacienteDto)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await ctx.servicios.paciente.reactivarPaciente(input.id);
       } catch (error) {
         throw aTRPCError(error);
       }

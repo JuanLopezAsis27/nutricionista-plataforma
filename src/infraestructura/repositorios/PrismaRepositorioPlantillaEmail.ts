@@ -1,6 +1,7 @@
 import type { PrismaClient, PlantillaEmail as PlantillaFila } from "@prisma/client";
 import type { IPlantillaEmailRepositorio } from "@/dominio/repositorios/IPlantillaEmailRepositorio";
 import { PlantillaEmail } from "@/dominio/entidades/PlantillaEmail";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Implementación con Prisma del repositorio de plantillas de email. */
 export class PrismaRepositorioPlantillaEmail implements IPlantillaEmailRepositorio {
@@ -11,6 +12,7 @@ export class PrismaRepositorioPlantillaEmail implements IPlantillaEmailRepositor
     const fila = await this.prisma.plantillaEmail.create({
       data: {
         id: d.id,
+        nutricionistaId: inquilinoActual(),
         clave: d.clave,
         nombre: d.nombre,
         asunto: d.asunto,

@@ -1,6 +1,11 @@
 import type { PrismaClient } from "@prisma/client";
 import type { CifradorTokens } from "@/infraestructura/seguridad/CifradorTokens";
 import { ejecutarGlobal } from "@/infraestructura/multitenancy/contextoTenant";
+import {
+  WHATSAPP_APP_SECRET,
+  WHATSAPP_PHONE_NUMBER_ID,
+  WHATSAPP_VERIFY_TOKEN,
+} from "@/infraestructura/repositorios/PrismaRepositorioCredenciales";
 import { obtenerConfigWhatsapp } from "./configWhatsapp";
 
 /** Inquilino dueño de un número de WhatsApp, con lo necesario para validarlo. */
@@ -24,15 +29,34 @@ export class DirectorioWhatsapp {
     private readonly cifrador: CifradorTokens | null,
   ) {}
 
-  /** Inquilino dueño de ese número, o null si ninguno lo tiene configurado. */
+  /**
+   * Inquilino dueño de ese número, o null si ninguno lo tiene configurado.
+   *
+   * El `phone_number_id` se guarda en claro y con índice único: la búsqueda es
+   * un lookup, y la base impide que dos consultorios reclamen el mismo número
+   * (antes nada lo impedía y el ruteo quedaba a merced de cuál devolviera
+   * Postgres primero).
+   */
   async porPhoneNumberId(phoneNumberId: string): Promise<InquilinoWhatsapp | null> {
     const fila = await ejecutarGlobal(() =>
-      this.prisma.credencialesIntegracion.findFirst({ where: { whatsappPhoneNumberId: phoneNumberId } }),
+      this.prisma.credencialProveedor.findFirst({
+        where: { ...WHATSAPP_PHONE_NUMBER_ID, valor: phoneNumberId },
+      }),
     );
     if (fila) {
+      const appSecret = await ejecutarGlobal(() =>
+        this.prisma.credencialProveedor.findUnique({
+          where: {
+            nutricionistaId_proveedor_clave: {
+              nutricionistaId: fila.nutricionistaId,
+              ...WHATSAPP_APP_SECRET,
+            },
+          },
+        }),
+      );
       return {
         nutricionistaId: fila.nutricionistaId,
-        appSecret: this.descifrar(fila.whatsappAppSecretCifrado),
+        appSecret: this.descifrar(appSecret?.valor ?? null),
       };
     }
 
@@ -56,13 +80,13 @@ export class DirectorioWhatsapp {
     if (env?.verifyToken && sonIguales(env.verifyToken, token)) return true;
 
     const filas = await ejecutarGlobal(() =>
-      this.prisma.credencialesIntegracion.findMany({
-        where: { whatsappVerifyTokenCifrado: { not: null } },
-        select: { whatsappVerifyTokenCifrado: true },
+      this.prisma.credencialProveedor.findMany({
+        where: WHATSAPP_VERIFY_TOKEN,
+        select: { valor: true },
       }),
     );
     return filas.some((fila) => {
-      const guardado = this.descifrar(fila.whatsappVerifyTokenCifrado);
+      const guardado = this.descifrar(fila.valor);
       return guardado != null && sonIguales(guardado, token);
     });
   }

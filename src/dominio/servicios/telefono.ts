@@ -1,4 +1,4 @@
-import { ErrorValidacion } from "../../errores/ErrorValidacion";
+import { ErrorValidacion } from "../errores/ErrorValidacion";
 
 /** Longitudes válidas de un número E.164 (sin el "+"). */
 const MIN_DIGITOS = 8;

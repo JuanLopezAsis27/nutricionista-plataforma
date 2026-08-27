@@ -25,6 +25,7 @@ import type { IEstadisticasRepositorio } from "../repositorios/IEstadisticasRepo
 import type { IMensajeriaRepositorio } from "../repositorios/IMensajeriaRepositorio";
 import type { IHistorialIARepositorio } from "../repositorios/IHistorialIARepositorio";
 import type { IConfiguracionRepositorio } from "../repositorios/IConfiguracionRepositorio";
+import type { INutricionistaRepositorio } from "../repositorios/INutricionistaRepositorio";
 import type { IRecordatorioWhatsappRepositorio } from "../repositorios/IRecordatorioWhatsappRepositorio";
 import type { IProveedorWhatsapp } from "../servicios/IProveedorWhatsapp";
 import type { IMensajeWhatsappRepositorio } from "../repositorios/IMensajeWhatsappRepositorio";
@@ -108,6 +109,7 @@ export function mockPacienteRepositorio(
     eliminar: vi.fn(async () => {}),
     obtenerPorId: vi.fn(async () => null),
     obtenerPorEmail: vi.fn(async () => null),
+    obtenerPorTelefonoE164: vi.fn(async () => null),
     listar: vi.fn(async () => []),
     contar: vi.fn(async () => 0),
     ...parcial,
@@ -257,6 +259,7 @@ export function mockRegistroDiarioRepositorio(
     obtenerPorPacienteYFecha: vi.fn(async () => null),
     listarPorRango: vi.fn(async () => []),
     contarRegistros: vi.fn(async () => 0),
+    resumenPorPacienteEnRango: vi.fn(async () => new Map()),
     agregarComida: vi.fn(async () => {}),
     eliminarComida: vi.fn(async () => {}),
     obtenerComida: vi.fn(async () => null),
@@ -568,6 +571,16 @@ export function recordatorioWhatsappEjemplo(
     id,
     new Date("2026-08-24T12:00:00Z"),
   );
+}
+
+export function mockNutricionistaRepositorio(
+  parcial: Partial<INutricionistaRepositorio> = {},
+): INutricionistaRepositorio {
+  return {
+    crear: vi.fn(async () => {}),
+    existe: vi.fn(async () => true),
+    ...parcial,
+  };
 }
 
 export function mockConfiguracionRepositorio(

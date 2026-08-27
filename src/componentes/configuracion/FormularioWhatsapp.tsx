@@ -9,7 +9,7 @@ import {
   MAX_LARGO_PLANTILLA_WHATSAPP,
   renderizarPlantilla,
 } from "@/dominio/casos-de-uso/whatsapp/plantilla";
-import { PREFIJO_PAIS_POR_DEFECTO } from "@/dominio/casos-de-uso/whatsapp/telefono";
+import { PREFIJO_PAIS_POR_DEFECTO } from "@/dominio/servicios/telefono";
 import { variablesEjemplo } from "@/dominio/casos-de-uso/secretaria/variables";
 import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
 import { Input } from "@/componentes/ui/input";

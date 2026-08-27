@@ -20,8 +20,14 @@ const globalParaPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-/** Tablas con columna `nutricionistaId` (inquilino). */
-const MODELOS_INQUILINO = new Set<string>([
+/**
+ * Tablas con columna `nutricionistaId` (inquilino).
+ *
+ * Debe coincidir con las back-relations del modelo `Nutricionista` en
+ * schema.prisma: si un modelo tiene la columna y no está acá, sus consultas
+ * por id NO se filtran por inquilino y se cruzan datos entre consultorios.
+ */
+export const MODELOS_INQUILINO = new Set<string>([
   "Paciente",
   "Usuario",
   "Suplemento",
@@ -48,11 +54,31 @@ const MODELOS_INQUILINO = new Set<string>([
   "AxiomaNutricional",
   "SincronizacionTurno",
   "MetricaDispositivo",
-  "CredencialesIntegracion",
+  "CredencialProveedor",
+  "PreferenciasIntegracion",
   "AlimentoPropio",
   "RetroalimentacionInsight",
   "RecordatorioWhatsapp",
   "MensajeWhatsapp",
+
+  // Hijas del agregado (migración 27). Antes quedaban fuera del filtro: se
+  // llegaba a ellas por id directo sin ningún control de inquilino. Los casos
+  // más visibles eran `Archivo` (el endpoint de descarga da acceso total al
+  // rol NUTRICIONISTA) y `Mensaje` (contarNoLeidos sumaba sobre toda la tabla).
+  "Archivo",
+  "Mensaje",
+  "ComidaConsumida",
+  "ActividadFisica",
+  "ComidaPlan",
+  "OpcionComida",
+  "EquivalenciaPlan",
+  "RecomendacionPlan",
+  "IngredienteReceta",
+  "Estrategia",
+  "HistorialObjetivo",
+  "AsignacionPlan",
+  "AsignacionReceta",
+  "AsignacionMaterial",
 ]);
 
 function crearCliente(): PrismaClient {

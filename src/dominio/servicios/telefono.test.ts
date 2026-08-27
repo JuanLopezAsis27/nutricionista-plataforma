@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { normalizarTelefonoE164 } from "./telefono";
-import { ErrorValidacion } from "../../errores/ErrorValidacion";
+import { ErrorValidacion } from "../errores/ErrorValidacion";
 
 describe("normalizarTelefonoE164", () => {
   // El caso que importa: sin el 9 después del 54, wa.me abre WhatsApp pero no

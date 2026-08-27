@@ -1,6 +1,8 @@
 import type { IPacienteRepositorio } from "../../repositorios/IPacienteRepositorio";
 import type { IUsuarioRepositorio } from "../../repositorios/IUsuarioRepositorio";
 import type { IHasheadorContrasena } from "../../servicios/IHasheadorContrasena";
+import type { IConfiguracionRepositorio } from "../../repositorios/IConfiguracionRepositorio";
+import { PREFIJO_PAIS_POR_DEFECTO } from "../../servicios/telefono";
 import { Paciente, type DatosNuevoPaciente } from "../../entidades/Paciente";
 import { Usuario } from "../../entidades/Usuario";
 import { ErrorValidacion } from "../../errores/ErrorValidacion";
@@ -26,6 +28,7 @@ export class CrearPaciente {
     private readonly repositorio: IPacienteRepositorio,
     private readonly usuarios: IUsuarioRepositorio,
     private readonly hasheador: IHasheadorContrasena,
+    private readonly configuracion: IConfiguracionRepositorio,
   ) {}
 
   async ejecutar(datos: DatosNuevoPacienteConAcceso): Promise<Paciente> {
@@ -40,7 +43,14 @@ export class CrearPaciente {
     }
 
     // 2. Crear y persistir la ficha del paciente (valida invariantes).
-    const paciente = Paciente.crear(datos, crypto.randomUUID());
+    //    El prefijo del consultorio define cómo se canoniza el teléfono a
+    //    E.164, que es la clave con la que después se resuelve por WhatsApp.
+    const paciente = Paciente.crear(
+      datos,
+      crypto.randomUUID(),
+      new Date(),
+      await this.prefijoPais(),
+    );
     const pacienteCreado = await this.repositorio.crear(paciente);
 
     // 3. Crear la cuenta de acceso del paciente (compensa si falla).
@@ -62,5 +72,10 @@ export class CrearPaciente {
     }
 
     return pacienteCreado;
+  }
+
+  private async prefijoPais(): Promise<string> {
+    const config = await this.configuracion.obtener();
+    return config?.whatsappPrefijoPais ?? PREFIJO_PAIS_POR_DEFECTO;
   }
 }
