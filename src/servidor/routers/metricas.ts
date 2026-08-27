@@ -1,6 +1,5 @@
 import { crearRouter, nutricionistaProcedimiento, protegidoProcedimiento } from "../trpc";
-import { aTRPCError } from "../errores-trpc";
-import { ErrorAccesoDenegado } from "@/dominio/errores/ErrorAccesoDenegado";
+import { pacienteDeSesion } from "@/dominio/servicios/politicaAcceso";
 import {
   importarMetricasDto,
   rangoMetricasDto,
@@ -19,54 +18,29 @@ export const routerMetricas = crearRouter({
   importar: protegidoProcedimiento
     .input(importarMetricasDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        if (!ctx.usuario.pacienteId) {
-          throw new ErrorAccesoDenegado("Tu usuario no tiene un paciente asociado.");
-        }
-        const importadas = await ctx.servicios.metricas.importar(ctx.usuario.pacienteId, input);
-        return { importadas };
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      const importadas = await ctx.servicios.metricas.importar(pacienteDeSesion(ctx.usuario), input);
+      return { importadas };
     }),
 
   mias: protegidoProcedimiento.input(rangoMetricasDto).query(async ({ ctx, input }) => {
-    try {
-      if (!ctx.usuario.pacienteId) {
-        throw new ErrorAccesoDenegado("Tu usuario no tiene un paciente asociado.");
-      }
-      return await ctx.servicios.metricas.listar(ctx.usuario.pacienteId, input.desde, input.hasta);
-    } catch (error) {
-      throw aTRPCError(error);
-    }
+    return await ctx.servicios.metricas.listar(pacienteDeSesion(ctx.usuario), input.desde, input.hasta);
   }),
 
   fijarInclusion: protegidoProcedimiento
     .input(fijarInclusionDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        if (!ctx.usuario.pacienteId) {
-          throw new ErrorAccesoDenegado("Tu usuario no tiene un paciente asociado.");
-        }
-        await ctx.servicios.metricas.fijarInclusion(
-          ctx.usuario.pacienteId,
-          input.fecha,
-          input.incluir,
-        );
-        return { ok: true };
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      await ctx.servicios.metricas.fijarInclusion(
+        pacienteDeSesion(ctx.usuario),
+        input.fecha,
+        input.incluir,
+      );
+      return { ok: true };
     }),
 
   // Vista del nutricionista (solo lectura; el inquilino acota al paciente).
   dePaciente: nutricionistaProcedimiento
     .input(rangoMetricasDePacienteDto)
     .query(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.metricas.listar(input.pacienteId, input.desde, input.hasta);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.metricas.listar(input.pacienteId, input.desde, input.hasta);
     }),
 });

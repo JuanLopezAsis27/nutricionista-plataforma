@@ -1,5 +1,4 @@
 import { crearRouter, nutricionistaProcedimiento } from "../trpc";
-import { aTRPCError } from "../errores-trpc";
 
 /**
  * Router de Integraciones (solo NUTRICIONISTA): estado de la conexión con
@@ -8,19 +7,11 @@ import { aTRPCError } from "../errores-trpc";
  */
 export const routerIntegraciones = crearRouter({
   estado: nutricionistaProcedimiento.query(async ({ ctx }) => {
-    try {
-      return await ctx.servicios.integraciones.estado();
-    } catch (error) {
-      throw aTRPCError(error);
-    }
+    return await ctx.servicios.integraciones.estado();
   }),
 
   desconectarGoogle: nutricionistaProcedimiento.mutation(async ({ ctx }) => {
-    try {
-      await ctx.servicios.integraciones.desconectarGoogle();
-      return { ok: true };
-    } catch (error) {
-      throw aTRPCError(error);
-    }
+    await ctx.servicios.integraciones.desconectarGoogle();
+    return { ok: true };
   }),
 });

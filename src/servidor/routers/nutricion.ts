@@ -1,5 +1,4 @@
 import { crearRouter, nutricionistaProcedimiento } from "../trpc";
-import { aTRPCError } from "../errores-trpc";
 import { buscarAlimentoDto } from "@/aplicacion/dtos/nutricion.dto";
 
 /**
@@ -11,29 +10,17 @@ export const routerNutricion = crearRouter({
   buscarAlimento: nutricionistaProcedimiento
     .input(buscarAlimentoDto)
     .query(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.nutricion.buscarAlimento(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.nutricion.buscarAlimento(input);
     }),
 
   // Alimentos propios (Excel). La importación va por route handler (multipart);
   // acá solo el estado (para la UI) y el vaciado.
   estadoAlimentosPropios: nutricionistaProcedimiento.query(async ({ ctx }) => {
-    try {
-      return await ctx.servicios.alimentosPropios.estado();
-    } catch (error) {
-      throw aTRPCError(error);
-    }
+    return await ctx.servicios.alimentosPropios.estado();
   }),
 
   vaciarAlimentosPropios: nutricionistaProcedimiento.mutation(async ({ ctx }) => {
-    try {
-      await ctx.servicios.alimentosPropios.vaciar();
-      return { ok: true };
-    } catch (error) {
-      throw aTRPCError(error);
-    }
+    await ctx.servicios.alimentosPropios.vaciar();
+    return { ok: true };
   }),
 });

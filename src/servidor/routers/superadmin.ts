@@ -1,5 +1,4 @@
 import { crearRouter, superadminProcedimiento } from "../trpc";
-import { aTRPCError } from "../errores-trpc";
 import {
   crearCuentaNutricionistaDto,
   cambiarEstadoNutricionistaDto,
@@ -11,30 +10,18 @@ import {
  */
 export const routerSuperAdmin = crearRouter({
   listarNutricionistas: superadminProcedimiento.query(async ({ ctx }) => {
-    try {
-      return await ctx.servicios.superadmin.listarNutricionistas();
-    } catch (error) {
-      throw aTRPCError(error);
-    }
+    return await ctx.servicios.superadmin.listarNutricionistas();
   }),
 
   crearNutricionista: superadminProcedimiento
     .input(crearCuentaNutricionistaDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.superadmin.crearNutricionista(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.superadmin.crearNutricionista(input);
     }),
 
   cambiarEstado: superadminProcedimiento
     .input(cambiarEstadoNutricionistaDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.superadmin.cambiarEstado(input.id, input.activo);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.superadmin.cambiarEstado(input.id, input.activo);
     }),
 });

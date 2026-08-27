@@ -1,5 +1,4 @@
 import { crearRouter, nutricionistaProcedimiento, protegidoProcedimiento } from "../trpc";
-import { aTRPCError } from "../errores-trpc";
 import {
   crearAxiomaDto,
   actualizarAxiomaDto,
@@ -13,49 +12,29 @@ import {
  */
 export const routerAxiomas = crearRouter({
   listar: nutricionistaProcedimiento.query(async ({ ctx }) => {
-    try {
-      return await ctx.servicios.axiomas.listar();
-    } catch (error) {
-      throw aTRPCError(error);
-    }
+    return await ctx.servicios.axiomas.listar();
   }),
 
   activos: protegidoProcedimiento.query(async ({ ctx }) => {
-    try {
-      return await ctx.servicios.axiomas.listarActivos();
-    } catch (error) {
-      throw aTRPCError(error);
-    }
+    return await ctx.servicios.axiomas.listarActivos();
   }),
 
   crear: nutricionistaProcedimiento
     .input(crearAxiomaDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.axiomas.crear(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.axiomas.crear(input);
     }),
 
   actualizar: nutricionistaProcedimiento
     .input(actualizarAxiomaDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.axiomas.actualizar(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.axiomas.actualizar(input);
     }),
 
   eliminar: nutricionistaProcedimiento
     .input(idAxiomaDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        await ctx.servicios.axiomas.eliminar(input.id);
-        return { eliminado: true };
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      await ctx.servicios.axiomas.eliminar(input.id);
+      return { eliminado: true };
     }),
 });
