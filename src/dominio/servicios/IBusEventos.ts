@@ -10,6 +10,20 @@ export interface EventoTiempoReal {
 }
 
 /**
+ * Evento que avisa que el bus perdió y recuperó la conexión.
+ *
+ * No lo publica ningún caso de uso: lo genera el adaptador al reconectarse.
+ * Importa porque el transporte no reintrega lo perdido — los eventos emitidos
+ * mientras la escucha estaba caída no llegan nunca —, así que el cliente que
+ * lo recibe sabe que tiene un hueco y debe re-sincronizar su estado.
+ *
+ * Vive en el puerto (y no en el adaptador) porque es vocabulario de eventos,
+ * compartido con la presentación: un hook del navegador no puede importar el
+ * adaptador sin arrastrar el driver de Postgres al bundle.
+ */
+export const TIPO_RECONEXION = "bus.reconectado";
+
+/**
  * Puerto de bus de eventos en tiempo real (pub/sub). Permite que los casos de
  * uso empujen eventos a un usuario sin conocer el transporte (SSE) ni el
  * mecanismo entre procesos (Postgres LISTEN/NOTIFY). La app lo consume desde
@@ -22,5 +36,8 @@ export interface IBusEventos {
    * Flujo de eventos destinados a `usuarioId`, hasta que `signal` se aborte
    * (el cliente cerró la conexión SSE).
    */
-  suscribir(usuarioId: string, signal: AbortSignal): AsyncIterable<EventoTiempoReal>;
+  suscribir(
+    usuarioId: string,
+    signal: AbortSignal,
+  ): AsyncIterable<EventoTiempoReal>;
 }

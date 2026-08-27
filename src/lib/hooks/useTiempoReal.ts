@@ -2,6 +2,7 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { TIPO_RECONEXION } from "@/dominio/servicios/IBusEventos";
 
 /**
  * Suscribe la sesión al flujo de eventos en tiempo real (SSE) y reacciona:
@@ -29,6 +30,13 @@ export function useTiempoReal() {
           void utils.seguimiento.contarAlertas.invalidate();
           void utils.seguimiento.alertasPendientes.invalidate();
           void utils.notificaciones.centro.invalidate();
+          break;
+        case TIPO_RECONEXION:
+          // El bus estuvo caído y volvió. LISTEN/NOTIFY no reintrega lo que se
+          // publicó en el medio, así que lo que hay en pantalla puede estar
+          // desactualizado: se invalida todo y se vuelve a pedir. Sin aviso al
+          // usuario — es una recuperación interna, no algo que deba accionar.
+          void utils.invalidate();
           break;
         case "correo.enviado":
           // Aviso de correo (recordatorios): refresca la campana del nutri.
