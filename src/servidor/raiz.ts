@@ -25,6 +25,7 @@ import { routerIntegraciones } from "./routers/integraciones";
 import { routerIA } from "./routers/ia";
 import { routerAutenticacion } from "./routers/autenticacion";
 import { routerDeportivo } from "./routers/deportivo";
+import { routerWhatsapp } from "./routers/whatsapp";
 
 /**
  * Router raíz: combina todos los sub-routers de la aplicación.
@@ -58,6 +59,7 @@ export const routerApp = crearRouter({
   ia: routerIA,
   autenticacion: routerAutenticacion,
   deportivo: routerDeportivo,
+  whatsapp: routerWhatsapp,
 });
 
 /** Tipo del router raíz, exportado para el cliente. */

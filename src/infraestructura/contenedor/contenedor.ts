@@ -38,6 +38,10 @@ import { PrismaRepositorioEstadisticas } from "@/infraestructura/repositorios/Pr
 import { PrismaRepositorioMensajeria } from "@/infraestructura/repositorios/PrismaRepositorioMensajeria";
 import { PrismaRepositorioHistorialIA } from "@/infraestructura/repositorios/PrismaRepositorioHistorialIA";
 import { PrismaRepositorioConfiguracion } from "@/infraestructura/repositorios/PrismaRepositorioConfiguracion";
+import { PrismaRepositorioRecordatorioWhatsapp } from "@/infraestructura/repositorios/PrismaRepositorioRecordatorioWhatsapp";
+import { PrismaRepositorioMensajeWhatsapp } from "@/infraestructura/repositorios/PrismaRepositorioMensajeWhatsapp";
+import { ResolvedorProveedorWhatsapp } from "@/infraestructura/whatsapp/ResolvedorProveedorWhatsapp";
+import { DirectorioWhatsapp } from "@/infraestructura/whatsapp/DirectorioWhatsapp";
 import { PrismaRepositorioAxioma } from "@/infraestructura/repositorios/PrismaRepositorioAxioma";
 import { PrismaRepositorioMetricaDispositivo } from "@/infraestructura/repositorios/PrismaRepositorioMetricaDispositivo";
 import { AsistenteNutricionalStub } from "@/infraestructura/ia/AsistenteNutricionalStub";
@@ -52,6 +56,7 @@ import { BusEventosPostgres } from "@/infraestructura/tiempo-real/BusEventosPost
 
 import { crearServicioPaciente } from "./modulos/pacientes";
 import { crearServicioTurno } from "./modulos/turnos";
+import { crearServicioWhatsapp } from "./modulos/whatsapp";
 import { crearServicioArchivo } from "./modulos/archivos";
 import { crearServicioEvaluacion } from "./modulos/evaluacion";
 import { crearServicioDiario } from "./modulos/diario";
@@ -153,6 +158,8 @@ const repositorioEstadisticas = new PrismaRepositorioEstadisticas(prisma);
 const repositorioMensajeria = new PrismaRepositorioMensajeria(prisma);
 const repositorioHistorialIA = new PrismaRepositorioHistorialIA(prisma);
 const repositorioConfiguracion = new PrismaRepositorioConfiguracion(prisma);
+const repositorioRecordatorioWhatsapp = new PrismaRepositorioRecordatorioWhatsapp(prisma);
+const repositorioMensajeWhatsapp = new PrismaRepositorioMensajeWhatsapp(prisma);
 const repositorioAxioma = new PrismaRepositorioAxioma(prisma);
 const repositorioMetrica = new PrismaRepositorioMetricaDispositivo(prisma);
 
@@ -283,10 +290,29 @@ export const servicioPaciente = crearServicioPaciente({
   nombreProfesional: NOMBRE_PROFESIONAL,
 });
 
+// Se resuelve por request: con las credenciales de la Cloud API cargadas
+// envía de verdad, y sin ellas degrada al enlace wa.me.
+const proveedorWhatsapp = new ResolvedorProveedorWhatsapp(repositorioCredenciales);
+
+/** Resuelve el inquilino dueño de un webhook de WhatsApp (corre sin sesión). */
+export const directorioWhatsapp = new DirectorioWhatsapp(prisma, cifradorCredenciales);
+
+export const servicioWhatsapp = crearServicioWhatsapp({
+  turnos: repositorioTurno,
+  pacientes: repositorioPaciente,
+  configuracion: repositorioConfiguracion,
+  recordatorios: repositorioRecordatorioWhatsapp,
+  mensajes: repositorioMensajeWhatsapp,
+  usuarios: repositorioUsuario,
+  proveedor: proveedorWhatsapp,
+  bus: busEventos,
+});
+
 export const servicioTurno = crearServicioTurno({
   turnos: repositorioTurno,
   pacientes: repositorioPaciente,
   sincronizador: sincronizadorCalendario,
+  recordatorios: repositorioRecordatorioWhatsapp,
 });
 
 export const servicioArchivo = crearServicioArchivo({
@@ -484,6 +510,7 @@ export const relojCompartido = reloj;
 export const contenedor = {
   servicioPaciente,
   servicioTurno,
+  servicioWhatsapp,
   servicioArchivo,
   servicioEvaluacion,
   servicioDiario,

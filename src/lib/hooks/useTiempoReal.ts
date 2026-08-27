@@ -19,6 +19,12 @@ export function useTiempoReal() {
           void utils.notificaciones.centro.invalidate();
           toast("Nuevo mensaje", { description: "Tenés un mensaje sin leer." });
           break;
+        case "whatsapp.mensaje":
+          void utils.whatsapp.hiloDe.invalidate();
+          toast("Nuevo mensaje de WhatsApp", {
+            description: "Un paciente te escribió por WhatsApp.",
+          });
+          break;
         case "alerta.nueva":
           void utils.seguimiento.contarAlertas.invalidate();
           void utils.seguimiento.alertasPendientes.invalidate();

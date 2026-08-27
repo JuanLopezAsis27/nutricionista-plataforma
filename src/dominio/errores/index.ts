@@ -22,3 +22,4 @@ export { ErrorAlertaSeguimientoNoEncontrada } from "./ErrorAlertaSeguimientoNoEn
 export { ErrorPlantillaNoEncontrada } from "./ErrorPlantillaNoEncontrada";
 export { ErrorConversacionNoEncontrada } from "./ErrorConversacionNoEncontrada";
 export { ErrorAxiomaNoEncontrado } from "./ErrorAxiomaNoEncontrado";
+export { ErrorRecordatorioNoEncontrado } from "./ErrorRecordatorioNoEncontrado";

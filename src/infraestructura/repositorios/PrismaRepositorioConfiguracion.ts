@@ -36,6 +36,8 @@ export class PrismaRepositorioConfiguracion implements IConfiguracionRepositorio
       pdfMostrarMacros: d.pdfMostrarMacros,
       pdfMostrarEquivalencias: d.pdfMostrarEquivalencias,
       pdfMostrarRecomendaciones: d.pdfMostrarRecomendaciones,
+      whatsappPlantilla: d.whatsappPlantilla,
+      whatsappPrefijoPais: d.whatsappPrefijoPais,
     };
     // La config del inquilino es única; si ya existe se actualiza, si no se crea.
     const existente = await this.prisma.configuracionConsultorio.findFirst();
@@ -68,6 +70,8 @@ export class PrismaRepositorioConfiguracion implements IConfiguracionRepositorio
       pdfMostrarMacros: fila.pdfMostrarMacros,
       pdfMostrarEquivalencias: fila.pdfMostrarEquivalencias,
       pdfMostrarRecomendaciones: fila.pdfMostrarRecomendaciones,
+      whatsappPlantilla: fila.whatsappPlantilla,
+      whatsappPrefijoPais: fila.whatsappPrefijoPais,
       creadoEn: fila.creadoEn,
       actualizadoEn: fila.actualizadoEn,
     });

@@ -17,6 +17,11 @@ export interface CredencialesIntegracion {
   anthropicModelo: string | null;
   fatsecretClientId: string | null;
   fatsecretClientSecret: string | null;
+  /** WhatsApp Cloud API (Meta). Sin token + phoneNumberId todo cae al enlace wa.me. */
+  whatsappToken: string | null;
+  whatsappPhoneNumberId: string | null;
+  whatsappVerifyToken: string | null;
+  whatsappAppSecret: string | null;
   criterios: CriteriosIngredientes;
 }
 
@@ -32,6 +37,10 @@ export interface DatosCredenciales {
   anthropicModelo?: string | null;
   fatsecretClientId?: string | null;
   fatsecretClientSecret?: string | null;
+  whatsappToken?: string | null;
+  whatsappPhoneNumberId?: string | null;
+  whatsappVerifyToken?: string | null;
+  whatsappAppSecret?: string | null;
   /** Criterios de ingredientes (se guardan completos si se envían). */
   criterios?: CriteriosIngredientes;
 }

@@ -28,6 +28,10 @@ export class PrismaRepositorioCredenciales implements ICredencialesIntegracionRe
       anthropicModelo: fila.anthropicModelo,
       fatsecretClientId: this.descifrar(fila.fatsecretClientIdCifrado),
       fatsecretClientSecret: this.descifrar(fila.fatsecretClientSecretCifrado),
+      whatsappToken: this.descifrar(fila.whatsappTokenCifrado),
+      whatsappPhoneNumberId: fila.whatsappPhoneNumberId,
+      whatsappVerifyToken: this.descifrar(fila.whatsappVerifyTokenCifrado),
+      whatsappAppSecret: this.descifrar(fila.whatsappAppSecretCifrado),
       criterios: {
         excluirMarcas: fila.criterioExcluirMarcas,
         requiereMacros: fila.criterioRequiereMacros,
@@ -47,6 +51,12 @@ export class PrismaRepositorioCredenciales implements ICredencialesIntegracionRe
       anthropicModelo: this.planoOpc(datos.anthropicModelo),
       fatsecretClientIdCifrado: this.cifrarOpc(datos.fatsecretClientId),
       fatsecretClientSecretCifrado: this.cifrarOpc(datos.fatsecretClientSecret),
+      whatsappTokenCifrado: this.cifrarOpc(datos.whatsappToken),
+      // El phone_number_id va en claro: es lo que identifica al inquilino
+      // cuando entra un webhook, antes de poder descifrar nada suyo.
+      whatsappPhoneNumberId: this.planoOpc(datos.whatsappPhoneNumberId),
+      whatsappVerifyTokenCifrado: this.cifrarOpc(datos.whatsappVerifyToken),
+      whatsappAppSecretCifrado: this.cifrarOpc(datos.whatsappAppSecret),
       // Criterios: si vienen, se guardan completos (undefined = sin cambio).
       criterioExcluirMarcas: datos.criterios?.excluirMarcas,
       criterioRequiereMacros: datos.criterios?.requiereMacros,

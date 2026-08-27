@@ -14,6 +14,7 @@ import { Skeleton } from "@/componentes/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/componentes/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/componentes/ui/dialog";
 import { EstadoBadge } from "@/componentes/comunes/EstadoBadge";
+import { BotonRecordatorioWhatsapp } from "@/componentes/turnos/BotonRecordatorioWhatsapp";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { FormularioPaciente } from "@/componentes/pacientes/FormularioPaciente";
 import { VistaPlan } from "@/componentes/planes/VistaPlan";
@@ -168,7 +169,12 @@ export default function PaginaDetallePaciente() {
                   <span>
                     {formatearFecha(turno.fecha)} · {turno.hora} ({turno.duracionMinutos} min)
                   </span>
-                  <EstadoBadge estado={turno.estado} />
+                  <div className="flex items-center gap-1">
+                    <EstadoBadge estado={turno.estado} />
+                    {(turno.estado === "PENDIENTE" || turno.estado === "CONFIRMADO") && (
+                      <BotonRecordatorioWhatsapp turno={turno} telefonoPaciente={p.telefono} />
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>

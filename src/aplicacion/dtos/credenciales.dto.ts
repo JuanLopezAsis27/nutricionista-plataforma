@@ -23,6 +23,11 @@ export const guardarCredencialesDto = z.object({
   anthropicModelo: z.string().max(120).optional(),
   fatsecretClientId: z.string().max(300).optional(),
   fatsecretClientSecret: z.string().max(300).optional(),
+  // WhatsApp Cloud API (Meta).
+  whatsappToken: z.string().max(500).optional(),
+  whatsappPhoneNumberId: z.string().max(60).optional(),
+  whatsappVerifyToken: z.string().max(200).optional(),
+  whatsappAppSecret: z.string().max(200).optional(),
   criterios: criteriosIngredientesDto.optional(),
 });
 export type GuardarCredencialesDto = z.infer<typeof guardarCredencialesDto>;
@@ -33,6 +38,11 @@ export const estadoCredencialesDto = z.object({
   anthropicConfigurado: z.boolean(),
   anthropicModelo: z.string().nullable(),
   fatsecretConfigurado: z.boolean(),
+  /** true = el inquilino puede enviar y recibir por la API oficial. */
+  whatsappConfigurado: z.boolean(),
+  /** El phone_number_id no es secreto: se muestra para verificar el alta en Meta. */
+  whatsappPhoneNumberId: z.string().nullable(),
+  whatsappWebhookListo: z.boolean(),
   criterios: criteriosIngredientesDto,
 });
 export type EstadoCredencialesDto = z.infer<typeof estadoCredencialesDto>;

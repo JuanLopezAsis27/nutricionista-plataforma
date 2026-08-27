@@ -25,6 +25,11 @@ import type { IEstadisticasRepositorio } from "../repositorios/IEstadisticasRepo
 import type { IMensajeriaRepositorio } from "../repositorios/IMensajeriaRepositorio";
 import type { IHistorialIARepositorio } from "../repositorios/IHistorialIARepositorio";
 import type { IConfiguracionRepositorio } from "../repositorios/IConfiguracionRepositorio";
+import type { IRecordatorioWhatsappRepositorio } from "../repositorios/IRecordatorioWhatsappRepositorio";
+import type { IProveedorWhatsapp } from "../servicios/IProveedorWhatsapp";
+import type { IMensajeWhatsappRepositorio } from "../repositorios/IMensajeWhatsappRepositorio";
+import { MensajeWhatsapp } from "../entidades/MensajeWhatsapp";
+import { RecordatorioWhatsapp } from "../entidades/RecordatorioWhatsapp";
 import type { IAxiomaRepositorio } from "../repositorios/IAxiomaRepositorio";
 import type { IAlimentoPropioRepositorio } from "../repositorios/IAlimentoPropioRepositorio";
 import type { IAsistenteAnalitico } from "../servicios/IAsistenteAnalitico";
@@ -505,6 +510,63 @@ export function cuentaConectadaEjemplo(
     },
     id,
     new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function mockRecordatorioWhatsappRepositorio(
+  parcial: Partial<IRecordatorioWhatsappRepositorio> = {},
+): IRecordatorioWhatsappRepositorio {
+  return {
+    registrar: vi.fn(async (r: RecordatorioWhatsapp) => r),
+    actualizar: vi.fn(async (r: RecordatorioWhatsapp) => r),
+    obtenerPorId: vi.fn(async () => null),
+    obtenerPorIdExterno: vi.fn(async () => null),
+    ultimosPorTurnos: vi.fn(async () => new Map<string, RecordatorioWhatsapp>()),
+    ...parcial,
+  };
+}
+
+export function mockMensajeWhatsappRepositorio(
+  parcial: Partial<IMensajeWhatsappRepositorio> = {},
+): IMensajeWhatsappRepositorio {
+  return {
+    crear: vi.fn(async (m: MensajeWhatsapp) => m),
+    actualizar: vi.fn(async (m: MensajeWhatsapp) => m),
+    obtenerPorIdExterno: vi.fn(async () => null),
+    listarPorPaciente: vi.fn(async () => []),
+    ultimoEntrante: vi.fn(async () => null),
+    ...parcial,
+  };
+}
+
+export function mockProveedorWhatsapp(
+  parcial: Partial<IProveedorWhatsapp> = {},
+): IProveedorWhatsapp {
+  return {
+    modoActual: vi.fn(async () => "ENLACE" as const),
+    preparar: vi.fn(async (m) => ({
+      modo: "ENLACE" as const,
+      enlace: `https://wa.me/${m.telefono}`,
+    })),
+    ...parcial,
+  };
+}
+
+export function recordatorioWhatsappEjemplo(
+  cambios: Partial<Parameters<typeof RecordatorioWhatsapp.crear>[0]> = {},
+  id = "rec-1",
+): RecordatorioWhatsapp {
+  return RecordatorioWhatsapp.crear(
+    {
+      turnoId: "tur-1",
+      pacienteId: "pac-1",
+      telefono: "5491155554444",
+      mensaje: "Te recuerdo tu turno.",
+      usuarioId: "usr-1",
+      ...cambios,
+    },
+    id,
+    new Date("2026-08-24T12:00:00Z"),
   );
 }
 

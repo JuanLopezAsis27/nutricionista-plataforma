@@ -29,6 +29,31 @@ enum EstadoTurno {
   COMPLETADO
 }
 
+/// Estado del recordatorio de turno enviado por WhatsApp. El enlace wa.me es
+/// de ida —WhatsApp nunca le devuelve nada a la app—, así que el envío no se
+/// detecta: se declara. PREPARADO = se abrió el chat con el mensaje cargado;
+/// CONFIRMADO = el profesional declaró haberlo enviado.
+enum EstadoRecordatorioWhatsapp {
+  PREPARADO
+  CONFIRMADO
+  DESCARTADO
+}
+
+/// Sentido del mensaje de WhatsApp respecto del consultorio.
+enum DireccionWhatsapp {
+  ENTRANTE
+  SALIENTE
+}
+
+/// Estado de entrega que informa la Cloud API por webhook.
+enum EstadoMensajeWhatsapp {
+  PENDIENTE
+  ENVIADO
+  ENTREGADO
+  LEIDO
+  FALLIDO
+}
+
 enum TipoAlertaAlimentaria {
   ALERGIA
   INTOLERANCIA
@@ -165,6 +190,7 @@ model Paciente {
   consultasIA          ConsultaIA[]
   analisisComida       AnalisisComida[]
   metricasDispositivo  MetricaDispositivo[]
+  mensajesWhatsapp     MensajeWhatsapp[]
 
   @@index([apellido, nombre])
   @@index([nutricionistaId])
@@ -294,6 +320,55 @@ model Turno {
   @@map("turnos")
 }
 
+/// Log de recordatorios de turno abiertos por WhatsApp. Es una tabla de
+/// registro y no una columna en `turnos` porque admite reintentos, guarda el
+/// texto efectivamente usado (auditoría) y es donde aterrizarán los estados
+/// reales de entrega cuando entre la Cloud API oficial.
+model RecordatorioWhatsapp {
+  id              String                     @id @default(cuid())
+  nutricionistaId String                     @default("")
+  turnoId         String
+  pacienteId      String
+  telefono        String // el E.164 efectivamente usado
+  mensaje         String // texto final enviado, para auditoría
+  estado          EstadoRecordatorioWhatsapp @default(PREPARADO)
+  usuarioId       String // quién lo disparó
+  /// wamid del mensaje cuando se envió por la API oficial; null con enlace wa.me.
+  idExterno       String?
+  creadoEn        DateTime                   @default(now())
+  confirmadoEn    DateTime?
+
+  @@index([nutricionistaId])
+  @@index([turnoId, creadoEn])
+  @@index([idExterno])
+  @@map("recordatorios_whatsapp")
+}
+
+/// Mensaje de WhatsApp intercambiado con un paciente a través de la Cloud API
+/// oficial. Solo se persisten los mensajes de pacientes DEL inquilino: los que
+/// llegan de cualquier otro número se descartan en la ingesta y nunca tocan la
+/// base, así el WhatsApp personal del profesional no entra a la app.
+model MensajeWhatsapp {
+  id              String                @id @default(cuid())
+  nutricionistaId String                @default("")
+  pacienteId      String
+  direccion       DireccionWhatsapp
+  telefono        String // E.164 del paciente, sin "+"
+  cuerpo          String
+  /// wamid de Meta: correlaciona los webhooks de estado con el mensaje.
+  idExterno       String?               @unique
+  estado          EstadoMensajeWhatsapp @default(PENDIENTE)
+  error           String?
+  creadoEn        DateTime              @default(now())
+  actualizadoEn   DateTime              @updatedAt
+
+  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@index([nutricionistaId])
+  @@index([pacienteId, creadoEn])
+  @@map("mensajes_whatsapp")
+}
+
 /// Metadatos de un objeto guardado en el bucket S3-compatible (MinIO/R2/S3).
 /// El contenido vive en el bucket bajo `clave`; acá solo se guardan metadatos
 /// y la referencia al dueño. Cada dueño posible es una FK nullable propia
@@ -400,11 +475,17 @@ model CredencialesIntegracion {
   anthropicModelo              String? // modelo elegido (texto plano)
   fatsecretClientIdCifrado     String? // FatSecret OAuth2 client_id, cifrado
   fatsecretClientSecretCifrado String? // FatSecret OAuth2 client_secret, cifrado
+  // WhatsApp Cloud API (Meta). El phone_number_id va en claro: es lo que
+  // identifica al inquilino cuando entra un webhook, antes de descifrar nada.
+  whatsappTokenCifrado         String? // access token permanente del System User
+  whatsappPhoneNumberId        String?
+  whatsappVerifyTokenCifrado   String? // token de verificación del webhook
+  whatsappAppSecretCifrado     String? // app secret, para validar x-hub-signature-256
   // Criterios de ingredientes: filtran los alimentos que trae la búsqueda.
-  criterioExcluirMarcas     Boolean  @default(false) // solo genéricos (sin marca)
-  criterioRequiereMacros    Boolean  @default(false) // descartar sin macros completos
-  criterioMaxCaloriasPor100 Float? // tope opcional de kcal/100 g
-  criterioExcluirTexto      String[] @default([]) // descartar si el nombre contiene
+  criterioExcluirMarcas        Boolean  @default(false) // solo genéricos (sin marca)
+  criterioRequiereMacros       Boolean  @default(false) // descartar sin macros completos
+  criterioMaxCaloriasPor100    Float? // tope opcional de kcal/100 g
+  criterioExcluirTexto         String[] @default([]) // descartar si el nombre contiene
   creadoEn                     DateTime @default(now())
   actualizadoEn                DateTime @updatedAt
 
@@ -642,10 +723,10 @@ model Receta {
   creadoEn        DateTime @default(now())
   actualizadoEn   DateTime @updatedAt
 
-  fotos         Archivo[]
-  opciones      OpcionComida[]
-  asignaciones  AsignacionReceta[]
-  ingredientes  IngredienteReceta[]
+  fotos        Archivo[]
+  opciones     OpcionComida[]
+  asignaciones AsignacionReceta[]
+  ingredientes IngredienteReceta[]
 
   @@index([nombre])
   @@index([nutricionistaId])
@@ -1093,26 +1174,29 @@ enum OperadorAxioma {
 /// los valores incrustados (ej. duración de turno por defecto) y guarda el
 /// membrete del profesional para PDF/emails.
 model ConfiguracionConsultorio {
-  id                   String   @id @default(cuid())
-  nutricionistaId      String   @unique @default("")
-  turnoDuracionMinutos Int      @default(30)
-  turnoPasoMinutos     Int      @default(15)
-  atencionHoraDesde    String? // HH:mm
-  atencionHoraHasta    String? // HH:mm
-  diasAtencion         Int[] // 0=domingo … 6=sábado
-  nombreProfesional    String?
-  matricula            String?
-  logoArchivoId        String?
+  id                        String   @id @default(cuid())
+  nutricionistaId           String   @unique @default("")
+  turnoDuracionMinutos      Int      @default(30)
+  turnoPasoMinutos          Int      @default(15)
+  atencionHoraDesde         String? // HH:mm
+  atencionHoraHasta         String? // HH:mm
+  diasAtencion              Int[] // 0=domingo … 6=sábado
+  nombreProfesional         String?
+  matricula                 String?
+  logoArchivoId             String?
   // Apariencia del PDF del plan nutricional.
-  pdfColorPrimario         String? // hex, ej "#F4535E" (default: coral)
-  pdfSubtitulo             String? // bajo el nombre en el membrete
-  pdfPieTexto              String? // nota al pie / aclaración
-  pdfMostrarRecetas        Boolean @default(true)
-  pdfMostrarMacros         Boolean @default(true)
-  pdfMostrarEquivalencias  Boolean @default(true)
-  pdfMostrarRecomendaciones Boolean @default(true)
-  creadoEn             DateTime @default(now())
-  actualizadoEn        DateTime @updatedAt
+  pdfColorPrimario          String? // hex, ej "#F4535E" (default: coral)
+  pdfSubtitulo              String? // bajo el nombre en el membrete
+  pdfPieTexto               String? // nota al pie / aclaración
+  pdfMostrarRecetas         Boolean  @default(true)
+  pdfMostrarMacros          Boolean  @default(true)
+  pdfMostrarEquivalencias   Boolean  @default(true)
+  pdfMostrarRecomendaciones Boolean  @default(true)
+  // Recordatorio de turno por WhatsApp (enlace wa.me).
+  whatsappPlantilla         String? // texto con {{paciente}} {{fecha}} {{hora}} {{profesional}}
+  whatsappPrefijoPais       String? // prefijo internacional sin "+", ej "54"
+  creadoEn                  DateTime @default(now())
+  actualizadoEn             DateTime @updatedAt
 
   @@map("configuracion_consultorio")
 }

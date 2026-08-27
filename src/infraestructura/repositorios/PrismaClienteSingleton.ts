@@ -51,6 +51,8 @@ const MODELOS_INQUILINO = new Set<string>([
   "CredencialesIntegracion",
   "AlimentoPropio",
   "RetroalimentacionInsight",
+  "RecordatorioWhatsapp",
+  "MensajeWhatsapp",
 ]);
 
 function crearCliente(): PrismaClient {
