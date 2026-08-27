@@ -41,6 +41,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY prisma ./prisma
 COPY src ./src
+COPY scripts ./scripts
 COPY tsconfig.json ./
 # Genera el cliente Prisma (lo necesita el seed; migrate deploy no, pero es
 # barato y deja la imagen lista para ambos comandos).
