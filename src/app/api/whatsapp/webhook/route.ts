@@ -26,7 +26,7 @@ export async function GET(peticion: Request): Promise<Response> {
   const token = parametros.get("hub.verify_token") ?? "";
   const desafio = parametros.get("hub.challenge") ?? "";
 
-  if (modo !== "subscribe" || !(await directorioWhatsapp.verifyTokenValido(token))) {
+  if (modo !== "subscribe" || !(await directorioWhatsapp().verifyTokenValido(token))) {
     return new Response(null, { status: 403 });
   }
   return new Response(desafio, {
@@ -57,7 +57,7 @@ export async function POST(peticion: Request): Promise<Response> {
 
   // Se parsea antes de validar solo para saber a quién pertenece el webhook;
   // hasta que la firma no da, no se escribe absolutamente nada.
-  const inquilino = await directorioWhatsapp.porPhoneNumberId(webhook.phoneNumberId);
+  const inquilino = await directorioWhatsapp().porPhoneNumberId(webhook.phoneNumberId);
   if (!inquilino) {
     return new Response(null, { status: 404 });
   }
@@ -67,8 +67,8 @@ export async function POST(peticion: Request): Promise<Response> {
 
   try {
     await ejecutarEnNutricionista(inquilino.nutricionistaId, async () => {
-      await servicioWhatsapp.procesarEntrantes(webhook.mensajes);
-      await servicioWhatsapp.registrarEstados(webhook.estados);
+      await servicioWhatsapp().procesarEntrantes(webhook.mensajes);
+      await servicioWhatsapp().registrarEstados(webhook.estados);
     });
   } catch (error) {
     monitorErrores.capturar(error instanceof Error ? error : new Error(String(error)), {

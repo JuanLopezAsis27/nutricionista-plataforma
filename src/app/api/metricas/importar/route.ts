@@ -36,7 +36,7 @@ export function POST(request: Request): Promise<NextResponse> {
           { status: 400 },
         );
       }
-      const importadas = await servicioMetricas.importar(sesion.user.pacienteId, cuerpo.data);
+      const importadas = await servicioMetricas().importar(sesion.user.pacienteId, cuerpo.data);
       return NextResponse.json({ importadas }, { status: 201 });
     } catch (error) {
       return aRespuestaError(error);

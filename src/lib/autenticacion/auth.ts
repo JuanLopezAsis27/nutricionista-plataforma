@@ -63,7 +63,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // El login busca por email GLOBALMENTE (aún no hay inquilino resuelto).
         const usuario = await ejecutarGlobal(() =>
-          repositorioUsuarioCompartido.obtenerPorEmail(email),
+          repositorioUsuarioCompartido().obtenerPorEmail(email),
         );
         if (!usuario || !usuario.activo) {
           limitadorLogin.registrarFallo(claveIp);

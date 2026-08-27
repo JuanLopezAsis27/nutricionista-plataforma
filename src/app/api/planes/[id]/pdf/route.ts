@@ -48,7 +48,7 @@ export function GET(solicitud: Request, { params }: Parametros): Promise<NextRes
     if (sesion.user.rol === "NUTRICIONISTA") {
       const pacienteId = new URL(solicitud.url).searchParams.get("paciente");
       if (pacienteId) {
-        const paciente = await servicioPaciente.obtenerPacientePorId(pacienteId);
+        const paciente = await servicioPaciente().obtenerPacientePorId(pacienteId);
         nombrePaciente = `${paciente.nombre} ${paciente.apellido}`;
       }
     } else {
@@ -59,16 +59,16 @@ export function GET(solicitud: Request, { params }: Parametros): Promise<NextRes
           { status: 403 },
         );
       }
-      const planActivo = await servicioPlan.obtenerPlanDelPaciente(sesion.user.pacienteId);
+      const planActivo = await servicioPlan().obtenerPlanDelPaciente(sesion.user.pacienteId);
       if (!planActivo || planActivo.id !== id) {
         return NextResponse.json({ error: "No tenés acceso a este plan." }, { status: 403 });
       }
-      const paciente = await servicioPaciente.obtenerPacientePorId(sesion.user.pacienteId);
+      const paciente = await servicioPaciente().obtenerPacientePorId(sesion.user.pacienteId);
       nombrePaciente = `${paciente.nombre} ${paciente.apellido}`;
     }
 
-    const plan = await servicioPlan.obtenerPlanPorId(id);
-    const config = await servicioConfiguracion.obtener();
+    const plan = await servicioPlan().obtenerPlanPorId(id);
+    const config = await servicioConfiguracion().obtener();
 
     // Recetas referenciadas por las opciones del plan (únicas, en orden de aparición).
     const recetaIds = [
@@ -81,7 +81,7 @@ export function GET(solicitud: Request, { params }: Parametros): Promise<NextRes
     let recetas: RecetaSalidaDto[] = [];
     if (config.pdfMostrarRecetas && recetaIds.length > 0) {
       const resueltas = await Promise.all(
-        recetaIds.map((rid) => servicioReceta.obtenerRecetaPorId(rid).catch(() => null)),
+        recetaIds.map((rid) => servicioReceta().obtenerRecetaPorId(rid).catch(() => null)),
       );
       recetas = resueltas.filter((r): r is RecetaSalidaDto => r !== null);
     }

@@ -56,7 +56,7 @@ export function POST(request: Request): Promise<NextResponse> {
     }
 
     const contenido = new Uint8Array(await archivo.arrayBuffer());
-    const creado = await servicioArchivo.subir({
+    const creado = await servicioArchivo().subir({
       nombreOriginal: datos.data.nombreOriginal,
       mimeType: datos.data.mimeType,
       contenido,

@@ -17,12 +17,15 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (sesion?.user?.rol !== "NUTRICIONISTA") {
     return NextResponse.redirect(new URL("/login", request.url));
   }
-  if (!proveedorGoogle) {
+  // Se resuelve una sola vez: el getter es perezoso y TypeScript no puede
+  // arrastrar el narrowing de null entre dos invocaciones distintas.
+  const google = proveedorGoogle();
+  if (!google) {
     return volver("?error=no-configurado");
   }
 
   const estado = randomBytes(16).toString("hex");
-  const respuesta = NextResponse.redirect(proveedorGoogle.urlConsentimiento(estado));
+  const respuesta = NextResponse.redirect(google.urlConsentimiento(estado));
   respuesta.cookies.set("g_oauth_state", estado, {
     httpOnly: true,
     sameSite: "lax",
