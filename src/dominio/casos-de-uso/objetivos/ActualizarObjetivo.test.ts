@@ -30,4 +30,26 @@ describe("ActualizarObjetivo", () => {
       ErrorObjetivoNoEncontrado,
     );
   });
+
+  it("permite vincular y desvincular la meta de composición", async () => {
+    const original = objetivoEjemplo({ titulo: "Ordenar las cenas" });
+    const objetivos = mockObjetivoRepositorio({
+      obtenerPorId: vi.fn(async () => original),
+      actualizar: vi.fn(async (o) => o),
+    });
+    const casoUso = new ActualizarObjetivo(objetivos);
+
+    const vinculado = await casoUso.ejecutar({
+      id: original.id,
+      objetivoComposicionId: "meta-1",
+    });
+    expect(vinculado.objetivoComposicionId).toBe("meta-1");
+
+    // null desvincula; omitirlo dejaría el vínculo como estaba.
+    const suelto = await casoUso.ejecutar({
+      id: original.id,
+      objetivoComposicionId: null,
+    });
+    expect(suelto.objetivoComposicionId).toBeNull();
+  });
 });

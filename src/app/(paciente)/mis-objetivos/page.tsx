@@ -1,6 +1,7 @@
 "use client";
 
-import { Target, CheckCircle2, CircleDashed } from "lucide-react";
+import Link from "next/link";
+import { Target, CheckCircle2, CircleDashed, ArrowRight } from "lucide-react";
 import type { ObjetivoSalidaDto } from "@/aplicacion/dtos/objetivo.dto";
 import { useObjetivos } from "@/lib/hooks/useObjetivos";
 import { formatearFecha } from "@/lib/formato";
@@ -38,6 +39,23 @@ export default function PaginaMisObjetivos() {
           Las metas que definiste con tu nutricionista y cómo vas a alcanzarlas.
         </p>
       </div>
+
+      {/* Los objetivos numéricos de composición viven junto a las mediciones
+          que los miden: separarlos de sus números los dejaría sin contexto. */}
+      <Link
+        href="/mi-composicion"
+        className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm transition-colors hover:bg-muted/50"
+      >
+        <span>
+          <span className="font-medium">
+            ¿Buscás tus objetivos de peso o grasa corporal?
+          </span>
+          <span className="block text-xs text-muted-foreground">
+            Están en «Mi composición», con tus mediciones y cuánto te falta.
+          </span>
+        </span>
+        <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+      </Link>
 
       {consulta.isLoading ? (
         <Skeleton className="h-40 w-full" />

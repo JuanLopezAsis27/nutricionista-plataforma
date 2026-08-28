@@ -3,6 +3,29 @@ import {
   TIPOS_ALERTA_ALIMENTARIA,
   SEVERIDADES_ALERTA,
 } from "@/dominio/entidades/AlertaAlimentaria";
+import { NIVELES_ACTIVIDAD } from "@/dominio/servicios/composicionCorporal";
+import { PROTOCOLOS_COMPOSICION } from "@/dominio/entidades/Antropometria";
+import { CAMPOS_PLANTILLA } from "@/dominio/entidades/PlantillaAntropometrica";
+import type {
+  AlcancePlantilla,
+  CampoPlantilla,
+} from "@/dominio/entidades/PlantillaAntropometrica";
+import type { ProtocoloComposicion } from "@/dominio/entidades/Antropometria";
+import type {
+  ResultadoComposicion,
+  SexoBiologico,
+  NivelActividad,
+} from "@/dominio/servicios/composicionCorporal";
+import { VARIABLES_COMPOSICION } from "@/dominio/entidades/ObjetivoComposicion";
+import type { VariableComposicion } from "@/dominio/entidades/ObjetivoComposicion";
+import { METODOS_GRASA } from "@/dominio/servicios/grasaPorPliegues";
+import type {
+  MetodoGrasa,
+  ProyeccionPliegues,
+} from "@/dominio/servicios/grasaPorPliegues";
+import { ESTADOS_OBJETIVO } from "@/dominio/entidades/Objetivo";
+import type { EstadoObjetivo } from "@/dominio/entidades/Objetivo";
+import type { ProyeccionObjetivo } from "@/dominio/servicios/proyeccionComposicion";
 
 /** DTOs de Evaluación Integral — esquemas Zod de entrada/salida. */
 
@@ -40,10 +63,21 @@ export type HistoriaClinicaSalidaDto = z.infer<typeof historiaClinicaSalidaDto>;
 
 const pliegue = z.number().min(1).max(80).optional().nullable();
 const circunferencia = z.number().min(20).max(250).optional().nullable();
+const diametro = z.number().min(2).max(60).optional().nullable();
 
 export const medidasAntropometricasDto = z.object({
   pesoKg: z.number().min(20).max(400),
   tallaCm: z.number().min(100).max(250).optional().nullable(),
+  tallaSentadoCm: z.number().min(50).max(150).optional().nullable(),
+  nivelActividad: z.enum(NIVELES_ACTIVIDAD).optional().nullable(),
+  protocolo: z.enum(PROTOCOLOS_COMPOSICION).optional(),
+  metodoGrasa: z.enum(METODOS_GRASA).optional().nullable(),
+  diamBiacromial: diametro,
+  diamToraxTransverso: diametro,
+  diamToraxAnteroposterior: diametro,
+  diamBiiliocrestideo: diametro,
+  diamHumeral: diametro,
+  diamFemoral: diametro,
   pliegueTricipital: pliegue,
   pliegueSubescapular: pliegue,
   pliegueSupraespinal: pliegue,
@@ -58,6 +92,11 @@ export const medidasAntropometricasDto = z.object({
   circCadera: circunferencia,
   circBrazo: circunferencia,
   circBrazoContraido: circunferencia,
+  circCabeza: circunferencia,
+  circAntebrazo: circunferencia,
+  circMusloMaximo: circunferencia,
+  circMusloMedial: circunferencia,
+  circPantorrilla: circunferencia,
   kgGrasa: z.number().min(0).max(150).optional().nullable(),
   observaciones: z.string().max(2000).optional().nullable(),
 });
@@ -85,6 +124,16 @@ export interface MedicionEvolucionDto {
   fecha: Date;
   pesoKg: number;
   tallaCm: number | null;
+  tallaSentadoCm: number | null;
+  nivelActividad: NivelActividad | null;
+  protocolo: ProtocoloComposicion;
+  metodoGrasa: MetodoGrasa | null;
+  diamBiacromial: number | null;
+  diamToraxTransverso: number | null;
+  diamToraxAnteroposterior: number | null;
+  diamBiiliocrestideo: number | null;
+  diamHumeral: number | null;
+  diamFemoral: number | null;
   pliegueTricipital: number | null;
   pliegueSubescapular: number | null;
   pliegueSupraespinal: number | null;
@@ -99,6 +148,11 @@ export interface MedicionEvolucionDto {
   circCadera: number | null;
   circBrazo: number | null;
   circBrazoContraido: number | null;
+  circCabeza: number | null;
+  circAntebrazo: number | null;
+  circMusloMaximo: number | null;
+  circMusloMedial: number | null;
+  circPantorrilla: number | null;
   kgGrasa: number | null;
   observaciones: string | null;
   creadoEn: Date;
@@ -110,6 +164,102 @@ export interface MedicionEvolucionDto {
 
 export interface EvolucionAntropometricaDto {
   mediciones: MedicionEvolucionDto[];
+}
+
+// --- Composición corporal -------------------------------------------------------
+
+/**
+ * Una medición con todo lo que el dominio derivó de ella. El `resultado` sale
+ * tal cual del servicio de dominio: los tipos de `composicionCorporal` son
+ * estructuras planas de números, seguras de cruzar la frontera de tRPC.
+ */
+export interface MedicionComposicionDto {
+  id: string;
+  fecha: Date;
+  observaciones: string | null;
+  nivelActividad: NivelActividad | null;
+  protocolo: ProtocoloComposicion;
+  /** Ecuación destacada; null = la primera que se pueda calcular. */
+  metodoGrasa: MetodoGrasa | null;
+  /** Edad del paciente el día de la medición. */
+  edadAnios: number | null;
+  medidas: MedicionEvolucionDto;
+  resultado: ResultadoComposicion;
+}
+
+/** Meta de composición + su proyección contra la serie histórica. */
+export interface ObjetivoComposicionDto {
+  id: string;
+  pacienteId: string;
+  variable: VariableComposicion;
+  /** Ecuación con la que se sigue la meta (solo en variables de grasa). */
+  metodoGrasa: MetodoGrasa | null;
+  /** Nombre de la meta ya compuesto: incluye la ecuación cuando la hay. */
+  descripcion: string;
+  valorObjetivo: number;
+  fechaObjetivo: Date | null;
+  estado: EstadoObjetivo;
+  notas: string | null;
+  creadoEn: Date;
+  proyeccion: ProyeccionObjetivo;
+  /** Pliegues proyectados para la meta; null si la variable no los define. */
+  proyeccionPliegues: ProyeccionPliegues | null;
+}
+
+/** Valor que hoy tiene una variable objetivable (de la última medición). */
+export interface ValorActualVariableDto {
+  variable: VariableComposicion;
+  metodoGrasa: MetodoGrasa | null;
+  valor: number;
+}
+
+/** Todo lo que consume el dashboard de composición corporal. */
+export interface ComposicionCorporalDto {
+  sexo: SexoBiologico | null;
+  fechaNacimiento: Date | null;
+  mediciones: MedicionComposicionDto[];
+  objetivos: ObjetivoComposicionDto[];
+  /** Punto de partida para plantear metas nuevas, por variable y ecuación. */
+  valoresActuales: ValorActualVariableDto[];
+}
+
+export const guardarObjetivoComposicionDto = z.object({
+  pacienteId: z.string().min(1),
+  variable: z.enum(VARIABLES_COMPOSICION),
+  metodoGrasa: z.enum(METODOS_GRASA).optional().nullable(),
+  valorObjetivo: z.number().finite(),
+  fechaObjetivo: z.coerce.date().optional().nullable(),
+  notas: z.string().max(1000).optional().nullable(),
+  estado: z.enum(ESTADOS_OBJETIVO).optional(),
+});
+export type GuardarObjetivoComposicionDto = z.infer<
+  typeof guardarObjetivoComposicionDto
+>;
+
+export const idObjetivoComposicionDto = z.object({ id: z.string().min(1) });
+
+// --- Plantillas de carga --------------------------------------------------------
+
+export const guardarPlantillaAntropometricaDto = z.object({
+  id: z.string().min(1).optional(),
+  nombre: z.string().min(1, "La plantilla necesita un nombre").max(80),
+  descripcion: z.string().max(500).optional().nullable(),
+  campos: z.array(z.enum(CAMPOS_PLANTILLA)).min(1, "Elegí al menos un campo"),
+});
+export type GuardarPlantillaAntropometricaDto = z.infer<
+  typeof guardarPlantillaAntropometricaDto
+>;
+
+export const idPlantillaAntropometricaDto = z.object({ id: z.string().min(1) });
+
+/** Plantilla + qué resultados habilita (lo calcula el dominio). */
+export interface PlantillaAntropometricaDto {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  campos: CampoPlantilla[];
+  alcance: AlcancePlantilla;
+  creadoEn: Date;
 }
 
 // --- Alertas alimentarias -----------------------------------------------------

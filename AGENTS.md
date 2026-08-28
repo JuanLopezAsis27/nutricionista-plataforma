@@ -29,6 +29,10 @@ propios datos. Tres roles: SUPERADMIN, NUTRICIONISTA y PACIENTE.
 
 Todo el código, comentarios, nombres de variables, funciones, clases, archivos y carpetas en español. Excepto: palabras reservadas del lenguaje, nombres de librerías externas y configuraciones técnicas que exigen inglés (tsconfig, package.json, etc).
 
+## Documentacion
+
+Siempre registra lo realizado (ya sean features, fixes, refactors, etc) en cada iteracion con detalles tecnicos y conceptuales, con el fin de poder entender las decisiones tomadas y actuar a futuro en base a ellas.
+
 ## Arquitectura — Clean Architecture
 
 Las dependencias siempre apuntan hacia adentro. Nunca una capa interna importa de una capa externa.
@@ -170,8 +174,8 @@ a todos los demás.
 
 ## Modelos del dominio
 
-El dominio tiene **31 entidades**, **157 casos de uso** repartidos en 25
-módulos, **34 interfaces de repositorio** y **17 puertos de servicio**. La
+El dominio tiene **34 entidades**, **163 casos de uso** repartidos en 25
+módulos, **36 interfaces de repositorio** y **17 puertos de servicio**. La
 fuente de verdad es el código (`/src/dominio`) y `prisma/schema.prisma`; acá
 solo van los modelos centrales y sus reglas.
 
@@ -192,6 +196,126 @@ Antes se llamaba "Dieta"; se renombró en la Fase 3 y hay redirects permanentes
 en `next.config.ts`. Un plan agrupa comidas, opciones, equivalencias y
 recomendaciones, y se asigna a pacientes vía AsignacionPlan.
 
+### Antropometría y composición corporal
+
+Una `Antropometria` es una consulta: el perfil ISAK completo (básicos, 6
+diámetros, 11 perímetros, 8 pliegues). Solo el peso es obligatorio.
+
+**Nada derivado se persiste.** Las 5 masas de Kerr, el somatotipo de Heath &
+Carter, los Score-Z Phantom, los índices, el metabolismo y el porcentaje graso
+los calcula el dominio a partir de las medidas crudas, en cada lectura. Si
+mañana cambia una constante del modelo, los informes históricos se recalculan
+solos; si se persistieran, quedarían mintiendo.
+
+**Conviven DOS modelos, y no se mezclan.**
+
+- `composicionCorporal.ts` — fraccionamiento en 5 masas (Kerr, 1988), modelo
+  ANATÓMICO derivado de disección de cadáveres. Da masa adiposa (grasa
+  subcutánea). Exige el perfil ISAK completo.
+- `grasaPorPliegues.ts` — modelo de 2 COMPONENTES (grasa / masa magra), por
+  regresión contra densitometría. Da grasa corporal total. Seis ecuaciones:
+  Yuhasz-Carter y Faulkner (con sus variantes ×1,17 y ×1,14 de Kerr para
+  sedentarios), Withers (atletas) y Durnin & Womersley (población general);
+  las dos últimas pasan por densidad corporal y convierten con Siri.
+
+Los dos números son distintos por diseño y esa brecha no es un error. Regla
+dura: **una serie histórica nunca cambia de modelo ni de ecuación.** Por eso
+un objetivo de `PORCENTAJE_GRASA` o `MASA_GRASA_KG` lleva su `metodoGrasa`
+fijado, y la proyección lo respeta aunque la medición destaque otro.
+
+El campo `protocolo` de la medición (CINCO_COMPONENTES / DOS_COMPONENTES) NO
+restringe el cálculo: solo decide qué se muestra primero. En la práctica el
+profesional carga los 6 pliegues y poco más, y con eso salen Yuhasz-Carter y
+Faulkner; Withers pide además el bicipital y Durnin & Womersley el bicipital y
+la cresta ilíaca (ojo: cresta ilíaca, NO supraespinal — son sitios distintos
+del protocolo ISAK y no se sustituyen).
+
+El cálculo **degrada por bloques**: cada bloque se resuelve si están sus
+medidas y devuelve `null` si falta alguna, informando en `faltantes` qué hay
+que medir (el modelo de 2 componentes lleva su propia lista, por ecuación).
+Nunca lanza. Las constantes numéricas (3,141 y 0,3141 en las correcciones de
+perímetro, 0,3333 como raíz cúbica) se copian tal cual de la planilla del
+profesional: reemplazarlas por PI/10 o 1/3 desplazaría los resultados respecto
+de sus informes históricos. `composicionCorporal.test.ts` compara contra la
+planilla celda por celda.
+
+El `sexo` biológico vive en el Paciente (no cambia entre consultas) y el nivel
+de actividad en la medición (sí cambia). Sin sexo no hay fraccionamiento ni
+metabolismo: son constantes distintas por sexo.
+
+`ObjetivoComposicion` es la meta cuantitativa ("masa adiposa a 12 kg para el
+30/11"), una sola vigente por paciente y variable. Su proyección —brecha,
+ritmo semanal por regresión, fecha estimada de llegada— la calcula
+`dominio/servicios/proyeccionComposicion.ts`.
+
+Dos reglas que ya se rompieron una vez y conviene no volver a romper:
+
+1. **El progreso se mide desde que la meta existe**, no desde la primera
+   medición del paciente. El punto de partida es la medición vigente al
+   crear el objetivo (`creadoEn`). Con historia previa la diferencia es
+   enorme: un paciente que venía de 30 kg y estaba en 20 al acordar bajar a
+   15 aparecía con 77 % del camino hecho antes de empezar. El ESTADO, en
+   cambio, se lee siempre contra la última medición: es dónde está hoy.
+   El RITMO es una tercera cosa: es una propiedad del paciente, no de la
+   meta. Se estima con lo medido desde la partida y, cuando no hay dos
+   mediciones posteriores —el caso habitual, porque la meta se plantea
+   después de la consulta—, con las de los últimos 6 meses, marcándolo con
+   `ritmoPrevioALaMeta` para que la UI lo aclare. Acotar por tiempo y no por
+   cantidad es deliberado: "las últimas tres" puede incluir una de hace ocho
+   meses, que aplana la pendiente igual que la historia entera.
+2. El valor proyectado a la fecha meta se descarta cuando la recta se sale del
+   rango admisible de la variable: extrapolar meses hacia adelante llega a un
+   0 % de grasa, y una proyección imposible es peor que ninguna.
+
+**Torta de masas con objetivos:** en la sección Objetivos, el reparto de las
+5 masas de la última medición con las metas marcadas encima — cada gajo mide
+lo mayor entre el valor de hoy y la meta, y la diferencia va rayada (sobra si
+hay que bajar, falta si hay que subir). Es UNA figura para todos los objetivos
+de masa, no una por tarjeta. Las metas que no apuntan a una de las cinco
+(peso, IMC, cintura) no tienen gajo y se leen en su propia tarjeta.
+
+**Pliegues proyectados:** las metas de ADIPOSIDAD (masa adiposa en kg y en %,
+% graso, masa grasa y Σ6) muestran cómo quedaría cada pliegue al alcanzarlas.
+El peso no depende solo de ellos y la masa muscular sube entrenando —no
+adelgazando el pliegue—, así que ahí no se proyecta y la UI dice por qué:
+callar deja al profesional esperando un gráfico que no va a aparecer.
+
+Se resuelve por BISECCIÓN sobre el factor de escala de los pliegues,
+recalculando la composición completa en cada paso
+(`proyectarPlieguesParaMeta`), no despejando la ecuación. El motivo es que la
+masa adiposa de Kerr se prorratea contra el peso bruto y ese ajuste depende de
+las otras cuatro masas: no hay forma cerrada. De paso, el mismo camino sirve
+para las metas de Kerr y para las de las ecuaciones de pliegues.
+
+El reparto entre sitios es proporcional al de hoy. Eso es una SUPOSICIÓN (la
+grasa no se moviliza igual en todos lados) y está dicho en la UI: ilustra la
+meta, no promete un pliegue. La proyección avisa si exige dejar alguno por
+debajo de 2 mm, que es lo más fino que se mide con plicómetro, y devuelve null
+si la meta no es alcanzable moviendo pliegues en vez de clavarse en un extremo
+y dibujar algo falso.
+
+**Plantillas de carga** (`PlantillaAntropometrica`): el perfil ISAK son 25
+medidas y en consulta se toman seis, así que el profesional arma las suyas
+partiendo de las de fábrica (`plantillasBase.ts`) y destildando lo que no usa.
+La regla dura es que una plantilla tenga que alcanzar para calcular ALGO; el
+mínimo son los 4 pliegues de Faulkner. Qué exige cada resultado vive en
+`REQUISITOS_RESULTADO`, una TABLA exportada: la valida el dominio y la lee la
+UI para mostrar en vivo qué se gana y qué se pierde al podar. La plantilla
+solo decide qué campos muestra el formulario — no limita qué se guarda.
+
+En la ficha del nutricionista, **Antropometría** es la única pestaña que carga
+y lee medidas corporales; **Progreso** es el seguimiento del día a día (peso
+del diario, hábitos, adherencia, plan). La vieja pestaña «Informes»
+desapareció: mostraba los mismos hábitos y la misma curva de peso que Progreso.
+
+En el portal del paciente, **Mi composición** (`/mi-composicion`) muestra sus
+mediciones y sus objetivos con cuánto le falta. Es la ÚNICA parte de la
+evaluación que se expone al paciente: historia clínica, laboratorios y alertas
+siguen siendo del profesional. El endpoint `miComposicion` resuelve el paciente
+desde la sesión, nunca desde el input, y es de solo lectura. La vista recorta a
+propósito el Phantom, la somatocarta y los índices técnicos: sin quien los
+interprete confunden más de lo que informan.
+
 ### Usuario
 
 Roles: SUPERADMIN | NUTRICIONISTA | PACIENTE
@@ -206,9 +330,21 @@ Los routers **NO** capturan errores. Un único middleware en `src/servidor/trpc.
 traduce todo:
 
 - `ErrorDominio` → TRPCError con el código semántico correcto
-- `TRPCError` → pasa tal cual (flujo esperado: 401/403, validación Zod)
+- `TRPCError` con código propio → pasa tal cual (flujo esperado: 401/403,
+  validación Zod)
 - cualquier otro → se reporta al monitor y se reemplaza por un
-  INTERNAL_SERVER_ERROR **sin mensaje**, para no filtrar detalles internos
+  INTERNAL_SERVER_ERROR con un **mensaje genérico explícito**, para no filtrar
+  detalles internos
+
+**Trampa de tRPC v11 al tocar ese middleware:** `next()` NO lanza cuando el
+resolver falla, devuelve `{ ok: false, error }`. Hay que mirar `resultado.ok`;
+envolverlo en `try/catch` compila, se lee perfecto y no hace absolutamente
+nada. Así estuvo un tiempo, y el resultado era que ningún error de dominio se
+traducía (todos salían 500), que el monitor no recibía un solo error de tRPC y
+que el mensaje interno viajaba tal cual al navegador. Lo mismo vale para el
+saneo: sin un `message` explícito, tRPC hereda el de la `cause` y la
+filtración vuelve. `src/servidor/trpc.test.ts` cubre los tres efectos llamando
+de verdad a un router de prueba, que es la única forma en que esto se ve.
 
 La traducción a cada transporte (tRPC y HTTP) vive una sola vez en
 `src/servidor/mapaCodigos.ts`. Agregar un `CodigoErrorDominio` rompe la
@@ -217,6 +353,25 @@ compilación hasta traducirlo en ambos mapas.
 Hay ~26 errores en `/src/dominio/errores`, todos extienden `ErrorDominio` y
 llevan un `codigo` semántico: VALIDACION, NO_ENCONTRADO, CONFLICTO,
 ACCESO_DENEGADO, NO_AUTENTICADO.
+
+### Los dos tipos de objetivo
+
+Conviven a propósito y son complementarios, no redundantes:
+
+- `Objetivo` — el **plan**: qué se va a hacer y por qué. Lleva estrategias con
+  motivo obligatorio e historial auditable. Muchas cosas que importan en
+  nutrición no son un número (ordenar las cenas, sostener la adherencia).
+- `ObjetivoComposicion` — el **resultado** esperado, medible y proyectable
+  contra las antropometrías.
+
+`Objetivo.objetivoComposicionId` los vincula, opcional y único: un número sin
+plan no dice qué hacer el lunes, y un plan sin número no se puede evaluar.
+Vinculados, la tarjeta del plan muestra el progreso REAL medido en vez de una
+autoevaluación. Siguen existiendo sueltos: hay planes sin número y metas sin
+plan escrito.
+
+El borrado es `SET NULL`, nunca cascada: eliminar la meta numérica no puede
+llevarse puesto el plan ni su historial, que es información clínica.
 
 ## Autenticación y autorización
 
@@ -263,9 +418,11 @@ escribe a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
 - Los casos de uso se testean con repositorios mock
 - Nunca testear implementaciones de Prisma directamente
 - Archivo de test junto al archivo que testea: CrearPaciente.test.ts
-- Dos tests protegen invariantes estructurales y conviene no borrarlos:
-  `src/arquitectura.test.ts` (reglas de capas) y
-  `modelosInquilino.test.ts` (schema vs MODELOS_INQUILINO)
+- Tres tests protegen invariantes estructurales y conviene no borrarlos:
+  `src/arquitectura.test.ts` (reglas de capas),
+  `modelosInquilino.test.ts` (schema vs MODELOS_INQUILINO) y
+  `src/servidor/trpc.test.ts` (traducción de errores: códigos semánticos,
+  reporte al monitor y saneo del mensaje)
 
 Patrón de test esperado:
 

@@ -6,7 +6,8 @@ import { z } from "zod";
 import type { ObjetivoSalidaDto } from "@/aplicacion/dtos/objetivo.dto";
 import { PRIORIDADES_OBJETIVO } from "@/dominio/entidades/Objetivo";
 import { useObjetivos } from "@/lib/hooks/useObjetivos";
-import { aFechaISO } from "@/lib/formato";
+import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
+import { aFechaISO, formatearNumero } from "@/lib/formato";
 import { ETIQUETAS_PRIORIDAD } from "./etiquetas";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
@@ -27,11 +28,15 @@ import {
   SelectItem,
 } from "@/componentes/ui/select";
 
+/** Valor del selector cuando el plan no persigue ninguna meta numérica. */
+const SIN_META = "SIN_META";
+
 const esquema = z.object({
   titulo: z.string().min(1, "El título es obligatorio").max(200),
   descripcion: z.string().max(2000),
   prioridad: z.enum(PRIORIDADES_OBJETIVO),
   fechaObjetivo: z.string(),
+  objetivoComposicionId: z.string(),
 });
 type DatosFormulario = z.infer<typeof esquema>;
 
@@ -44,6 +49,10 @@ interface Props {
 /** Alta/edición de un objetivo (título, prioridad, fecha meta). */
 export function FormularioObjetivo({ pacienteId, objetivoInicial, onTerminado }: Props) {
   const { crear, actualizar } = useObjetivos();
+  // Las metas numéricas del paciente: este plan puede perseguir una.
+  const { obtenerComposicion } = useEvaluacion();
+  const composicion = obtenerComposicion({ pacienteId });
+  const metas = composicion.data?.objetivos ?? [];
   const enviando = crear.isPending || actualizar.isPending;
 
   const form = useForm<DatosFormulario>({
@@ -55,6 +64,7 @@ export function FormularioObjetivo({ pacienteId, objetivoInicial, onTerminado }:
       fechaObjetivo: objetivoInicial?.fechaObjetivo
         ? aFechaISO(objetivoInicial.fechaObjetivo)
         : "",
+      objetivoComposicionId: objetivoInicial?.objetivoComposicionId ?? SIN_META,
     },
   });
 
@@ -64,6 +74,10 @@ export function FormularioObjetivo({ pacienteId, objetivoInicial, onTerminado }:
       descripcion: datos.descripcion.trim() || null,
       prioridad: datos.prioridad,
       fechaObjetivo: datos.fechaObjetivo ? new Date(datos.fechaObjetivo) : null,
+      objetivoComposicionId:
+        datos.objetivoComposicionId === SIN_META
+          ? null
+          : datos.objetivoComposicionId,
     };
     if (objetivoInicial) {
       actualizar.mutate({ id: objetivoInicial.id, ...cuerpo }, { onSuccess: onTerminado });
@@ -141,6 +155,42 @@ export function FormularioObjetivo({ pacienteId, objetivoInicial, onTerminado }:
             )}
           />
         </div>
+
+        {/* El vínculo con la meta medible: el plan dice QUÉ se hace, la meta
+            dice a DÓNDE se llega. Juntos, el plan muestra progreso real. */}
+        <FormField
+          control={form.control}
+          name="objetivoComposicionId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Meta de composición que persigue (opcional)</FormLabel>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value={SIN_META}>
+                    Ninguna — objetivo solo cualitativo
+                  </SelectItem>
+                  {metas.map((meta) => (
+                    <SelectItem key={meta.id} value={meta.id}>
+                      {meta.descripcion}: {formatearNumero(meta.valorObjetivo)}
+                      {meta.proyeccion.unidad ? ` ${meta.proyeccion.unidad}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {metas.length === 0
+                  ? "El paciente no tiene metas numéricas cargadas. Se plantean en la pestaña Antropometría."
+                  : "Vinculada, la tarjeta muestra el progreso medido en las antropometrías en vez de una estimación."}
+              </p>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onTerminado} disabled={enviando}>

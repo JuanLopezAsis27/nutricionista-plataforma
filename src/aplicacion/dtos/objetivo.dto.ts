@@ -14,6 +14,8 @@ export const crearObjetivoDto = z.object({
   descripcion: z.string().max(2000).optional().nullable(),
   prioridad: z.enum(PRIORIDADES_OBJETIVO).optional(),
   fechaObjetivo: z.coerce.date().optional().nullable(),
+  /** Meta numérica de composición que este plan busca alcanzar. */
+  objetivoComposicionId: z.string().min(1).optional().nullable(),
 });
 export type CrearObjetivoDto = z.infer<typeof crearObjetivoDto>;
 
@@ -23,6 +25,8 @@ export const actualizarObjetivoDto = z.object({
   descripcion: z.string().max(2000).optional().nullable(),
   prioridad: z.enum(PRIORIDADES_OBJETIVO).optional(),
   fechaObjetivo: z.coerce.date().optional().nullable(),
+  /** null desvincula la meta; omitirlo deja el vínculo como está. */
+  objetivoComposicionId: z.string().min(1).optional().nullable(),
 });
 export type ActualizarObjetivoDto = z.infer<typeof actualizarObjetivoDto>;
 
@@ -70,6 +74,7 @@ const estrategiaSalida = z.object({
 export const objetivoSalidaDto = z.object({
   id: z.string(),
   pacienteId: z.string(),
+  objetivoComposicionId: z.string().nullable(),
   titulo: z.string(),
   descripcion: z.string().nullable(),
   prioridad: z.enum(PRIORIDADES_OBJETIVO),

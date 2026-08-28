@@ -16,6 +16,8 @@ export { ErrorRegistroDiarioNoEncontrado } from "./ErrorRegistroDiarioNoEncontra
 export { ErrorRecetaNoEncontrada } from "./ErrorRecetaNoEncontrada";
 export { ErrorPlanNoEncontrado } from "./ErrorPlanNoEncontrado";
 export { ErrorObjetivoNoEncontrado } from "./ErrorObjetivoNoEncontrado";
+export { ErrorObjetivoComposicionNoEncontrado } from "./ErrorObjetivoComposicionNoEncontrado";
+export { ErrorPlantillaAntropometricaNoEncontrada } from "./ErrorPlantillaAntropometricaNoEncontrada";
 export { ErrorMaterialNoEncontrado } from "./ErrorMaterialNoEncontrado";
 export { ErrorSuplementoNoEncontrado } from "./ErrorSuplementoNoEncontrado";
 export { ErrorAlertaSeguimientoNoEncontrada } from "./ErrorAlertaSeguimientoNoEncontrada";

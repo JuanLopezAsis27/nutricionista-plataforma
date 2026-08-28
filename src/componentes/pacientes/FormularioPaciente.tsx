@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { PacienteSalidaDto } from "@/aplicacion/dtos/paciente.dto";
+import { SEXOS_BIOLOGICOS } from "@/dominio/servicios/composicionCorporal";
 import { usePacientes } from "@/lib/hooks/usePacientes";
 import { aFechaISO } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
@@ -18,6 +19,21 @@ import {
   FormControl,
   FormMessage,
 } from "@/componentes/ui/form";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/componentes/ui/select";
+
+const ETIQUETAS_SEXO: Record<(typeof SEXOS_BIOLOGICOS)[number], string> = {
+  MASCULINO: "Masculino",
+  FEMENINO: "Femenino",
+};
+
+/** Valor del select cuando el sexo todavía no se cargó. */
+const SIN_SEXO = "SIN_DATO";
 
 interface PropsFormularioPaciente {
   pacienteInicial?: PacienteSalidaDto | null;
@@ -39,6 +55,7 @@ export function FormularioPaciente({ pacienteInicial, onTerminado }: PropsFormul
         email: z.string().email("Email inválido"),
         telefono: z.string().optional(),
         fechaNacimiento: z.string().optional(),
+        sexo: z.enum([...SEXOS_BIOLOGICOS, SIN_SEXO]),
         notas: z.string().optional(),
         password: editando
           ? z.string().optional()
@@ -56,6 +73,7 @@ export function FormularioPaciente({ pacienteInicial, onTerminado }: PropsFormul
       email: pacienteInicial?.email ?? "",
       telefono: pacienteInicial?.telefono ?? "",
       fechaNacimiento: aFechaISO(pacienteInicial?.fechaNacimiento),
+      sexo: pacienteInicial?.sexo ?? SIN_SEXO,
       notas: pacienteInicial?.notas ?? "",
       password: "",
     },
@@ -70,6 +88,7 @@ export function FormularioPaciente({ pacienteInicial, onTerminado }: PropsFormul
       email: datos.email,
       telefono: datos.telefono?.trim() ? datos.telefono : null,
       fechaNacimiento: datos.fechaNacimiento ? new Date(datos.fechaNacimiento) : null,
+      sexo: datos.sexo === SIN_SEXO ? null : datos.sexo,
       notas: datos.notas?.trim() ? datos.notas : null,
     };
 
@@ -173,6 +192,36 @@ export function FormularioPaciente({ pacienteInicial, onTerminado }: PropsFormul
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="sexo"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Sexo biológico</FormLabel>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value={SIN_SEXO}>Sin especificar</SelectItem>
+                  {SEXOS_BIOLOGICOS.map((sexo) => (
+                    <SelectItem key={sexo} value={sexo}>
+                      {ETIQUETAS_SEXO[sexo]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Lo usa la antropometría: el fraccionamiento en 5 masas, el peso
+                ideal y el metabolismo basal tienen constantes distintas por sexo.
+              </p>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}

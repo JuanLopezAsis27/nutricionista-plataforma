@@ -48,6 +48,16 @@ export interface DatosNuevoObjetivo {
   descripcion?: string | null;
   prioridad?: PrioridadObjetivo;
   fechaObjetivo?: Date | null;
+  /**
+   * Meta numérica que este plan busca alcanzar, si la hay.
+   *
+   * Los dos objetivos son complementarios: este es el PLAN (qué se hace y por
+   * qué, con sus estrategias) y el de composición es el RESULTADO medible.
+   * Vinculados, el plan muestra progreso real en vez de autoevaluación. Sigue
+   * siendo opcional: hay planes sin número ("ordenar las cenas") y metas sin
+   * plan escrito.
+   */
+  objetivoComposicionId?: string | null;
 }
 
 /** Cambios editables de un objetivo (el estado se cambia aparte, con motivo). */
@@ -56,12 +66,15 @@ export interface CambiosObjetivo {
   descripcion?: string | null;
   prioridad?: PrioridadObjetivo;
   fechaObjetivo?: Date | null;
+  /** null desvincula la meta numérica; undefined deja el vínculo como está. */
+  objetivoComposicionId?: string | null;
 }
 
 /** Estado completo de un objetivo persistido. */
 export interface PropiedadesObjetivo {
   id: string;
   pacienteId: string;
+  objetivoComposicionId: string | null;
   titulo: string;
   descripcion: string | null;
   prioridad: PrioridadObjetivo;
@@ -96,6 +109,7 @@ export class Objetivo {
     return new Objetivo({
       id,
       pacienteId: datos.pacienteId,
+      objetivoComposicionId: datos.objetivoComposicionId?.trim() || null,
       titulo,
       descripcion: datos.descripcion?.trim() || null,
       prioridad: datos.prioridad ?? "MEDIA",
@@ -131,6 +145,10 @@ export class Objetivo {
       prioridad: cambios.prioridad ?? this.props.prioridad,
       fechaObjetivo:
         cambios.fechaObjetivo !== undefined ? cambios.fechaObjetivo : this.props.fechaObjetivo,
+      objetivoComposicionId:
+        cambios.objetivoComposicionId !== undefined
+          ? cambios.objetivoComposicionId?.trim() || null
+          : this.props.objetivoComposicionId,
       estrategias: this.props.estrategias.map((e) => ({ ...e })),
       actualizadoEn: ahora,
     });
@@ -176,6 +194,9 @@ export class Objetivo {
   }
   get pacienteId(): string {
     return this.props.pacienteId;
+  }
+  get objetivoComposicionId(): string | null {
+    return this.props.objetivoComposicionId;
   }
   get titulo(): string {
     return this.props.titulo;

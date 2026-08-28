@@ -40,6 +40,26 @@ export function useEvaluacion() {
     eliminarAntropometria: trpc.evaluacion.eliminarAntropometria.useMutation(
       conToasts("Medición eliminada."),
     ),
+    // Composición corporal
+    obtenerComposicion: trpc.evaluacion.obtenerComposicion.useQuery,
+    /** Portal del paciente: su propia composición (el id sale de la sesión). */
+    miComposicion: trpc.evaluacion.miComposicion.useQuery,
+    guardarObjetivoComposicion:
+      trpc.evaluacion.guardarObjetivoComposicion.useMutation(
+        conToasts("Objetivo guardado."),
+      ),
+    eliminarObjetivoComposicion:
+      trpc.evaluacion.eliminarObjetivoComposicion.useMutation(
+        conToasts("Objetivo eliminado."),
+      ),
+    // Plantillas de carga
+    obtenerPlantillas: trpc.evaluacion.obtenerPlantillas.useQuery,
+    guardarPlantilla: trpc.evaluacion.guardarPlantilla.useMutation(
+      conToasts("Plantilla guardada."),
+    ),
+    eliminarPlantilla: trpc.evaluacion.eliminarPlantilla.useMutation(
+      conToasts("Plantilla eliminada."),
+    ),
     // Alertas alimentarias
     obtenerAlertas: trpc.evaluacion.obtenerAlertas.useQuery,
     registrarAlerta: trpc.evaluacion.registrarAlerta.useMutation(

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SEXOS_BIOLOGICOS } from "@/dominio/servicios/composicionCorporal";
 
 /**
  * DTOs de Paciente — esquemas Zod de entrada/salida.
@@ -14,6 +15,8 @@ export const crearPacienteDto = z.object({
   email: z.string().email("Email inválido"),
   telefono: z.string().max(30).optional().nullable(),
   fechaNacimiento: z.coerce.date().optional().nullable(),
+  /** Lo necesita la antropometría; opcional para no frenar el alta rápida. */
+  sexo: z.enum(SEXOS_BIOLOGICOS).optional().nullable(),
   notas: z.string().max(1000).optional().nullable(),
 });
 export type CrearPacienteDto = z.infer<typeof crearPacienteDto>;
@@ -60,6 +63,7 @@ export const pacienteSalidaDto = z.object({
   telefono: z.string().nullable(),
   telefonoE164: z.string().nullable(),
   fechaNacimiento: z.date().nullable(),
+  sexo: z.enum(SEXOS_BIOLOGICOS).nullable(),
   notas: z.string().nullable(),
   archivadoEn: z.date().nullable(),
   motivoArchivado: z.string().nullable(),

@@ -15,7 +15,8 @@ import {
 import type { ObjetivoSalidaDto } from "@/aplicacion/dtos/objetivo.dto";
 import type { EstadoObjetivo, EstadoEstrategia } from "@/dominio/entidades/Objetivo";
 import { useObjetivos } from "@/lib/hooks/useObjetivos";
-import { formatearFecha } from "@/lib/formato";
+import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
+import { formatearFecha, formatearNumero } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import {
   ETIQUETAS_PRIORIDAD,
@@ -130,6 +131,13 @@ export function TarjetaObjetivo({ objetivo }: { objetivo: ObjetivoSalidaDto }) {
       </CardHeader>
 
       <CardContent className="space-y-3">
+        {/* La meta medible que este plan persigue, si se vinculó una: el
+            progreso sale de las antropometrías, no de una autoevaluación. */}
+        <MetaVinculada
+          pacienteId={objetivo.pacienteId}
+          objetivoComposicionId={objetivo.objetivoComposicionId}
+        />
+
         {/* Estrategias */}
         {objetivo.estrategias.length > 0 && (
           <ul className="space-y-2">
@@ -384,5 +392,75 @@ export function TarjetaObjetivo({ objetivo }: { objetivo: ObjetivoSalidaDto }) {
         }
       />
     </Card>
+  );
+}
+
+/**
+ * Progreso medido de la meta numérica asociada al plan.
+ *
+ * Es el punto del vínculo: el objetivo cualitativo dice qué se hace y por qué,
+ * y esta franja dice si está funcionando, con el número que salió del
+ * plicómetro. Sin vínculo no renderiza nada.
+ */
+function MetaVinculada({
+  pacienteId,
+  objetivoComposicionId,
+}: {
+  pacienteId: string;
+  objetivoComposicionId: string | null;
+}) {
+  const { obtenerComposicion } = useEvaluacion();
+  const composicion = obtenerComposicion(
+    { pacienteId },
+    { enabled: objetivoComposicionId != null },
+  );
+
+  if (objetivoComposicionId == null) return null;
+
+  const meta = composicion.data?.objetivos.find(
+    (o) => o.id === objetivoComposicionId,
+  );
+  if (!meta) return null;
+
+  const p = meta.proyeccion;
+  const unidad = p.unidad ? ` ${p.unidad}` : "";
+  const falta = p.brecha != null ? Math.abs(p.brecha) : null;
+
+  return (
+    <div className="rounded-md border bg-muted/30 p-3">
+      <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <Target className="h-3.5 w-3.5" /> Meta medida: {meta.descripcion}
+      </p>
+      <div className="mt-1.5 flex items-baseline justify-between gap-2 text-sm">
+        <span className="tabular-nums">
+          {formatearNumero(p.valorActual)}
+          {unidad}
+          <span className="mx-1 text-muted-foreground">→</span>
+          <span className="font-semibold">
+            {formatearNumero(p.valorObjetivo)}
+            {unidad}
+          </span>
+        </span>
+        {falta != null && falta > 0 && (
+          <span className="text-xs text-muted-foreground">
+            faltan{" "}
+            <span className="font-medium tabular-nums">
+              {formatearNumero(falta)}
+              {unidad}
+            </span>
+          </span>
+        )}
+      </div>
+      <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-primary transition-all"
+          style={{ width: `${p.progresoPorcentaje ?? 0}%` }}
+        />
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {formatearNumero(p.progresoPorcentaje)} % del camino, según las
+        antropometrías.
+      </p>
+    </div>
   );
 }

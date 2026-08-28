@@ -7,6 +7,7 @@ import type { IGeneradorTokens } from "../servicios/IGeneradorTokens";
 import type { IArchivoRepositorio } from "../repositorios/IArchivoRepositorio";
 import type { IHistoriaClinicaRepositorio } from "../repositorios/IHistoriaClinicaRepositorio";
 import type { IAntropometriaRepositorio } from "../repositorios/IAntropometriaRepositorio";
+import type { IObjetivoComposicionRepositorio } from "../repositorios/IObjetivoComposicionRepositorio";
 import type { IAlertaAlimentariaRepositorio } from "../repositorios/IAlertaAlimentariaRepositorio";
 import type { ILaboratorioRepositorio } from "../repositorios/ILaboratorioRepositorio";
 import type { IRegistroDiarioRepositorio } from "../repositorios/IRegistroDiarioRepositorio";
@@ -46,6 +47,10 @@ import type { IAsistenteNutricional } from "../servicios/IAsistenteNutricional";
 import type { IAnalisisComidaIA } from "../servicios/IAnalisisComidaIA";
 import type { IAnalisisPredictivo } from "../servicios/IAnalisisPredictivo";
 import { Paciente, type DatosNuevoPaciente } from "../entidades/Paciente";
+import {
+  ObjetivoComposicion,
+  type DatosObjetivoComposicion,
+} from "../entidades/ObjetivoComposicion";
 import { Turno, type DatosNuevoTurno } from "../entidades/Turno";
 import { Usuario, type DatosNuevoUsuario } from "../entidades/Usuario";
 import { TokenRecuperacion } from "../entidades/TokenRecuperacion";
@@ -220,6 +225,19 @@ export function mockAntropometriaRepositorio(
     obtenerPorId: vi.fn(async () => null),
     listarPorPaciente: vi.fn(async () => []),
     existeEnFecha: vi.fn(async () => false),
+    ...parcial,
+  };
+}
+
+export function mockObjetivoComposicionRepositorio(
+  parcial: Partial<IObjetivoComposicionRepositorio> = {},
+): IObjetivoComposicionRepositorio {
+  return {
+    guardar: vi.fn(async (objetivo: ObjetivoComposicion) => objetivo),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    obtenerPorVariable: vi.fn(async () => null),
+    listarPorPaciente: vi.fn(async () => []),
     ...parcial,
   };
 }
@@ -771,6 +789,25 @@ export function historiaClinicaEjemplo(
       ...cambios,
     },
     id,
+  );
+}
+
+export function objetivoComposicionEjemplo(
+  cambios: Partial<DatosObjetivoComposicion> = {},
+  id = "obj-comp-1",
+  /** Cuándo se planteó: define el punto de partida del progreso. */
+  creadoEn = new Date("2020-01-01"),
+): ObjetivoComposicion {
+  return ObjetivoComposicion.crear(
+    {
+      pacienteId: "pac-1",
+      variable: "MASA_ADIPOSA_KG",
+      valorObjetivo: 15,
+      fechaObjetivo: null,
+      ...cambios,
+    },
+    id,
+    creadoEn,
   );
 }
 

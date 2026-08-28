@@ -9,6 +9,7 @@ import {
   Library,
   Target,
   TrendingUp,
+  PersonStanding,
   MessageSquare,
   Sparkles,
 } from "lucide-react";
@@ -26,6 +27,7 @@ export function BarraLateralPaciente({ email }: { email: string }) {
     { href: "/mensajes", etiqueta: "Mensajes", icono: MessageSquare, badge: sinLeer },
     { href: "/mi-diario", etiqueta: "Mi diario", icono: NotebookPen },
     { href: "/mi-progreso", etiqueta: "Mi progreso", icono: TrendingUp },
+    { href: "/mi-composicion", etiqueta: "Mi composición", icono: PersonStanding },
     { href: "/mi-plan", etiqueta: "Mi plan", icono: ClipboardList },
     { href: "/mis-objetivos", etiqueta: "Mis objetivos", icono: Target },
     { href: "/mis-recetas", etiqueta: "Mis recetas", icono: BookOpen },
