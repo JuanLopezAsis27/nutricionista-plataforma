@@ -4,6 +4,7 @@ import type {
   FiltroRecetas,
 } from "@/dominio/repositorios/IRecetaRepositorio";
 import { Receta, type IngredienteDeReceta } from "@/dominio/entidades/Receta";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Fila de receta con sus fotos e ingredientes incluidos. */
 type RecetaConDetalle = Prisma.RecetaGetPayload<{
@@ -23,6 +24,9 @@ function aNumero(valor: Prisma.Decimal | null): number | null {
 /** Datos de una fila de ingrediente a persistir (orden = posición en la lista). */
 function datosIngrediente(ing: IngredienteDeReceta, orden: number) {
   return {
+    // El ingrediente hereda el inquilino de su receta, pero lo lleva
+    // materializado para que la extensión pueda filtrarlo por id directo.
+    nutricionistaId: inquilinoActual(),
     nombre: ing.nombre,
     cantidadGramos: ing.cantidadGramos,
     caloriasPor100: ing.caloriasPor100,
@@ -50,6 +54,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
       await tx.receta.create({
         data: {
           id: d.id,
+          nutricionistaId: inquilinoActual(),
           nombre: d.nombre,
           descripcion: d.descripcion,
           porciones: d.porciones,
@@ -143,7 +148,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
   async asignarAPaciente(recetaId: string, pacienteId: string, id: string): Promise<void> {
     await this.prisma.asignacionReceta.upsert({
       where: { recetaId_pacienteId: { recetaId, pacienteId } },
-      create: { id, recetaId, pacienteId },
+      create: { id, nutricionistaId: inquilinoActual(), recetaId, pacienteId },
       update: {},
     });
   }
@@ -202,7 +207,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
       })),
       etiquetas: fila.etiquetas,
       enlaces: fila.enlaces,
-      calorias: fila.calorias,
+      calorias: aNumero(fila.calorias),
       proteinasG: aNumero(fila.proteinasG),
       carbohidratosG: aNumero(fila.carbohidratosG),
       grasasG: aNumero(fila.grasasG),

@@ -15,6 +15,11 @@ export class ServicioCredenciales {
       anthropicConfigurado: Boolean(c?.anthropicApiKey),
       anthropicModelo: c?.anthropicModelo ?? null,
       fatsecretConfigurado: Boolean(c?.fatsecretClientId && c?.fatsecretClientSecret),
+      whatsappConfigurado: Boolean(c?.whatsappToken && c?.whatsappPhoneNumberId),
+      whatsappPhoneNumberId: c?.whatsappPhoneNumberId ?? null,
+      // Sin verify token no se puede dar de alta el webhook, y sin app secret
+      // se rechaza todo lo que entre: recién con los dos hay ida y vuelta.
+      whatsappWebhookListo: Boolean(c?.whatsappVerifyToken && c?.whatsappAppSecret),
       criterios: c?.criterios ?? {
         excluirMarcas: false,
         requiereMacros: false,

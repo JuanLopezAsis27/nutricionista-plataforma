@@ -5,10 +5,13 @@ import type { TurnoSalidaDto } from "@/aplicacion/dtos/turno.dto";
 import { useTurnos } from "@/lib/hooks/useTurnos";
 import { Button } from "@/componentes/ui/button";
 import { SelectorEstado } from "@/componentes/turnos/SelectorEstado";
+import { BotonRecordatorioWhatsapp } from "@/componentes/turnos/BotonRecordatorioWhatsapp";
 
 interface PropsAccionesTurno {
   turno: TurnoSalidaDto;
   onReprogramar: (turno: TurnoSalidaDto) => void;
+  /** Teléfono del paciente, para habilitar el recordatorio por WhatsApp. */
+  telefonoPaciente?: string | null;
 }
 
 /**
@@ -16,7 +19,7 @@ interface PropsAccionesTurno {
  * cancelar rápido y modificar (reprogramar). Reutilizado en la lista y en el
  * detalle del día del calendario.
  */
-export function AccionesTurno({ turno, onReprogramar }: PropsAccionesTurno) {
+export function AccionesTurno({ turno, onReprogramar, telefonoPaciente }: PropsAccionesTurno) {
   const { actualizarEstado, cancelar } = useTurnos();
   const modificable = turno.estado === "PENDIENTE" || turno.estado === "CONFIRMADO";
 
@@ -27,6 +30,9 @@ export function AccionesTurno({ turno, onReprogramar }: PropsAccionesTurno) {
         deshabilitado={actualizarEstado.isPending}
         onCambiar={(estado) => actualizarEstado.mutate({ id: turno.id, estado })}
       />
+      {modificable && (
+        <BotonRecordatorioWhatsapp turno={turno} telefonoPaciente={telefonoPaciente} />
+      )}
       {modificable && (
         <Button
           variant="ghost"

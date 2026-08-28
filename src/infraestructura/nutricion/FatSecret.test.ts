@@ -116,7 +116,11 @@ describe("ProveedorNutricionApp", () => {
         anthropicApiKey: null,
         anthropicModelo: null,
         fatsecretClientId: clientId,
-        fatsecretClientSecret: clientId ? "sec" : null,
+        whatsappToken: null,
+      whatsappPhoneNumberId: null,
+      whatsappVerifyToken: null,
+      whatsappAppSecret: null,
+      fatsecretClientSecret: clientId ? "sec" : null,
         criterios: {
           excluirMarcas: false,
           requiereMacros: false,

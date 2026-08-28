@@ -10,6 +10,7 @@ import {
   type EstadoEstrategia,
   type TipoEventoObjetivo,
 } from "@/dominio/entidades/Objetivo";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Include estándar: estrategias más recientes primero. */
 const INCLUIR_ESTRATEGIAS = {
@@ -33,6 +34,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
     const fila = await this.prisma.$transaction(async (tx) => {
       await tx.objetivo.create({
         data: {
+          nutricionistaId: inquilinoActual(),
           id: d.id,
           pacienteId: d.pacienteId,
           titulo: d.titulo,
@@ -105,6 +107,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
     await this.prisma.$transaction(async (tx) => {
       await tx.estrategia.create({
         data: {
+          nutricionistaId: inquilinoActual(),
           id: estrategia.id,
           objetivoId,
           descripcion: estrategia.descripcion,
@@ -167,6 +170,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
   ): Promise<void> {
     await tx.historialObjetivo.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         objetivoId,
         tipo: evento.tipo,
         detalle: evento.detalle,

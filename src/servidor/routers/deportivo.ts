@@ -1,6 +1,5 @@
 import { crearRouter, nutricionistaProcedimiento, protegidoProcedimiento } from "../trpc";
-import { aTRPCError } from "../errores-trpc";
-import { ErrorAccesoDenegado } from "@/dominio/errores/ErrorAccesoDenegado";
+import { pacienteDeSesion } from "@/dominio/servicios/politicaAcceso";
 import {
   guardarPerfilDeportivoDto,
   crearCompetenciaDto,
@@ -19,84 +18,46 @@ export const routerDeportivo = crearRouter({
   obtenerPerfil: nutricionistaProcedimiento
     .input(idPacienteDeportivoDto)
     .query(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.deportivo.obtenerPerfil(input.pacienteId);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.deportivo.obtenerPerfil(input.pacienteId);
     }),
 
   guardarPerfil: nutricionistaProcedimiento
     .input(guardarPerfilDeportivoDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.deportivo.guardarPerfil(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.deportivo.guardarPerfil(input);
     }),
 
   listarCompetencias: nutricionistaProcedimiento
     .input(idPacienteDeportivoDto)
     .query(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.deportivo.listarCompetencias(input.pacienteId);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.deportivo.listarCompetencias(input.pacienteId);
     }),
 
   crearCompetencia: nutricionistaProcedimiento
     .input(crearCompetenciaDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.deportivo.crearCompetencia(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.deportivo.crearCompetencia(input);
     }),
 
   actualizarCompetencia: nutricionistaProcedimiento
     .input(actualizarCompetenciaDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.deportivo.actualizarCompetencia(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.deportivo.actualizarCompetencia(input);
     }),
 
   eliminarCompetencia: nutricionistaProcedimiento
     .input(idCompetenciaDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        await ctx.servicios.deportivo.eliminarCompetencia(input.id);
-        return { eliminado: true };
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      await ctx.servicios.deportivo.eliminarCompetencia(input.id);
+      return { eliminado: true };
     }),
 
   // --- Portal del paciente (pacienteId de la sesión) -----------------------
   miPerfil: protegidoProcedimiento.query(async ({ ctx }) => {
-    try {
-      if (!ctx.usuario.pacienteId) {
-        throw new ErrorAccesoDenegado("Tu usuario no tiene un paciente asociado.");
-      }
-      return await ctx.servicios.deportivo.obtenerPerfil(ctx.usuario.pacienteId);
-    } catch (error) {
-      throw aTRPCError(error);
-    }
+    return await ctx.servicios.deportivo.obtenerPerfil(pacienteDeSesion(ctx.usuario));
   }),
 
   misCompetencias: protegidoProcedimiento.query(async ({ ctx }) => {
-    try {
-      if (!ctx.usuario.pacienteId) {
-        throw new ErrorAccesoDenegado("Tu usuario no tiene un paciente asociado.");
-      }
-      return await ctx.servicios.deportivo.listarCompetencias(ctx.usuario.pacienteId);
-    } catch (error) {
-      throw aTRPCError(error);
-    }
+    return await ctx.servicios.deportivo.listarCompetencias(pacienteDeSesion(ctx.usuario));
   }),
 });

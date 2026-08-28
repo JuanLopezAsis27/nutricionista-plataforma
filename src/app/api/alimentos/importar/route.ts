@@ -45,7 +45,7 @@ export function POST(request: Request): Promise<NextResponse> {
         );
       }
 
-      const { importados } = await servicioAlimentosPropios.importar(validado.data);
+      const { importados } = await servicioAlimentosPropios().importar(validado.data);
       return NextResponse.json({ importados }, { status: 201 });
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : "No se pudo importar la planilla.";

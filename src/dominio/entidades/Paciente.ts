@@ -1,4 +1,5 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
+import { normalizarTelefonoE164, PREFIJO_PAIS_POR_DEFECTO } from "../servicios/telefono";
 
 /** Datos necesarios para dar de alta un paciente nuevo. */
 export interface DatosNuevoPaciente {
@@ -17,8 +18,18 @@ export interface PropiedadesPaciente {
   apellido: string;
   email: string;
   telefono: string | null;
+  /**
+   * Forma canónica del teléfono (E.164 sin "+"), derivada de `telefono`.
+   * No se carga a mano: la calcula la entidad. Es lo que permite resolver por
+   * índice al paciente que escribe por WhatsApp, en vez de traer la tabla
+   * entera y normalizar en memoria.
+   */
+  telefonoE164: string | null;
   fechaNacimiento: Date | null;
   notas: string | null;
+  /** Baja lógica: null = paciente vigente. */
+  archivadoEn: Date | null;
+  motivoArchivado: string | null;
   creadoEn: Date;
   actualizadoEn: Date;
 }
@@ -37,7 +48,12 @@ export class Paciente {
   private constructor(private readonly props: PropiedadesPaciente) {}
 
   /** Crea un paciente nuevo validando todos sus invariantes. */
-  static crear(datos: DatosNuevoPaciente, id: string, ahora: Date = new Date()): Paciente {
+  static crear(
+    datos: DatosNuevoPaciente,
+    id: string,
+    ahora: Date = new Date(),
+    prefijoPais: string = PREFIJO_PAIS_POR_DEFECTO,
+  ): Paciente {
     const nombre = datos.nombre?.trim() ?? "";
     const apellido = datos.apellido?.trim() ?? "";
     const email = datos.email?.trim().toLowerCase() ?? "";
@@ -55,14 +71,18 @@ export class Paciente {
       throw new ErrorValidacion("La fecha de nacimiento no puede ser futura.");
     }
 
+    const telefono = datos.telefono?.trim() || null;
     return new Paciente({
       id,
       nombre,
       apellido,
       email,
-      telefono: datos.telefono?.trim() || null,
+      telefono,
+      telefonoE164: Paciente.canonizarTelefono(telefono, prefijoPais),
       fechaNacimiento: datos.fechaNacimiento ?? null,
       notas: datos.notas?.trim() || null,
+      archivadoEn: null,
+      motivoArchivado: null,
       creadoEn: ahora,
       actualizadoEn: ahora,
     });
@@ -78,7 +98,11 @@ export class Paciente {
    * Preserva id y creadoEn; actualiza actualizadoEn. No muta la instancia
    * original (las entidades se tratan como inmutables hacia afuera).
    */
-  actualizar(cambios: Partial<DatosNuevoPaciente>, ahora: Date = new Date()): Paciente {
+  actualizar(
+    cambios: Partial<DatosNuevoPaciente>,
+    ahora: Date = new Date(),
+    prefijoPais: string = PREFIJO_PAIS_POR_DEFECTO,
+  ): Paciente {
     const datos: DatosNuevoPaciente = {
       nombre: cambios.nombre ?? this.props.nombre,
       apellido: cambios.apellido ?? this.props.apellido,
@@ -91,12 +115,60 @@ export class Paciente {
       notas: cambios.notas !== undefined ? cambios.notas : this.props.notas,
     };
 
-    // Reutiliza la validación de `crear` y luego preserva el creadoEn original.
-    const validado = Paciente.crear(datos, this.props.id, ahora);
+    // Reutiliza la validación de `crear` y luego preserva lo que no se edita.
+    const validado = Paciente.crear(datos, this.props.id, ahora, prefijoPais);
     return Paciente.reconstruir({
       ...validado.aPrimitivos(),
       creadoEn: this.props.creadoEn,
+      archivadoEn: this.props.archivadoEn,
+      motivoArchivado: this.props.motivoArchivado,
     });
+  }
+
+  /**
+   * Da de baja al paciente sin borrarlo: deja de contar como vigente en los
+   * listados y en las estadísticas, pero conserva toda su historia clínica.
+   */
+  archivar(motivo: string | null = null, ahora: Date = new Date()): Paciente {
+    if (this.props.archivadoEn) {
+      throw new ErrorValidacion("El paciente ya está archivado.");
+    }
+    return Paciente.reconstruir({
+      ...this.props,
+      archivadoEn: ahora,
+      motivoArchivado: motivo?.trim() || null,
+      actualizadoEn: ahora,
+    });
+  }
+
+  /** Vuelve a poner en seguimiento a un paciente archivado. */
+  reactivar(ahora: Date = new Date()): Paciente {
+    if (!this.props.archivadoEn) {
+      throw new ErrorValidacion("El paciente no está archivado.");
+    }
+    return Paciente.reconstruir({
+      ...this.props,
+      archivadoEn: null,
+      motivoArchivado: null,
+      actualizadoEn: ahora,
+    });
+  }
+
+  /**
+   * Canoniza el teléfono a E.164. Un número ilegible NO invalida al paciente:
+   * simplemente queda sin forma canónica y no se lo puede resolver por
+   * WhatsApp. Bloquear el alta por un teléfono mal escrito sería peor.
+   */
+  private static canonizarTelefono(
+    telefono: string | null,
+    prefijoPais: string,
+  ): string | null {
+    if (!telefono) return null;
+    try {
+      return normalizarTelefonoE164(telefono, prefijoPais);
+    } catch {
+      return null;
+    }
   }
 
   get id(): string {
@@ -116,6 +188,18 @@ export class Paciente {
   }
   get telefono(): string | null {
     return this.props.telefono ?? null;
+  }
+  get telefonoE164(): string | null {
+    return this.props.telefonoE164 ?? null;
+  }
+  get archivadoEn(): Date | null {
+    return this.props.archivadoEn ?? null;
+  }
+  get estaArchivado(): boolean {
+    return this.props.archivadoEn != null;
+  }
+  get motivoArchivado(): string | null {
+    return this.props.motivoArchivado ?? null;
   }
   get fechaNacimiento(): Date | null {
     return this.props.fechaNacimiento ?? null;

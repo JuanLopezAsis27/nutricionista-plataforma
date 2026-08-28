@@ -1,5 +1,4 @@
 import { crearRouter, publicoProcedimiento } from "../trpc";
-import { aTRPCError } from "../errores-trpc";
 import { ejecutarGlobal } from "@/infraestructura/multitenancy/contextoTenant";
 import {
   solicitarRecuperacionDto,
@@ -19,23 +18,15 @@ export const routerAutenticacion = crearRouter({
   solicitarRecuperacion: publicoProcedimiento
     .input(solicitarRecuperacionDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ejecutarGlobal(() =>
-          ctx.servicios.autenticacion.solicitarRecuperacion(input),
-        );
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ejecutarGlobal(() =>
+        ctx.servicios.autenticacion.solicitarRecuperacion(input),
+      );
     }),
 
   // Restablece la contraseña con el token recibido por email.
   restablecer: publicoProcedimiento
     .input(restablecerPasswordDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ejecutarGlobal(() => ctx.servicios.autenticacion.restablecer(input));
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ejecutarGlobal(() => ctx.servicios.autenticacion.restablecer(input));
     }),
 });

@@ -1,4 +1,5 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
+import { renderizarPlantilla } from "../plantillas/renderizar";
 
 /**
  * Claves de las plantillas de sistema (sembradas, no borrables). El cron de
@@ -113,15 +114,9 @@ export class PlantillaEmail {
    * el profesional detecte el error en la vista previa.
    */
   renderizar(variables: Record<string, string>): EmailRenderizado {
-    const reemplazar = (texto: string): string =>
-      Object.entries(variables).reduce((acc, [clave, valor]) => {
-        const patron = new RegExp(`{{\\s*${clave}\\s*}}`, "g");
-        return acc.replace(patron, valor);
-      }, texto);
-
     return {
-      asunto: reemplazar(this.props.asunto),
-      html: reemplazar(this.props.cuerpoHtml),
+      asunto: renderizarPlantilla(this.props.asunto, variables),
+      html: renderizarPlantilla(this.props.cuerpoHtml, variables),
     };
   }
 

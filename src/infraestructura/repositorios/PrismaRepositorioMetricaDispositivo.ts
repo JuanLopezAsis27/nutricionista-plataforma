@@ -4,6 +4,7 @@ import {
   MetricaDispositivo,
   type FuenteMetrica,
 } from "@/dominio/entidades/MetricaDispositivo";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 type FilaMetrica = Prisma.MetricaDispositivoGetPayload<Record<string, never>>;
 
@@ -35,6 +36,7 @@ export class PrismaRepositorioMetricaDispositivo implements IMetricaDispositivoR
       },
       create: {
         id: d.id,
+        nutricionistaId: inquilinoActual(),
         pacienteId: d.pacienteId,
         fecha,
         fuente: d.fuente,

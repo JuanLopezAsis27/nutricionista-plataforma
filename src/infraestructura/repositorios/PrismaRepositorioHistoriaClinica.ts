@@ -1,6 +1,7 @@
 import type { PrismaClient, HistoriaClinica as HistoriaFila } from "@prisma/client";
 import type { IHistoriaClinicaRepositorio } from "@/dominio/repositorios/IHistoriaClinicaRepositorio";
 import { HistoriaClinica } from "@/dominio/entidades/HistoriaClinica";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Implementación con Prisma del repositorio de Historia Clínica. */
 export class PrismaRepositorioHistoriaClinica implements IHistoriaClinicaRepositorio {
@@ -11,7 +12,7 @@ export class PrismaRepositorioHistoriaClinica implements IHistoriaClinicaReposit
     const { id, pacienteId, actualizadoEn: _ignorado, ...campos } = datos;
     const fila = await this.prisma.historiaClinica.upsert({
       where: { pacienteId },
-      create: { id, pacienteId, ...campos },
+      create: { id, nutricionistaId: inquilinoActual(), pacienteId, ...campos },
       update: campos,
     });
     return this.mapear(fila);

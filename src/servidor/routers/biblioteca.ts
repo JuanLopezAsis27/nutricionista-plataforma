@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { crearRouter, nutricionistaProcedimiento, protegidoProcedimiento } from "../trpc";
-import { aTRPCError } from "../errores-trpc";
-import { ErrorAccesoDenegado } from "@/dominio/errores/ErrorAccesoDenegado";
+import { pacienteDeSesion } from "@/dominio/servicios/politicaAcceso";
 import {
   crearMaterialDto,
   actualizarMaterialDto,
@@ -22,109 +21,66 @@ export const routerBiblioteca = crearRouter({
   obtenerTodos: nutricionistaProcedimiento
     .input(filtroMaterialesDto)
     .query(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.biblioteca.obtenerMateriales(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.biblioteca.obtenerMateriales(input);
     }),
 
   // Listado paginado (10/página, server-side) para la página de la biblioteca.
   listarPaginado: nutricionistaProcedimiento
     .input(listarMaterialesPaginadoDto)
     .query(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.biblioteca.obtenerMaterialesPaginado(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.biblioteca.obtenerMaterialesPaginado(input);
     }),
 
   crear: nutricionistaProcedimiento
     .input(crearMaterialDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.biblioteca.crearMaterial(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.biblioteca.crearMaterial(input);
     }),
 
   actualizar: nutricionistaProcedimiento
     .input(actualizarMaterialDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.biblioteca.actualizarMaterial(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.biblioteca.actualizarMaterial(input);
     }),
 
   eliminar: nutricionistaProcedimiento
     .input(idMaterialDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        await ctx.servicios.biblioteca.eliminarMaterial(input.id);
-        return { eliminado: true };
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      await ctx.servicios.biblioteca.eliminarMaterial(input.id);
+      return { eliminado: true };
     }),
 
   asignarAPaciente: nutricionistaProcedimiento
     .input(asignarMaterialDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        await ctx.servicios.biblioteca.asignarMaterialAPaciente(input);
-        return { asignado: true };
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      await ctx.servicios.biblioteca.asignarMaterialAPaciente(input);
+      return { asignado: true };
     }),
 
   desasignarDePaciente: nutricionistaProcedimiento
     .input(asignarMaterialDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        await ctx.servicios.biblioteca.desasignarMaterialDePaciente(input);
-        return { desasignado: true };
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      await ctx.servicios.biblioteca.desasignarMaterialDePaciente(input);
+      return { desasignado: true };
     }),
 
   pacientesAsignados: nutricionistaProcedimiento
     .input(idMaterialDto)
     .query(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.biblioteca.obtenerPacientesDeMaterial(input.id);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.biblioteca.obtenerPacientesDeMaterial(input.id);
     }),
 
   // El nutricionista consulta el material compartido con un paciente concreto.
   obtenerDelPaciente: nutricionistaProcedimiento
     .input(z.object({ pacienteId: z.string().min(1) }))
     .query(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.biblioteca.obtenerMaterialesDelPaciente(input.pacienteId);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.biblioteca.obtenerMaterialesDelPaciente(input.pacienteId);
     }),
 
   // Portal: el paciente ve su material (pacienteId de la sesión).
   obtenerMiMaterial: protegidoProcedimiento.query(async ({ ctx }) => {
-    try {
-      if (!ctx.usuario.pacienteId) {
-        throw new ErrorAccesoDenegado("Tu usuario no tiene un paciente asociado.");
-      }
-      return await ctx.servicios.biblioteca.obtenerMaterialesDelPaciente(
-        ctx.usuario.pacienteId,
-      );
-    } catch (error) {
-      throw aTRPCError(error);
-    }
+    return await ctx.servicios.biblioteca.obtenerMaterialesDelPaciente(
+      pacienteDeSesion(ctx.usuario),
+    );
   }),
 });

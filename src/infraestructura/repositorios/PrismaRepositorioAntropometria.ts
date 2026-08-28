@@ -1,6 +1,7 @@
 import type { PrismaClient, Antropometria as AntropometriaFila } from "@prisma/client";
 import type { IAntropometriaRepositorio } from "@/dominio/repositorios/IAntropometriaRepositorio";
 import { Antropometria } from "@/dominio/entidades/Antropometria";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /**
  * Implementación con Prisma del repositorio de Antropometría.
@@ -13,7 +14,11 @@ export class PrismaRepositorioAntropometria implements IAntropometriaRepositorio
   async crear(medicion: Antropometria): Promise<Antropometria> {
     const datos = medicion.aPrimitivos();
     const fila = await this.prisma.antropometria.create({
-      data: { ...datos, fecha: this.soloFecha(datos.fecha) },
+      data: {
+        ...datos,
+        nutricionistaId: inquilinoActual(),
+        fecha: this.soloFecha(datos.fecha),
+      },
     });
     return this.mapear(fila);
   }

@@ -5,6 +5,7 @@ import {
   type TipoAlertaSeguimiento,
   type EstadoAlertaSeguimiento,
 } from "@/dominio/entidades/AlertaSeguimiento";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 const INCLUIR_PACIENTE = {
   paciente: { select: { nombre: true, apellido: true } },
@@ -38,6 +39,7 @@ export class PrismaRepositorioAlertaSeguimiento implements IAlertaSeguimientoRep
 
       await tx.alertaSeguimiento.create({
         data: {
+          nutricionistaId: inquilinoActual(),
           id: d.id,
           pacienteId: d.pacienteId,
           tipo: d.tipo,

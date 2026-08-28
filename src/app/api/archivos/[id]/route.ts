@@ -26,7 +26,7 @@ export function GET(_solicitud: Request, { params }: Parametros): Promise<NextRe
     const { id } = await params;
 
     if (sesion.user.rol !== "NUTRICIONISTA") {
-      const permitido = await servicioArchivo.puedeVerPaciente(id, {
+      const permitido = await servicioArchivo().puedeVerPaciente(id, {
         usuarioId: sesion.user.id,
         pacienteId: sesion.user.pacienteId,
       });
@@ -35,7 +35,7 @@ export function GET(_solicitud: Request, { params }: Parametros): Promise<NextRe
       }
     }
 
-    const { url } = await servicioArchivo.obtenerUrl(id, 60);
+    const { url } = await servicioArchivo().obtenerUrl(id, 60);
     return NextResponse.redirect(url, 302);
   } catch (error) {
     return aRespuestaError(error);
@@ -53,7 +53,7 @@ export function DELETE(_solicitud: Request, { params }: Parametros): Promise<Nex
 
   try {
     const { id } = await params;
-    await servicioArchivo.eliminar(id);
+    await servicioArchivo().eliminar(id);
     return NextResponse.json({ eliminado: true });
   } catch (error) {
     return aRespuestaError(error);

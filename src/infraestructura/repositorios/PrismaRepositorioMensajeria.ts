@@ -9,6 +9,7 @@ import type {
 } from "@/dominio/repositorios/IMensajeriaRepositorio";
 import { Conversacion } from "@/dominio/entidades/Conversacion";
 import { Mensaje } from "@/dominio/entidades/Mensaje";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Implementación con Prisma de la mensajería (conversaciones + mensajes). */
 export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
@@ -28,6 +29,7 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
     const d = conversacion.aPrimitivos();
     const fila = await this.prisma.conversacion.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         id: d.id,
         pacienteId: d.pacienteId,
         ultimoMensajeTexto: d.ultimoMensajeTexto,
@@ -79,6 +81,7 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
     const d = mensaje.aPrimitivos();
     const fila = await this.prisma.mensaje.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         id: d.id,
         conversacionId: d.conversacionId,
         autorId: d.autorId,

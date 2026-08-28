@@ -6,6 +6,7 @@ export interface ParametrosPaginacionPacientes {
   pagina: number;
   porPagina: number;
   busqueda?: string;
+  incluirArchivados?: boolean;
 }
 
 /** Resultado paginado de entidades Paciente. */
@@ -24,12 +25,17 @@ export class ObtenerPacientes {
   constructor(private readonly repositorio: IPacienteRepositorio) {}
 
   async ejecutar(params: ParametrosPaginacionPacientes): Promise<PacientesPaginados> {
-    const { pagina, porPagina, busqueda } = params;
+    const { pagina, porPagina, busqueda, incluirArchivados } = params;
     const desplazamiento = (pagina - 1) * porPagina;
 
     const [pacientes, total] = await Promise.all([
-      this.repositorio.listar({ busqueda, limite: porPagina, desplazamiento }),
-      this.repositorio.contar({ busqueda }),
+      this.repositorio.listar({
+        busqueda,
+        incluirArchivados,
+        limite: porPagina,
+        desplazamiento,
+      }),
+      this.repositorio.contar({ busqueda, incluirArchivados }),
     ]);
 
     const paginas = Math.max(1, Math.ceil(total / porPagina));

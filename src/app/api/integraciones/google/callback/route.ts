@@ -21,7 +21,7 @@ export function GET(request: Request): Promise<NextResponse> {
     const volver = (q: string) =>
       NextResponse.redirect(new URL(`/dashboard/integraciones${q}`, request.url));
 
-    if (sesion?.user?.rol !== "NUTRICIONISTA" || !proveedorGoogle) {
+    if (sesion?.user?.rol !== "NUTRICIONISTA" || !proveedorGoogle()) {
       return volver("?error=no-disponible");
     }
 
@@ -33,9 +33,12 @@ export function GET(request: Request): Promise<NextResponse> {
     if (url.searchParams.get("error")) return volver("?error=denegado");
     if (!codigo || !estado || estado !== estadoCookie) return volver("?error=estado");
 
+    const google = proveedorGoogle();
+    if (!google) return volver("?error=no-configurado");
+
     try {
-      const tokens = await proveedorGoogle.intercambiarCodigo(codigo);
-      await servicioIntegraciones.guardarConexionGoogle(tokens);
+      const tokens = await google.intercambiarCodigo(codigo);
+      await servicioIntegraciones().guardarConexionGoogle(tokens);
       const respuesta = volver("?conectado=1");
       respuesta.cookies.delete("g_oauth_state");
       return respuesta;

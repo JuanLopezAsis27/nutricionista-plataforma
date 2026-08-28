@@ -14,7 +14,7 @@ export async function registrarLimpiarArchivosHuerfanos(boss: PgBoss): Promise<v
   await boss.work(COLA_LIMPIAR_ARCHIVOS, async () => {
     // Archivo no es tabla de inquilino, pero corremos en alcance global por las
     // dudas (la limpieza del bucket es transversal a todos los consultorios).
-    const resultado = await ejecutarGlobal(() => servicioArchivo.limpiarHuerfanos());
+    const resultado = await ejecutarGlobal(() => servicioArchivo().limpiarHuerfanos());
     console.log(
       `[worker] limpieza de huérfanos: ${resultado.objetosEliminados} objeto(s) eliminados.`,
     );

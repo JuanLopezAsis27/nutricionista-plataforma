@@ -1,6 +1,7 @@
 import type { IUsuarioRepositorio } from "../../repositorios/IUsuarioRepositorio";
 import type { IHasheadorContrasena } from "../../servicios/IHasheadorContrasena";
 import type { IProvisionadorNutricionista } from "../../servicios/IProvisionadorNutricionista";
+import type { INutricionistaRepositorio } from "../../repositorios/INutricionistaRepositorio";
 import { Usuario } from "../../entidades/Usuario";
 import { ErrorValidacion } from "../../errores/ErrorValidacion";
 
@@ -20,6 +21,7 @@ export class CrearCuentaNutricionista {
     private readonly usuarios: IUsuarioRepositorio,
     private readonly hasheador: IHasheadorContrasena,
     private readonly provisionador: IProvisionadorNutricionista,
+    private readonly nutricionistas: INutricionistaRepositorio,
   ) {}
 
   async ejecutar(datos: DatosNuevaCuentaNutricionista): Promise<Usuario> {
@@ -29,6 +31,9 @@ export class CrearCuentaNutricionista {
     }
 
     const id = crypto.randomUUID();
+    // El inquilino primero: `usuarios.nutricionistaId` es FK a `nutricionistas`,
+    // y todo lo que se aprovisione después cuelga de esa fila.
+    await this.nutricionistas.crear(id);
     const usuario = Usuario.crear(
       {
         email,

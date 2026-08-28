@@ -4,6 +4,8 @@ import { Settings } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/componentes/ui/tabs";
 import { FormularioConfiguracion } from "@/componentes/configuracion/FormularioConfiguracion";
 import { FormularioPdfPlan } from "@/componentes/configuracion/FormularioPdfPlan";
+import { FormularioWhatsapp } from "@/componentes/configuracion/FormularioWhatsapp";
+import { FormularioWhatsappApi } from "@/componentes/configuracion/FormularioWhatsappApi";
 import { GestionAxiomas } from "@/componentes/configuracion/GestionAxiomas";
 
 /** Configuración del consultorio: turnos, membrete y base de conocimiento. */
@@ -23,6 +25,7 @@ export default function PaginaConfiguracion() {
         <TabsList>
           <TabsTrigger value="general">Turnos y membrete</TabsTrigger>
           <TabsTrigger value="pdf">PDF del plan</TabsTrigger>
+          <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="axiomas">Base de conocimiento</TabsTrigger>
         </TabsList>
 
@@ -32,6 +35,11 @@ export default function PaginaConfiguracion() {
 
         <TabsContent value="pdf">
           <FormularioPdfPlan />
+        </TabsContent>
+
+        <TabsContent value="whatsapp" className="space-y-4">
+          <FormularioWhatsapp />
+          <FormularioWhatsappApi />
         </TabsContent>
 
         <TabsContent value="axiomas">

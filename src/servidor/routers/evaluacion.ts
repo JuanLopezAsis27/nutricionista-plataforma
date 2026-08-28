@@ -1,5 +1,4 @@
 import { crearRouter, nutricionistaProcedimiento } from "../trpc";
-import { aTRPCError } from "../errores-trpc";
 import {
   guardarHistoriaClinicaDto,
   registrarAntropometriaDto,
@@ -26,146 +25,90 @@ export const routerEvaluacion = crearRouter({
   obtenerHistoria: nutricionistaProcedimiento
     .input(idPacienteEvaluacionDto)
     .query(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.evaluacion.obtenerHistoriaClinica(input.pacienteId);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.evaluacion.obtenerHistoriaClinica(input.pacienteId);
     }),
 
   guardarHistoria: nutricionistaProcedimiento
     .input(guardarHistoriaClinicaDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.evaluacion.guardarHistoriaClinica(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.evaluacion.guardarHistoriaClinica(input);
     }),
 
   // --- Antropometría ----------------------------------------------------------
   obtenerEvolucion: nutricionistaProcedimiento
     .input(idPacienteEvaluacionDto)
     .query(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.evaluacion.obtenerEvolucion(input.pacienteId);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.evaluacion.obtenerEvolucion(input.pacienteId);
     }),
 
   registrarAntropometria: nutricionistaProcedimiento
     .input(registrarAntropometriaDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.evaluacion.registrarAntropometria(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.evaluacion.registrarAntropometria(input);
     }),
 
   actualizarAntropometria: nutricionistaProcedimiento
     .input(actualizarAntropometriaDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.evaluacion.actualizarAntropometria(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.evaluacion.actualizarAntropometria(input);
     }),
 
   eliminarAntropometria: nutricionistaProcedimiento
     .input(idAntropometriaDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        await ctx.servicios.evaluacion.eliminarAntropometria(input.id);
-        return { eliminado: true };
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      await ctx.servicios.evaluacion.eliminarAntropometria(input.id);
+      return { eliminado: true };
     }),
 
   // --- Alertas alimentarias ---------------------------------------------------
   obtenerAlertas: nutricionistaProcedimiento
     .input(idPacienteEvaluacionDto)
     .query(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.evaluacion.obtenerAlertas(input.pacienteId);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.evaluacion.obtenerAlertas(input.pacienteId);
     }),
 
   registrarAlerta: nutricionistaProcedimiento
     .input(registrarAlertaAlimentariaDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.evaluacion.registrarAlerta(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.evaluacion.registrarAlerta(input);
     }),
 
   actualizarAlerta: nutricionistaProcedimiento
     .input(actualizarAlertaAlimentariaDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.evaluacion.actualizarAlerta(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.evaluacion.actualizarAlerta(input);
     }),
 
   eliminarAlerta: nutricionistaProcedimiento
     .input(idDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        await ctx.servicios.evaluacion.eliminarAlerta(input.id);
-        return { eliminado: true };
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      await ctx.servicios.evaluacion.eliminarAlerta(input.id);
+      return { eliminado: true };
     }),
 
   // --- Laboratorios -------------------------------------------------------------
   obtenerLaboratorios: nutricionistaProcedimiento
     .input(idPacienteEvaluacionDto)
     .query(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.evaluacion.obtenerLaboratorios(input.pacienteId);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.evaluacion.obtenerLaboratorios(input.pacienteId);
     }),
 
   registrarLaboratorio: nutricionistaProcedimiento
     .input(registrarLaboratorioDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.evaluacion.registrarLaboratorio(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.evaluacion.registrarLaboratorio(input);
     }),
 
   actualizarLaboratorio: nutricionistaProcedimiento
     .input(actualizarLaboratorioDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.evaluacion.actualizarLaboratorio(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.evaluacion.actualizarLaboratorio(input);
     }),
 
   eliminarLaboratorio: nutricionistaProcedimiento
     .input(idDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        await ctx.servicios.evaluacion.eliminarLaboratorio(input.id);
-        return { eliminado: true };
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      await ctx.servicios.evaluacion.eliminarLaboratorio(input.id);
+      return { eliminado: true };
     }),
 });

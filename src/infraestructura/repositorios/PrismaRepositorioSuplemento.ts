@@ -1,6 +1,7 @@
 import type { PrismaClient, Suplemento as SuplementoFila } from "@prisma/client";
 import type { ISuplementoRepositorio } from "@/dominio/repositorios/ISuplementoRepositorio";
 import { Suplemento } from "@/dominio/entidades/Suplemento";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Implementación con Prisma del repositorio de Suplementos. */
 export class PrismaRepositorioSuplemento implements ISuplementoRepositorio {
@@ -10,6 +11,7 @@ export class PrismaRepositorioSuplemento implements ISuplementoRepositorio {
     const d = suplemento.aPrimitivos();
     const fila = await this.prisma.suplemento.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         id: d.id,
         pacienteId: d.pacienteId,
         nombre: d.nombre,

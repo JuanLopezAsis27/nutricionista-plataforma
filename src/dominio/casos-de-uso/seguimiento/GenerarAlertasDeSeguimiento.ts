@@ -50,20 +50,27 @@ export class GenerarAlertasDeSeguimiento {
       if (creada) generadas += 1;
     };
 
+    // `listar()` trae solo los pacientes vigentes: archivar a alguien tiene que
+    // callar sus alertas, no seguir generándolas.
     const pacientes = await this.pacientes.listar();
     const nombreDe = new Map(pacientes.map((p) => [p.id, `${p.nombre} ${p.apellido}`]));
 
     // --- Diario: sin peso / sin actividad en la última semana -------------
+    //
+    // Una sola lectura agregada para todos los pacientes. Antes eran dos
+    // consultas POR PACIENTE (~1.600 idas y vueltas secuenciales con 800
+    // pacientes, todas las noches).
     const desde = new Date(hoy.getTime() - (DIAS_SIN_REGISTRO - 1) * DIA_MS);
-    for (const paciente of pacientes) {
-      const totalRegistros = await this.registros.contarRegistros(paciente.id);
-      if (totalRegistros === 0) continue; // nunca usó el diario: no es señal
+    const resumenDiario = await this.registros.resumenPorPacienteEnRango(desde, hoy);
 
-      const semana = await this.registros.listarPorRango(paciente.id, desde, hoy);
+    for (const paciente of pacientes) {
+      const resumen = resumenDiario.get(paciente.id);
+      // Nunca usó el diario: no es señal de abandono.
+      if (!resumen || resumen.totalRegistros === 0) continue;
+
       const nombre = nombreDe.get(paciente.id) ?? paciente.id;
 
-      const registroPeso = semana.some((r) => r.aPrimitivos().pesoKg != null);
-      if (!registroPeso) {
+      if (!resumen.registroPeso) {
         await crear({
           pacienteId: paciente.id,
           tipo: "SIN_REGISTRO_PESO",
@@ -72,8 +79,7 @@ export class GenerarAlertasDeSeguimiento {
         });
       }
 
-      const huboActividad = semana.some((r) => r.actividades.length > 0);
-      if (!huboActividad) {
+      if (!resumen.huboActividad) {
         await crear({
           pacienteId: paciente.id,
           tipo: "SIN_ACTIVIDAD",
@@ -85,13 +91,18 @@ export class GenerarAlertasDeSeguimiento {
 
     // --- Planes con asignación activa vencida -----------------------------
     const vencidas = await this.planes.listarAsignacionesActivasVencidas(hoy);
+    // Un plan puede estar vencido en varios pacientes: se busca una sola vez.
+    const nombrePlan = new Map<string, string>();
+    for (const planId of new Set(vencidas.map((a) => a.planId))) {
+      const plan = await this.planes.obtenerPorId(planId);
+      if (plan) nombrePlan.set(planId, plan.nombre);
+    }
     for (const asignacion of vencidas) {
       const nombre = nombreDe.get(asignacion.pacienteId) ?? asignacion.pacienteId;
-      const plan = await this.planes.obtenerPorId(asignacion.planId);
       await crear({
         pacienteId: asignacion.pacienteId,
         tipo: "PLAN_VENCIDO",
-        detalle: `El plan «${plan?.nombre ?? "?"}» de ${nombre} venció: toca renovarlo.`,
+        detalle: `El plan «${nombrePlan.get(asignacion.planId) ?? "?"}» de ${nombre} venció: toca renovarlo.`,
         referenciaId: asignacion.id,
       });
     }

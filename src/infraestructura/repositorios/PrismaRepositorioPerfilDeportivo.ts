@@ -5,6 +5,7 @@ import {
   type NivelDeportivo,
   type FaseTemporada,
 } from "@/dominio/entidades/PerfilDeportivo";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /**
  * Implementación con Prisma del repositorio del perfil deportivo.
@@ -37,6 +38,7 @@ export class PrismaRepositorioPerfilDeportivo implements IPerfilDeportivoReposit
       where: { pacienteId: d.pacienteId },
       create: {
         id: d.id,
+        nutricionistaId: inquilinoActual(),
         pacienteId: d.pacienteId,
         creadoEn: d.creadoEn,
         ...datos,

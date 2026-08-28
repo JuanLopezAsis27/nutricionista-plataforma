@@ -29,7 +29,7 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
       ingresoPendiente,
       serieMensual,
     ] = await Promise.all([
-      this.prisma.paciente.count({ where: { activo: true } }),
+      this.prisma.paciente.count({ where: { archivadoEn: null } }),
       this.prisma.paciente.count({ where: { creadoEn: rangoFecha } }),
       this.contarEnRiesgo(sinActividadDesde),
       this.turnosPorEstado(desde, hasta),
@@ -69,17 +69,17 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
 
     if (tipo === "ACTIVOS") {
       const filas = await this.prisma.paciente.findMany({
-        where: { activo: true },
+        where: { archivadoEn: null },
         select: { id: true, nombre: true, apellido: true, creadoEn: true },
         orderBy: [{ apellido: "asc" }, { nombre: "asc" }],
       });
       return filas.map((f) => ({ ...f, referencia: f.creadoEn }));
     }
 
-    // EN_RIESGO: activos sin turno ni registro desde el umbral.
+    // EN_RIESGO: vigentes sin turno ni registro desde el umbral.
     const [activos, conActividad, ultimaActividad] = await Promise.all([
       this.prisma.paciente.findMany({
-        where: { activo: true },
+        where: { archivadoEn: null },
         select: { id: true, nombre: true, apellido: true },
         orderBy: [{ apellido: "asc" }, { nombre: "asc" }],
       }),
@@ -134,10 +134,10 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
     return ultima;
   }
 
-  /** Pacientes activos sin turno NI registro diario desde la fecha umbral. */
+  /** Pacientes vigentes sin turno NI registro diario desde la fecha umbral. */
   private async contarEnRiesgo(sinActividadDesde: Date): Promise<number> {
     const [activos, conActividad] = await Promise.all([
-      this.prisma.paciente.findMany({ where: { activo: true }, select: { id: true } }),
+      this.prisma.paciente.findMany({ where: { archivadoEn: null }, select: { id: true } }),
       this.idsConActividad(sinActividadDesde),
     ]);
     return activos.filter((p) => !conActividad.has(p.id)).length;

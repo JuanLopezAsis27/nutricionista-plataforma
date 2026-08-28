@@ -4,7 +4,6 @@ import {
   protegidoProcedimiento,
   nutricionistaProcedimiento,
 } from "../trpc";
-import { aTRPCError } from "../errores-trpc";
 import {
   guardarDiaDto,
   fechaDiaDto,
@@ -37,118 +36,82 @@ function pacienteDeSesion(usuario: { pacienteId: string | null }): string {
 export const routerDiario = crearRouter({
   // --- Portal del paciente ------------------------------------------------------
   miDia: protegidoProcedimiento.input(fechaDiaDto).query(async ({ ctx, input }) => {
-    try {
-      return await ctx.servicios.diario.obtenerDia(
-        pacienteDeSesion(ctx.usuario),
-        input.fecha,
-      );
-    } catch (error) {
-      throw aTRPCError(error);
-    }
+    return await ctx.servicios.diario.obtenerDia(
+      pacienteDeSesion(ctx.usuario),
+      input.fecha,
+    );
   }),
 
   miCalendario: protegidoProcedimiento
     .input(mesCalendarioDto)
     .query(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.diario.obtenerCalendario(
-          pacienteDeSesion(ctx.usuario),
-          input.anio,
-          input.mes,
-        );
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.diario.obtenerCalendario(
+        pacienteDeSesion(ctx.usuario),
+        input.anio,
+        input.mes,
+      );
     }),
 
   guardarMiDia: protegidoProcedimiento
     .input(guardarDiaDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.diario.guardarDia(pacienteDeSesion(ctx.usuario), input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.diario.guardarDia(pacienteDeSesion(ctx.usuario), input);
     }),
 
   agregarComida: protegidoProcedimiento
     .input(agregarComidaDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.diario.agregarComida(
-          pacienteDeSesion(ctx.usuario),
-          input,
-        );
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.diario.agregarComida(
+        pacienteDeSesion(ctx.usuario),
+        input,
+      );
     }),
 
   eliminarComida: protegidoProcedimiento
     .input(idHijoDiarioDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        await ctx.servicios.diario.eliminarComida(pacienteDeSesion(ctx.usuario), input.id);
-        return { eliminado: true };
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      await ctx.servicios.diario.eliminarComida(pacienteDeSesion(ctx.usuario), input.id);
+      return { eliminado: true };
     }),
 
   agregarActividad: protegidoProcedimiento
     .input(agregarActividadDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.diario.agregarActividad(
-          pacienteDeSesion(ctx.usuario),
-          input,
-        );
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.diario.agregarActividad(
+        pacienteDeSesion(ctx.usuario),
+        input,
+      );
     }),
 
   eliminarActividad: protegidoProcedimiento
     .input(idHijoDiarioDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        await ctx.servicios.diario.eliminarActividad(
-          pacienteDeSesion(ctx.usuario),
-          input.id,
-        );
-        return { eliminado: true };
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      await ctx.servicios.diario.eliminarActividad(
+        pacienteDeSesion(ctx.usuario),
+        input.id,
+      );
+      return { eliminado: true };
     }),
 
   agregarFotoComida: protegidoProcedimiento
     .input(agregarFotoComidaDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        await ctx.servicios.diario.agregarFotoComida(
-          pacienteDeSesion(ctx.usuario),
-          input.comidaId,
-          input.archivoId,
-        );
-        return { vinculada: true };
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      await ctx.servicios.diario.agregarFotoComida(
+        pacienteDeSesion(ctx.usuario),
+        input.comidaId,
+        input.archivoId,
+      );
+      return { vinculada: true };
     }),
 
   // --- Vistas del nutricionista ---------------------------------------------------
   obtenerRango: nutricionistaProcedimiento
     .input(rangoDiarioDto)
     .query(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.diario.obtenerRango(
-          input.pacienteId,
-          input.desde,
-          input.hasta,
-        );
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.diario.obtenerRango(
+        input.pacienteId,
+        input.desde,
+        input.hasta,
+      );
     }),
 });

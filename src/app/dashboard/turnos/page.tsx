@@ -46,11 +46,23 @@ export default function PaginaTurnos() {
   const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(null);
 
   const pacientes = listarPacientes({ pagina: 1, porPagina: 100 });
+  // Nombre + teléfono: el teléfono habilita el recordatorio por WhatsApp.
   const mapaPacientes = useMemo(() => {
-    const mapa = new Map<string, string>();
-    pacientes.data?.pacientes.forEach((p) => mapa.set(p.id, `${p.nombre} ${p.apellido}`));
+    const mapa = new Map<string, { nombre: string; telefono: string | null }>();
+    pacientes.data?.pacientes.forEach((p) =>
+      mapa.set(p.id, { nombre: `${p.nombre} ${p.apellido}`, telefono: p.telefono }),
+    );
     return mapa;
   }, [pacientes.data]);
+
+  const nombrePaciente = (pacienteId: string): string =>
+    mapaPacientes.get(pacienteId)?.nombre ?? "Paciente";
+
+  // El calendario solo necesita los nombres.
+  const mapaNombres = useMemo(
+    () => new Map([...mapaPacientes].map(([id, p]) => [id, p.nombre])),
+    [mapaPacientes],
+  );
 
   const turnos = listar({
     estado: filtroEstado === "TODOS" ? undefined : filtroEstado,
@@ -70,7 +82,7 @@ export default function PaginaTurnos() {
       encabezado: "Paciente",
       render: (t) => (
         <Link href={`/dashboard/pacientes/${t.pacienteId}`} className="font-medium hover:underline">
-          {mapaPacientes.get(t.pacienteId) ?? "Paciente"}
+          {nombrePaciente(t.pacienteId)}
         </Link>
       ),
     },
@@ -83,7 +95,13 @@ export default function PaginaTurnos() {
       clave: "acciones",
       encabezado: "Acciones",
       className: "text-right",
-      render: (t) => <AccionesTurno turno={t} onReprogramar={setTurnoReprogramar} />,
+      render: (t) => (
+        <AccionesTurno
+          turno={t}
+          onReprogramar={setTurnoReprogramar}
+          telefonoPaciente={mapaPacientes.get(t.pacienteId)?.telefono ?? null}
+        />
+      ),
     },
   ];
 
@@ -167,7 +185,7 @@ export default function PaginaTurnos() {
           </p>
           <CalendarioTurnos
             turnos={turnos.data ?? []}
-            mapaPacientes={mapaPacientes}
+            mapaPacientes={mapaNombres}
             onSeleccionarDia={setDiaSeleccionado}
           />
         </>
@@ -204,7 +222,7 @@ export default function PaginaTurnos() {
                     <span className="w-12 font-mono text-sm">{turno.hora}</span>
                     <div>
                       <p className="text-sm font-medium">
-                        {mapaPacientes.get(turno.pacienteId) ?? "Paciente"}
+                        {nombrePaciente(turno.pacienteId)}
                       </p>
                       <EstadoBadge estado={turno.estado} />
                     </div>
@@ -213,6 +231,7 @@ export default function PaginaTurnos() {
                     <CobroTurno turno={turno} />
                     <AccionesTurno
                       turno={turno}
+                      telefonoPaciente={mapaPacientes.get(turno.pacienteId)?.telefono ?? null}
                       onReprogramar={(t) => {
                         setDiaSeleccionado(null);
                         setTurnoReprogramar(t);

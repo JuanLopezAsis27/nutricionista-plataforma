@@ -4,6 +4,7 @@ import type {
   FiltroMateriales,
 } from "@/dominio/repositorios/IMaterialRepositorio";
 import { MaterialBiblioteca } from "@/dominio/entidades/MaterialBiblioteca";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Include estándar: el archivo del bucket (si el material es tipo ARCHIVO). */
 const INCLUIR_ARCHIVO = { archivo: true } satisfies Prisma.MaterialBibliotecaInclude;
@@ -29,6 +30,7 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
       await tx.materialBiblioteca.create({
         data: {
           id: d.id,
+          nutricionistaId: inquilinoActual(),
           tipo: d.tipo,
           titulo: d.titulo,
           descripcion: d.descripcion,
@@ -118,7 +120,7 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
   async asignarAPaciente(materialId: string, pacienteId: string, id: string): Promise<void> {
     await this.prisma.asignacionMaterial.upsert({
       where: { materialId_pacienteId: { materialId, pacienteId } },
-      create: { id, materialId, pacienteId },
+      create: { id, nutricionistaId: inquilinoActual(), materialId, pacienteId },
       update: {},
     });
   }

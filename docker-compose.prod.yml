@@ -141,6 +141,24 @@ services:
     # localhost (127.0.0.1). Nginx proxea a http://127.0.0.1:${APP_PORT}.
     ports:
       - "127.0.0.1:${APP_PORT:-3000}:3000"
+    # `restart: unless-stopped` solo reacciona si el proceso MUERE. Un proceso
+    # vivo pero sin base (pool agotado, Postgres caído) se quedaba así para
+    # siempre. La sonda verifica el camino real a Postgres, no solo que el
+    # servidor conteste. Se usa node y no curl/wget: la imagen runner es
+    # bookworm-slim y no los trae.
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/salud').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      # El arranque de Next tarda: durante este período los fallos no cuentan.
+      start_period: 40s
     networks: [interna]
 
   # --- Worker de trabajos en segundo plano (pg-boss) ---
@@ -156,6 +174,14 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+    # El worker no sirve HTTP: la sonda comprueba lo que de verdad necesita
+    # para trabajar, que es llegar a Postgres (ahí vive la cola de pg-boss).
+    healthcheck:
+      test: ["CMD", "node", "scripts/salud-worker.mjs"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     networks: [interna]
 
   # --- Respaldos offsite a OVH Object Storage (solo con --profile respaldos) ---

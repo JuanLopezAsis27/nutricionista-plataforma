@@ -4,6 +4,8 @@ import type { ObtenerPacientePorId } from "@/dominio/casos-de-uso/pacientes/Obte
 import type { ActualizarPaciente } from "@/dominio/casos-de-uso/pacientes/ActualizarPaciente";
 import type { EliminarPaciente } from "@/dominio/casos-de-uso/pacientes/EliminarPaciente";
 import type { EnviarEmailDeBienvenida } from "@/dominio/casos-de-uso/pacientes/EnviarEmailDeBienvenida";
+import type { ArchivarPaciente } from "@/dominio/casos-de-uso/pacientes/ArchivarPaciente";
+import type { ReactivarPaciente } from "@/dominio/casos-de-uso/pacientes/ReactivarPaciente";
 import type { Paciente } from "@/dominio/entidades/Paciente";
 import type {
   CrearPacienteConAccesoDto,
@@ -28,6 +30,8 @@ export class ServicioPaciente {
     private readonly actualizarUC: ActualizarPaciente,
     private readonly eliminarUC: EliminarPaciente,
     private readonly enviarBienvenidaUC: EnviarEmailDeBienvenida,
+    private readonly archivarUC: ArchivarPaciente,
+    private readonly reactivarUC: ReactivarPaciente,
   ) {}
 
   async crearPaciente(datos: CrearPacienteConAccesoDto): Promise<PacienteSalidaDto> {
@@ -62,6 +66,14 @@ export class ServicioPaciente {
 
   async eliminarPaciente(id: string): Promise<void> {
     await this.eliminarUC.ejecutar(id);
+  }
+
+  async archivarPaciente(id: string, motivo: string | null): Promise<PacienteSalidaDto> {
+    return ServicioPaciente.aSalida(await this.archivarUC.ejecutar(id, motivo));
+  }
+
+  async reactivarPaciente(id: string): Promise<PacienteSalidaDto> {
+    return ServicioPaciente.aSalida(await this.reactivarUC.ejecutar(id));
   }
 
   /** Mapea la entidad de dominio al DTO de salida. */

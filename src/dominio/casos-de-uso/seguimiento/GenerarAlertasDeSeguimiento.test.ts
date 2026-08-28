@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { GenerarAlertasDeSeguimiento } from "./GenerarAlertasDeSeguimiento";
-import { RegistroDiario } from "../../entidades/RegistroDiario";
+import type { ResumenDiario } from "../../repositorios/IRegistroDiarioRepositorio";
 import type { AlertaSeguimiento } from "../../entidades/AlertaSeguimiento";
 import {
   mockAlertaSeguimientoRepositorio,
@@ -10,27 +10,16 @@ import {
   mockTurnoRepositorio,
   mockReloj,
   pacienteEjemplo,
-  registroDiarioEjemplo,
   planEjemplo,
   turnoEjemplo,
 } from "../_ayudas-test";
 
-/** Registro del diario con una actividad (para la regla SIN_ACTIVIDAD). */
-function registroConActividad(): RegistroDiario {
-  const base = registroDiarioEjemplo().aPrimitivos();
-  return RegistroDiario.reconstruir({
-    ...base,
-    actividades: [
-      {
-        id: "act-1",
-        tipo: "Pesas",
-        duracionMinutos: 60,
-        intensidad: "ALTA",
-        notas: null,
-        creadoEn: new Date(),
-      },
-    ],
-  });
+/**
+ * Resumen del diario del paciente de ejemplo. El barrido lee todos los
+ * pacientes de una vez, así que los mocks devuelven el mapa completo.
+ */
+function resumen(datos: ResumenDiario): Map<string, ResumenDiario> {
+  return new Map([["pac-1", datos]]);
 }
 
 function capturarAlertas() {
@@ -52,8 +41,9 @@ describe("GenerarAlertasDeSeguimiento", () => {
     });
     // Diario iniciado (5 registros) pero sin peso ni actividad en la semana.
     const registros = mockRegistroDiarioRepositorio({
-      contarRegistros: vi.fn(async () => 5),
-      listarPorRango: vi.fn(async () => []),
+      resumenPorPacienteEnRango: vi.fn(async () =>
+        resumen({ totalRegistros: 5, registroPeso: false, huboActividad: false }),
+      ),
     });
     const casoUso = new GenerarAlertasDeSeguimiento(
       alertas,
@@ -78,8 +68,9 @@ describe("GenerarAlertasDeSeguimiento", () => {
     const pacientes = mockPacienteRepositorio({
       listar: vi.fn(async () => [pacienteEjemplo()]),
     });
+    // Nunca usó el diario: no aparece en el resumen.
     const registros = mockRegistroDiarioRepositorio({
-      contarRegistros: vi.fn(async () => 0),
+      resumenPorPacienteEnRango: vi.fn(async () => new Map()),
     });
     const casoUso = new GenerarAlertasDeSeguimiento(
       alertas,
@@ -100,9 +91,9 @@ describe("GenerarAlertasDeSeguimiento", () => {
       listar: vi.fn(async () => [pacienteEjemplo()]),
     });
     const registros = mockRegistroDiarioRepositorio({
-      contarRegistros: vi.fn(async () => 12),
-      // registroDiarioEjemplo trae pesoKg 78.5; le sumamos una actividad.
-      listarPorRango: vi.fn(async () => [registroConActividad()]),
+      resumenPorPacienteEnRango: vi.fn(async () =>
+        resumen({ totalRegistros: 12, registroPeso: true, huboActividad: true }),
+      ),
     });
     const casoUso = new GenerarAlertasDeSeguimiento(
       alertas,
@@ -184,8 +175,9 @@ describe("GenerarAlertasDeSeguimiento", () => {
       listar: vi.fn(async () => [pacienteEjemplo()]),
     });
     const registros = mockRegistroDiarioRepositorio({
-      contarRegistros: vi.fn(async () => 3),
-      listarPorRango: vi.fn(async () => []),
+      resumenPorPacienteEnRango: vi.fn(async () =>
+        resumen({ totalRegistros: 3, registroPeso: false, huboActividad: false }),
+      ),
     });
     const casoUso = new GenerarAlertasDeSeguimiento(
       alertas,

@@ -1,5 +1,4 @@
 import { crearRouter, nutricionistaProcedimiento } from "../trpc";
-import { aTRPCError } from "../errores-trpc";
 import { guardarCredencialesDto } from "@/aplicacion/dtos/credenciales.dto";
 
 /**
@@ -8,21 +7,13 @@ import { guardarCredencialesDto } from "@/aplicacion/dtos/credenciales.dto";
  */
 export const routerCredenciales = crearRouter({
   estado: nutricionistaProcedimiento.query(async ({ ctx }) => {
-    try {
-      return await ctx.servicios.credenciales.obtenerEstado();
-    } catch (error) {
-      throw aTRPCError(error);
-    }
+    return await ctx.servicios.credenciales.obtenerEstado();
   }),
 
   guardar: nutricionistaProcedimiento
     .input(guardarCredencialesDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        await ctx.servicios.credenciales.guardar(input);
-        return { ok: true };
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      await ctx.servicios.credenciales.guardar(input);
+      return { ok: true };
     }),
 });

@@ -5,6 +5,7 @@ import {
   type TipoAlertaAlimentaria,
   type SeveridadAlerta,
 } from "@/dominio/entidades/AlertaAlimentaria";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Implementación con Prisma del repositorio de Alertas Alimentarias. */
 export class PrismaRepositorioAlertaAlimentaria implements IAlertaAlimentariaRepositorio {
@@ -12,7 +13,7 @@ export class PrismaRepositorioAlertaAlimentaria implements IAlertaAlimentariaRep
 
   async crear(alerta: AlertaAlimentaria): Promise<AlertaAlimentaria> {
     const fila = await this.prisma.alertaAlimentaria.create({
-      data: alerta.aPrimitivos(),
+      data: { ...alerta.aPrimitivos(), nutricionistaId: inquilinoActual() },
     });
     return this.mapear(fila);
   }

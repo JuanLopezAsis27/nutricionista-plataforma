@@ -18,6 +18,7 @@ import {
   ejecutarGlobal,
   ejecutarEnNutricionista,
 } from "../src/infraestructura/multitenancy/contextoTenant";
+import { inquilinoActual } from "../src/infraestructura/multitenancy/inquilino";
 import { Usuario } from "../src/dominio/entidades/Usuario";
 import { PlantillaEmail } from "../src/dominio/entidades/PlantillaEmail";
 import { AxiomaNutricional } from "../src/dominio/entidades/AxiomaNutricional";
@@ -68,6 +69,8 @@ async function sembrarNutricionista(): Promise<string | null> {
     return existente.id;
   }
   const id = crypto.randomUUID();
+  // El inquilino primero: `usuarios.nutricionistaId` es FK a `nutricionistas`.
+  await prisma.nutricionista.create({ data: { id } });
   const usuario = Usuario.crear(
     {
       email,
@@ -130,6 +133,7 @@ async function sembrarPlantillas(): Promise<void> {
     await prisma.plantillaEmail.create({
       data: {
         id: d.id,
+        nutricionistaId: inquilinoActual(),
         clave: d.clave,
         nombre: d.nombre,
         asunto: d.asunto,
@@ -146,7 +150,9 @@ async function sembrarPlantillas(): Promise<void> {
 
 async function sembrarConfiguracion(): Promise<void> {
   if (await prisma.configuracionConsultorio.findFirst()) return;
-  await prisma.configuracionConsultorio.create({ data: { diasAtencion: [1, 2, 3, 4, 5] } });
+  await prisma.configuracionConsultorio.create({
+    data: { nutricionistaId: inquilinoActual(), diasAtencion: [1, 2, 3, 4, 5] },
+  });
   console.log("  ✔ Configuración por defecto");
 }
 
@@ -164,6 +170,7 @@ async function sembrarAxiomas(): Promise<void> {
     await prisma.axiomaNutricional.create({
       data: {
         id: d.id,
+        nutricionistaId: inquilinoActual(),
         ambito: d.ambito,
         parametro: d.parametro,
         operador: d.operador,

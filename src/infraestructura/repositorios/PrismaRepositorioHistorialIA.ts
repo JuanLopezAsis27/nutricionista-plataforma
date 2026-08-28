@@ -8,6 +8,7 @@ import type { IHistorialIARepositorio } from "@/dominio/repositorios/IHistorialI
 import type { ResultadoAnalisisComida } from "@/dominio/servicios/IAnalisisComidaIA";
 import { ConsultaIA } from "@/dominio/entidades/ConsultaIA";
 import { AnalisisComida } from "@/dominio/entidades/AnalisisComida";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Implementación con Prisma del historial de IA (consultas + análisis). */
 export class PrismaRepositorioHistorialIA implements IHistorialIARepositorio {
@@ -17,6 +18,7 @@ export class PrismaRepositorioHistorialIA implements IHistorialIARepositorio {
     const d = consulta.aPrimitivos();
     await this.prisma.consultaIA.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         id: d.id,
         pacienteId: d.pacienteId,
         pregunta: d.pregunta,
@@ -39,6 +41,7 @@ export class PrismaRepositorioHistorialIA implements IHistorialIARepositorio {
     const d = analisis.aPrimitivos();
     await this.prisma.analisisComida.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         id: d.id,
         pacienteId: d.pacienteId,
         archivoId: d.archivoId,
