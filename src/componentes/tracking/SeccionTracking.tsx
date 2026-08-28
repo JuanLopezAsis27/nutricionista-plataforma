@@ -19,9 +19,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card"
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
 import { MetricasDispositivo } from "./MetricasDispositivo";
+import { TarjetasHabitos } from "@/componentes/seguimiento/TarjetasHabitos";
 
 /**
- * Paletas por tema (mismas superficies validadas que GraficoEvolucion):
+ * Paletas por tema, validadas con el validador de dataviz contra las
+ * superficies reales de las cards (#FFFFFF claro / #1D1D20 oscuro):
  * coral para el peso, verde/rojo para cumplimiento.
  */
 const TEMAS = {
@@ -54,9 +56,18 @@ const PERIODOS = [
 ] as const;
 
 /**
- * Sección de Tracking del paciente: evolución de peso, adherencia a los axiomas
- * (hábitos) y concordancia con el plan. Se usa tanto en el portal del paciente
- * (sin `pacienteId`) como en la ficha del nutricionista (con `pacienteId`).
+ * Sección de Progreso del paciente: el seguimiento del DÍA A DÍA — peso que se
+ * registra en casa, hábitos, adherencia a los axiomas y concordancia con el
+ * plan. Absorbió la vieja pestaña «Informes», que mostraba los mismos hábitos
+ * y la misma curva de peso con otro formato.
+ *
+ * Lo que NO va acá son las medidas de consulta: pliegues, perímetros,
+ * fraccionamiento en masas y somatotipo viven en la pestaña «Antropometría»,
+ * que es la única que los carga y los lee.
+ *
+ * Se usa en el portal del paciente (sin `pacienteId`) y en la ficha del
+ * nutricionista (con `pacienteId`); el resumen de hábitos solo aparece del
+ * lado del profesional, porque su endpoint es suyo.
  */
 export function SeccionTracking({ pacienteId }: { pacienteId?: string }) {
   const [dias, setDias] = useState<number>(30);
@@ -105,9 +116,17 @@ export function SeccionTracking({ pacienteId }: { pacienteId?: string }) {
         </p>
       ) : (
         <>
+          {esNutri && <TarjetasHabitos pacienteId={pacienteId!} desde={desde} hasta={hasta} />}
           <TarjetaPeso peso={datos.peso} />
           <TarjetaAdherencia adherencia={datos.adherencia} />
           <TarjetaConcordancia concordancia={datos.concordancia} />
+          {esNutri && (
+            <p className="text-xs text-muted-foreground">
+              El peso de acá es el que registra el paciente en su diario. Las
+              medidas de consulta —pliegues, perímetros, masas y somatotipo— están
+              en la pestaña «Antropometría».
+            </p>
+          )}
         </>
       )}
 
@@ -146,7 +165,7 @@ function TarjetaPeso({
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between gap-2 text-base">
           <span className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" /> Peso
+            <TrendingUp className="h-5 w-5 text-primary" /> Peso registrado
           </span>
           {peso.variacion != null && (
             <span

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { ArrowLeft, Pencil, FileDown, UserPlus, CircleOff } from "lucide-react";
 import Link from "next/link";
 import { usePacientes } from "@/lib/hooks/usePacientes";
@@ -20,12 +20,11 @@ import { FormularioPaciente } from "@/componentes/pacientes/FormularioPaciente";
 import { VistaPlan } from "@/componentes/planes/VistaPlan";
 import { BadgesAlertas, GestionAlertas } from "@/componentes/evaluacion/AlertasPaciente";
 import { FormularioHistoriaClinica } from "@/componentes/evaluacion/FormularioHistoriaClinica";
-import { SeccionAntropometria } from "@/componentes/evaluacion/SeccionAntropometria";
 import { ListaLaboratorios } from "@/componentes/evaluacion/ListaLaboratorios";
 import { ArchivosPaciente } from "@/componentes/evaluacion/ArchivosPaciente";
 import { DiarioPacienteVista } from "@/componentes/diario/DiarioPacienteVista";
 import { SeccionTracking } from "@/componentes/tracking/SeccionTracking";
-import { SeccionInformes } from "@/componentes/seguimiento/SeccionInformes";
+import { SeccionComposicionCorporal } from "@/componentes/antropometria/SeccionComposicionCorporal";
 import { SeccionSuplementos } from "@/componentes/seguimiento/SeccionSuplementos";
 import { SeccionDeportiva } from "@/componentes/deportivo/SeccionDeportiva";
 import { ObjetivosPaciente } from "@/componentes/objetivos/ObjetivosPaciente";
@@ -34,12 +33,15 @@ import { MensajesDePaciente } from "@/componentes/mensajeria/MensajesDePaciente"
 export default function PaginaDetallePaciente() {
   const params = useParams<{ id: string }>();
   const id = params.id;
+  // La pestaña de antropometría manda acá con ?editar=1 cuando falta el sexo
+  // biológico del paciente: abrir la ficha ya editando ahorra un clic ciego.
+  const buscar = useSearchParams();
 
   const { obtenerPorId } = usePacientes();
   const { porPaciente } = useTurnos();
   const { delPaciente, desasignar } = usePlanes();
 
-  const [editar, setEditar] = useState(false);
+  const [editar, setEditar] = useState(buscar.get("editar") === "1");
   const [confirmarDesasignar, setConfirmarDesasignar] = useState(false);
 
   const paciente = obtenerPorId({ id });
@@ -110,8 +112,8 @@ export default function PaginaDetallePaciente() {
       <Tabs defaultValue="evaluacion">
         <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="evaluacion">Evaluación</TabsTrigger>
+          <TabsTrigger value="antropometria">Antropometría</TabsTrigger>
           <TabsTrigger value="progreso">Progreso</TabsTrigger>
-          <TabsTrigger value="informes">Informes</TabsTrigger>
           <TabsTrigger value="objetivos">Objetivos</TabsTrigger>
           <TabsTrigger value="diario">Diario</TabsTrigger>
           <TabsTrigger value="turnos">Turnos</TabsTrigger>
@@ -121,20 +123,24 @@ export default function PaginaDetallePaciente() {
           <TabsTrigger value="mensajes">Mensajes</TabsTrigger>
         </TabsList>
 
+        {/* Evaluación: lo clínico que NO son medidas corporales. La
+            antropometría tiene su propia pestaña desde que pasó a calcular
+            composición corporal. */}
         <TabsContent value="evaluacion" className="space-y-8">
-          <SeccionAntropometria pacienteId={id} />
           <GestionAlertas pacienteId={id} />
           <FormularioHistoriaClinica pacienteId={id} />
           <ListaLaboratorios pacienteId={id} />
           <ArchivosPaciente pacienteId={id} />
         </TabsContent>
 
-        <TabsContent value="progreso">
-          <SeccionTracking pacienteId={id} />
+        <TabsContent value="antropometria">
+          <SeccionComposicionCorporal pacienteId={id} />
         </TabsContent>
 
-        <TabsContent value="informes">
-          <SeccionInformes pacienteId={id} />
+        {/* Progreso absorbió a «Informes»: mostraban los mismos hábitos y la
+            misma curva de peso del diario, con distinto formato. */}
+        <TabsContent value="progreso">
+          <SeccionTracking pacienteId={id} />
         </TabsContent>
 
         <TabsContent value="objetivos">

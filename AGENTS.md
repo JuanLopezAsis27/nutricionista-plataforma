@@ -29,6 +29,10 @@ propios datos. Tres roles: SUPERADMIN, NUTRICIONISTA y PACIENTE.
 
 Todo el código, comentarios, nombres de variables, funciones, clases, archivos y carpetas en español. Excepto: palabras reservadas del lenguaje, nombres de librerías externas y configuraciones técnicas que exigen inglés (tsconfig, package.json, etc).
 
+## Documentacion
+
+Siempre registra lo realizado en cada iteracion con detalles tecnicos y conceptuales, con el fin de poder entender las decisiones tomadas y actuar a futuro en base a ellas.
+
 ## Arquitectura — Clean Architecture
 
 Las dependencias siempre apuntan hacia adentro. Nunca una capa interna importa de una capa externa.
@@ -170,8 +174,8 @@ a todos los demás.
 
 ## Modelos del dominio
 
-El dominio tiene **31 entidades**, **157 casos de uso** repartidos en 25
-módulos, **34 interfaces de repositorio** y **17 puertos de servicio**. La
+El dominio tiene **32 entidades**, **160 casos de uso** repartidos en 25
+módulos, **35 interfaces de repositorio** y **17 puertos de servicio**. La
 fuente de verdad es el código (`/src/dominio`) y `prisma/schema.prisma`; acá
 solo van los modelos centrales y sus reglas.
 
@@ -191,6 +195,66 @@ Regla: no pueden existir dos turnos solapados en el mismo horario.
 Antes se llamaba "Dieta"; se renombró en la Fase 3 y hay redirects permanentes
 en `next.config.ts`. Un plan agrupa comidas, opciones, equivalencias y
 recomendaciones, y se asigna a pacientes vía AsignacionPlan.
+
+### Antropometría y composición corporal
+
+Una `Antropometria` es una consulta: el perfil ISAK completo (básicos, 6
+diámetros, 11 perímetros, 8 pliegues). Solo el peso es obligatorio.
+
+**Nada derivado se persiste.** Las 5 masas de Kerr, el somatotipo de Heath &
+Carter, los Score-Z Phantom, los índices, el metabolismo y el porcentaje graso
+los calcula el dominio a partir de las medidas crudas, en cada lectura. Si
+mañana cambia una constante del modelo, los informes históricos se recalculan
+solos; si se persistieran, quedarían mintiendo.
+
+**Conviven DOS modelos, y no se mezclan.**
+
+- `composicionCorporal.ts` — fraccionamiento en 5 masas (Kerr, 1988), modelo
+  ANATÓMICO derivado de disección de cadáveres. Da masa adiposa (grasa
+  subcutánea). Exige el perfil ISAK completo.
+- `grasaPorPliegues.ts` — modelo de 2 COMPONENTES (grasa / masa magra), por
+  regresión contra densitometría. Da grasa corporal total. Seis ecuaciones:
+  Yuhasz-Carter y Faulkner (con sus variantes ×1,17 y ×1,14 de Kerr para
+  sedentarios), Withers (atletas) y Durnin & Womersley (población general);
+  las dos últimas pasan por densidad corporal y convierten con Siri.
+
+Los dos números son distintos por diseño y esa brecha no es un error. Regla
+dura: **una serie histórica nunca cambia de modelo ni de ecuación.** Por eso
+un objetivo de `PORCENTAJE_GRASA` o `MASA_GRASA_KG` lleva su `metodoGrasa`
+fijado, y la proyección lo respeta aunque la medición destaque otro.
+
+El campo `protocolo` de la medición (CINCO_COMPONENTES / DOS_COMPONENTES) NO
+restringe el cálculo: solo decide qué se muestra primero. En la práctica el
+profesional carga los 6 pliegues y poco más, y con eso salen Yuhasz-Carter y
+Faulkner; Withers pide además el bicipital y Durnin & Womersley el bicipital y
+la cresta ilíaca (ojo: cresta ilíaca, NO supraespinal — son sitios distintos
+del protocolo ISAK y no se sustituyen).
+
+El cálculo **degrada por bloques**: cada bloque se resuelve si están sus
+medidas y devuelve `null` si falta alguna, informando en `faltantes` qué hay
+que medir (el modelo de 2 componentes lleva su propia lista, por ecuación).
+Nunca lanza. Las constantes numéricas (3,141 y 0,3141 en las correcciones de
+perímetro, 0,3333 como raíz cúbica) se copian tal cual de la planilla del
+profesional: reemplazarlas por PI/10 o 1/3 desplazaría los resultados respecto
+de sus informes históricos. `composicionCorporal.test.ts` compara contra la
+planilla celda por celda.
+
+El `sexo` biológico vive en el Paciente (no cambia entre consultas) y el nivel
+de actividad en la medición (sí cambia). Sin sexo no hay fraccionamiento ni
+metabolismo: son constantes distintas por sexo.
+
+`ObjetivoComposicion` es la meta cuantitativa ("masa adiposa a 12 kg para el
+30/11"), una sola vigente por paciente y variable. Su proyección —brecha,
+ritmo semanal por regresión sobre toda la serie, fecha estimada de llegada—
+la calcula `dominio/servicios/proyeccionComposicion.ts`. El valor proyectado a
+la fecha meta se descarta cuando la recta se sale del rango admisible de la
+variable: extrapolar meses hacia adelante llega a un 0 % de grasa, y una
+proyección imposible es peor que ninguna.
+
+En la UI del paciente, **Antropometría** es la única pestaña que carga y lee
+medidas corporales; **Progreso** es el seguimiento del día a día (peso del
+diario, hábitos, adherencia, plan). La vieja pestaña «Informes» desapareció:
+mostraba los mismos hábitos y la misma curva de peso que Progreso.
 
 ### Usuario
 

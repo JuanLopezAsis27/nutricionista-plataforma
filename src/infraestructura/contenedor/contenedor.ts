@@ -112,6 +112,7 @@ export const servicioEvaluacion = perezoso(() =>
   crearServicioEvaluacion({
     historias: nucleo.repositorioHistoriaClinica(),
     antropometrias: nucleo.repositorioAntropometria(),
+    objetivosComposicion: nucleo.repositorioObjetivoComposicion(),
     alertas: nucleo.repositorioAlertaAlimentaria(),
     laboratorios: nucleo.repositorioLaboratorio(),
     archivos: nucleo.repositorioArchivo(),

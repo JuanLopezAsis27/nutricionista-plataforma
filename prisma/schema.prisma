@@ -95,6 +95,62 @@ enum EstadoObjetivo {
   ABANDONADO
 }
 
+/// Sexo biológico del paciente. Lo exige la antropometría: las constantes de
+/// masa de la piel, el peso ideal y el metabolismo basal difieren por sexo.
+enum SexoBiologico {
+  MASCULINO
+  FEMENINO
+}
+
+/// Nivel de actividad física (OMS, 1985): factor que multiplica al
+/// metabolismo basal para estimar el gasto energético total.
+enum NivelActividadFisica {
+  SEDENTARIA
+  LIVIANA
+  MODERADA
+  INTENSA
+  EXTREMADA
+}
+
+/// Modelo de composición corporal que el profesional destaca en la medición.
+/// NO restringe el cálculo: siempre se computa todo lo que las medidas
+/// permitan. Define qué se muestra primero, porque los dos modelos miden
+/// cosas distintas y no son intercambiables.
+enum ProtocoloComposicion {
+  /// Fraccionamiento anatómico de Kerr: adiposa, muscular, residual, ósea, piel.
+  CINCO_COMPONENTES
+  /// Porcentaje graso por ecuación de pliegues (masa grasa / masa magra).
+  DOS_COMPONENTES
+}
+
+/// Ecuación de estimación de grasa por pliegues (modelo de 2 componentes).
+/// Cada una se validó en una población distinta; aplicar la de deportistas a
+/// un sedentario (o al revés) es la fuente de error más común.
+enum MetodoGrasa {
+  YUHASZ_CARTER
+  YUHASZ_CARTER_KERR
+  FAULKNER
+  FAULKNER_KERR
+  WITHERS
+  DURNIN_WOMERSLEY
+}
+
+/// Variable de composición corporal sobre la que se plantea un objetivo.
+enum VariableComposicion {
+  PESO
+  MASA_ADIPOSA_KG
+  MASA_ADIPOSA_PORCENTAJE
+  MASA_MUSCULAR_KG
+  MASA_MUSCULAR_PORCENTAJE
+  SUMATORIA_6_PLIEGUES
+  IMC
+  INDICE_CINTURA_CADERA
+  PERIMETRO_CINTURA
+  /// Del modelo de 2 componentes: exigen fijar el método en el objetivo.
+  PORCENTAJE_GRASA
+  MASA_GRASA_KG
+}
+
 enum EstadoEstrategia {
   ACTIVA
   LOGRADA
@@ -195,6 +251,7 @@ model Nutricionista {
   alertasAlimentarias   AlertaAlimentaria[]
   laboratorios          Laboratorio[]
   antropometrias        Antropometria[]
+  objetivosComposicion  ObjetivoComposicion[]
   usuarios              Usuario[]
   recetas               Receta[]
   planesNutricionales   PlanNutricional[]
@@ -232,7 +289,7 @@ model Nutricionista {
 
 /// Persona atendida por el nutricionista.
 model Paciente {
-  id              String    @id @default(uuid(4))
+  id              String         @id @default(uuid(4))
   nutricionistaId String
   nombre          String
   apellido        String
@@ -244,19 +301,23 @@ model Paciente {
   /// teléfono está vacío o no se puede interpretar (no bloquea el alta).
   telefonoE164    String?
   fechaNacimiento DateTime?
+  /// Necesario para la antropometría (masa de la piel, peso ideal, MB).
+  /// Opcional: los pacientes cargados antes de la función no lo tienen.
+  sexo            SexoBiologico?
   notas           String?
   /// Baja lógica del paciente: null = vigente. Reemplaza al viejo `activo`,
   /// que se leía en las estadísticas pero no lo escribía nadie (y por eso
   /// "pacientes activos" era en realidad "pacientes totales").
   archivadoEn     DateTime?
   motivoArchivado String?
-  creadoEn        DateTime  @default(now())
-  actualizadoEn   DateTime  @updatedAt
+  creadoEn        DateTime       @default(now())
+  actualizadoEn   DateTime       @updatedAt
 
   turnos                Turno[]
   usuario               Usuario?
   historiaClinica       HistoriaClinica?
   antropometrias        Antropometria[]
+  objetivosComposicion  ObjetivoComposicion[]
   laboratorios          Laboratorio[]
   alertasAlimentarias   AlertaAlimentaria[]
   archivos              Archivo[]
@@ -768,18 +829,38 @@ model Laboratorio {
   @@map("laboratorios")
 }
 
-/// Medición antropométrica de consulta, fiel a la planilla del profesional:
-/// peso, talla, 8 pliegues (mm), 6 circunferencias (cm) y kg de grasa
-/// (calculado con la fórmula propia del profesional, editable).
-/// Los derivados (kg bajados, sumatoria de 6 pliegues) se CALCULAN en la
-/// entidad de dominio, nunca se persisten.
+/// Medición antropométrica de consulta, con el perfil ISAK completo de la
+/// planilla del profesional: básicos, 6 diámetros óseos, 11 perímetros y
+/// 8 pliegues. Solo el peso es obligatorio.
+/// TODO lo derivado (5 masas de Kerr, somatotipo, Score-Z Phantom, índices,
+/// metabolismo, Σ de pliegues, kg bajados) se CALCULA en el dominio a partir
+/// de estas medidas y NUNCA se persiste: si mañana cambia una constante del
+/// modelo, los informes históricos se recalculan solos.
 model Antropometria {
-  id              String   @id @default(uuid(4))
+  id              String                @id @default(uuid(4))
   nutricionistaId String
   pacienteId      String
-  fecha           DateTime @db.Date
-  pesoKg          Decimal  @db.Decimal(5, 2)
-  tallaCm         Decimal? @db.Decimal(5, 1)
+  fecha           DateTime              @db.Date
+  pesoKg          Decimal               @db.Decimal(5, 2)
+  tallaCm         Decimal?              @db.Decimal(5, 1)
+  /// Talla sentado: escala la masa residual (el tronco), no la talla total.
+  tallaSentadoCm  Decimal?              @db.Decimal(5, 1)
+  /// Nivel de actividad al momento de la medición: multiplica el metabolismo
+  /// basal. Va acá y no en el paciente porque cambia entre consultas.
+  nivelActividad  NivelActividadFisica?
+  /// Modelo que el profesional quiere destacar en esta consulta. No limita el
+  /// cálculo: si la medición tiene los datos, se computan los dos modelos.
+  protocolo       ProtocoloComposicion  @default(DOS_COMPONENTES)
+  /// Ecuación de pliegues destacada. Null = se muestra la primera disponible.
+  metodoGrasa     MetodoGrasa?
+
+  // Diámetros óseos (cm)
+  diamBiacromial           Decimal? @db.Decimal(4, 1)
+  diamToraxTransverso      Decimal? @db.Decimal(4, 1)
+  diamToraxAnteroposterior Decimal? @db.Decimal(4, 1)
+  diamBiiliocrestideo      Decimal? @db.Decimal(4, 1)
+  diamHumeral              Decimal? @db.Decimal(4, 1)
+  diamFemoral              Decimal? @db.Decimal(4, 1)
 
   // Pliegues (mm)
   pliegueTricipital   Decimal? @db.Decimal(4, 1)
@@ -798,6 +879,11 @@ model Antropometria {
   circCadera         Decimal? @db.Decimal(5, 1)
   circBrazo          Decimal? @db.Decimal(5, 1)
   circBrazoContraido Decimal? @db.Decimal(5, 1)
+  circCabeza         Decimal? @db.Decimal(5, 1)
+  circAntebrazo      Decimal? @db.Decimal(5, 1)
+  circMusloMaximo    Decimal? @db.Decimal(5, 1)
+  circMusloMedial    Decimal? @db.Decimal(5, 1)
+  circPantorrilla    Decimal? @db.Decimal(5, 1)
 
   kgGrasa       Decimal? @db.Decimal(5, 2)
   observaciones String?
@@ -809,6 +895,36 @@ model Antropometria {
 
   @@unique([pacienteId, fecha])
   @@map("antropometrias")
+}
+
+/// Meta cuantitativa de composición corporal: "llevar la masa adiposa a 12 kg
+/// para el 30/11". Una sola meta vigente por paciente y variable — plantear
+/// dos objetivos contradictorios para la misma variable no tiene sentido
+/// clínico y rompería la proyección del dashboard.
+/// El valor de partida NO se guarda: es el de la primera medición posterior
+/// a la creación del objetivo, y lo resuelve el dominio al proyectar.
+model ObjetivoComposicion {
+  id              String              @id @default(uuid(4))
+  nutricionistaId String
+  pacienteId      String
+  variable        VariableComposicion
+  /// Obligatorio en PORCENTAJE_GRASA y MASA_GRASA_KG: la meta se ata a UNA
+  /// ecuación. Comparar un % graso de Yuhasz contra uno de Durnin & Womersley
+  /// no mide progreso, mide el cambio de fórmula.
+  metodoGrasa     MetodoGrasa?
+  valorObjetivo   Decimal             @db.Decimal(7, 2)
+  fechaObjetivo   DateTime?           @db.Date
+  estado          EstadoObjetivo      @default(EN_CURSO)
+  notas           String?
+  creadoEn        DateTime            @default(now())
+  actualizadoEn   DateTime            @updatedAt
+
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@unique([pacienteId, variable])
+  @@index([nutricionistaId, pacienteId, estado])
+  @@map("objetivos_composicion")
 }
 
 /// Credenciales y rol de acceso al sistema.

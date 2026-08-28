@@ -4,6 +4,9 @@ import type { RegistrarAntropometria } from "@/dominio/casos-de-uso/evaluacion/R
 import type { ActualizarAntropometria } from "@/dominio/casos-de-uso/evaluacion/ActualizarAntropometria";
 import type { EliminarAntropometria } from "@/dominio/casos-de-uso/evaluacion/EliminarAntropometria";
 import type { ObtenerEvolucionAntropometrica } from "@/dominio/casos-de-uso/evaluacion/ObtenerEvolucionAntropometrica";
+import type { ObtenerComposicionCorporal } from "@/dominio/casos-de-uso/evaluacion/ObtenerComposicionCorporal";
+import type { GuardarObjetivoComposicion } from "@/dominio/casos-de-uso/evaluacion/GuardarObjetivoComposicion";
+import type { EliminarObjetivoComposicion } from "@/dominio/casos-de-uso/evaluacion/EliminarObjetivoComposicion";
 import type { RegistrarAlertaAlimentaria } from "@/dominio/casos-de-uso/evaluacion/RegistrarAlertaAlimentaria";
 import type { ActualizarAlertaAlimentaria } from "@/dominio/casos-de-uso/evaluacion/ActualizarAlertaAlimentaria";
 import type { EliminarAlertaAlimentaria } from "@/dominio/casos-de-uso/evaluacion/EliminarAlertaAlimentaria";
@@ -19,6 +22,10 @@ import type {
   ActualizarAntropometriaDto,
   EvolucionAntropometricaDto,
   MedicionEvolucionDto,
+  ComposicionCorporalDto,
+  MedicionComposicionDto,
+  ObjetivoComposicionDto,
+  GuardarObjetivoComposicionDto,
   RegistrarAlertaAlimentariaDto,
   ActualizarAlertaAlimentariaDto,
   AlertaAlimentariaSalidaDto,
@@ -40,6 +47,9 @@ export class ServicioEvaluacion {
     private readonly actualizarAntropometriaUC: ActualizarAntropometria,
     private readonly eliminarAntropometriaUC: EliminarAntropometria,
     private readonly obtenerEvolucionUC: ObtenerEvolucionAntropometrica,
+    private readonly obtenerComposicionUC: ObtenerComposicionCorporal,
+    private readonly guardarObjetivoComposicionUC: GuardarObjetivoComposicion,
+    private readonly eliminarObjetivoComposicionUC: EliminarObjetivoComposicion,
     private readonly registrarAlertaUC: RegistrarAlertaAlimentaria,
     private readonly actualizarAlertaUC: ActualizarAlertaAlimentaria,
     private readonly eliminarAlertaUC: EliminarAlertaAlimentaria,
@@ -98,6 +108,78 @@ export class ServicioEvaluacion {
     return { mediciones: salida };
   }
 
+  // --- Composición corporal ---------------------------------------------------
+
+  async obtenerComposicion(pacienteId: string): Promise<ComposicionCorporalDto> {
+    const composicion = await this.obtenerComposicionUC.ejecutar(pacienteId);
+
+    const mediciones: MedicionComposicionDto[] = composicion.mediciones.map(
+      ({ medicion, edadAnios, resultado }) => {
+        const medidas = medicion.aPrimitivos();
+        return {
+          id: medidas.id,
+          fecha: medidas.fecha,
+          observaciones: medidas.observaciones,
+          nivelActividad: medidas.nivelActividad,
+          protocolo: medidas.protocolo,
+          metodoGrasa: medidas.metodoGrasa,
+          edadAnios,
+          medidas: {
+            ...medidas,
+            // La ficha ya muestra estos derivados; acá van por completitud del
+            // DTO de medidas, que es el mismo que usa la tabla de evolución.
+            sumatoria6Pliegues: resultado.indices.sumatoria6Pliegues,
+            kgBajadosVsAnterior: null,
+            kgBajadosAcumulados: null,
+          },
+          resultado,
+        };
+      },
+    );
+
+    // Los kg bajados se calculan acá porque dependen de la medición anterior.
+    const pesoInicial = mediciones[0]?.medidas.pesoKg ?? null;
+    mediciones.forEach((actual, indice) => {
+      const anterior = indice > 0 ? mediciones[indice - 1] : undefined;
+      if (anterior) {
+        actual.medidas.kgBajadosVsAnterior = redondear(
+          anterior.medidas.pesoKg - actual.medidas.pesoKg,
+        );
+      }
+      if (indice > 0 && pesoInicial != null) {
+        actual.medidas.kgBajadosAcumulados = redondear(
+          pesoInicial - actual.medidas.pesoKg,
+        );
+      }
+    });
+
+    const objetivos: ObjetivoComposicionDto[] = composicion.objetivos.map(
+      ({ objetivo, proyeccion }) => ({
+        ...objetivo.aPrimitivos(),
+        descripcion: objetivo.descripcion,
+        proyeccion,
+      }),
+    );
+
+    return {
+      sexo: composicion.sexo,
+      fechaNacimiento: composicion.fechaNacimiento,
+      mediciones,
+      objetivos,
+    };
+  }
+
+  async guardarObjetivoComposicion(
+    datos: GuardarObjetivoComposicionDto,
+  ): Promise<ComposicionCorporalDto> {
+    await this.guardarObjetivoComposicionUC.ejecutar(datos);
+    return this.obtenerComposicion(datos.pacienteId);
+  }
+
+  async eliminarObjetivoComposicion(id: string): Promise<void> {
+    await this.eliminarObjetivoComposicionUC.ejecutar(id);
+  }
+
   // --- Alertas alimentarias ---------------------------------------------------
 
   async registrarAlerta(
@@ -149,4 +231,9 @@ export class ServicioEvaluacion {
     const laboratorios = await this.obtenerLaboratoriosUC.ejecutar(pacienteId);
     return laboratorios.map((laboratorio) => laboratorio.aPrimitivos());
   }
+}
+
+/** Dos decimales, como en la planilla de kg bajados. */
+function redondear(valor: number): number {
+  return Math.round(valor * 100) / 100;
 }

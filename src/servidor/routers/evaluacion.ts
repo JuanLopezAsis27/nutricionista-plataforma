@@ -9,6 +9,8 @@ import {
   registrarLaboratorioDto,
   actualizarLaboratorioDto,
   idPacienteEvaluacionDto,
+  guardarObjetivoComposicionDto,
+  idObjetivoComposicionDto,
 } from "@/aplicacion/dtos/evaluacion.dto";
 import { z } from "zod";
 
@@ -57,6 +59,26 @@ export const routerEvaluacion = crearRouter({
     .input(idAntropometriaDto)
     .mutation(async ({ ctx, input }) => {
       await ctx.servicios.evaluacion.eliminarAntropometria(input.id);
+      return { eliminado: true };
+    }),
+
+  // --- Composición corporal ---------------------------------------------------
+  obtenerComposicion: nutricionistaProcedimiento
+    .input(idPacienteEvaluacionDto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.evaluacion.obtenerComposicion(input.pacienteId);
+    }),
+
+  guardarObjetivoComposicion: nutricionistaProcedimiento
+    .input(guardarObjetivoComposicionDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.evaluacion.guardarObjetivoComposicion(input);
+    }),
+
+  eliminarObjetivoComposicion: nutricionistaProcedimiento
+    .input(idObjetivoComposicionDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.evaluacion.eliminarObjetivoComposicion(input.id);
       return { eliminado: true };
     }),
 

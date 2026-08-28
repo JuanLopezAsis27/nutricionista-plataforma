@@ -40,6 +40,16 @@ export function useEvaluacion() {
     eliminarAntropometria: trpc.evaluacion.eliminarAntropometria.useMutation(
       conToasts("Medición eliminada."),
     ),
+    // Composición corporal
+    obtenerComposicion: trpc.evaluacion.obtenerComposicion.useQuery,
+    guardarObjetivoComposicion:
+      trpc.evaluacion.guardarObjetivoComposicion.useMutation(
+        conToasts("Objetivo guardado."),
+      ),
+    eliminarObjetivoComposicion:
+      trpc.evaluacion.eliminarObjetivoComposicion.useMutation(
+        conToasts("Objetivo eliminado."),
+      ),
     // Alertas alimentarias
     obtenerAlertas: trpc.evaluacion.obtenerAlertas.useQuery,
     registrarAlerta: trpc.evaluacion.registrarAlerta.useMutation(

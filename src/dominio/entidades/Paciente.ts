@@ -1,5 +1,9 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
 import { normalizarTelefonoE164, PREFIJO_PAIS_POR_DEFECTO } from "../servicios/telefono";
+import {
+  SEXOS_BIOLOGICOS,
+  type SexoBiologico,
+} from "../servicios/composicionCorporal";
 
 /** Datos necesarios para dar de alta un paciente nuevo. */
 export interface DatosNuevoPaciente {
@@ -8,6 +12,12 @@ export interface DatosNuevoPaciente {
   email: string;
   telefono?: string | null;
   fechaNacimiento?: Date | null;
+  /**
+   * Sexo biológico. Opcional para no bloquear el alta rápida en consulta,
+   * pero sin él la antropometría no puede fraccionar masas ni estimar el
+   * metabolismo: son constantes distintas por sexo.
+   */
+  sexo?: SexoBiologico | null;
   notas?: string | null;
 }
 
@@ -26,6 +36,7 @@ export interface PropiedadesPaciente {
    */
   telefonoE164: string | null;
   fechaNacimiento: Date | null;
+  sexo: SexoBiologico | null;
   notas: string | null;
   /** Baja lógica: null = paciente vigente. */
   archivadoEn: Date | null;
@@ -70,6 +81,9 @@ export class Paciente {
     if (datos.fechaNacimiento && datos.fechaNacimiento.getTime() > ahora.getTime()) {
       throw new ErrorValidacion("La fecha de nacimiento no puede ser futura.");
     }
+    if (datos.sexo != null && !SEXOS_BIOLOGICOS.includes(datos.sexo)) {
+      throw new ErrorValidacion("El sexo biológico del paciente no es válido.");
+    }
 
     const telefono = datos.telefono?.trim() || null;
     return new Paciente({
@@ -80,6 +94,7 @@ export class Paciente {
       telefono,
       telefonoE164: Paciente.canonizarTelefono(telefono, prefijoPais),
       fechaNacimiento: datos.fechaNacimiento ?? null,
+      sexo: datos.sexo ?? null,
       notas: datos.notas?.trim() || null,
       archivadoEn: null,
       motivoArchivado: null,
@@ -112,6 +127,7 @@ export class Paciente {
         cambios.fechaNacimiento !== undefined
           ? cambios.fechaNacimiento
           : this.props.fechaNacimiento,
+      sexo: cambios.sexo !== undefined ? cambios.sexo : this.props.sexo,
       notas: cambios.notas !== undefined ? cambios.notas : this.props.notas,
     };
 
@@ -203,6 +219,9 @@ export class Paciente {
   }
   get fechaNacimiento(): Date | null {
     return this.props.fechaNacimiento ?? null;
+  }
+  get sexo(): SexoBiologico | null {
+    return this.props.sexo ?? null;
   }
   get notas(): string | null {
     return this.props.notas ?? null;
