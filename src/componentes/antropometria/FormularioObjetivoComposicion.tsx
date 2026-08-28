@@ -1,9 +1,14 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import type { ObjetivoComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
+import { ArrowRight } from "lucide-react";
+import type {
+  ObjetivoComposicionDto,
+  ValorActualVariableDto,
+} from "@/aplicacion/dtos/evaluacion.dto";
 import {
   VARIABLES_COMPOSICION,
   definicionVariable,
@@ -16,9 +21,10 @@ import {
   type MetodoGrasa,
 } from "@/dominio/servicios/grasaPorPliegues";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
-import { aFechaISO } from "@/lib/formato";
+import { aFechaISO, formatearNumero } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
+import { Slider } from "@/componentes/ui/slider";
 import { Textarea } from "@/componentes/ui/textarea";
 import {
   Form,
@@ -50,6 +56,8 @@ interface Props {
   objetivoInicial?: ObjetivoComposicionDto | null;
   /** Variables que ya tienen objetivo: hay una sola meta vigente por variable. */
   variablesOcupadas: VariableComposicion[];
+  /** Valores de la última medición: el punto de partida de la meta. */
+  valoresActuales: ValorActualVariableDto[];
   onTerminado: () => void;
 }
 
@@ -58,6 +66,7 @@ export function FormularioObjetivoComposicion({
   pacienteId,
   objetivoInicial,
   variablesOcupadas,
+  valoresActuales,
   onTerminado,
 }: Props) {
   const { guardarObjetivoComposicion } = useEvaluacion();
@@ -86,22 +95,46 @@ export function FormularioObjetivoComposicion({
   });
 
   const variable = form.watch("variable");
+  const metodoGrasa = form.watch("metodoGrasa");
   const definicion = definicionVariable(variable);
-  // Las variables de grasa dependen de la ecuación: sin fijar una, la serie
-  // saltaría de fórmula entre consultas y el progreso sería un artefacto.
   const pideMetodo = exigeMetodoGrasa(variable);
 
+  // Valor de hoy para la combinación elegida: el ancla de la meta.
+  const actual =
+    valoresActuales.find(
+      (v) =>
+        v.variable === variable &&
+        (!pideMetodo || v.metodoGrasa === metodoGrasa),
+    )?.valor ?? null;
+
+  const valorNumero = aNumeroONull(form.watch("valorObjetivo"));
+
+  const { setValue } = form;
+  /**
+   * Al cambiar de variable (o de ecuación) la meta anterior deja de tener
+   * sentido: se reencuadra en el valor actual, que es de donde parte el
+   * paciente. En edición no se toca lo que el profesional ya fijó.
+   */
+  useEffect(() => {
+    if (editando) return;
+    setValue("valorObjetivo", actual != null ? String(actual) : "");
+  }, [variable, metodoGrasa, actual, editando, setValue]);
+
+  const rango = rangoDelSlider(actual, definicion.min, definicion.max);
+  const paso = pasoDe(definicion.min, definicion.max);
+  const brecha =
+    actual != null && valorNumero != null ? valorNumero - actual : null;
+  const unidad = definicion.unidad ? ` ${definicion.unidad}` : "";
+
   function alEnviar(datos: DatosFormulario) {
-    const valor = Number(datos.valorObjetivo.trim().replace(",", "."));
-    if (!Number.isFinite(valor)) {
+    const valor = aNumeroONull(datos.valorObjetivo);
+    if (valor == null) {
       form.setError("valorObjetivo", { message: "Tiene que ser un número" });
       return;
     }
     if (valor < definicion.min || valor > definicion.max) {
       form.setError("valorObjetivo", {
-        message: `Entre ${definicion.min} y ${definicion.max}${
-          definicion.unidad ? ` ${definicion.unidad}` : ""
-        }`,
+        message: `Entre ${definicion.min} y ${definicion.max}${unidad}`,
       });
       return;
     }
@@ -195,44 +228,102 @@ export function FormularioObjetivoComposicion({
           />
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="valorObjetivo"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Valor a alcanzar
-                  {definicion.unidad ? ` (${definicion.unidad})` : ""}
-                </FormLabel>
-                <FormControl>
-                  <Input inputMode="decimal" placeholder="—" {...field} />
-                </FormControl>
-                <p className="text-xs text-muted-foreground">
-                  Entre {definicion.min} y {definicion.max}.
-                </p>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        {/* La meta se fija moviéndose DESDE el valor de hoy, no escribiendo un
+            número en el aire: así se ve la distancia que se está proponiendo. */}
+        <FormField
+          control={form.control}
+          name="valorObjetivo"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Valor a alcanzar</FormLabel>
+              <div className="space-y-3 rounded-md border p-3">
+                <div className="flex items-center justify-between gap-3">
+                  {actual != null ? (
+                    <span className="text-sm text-muted-foreground">
+                      Hoy{" "}
+                      <span className="font-semibold tabular-nums text-foreground">
+                        {formatearNumero(actual)}
+                        {unidad}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      Sin medición para esta variable
+                    </span>
+                  )}
+                  <ArrowRight
+                    className="h-4 w-4 shrink-0 text-muted-foreground"
+                    aria-hidden
+                  />
+                  <div className="flex items-center gap-1.5">
+                    <FormControl>
+                      <Input
+                        inputMode="decimal"
+                        className="h-9 w-24 text-right font-semibold tabular-nums"
+                        aria-label="Valor objetivo"
+                        {...field}
+                      />
+                    </FormControl>
+                    {definicion.unidad && (
+                      <span className="text-sm text-muted-foreground">
+                        {definicion.unidad}
+                      </span>
+                    )}
+                  </div>
+                </div>
 
-          <FormField
-            control={form.control}
-            name="fechaObjetivo"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Fecha objetivo (opcional)</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <p className="text-xs text-muted-foreground">
-                  Con fecha, el dashboard avisa si el ritmo alcanza.
-                </p>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+                <Slider
+                  aria-label={`Valor objetivo de ${definicion.etiqueta}`}
+                  min={rango.min}
+                  max={rango.max}
+                  step={paso}
+                  value={acotar(valorNumero ?? actual ?? rango.min, rango)}
+                  onValueChange={(valor) =>
+                    field.onChange(String(redondearAlPaso(valor, paso)))
+                  }
+                />
+
+                <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                  <span className="tabular-nums">
+                    {formatearNumero(rango.min)}
+                  </span>
+                  {brecha != null && Math.abs(brecha) > 1e-9 ? (
+                    <span className="font-medium text-foreground">
+                      {brecha > 0 ? "Subir" : "Bajar"}{" "}
+                      <span className="tabular-nums">
+                        {formatearNumero(Math.abs(brecha))}
+                        {unidad}
+                      </span>
+                    </span>
+                  ) : (
+                    <span>Arrastrá o escribí el valor</span>
+                  )}
+                  <span className="tabular-nums">
+                    {formatearNumero(rango.max)}
+                  </span>
+                </div>
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="fechaObjetivo"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Fecha objetivo (opcional)</FormLabel>
+              <FormControl>
+                <Input type="date" {...field} />
+              </FormControl>
+              <p className="text-xs text-muted-foreground">
+                Con fecha, el dashboard avisa si el ritmo alcanza.
+              </p>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
@@ -272,4 +363,55 @@ export function FormularioObjetivoComposicion({
       </form>
     </Form>
   );
+}
+
+/**
+ * Rango del slider.
+ *
+ * Con un valor actual se encuadra en ±30 % alrededor suyo: sobre el rango
+ * absoluto de la variable (masa adiposa de 1 a 200 kg) un centímetro de
+ * arrastre saltaría diez kilos. Sin valor actual no hay dónde anclar y se usa
+ * el rango completo. El input numérico sigue aceptando cualquier valor válido,
+ * así que el encuadre no recorta lo que se puede fijar.
+ */
+function rangoDelSlider(
+  actual: number | null,
+  min: number,
+  max: number,
+): { min: number; max: number } {
+  if (actual == null) return { min, max };
+  const margen = Math.abs(actual) * 0.3;
+  return {
+    min: Math.max(min, redondear(actual - margen)),
+    max: Math.min(max, redondear(actual + margen)),
+  };
+}
+
+/** Granularidad del slider según la escala de la variable. */
+function pasoDe(min: number, max: number): number {
+  const amplitud = max - min;
+  if (amplitud <= 5) return 0.01; // índice cintura/cadera
+  if (amplitud <= 100) return 0.1; // kg, %, IMC
+  return 1; // mm de pliegues
+}
+
+function acotar(valor: number, rango: { min: number; max: number }): number {
+  return Math.min(rango.max, Math.max(rango.min, valor));
+}
+
+function redondearAlPaso(valor: number, paso: number): number {
+  const decimales = paso >= 1 ? 0 : paso >= 0.1 ? 1 : 2;
+  return Number(valor.toFixed(decimales));
+}
+
+function redondear(valor: number): number {
+  return Math.round(valor * 100) / 100;
+}
+
+/** "" → null; "12,5" o "12.5" → 12,5 (acepta coma decimal, como la planilla). */
+function aNumeroONull(valor: string | null | undefined): number | null {
+  const limpio = (valor ?? "").trim().replace(",", ".");
+  if (limpio === "") return null;
+  const numero = Number(limpio);
+  return Number.isFinite(numero) ? numero : null;
 }

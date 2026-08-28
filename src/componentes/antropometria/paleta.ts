@@ -42,8 +42,22 @@ export const DESCRIPCIONES_MASA: Record<ClaveMasa, string> = {
   piel: "Tegumento",
 };
 
+/**
+ * Colores de los pliegues, en el orden en que los usa cada ecuación. Son las
+ * seis primeras ranuras categóricas del sistema + la séptima (verde) para el
+ * sexto pliegue. Validado con el validador de dataviz en los dos temas:
+ * claro con WARN de contraste en tres tonos —de ahí las etiquetas directas
+ * obligatorias en el gráfico—, oscuro con las seis comprobaciones en PASS.
+ */
+export const COLORES_PLIEGUE = {
+  light: ["#2A78D6", "#EB6834", "#1BAF7A", "#EDA100", "#E87BA4", "#008300"],
+  dark: ["#3987E5", "#D95926", "#199E70", "#C98500", "#D55181", "#008300"],
+} as const;
+
 interface Tema {
   masas: Record<ClaveMasa, string>;
+  /** Un color por pliegue, por posición en la ecuación. */
+  pliegues: readonly string[];
   /** Par divergente para los Score-Z: por encima y por debajo del Phantom. */
   sobre: string;
   bajo: string;
@@ -70,6 +84,7 @@ export const TEMAS_COMPOSICION: { light: Tema; dark: Tema } = {
       residual: "#EDA100",
       piel: "#E87BA4",
     },
+    pliegues: COLORES_PLIEGUE.light,
     sobre: "#2A78D6",
     bajo: "#E34948",
     neutro: "#F0EFEC",
@@ -92,6 +107,7 @@ export const TEMAS_COMPOSICION: { light: Tema; dark: Tema } = {
       residual: "#C98500",
       piel: "#D55181",
     },
+    pliegues: COLORES_PLIEGUE.dark,
     sobre: "#3987E5",
     bajo: "#E66767",
     neutro: "#383835",

@@ -1,6 +1,7 @@
 import type { IHistoriaClinicaRepositorio } from "@/dominio/repositorios/IHistoriaClinicaRepositorio";
 import type { IAntropometriaRepositorio } from "@/dominio/repositorios/IAntropometriaRepositorio";
 import type { IObjetivoComposicionRepositorio } from "@/dominio/repositorios/IObjetivoComposicionRepositorio";
+import type { IPlantillaAntropometricaRepositorio } from "@/dominio/repositorios/IPlantillaAntropometricaRepositorio";
 import type { IAlertaAlimentariaRepositorio } from "@/dominio/repositorios/IAlertaAlimentariaRepositorio";
 import type { ILaboratorioRepositorio } from "@/dominio/repositorios/ILaboratorioRepositorio";
 import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
@@ -15,6 +16,9 @@ import { ObtenerEvolucionAntropometrica } from "@/dominio/casos-de-uso/evaluacio
 import { ObtenerComposicionCorporal } from "@/dominio/casos-de-uso/evaluacion/ObtenerComposicionCorporal";
 import { GuardarObjetivoComposicion } from "@/dominio/casos-de-uso/evaluacion/GuardarObjetivoComposicion";
 import { EliminarObjetivoComposicion } from "@/dominio/casos-de-uso/evaluacion/EliminarObjetivoComposicion";
+import { GuardarPlantillaAntropometrica } from "@/dominio/casos-de-uso/evaluacion/GuardarPlantillaAntropometrica";
+import { EliminarPlantillaAntropometrica } from "@/dominio/casos-de-uso/evaluacion/EliminarPlantillaAntropometrica";
+import { ObtenerPlantillasAntropometricas } from "@/dominio/casos-de-uso/evaluacion/ObtenerPlantillasAntropometricas";
 import { RegistrarAlertaAlimentaria } from "@/dominio/casos-de-uso/evaluacion/RegistrarAlertaAlimentaria";
 import { ActualizarAlertaAlimentaria } from "@/dominio/casos-de-uso/evaluacion/ActualizarAlertaAlimentaria";
 import { EliminarAlertaAlimentaria } from "@/dominio/casos-de-uso/evaluacion/EliminarAlertaAlimentaria";
@@ -30,6 +34,7 @@ export function crearServicioEvaluacion(deps: {
   historias: IHistoriaClinicaRepositorio;
   antropometrias: IAntropometriaRepositorio;
   objetivosComposicion: IObjetivoComposicionRepositorio;
+  plantillasAntropometricas: IPlantillaAntropometricaRepositorio;
   alertas: IAlertaAlimentariaRepositorio;
   laboratorios: ILaboratorioRepositorio;
   archivos: IArchivoRepositorio;
@@ -50,6 +55,9 @@ export function crearServicioEvaluacion(deps: {
     ),
     new GuardarObjetivoComposicion(deps.objetivosComposicion, deps.pacientes),
     new EliminarObjetivoComposicion(deps.objetivosComposicion),
+    new GuardarPlantillaAntropometrica(deps.plantillasAntropometricas),
+    new EliminarPlantillaAntropometrica(deps.plantillasAntropometricas),
+    new ObtenerPlantillasAntropometricas(deps.plantillasAntropometricas),
     new RegistrarAlertaAlimentaria(deps.alertas, deps.pacientes),
     new ActualizarAlertaAlimentaria(deps.alertas),
     new EliminarAlertaAlimentaria(deps.alertas),

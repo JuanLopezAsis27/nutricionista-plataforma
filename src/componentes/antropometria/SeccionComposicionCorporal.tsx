@@ -21,10 +21,22 @@ import {
   DialogTitle,
 } from "@/componentes/ui/dialog";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/componentes/ui/select";
+import { Label } from "@/componentes/ui/label";
 import { DashboardComposicion } from "./DashboardComposicion";
 import { FormularioMedicion } from "./FormularioMedicion";
+import { GestorPlantillas } from "./GestorPlantillas";
 import { ObjetivosComposicion } from "./ObjetivosComposicion";
 import { TablaMediciones } from "./TablaMediciones";
+
+/** Valor del selector cuando no se filtra por plantilla. */
+const PERFIL_COMPLETO = "COMPLETO";
 
 /**
  * Pestaña de Antropometría del paciente: la única sección donde se cargan y
@@ -40,8 +52,11 @@ export function SeccionComposicionCorporal({
 }: {
   pacienteId: string;
 }) {
-  const { obtenerComposicion, eliminarAntropometria } = useEvaluacion();
+  const { obtenerComposicion, eliminarAntropometria, obtenerPlantillas } =
+    useEvaluacion();
   const composicion = obtenerComposicion({ pacienteId });
+  const plantillas = obtenerPlantillas();
+  const [plantillaId, setPlantillaId] = useState<string>(PERFIL_COMPLETO);
 
   const [abierto, setAbierto] = useState(false);
   const [editando, setEditando] = useState<MedicionComposicionDto | null>(null);
@@ -60,12 +75,16 @@ export function SeccionComposicionCorporal({
     );
   }
 
-  const { mediciones, objetivos, sexo } = composicion.data;
+  const { mediciones, objetivos, sexo, valoresActuales } = composicion.data;
 
   const abrirNueva = () => {
     setEditando(null);
     setAbierto(true);
   };
+
+  const listaPlantillas = plantillas.data ?? [];
+  const plantillaElegida =
+    listaPlantillas.find((p) => p.id === plantillaId) ?? null;
 
   return (
     <div className="space-y-4">
@@ -107,6 +126,7 @@ export function SeccionComposicionCorporal({
                 </span>
               )}
             </TabsTrigger>
+            <TabsTrigger value="plantillas">Plantillas</TabsTrigger>
           </TabsList>
           <Button size="sm" onClick={abrirNueva}>
             <Plus className="h-4 w-4" />
@@ -130,7 +150,16 @@ export function SeccionComposicionCorporal({
         </TabsContent>
 
         <TabsContent value="objetivos" className="mt-4">
-          <ObjetivosComposicion pacienteId={pacienteId} objetivos={objetivos} />
+          <ObjetivosComposicion
+            pacienteId={pacienteId}
+            objetivos={objetivos}
+            valoresActuales={valoresActuales}
+            ultimaMedicion={mediciones[mediciones.length - 1] ?? null}
+          />
+        </TabsContent>
+
+        <TabsContent value="plantillas" className="mt-4">
+          <GestorPlantillas />
         </TabsContent>
       </Tabs>
 
@@ -143,9 +172,30 @@ export function SeccionComposicionCorporal({
                 : "Nueva medición antropométrica"}
             </DialogTitle>
           </DialogHeader>
+          {listaPlantillas.length > 0 && (
+            <div className="space-y-1">
+              <Label className="text-xs">Plantilla de carga</Label>
+              <Select value={plantillaId} onValueChange={setPlantillaId}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={PERFIL_COMPLETO}>
+                    Perfil completo (todos los campos)
+                  </SelectItem>
+                  {listaPlantillas.map((plantilla) => (
+                    <SelectItem key={plantilla.id} value={plantilla.id}>
+                      {plantilla.nombre} · {plantilla.campos.length} campos
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <FormularioMedicion
             pacienteId={pacienteId}
             medicionInicial={editando}
+            camposVisibles={plantillaElegida?.campos ?? null}
             onTerminado={() => setAbierto(false)}
           />
         </DialogContent>

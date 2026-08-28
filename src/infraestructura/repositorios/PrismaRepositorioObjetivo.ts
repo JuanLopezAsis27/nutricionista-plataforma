@@ -37,6 +37,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
           nutricionistaId: inquilinoActual(),
           id: d.id,
           pacienteId: d.pacienteId,
+          objetivoComposicionId: d.objetivoComposicionId,
           titulo: d.titulo,
           descripcion: d.descripcion,
           prioridad: d.prioridad,
@@ -61,6 +62,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
       await tx.objetivo.update({
         where: { id: d.id },
         data: {
+          objetivoComposicionId: d.objetivoComposicionId,
           titulo: d.titulo,
           descripcion: d.descripcion,
           prioridad: d.prioridad,
@@ -189,6 +191,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
     return Objetivo.reconstruir({
       id: fila.id,
       pacienteId: fila.pacienteId,
+      objetivoComposicionId: fila.objetivoComposicionId,
       titulo: fila.titulo,
       descripcion: fila.descripcion,
       prioridad: fila.prioridad,

@@ -7,6 +7,10 @@ import type { ObtenerEvolucionAntropometrica } from "@/dominio/casos-de-uso/eval
 import type { ObtenerComposicionCorporal } from "@/dominio/casos-de-uso/evaluacion/ObtenerComposicionCorporal";
 import type { GuardarObjetivoComposicion } from "@/dominio/casos-de-uso/evaluacion/GuardarObjetivoComposicion";
 import type { EliminarObjetivoComposicion } from "@/dominio/casos-de-uso/evaluacion/EliminarObjetivoComposicion";
+import type { GuardarPlantillaAntropometrica } from "@/dominio/casos-de-uso/evaluacion/GuardarPlantillaAntropometrica";
+import type { PlantillaAntropometrica } from "@/dominio/entidades/PlantillaAntropometrica";
+import type { EliminarPlantillaAntropometrica } from "@/dominio/casos-de-uso/evaluacion/EliminarPlantillaAntropometrica";
+import type { ObtenerPlantillasAntropometricas } from "@/dominio/casos-de-uso/evaluacion/ObtenerPlantillasAntropometricas";
 import type { RegistrarAlertaAlimentaria } from "@/dominio/casos-de-uso/evaluacion/RegistrarAlertaAlimentaria";
 import type { ActualizarAlertaAlimentaria } from "@/dominio/casos-de-uso/evaluacion/ActualizarAlertaAlimentaria";
 import type { EliminarAlertaAlimentaria } from "@/dominio/casos-de-uso/evaluacion/EliminarAlertaAlimentaria";
@@ -26,6 +30,8 @@ import type {
   MedicionComposicionDto,
   ObjetivoComposicionDto,
   GuardarObjetivoComposicionDto,
+  GuardarPlantillaAntropometricaDto,
+  PlantillaAntropometricaDto,
   RegistrarAlertaAlimentariaDto,
   ActualizarAlertaAlimentariaDto,
   AlertaAlimentariaSalidaDto,
@@ -50,6 +56,9 @@ export class ServicioEvaluacion {
     private readonly obtenerComposicionUC: ObtenerComposicionCorporal,
     private readonly guardarObjetivoComposicionUC: GuardarObjetivoComposicion,
     private readonly eliminarObjetivoComposicionUC: EliminarObjetivoComposicion,
+    private readonly guardarPlantillaUC: GuardarPlantillaAntropometrica,
+    private readonly eliminarPlantillaUC: EliminarPlantillaAntropometrica,
+    private readonly obtenerPlantillasUC: ObtenerPlantillasAntropometricas,
     private readonly registrarAlertaUC: RegistrarAlertaAlimentaria,
     private readonly actualizarAlertaUC: ActualizarAlertaAlimentaria,
     private readonly eliminarAlertaUC: EliminarAlertaAlimentaria,
@@ -154,10 +163,11 @@ export class ServicioEvaluacion {
     });
 
     const objetivos: ObjetivoComposicionDto[] = composicion.objetivos.map(
-      ({ objetivo, proyeccion }) => ({
+      ({ objetivo, proyeccion, proyeccionPliegues }) => ({
         ...objetivo.aPrimitivos(),
         descripcion: objetivo.descripcion,
         proyeccion,
+        proyeccionPliegues,
       }),
     );
 
@@ -166,6 +176,7 @@ export class ServicioEvaluacion {
       fechaNacimiento: composicion.fechaNacimiento,
       mediciones,
       objetivos,
+      valoresActuales: composicion.valoresActuales,
     };
   }
 
@@ -178,6 +189,24 @@ export class ServicioEvaluacion {
 
   async eliminarObjetivoComposicion(id: string): Promise<void> {
     await this.eliminarObjetivoComposicionUC.ejecutar(id);
+  }
+
+  // --- Plantillas de carga ----------------------------------------------------
+
+  async obtenerPlantillas(): Promise<PlantillaAntropometricaDto[]> {
+    const plantillas = await this.obtenerPlantillasUC.ejecutar();
+    return plantillas.map(aPlantillaDto);
+  }
+
+  async guardarPlantilla(
+    datos: GuardarPlantillaAntropometricaDto,
+  ): Promise<PlantillaAntropometricaDto[]> {
+    await this.guardarPlantillaUC.ejecutar(datos);
+    return this.obtenerPlantillas();
+  }
+
+  async eliminarPlantilla(id: string): Promise<void> {
+    await this.eliminarPlantillaUC.ejecutar(id);
   }
 
   // --- Alertas alimentarias ---------------------------------------------------
@@ -231,6 +260,24 @@ export class ServicioEvaluacion {
     const laboratorios = await this.obtenerLaboratoriosUC.ejecutar(pacienteId);
     return laboratorios.map((laboratorio) => laboratorio.aPrimitivos());
   }
+}
+
+/**
+ * Plantilla → DTO. El alcance (qué resultados habilita) lo calcula la entidad
+ * y viaja con ella: la UI lo muestra al elegir plantilla, sin recalcularlo.
+ */
+function aPlantillaDto(
+  plantilla: PlantillaAntropometrica,
+): PlantillaAntropometricaDto {
+  const props = plantilla.aPrimitivos();
+  return {
+    id: props.id,
+    nombre: props.nombre,
+    descripcion: props.descripcion,
+    campos: props.campos,
+    alcance: plantilla.alcance(),
+    creadoEn: props.creadoEn,
+  };
 }
 
 /** Dos decimales, como en la planilla de kg bajados. */

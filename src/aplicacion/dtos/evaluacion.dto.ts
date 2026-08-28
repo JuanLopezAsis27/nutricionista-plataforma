@@ -5,6 +5,11 @@ import {
 } from "@/dominio/entidades/AlertaAlimentaria";
 import { NIVELES_ACTIVIDAD } from "@/dominio/servicios/composicionCorporal";
 import { PROTOCOLOS_COMPOSICION } from "@/dominio/entidades/Antropometria";
+import { CAMPOS_PLANTILLA } from "@/dominio/entidades/PlantillaAntropometrica";
+import type {
+  AlcancePlantilla,
+  CampoPlantilla,
+} from "@/dominio/entidades/PlantillaAntropometrica";
 import type { ProtocoloComposicion } from "@/dominio/entidades/Antropometria";
 import type {
   ResultadoComposicion,
@@ -14,7 +19,10 @@ import type {
 import { VARIABLES_COMPOSICION } from "@/dominio/entidades/ObjetivoComposicion";
 import type { VariableComposicion } from "@/dominio/entidades/ObjetivoComposicion";
 import { METODOS_GRASA } from "@/dominio/servicios/grasaPorPliegues";
-import type { MetodoGrasa } from "@/dominio/servicios/grasaPorPliegues";
+import type {
+  MetodoGrasa,
+  ProyeccionPliegues,
+} from "@/dominio/servicios/grasaPorPliegues";
 import { ESTADOS_OBJETIVO } from "@/dominio/entidades/Objetivo";
 import type { EstadoObjetivo } from "@/dominio/entidades/Objetivo";
 import type { ProyeccionObjetivo } from "@/dominio/servicios/proyeccionComposicion";
@@ -194,6 +202,15 @@ export interface ObjetivoComposicionDto {
   notas: string | null;
   creadoEn: Date;
   proyeccion: ProyeccionObjetivo;
+  /** Pliegues proyectados para la meta; null si la variable no los define. */
+  proyeccionPliegues: ProyeccionPliegues | null;
+}
+
+/** Valor que hoy tiene una variable objetivable (de la última medición). */
+export interface ValorActualVariableDto {
+  variable: VariableComposicion;
+  metodoGrasa: MetodoGrasa | null;
+  valor: number;
 }
 
 /** Todo lo que consume el dashboard de composición corporal. */
@@ -202,6 +219,8 @@ export interface ComposicionCorporalDto {
   fechaNacimiento: Date | null;
   mediciones: MedicionComposicionDto[];
   objetivos: ObjetivoComposicionDto[];
+  /** Punto de partida para plantear metas nuevas, por variable y ecuación. */
+  valoresActuales: ValorActualVariableDto[];
 }
 
 export const guardarObjetivoComposicionDto = z.object({
@@ -218,6 +237,30 @@ export type GuardarObjetivoComposicionDto = z.infer<
 >;
 
 export const idObjetivoComposicionDto = z.object({ id: z.string().min(1) });
+
+// --- Plantillas de carga --------------------------------------------------------
+
+export const guardarPlantillaAntropometricaDto = z.object({
+  id: z.string().min(1).optional(),
+  nombre: z.string().min(1, "La plantilla necesita un nombre").max(80),
+  descripcion: z.string().max(500).optional().nullable(),
+  campos: z.array(z.enum(CAMPOS_PLANTILLA)).min(1, "Elegí al menos un campo"),
+});
+export type GuardarPlantillaAntropometricaDto = z.infer<
+  typeof guardarPlantillaAntropometricaDto
+>;
+
+export const idPlantillaAntropometricaDto = z.object({ id: z.string().min(1) });
+
+/** Plantilla + qué resultados habilita (lo calcula el dominio). */
+export interface PlantillaAntropometricaDto {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  campos: CampoPlantilla[];
+  alcance: AlcancePlantilla;
+  creadoEn: Date;
+}
 
 // --- Alertas alimentarias -----------------------------------------------------
 

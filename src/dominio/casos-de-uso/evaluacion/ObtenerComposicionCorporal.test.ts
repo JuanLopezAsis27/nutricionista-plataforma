@@ -138,6 +138,39 @@ describe("ObtenerComposicionCorporal", () => {
     expect(proyeccion.estado).toBe("EN_CAMINO");
   });
 
+  it("mide el progreso desde que se planteó la meta, no desde la 1ª medición", async () => {
+    // El paciente venía bajando de antes; la meta se plantea con la medición
+    // de febrero ya hecha. Lo anterior no cuenta como avance hacia esta meta.
+    const casoUso = new ObtenerComposicionCorporal(
+      mockAntropometriaRepositorio({
+        listarPorPaciente: vi.fn(async () => [
+          medicionCompleta(new Date("2025-01-01"), 100, "ant-1"),
+          medicionCompleta(new Date("2026-02-01"), 90, "ant-2"),
+          medicionCompleta(new Date("2026-03-01"), 88, "ant-3"),
+        ]),
+      }),
+      mockObjetivoComposicionRepositorio({
+        listarPorPaciente: vi.fn(async () => [
+          objetivoComposicionEjemplo(
+            { variable: "PESO", valorObjetivo: 80 },
+            "obj-1",
+            new Date("2026-02-05"),
+          ),
+        ]),
+      }),
+      mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => PACIENTE) }),
+    );
+
+    const composicion = await casoUso.ejecutar("pac-1", new Date("2026-03-15"));
+    const proyeccion = composicion.objetivos[0]!.proyeccion;
+
+    expect(proyeccion.valorInicial).toBe(90);
+    expect(proyeccion.valorActual).toBe(88);
+    // De 90 a 80 hay 10 kg; bajó 2 desde la meta → 20 %.
+    // Contando desde los 100 kg de 2025 daría 60 %.
+    expect(proyeccion.progresoPorcentaje).toBeCloseTo(20, 1);
+  });
+
   it("deja fuera de la serie las mediciones que no dan esa variable", async () => {
     // La primera no tiene talla: sin ella no hay fraccionamiento y por lo tanto
     // tampoco masa adiposa. La proyección tiene que ignorarla, no contarla 0.

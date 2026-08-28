@@ -18,6 +18,7 @@ import {
   PROTOCOLOS_COMPOSICION,
   type ProtocoloComposicion,
 } from "@/dominio/entidades/Antropometria";
+import type { CampoPlantilla } from "@/dominio/entidades/PlantillaAntropometrica";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
 import { aFechaISO, hoyISO, formatearNumero } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
@@ -174,6 +175,12 @@ type DatosFormulario = Record<CampoNumerico, string> & {
 interface Props {
   pacienteId: string;
   medicionInicial?: MedicionComposicionDto | null;
+  /**
+   * Campos a mostrar. Null = todos (el perfil completo). Una medición que ya
+   * tiene un campo cargado lo muestra aunque la plantilla no lo incluya: si no,
+   * editar con otra plantilla escondería un dato sin avisar.
+   */
+  camposVisibles?: readonly CampoPlantilla[] | null;
   onTerminado: () => void;
 }
 
@@ -189,6 +196,7 @@ interface Props {
 export function FormularioMedicion({
   pacienteId,
   medicionInicial,
+  camposVisibles = null,
   onTerminado,
 }: Props) {
   const { registrarAntropometria, actualizarAntropometria } = useEvaluacion();
@@ -210,6 +218,17 @@ export function FormularioMedicion({
 
   const protocolo = form.watch("protocolo");
   const tallaCm = aNumeroONull(form.watch("tallaCm"));
+
+  /**
+   * ¿Se muestra este campo? Lo decide la plantilla, salvo que la medición que
+   * se está editando ya lo tenga cargado: esconder un valor existente sería
+   * perderlo de vista sin que nadie lo haya borrado.
+   */
+  const visible = (campo: CampoNumerico): boolean => {
+    if (camposVisibles == null) return true;
+    if (medidas?.[campo] != null) return true;
+    return (camposVisibles as readonly string[]).includes(campo);
+  };
   const enviando =
     registrarAntropometria.isPending || actualizarAntropometria.isPending;
 
@@ -255,7 +274,8 @@ export function FormularioMedicion({
     nombre: CampoNumerico,
     etiqueta: string,
     paraMasas = false,
-  ) => (
+  ) =>
+    !visible(nombre) ? null : (
     <CampoMedida
       key={nombre}
       nombre={nombre}
@@ -267,12 +287,20 @@ export function FormularioMedicion({
       tallaCm={tallaCm}
       registro={form.register(nombre)}
     />
-  );
+    );
 
   // En 2 componentes los diámetros no participan de ningún cálculo: se
   // muestran al final y con el aviso, para no estorbar la carga habitual.
-  const gruposOrdenados =
-    protocolo === "CINCO_COMPONENTES" ? [...GRUPOS].reverse() : GRUPOS;
+  const gruposOrdenados = (
+    protocolo === "CINCO_COMPONENTES" ? [...GRUPOS].reverse() : GRUPOS
+  )
+    // Un grupo cuyos campos quedaron todos fuera de la plantilla no se dibuja:
+    // un encabezado sin campos debajo solo ocupa lugar.
+    .map((grupo) => ({
+      ...grupo,
+      campos: grupo.campos.filter((campo) => visible(campo.nombre)),
+    }))
+    .filter((grupo) => grupo.campos.length > 0);
 
   return (
     <form onSubmit={form.handleSubmit(alEnviar)} className="space-y-5">

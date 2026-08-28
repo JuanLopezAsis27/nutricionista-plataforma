@@ -2,11 +2,20 @@ import {
   definicionVariable,
   type VariableComposicion,
 } from "../entidades/ObjetivoComposicion";
-import type { MetodoGrasa } from "./grasaPorPliegues";
-import type {
-  MedidasComposicion,
-  ResultadoComposicion,
+import {
+  calcularComposicion,
+  ETIQUETAS_MEDIDA,
+  type ContextoComposicion,
+  type MedidasComposicion,
+  type ResultadoComposicion,
 } from "./composicionCorporal";
+import {
+  DEFINICIONES_METODO,
+  PLIEGUE_MINIMO_MM,
+  type MetodoGrasa,
+  type PlieguePlaneado,
+  type ProyeccionPliegues,
+} from "./grasaPorPliegues";
 
 /**
  * Proyección de objetivos de composición corporal — cálculo puro.
@@ -62,6 +71,12 @@ export interface ProyeccionObjetivo {
   progresoPorcentaje: number | null;
   /** Cambio observado por semana (pendiente de la regresión). */
   ritmoSemanal: number | null;
+  /**
+   * El ritmo se estimó con mediciones ANTERIORES a la meta, porque todavía no
+   * hay dos posteriores. Sirve para proyectar —es cómo viene el paciente—
+   * pero la UI tiene que decirlo: no es progreso hacia esta meta.
+   */
+  ritmoPrevioALaMeta: boolean;
   /** Cambio por semana que haría falta desde hoy para llegar en fecha. */
   ritmoSemanalNecesario: number | null;
   /** Fecha estimada de llegada manteniendo el ritmo actual. */
@@ -74,6 +89,14 @@ export interface ProyeccionObjetivo {
 const MS_POR_SEMANA = 7 * 24 * 60 * 60 * 1000;
 
 /**
+ * Ventana para estimar el ritmo cuando todas las mediciones son anteriores a
+ * la meta. Se acota por TIEMPO y no por cantidad: "las últimas tres" puede
+ * incluir una de hace ocho meses, que aplana la pendiente igual que la
+ * historia entera. Seis meses es lo que suele durar un tratamiento.
+ */
+const VENTANA_RITMO_PREVIO_MESES = 6;
+
+/**
  * Tolerancia relativa para dar una meta por alcanzada. Sin ella, un objetivo
  * de 12,0 kg con una medición de 11,999 kg quedaría eternamente "en curso".
  */
@@ -83,12 +106,21 @@ const TOLERANCIA_RELATIVA = 0.005;
  * Proyecta un objetivo sobre la serie histórica de su variable.
  * `serie` debe venir ordenada por fecha ascendente y sin huecos (los valores
  * null se filtran antes: una medición sin esa variable no participa).
+ *
+ * El punto de partida NO es la primera medición del paciente sino la vigente
+ * cuando se planteó la meta. Con historia previa la diferencia es enorme: un
+ * paciente que venía de 30 kg y estaba en 20 al acordar bajar a 15 aparecía
+ * con 77 % del camino hecho antes de empezar. El progreso mide lo que pasó
+ * desde que la meta existe; el estado, en cambio, se lee siempre contra la
+ * última medición, que es dónde está hoy.
  */
 export function proyectarObjetivo(
   objetivo: {
     variable: VariableComposicion;
     valorObjetivo: number;
     fechaObjetivo: Date | null;
+    /** Cuándo se planteó la meta: define el punto de partida. */
+    creadoEn?: Date | null;
   },
   serie: readonly PuntoSerie[],
   ahora: Date = new Date(),
@@ -107,18 +139,38 @@ export function proyectarObjetivo(
     brecha: null,
     progresoPorcentaje: null,
     ritmoSemanal: null,
+    ritmoPrevioALaMeta: false,
     ritmoSemanalNecesario: null,
     fechaProyectada: null,
     valorProyectadoAFecha: null,
     estado: "SIN_DATOS",
   };
 
-  const puntos = [...serie].sort(
-    (a, b) => a.fecha.getTime() - b.fecha.getTime(),
+  const todos = [...serie].sort((a, b) => a.fecha.getTime() - b.fecha.getTime());
+  const ultimo = todos[todos.length - 1];
+  if (!ultimo) return base;
+
+  // Partida: la última medición anterior o igual a la fecha en que se planteó
+  // la meta. Si la meta es más vieja que toda la historia, la primera medición.
+  const creadoEn = objetivo.creadoEn ?? null;
+  const primero =
+    (creadoEn != null
+      ? [...todos].reverse().find((p) => p.fecha.getTime() <= creadoEn.getTime())
+      : todos[0]) ?? todos[0]!;
+
+  // Para el ritmo, lo medido desde la partida. Mezclar años previos aplana la
+  // pendiente y proyecta una llegada que no corresponde.
+  const desdePartida = todos.filter(
+    (p) => p.fecha.getTime() >= primero.fecha.getTime(),
   );
-  const primero = puntos[0];
-  const ultimo = puntos[puntos.length - 1];
-  if (!primero || !ultimo) return base;
+
+  // Caso habitual en consulta: el paciente ya tenía mediciones y la meta se
+  // plantea hoy, así que no hay dos puntos posteriores. El ritmo con el que
+  // viene igual se conoce y es lo que interesa proyectar; se estima con las
+  // últimas mediciones (no con toda la historia, que aplanaría) y se marca
+  // como previo para que la UI no lo presente como avance hacia la meta.
+  const previo = desdePartida.length < 2 && todos.length >= 2;
+  const puntos = previo ? recientes(todos) : desdePartida;
 
   const brecha = objetivo.valorObjetivo - ultimo.valor;
   const recorridoTotal = objetivo.valorObjetivo - primero.valor;
@@ -185,6 +237,7 @@ export function proyectarObjetivo(
     brecha: redondear(brecha, 2),
     progresoPorcentaje: redondear(progreso, 1),
     ritmoSemanal: ritmoSemanal != null ? redondear(ritmoSemanal, 3) : null,
+    ritmoPrevioALaMeta: previo && ritmoSemanal != null,
     ritmoSemanalNecesario:
       ritmoNecesario != null ? redondear(ritmoNecesario, 3) : null,
     fechaProyectada,
@@ -200,6 +253,19 @@ export function proyectarObjetivo(
       vencido: semanasHastaFecha != null && semanasHastaFecha <= 0,
     }),
   };
+}
+
+/**
+ * Mediciones de la ventana reciente, con un mínimo de dos: si en esos meses
+ * solo hubo una consulta, se toma también la anterior para tener pendiente.
+ */
+function recientes(todos: readonly PuntoSerie[]): PuntoSerie[] {
+  const ultima = todos[todos.length - 1]!;
+  const desde = new Date(ultima.fecha);
+  desde.setMonth(desde.getMonth() - VENTANA_RITMO_PREVIO_MESES);
+
+  const enVentana = todos.filter((p) => p.fecha.getTime() >= desde.getTime());
+  return enVentana.length >= 2 ? enVentana : todos.slice(-2);
 }
 
 function clasificar(datos: {
@@ -314,4 +380,162 @@ export function valorDeVariable(
     case "MASA_GRASA_KG":
       return grasa?.masaGrasaKg ?? null;
   }
+}
+
+// --- Pliegues proyectados para una meta ----------------------------------------
+
+/**
+ * Variables cuya meta se puede traducir a un objetivo de pliegues.
+ *
+ * Son las de ADIPOSIDAD, y solo esas. La masa muscular también se mueve al
+ * cambiar los pliegues (los perímetros del modelo van corregidos por el
+ * pliegue del segmento), pero mostrar "para llegar a 44 kg de músculo tus
+ * pliegues tienen que bajar a X" induce a error: el músculo sube entrenando,
+ * no adelgazando el pliegue. El peso, directamente, no depende de ellos.
+ */
+const VARIABLES_PROYECTABLES = [
+  "MASA_ADIPOSA_KG",
+  "MASA_ADIPOSA_PORCENTAJE",
+  "SUMATORIA_6_PLIEGUES",
+  "PORCENTAJE_GRASA",
+  "MASA_GRASA_KG",
+] as const satisfies readonly VariableComposicion[];
+
+/** ¿Esta meta se puede expresar como un objetivo de pliegues? */
+export function admiteProyeccionDePliegues(
+  variable: VariableComposicion,
+): boolean {
+  return (VARIABLES_PROYECTABLES as readonly VariableComposicion[]).includes(
+    variable,
+  );
+}
+
+/** Los 6 pliegues del perfil: los que se escalan cuando la meta es de Kerr. */
+const PLIEGUES_ADIPOSIDAD = [
+  "pliegueTricipital",
+  "pliegueSubescapular",
+  "pliegueSupraespinal",
+  "pliegueAbdominal",
+  "pliegueMuslo",
+  "plieguePantorrilla",
+] as const satisfies readonly (keyof MedidasComposicion)[];
+
+/** Límites del factor de escala y precisión de la búsqueda. */
+const FACTOR_MINIMO = 0.05;
+const FACTOR_MAXIMO = 3;
+const ITERACIONES = 60;
+
+/**
+ * Qué pliegues harían falta para alcanzar la meta.
+ *
+ * Se resuelve NUMÉRICAMENTE y no despejando la ecuación: la masa adiposa de
+ * Kerr sale de un Score-Z pero después se prorratea contra el peso bruto, y
+ * ese ajuste depende de las otras cuatro masas. No hay forma cerrada. La
+ * bisección, en cambio, recalcula la composición completa en cada paso, así
+ * que el resultado respeta el modelo entero — y sirve igual para las metas de
+ * Kerr y para las de pliegues, con un solo camino de código.
+ *
+ * El reparto entre sitios es proporcional al de hoy (se escalan todos por el
+ * mismo factor). Es una suposición y así está dicho en la UI.
+ */
+export function proyectarPlieguesParaMeta(
+  objetivo: {
+    variable: VariableComposicion;
+    metodoGrasa: MetodoGrasa | null;
+    valorObjetivo: number;
+  },
+  medidas: MedidasComposicion,
+  contexto: ContextoComposicion,
+): ProyeccionPliegues | null {
+  if (!admiteProyeccionDePliegues(objetivo.variable)) return null;
+
+  // Qué pliegues mueve esta meta: los de la ecuación, o los 6 del perfil
+  // cuando la meta es del fraccionamiento de Kerr.
+  const campos =
+    objetivo.metodoGrasa != null && contexto.sexo != null
+      ? DEFINICIONES_METODO[objetivo.metodoGrasa].pliegues(contexto.sexo)
+      : PLIEGUES_ADIPOSIDAD;
+
+  const actuales: number[] = [];
+  for (const campo of campos) {
+    const valor = medidas[campo];
+    // Sin todos los pliegues del método no hay reparto que proyectar.
+    if (valor == null || valor <= 0) return null;
+    actuales.push(valor);
+  }
+
+  /** Valor de la variable si todos esos pliegues se escalan por `factor`. */
+  const valorCon = (factor: number): number | null => {
+    const escaladas: MedidasComposicion = { ...medidas };
+    campos.forEach((campo, indice) => {
+      escaladas[campo] = actuales[indice]! * factor;
+    });
+    return valorDeVariable(
+      objetivo.variable,
+      escaladas,
+      calcularComposicion(escaladas, contexto),
+      objetivo.metodoGrasa,
+    );
+  };
+
+  const factor = buscarFactor(valorCon, objetivo.valorObjetivo);
+  if (factor == null) return null;
+
+  const pliegues: PlieguePlaneado[] = campos.map((campo, indice) => {
+    const actual = actuales[indice]!;
+    const objetivoMm = redondear(actual * factor, 1);
+    return {
+      campo,
+      etiqueta: ETIQUETAS_MEDIDA[campo],
+      actualMm: actual,
+      objetivoMm,
+      diferenciaMm: redondear(objetivoMm - actual, 1),
+    };
+  });
+
+  const sumaActual = actuales.reduce((total, valor) => total + valor, 0);
+  return {
+    metodo: objetivo.metodoGrasa,
+    etiqueta:
+      objetivo.metodoGrasa != null
+        ? DEFINICIONES_METODO[objetivo.metodoGrasa].etiqueta
+        : "los 6 pliegues del perfil",
+    sumaActualMm: redondear(sumaActual, 1),
+    sumaObjetivoMm: redondear(sumaActual * factor, 1),
+    pliegues,
+    fueraDeRango: pliegues.some((p) => p.objetivoMm < PLIEGUE_MINIMO_MM),
+  };
+}
+
+/**
+ * Factor de escala que lleva la variable al valor buscado, por bisección.
+ *
+ * Detecta la dirección evaluando los extremos: la masa adiposa crece con los
+ * pliegues, pero nada garantiza el sentido para toda variable futura. Si la
+ * meta cae fuera de lo alcanzable escalando pliegues, devuelve null en vez de
+ * clavarse en un extremo y dibujar una proyección falsa.
+ */
+function buscarFactor(
+  valorCon: (factor: number) => number | null,
+  buscado: number,
+): number | null {
+  const enMinimo = valorCon(FACTOR_MINIMO);
+  const enMaximo = valorCon(FACTOR_MAXIMO);
+  if (enMinimo == null || enMaximo == null) return null;
+
+  const creciente = enMaximo > enMinimo;
+  const bajo = creciente ? enMinimo : enMaximo;
+  const alto = creciente ? enMaximo : enMinimo;
+  if (buscado < bajo || buscado > alto) return null;
+
+  let izquierda = FACTOR_MINIMO;
+  let derecha = FACTOR_MAXIMO;
+  for (let i = 0; i < ITERACIONES; i++) {
+    const medio = (izquierda + derecha) / 2;
+    const valor = valorCon(medio);
+    if (valor == null) return null;
+    if (valor < buscado === creciente) izquierda = medio;
+    else derecha = medio;
+  }
+  return (izquierda + derecha) / 2;
 }

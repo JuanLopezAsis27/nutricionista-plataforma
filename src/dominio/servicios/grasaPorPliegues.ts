@@ -335,3 +335,36 @@ function redondear(valor: number, decimales: number): number {
   const factor = 10 ** decimales;
   return Math.round(valor * factor) / factor;
 }
+
+// --- Proyección de pliegues ---------------------------------------------------
+
+/** Un pliegue con su valor de hoy y el que haría falta para la meta. */
+export interface PlieguePlaneado {
+  campo: keyof MedidasComposicion;
+  etiqueta: string;
+  actualMm: number;
+  objetivoMm: number;
+  /** Objetivo − actual (negativo = hay que bajar). */
+  diferenciaMm: number;
+}
+
+/** Cómo tendrían que quedar los pliegues para alcanzar una meta. */
+export interface ProyeccionPliegues {
+  /** Ecuación de la meta; null cuando la meta es del fraccionamiento de Kerr. */
+  metodo: MetodoGrasa | null;
+  etiqueta: string;
+  sumaActualMm: number;
+  sumaObjetivoMm: number;
+  pliegues: PlieguePlaneado[];
+  /**
+   * La meta exige dejar algún pliegue por debajo del mínimo fisiológico.
+   * No invalida el cálculo, pero conviene decirlo: no es alcanzable midiendo.
+   */
+  fueraDeRango: boolean;
+}
+
+/**
+ * Pliegue más fino que se puede medir con plicómetro en la práctica. Por
+ * debajo de esto la meta no es alcanzable: no queda tejido que perder.
+ */
+export const PLIEGUE_MINIMO_MM = 2;

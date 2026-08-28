@@ -14,13 +14,22 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import type { ObjetivoComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
+import type {
+  MedicionComposicionDto,
+  ObjetivoComposicionDto,
+  ValorActualVariableDto,
+} from "@/aplicacion/dtos/evaluacion.dto";
 import type { EstadoProyeccion } from "@/dominio/servicios/proyeccionComposicion";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
 import { formatearFecha, formatearNumero } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import { Button } from "@/componentes/ui/button";
-import { Card, CardContent } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +38,11 @@ import {
 } from "@/componentes/ui/dialog";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { FormularioObjetivoComposicion } from "./FormularioObjetivoComposicion";
+import { TortaPlieguesProyectados } from "./TortaPlieguesProyectados";
+import {
+  TortaMasasConObjetivos,
+  SinFraccionamientoParaObjetivos,
+} from "./TortaMasasConObjetivos";
 import { useTemaComposicion } from "./useTemaComposicion";
 import type { TemaComposicion } from "./paleta";
 
@@ -81,9 +95,15 @@ const ESTADOS: Record<
 export function ObjetivosComposicion({
   pacienteId,
   objetivos,
+  valoresActuales,
+  ultimaMedicion,
 }: {
   pacienteId: string;
   objetivos: ObjetivoComposicionDto[];
+  /** Última medición: de ahí arranca el slider al plantear una meta nueva. */
+  valoresActuales: ValorActualVariableDto[];
+  /** Para dibujar el reparto de masas con las metas marcadas encima. */
+  ultimaMedicion: MedicionComposicionDto | null;
 }) {
   const { eliminarObjetivoComposicion } = useEvaluacion();
   const { tema, montado } = useTemaComposicion();
@@ -116,13 +136,35 @@ export function ObjetivosComposicion({
         </Button>
       </div>
 
+      {/* El reparto de las cinco masas con las metas marcadas encima: una sola
+          figura para todos los objetivos de masa, no una por tarjeta. */}
+      {objetivos.length > 0 &&
+        (ultimaMedicion?.resultado.fraccionamiento ? (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold">
+                Las 5 masas hoy y con los objetivos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TortaMasasConObjetivos
+                medicion={ultimaMedicion}
+                objetivos={objetivos}
+                tema={tema}
+              />
+            </CardContent>
+          </Card>
+        ) : (
+          <SinFraccionamientoParaObjetivos objetivos={objetivos} />
+        ))}
+
       {objetivos.length === 0 ? (
         <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
           Todavía no hay objetivos. Planteá uno y el dashboard va a mostrar la
           brecha, el ritmo del paciente y si llega a la fecha.
         </p>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-4 xl:grid-cols-2">
           {objetivos.map((objetivo) => (
             <TarjetaObjetivo
               key={objetivo.id}
@@ -151,6 +193,7 @@ export function ObjetivosComposicion({
             pacienteId={pacienteId}
             objetivoInicial={editando}
             variablesOcupadas={objetivos.map((o) => o.variable)}
+            valoresActuales={valoresActuales}
             onTerminado={() => setAbierto(false)}
           />
         </DialogContent>
@@ -272,6 +315,23 @@ function TarjetaObjetivo({
           </p>
         </div>
 
+        {/* El reparto de masas ya se dibuja una sola vez arriba; acá va el
+            detalle por pliegue, que es información distinta y no un gráfico
+            repetido. */}
+        {objetivo.proyeccionPliegues && (
+          <details className="border-t pt-3 text-xs">
+            <summary className="cursor-pointer font-semibold">
+              Cómo quedarían los pliegues
+            </summary>
+            <div className="pt-2">
+              <TortaPlieguesProyectados
+                proyeccion={objetivo.proyeccionPliegues}
+                tema={tema}
+              />
+            </div>
+          </details>
+        )}
+
         <div
           className="flex items-start gap-2 rounded-md p-2 text-xs"
           style={{ backgroundColor: `${color}14` }}
@@ -338,6 +398,12 @@ function Explicacion({
             {unidad}/semana
           </span>
           .
+        </p>
+      )}
+      {p.ritmoPrevioALaMeta && (
+        <p className="italic">
+          Estimado con las mediciones previas: todavía no hay ninguna posterior
+          a la meta. Se recalcula en la próxima consulta.
         </p>
       )}
       {p.fechaProyectada && (

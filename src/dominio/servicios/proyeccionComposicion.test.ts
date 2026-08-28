@@ -1,5 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { proyectarObjetivo, type PuntoSerie } from "./proyeccionComposicion";
+import {
+  proyectarObjetivo,
+  proyectarPlieguesParaMeta,
+  admiteProyeccionDePliegues,
+  type PuntoSerie,
+} from "./proyeccionComposicion";
+import {
+  calcularComposicion,
+  type ContextoComposicion,
+  type MedidasComposicion,
+} from "./composicionCorporal";
 
 const HOY = new Date("2026-03-01T00:00:00Z");
 
@@ -10,6 +20,205 @@ const BAJANDO: PuntoSerie[] = [
   { fecha: new Date("2026-02-15T00:00:00Z"), valor: 19 },
   { fecha: new Date("2026-02-22T00:00:00Z"), valor: 18.5 },
 ];
+
+describe("proyectarObjetivo — punto de partida", () => {
+  /**
+   * El progreso se mide desde que se planteó la meta, no desde la primera
+   * medición del paciente. Con historia previa, tomar el punto más viejo
+   * regala (o descuenta) un avance que ocurrió antes de que la meta existiera.
+   */
+  const HISTORIA: PuntoSerie[] = [
+    { fecha: new Date("2025-01-01T00:00:00Z"), valor: 30 },
+    { fecha: new Date("2025-06-01T00:00:00Z"), valor: 24 },
+    // El objetivo se plantea acá, con el paciente en 20 kg.
+    { fecha: new Date("2026-02-01T00:00:00Z"), valor: 20 },
+    { fecha: new Date("2026-02-22T00:00:00Z"), valor: 18.5 },
+  ];
+  const CREADO = new Date("2026-02-05T00:00:00Z");
+
+  it("parte de la medición vigente al crear el objetivo", () => {
+    const p = proyectarObjetivo(
+      {
+        variable: "MASA_ADIPOSA_KG",
+        valorObjetivo: 15,
+        fechaObjetivo: null,
+        creadoEn: CREADO,
+      },
+      HISTORIA,
+      HOY,
+    );
+
+    expect(p.valorInicial).toBe(20);
+    expect(p.fechaInicial).toEqual(new Date("2026-02-01T00:00:00Z"));
+  });
+
+  it("no cuenta como progreso lo que bajó antes de plantear la meta", () => {
+    const p = proyectarObjetivo(
+      {
+        variable: "MASA_ADIPOSA_KG",
+        valorObjetivo: 15,
+        fechaObjetivo: null,
+        creadoEn: CREADO,
+      },
+      HISTORIA,
+      HOY,
+    );
+
+    // De 20 a 15 hay 5 kg; desde que se planteó bajó 1,5 → 30 %.
+    // Tomando la primera medición (30 kg) daría 76,7 %: casi cumplido sin
+    // haber hecho nada desde que se acordó la meta.
+    expect(p.progresoPorcentaje).toBeCloseTo(30, 1);
+  });
+
+  it("el ritmo se estima solo con las mediciones posteriores a la meta", () => {
+    const p = proyectarObjetivo(
+      {
+        variable: "MASA_ADIPOSA_KG",
+        valorObjetivo: 15,
+        fechaObjetivo: null,
+        creadoEn: CREADO,
+      },
+      HISTORIA,
+      HOY,
+    );
+
+    // 20 → 18,5 en 3 semanas = −0,5/semana. Con la historia entera la
+    // pendiente se aplanaría por los años previos.
+    expect(p.ritmoSemanal).toBeCloseTo(-0.5, 2);
+  });
+
+  it("si la meta es anterior a toda medición, parte de la primera", () => {
+    const p = proyectarObjetivo(
+      {
+        variable: "MASA_ADIPOSA_KG",
+        valorObjetivo: 15,
+        fechaObjetivo: null,
+        creadoEn: new Date("2024-01-01T00:00:00Z"),
+      },
+      HISTORIA,
+      HOY,
+    );
+
+    expect(p.valorInicial).toBe(30);
+  });
+
+  it("la medición de partida ancla la regresión: con una posterior ya hay ritmo", () => {
+    // Meta planteada entre la 3ª y la 4ª medición: quedan dos puntos (la
+    // partida y la siguiente), que alcanzan para estimar la pendiente.
+    const p = proyectarObjetivo(
+      {
+        variable: "MASA_ADIPOSA_KG",
+        valorObjetivo: 15,
+        fechaObjetivo: null,
+        creadoEn: new Date("2026-02-10T00:00:00Z"),
+      },
+      HISTORIA,
+      HOY,
+    );
+
+    expect(p.valorInicial).toBe(20);
+    expect(p.valorActual).toBe(18.5);
+    expect(p.brecha).toBe(-3.5);
+    expect(p.ritmoSemanal).toBeCloseTo(-0.5, 2);
+  });
+
+  it("con dos mediciones previas estima el ritmo y lo marca como previo", () => {
+    // El caso más común en consulta: el paciente ya tiene mediciones y la
+    // meta se plantea hoy. No hay nada medido DESPUÉS de la meta, pero el
+    // ritmo con el que viene se conoce y es lo que interesa proyectar.
+    const dos: PuntoSerie[] = [
+      { fecha: new Date("2026-02-01T00:00:00Z"), valor: 20 },
+      { fecha: new Date("2026-02-22T00:00:00Z"), valor: 18.5 },
+    ];
+    const p = proyectarObjetivo(
+      {
+        variable: "MASA_ADIPOSA_KG",
+        valorObjetivo: 15,
+        fechaObjetivo: null,
+        creadoEn: new Date("2026-03-01T00:00:00Z"),
+      },
+      dos,
+      HOY,
+    );
+
+    expect(p.ritmoSemanal).toBeCloseTo(-0.5, 2);
+    expect(p.ritmoPrevioALaMeta).toBe(true);
+    expect(p.estado).toBe("EN_CAMINO");
+    // El progreso sigue contándose desde la meta: todavía no arrancó.
+    expect(p.valorInicial).toBe(18.5);
+    expect(p.progresoPorcentaje).toBe(0);
+  });
+
+  it("el ritmo previo no arrastra años viejos: usa las últimas mediciones", () => {
+    const p = proyectarObjetivo(
+      {
+        variable: "MASA_ADIPOSA_KG",
+        valorObjetivo: 15,
+        fechaObjetivo: null,
+        creadoEn: new Date("2026-03-01T00:00:00Z"),
+      },
+      HISTORIA,
+      HOY,
+    );
+
+    // Con toda la historia (2025 incluido) la pendiente daría ~−0,17.
+    // Con las últimas tres mediciones refleja la tendencia reciente.
+    expect(p.ritmoPrevioALaMeta).toBe(true);
+    expect(p.ritmoSemanal!).toBeLessThan(-0.2);
+  });
+
+  it("con mediciones posteriores a la meta el ritmo NO es previo", () => {
+    const p = proyectarObjetivo(
+      {
+        variable: "MASA_ADIPOSA_KG",
+        valorObjetivo: 15,
+        fechaObjetivo: null,
+        creadoEn: CREADO,
+      },
+      HISTORIA,
+      HOY,
+    );
+
+    expect(p.ritmoPrevioALaMeta).toBe(false);
+    expect(p.ritmoSemanal).toBeCloseTo(-0.5, 2);
+  });
+
+  it("con una sola medición en total no hay ritmo que estimar", () => {
+    const p = proyectarObjetivo(
+      {
+        variable: "MASA_ADIPOSA_KG",
+        valorObjetivo: 15,
+        fechaObjetivo: null,
+        creadoEn: new Date("2026-03-01T00:00:00Z"),
+      },
+      [{ fecha: new Date("2026-02-22T00:00:00Z"), valor: 18.5 }],
+      HOY,
+    );
+
+    expect(p.valorInicial).toBe(18.5);
+    expect(p.brecha).toBe(-3.5);
+    expect(p.ritmoSemanal).toBeNull();
+    expect(p.estado).toBe("SIN_DATOS");
+  });
+
+  it("el estado se evalúa contra la ÚLTIMA medición, no contra la partida", () => {
+    // Ya pasó la meta en la última medición: está alcanzada aunque la partida
+    // estuviera lejos.
+    const p = proyectarObjetivo(
+      {
+        variable: "MASA_ADIPOSA_KG",
+        valorObjetivo: 19,
+        fechaObjetivo: null,
+        creadoEn: CREADO,
+      },
+      HISTORIA,
+      HOY,
+    );
+
+    expect(p.valorActual).toBe(18.5);
+    expect(p.estado).toBe("ALCANZADO");
+  });
+});
 
 describe("proyectarObjetivo", () => {
   it("sin mediciones no proyecta nada", () => {
@@ -253,5 +462,207 @@ describe("proyectarObjetivo", () => {
     );
     expect(p.etiqueta).toBe("Índice cintura/cadera");
     expect(p.unidad).toBe("");
+  });
+});
+
+// --- Pliegues proyectados -------------------------------------------------------
+
+/** Perfil ISAK completo: permite tanto Kerr como las ecuaciones de pliegues. */
+const MEDIDAS: MedidasComposicion = {
+  pesoKg: 88.4,
+  tallaCm: 193,
+  tallaSentadoCm: 97,
+  diamBiacromial: 45.4,
+  diamToraxTransverso: 32,
+  diamToraxAnteroposterior: 20,
+  diamBiiliocrestideo: 31.5,
+  diamHumeral: 7.8,
+  diamFemoral: 10.6,
+  circCabeza: 56.5,
+  circBrazo: 30,
+  circBrazoContraido: 32,
+  circAntebrazo: 29,
+  circTorax: 100,
+  circCinturaMinima: 84,
+  circCadera: 102,
+  circMusloMaximo: 62,
+  circMusloMedial: 58,
+  circPantorrilla: 40.5,
+  pliegueTricipital: 10,
+  pliegueSubescapular: 12,
+  pliegueSupraespinal: 8,
+  pliegueAbdominal: 15,
+  pliegueMuslo: 14,
+  plieguePantorrilla: 9,
+  pliegueBicipital: 6,
+  pliegueCrestaIliaca: 11,
+};
+
+const CONTEXTO: ContextoComposicion = {
+  sexo: "MASCULINO",
+  edadAnios: 30,
+  nivelActividad: "MODERADA",
+};
+
+/** Aplica la proyección y recalcula: el valor tiene que dar la meta. */
+function valorTrasAplicar(
+  proyeccion: NonNullable<ReturnType<typeof proyectarPlieguesParaMeta>>,
+  extraer: (r: ReturnType<typeof calcularComposicion>) => number | null,
+): number | null {
+  const aplicadas: MedidasComposicion = { ...MEDIDAS };
+  for (const pliegue of proyeccion.pliegues) {
+    aplicadas[pliegue.campo] = pliegue.objetivoMm;
+  }
+  return extraer(calcularComposicion(aplicadas, CONTEXTO));
+}
+
+describe("proyectarPlieguesParaMeta", () => {
+  it("solo las metas de adiposidad definen pliegues", () => {
+    expect(admiteProyeccionDePliegues("MASA_ADIPOSA_KG")).toBe(true);
+    expect(admiteProyeccionDePliegues("PORCENTAJE_GRASA")).toBe(true);
+    expect(admiteProyeccionDePliegues("SUMATORIA_6_PLIEGUES")).toBe(true);
+    // El peso no depende de los pliegues y el músculo sube entrenando, no
+    // adelgazando el pliegue: proyectarlos ahí induciría a error.
+    expect(admiteProyeccionDePliegues("PESO")).toBe(false);
+    expect(admiteProyeccionDePliegues("MASA_MUSCULAR_KG")).toBe(false);
+    expect(admiteProyeccionDePliegues("IMC")).toBe(false);
+  });
+
+  it("no proyecta para una meta de peso", () => {
+    expect(
+      proyectarPlieguesParaMeta(
+        { variable: "PESO", metodoGrasa: null, valorObjetivo: 80 },
+        MEDIDAS,
+        CONTEXTO,
+      ),
+    ).toBeNull();
+  });
+
+  describe("meta del fraccionamiento de Kerr", () => {
+    /**
+     * La masa adiposa de Kerr se prorratea contra el peso bruto, así que no
+     * tiene inversa cerrada. Lo que verifica este test es lo único que
+     * importa: aplicar los pliegues proyectados y recalcular TODO el modelo
+     * da el valor pedido.
+     */
+    it("los pliegues proyectados dan la masa adiposa buscada", () => {
+      const p = proyectarPlieguesParaMeta(
+        { variable: "MASA_ADIPOSA_KG", metodoGrasa: null, valorObjetivo: 14 },
+        MEDIDAS,
+        CONTEXTO,
+      )!;
+
+      expect(valorTrasAplicar(p, (r) => r.fraccionamiento?.adiposa.kg ?? null)).toBeCloseTo(
+        14,
+        1,
+      );
+    });
+
+    it("también con la masa adiposa en porcentaje", () => {
+      const p = proyectarPlieguesParaMeta(
+        {
+          variable: "MASA_ADIPOSA_PORCENTAJE",
+          metodoGrasa: null,
+          valorObjetivo: 16,
+        },
+        MEDIDAS,
+        CONTEXTO,
+      )!;
+
+      expect(
+        valorTrasAplicar(p, (r) => r.fraccionamiento?.adiposa.porcentaje ?? null),
+      ).toBeCloseTo(16, 1);
+    });
+
+    it("usa los 6 pliegues del perfil cuando la meta no tiene ecuación", () => {
+      const p = proyectarPlieguesParaMeta(
+        { variable: "MASA_ADIPOSA_KG", metodoGrasa: null, valorObjetivo: 14 },
+        MEDIDAS,
+        CONTEXTO,
+      )!;
+
+      expect(p.pliegues).toHaveLength(6);
+      expect(p.metodo).toBeNull();
+    });
+  });
+
+  describe("meta de una ecuación de pliegues", () => {
+    it("los pliegues proyectados dan el porcentaje graso buscado", () => {
+      const p = proyectarPlieguesParaMeta(
+        {
+          variable: "PORCENTAJE_GRASA",
+          metodoGrasa: "YUHASZ_CARTER",
+          valorObjetivo: 9,
+        },
+        MEDIDAS,
+        CONTEXTO,
+      )!;
+
+      const obtenido = valorTrasAplicar(
+        p,
+        (r) =>
+          r.grasaPorPliegues.resultados.find((x) => x.metodo === "YUHASZ_CARTER")
+            ?.porcentajeGrasa ?? null,
+      );
+      expect(obtenido).toBeCloseTo(9, 1);
+    });
+
+    it("escala solo los pliegues de esa ecuación", () => {
+      const p = proyectarPlieguesParaMeta(
+        {
+          variable: "PORCENTAJE_GRASA",
+          metodoGrasa: "FAULKNER",
+          valorObjetivo: 10,
+        },
+        MEDIDAS,
+        CONTEXTO,
+      )!;
+
+      expect(p.pliegues).toHaveLength(4);
+      expect(p.metodo).toBe("FAULKNER");
+    });
+  });
+
+  it("mantiene el reparto proporcional entre sitios", () => {
+    const p = proyectarPlieguesParaMeta(
+      { variable: "SUMATORIA_6_PLIEGUES", metodoGrasa: null, valorObjetivo: 34 },
+      MEDIDAS,
+      CONTEXTO,
+    )!;
+
+    expect(p.sumaObjetivoMm).toBeCloseTo(34, 0);
+    // Σ6 actual = 68 → factor 0,5: cada pliegue a la mitad.
+    expect(p.pliegues[0]!.objetivoMm).toBeCloseTo(5, 1);
+    expect(p.pliegues[3]!.objetivoMm).toBeCloseTo(7.5, 1);
+  });
+
+  it("avisa si la meta deja pliegues por debajo de lo medible", () => {
+    const p = proyectarPlieguesParaMeta(
+      { variable: "SUMATORIA_6_PLIEGUES", metodoGrasa: null, valorObjetivo: 8 },
+      MEDIDAS,
+      CONTEXTO,
+    )!;
+    expect(p.fueraDeRango).toBe(true);
+  });
+
+  it("no inventa una proyección si la meta es inalcanzable con pliegues", () => {
+    // Ni bajando los pliegues a la nada se llega a 1 kg de masa adiposa.
+    expect(
+      proyectarPlieguesParaMeta(
+        { variable: "MASA_ADIPOSA_KG", metodoGrasa: null, valorObjetivo: 1 },
+        MEDIDAS,
+        CONTEXTO,
+      ),
+    ).toBeNull();
+  });
+
+  it("sin sexo no hay fraccionamiento y no se puede proyectar Kerr", () => {
+    expect(
+      proyectarPlieguesParaMeta(
+        { variable: "MASA_ADIPOSA_KG", metodoGrasa: null, valorObjetivo: 14 },
+        MEDIDAS,
+        { ...CONTEXTO, sexo: null },
+      ),
+    ).toBeNull();
   });
 });

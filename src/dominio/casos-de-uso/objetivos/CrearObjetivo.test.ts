@@ -38,6 +38,37 @@ describe("CrearObjetivo", () => {
     ).rejects.toBeInstanceOf(ErrorPacienteNoEncontrado);
   });
 
+  it("puede quedar vinculado a una meta de composición", async () => {
+    const objetivos = mockObjetivoRepositorio();
+    const pacientes = mockPacienteRepositorio({
+      obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+    });
+    const casoUso = new CrearObjetivo(objetivos, pacientes);
+
+    const objetivo = await casoUso.ejecutar({
+      pacienteId: "pac-1",
+      titulo: "Ordenar las cenas",
+      objetivoComposicionId: "meta-1",
+    });
+
+    expect(objetivo.objetivoComposicionId).toBe("meta-1");
+  });
+
+  it("sin vínculo el objetivo sigue siendo válido: hay planes sin número", async () => {
+    const objetivos = mockObjetivoRepositorio();
+    const pacientes = mockPacienteRepositorio({
+      obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+    });
+    const casoUso = new CrearObjetivo(objetivos, pacientes);
+
+    const objetivo = await casoUso.ejecutar({
+      pacienteId: "pac-1",
+      titulo: "Mejorar la relación con la comida",
+    });
+
+    expect(objetivo.objetivoComposicionId).toBeNull();
+  });
+
   it("lanza ErrorValidacion si el título está vacío", async () => {
     const objetivos = mockObjetivoRepositorio();
     const pacientes = mockPacienteRepositorio({

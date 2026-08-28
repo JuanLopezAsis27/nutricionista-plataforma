@@ -233,39 +233,40 @@ model Nutricionista {
 
   // Tablas de inquilino. Esta lista es la contraparte de MODELOS_INQUILINO en
   // PrismaClienteSingleton: si aparece acá, la extensión debe filtrarla.
-  pacientes             Paciente[]
-  suplementos           Suplemento[]
-  perfilesDeportivos    PerfilDeportivo[]
-  competencias          Competencia[]
-  alertasSeguimiento    AlertaSeguimiento[]
-  turnos                Turno[]
-  recordatoriosWhatsapp RecordatorioWhatsapp[]
-  mensajesWhatsapp      MensajeWhatsapp[]
-  registrosDiarios      RegistroDiario[]
-  metricasDispositivo   MetricaDispositivo[]
-  credenciales          CredencialProveedor[]
-  preferencias          PreferenciasIntegracion[]
-  retroalimentaciones   RetroalimentacionInsight[]
-  alimentosPropios      AlimentoPropio[]
-  historiasClinicas     HistoriaClinica[]
-  alertasAlimentarias   AlertaAlimentaria[]
-  laboratorios          Laboratorio[]
-  antropometrias        Antropometria[]
-  objetivosComposicion  ObjetivoComposicion[]
-  usuarios              Usuario[]
-  recetas               Receta[]
-  planesNutricionales   PlanNutricional[]
-  objetivos             Objetivo[]
-  materialesBiblioteca  MaterialBiblioteca[]
-  plantillasEmail       PlantillaEmail[]
-  emailsEnviados        EmailEnviado[]
-  cuentasConectadas     CuentaConectada[]
-  sincronizacionesTurno SincronizacionTurno[]
-  conversaciones        Conversacion[]
-  consultasIA           ConsultaIA[]
-  analisisComida        AnalisisComida[]
-  configuraciones       ConfiguracionConsultorio[]
-  axiomasNutricionales  AxiomaNutricional[]
+  pacientes                 Paciente[]
+  suplementos               Suplemento[]
+  perfilesDeportivos        PerfilDeportivo[]
+  competencias              Competencia[]
+  alertasSeguimiento        AlertaSeguimiento[]
+  turnos                    Turno[]
+  recordatoriosWhatsapp     RecordatorioWhatsapp[]
+  mensajesWhatsapp          MensajeWhatsapp[]
+  registrosDiarios          RegistroDiario[]
+  metricasDispositivo       MetricaDispositivo[]
+  credenciales              CredencialProveedor[]
+  preferencias              PreferenciasIntegracion[]
+  retroalimentaciones       RetroalimentacionInsight[]
+  alimentosPropios          AlimentoPropio[]
+  historiasClinicas         HistoriaClinica[]
+  alertasAlimentarias       AlertaAlimentaria[]
+  laboratorios              Laboratorio[]
+  antropometrias            Antropometria[]
+  objetivosComposicion      ObjetivoComposicion[]
+  plantillasAntropometricas PlantillaAntropometrica[]
+  usuarios                  Usuario[]
+  recetas                   Receta[]
+  planesNutricionales       PlanNutricional[]
+  objetivos                 Objetivo[]
+  materialesBiblioteca      MaterialBiblioteca[]
+  plantillasEmail           PlantillaEmail[]
+  emailsEnviados            EmailEnviado[]
+  cuentasConectadas         CuentaConectada[]
+  sincronizacionesTurno     SincronizacionTurno[]
+  conversaciones            Conversacion[]
+  consultasIA               ConsultaIA[]
+  analisisComida            AnalisisComida[]
+  configuraciones           ConfiguracionConsultorio[]
+  axiomasNutricionales      AxiomaNutricional[]
 
   // Hijas del agregado: heredan el inquilino de su padre, pero lo llevan
   // materializado para que la extensión pueda filtrarlas por id directo.
@@ -921,10 +922,36 @@ model ObjetivoComposicion {
 
   paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  /// Plan cualitativo asociado, si alguien lo vinculó.
+  objetivo      Objetivo?
 
   @@unique([pacienteId, variable])
   @@index([nutricionistaId, pacienteId, estado])
   @@map("objetivos_composicion")
+}
+
+/// Plantilla de carga de mediciones: qué campos se piden en el formulario.
+/// El perfil ISAK son 25 medidas y en la consulta real se toman seis; pedir
+/// las 25 y dejar 19 vacías es ruido en cada carga.
+/// Los campos se guardan como texto[] (no como tabla hija) porque son una
+/// LISTA de nombres sin atributos propios: normalizarlos daría una tabla de
+/// join de dos columnas que solo se lee entera y nunca se consulta por campo.
+/// La validación de que la plantilla alcance para calcular algo vive en el
+/// dominio, no en el schema.
+model PlantillaAntropometrica {
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
+  nombre          String
+  descripcion     String?
+  campos          String[]
+  creadoEn        DateTime @default(now())
+  actualizadoEn   DateTime @updatedAt
+
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@unique([nutricionistaId, nombre])
+  @@index([nutricionistaId])
+  @@map("plantillas_antropometricas")
 }
 
 /// Credenciales y rol de acceso al sistema.
@@ -1162,21 +1189,31 @@ model RecomendacionPlan {
 /// Todo cambio relevante queda auditado en HistorialObjetivo, escrito por
 /// los casos de uso (nunca por la UI directamente).
 model Objetivo {
-  id              String            @id @default(uuid(4))
-  nutricionistaId String
-  pacienteId      String
-  titulo          String
-  descripcion     String?
-  prioridad       PrioridadObjetivo @default(MEDIA)
-  estado          EstadoObjetivo    @default(EN_CURSO)
-  fechaObjetivo   DateTime?         @db.Date
-  creadoEn        DateTime          @default(now())
-  actualizadoEn   DateTime          @updatedAt
+  id                    String            @id @default(uuid(4))
+  nutricionistaId       String
+  pacienteId            String
+  /// Meta numérica que este objetivo busca alcanzar, si la hay.
+  /// Los dos modelos son complementarios: el objetivo cualitativo es el PLAN
+  /// (con sus estrategias y el motivo de cada una) y el de composición es el
+  /// RESULTADO medible. Vincularlos deja que el plan muestre progreso real en
+  /// vez de autoevaluación. Es opcional en los dos sentidos: hay planes sin
+  /// número y metas sin plan escrito.
+  /// SetNull y no Cascade: borrar la meta no puede borrar el plan ni su
+  /// historial, que es información clínica.
+  objetivoComposicionId String?           @unique
+  titulo                String
+  descripcion           String?
+  prioridad             PrioridadObjetivo @default(MEDIA)
+  estado                EstadoObjetivo    @default(EN_CURSO)
+  fechaObjetivo         DateTime?         @db.Date
+  creadoEn              DateTime          @default(now())
+  actualizadoEn         DateTime          @updatedAt
 
-  paciente      Paciente            @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
-  estrategias   Estrategia[]
-  historial     HistorialObjetivo[]
-  nutricionista Nutricionista       @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  paciente            Paciente             @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  objetivoComposicion ObjetivoComposicion? @relation(fields: [objetivoComposicionId], references: [id], onDelete: SetNull)
+  estrategias         Estrategia[]
+  historial           HistorialObjetivo[]
+  nutricionista       Nutricionista        @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@index([nutricionistaId, pacienteId, estado])
   @@map("objetivos")

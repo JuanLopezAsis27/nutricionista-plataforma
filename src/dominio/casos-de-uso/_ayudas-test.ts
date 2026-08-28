@@ -795,6 +795,8 @@ export function historiaClinicaEjemplo(
 export function objetivoComposicionEjemplo(
   cambios: Partial<DatosObjetivoComposicion> = {},
   id = "obj-comp-1",
+  /** Cuándo se planteó: define el punto de partida del progreso. */
+  creadoEn = new Date("2020-01-01"),
 ): ObjetivoComposicion {
   return ObjetivoComposicion.crear(
     {
@@ -805,6 +807,7 @@ export function objetivoComposicionEjemplo(
       ...cambios,
     },
     id,
+    creadoEn,
   );
 }
 
