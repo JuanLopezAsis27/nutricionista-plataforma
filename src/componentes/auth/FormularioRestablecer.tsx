@@ -27,13 +27,21 @@ import {
 } from "@/componentes/ui/form";
 import { LogoConsultorio } from "@/componentes/marca/LogoConsultorio";
 import { useAutenticacion } from "@/lib/hooks/useAutenticacion";
+import { passwordNuevaDto } from "@/aplicacion/dtos/password";
 
-const esquema = z
+/**
+ * Esquema del formulario. Se exporta para poder verificar en un test que no
+ * diverge del DTO del servidor.
+ *
+ * La regla de la contraseña se IMPORTA de `passwordNuevaDto` en vez de
+ * reescribirse. Antes había acá un `min(6)` propio mientras el servidor exigía
+ * 12: el formulario daba por buena una contraseña que la mutación después
+ * rechazaba, y en este flujo eso es especialmente cruel porque el usuario ya
+ * perdió el acceso a su cuenta.
+ */
+export const esquema = z
   .object({
-    password: z
-      .string()
-      .min(6, "La contraseña debe tener al menos 6 caracteres")
-      .max(72, "La contraseña es demasiado larga"),
+    password: passwordNuevaDto,
     confirmar: z.string(),
   })
   .refine((datos) => datos.password === datos.confirmar, {

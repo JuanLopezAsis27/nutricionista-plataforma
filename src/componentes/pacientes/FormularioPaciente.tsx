@@ -5,6 +5,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { PacienteSalidaDto } from "@/aplicacion/dtos/paciente.dto";
+import {
+  passwordNuevaDto,
+  LARGO_MINIMO_PASSWORD,
+} from "@/aplicacion/dtos/password";
 import { SEXOS_BIOLOGICOS } from "@/dominio/servicios/composicionCorporal";
 import { usePacientes } from "@/lib/hooks/usePacientes";
 import { aFechaISO } from "@/lib/formato";
@@ -26,6 +30,33 @@ import {
   SelectContent,
   SelectItem,
 } from "@/componentes/ui/select";
+
+/**
+ * Esquema del formulario de paciente.
+ *
+ * Se extrae del componente y se exporta para poder verificar en un test que no
+ * diverge del DTO que valida el servidor (`crearPacienteConAccesoDto`).
+ *
+ * La contraseña usa `passwordNuevaDto`, la política única de la app, en vez de
+ * una regla propia. Antes había acá un `min(6, "Mínimo 6 caracteres")` mientras
+ * el servidor exigía 12 y rechazaba las obvias: el formulario aceptaba lo que
+ * la mutación después tiraba, y el nutricionista veía un error que su pantalla
+ * decía que no correspondía.
+ *
+ * @param editando al editar no se pide contraseña (no se cambia desde acá).
+ */
+export function crearEsquemaPaciente(editando: boolean) {
+  return z.object({
+    nombre: z.string().min(1, "El nombre es obligatorio"),
+    apellido: z.string().min(1, "El apellido es obligatorio"),
+    email: z.string().email("Email inválido"),
+    telefono: z.string().optional(),
+    fechaNacimiento: z.string().optional(),
+    sexo: z.enum([...SEXOS_BIOLOGICOS, SIN_SEXO]),
+    notas: z.string().optional(),
+    password: editando ? z.string().optional() : passwordNuevaDto,
+  });
+}
 
 const ETIQUETAS_SEXO: Record<(typeof SEXOS_BIOLOGICOS)[number], string> = {
   MASCULINO: "Masculino",
@@ -50,22 +81,7 @@ export function FormularioPaciente({
 
   // En el alta la contraseña es obligatoria (se crea la cuenta del paciente);
   // en la edición no se pide (no se cambia la contraseña acá).
-  const esquema = useMemo(
-    () =>
-      z.object({
-        nombre: z.string().min(1, "El nombre es obligatorio"),
-        apellido: z.string().min(1, "El apellido es obligatorio"),
-        email: z.string().email("Email inválido"),
-        telefono: z.string().optional(),
-        fechaNacimiento: z.string().optional(),
-        sexo: z.enum([...SEXOS_BIOLOGICOS, SIN_SEXO]),
-        notas: z.string().optional(),
-        password: editando
-          ? z.string().optional()
-          : z.string().min(6, "Mínimo 6 caracteres"),
-      }),
-    [editando],
-  );
+  const esquema = useMemo(() => crearEsquemaPaciente(editando), [editando]);
   type DatosFormulario = z.infer<typeof esquema>;
 
   const form = useForm<DatosFormulario>({
@@ -166,7 +182,9 @@ export function FormularioPaciente({
                 <FormControl>
                   <Input
                     type="text"
-                    placeholder="Mínimo 6 caracteres"
+                    // Derivado de la constante, no escrito a mano: el
+                    // placeholder anterior decía 6 y el servidor exigía 12.
+                    placeholder={`Mínimo ${LARGO_MINIMO_PASSWORD} caracteres`}
                     {...field}
                   />
                 </FormControl>
