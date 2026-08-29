@@ -25,7 +25,7 @@ import {
 } from "@/componentes/ui/form";
 import { SelectorPaciente } from "@/componentes/pacientes/SelectorPaciente";
 
-const esquema = z
+export const esquema = z
   .object({
     planId: z.string().min(1, "Elegí un plan"),
     pacienteId: z.string().min(1, "Elegí un paciente"),

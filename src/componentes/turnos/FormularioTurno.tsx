@@ -37,12 +37,30 @@ import {
 } from "@/componentes/ui/form";
 import { SelectorPaciente } from "@/componentes/pacientes/SelectorPaciente";
 
-const esquema = z.object({
+/**
+ * Duración del turno, en minutos y como texto (viene de un `<select>`).
+ *
+ * El DTO acota a un entero positivo de hasta 480 (`agendarTurnoDto`); acá solo
+ * se exigía "no vacío". Se comparte con FormularioReprogramar, que valida lo
+ * mismo contra el mismo DTO.
+ */
+export const duracionTurno = z
+  .string()
+  .min(1)
+  .refine((v) => {
+    const n = Number(v);
+    return Number.isInteger(n) && n > 0 && n <= 480;
+  }, "La duración debe estar entre 1 y 480 minutos");
+
+/** Esquema del formulario de turno. Exportado para el test de coherencia. */
+export const esquema = z.object({
   pacienteId: z.string().min(1, "Elegí un paciente"),
   fecha: z.string().min(1, "Elegí una fecha"),
   hora: z.string().min(1, "Elegí una hora"),
-  duracion: z.string().min(1),
-  notas: z.string().optional(),
+  duracion: duracionTurno,
+  // El DTO corta en 1000: sin esto, una nota larga se escribía entera y se
+  // perdía al enviar.
+  notas: z.string().max(1000, "Hasta 1000 caracteres").optional(),
 });
 type DatosFormulario = z.infer<typeof esquema>;
 

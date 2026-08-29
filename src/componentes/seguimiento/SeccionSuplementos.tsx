@@ -29,7 +29,7 @@ import {
 } from "@/componentes/ui/form";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 
-const esquema = z
+export const esquema = z
   .object({
     nombre: z.string().min(1, "El nombre es obligatorio").max(160),
     dosis: z.string().max(120),

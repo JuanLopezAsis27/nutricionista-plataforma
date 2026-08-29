@@ -22,13 +22,17 @@ import {
 } from "@/componentes/ui/form";
 import { Tabs, TabsList, TabsTrigger } from "@/componentes/ui/tabs";
 import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
+import { etiquetasEnTexto, partirEtiquetas } from "@/lib/validacionListas";
 
-const esquema = z.object({
+/** Esquema del formulario. Exportado para el test de coherencia con el DTO. */
+export const esquema = z.object({
   titulo: z.string().min(1, "El título es obligatorio").max(200),
   descripcion: z.string().max(2000),
   url: z.string().max(2000),
   categoria: z.string().max(80),
-  etiquetas: z.string().max(500),
+  // El DTO valida CADA etiqueta (max 60) y el total (max 30); acá solo se
+  // miraba el largo del textarea entero.
+  etiquetas: etiquetasEnTexto(500),
 });
 type DatosFormulario = z.infer<typeof esquema>;
 
@@ -69,10 +73,9 @@ export function FormularioMaterial({ materialInicial, onTerminado }: Props) {
       descripcion: datos.descripcion.trim() || null,
       url: tipo === "ENLACE" ? datos.url.trim() || null : null,
       categoria: datos.categoria.trim() || null,
-      etiquetas: datos.etiquetas
-        .split(",")
-        .map((etiqueta) => etiqueta.trim())
-        .filter(Boolean),
+      // El mismo helper que usa el esquema: si el corte cambiara solo acá, la
+      // validación estaría mirando una lista distinta de la que se envía.
+      etiquetas: partirEtiquetas(datos.etiquetas),
     };
 
     if (materialInicial) {

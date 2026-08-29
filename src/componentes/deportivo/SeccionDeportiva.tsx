@@ -55,6 +55,7 @@ import {
   FormMessage,
 } from "@/componentes/ui/form";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
+import { numeroEnRango } from "@/lib/validacionListas";
 
 /** Etiquetas legibles para los enums. */
 const ETIQUETA_NIVEL: Record<NivelDeportivo, string> = {
@@ -83,14 +84,17 @@ function aNumero(valor: string): number | null {
 }
 
 // --- Perfil ----------------------------------------------------------------
-const esquemaPerfil = z.object({
+/** Esquemas del módulo deportivo. Exportados para el test de coherencia. */
+export const esquemaPerfil = z.object({
   deporte: z.string().min(1, "Indicá el deporte").max(80),
   disciplina: z.string().max(80),
   nivel: z.enum(NIVELES_DEPORTIVOS),
   fase: z.enum(FASES_TEMPORADA),
-  diasEntrenamientoSemana: z.string(),
-  horasSemana: z.string(),
-  pesoCategoriaKg: z.string(),
+  // Rangos de guardarPerfilDeportivoDto. El de peso tiene PISO 20 kg, no
+  // solo techo: sin esto el formulario aceptaba 5 y el servidor lo rechazaba.
+  diasEntrenamientoSemana: numeroEnRango(0, 14, "Entre 0 y 14 días"),
+  horasSemana: numeroEnRango(0, 80, "Entre 0 y 80 horas"),
+  pesoCategoriaKg: numeroEnRango(20, 400, "Entre 20 y 400 kg"),
   posicion: z.string().max(60),
   objetivo: z.string().max(500),
   notas: z.string().max(1000),
@@ -320,7 +324,7 @@ function FormularioPerfil({
 }
 
 // --- Competencias ----------------------------------------------------------
-const esquemaCompetencia = z.object({
+export const esquemaCompetencia = z.object({
   nombre: z.string().min(1, "El nombre es obligatorio").max(160),
   fecha: z.string().min(1, "La fecha es obligatoria"),
   lugar: z.string().max(160),

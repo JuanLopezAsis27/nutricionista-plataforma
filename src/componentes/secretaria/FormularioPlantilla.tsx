@@ -22,7 +22,7 @@ import {
   FormMessage,
 } from "@/componentes/ui/form";
 
-const esquema = z.object({
+export const esquema = z.object({
   clave: z
     .string()
     .regex(

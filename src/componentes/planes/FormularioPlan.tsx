@@ -20,6 +20,7 @@ import { Input } from "@/componentes/ui/input";
 import { Textarea } from "@/componentes/ui/textarea";
 import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
 import { formatearTamano } from "@/lib/formato";
+import { numeroEnRango } from "@/lib/validacionListas";
 import {
   Form,
   FormField,
@@ -46,22 +47,18 @@ const hora = z
   .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Formato HH:mm")
   .or(z.literal(""));
 
-const numeroOpcional = z
-  .string()
-  .refine(
-    (v) => v === "" || Number(v.replace(",", ".")) >= 0,
-    "Debe ser un número positivo",
-  );
-
-const esquema = z
+/** Esquema del formulario de plan. Exportado para el test de coherencia. */
+export const esquema = z
   .object({
     nombre: z.string().min(1, "El nombre es obligatorio").max(160),
     descripcion: z.string().max(2000),
     esPlantilla: z.boolean(),
-    caloriasMeta: numeroOpcional,
-    proteinasMetaG: numeroOpcional,
-    carbohidratosMetaG: numeroOpcional,
-    grasasMetaG: numeroOpcional,
+    // Los topes son los de planBase en el DTO: sin ellos, un dedazo (12000
+    // kcal en vez de 1200) pasaba la pantalla y lo rechazaba el servidor.
+    caloriasMeta: numeroEnRango(0, 100_000),
+    proteinasMetaG: numeroEnRango(0, 10_000),
+    carbohidratosMetaG: numeroEnRango(0, 10_000),
+    grasasMetaG: numeroEnRango(0, 10_000),
     contactosUtiles: z.string().max(2000),
     comidas: z.array(
       z.object({
@@ -87,18 +84,22 @@ const esquema = z
     grupoId: z.string(),
     /** Id del Archivo que ES el plan (modalidad PDF), o null. */
     archivoPrincipalId: z.string().nullable(),
-    equivalencias: z.array(
-      z.object({
-        titulo: z.string().min(1, "Título obligatorio").max(160),
-        detalle: z.string().min(1, "Detalle obligatorio").max(1000),
-      }),
-    ),
-    recomendaciones: z.array(
-      z.object({
-        tipo: z.enum(["NUTRICIONAL", "SALUD"]),
-        texto: z.string().min(1, "Texto obligatorio").max(1000),
-      }),
-    ),
+    equivalencias: z
+      .array(
+        z.object({
+          titulo: z.string().min(1, "Título obligatorio").max(160),
+          detalle: z.string().min(1, "Detalle obligatorio").max(1000),
+        }),
+      )
+      .max(100, "Hasta 100 equivalencias"),
+    recomendaciones: z
+      .array(
+        z.object({
+          tipo: z.enum(["NUTRICIONAL", "SALUD"]),
+          texto: z.string().min(1, "Texto obligatorio").max(1000),
+        }),
+      )
+      .max(100, "Hasta 100 recomendaciones"),
   })
   // Cada modalidad pide su propio contenido. No es "una cosa o la otra" sobre
   // el mismo plan: son dos clases de plan, y el formulario ya sabe cuál está

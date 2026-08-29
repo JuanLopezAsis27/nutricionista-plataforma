@@ -34,11 +34,20 @@ import {
   FormControl,
   FormMessage,
 } from "@/componentes/ui/form";
+import { duracionTurno } from "./FormularioTurno";
 
-const esquema = z.object({
+/**
+ * Esquema del formulario de reprogramación. Exportado para el test de
+ * coherencia con `reprogramarTurnoDto`.
+ *
+ * `duracionTurno` se importa de FormularioTurno: es la misma regla contra el
+ * mismo límite del servidor, y escribirla dos veces es exactamente cómo
+ * aparecieron las divergencias que este trabajo vino a cerrar.
+ */
+export const esquema = z.object({
   fecha: z.string().min(1, "Elegí una fecha"),
   hora: z.string().min(1, "Elegí una hora"),
-  duracion: z.string().min(1),
+  duracion: duracionTurno,
 });
 type DatosFormulario = z.infer<typeof esquema>;
 

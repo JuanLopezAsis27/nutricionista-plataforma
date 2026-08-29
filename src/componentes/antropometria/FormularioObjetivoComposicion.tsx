@@ -41,7 +41,7 @@ import {
   SelectItem,
 } from "@/componentes/ui/select";
 
-const esquema = z.object({
+export const esquema = z.object({
   variable: z.enum(VARIABLES_COMPOSICION),
   metodoGrasa: z.enum(METODOS_GRASA),
   valorObjetivo: z.string().min(1, "Indicá el valor a alcanzar"),

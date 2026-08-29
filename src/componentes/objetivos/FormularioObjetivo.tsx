@@ -31,7 +31,7 @@ import {
 /** Valor del selector cuando el plan no persigue ninguna meta numérica. */
 const SIN_META = "SIN_META";
 
-const esquema = z.object({
+export const esquema = z.object({
   titulo: z.string().min(1, "El título es obligatorio").max(200),
   descripcion: z.string().max(2000),
   prioridad: z.enum(PRIORIDADES_OBJETIVO),

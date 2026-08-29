@@ -34,7 +34,7 @@ import {
 } from "@/componentes/ui/form";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 
-const esquema = z.object({
+export const esquema = z.object({
   nombre: z.string().min(1, "La carpeta necesita un nombre").max(80),
   descripcion: z.string().max(500),
 });
