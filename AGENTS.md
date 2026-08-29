@@ -32,6 +32,7 @@ Todo el código, comentarios, nombres de variables, funciones, clases, archivos 
 ## Documentacion
 
 Siempre registra lo realizado (ya sean features, fixes, refactors, etc) en cada iteracion con detalles tecnicos y conceptuales, con el fin de poder entender las decisiones tomadas y actuar a futuro en base a ellas.
+No modifiques y agregues informacion del AGENTS.md todo el tiempo, las features nuevas y documenacion aledaña va en /docs, en el AGENTS.md debe ir el detalle general e indispensable de la aplicacion
 
 ## Arquitectura — Clean Architecture
 
@@ -84,6 +85,7 @@ al CONSULTORIO (horarios, membrete, PDF, prefijo telefónico, plantillas de
 email que no son recordatorios). Recordatorios es la tarea de avisar turnos,
 completa. La pregunta que separa las tres: ¿esto es dar de alta algo de afuera,
 describir el consultorio, o hacer una tarea?
+
 - /src/servidor → routers tRPC, contexto, procedimientos
 - /src/componentes → componentes de UI (solo hablan por los hooks de tRPC)
 
@@ -215,6 +217,23 @@ Baja lógica con `archivadoEn` (no se borra).
 Estados: PENDIENTE | CONFIRMADO | CANCELADO | COMPLETADO
 Regla: no pueden existir dos turnos solapados en el mismo horario.
 
+**Un turno también tiene que caer dentro de la agenda declarada del
+consultorio** —días y horario de atención de Configuración—. La regla vive en
+`dominio/servicios/agendaConsultorio.ts` y la comparten `AgendarTurno` y
+`ReprogramarTurno`: mientras estuvo solo en el alta, reprogramar era la puerta
+de atrás para dejar un turno un domingo. Antes de eso, `diasAtencion` no lo
+leía nadie y la configuración era decorativa.
+
+El horario se mira por el FIN del turno, no por el inicio: una consulta de 30
+minutos que arranca a la hora de cierre es media hora después de cerrar. Y el
+día de la semana se lee SIEMPRE en UTC (`getUTCDay()`), porque `Turno.fecha` es
+un `DATE` que llega como medianoche UTC —con `getDay()` un lunes se leería como
+domingo en nuestra zona—.
+
+`src/lib/agenda.ts` es el espejo de esa regla en pantalla: apaga las franjas
+ocupadas, pasadas o fuera de horario antes de que el profesional las elija. No
+la reemplaza; el router tRPC es un entry point propio. Ver `docs/AGENDA.md`.
+
 Cancelar es baja LÓGICA (queda en la grilla: que alguien no vino es
 información clínica y de cobranza). `EliminarTurno` es la excepción —borrado
 real— y exige dos condiciones: estado CANCELADO y sin cobro registrado. Lo
@@ -329,6 +348,64 @@ laboratorio de un paciente.
 Antes se llamaba "Dieta"; se renombró en la Fase 3 y hay redirects permanentes
 en `next.config.ts`. Un plan agrupa comidas, opciones, equivalencias y
 recomendaciones, y se asigna a pacientes vía AsignacionPlan.
+
+**Hay DOS modalidades de plan y no son dos variantes de la misma** (migración
+37, `ModalidadPlan`):
+
+- `APP` — se carga franja por franja acá. Necesita al menos una comida y no
+  admite archivo principal.
+- `PDF` — el plan ES el archivo, armado afuera (Word, Canva). Necesita el
+  archivo y no admite comidas.
+
+Las dos llevan ANEXOS: PDFs de apoyo —la lista de compras, un instructivo— que
+van al FINAL de la vista y nunca reemplazan al plan.
+
+Está declarado y no deducido de "¿tiene archivos?" por una razón concreta: la
+migración 36 lo modeló como "un PDF opcional del plan" y el anexo de un plan
+cargado se mostraba como si fuera el plan. La modalidad no se cambia editando
+—pasar de PDF a APP deja un plan sin comidas y al revés tira las cargadas—: se
+elige al dar de alta.
+
+Los archivos son `Archivo` con `planId` (1 a N, dueños del arco exclusivo), no
+columnas con rutas: así heredan clave de bucket, MIME, tamaño y borrado
+compensado del módulo Archivos. Se suben ANTES de que el plan exista y se
+vinculan al guardarlo, igual que los adjuntos de una receta. `archivoIds` es el
+estado final: lo que no está en la lista se desvincula (y su fila se borra, para
+que el barrido de huérfanos se lleve el objeto del bucket).
+
+El fallback del archivo principal lo resuelve la ENTIDAD
+(`PlanNutricional.archivoPrincipal`) y el DTO expone `archivoPrincipal` y
+`adjuntos` ya resueltos: repetirlo en cada pantalla es lo que hacía rotar la
+foto de la receta.
+
+**El nombre del plan es único por consultorio** (migración 38), con planes y
+plantillas como espacios SEPARADOS: la plantilla «Descenso» y el plan que sale
+de ella conviven. El índice único es la garantía; el caso de uso pregunta antes
+solo para dar un mensaje entendible. Clonar una plantilla NUMERA el nombre
+(«(2)», «(3)»…) porque es un clic sin formulario; un nombre escrito a mano no se
+toca.
+
+**`GrupoPlan` es una carpeta**, no una categoría: agrupa por propósito —un
+paciente, un objetivo, una población— y el criterio lo pone quien trabaja.
+Borrarla NO borra los planes (SET NULL): quedan sueltos. Se NAVEGAN como
+directorios (raíz = carpetas + planes sueltos; crear adentro guarda adentro),
+un solo nivel. En el repositorio `undefined` no filtra y `null` pide los
+sueltos: son dos preguntas distintas. Mover tiene su propio caso de uso
+—ordenar no es editar—.
+
+**`AsignacionPlan` es el HISTORIAL del paciente y sobrevive al borrado del
+plan** (migración 38): la FK pasó a SET NULL y la fila guarda `nombrePlan`, una
+foto del nombre al asignarlo. Qué siguió el paciente y entre qué fechas es
+información suya, no un detalle del plan. `fechaFin` es el fin PLANIFICADO y
+`finalizadaEn` el real: al reemplazar un plan, el anterior se cierra con la
+fecha de INICIO del nuevo, no con "hoy".
+
+El paciente lo ve embebido por `/api/archivos/[id]/ver`, que sirve el contenido
+DESDE la app —mismo origen, `Content-Disposition: inline`—. La ruta hermana
+`/api/archivos/[id]` redirige a una URL firmada del bucket y sirve para bajar,
+no para embeber: un iframe a otro origen queda a merced de las cabeceras del
+bucket y del WebView de Android. Las dos tienen la MISMA autorización a
+propósito. Ver `docs/PLANES.md`.
 
 ### Antropometría y composición corporal
 
@@ -592,6 +669,25 @@ const repositorioMock: IPacienteRepositorio = {
   API conectada ese método ENVÍA el mensaje. Una vista previa pregunta
   `modoActual()` y arma el enlace por su cuenta (ya pasó una vez: el query de
   vista previa mandaba un recordatorio cada vez que el cliente lo refrescaba)
+- Nunca validar la agenda del consultorio (días/horario de atención) en un solo
+  caso de uso: agendar y reprogramar comparten
+  `verificarDentroDeLaAgenda`, y separarlas deja abierto el otro camino
+- Nunca leer el día de la semana de un turno con `getDay()`: `Turno.fecha` es un
+  `DATE` que llega como medianoche UTC y en nuestra zona el día se corre para
+  atrás. Va `getUTCDay()`
+- Nunca agregar un campo al plan tocando solo el `update` del repositorio: hay
+  que escribirlo también en el `create`. La modalidad se perdió así —los planes
+  en PDF nacían como planes de la app— y no falló nada: el default de la base le
+  ganó a un valor que nunca se mandó
+- Nunca sumar un filtro al listado de planes tocando solo el DTO y el
+  repositorio: `ObtenerPlanesPaginado` enumera los campos a mano (para no
+  arrastrar la paginación al conteo) y lo que no esté ahí se descarta en
+  silencio. Ya pasó con `grupoId`
+- Nunca borrar una asignación de plan para "limpiar": son el historial clínico
+  del paciente. Se desactivan, con su fecha de fin
+- Nunca embeber un archivo del bucket por su URL firmada: es otro origen y el
+  visor queda a merced de sus cabeceras. Para mostrar adentro de la app está
+  `/api/archivos/[id]/ver`
 - Nunca agregar un CHECK que exija "exactamente un dueño" sobre `archivos`: la
   app sube el archivo ANTES de que exista su dueño (una receta nueva no tiene
   id hasta que se guarda) y lo vincula después. El invariante correcto es

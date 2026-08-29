@@ -1,7 +1,14 @@
-import type { SubirArchivo, DatosSubirArchivo } from "@/dominio/casos-de-uso/archivos/SubirArchivo";
+import type {
+  SubirArchivo,
+  DatosSubirArchivo,
+} from "@/dominio/casos-de-uso/archivos/SubirArchivo";
 import type { ObtenerUrlArchivo } from "@/dominio/casos-de-uso/archivos/ObtenerUrlArchivo";
+import type { ObtenerContenidoArchivo } from "@/dominio/casos-de-uso/archivos/ObtenerContenidoArchivo";
 import type { EliminarArchivo } from "@/dominio/casos-de-uso/archivos/EliminarArchivo";
-import type { LimpiarArchivosHuerfanos, ResultadoLimpieza } from "@/dominio/casos-de-uso/archivos/LimpiarArchivosHuerfanos";
+import type {
+  LimpiarArchivosHuerfanos,
+  ResultadoLimpieza,
+} from "@/dominio/casos-de-uso/archivos/LimpiarArchivosHuerfanos";
 import type { ObtenerArchivosDeDueno } from "@/dominio/casos-de-uso/archivos/ObtenerArchivosDeDueno";
 import type {
   PuedeVerArchivoPaciente,
@@ -16,6 +23,12 @@ export interface ArchivoConUrlDto {
   url: string;
 }
 
+/** Archivo con su contenido, para servirlo desde la app (visor embebido). */
+export interface ArchivoConContenidoDto {
+  archivo: ArchivoSalidaDto;
+  contenido: Uint8Array;
+}
+
 /**
  * Servicio de aplicación de Archivos.
  * Orquesta los casos de uso y devuelve DTOs de salida.
@@ -24,6 +37,7 @@ export class ServicioArchivo {
   constructor(
     private readonly subirUC: SubirArchivo,
     private readonly obtenerUrlUC: ObtenerUrlArchivo,
+    private readonly obtenerContenidoUC: ObtenerContenidoArchivo,
     private readonly eliminarUC: EliminarArchivo,
     private readonly limpiarHuerfanosUC: LimpiarArchivosHuerfanos,
     private readonly obtenerDeDuenoUC: ObtenerArchivosDeDueno,
@@ -35,9 +49,21 @@ export class ServicioArchivo {
     return ServicioArchivo.aSalida(archivo);
   }
 
-  async obtenerUrl(id: string, expiraEnSegundos = 60): Promise<ArchivoConUrlDto> {
-    const { archivo, url } = await this.obtenerUrlUC.ejecutar(id, expiraEnSegundos);
+  async obtenerUrl(
+    id: string,
+    expiraEnSegundos = 60,
+  ): Promise<ArchivoConUrlDto> {
+    const { archivo, url } = await this.obtenerUrlUC.ejecutar(
+      id,
+      expiraEnSegundos,
+    );
     return { archivo: ServicioArchivo.aSalida(archivo), url };
+  }
+
+  /** Contenido del archivo, para servirlo con el mismo origen que la página. */
+  async obtenerContenido(id: string): Promise<ArchivoConContenidoDto> {
+    const { archivo, contenido } = await this.obtenerContenidoUC.ejecutar(id);
+    return { archivo: ServicioArchivo.aSalida(archivo), contenido };
   }
 
   async eliminar(id: string): Promise<void> {
@@ -49,7 +75,10 @@ export class ServicioArchivo {
   }
 
   /** ¿Puede un usuario PACIENTE ver este archivo? (el nutricionista ve todo) */
-  async puedeVerPaciente(archivoId: string, solicitante: SolicitanteArchivo): Promise<boolean> {
+  async puedeVerPaciente(
+    archivoId: string,
+    solicitante: SolicitanteArchivo,
+  ): Promise<boolean> {
     return this.puedeVerPacienteUC.ejecutar(archivoId, solicitante);
   }
 

@@ -17,7 +17,8 @@ import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamient
  */
 function resolverConLLM(fn: unknown): IResolvedorConfigIA {
   return {
-    obtenerLLM: async () => ({ completar: fn, conversar: fn } as unknown as IProveedorLLM),
+    obtenerLLM: async () =>
+      ({ completar: fn, conversar: fn }) as unknown as IProveedorLLM,
   };
 }
 
@@ -35,6 +36,7 @@ const CONTEXTO: ContextoAsistente = {
 const almacenamientoMock: IAlmacenamientoArchivos = {
   subir: vi.fn(async () => {}),
   generarUrlLectura: vi.fn(async () => "http://bucket/foto"),
+  descargar: vi.fn(async () => new Uint8Array()),
   eliminar: vi.fn(async () => {}),
   listarClaves: vi.fn(async () => []),
 };
@@ -54,7 +56,10 @@ describe("AsistenteNutricionalClaude", () => {
   });
 
   it("usa el stub cuando no hay clave configurada", async () => {
-    const asistente = new AsistenteNutricionalClaude(resolverNulo, new AsistenteNutricionalStub());
+    const asistente = new AsistenteNutricionalClaude(
+      resolverNulo,
+      new AsistenteNutricionalStub(),
+    );
     const respuesta = await asistente.responder("¿Qué ceno?", CONTEXTO);
     expect(respuesta.toLowerCase()).toContain("demostración");
   });
@@ -88,11 +93,16 @@ describe("AsistenteNutricionalClaude", () => {
     });
     const resolver: IResolvedorConfigIA = {
       obtenerLLM: async () =>
-        ({ completar: vi.fn(), conversar } as unknown as IProveedorLLM),
+        ({ completar: vi.fn(), conversar }) as unknown as IProveedorLLM,
     };
-    const asistente = new AsistenteNutricionalClaude(resolver, new AsistenteNutricionalStub());
+    const asistente = new AsistenteNutricionalClaude(
+      resolver,
+      new AsistenteNutricionalStub(),
+    );
 
-    const respuesta = await asistente.responder("¿mi plan?", CONTEXTO, [herramienta]);
+    const respuesta = await asistente.responder("¿mi plan?", CONTEXTO, [
+      herramienta,
+    ]);
 
     expect(ejecutarPlan).toHaveBeenCalledOnce();
     expect(respuesta).toContain("1800 kcal");

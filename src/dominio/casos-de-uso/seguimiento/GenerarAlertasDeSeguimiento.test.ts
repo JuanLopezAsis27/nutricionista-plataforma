@@ -42,7 +42,11 @@ describe("GenerarAlertasDeSeguimiento", () => {
     // Diario iniciado (5 registros) pero sin peso ni actividad en la semana.
     const registros = mockRegistroDiarioRepositorio({
       resumenPorPacienteEnRango: vi.fn(async () =>
-        resumen({ totalRegistros: 5, registroPeso: false, huboActividad: false }),
+        resumen({
+          totalRegistros: 5,
+          registroPeso: false,
+          huboActividad: false,
+        }),
       ),
     });
     const casoUso = new GenerarAlertasDeSeguimiento(
@@ -92,7 +96,11 @@ describe("GenerarAlertasDeSeguimiento", () => {
     });
     const registros = mockRegistroDiarioRepositorio({
       resumenPorPacienteEnRango: vi.fn(async () =>
-        resumen({ totalRegistros: 12, registroPeso: true, huboActividad: true }),
+        resumen({
+          totalRegistros: 12,
+          registroPeso: true,
+          huboActividad: true,
+        }),
       ),
     });
     const casoUso = new GenerarAlertasDeSeguimiento(
@@ -119,13 +127,14 @@ describe("GenerarAlertasDeSeguimiento", () => {
         {
           id: "asig-1",
           planId: "pla-1",
+          nombrePlan: "Plan descenso",
           pacienteId: "pac-1",
           fechaInicio: new Date("2026-05-01"),
           fechaFin: new Date("2026-07-01"),
+          finalizadaEn: null,
           activa: true,
         },
       ]),
-      obtenerPorId: vi.fn(async () => planEjemplo()),
     });
     const casoUso = new GenerarAlertasDeSeguimiento(
       alertas,
@@ -176,7 +185,11 @@ describe("GenerarAlertasDeSeguimiento", () => {
     });
     const registros = mockRegistroDiarioRepositorio({
       resumenPorPacienteEnRango: vi.fn(async () =>
-        resumen({ totalRegistros: 3, registroPeso: false, huboActividad: false }),
+        resumen({
+          totalRegistros: 3,
+          registroPeso: false,
+          huboActividad: false,
+        }),
       ),
     });
     const casoUso = new GenerarAlertasDeSeguimiento(

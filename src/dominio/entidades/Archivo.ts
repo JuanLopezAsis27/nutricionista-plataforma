@@ -48,6 +48,14 @@ export const CONTEXTOS_ARCHIVO = {
     mimes: [...MIMES_DOCUMENTO, ...MIMES_IMAGEN],
     maxBytes: 10 * MB,
   },
+  // El plan armado afuera (Word, Canva) y subido tal cual. Solo PDF: es lo
+  // único que el paciente puede abrir en la app sin descargar nada ni tener
+  // Office instalado, y el punto de la función es que lo LEA acá adentro.
+  plan: {
+    prefijo: "planes",
+    mimes: ["application/pdf"],
+    maxBytes: 25 * MB,
+  },
 } as const;
 
 export type ContextoArchivo = keyof typeof CONTEXTOS_ARCHIVO;
@@ -91,7 +99,11 @@ export interface PropiedadesArchivo {
 export class Archivo {
   private constructor(private readonly props: PropiedadesArchivo) {}
 
-  static crear(datos: DatosNuevoArchivo, id: string, ahora: Date = new Date()): Archivo {
+  static crear(
+    datos: DatosNuevoArchivo,
+    id: string,
+    ahora: Date = new Date(),
+  ): Archivo {
     const nombreOriginal = datos.nombreOriginal?.trim() ?? "";
     if (nombreOriginal.length === 0) {
       throw new ErrorArchivoInvalido("El archivo debe tener un nombre.");
@@ -99,7 +111,9 @@ export class Archivo {
 
     const contexto = CONTEXTOS_ARCHIVO[datos.contexto];
     if (!contexto) {
-      throw new ErrorArchivoInvalido(`Contexto de archivo desconocido: ${datos.contexto}.`);
+      throw new ErrorArchivoInvalido(
+        `Contexto de archivo desconocido: ${datos.contexto}.`,
+      );
     }
 
     if (!(contexto.mimes as readonly string[]).includes(datos.mimeType)) {
@@ -113,7 +127,9 @@ export class Archivo {
     }
     if (datos.tamanoBytes > contexto.maxBytes) {
       const maxMb = Math.round(contexto.maxBytes / MB);
-      throw new ErrorArchivoInvalido(`El archivo supera el máximo de ${maxMb} MB.`);
+      throw new ErrorArchivoInvalido(
+        `El archivo supera el máximo de ${maxMb} MB.`,
+      );
     }
 
     return new Archivo({

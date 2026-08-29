@@ -120,6 +120,7 @@ export const servicioTurno = perezoso(() =>
   crearServicioTurno({
     turnos: nucleo.repositorioTurno(),
     pacientes: nucleo.repositorioPaciente(),
+    configuracion: nucleo.repositorioConfiguracion(),
     sincronizador: nucleo.sincronizadorCalendario(),
   }),
 );
@@ -129,6 +130,7 @@ export const servicioArchivo = perezoso(() =>
     archivos: nucleo.repositorioArchivo(),
     recetas: nucleo.repositorioReceta(),
     materiales: nucleo.repositorioMaterial(),
+    planes: nucleo.repositorioPlan(),
     almacenamiento: nucleo.almacenamiento(),
   }),
 );
@@ -169,6 +171,7 @@ export const servicioPlan = perezoso(() =>
   crearServicioPlan({
     planes: nucleo.repositorioPlan(),
     pacientes: nucleo.repositorioPaciente(),
+    grupos: nucleo.repositorioGrupoPlan(),
   }),
 );
 

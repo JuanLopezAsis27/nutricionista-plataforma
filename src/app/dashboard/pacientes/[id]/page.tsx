@@ -2,22 +2,51 @@
 
 import { useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { ArrowLeft, Pencil, FileDown, UserPlus, CircleOff } from "lucide-react";
+import {
+  ArrowLeft,
+  Pencil,
+  FileDown,
+  UserPlus,
+  CircleOff,
+  CalendarPlus,
+  Repeat,
+} from "lucide-react";
 import Link from "next/link";
 import { usePacientes } from "@/lib/hooks/usePacientes";
 import { useTurnos } from "@/lib/hooks/useTurnos";
 import { usePlanes } from "@/lib/hooks/usePlanes";
 import { formatearFecha } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 import { Skeleton } from "@/componentes/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/componentes/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/componentes/ui/dialog";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/componentes/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/componentes/ui/dialog";
 import { EstadoBadge } from "@/componentes/comunes/EstadoBadge";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { FormularioPaciente } from "@/componentes/pacientes/FormularioPaciente";
 import { VistaPlan } from "@/componentes/planes/VistaPlan";
-import { BadgesAlertas, GestionAlertas } from "@/componentes/evaluacion/AlertasPaciente";
+import { FormularioAsignacionPlan } from "@/componentes/planes/FormularioAsignacionPlan";
+import { HistorialDePlanes } from "@/componentes/planes/HistorialDePlanes";
+import { FormularioTurno } from "@/componentes/turnos/FormularioTurno";
+import {
+  BadgesAlertas,
+  GestionAlertas,
+} from "@/componentes/evaluacion/AlertasPaciente";
 import { FormularioHistoriaClinica } from "@/componentes/evaluacion/FormularioHistoriaClinica";
 import { ListaLaboratorios } from "@/componentes/evaluacion/ListaLaboratorios";
 import { ArchivosPaciente } from "@/componentes/evaluacion/ArchivosPaciente";
@@ -42,6 +71,11 @@ export default function PaginaDetallePaciente() {
 
   const [editar, setEditar] = useState(buscar.get("editar") === "1");
   const [confirmarDesasignar, setConfirmarDesasignar] = useState(false);
+  // Turno y plan se resuelven DESDE la ficha: son las dos cosas que se deciden
+  // con el paciente delante, y mandarlas a otra pantalla obligaba a volver a
+  // buscarlo ahí.
+  const [agendarAbierto, setAgendarAbierto] = useState(false);
+  const [asignarAbierto, setAsignarAbierto] = useState(false);
 
   const paciente = obtenerPorId({ id });
   const turnos = porPaciente({ pacienteId: id });
@@ -68,7 +102,12 @@ export default function PaginaDetallePaciente() {
 
   return (
     <div className="space-y-6">
-      <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
+      <Button
+        asChild
+        variant="ghost"
+        size="sm"
+        className="text-muted-foreground"
+      >
         <Link href="/dashboard/pacientes">
           <ArrowLeft className="h-4 w-4" />
           Volver a pacientes
@@ -162,17 +201,29 @@ export default function PaginaDetallePaciente() {
           <DiarioPacienteVista pacienteId={id} />
         </TabsContent>
 
-        <TabsContent value="turnos">
+        <TabsContent value="turnos" className="space-y-4">
+          <div className="flex justify-end">
+            <Button size="sm" onClick={() => setAgendarAbierto(true)}>
+              <CalendarPlus className="h-4 w-4" />
+              Nuevo turno
+            </Button>
+          </div>
           {turnos.isLoading ? (
             <Skeleton className="h-32 w-full" />
           ) : (turnos.data ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground">El paciente no tiene turnos.</p>
+            <p className="text-sm text-muted-foreground">
+              El paciente no tiene turnos.
+            </p>
           ) : (
             <ul className="divide-y rounded-md border">
               {turnos.data!.map((turno) => (
-                <li key={turno.id} className="flex items-center justify-between gap-4 p-3 text-sm">
+                <li
+                  key={turno.id}
+                  className="flex items-center justify-between gap-4 p-3 text-sm"
+                >
                   <span>
-                    {formatearFecha(turno.fecha)} · {turno.hora} ({turno.duracionMinutos} min)
+                    {formatearFecha(turno.fecha)} · {turno.hora} (
+                    {turno.duracionMinutos} min)
                   </span>
                   <EstadoBadge estado={turno.estado} />
                 </li>
@@ -187,15 +238,28 @@ export default function PaginaDetallePaciente() {
           ) : plan.data ? (
             <>
               <div className="flex flex-wrap justify-end gap-2">
-                <Button asChild variant="outline" size="sm">
-                  <a
-                    href={`/api/planes/${plan.data.id}/pdf?paciente=${id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <FileDown className="h-4 w-4" />
-                    PDF
-                  </a>
+                {/* El PDF generado arma el plan CARGADO con el membrete. Un
+                    plan que YA es un PDF no tiene nada que generar: el suyo se
+                    abre desde el visor. */}
+                {plan.data.modalidad === "APP" && (
+                  <Button asChild variant="outline" size="sm">
+                    <a
+                      href={`/api/planes/${plan.data.id}/pdf?paciente=${id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <FileDown className="h-4 w-4" />
+                      PDF
+                    </a>
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAsignarAbierto(true)}
+                >
+                  <Repeat className="h-4 w-4" />
+                  Cambiar plan
                 </Button>
                 <Button
                   variant="outline"
@@ -213,14 +277,19 @@ export default function PaginaDetallePaciente() {
               <p className="text-sm text-muted-foreground">
                 El paciente no tiene un plan activo asignado.
               </p>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/dashboard/planes">
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => setAsignarAbierto(true)}>
                   <UserPlus className="h-4 w-4" />
-                  Ir a planes para asignarle uno
-                </Link>
-              </Button>
+                  Asignar plan
+                </Button>
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/dashboard/planes">Ver planes</Link>
+                </Button>
+              </div>
             </div>
           )}
+
+          <HistorialDePlanes pacienteId={id} />
         </TabsContent>
       </Tabs>
 
@@ -238,12 +307,44 @@ export default function PaginaDetallePaciente() {
         }
       />
 
+      <Dialog open={agendarAbierto} onOpenChange={setAgendarAbierto}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Nuevo turno para {p.nombre} {p.apellido}
+            </DialogTitle>
+          </DialogHeader>
+          <FormularioTurno
+            pacienteIdInicial={id}
+            pacienteFijo
+            onTerminado={() => setAgendarAbierto(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={asignarAbierto} onOpenChange={setAsignarAbierto}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Asignar plan a {p.nombre} {p.apellido}
+            </DialogTitle>
+          </DialogHeader>
+          <FormularioAsignacionPlan
+            pacienteIdFijo={id}
+            onTerminado={() => setAsignarAbierto(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={editar} onOpenChange={setEditar}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar paciente</DialogTitle>
           </DialogHeader>
-          <FormularioPaciente pacienteInicial={p} onTerminado={() => setEditar(false)} />
+          <FormularioPaciente
+            pacienteInicial={p}
+            onTerminado={() => setEditar(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>

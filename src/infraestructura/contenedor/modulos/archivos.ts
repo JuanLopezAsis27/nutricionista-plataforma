@@ -1,9 +1,11 @@
 import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
 import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositorio";
 import type { IMaterialRepositorio } from "@/dominio/repositorios/IMaterialRepositorio";
+import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
 import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamientoArchivos";
 import { SubirArchivo } from "@/dominio/casos-de-uso/archivos/SubirArchivo";
 import { ObtenerUrlArchivo } from "@/dominio/casos-de-uso/archivos/ObtenerUrlArchivo";
+import { ObtenerContenidoArchivo } from "@/dominio/casos-de-uso/archivos/ObtenerContenidoArchivo";
 import { EliminarArchivo } from "@/dominio/casos-de-uso/archivos/EliminarArchivo";
 import { LimpiarArchivosHuerfanos } from "@/dominio/casos-de-uso/archivos/LimpiarArchivosHuerfanos";
 import { ObtenerArchivosDeDueno } from "@/dominio/casos-de-uso/archivos/ObtenerArchivosDeDueno";
@@ -15,14 +17,21 @@ export function crearServicioArchivo(deps: {
   archivos: IArchivoRepositorio;
   recetas: IRecetaRepositorio;
   materiales: IMaterialRepositorio;
+  planes: IPlanRepositorio;
   almacenamiento: IAlmacenamientoArchivos;
 }): ServicioArchivo {
   return new ServicioArchivo(
     new SubirArchivo(deps.archivos, deps.almacenamiento),
     new ObtenerUrlArchivo(deps.archivos, deps.almacenamiento),
+    new ObtenerContenidoArchivo(deps.archivos, deps.almacenamiento),
     new EliminarArchivo(deps.archivos, deps.almacenamiento),
     new LimpiarArchivosHuerfanos(deps.archivos, deps.almacenamiento),
     new ObtenerArchivosDeDueno(deps.archivos),
-    new PuedeVerArchivoPaciente(deps.archivos, deps.recetas, deps.materiales),
+    new PuedeVerArchivoPaciente(
+      deps.archivos,
+      deps.recetas,
+      deps.materiales,
+      deps.planes,
+    ),
   );
 }

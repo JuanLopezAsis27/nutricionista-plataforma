@@ -14,6 +14,7 @@ import type { IRegistroDiarioRepositorio } from "../repositorios/IRegistroDiario
 import type { IRecetaRepositorio } from "../repositorios/IRecetaRepositorio";
 import type { IMetricaDispositivoRepositorio } from "../repositorios/IMetricaDispositivoRepositorio";
 import type { IPlanRepositorio } from "../repositorios/IPlanRepositorio";
+import type { IGrupoPlanRepositorio } from "../repositorios/IGrupoPlanRepositorio";
 import type { IObjetivoRepositorio } from "../repositorios/IObjetivoRepositorio";
 import type { IPerfilDeportivoRepositorio } from "../repositorios/IPerfilDeportivoRepositorio";
 import type { ICompetenciaRepositorio } from "../repositorios/ICompetenciaRepositorio";
@@ -69,7 +70,10 @@ import {
   AlertaAlimentaria,
   type DatosNuevaAlertaAlimentaria,
 } from "../entidades/AlertaAlimentaria";
-import { Laboratorio, type DatosNuevoLaboratorio } from "../entidades/Laboratorio";
+import {
+  Laboratorio,
+  type DatosNuevoLaboratorio,
+} from "../entidades/Laboratorio";
 import { RegistroDiario, type DatosDia } from "../entidades/RegistroDiario";
 import { Receta, type DatosNuevaReceta } from "../entidades/Receta";
 import {
@@ -81,7 +85,10 @@ import {
   type DatosNuevoPlan,
 } from "../entidades/PlanNutricional";
 import { Objetivo, type DatosNuevoObjetivo } from "../entidades/Objetivo";
-import { PerfilDeportivo, type DatosPerfilDeportivo } from "../entidades/PerfilDeportivo";
+import {
+  PerfilDeportivo,
+  type DatosPerfilDeportivo,
+} from "../entidades/PerfilDeportivo";
 import { Competencia, type DatosCompetencia } from "../entidades/Competencia";
 import {
   MaterialBiblioteca,
@@ -92,17 +99,24 @@ import {
   AlertaSeguimiento,
   type DatosNuevaAlertaSeguimiento,
 } from "../entidades/AlertaSeguimiento";
-import { PlantillaEmail, type DatosNuevaPlantilla } from "../entidades/PlantillaEmail";
+import {
+  PlantillaEmail,
+  type DatosNuevaPlantilla,
+} from "../entidades/PlantillaEmail";
 import { Conversacion } from "../entidades/Conversacion";
 import { Mensaje, type DatosNuevoMensaje } from "../entidades/Mensaje";
 import { ConfiguracionConsultorio } from "../entidades/ConfiguracionConsultorio";
+import { GrupoPlan } from "../entidades/GrupoPlan";
 import { ConfiguracionRecordatorios } from "../entidades/ConfiguracionRecordatorios";
 import {
   PlantillaWhatsapp,
   type DatosPlantillaWhatsapp,
   CUERPO_RECORDATORIO_POR_DEFECTO,
 } from "../entidades/PlantillaWhatsapp";
-import { AxiomaNutricional, type DatosNuevoAxioma } from "../entidades/AxiomaNutricional";
+import {
+  AxiomaNutricional,
+  type DatosNuevoAxioma,
+} from "../entidades/AxiomaNutricional";
 import { CuentaConectada } from "../entidades/CuentaConectada";
 
 /**
@@ -172,7 +186,9 @@ export function mockTokenRecuperacionRepositorio(
   };
 }
 
-export function mockGeneradorTokens(parcial: Partial<IGeneradorTokens> = {}): IGeneradorTokens {
+export function mockGeneradorTokens(
+  parcial: Partial<IGeneradorTokens> = {},
+): IGeneradorTokens {
   return {
     // Genera un token determinista y su "hash" (prefijo) para tests.
     generar: vi.fn(() => ({ token: "token-claro", hash: "hash:token-claro" })),
@@ -184,7 +200,9 @@ export function mockGeneradorTokens(parcial: Partial<IGeneradorTokens> = {}): IG
 export function mockHasheador(): IHasheadorContrasena {
   return {
     hashear: vi.fn(async (plano: string) => `hash:${plano}`),
-    verificar: vi.fn(async (plano: string, hash: string) => hash === `hash:${plano}`),
+    verificar: vi.fn(
+      async (plano: string, hash: string) => hash === `hash:${plano}`,
+    ),
   };
 }
 
@@ -208,7 +226,10 @@ export function mockAlmacenamientoArchivos(
 ): IAlmacenamientoArchivos {
   return {
     subir: vi.fn(async () => {}),
-    generarUrlLectura: vi.fn(async (clave: string) => `https://bucket.local/${clave}?firma`),
+    generarUrlLectura: vi.fn(
+      async (clave: string) => `https://bucket.local/${clave}?firma`,
+    ),
+    descargar: vi.fn(async () => new Uint8Array([37, 80, 68, 70])), // "%PDF"
     eliminar: vi.fn(async () => {}),
     listarClaves: vi.fn(async () => []),
     ...parcial,
@@ -327,6 +348,31 @@ export function mockMetricaDispositivoRepositorio(
   };
 }
 
+export function mockGrupoPlanRepositorio(
+  parcial: Partial<IGrupoPlanRepositorio> = {},
+): IGrupoPlanRepositorio {
+  return {
+    crear: vi.fn(async (g: GrupoPlan) => g),
+    actualizar: vi.fn(async (g: GrupoPlan) => g),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    listar: vi.fn(async () => []),
+    existeNombre: vi.fn(async () => false),
+    ...parcial,
+  };
+}
+
+export function grupoPlanEjemplo(
+  cambios: Partial<{ nombre: string; descripcion: string | null }> = {},
+  id = "gru-1",
+): GrupoPlan {
+  return GrupoPlan.crear(
+    { nombre: "Julia Pérez", descripcion: null, ...cambios },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
 export function mockPlanRepositorio(
   parcial: Partial<IPlanRepositorio> = {},
 ): IPlanRepositorio {
@@ -338,7 +384,11 @@ export function mockPlanRepositorio(
     listar: vi.fn(async () => []),
     contar: vi.fn(async () => 0),
     marcarArchivado: vi.fn(async () => {}),
+    moverAGrupo: vi.fn(async () => {}),
     contarAsignacionesActivasDePlan: vi.fn(async () => 0),
+    existeNombre: vi.fn(async () => false),
+    listarAsignacionesDePlan: vi.fn(async () => []),
+    listarAsignacionesDePaciente: vi.fn(async () => []),
     asignarAPaciente: vi.fn(async (a) => a),
     desactivarAsignacionesDe: vi.fn(async () => {}),
     obtenerAsignacionActiva: vi.fn(async () => null),
@@ -467,7 +517,12 @@ export function mockEstadisticasRepositorio(
       pacientesActivos: 0,
       pacientesNuevos: 0,
       pacientesEnRiesgo: 0,
-      turnosPorEstado: { PENDIENTE: 0, CONFIRMADO: 0, CANCELADO: 0, COMPLETADO: 0 },
+      turnosPorEstado: {
+        PENDIENTE: 0,
+        CONFIRMADO: 0,
+        CANCELADO: 0,
+        COMPLETADO: 0,
+      },
       ingresoCobrado: 0,
       ingresoPendiente: 0,
       serieMensual: [],
@@ -494,7 +549,9 @@ export function mockMensajeriaRepositorio(
   };
 }
 
-export function mockBusEventos(parcial: Partial<IBusEventos> = {}): IBusEventos {
+export function mockBusEventos(
+  parcial: Partial<IBusEventos> = {},
+): IBusEventos {
   return {
     publicar: vi.fn(async () => {}),
     // eslint-disable-next-line require-yield
@@ -572,7 +629,9 @@ export function mockMensajeWhatsappRepositorio(
     listarPorPaciente: vi.fn(async () => []),
     ultimoEntrante: vi.fn(async () => null),
     ultimosPorPacientes: vi.fn(async () => new Map<string, MensajeWhatsapp>()),
-    ultimosEntrantesPorPacientes: vi.fn(async () => new Map<string, MensajeWhatsapp>()),
+    ultimosEntrantesPorPacientes: vi.fn(
+      async () => new Map<string, MensajeWhatsapp>(),
+    ),
     ...parcial,
   };
 }
@@ -736,27 +795,37 @@ export function mockAnalisisPredictivo(
   };
 }
 
-export function mockServicioEmail(parcial: Partial<IServicioEmail> = {}): IServicioEmail {
+export function mockServicioEmail(
+  parcial: Partial<IServicioEmail> = {},
+): IServicioEmail {
   return {
     enviar: vi.fn(async () => {}),
     ...parcial,
   };
 }
 
-export function mockColaTrabajos(parcial: Partial<IColaTrabajos> = {}): IColaTrabajos {
+export function mockColaTrabajos(
+  parcial: Partial<IColaTrabajos> = {},
+): IColaTrabajos {
   return {
     encolar: vi.fn(async () => {}),
     ...parcial,
   };
 }
 
-export function mockReloj(fecha = new Date("2026-07-14T12:00:00Z")): IRelojFecha {
+export function mockReloj(
+  fecha = new Date("2026-07-14T12:00:00Z"),
+): IRelojFecha {
   return {
     ahora: vi.fn(() => fecha),
     hoy: vi.fn(
       () =>
         new Date(
-          Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
+          Date.UTC(
+            fecha.getUTCFullYear(),
+            fecha.getUTCMonth(),
+            fecha.getUTCDate(),
+          ),
         ),
     ),
   };
@@ -764,7 +833,10 @@ export function mockReloj(fecha = new Date("2026-07-14T12:00:00Z")): IRelojFecha
 
 // --- Fábricas de entidades de ejemplo ---------------------------------------
 
-export function pacienteEjemplo(cambios: Partial<DatosNuevoPaciente> = {}, id = "pac-1"): Paciente {
+export function pacienteEjemplo(
+  cambios: Partial<DatosNuevoPaciente> = {},
+  id = "pac-1",
+): Paciente {
   return Paciente.crear(
     {
       nombre: "Ana",
@@ -779,7 +851,10 @@ export function pacienteEjemplo(cambios: Partial<DatosNuevoPaciente> = {}, id = 
   );
 }
 
-export function usuarioEjemplo(cambios: Partial<DatosNuevoUsuario> = {}, id = "usr-1"): Usuario {
+export function usuarioEjemplo(
+  cambios: Partial<DatosNuevoUsuario> = {},
+  id = "usr-1",
+): Usuario {
   return Usuario.crear(
     {
       email: "nutri@mail.com",
@@ -793,7 +868,10 @@ export function usuarioEjemplo(cambios: Partial<DatosNuevoUsuario> = {}, id = "u
   );
 }
 
-export function turnoEjemplo(cambios: Partial<DatosNuevoTurno> = {}, id = "tur-1"): Turno {
+export function turnoEjemplo(
+  cambios: Partial<DatosNuevoTurno> = {},
+  id = "tur-1",
+): Turno {
   return Turno.crear(
     {
       pacienteId: "pac-1",
@@ -946,8 +1024,12 @@ export function planEjemplo(
           ],
         },
       ],
-      equivalencias: [{ titulo: "1 fruta", detalle: "1 manzana o 1 banana chica" }],
-      recomendaciones: [{ tipo: "NUTRICIONAL", texto: "Tomar 2 L de agua por día." }],
+      equivalencias: [
+        { titulo: "1 fruta", detalle: "1 manzana o 1 banana chica" },
+      ],
+      recomendaciones: [
+        { tipo: "NUTRICIONAL", texto: "Tomar 2 L de agua por día." },
+      ],
       ...cambios,
     },
     id,
@@ -1059,7 +1141,10 @@ export function alertaSeguimientoEjemplo(
   );
 }
 
-export function recetaEjemplo(cambios: Partial<DatosNuevaReceta> = {}, id = "rec-1"): Receta {
+export function recetaEjemplo(
+  cambios: Partial<DatosNuevaReceta> = {},
+  id = "rec-1",
+): Receta {
   return Receta.crear(
     {
       nombre: "Tortilla de espinaca",
@@ -1110,7 +1195,10 @@ export function metricaEjemplo(
   );
 }
 
-export function conversacionEjemplo(pacienteId = "pac-1", id = "conv-1"): Conversacion {
+export function conversacionEjemplo(
+  pacienteId = "pac-1",
+  id = "conv-1",
+): Conversacion {
   return Conversacion.crear(pacienteId, id, new Date("2026-07-14T12:00:00Z"));
 }
 
@@ -1139,7 +1227,8 @@ export function plantillaEmailEjemplo(
       clave: "RECORDATORIO_TURNO",
       nombre: "Recordatorio de turno",
       asunto: "Recordatorio de tu turno del {{fecha}}",
-      cuerpoHtml: "<p>Hola {{paciente}}, te esperamos el {{fecha}} a las {{hora}}.</p>",
+      cuerpoHtml:
+        "<p>Hola {{paciente}}, te esperamos el {{fecha}} a las {{hora}}.</p>",
       deSistema: true,
       ...cambios,
     },
@@ -1153,9 +1242,13 @@ export function configuracionEjemplo(): ConfiguracionConsultorio {
 }
 
 export function configuracionRecordatoriosEjemplo(
-  cambios: Partial<Parameters<ConfiguracionRecordatorios["actualizar"]>[0]> = {},
+  cambios: Partial<
+    Parameters<ConfiguracionRecordatorios["actualizar"]>[0]
+  > = {},
 ): ConfiguracionRecordatorios {
-  const base = ConfiguracionRecordatorios.porDefecto(new Date("2026-07-14T12:00:00Z"));
+  const base = ConfiguracionRecordatorios.porDefecto(
+    new Date("2026-07-14T12:00:00Z"),
+  );
   return Object.keys(cambios).length === 0
     ? base
     : base.actualizar(cambios, new Date("2026-07-14T12:00:00Z"));

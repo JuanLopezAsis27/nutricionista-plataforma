@@ -7,10 +7,16 @@ import { ArrowLeft, UserPlus, Pencil, FileDown, Copy } from "lucide-react";
 import { usePlanes } from "@/lib/hooks/usePlanes";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/componentes/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/componentes/ui/dialog";
 import { VistaPlan } from "@/componentes/planes/VistaPlan";
 import { FormularioPlan } from "@/componentes/planes/FormularioPlan";
 import { FormularioAsignacionPlan } from "@/componentes/planes/FormularioAsignacionPlan";
+import { PacientesDelPlan } from "@/componentes/planes/PacientesDelPlan";
 
 export default function PaginaDetallePlan() {
   const params = useParams<{ id: string }>();
@@ -42,19 +48,33 @@ export default function PaginaDetallePlan() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+        >
           <Link href="/dashboard/planes">
             <ArrowLeft className="h-4 w-4" />
             Volver a planes
           </Link>
         </Button>
         <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline">
-            <a href={`/api/planes/${datos.id}/pdf`} target="_blank" rel="noreferrer">
-              <FileDown className="h-4 w-4" />
-              PDF
-            </a>
-          </Button>
+          {/* El PDF generado arma el plan CARGADO con el membrete. Un plan que
+              YA es un PDF no tiene nada que generar: el suyo se abre desde el
+              visor. */}
+          {datos.modalidad === "APP" && (
+            <Button asChild variant="outline">
+              <a
+                href={`/api/planes/${datos.id}/pdf`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FileDown className="h-4 w-4" />
+                PDF
+              </a>
+            </Button>
+          )}
           <Button variant="outline" onClick={() => setEditar(true)}>
             <Pencil className="h-4 w-4" />
             Editar
@@ -62,7 +82,10 @@ export default function PaginaDetallePlan() {
           {datos.esPlantilla ? (
             <Button
               onClick={() =>
-                crearDesdePlantilla.mutate({ planOrigenId: datos.id, esPlantilla: false })
+                crearDesdePlantilla.mutate({
+                  planOrigenId: datos.id,
+                  esPlantilla: false,
+                })
               }
               disabled={crearDesdePlantilla.isPending}
             >
@@ -80,12 +103,18 @@ export default function PaginaDetallePlan() {
 
       <VistaPlan plan={datos} />
 
+      {/* Una plantilla no se asigna: se clona. No tiene pacientes que listar. */}
+      {!datos.esPlantilla && <PacientesDelPlan planId={datos.id} />}
+
       <Dialog open={asignar} onOpenChange={setAsignar}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Asignar «{datos.nombre}»</DialogTitle>
           </DialogHeader>
-          <FormularioAsignacionPlan planId={datos.id} onTerminado={() => setAsignar(false)} />
+          <FormularioAsignacionPlan
+            planId={datos.id}
+            onTerminado={() => setAsignar(false)}
+          />
         </DialogContent>
       </Dialog>
 
@@ -94,7 +123,10 @@ export default function PaginaDetallePlan() {
           <DialogHeader>
             <DialogTitle>Editar plan</DialogTitle>
           </DialogHeader>
-          <FormularioPlan planInicial={datos} onTerminado={() => setEditar(false)} />
+          <FormularioPlan
+            planInicial={datos}
+            onTerminado={() => setEditar(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>

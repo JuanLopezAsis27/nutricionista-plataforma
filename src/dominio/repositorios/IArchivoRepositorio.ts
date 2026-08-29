@@ -10,6 +10,7 @@ export interface DuenoArchivo {
   comidaConsumidaId?: string;
   recetaId?: string;
   materialId?: string;
+  planId?: string;
 }
 
 /**

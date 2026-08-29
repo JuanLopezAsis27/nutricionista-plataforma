@@ -104,6 +104,15 @@ enum TipoRecomendacionPlan {
   SALUD
 }
 
+/// Cómo está hecho el plan, que son dos maneras de trabajar distintas y no dos
+/// variantes de la misma (ver migración 37).
+///   APP → se carga franja por franja en la app; los archivos son ANEXOS.
+///   PDF → el plan ES el archivo, armado afuera; es lo que ve el paciente.
+enum ModalidadPlan {
+  APP
+  PDF
+}
+
 enum PrioridadObjetivo {
   ALTA
   MEDIA
@@ -279,6 +288,7 @@ model Nutricionista {
   usuarios                  Usuario[]
   recetas                   Receta[]
   planesNutricionales       PlanNutricional[]
+  gruposPlan                GrupoPlan[]
   objetivos                 Objetivo[]
   materialesBiblioteca      MaterialBiblioteca[]
   plantillasEmail           PlantillaEmail[]
@@ -695,6 +705,10 @@ model Archivo {
   comidaConsumidaId String? @unique // foto de una comida del diario (1 a 1)
   recetaId          String? // fotos de una receta (1 a muchas)
   materialId        String? @unique // material de la biblioteca (1 a 1)
+  /// Archivos del plan nutricional (1 a MUCHOS): el PDF principal de un plan
+  /// en modalidad PDF y/o los anexos de cualquier plan. Cuál es el principal
+  /// lo decide `planes_nutricionales.archivoPrincipalId` (ver migración 37).
+  planId            String?
 
   paciente          Paciente?                  @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
   laboratorio       Laboratorio?               @relation(fields: [laboratorioId], references: [id], onDelete: Cascade)
@@ -705,12 +719,18 @@ model Archivo {
   /// adjunto a la receta y ser SU foto principal.
   recetaPrincipalDe Receta[]                   @relation("FotoPrincipalReceta")
   material          MaterialBiblioteca?        @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  plan              PlanNutricional?           @relation("ArchivosDelPlan", fields: [planId], references: [id], onDelete: Cascade)
+  /// Contracara de `PlanNutricional.archivoPrincipal`: el plan que usa este
+  /// archivo como su PDF principal. Es una relación aparte de `plan` porque son
+  /// dos cosas: estar adjunto al plan y SER el plan.
+  planPrincipalDe   PlanNutricional[]          @relation("ArchivoPrincipalPlan")
   configuraciones   ConfiguracionConsultorio[]
   nutricionista     Nutricionista              @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@index([nutricionistaId, pacienteId])
   @@index([nutricionistaId, laboratorioId])
   @@index([nutricionistaId, recetaId])
+  @@index([nutricionistaId, planId])
   @@map("archivos")
 }
 
@@ -1220,35 +1240,84 @@ model AsignacionReceta {
 /// concreto, con metas de macros, comidas por franja con opciones, tabla de
 /// equivalencias y recomendaciones. Reemplaza al módulo Dieta.
 model PlanNutricional {
-  id                 String   @id @default(uuid(4))
+  id                 String        @id @default(uuid(4))
   nutricionistaId    String
   nombre             String
   descripcion        String?
-  esPlantilla        Boolean  @default(false)
+  esPlantilla        Boolean       @default(false)
+  /// APP (se carga en la app) o PDF (el plan ES el archivo). Ver ModalidadPlan.
+  modalidad          ModalidadPlan @default(APP)
+  /// Carpeta en la que está guardado (opcional). Ver GrupoPlan.
+  grupoId            String?
+  /// El PDF que ES el plan, en modalidad PDF. Null en modalidad APP: ahí los
+  /// archivos son anexos y ninguno reemplaza al plan cargado.
+  archivoPrincipalId String?
   planOrigenId       String? // plantilla de la que se clonó (informativo)
-  archivado          Boolean  @default(false)
+  archivado          Boolean       @default(false)
   // Metas de macros del plan (opcionales)
   caloriasMeta       Int?
-  proteinasMetaG     Decimal? @db.Decimal(7, 2)
-  carbohidratosMetaG Decimal? @db.Decimal(7, 2)
-  grasasMetaG        Decimal? @db.Decimal(7, 2)
+  proteinasMetaG     Decimal?      @db.Decimal(7, 2)
+  carbohidratosMetaG Decimal?      @db.Decimal(7, 2)
+  grasasMetaG        Decimal?      @db.Decimal(7, 2)
   contactosUtiles    String? // teléfonos/contactos útiles del profesional
-  creadoEn           DateTime @default(now())
-  actualizadoEn      DateTime @updatedAt
+  creadoEn           DateTime      @default(now())
+  actualizadoEn      DateTime      @updatedAt
 
-  comidas         ComidaPlan[]
-  equivalencias   EquivalenciaPlan[]
-  recomendaciones RecomendacionPlan[]
-  asignaciones    AsignacionPlan[]
-  nutricionista   Nutricionista       @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  comidas          ComidaPlan[]
+  equivalencias    EquivalenciaPlan[]
+  recomendaciones  RecomendacionPlan[]
+  asignaciones     AsignacionPlan[]
+  /// Archivos del plan: el principal y/o los anexos. La FK vive en `archivos`,
+  /// como el resto de los dueños de archivo: el arco exclusivo se sostiene en
+  /// una sola tabla.
+  archivos         Archivo[]           @relation("ArchivosDelPlan")
+  /// Cuál de esos archivos ES el plan (modalidad PDF). FK con SET NULL: borrar
+  /// el archivo deja el plan sin principal, no apuntando a un id inexistente.
+  archivoPrincipal Archivo?            @relation("ArchivoPrincipalPlan", fields: [archivoPrincipalId], references: [id], onDelete: SetNull)
+  nutricionista    Nutricionista       @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
   // Plantilla de la que se clonó: FK real con SET NULL, para que borrar la
   // plantilla no deje ids colgando en los planes que salieron de ella.
-  planOrigen      PlanNutricional?    @relation("PlanClonado", fields: [planOrigenId], references: [id], onDelete: SetNull)
-  clones          PlanNutricional[]   @relation("PlanClonado")
+  planOrigen       PlanNutricional?    @relation("PlanClonado", fields: [planOrigenId], references: [id], onDelete: SetNull)
+  clones           PlanNutricional[]   @relation("PlanClonado")
+  /// Borrar la carpeta NO borra los planes: quedan sueltos (ver migración 38).
+  grupo            GrupoPlan?          @relation(fields: [grupoId], references: [id], onDelete: SetNull)
 
   @@unique([nutricionistaId, id])
+  /// El nombre identifica al plan para quien lo busca en una lista. Dos planes
+  /// con el mismo nombre son indistinguibles ahí, y asignar "el equivocado" no
+  /// se nota hasta que el paciente pregunta. Planes y plantillas son espacios
+  /// separados: una plantilla "Descenso" y el plan "Descenso" que sale de ella
+  /// es justamente el flujo esperado.
+  @@unique([nutricionistaId, esPlantilla, nombre])
   @@index([nutricionistaId, esPlantilla, archivado])
+  @@index([nutricionistaId, grupoId])
   @@map("planes_nutricionales")
+}
+
+/// Carpeta de planes. Agrupa por PROPÓSITO, que es como el profesional los
+/// busca: "Julia Pérez", "Descenso", "Deportistas", "Vegetarianos".
+///
+/// Es una carpeta y no una categoría cerrada porque el criterio lo pone quien
+/// trabaja: un consultorio agrupa por paciente y otro por objetivo, y las dos
+/// cosas son la misma necesidad —que la lista de planes deje de ser una sola
+/// bolsa cuando pasa de veinte—.
+///
+/// No apunta al paciente aunque el caso típico sea una carpeta por paciente:
+/// atar la carpeta a un paciente la volvería otra cosa (sus planes ya se
+/// consultan por asignación) y dejaría afuera el resto de los criterios.
+model GrupoPlan {
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
+  nombre          String
+  descripcion     String?
+  creadoEn        DateTime @default(now())
+  actualizadoEn   DateTime @updatedAt
+
+  planes        PlanNutricional[]
+  nutricionista Nutricionista     @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@unique([nutricionistaId, nombre])
+  @@map("grupos_plan")
 }
 
 /// Franja de comida dentro de un plan (Desayuno, Colación…), con horario
@@ -1439,19 +1508,34 @@ model AsignacionMaterial {
 
 /// Vincula un plan a un paciente durante un período.
 /// Regla de negocio: un paciente solo puede tener un plan activo a la vez.
+/// Un plan asignado a un paciente durante un período. Es el HISTORIAL: las
+/// asignaciones no se borran, se desactivan, y sobreviven al borrado del plan
+/// (ver migración 38).
 model AsignacionPlan {
   id              String    @id @default(uuid(4))
   nutricionistaId String
-  planId          String
+  /// Nulo si el plan se borró. La asignación queda igual: qué siguió el
+  /// paciente y cuándo es historia clínica, y no se va con el plan.
+  planId          String?
+  /// Nombre del plan al momento de asignarlo. Es una FOTO, no un cache: si el
+  /// plan se borró, es lo único que queda para decir qué se le asignó, y si se
+  /// renombró, el historial tiene que seguir diciendo cómo se llamaba entonces.
+  nombrePlan      String
   pacienteId      String
   fechaInicio     DateTime  @db.Date
+  /// Fin PLANIFICADO al asignar (opcional). No es cuándo terminó de verdad.
   fechaFin        DateTime? @db.Date
+  /// Cuándo dejó de estar activa de verdad: al asignarse otro plan o al
+  /// finalizarlo a mano. Separado de `fechaFin` a propósito —planificar un fin
+  /// y que efectivamente termine ahí son dos cosas, y el historial necesita la
+  /// segunda—.
+  finalizadaEn    DateTime? @db.Date
   activa          Boolean   @default(true)
   creadoEn        DateTime  @default(now())
 
-  plan          PlanNutricional @relation(fields: [planId], references: [id], onDelete: Cascade)
-  paciente      Paciente        @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
-  nutricionista Nutricionista   @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  plan          PlanNutricional? @relation(fields: [planId], references: [id], onDelete: SetNull)
+  paciente      Paciente         @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista    @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@index([nutricionistaId, pacienteId])
   @@index([nutricionistaId, planId])

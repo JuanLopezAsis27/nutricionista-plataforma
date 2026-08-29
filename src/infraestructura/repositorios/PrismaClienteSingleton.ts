@@ -40,6 +40,7 @@ export const MODELOS_INQUILINO = new Set<string>([
   "Antropometria",
   "Receta",
   "PlanNutricional",
+  "GrupoPlan",
   "MaterialBiblioteca",
   "Objetivo",
   "ObjetivoComposicion",
@@ -116,7 +117,10 @@ function crearCliente(): PrismaClient {
             a.data = { ...a.data, nutricionistaId: tenant };
           } else if (operation === "createMany") {
             a.data = Array.isArray(a.data)
-              ? a.data.map((d: Record<string, unknown>) => ({ ...d, nutricionistaId: tenant }))
+              ? a.data.map((d: Record<string, unknown>) => ({
+                  ...d,
+                  nutricionistaId: tenant,
+                }))
               : { ...a.data, nutricionistaId: tenant };
           } else if (operation === "upsert") {
             a.where = { ...a.where, nutricionistaId: tenant };
@@ -142,7 +146,8 @@ export class PrismaClienteSingleton {
 
   static obtenerInstancia(): PrismaClient {
     if (!PrismaClienteSingleton.instancia) {
-      PrismaClienteSingleton.instancia = globalParaPrisma.prisma ?? crearCliente();
+      PrismaClienteSingleton.instancia =
+        globalParaPrisma.prisma ?? crearCliente();
 
       if (process.env.NODE_ENV !== "production") {
         globalParaPrisma.prisma = PrismaClienteSingleton.instancia;

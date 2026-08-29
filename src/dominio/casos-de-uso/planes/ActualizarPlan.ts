@@ -4,16 +4,23 @@ import type {
   DatosNuevoPlan,
 } from "../../entidades/PlanNutricional";
 import { ErrorPlanNoEncontrado } from "../../errores/ErrorPlanNoEncontrado";
+import { ErrorPlanDuplicado } from "../../errores/ErrorPlanDuplicado";
+import { idsDeArchivos } from "./CrearPlan";
 
 /** Datos de entrada: id + contenido completo del plan (reemplaza los hijos). */
-export interface DatosActualizarPlan
-  extends Omit<DatosNuevoPlan, "esPlantilla" | "planOrigenId"> {
+export interface DatosActualizarPlan extends Omit<
+  DatosNuevoPlan,
+  "esPlantilla" | "planOrigenId"
+> {
   id: string;
+  /** Archivos que quedan vinculados. Lo que no esté acá se desvincula. */
+  archivoIds?: string[];
 }
 
 /**
  * Caso de uso: actualizar un plan (reemplaza franjas, opciones,
- * equivalencias y recomendaciones; preserva esPlantilla, origen y archivado).
+ * equivalencias, recomendaciones y archivos; preserva esPlantilla, origen y
+ * archivado).
  */
 export class ActualizarPlan {
   constructor(private readonly planes: IPlanRepositorio) {}
@@ -24,6 +31,19 @@ export class ActualizarPlan {
       throw new ErrorPlanNoEncontrado(datos.id);
     }
     const actualizado = existente.actualizar(datos, () => crypto.randomUUID());
-    return this.planes.actualizar(actualizado);
+
+    // `excluirId` es lo que deja guardar sin renombrar: si no, un plan chocaría
+    // contra su propio nombre cada vez que se edita cualquier otra cosa.
+    if (
+      await this.planes.existeNombre(
+        actualizado.nombre,
+        actualizado.esPlantilla,
+        actualizado.id,
+      )
+    ) {
+      throw new ErrorPlanDuplicado(actualizado.nombre, actualizado.esPlantilla);
+    }
+
+    return this.planes.actualizar(actualizado, idsDeArchivos(datos));
   }
 }

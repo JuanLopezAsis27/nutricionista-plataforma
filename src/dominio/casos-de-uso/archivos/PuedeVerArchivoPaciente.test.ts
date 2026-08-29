@@ -5,6 +5,7 @@ import {
   mockArchivoRepositorio,
   mockRecetaRepositorio,
   mockMaterialRepositorio,
+  mockPlanRepositorio,
   archivoEjemplo,
 } from "../_ayudas-test";
 
@@ -28,7 +29,12 @@ describe("PuedeVerArchivoPaciente", () => {
     const archivos = mockArchivoRepositorio({
       obtenerPorId: vi.fn(async () => archivoSubidoPor("usu-1")),
     });
-    const casoUso = new PuedeVerArchivoPaciente(archivos, mockRecetaRepositorio(), mockMaterialRepositorio());
+    const casoUso = new PuedeVerArchivoPaciente(
+      archivos,
+      mockRecetaRepositorio(),
+      mockMaterialRepositorio(),
+      mockPlanRepositorio(),
+    );
 
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(true);
   });
@@ -41,7 +47,12 @@ describe("PuedeVerArchivoPaciente", () => {
     const recetas = mockRecetaRepositorio({
       listarPacientesAsignados: vi.fn(async () => ["pac-1", "pac-2"]),
     });
-    const casoUso = new PuedeVerArchivoPaciente(archivos, recetas, mockMaterialRepositorio());
+    const casoUso = new PuedeVerArchivoPaciente(
+      archivos,
+      recetas,
+      mockMaterialRepositorio(),
+      mockPlanRepositorio(),
+    );
 
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(true);
   });
@@ -54,7 +65,12 @@ describe("PuedeVerArchivoPaciente", () => {
     const recetas = mockRecetaRepositorio({
       listarPacientesAsignados: vi.fn(async () => ["pac-otro"]),
     });
-    const casoUso = new PuedeVerArchivoPaciente(archivos, recetas, mockMaterialRepositorio());
+    const casoUso = new PuedeVerArchivoPaciente(
+      archivos,
+      recetas,
+      mockMaterialRepositorio(),
+      mockPlanRepositorio(),
+    );
 
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(false);
   });
@@ -67,7 +83,12 @@ describe("PuedeVerArchivoPaciente", () => {
     const materiales = mockMaterialRepositorio({
       listarPacientesAsignados: vi.fn(async () => ["pac-1"]),
     });
-    const casoUso = new PuedeVerArchivoPaciente(archivos, mockRecetaRepositorio(), materiales);
+    const casoUso = new PuedeVerArchivoPaciente(
+      archivos,
+      mockRecetaRepositorio(),
+      materiales,
+      mockPlanRepositorio(),
+    );
 
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(true);
   });
@@ -77,7 +98,81 @@ describe("PuedeVerArchivoPaciente", () => {
       obtenerPorId: vi.fn(async () => archivoEjemplo()),
       obtenerDueno: vi.fn(async () => ({ laboratorioId: "lab-1" })),
     });
-    const casoUso = new PuedeVerArchivoPaciente(archivos, mockRecetaRepositorio(), mockMaterialRepositorio());
+    const casoUso = new PuedeVerArchivoPaciente(
+      archivos,
+      mockRecetaRepositorio(),
+      mockMaterialRepositorio(),
+      mockPlanRepositorio(),
+    );
+
+    expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(false);
+  });
+
+  it("permite ver el PDF del plan que el paciente tiene asignado hoy", async () => {
+    const archivos = mockArchivoRepositorio({
+      obtenerPorId: vi.fn(async () => archivoSubidoPor("usu-nutri")),
+      obtenerDueno: vi.fn(async () => ({ planId: "plan-1" })),
+    });
+    const planes = mockPlanRepositorio({
+      obtenerAsignacionActiva: vi.fn(async () => ({
+        id: "asig-1",
+        planId: "plan-1",
+        nombrePlan: "Plan de descenso",
+        finalizadaEn: null,
+        pacienteId: "pac-1",
+        fechaInicio: new Date("2026-07-01"),
+        fechaFin: null,
+        activa: true,
+      })),
+    });
+    const casoUso = new PuedeVerArchivoPaciente(
+      archivos,
+      mockRecetaRepositorio(),
+      mockMaterialRepositorio(),
+      planes,
+    );
+
+    expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(true);
+  });
+
+  it("niega el PDF de un plan que ya no es el vigente del paciente", async () => {
+    const archivos = mockArchivoRepositorio({
+      obtenerPorId: vi.fn(async () => archivoSubidoPor("usu-nutri")),
+      obtenerDueno: vi.fn(async () => ({ planId: "plan-viejo" })),
+    });
+    const planes = mockPlanRepositorio({
+      obtenerAsignacionActiva: vi.fn(async () => ({
+        id: "asig-2",
+        planId: "plan-nuevo",
+        nombrePlan: "Plan nuevo",
+        finalizadaEn: null,
+        pacienteId: "pac-1",
+        fechaInicio: new Date("2026-07-01"),
+        fechaFin: null,
+        activa: true,
+      })),
+    });
+    const casoUso = new PuedeVerArchivoPaciente(
+      archivos,
+      mockRecetaRepositorio(),
+      mockMaterialRepositorio(),
+      planes,
+    );
+
+    expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(false);
+  });
+
+  it("niega el PDF de un plan si el paciente no tiene plan asignado", async () => {
+    const archivos = mockArchivoRepositorio({
+      obtenerPorId: vi.fn(async () => archivoSubidoPor("usu-nutri")),
+      obtenerDueno: vi.fn(async () => ({ planId: "plan-1" })),
+    });
+    const casoUso = new PuedeVerArchivoPaciente(
+      archivos,
+      mockRecetaRepositorio(),
+      mockMaterialRepositorio(),
+      mockPlanRepositorio(),
+    );
 
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(false);
   });

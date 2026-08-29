@@ -45,7 +45,11 @@ export class GenerarAlertasDeSeguimiento {
     let generadas = 0;
 
     const crear = async (datos: DatosNuevaAlertaSeguimiento): Promise<void> => {
-      const alerta = AlertaSeguimiento.crear(datos, crypto.randomUUID(), this.reloj.ahora());
+      const alerta = AlertaSeguimiento.crear(
+        datos,
+        crypto.randomUUID(),
+        this.reloj.ahora(),
+      );
       const creada = await this.alertas.crearSiNoExistePendiente(alerta);
       if (creada) generadas += 1;
     };
@@ -53,7 +57,9 @@ export class GenerarAlertasDeSeguimiento {
     // `listar()` trae solo los pacientes vigentes: archivar a alguien tiene que
     // callar sus alertas, no seguir generándolas.
     const pacientes = await this.pacientes.listar();
-    const nombreDe = new Map(pacientes.map((p) => [p.id, `${p.nombre} ${p.apellido}`]));
+    const nombreDe = new Map(
+      pacientes.map((p) => [p.id, `${p.nombre} ${p.apellido}`]),
+    );
 
     // --- Diario: sin peso / sin actividad en la última semana -------------
     //
@@ -61,7 +67,10 @@ export class GenerarAlertasDeSeguimiento {
     // consultas POR PACIENTE (~1.600 idas y vueltas secuenciales con 800
     // pacientes, todas las noches).
     const desde = new Date(hoy.getTime() - (DIAS_SIN_REGISTRO - 1) * DIA_MS);
-    const resumenDiario = await this.registros.resumenPorPacienteEnRango(desde, hoy);
+    const resumenDiario = await this.registros.resumenPorPacienteEnRango(
+      desde,
+      hoy,
+    );
 
     for (const paciente of pacientes) {
       const resumen = resumenDiario.get(paciente.id);
@@ -91,18 +100,16 @@ export class GenerarAlertasDeSeguimiento {
 
     // --- Planes con asignación activa vencida -----------------------------
     const vencidas = await this.planes.listarAsignacionesActivasVencidas(hoy);
-    // Un plan puede estar vencido en varios pacientes: se busca una sola vez.
-    const nombrePlan = new Map<string, string>();
-    for (const planId of new Set(vencidas.map((a) => a.planId))) {
-      const plan = await this.planes.obtenerPorId(planId);
-      if (plan) nombrePlan.set(planId, plan.nombre);
-    }
     for (const asignacion of vencidas) {
-      const nombre = nombreDe.get(asignacion.pacienteId) ?? asignacion.pacienteId;
+      const nombre =
+        nombreDe.get(asignacion.pacienteId) ?? asignacion.pacienteId;
+      // El nombre sale de la asignación, no de una consulta por plan: la
+      // asignación lo guarda desde la migración 38. Antes esto era un bucle de
+      // lecturas por cada plan vencido para recuperar un dato que ya viajaba.
       await crear({
         pacienteId: asignacion.pacienteId,
         tipo: "PLAN_VENCIDO",
-        detalle: `El plan «${nombrePlan.get(asignacion.planId) ?? "?"}» de ${nombre} venció: toca renovarlo.`,
+        detalle: `El plan «${asignacion.nombrePlan}» de ${nombre} venció: toca renovarlo.`,
         referenciaId: asignacion.id,
       });
     }
