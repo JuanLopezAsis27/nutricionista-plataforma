@@ -73,7 +73,7 @@ export class PrismaRepositorioUsuario implements IUsuarioRepositorio {
       id: fila.id,
       email: fila.email,
       passwordHash: fila.passwordHash,
-      rol: fila.rol as RolUsuario,
+      rol: fila.rol,
       pacienteId: fila.pacienteId,
       nutricionistaId: fila.nutricionistaId,
       activo: fila.activo,

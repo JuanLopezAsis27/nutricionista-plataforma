@@ -93,7 +93,7 @@ describe("AsistenteNutricionalClaude", () => {
     });
     const resolver: IResolvedorConfigIA = {
       obtenerLLM: async () =>
-        ({ completar: vi.fn(), conversar }) as unknown as IProveedorLLM,
+        ({ completar: vi.fn(), conversar }),
     };
     const asistente = new AsistenteNutricionalClaude(
       resolver,

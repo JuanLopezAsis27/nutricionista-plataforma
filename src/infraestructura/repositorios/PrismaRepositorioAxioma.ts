@@ -3,11 +3,7 @@ import type {
   AxiomaNutricional as AxiomaFila,
 } from "@prisma/client";
 import type { IAxiomaRepositorio } from "@/dominio/repositorios/IAxiomaRepositorio";
-import {
-  AxiomaNutricional,
-  type AmbitoAxioma,
-  type OperadorAxioma,
-} from "@/dominio/entidades/AxiomaNutricional";
+import { AxiomaNutricional } from "@/dominio/entidades/AxiomaNutricional";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Implementación con Prisma del repositorio de axiomas (base de conocimiento). */
@@ -81,9 +77,9 @@ export class PrismaRepositorioAxioma implements IAxiomaRepositorio {
   private mapear(fila: AxiomaFila): AxiomaNutricional {
     return AxiomaNutricional.reconstruir({
       id: fila.id,
-      ambito: fila.ambito as AmbitoAxioma,
+      ambito: fila.ambito,
       parametro: fila.parametro,
-      operador: fila.operador as OperadorAxioma,
+      operador: fila.operador,
       valor: fila.valor,
       valorMax: fila.valorMax,
       unidad: fila.unidad,

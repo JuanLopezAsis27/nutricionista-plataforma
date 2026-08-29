@@ -1,10 +1,6 @@
 import type { PrismaClient, Prisma, PerfilDeportivo as PerfilFila } from "@prisma/client";
 import type { IPerfilDeportivoRepositorio } from "@/dominio/repositorios/IPerfilDeportivoRepositorio";
-import {
-  PerfilDeportivo,
-  type NivelDeportivo,
-  type FaseTemporada,
-} from "@/dominio/entidades/PerfilDeportivo";
+import { PerfilDeportivo } from "@/dominio/entidades/PerfilDeportivo";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /**
@@ -58,8 +54,8 @@ export class PrismaRepositorioPerfilDeportivo implements IPerfilDeportivoReposit
       pacienteId: fila.pacienteId,
       deporte: fila.deporte,
       disciplina: fila.disciplina,
-      nivel: fila.nivel as NivelDeportivo,
-      fase: fila.fase as FaseTemporada,
+      nivel: fila.nivel,
+      fase: fila.fase,
       diasEntrenamientoSemana: fila.diasEntrenamientoSemana,
       horasSemana: aNumero(fila.horasSemana),
       pesoCategoriaKg: aNumero(fila.pesoCategoriaKg),

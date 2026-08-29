@@ -18,7 +18,6 @@ import {
 import {
   DEFINICIONES_METODO,
   METODOS_GRASA,
-  type MetodoGrasa,
 } from "@/dominio/servicios/grasaPorPliegues";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
 import { aFechaISO, formatearNumero } from "@/lib/formato";
@@ -220,7 +219,7 @@ export function FormularioObjetivoComposicion({
                 <p className="text-xs text-muted-foreground">
                   {editando
                     ? "La ecuación no se cambia: la serie histórica quedaría partida en dos."
-                    : `${DEFINICIONES_METODO[field.value as MetodoGrasa].poblacion}. Toda la serie va a usar esta ecuación.`}
+                    : `${DEFINICIONES_METODO[field.value].poblacion}. Toda la serie va a usar esta ecuación.`}
                 </p>
                 <FormMessage />
               </FormItem>

@@ -3,7 +3,7 @@ import type {
   ITurnoRepositorio,
   FiltroTurnos,
 } from "@/dominio/repositorios/ITurnoRepositorio";
-import { Turno, type EstadoTurno } from "@/dominio/entidades/Turno";
+import { Turno } from "@/dominio/entidades/Turno";
 import { ErrorTurnoConflicto } from "@/dominio/errores/ErrorTurnoConflicto";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
@@ -140,7 +140,7 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
       fecha: fila.fecha,
       hora: fila.hora,
       duracionMinutos: fila.duracionMinutos,
-      estado: fila.estado as EstadoTurno,
+      estado: fila.estado,
       notas: fila.notas,
       // Decimal nunca cruza infraestructura: se mapea a number.
       precio: fila.precio == null ? null : Number(fila.precio),

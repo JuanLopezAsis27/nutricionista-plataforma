@@ -1,0 +1,9 @@
+.next
+node_modules
+android
+ios
+public
+package-lock.json
+tsconfig.tsbuildinfo
+prisma/migrations
+nutricion-servicio

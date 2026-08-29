@@ -1,10 +1,6 @@
 import type { PrismaClient, Prisma } from "@prisma/client";
 import type { IAlertaSeguimientoRepositorio } from "@/dominio/repositorios/IAlertaSeguimientoRepositorio";
-import {
-  AlertaSeguimiento,
-  type TipoAlertaSeguimiento,
-  type EstadoAlertaSeguimiento,
-} from "@/dominio/entidades/AlertaSeguimiento";
+import { AlertaSeguimiento } from "@/dominio/entidades/AlertaSeguimiento";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 const INCLUIR_PACIENTE = {
@@ -90,8 +86,8 @@ export class PrismaRepositorioAlertaSeguimiento implements IAlertaSeguimientoRep
       id: fila.id,
       pacienteId: fila.pacienteId,
       pacienteNombre: `${fila.paciente.nombre} ${fila.paciente.apellido}`,
-      tipo: fila.tipo as TipoAlertaSeguimiento,
-      estado: fila.estado as EstadoAlertaSeguimiento,
+      tipo: fila.tipo,
+      estado: fila.estado,
       detalle: fila.detalle,
       referenciaId: fila.referenciaId,
       datos: (fila.datos as Record<string, unknown> | null) ?? null,

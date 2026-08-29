@@ -7,8 +7,6 @@ import {
   Objetivo,
   type EstrategiaObjetivo,
   type EventoObjetivo,
-  type EstadoEstrategia,
-  type TipoEventoObjetivo,
 } from "@/dominio/entidades/Objetivo";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
@@ -158,7 +156,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
     });
     return filas.map((fila) => ({
       id: fila.id,
-      tipo: fila.tipo as TipoEventoObjetivo,
+      tipo: fila.tipo,
       detalle: fila.detalle,
       motivo: fila.motivo,
       creadoEn: fila.creadoEn,
@@ -201,7 +199,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
         id: estrategia.id,
         descripcion: estrategia.descripcion,
         motivo: estrategia.motivo,
-        estado: estrategia.estado as EstadoEstrategia,
+        estado: estrategia.estado,
         creadoEn: estrategia.creadoEn,
       })),
       creadoEn: fila.creadoEn,

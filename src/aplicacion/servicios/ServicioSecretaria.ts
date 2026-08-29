@@ -9,7 +9,6 @@ import type {
 } from "@/dominio/casos-de-uso/secretaria/EnviarEmailDePrueba";
 import type { ListarEmailsEnviados } from "@/dominio/casos-de-uso/secretaria/ListarEmailsEnviados";
 import type { PlantillaEmail } from "@/dominio/entidades/PlantillaEmail";
-import type { EmailEnviado } from "@/dominio/entidades/EmailEnviado";
 import type {
   CrearPlantillaDto,
   ActualizarPlantillaDto,

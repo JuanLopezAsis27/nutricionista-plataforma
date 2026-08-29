@@ -6,7 +6,6 @@ import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
 /** Encapsula las llamadas tRPC de las métricas de dispositivo (wearables). */
 export function useMetricas() {
-  const utils = trpc.useUtils();
   const invalidar = useInvalidar();
 
   const importar = trpc.metricas.importar.useMutation({

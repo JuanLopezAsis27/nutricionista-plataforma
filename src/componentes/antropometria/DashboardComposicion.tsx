@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   Activity,
   Flame,
-  Info,
   Ruler,
   Scale,
   TriangleAlert,

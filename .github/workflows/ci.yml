@@ -94,6 +94,17 @@ jobs:
       - name: Typecheck (tsc estricto)
         run: npx tsc --noEmit
 
+      # Va DESPUÉS de `prisma generate` porque las reglas type-aware
+      # (no-floating-promises y compañía) necesitan los tipos del cliente
+      # generado para resolver los repositorios.
+      #
+      # `--max-warnings` no se fija todavía: quedan 36 avisos conocidos y
+      # anotados como deuda (reglas del React Compiler y no-base-to-string, ver
+      # audits/AUDIT_CALIDAD_CODIGO.md). Los ERRORES sí rompen la corrida, que
+      # es lo que impide que la base se degrade desde hoy.
+      - name: Lint (eslint)
+        run: npm run lint
+
       - name: Tests (vitest)
         run: npx vitest run
 

@@ -139,7 +139,7 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
 
 function clavesDe(esquema: Record<string, unknown>): string[] {
   const props = esquema.properties;
-  return props && typeof props === "object" ? Object.keys(props as Record<string, unknown>) : [];
+  return props && typeof props === "object" ? Object.keys(props) : [];
 }
 
 /** Limpia la respuesta del modelo para quedarse solo con el objeto JSON. */

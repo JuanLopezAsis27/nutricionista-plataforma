@@ -69,11 +69,7 @@ function mapearColumnas(encabezado: string[]): Columnas {
 
 /** Encabezado sin acentos, en minúsculas y sin espacios de más. */
 function normalizarEncabezado(valor: string): string {
-  return valor
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .trim();
+  return valor.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 }
 
 /** Convierte a número aceptando coma o punto decimal; null si no es válido. */
@@ -109,7 +105,9 @@ function valorCelda(valor: unknown): string {
     if (typeof o.text === "string") return o.text; // hyperlink/richtext
     if ("result" in o) return String(o.result ?? ""); // fórmula
     if (Array.isArray(o.richText)) {
-      return (o.richText as Array<{ text?: string }>).map((r) => r.text ?? "").join("");
+      return (o.richText as Array<{ text?: string }>)
+        .map((r) => r.text ?? "")
+        .join("");
     }
     return "";
   }
@@ -117,11 +115,18 @@ function valorCelda(valor: unknown): string {
 }
 
 function parsearCsv(contenido: Buffer): string[][] {
-  const texto = contenido.toString("utf-8").replace(/^﻿/, "");
+  // El BOM (U+FEFF): Excel lo antepone al exportar CSV en UTF-8 y, sin quitarlo,
+  // el primer encabezado nunca coincide. Va como escape y no como carácter
+  // literal para que se vea en el diff y no lo borre un editor por accidente.
+  const texto = contenido.toString("utf-8").replace(/^\uFEFF/, "");
   const lineas = texto.split(/\r?\n/).filter((l) => l.trim() !== "");
   if (lineas.length === 0) return [];
-  const delimitador = (lineas[0]!.match(/;/g)?.length ?? 0) > (lineas[0]!.match(/,/g)?.length ?? 0)
-    ? ";"
-    : ",";
-  return lineas.map((linea) => linea.split(delimitador).map((c) => c.trim().replace(/^"|"$/g, "")));
+  const delimitador =
+    (lineas[0]!.match(/;/g)?.length ?? 0) >
+    (lineas[0]!.match(/,/g)?.length ?? 0)
+      ? ";"
+      : ",";
+  return lineas.map((linea) =>
+    linea.split(delimitador).map((c) => c.trim().replace(/^"|"$/g, "")),
+  );
 }

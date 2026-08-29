@@ -21,7 +21,7 @@ describe("CifradorTokens", () => {
   it("falla al descifrar un token manipulado", () => {
     const cifrador = new CifradorTokens(SECRETO);
     const cifrado = cifrador.cifrar("secreto");
-    const [iv, tag, datos] = cifrado.split(".");
+    const [iv, tag] = cifrado.split(".");
     const manipulado = [iv, tag, Buffer.from("otracosa").toString("base64")].join(".");
 
     expect(() => cifrador.descifrar(manipulado)).toThrow();

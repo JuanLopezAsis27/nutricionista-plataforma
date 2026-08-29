@@ -1,9 +1,6 @@
 import type { PrismaClient, Prisma } from "@prisma/client";
 import type { IMetricaDispositivoRepositorio } from "@/dominio/repositorios/IMetricaDispositivoRepositorio";
-import {
-  MetricaDispositivo,
-  type FuenteMetrica,
-} from "@/dominio/entidades/MetricaDispositivo";
+import { MetricaDispositivo } from "@/dominio/entidades/MetricaDispositivo";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 type FilaMetrica = Prisma.MetricaDispositivoGetPayload<Record<string, never>>;
@@ -84,7 +81,7 @@ export class PrismaRepositorioMetricaDispositivo implements IMetricaDispositivoR
       id: fila.id,
       pacienteId: fila.pacienteId,
       fecha: fila.fecha,
-      fuente: fila.fuente as FuenteMetrica,
+      fuente: fila.fuente,
       pasos: fila.pasos,
       minutosActividad: fila.minutosActividad,
       caloriasActivas: fila.caloriasActivas,

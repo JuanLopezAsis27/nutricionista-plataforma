@@ -10,7 +10,6 @@ import {
   mockTurnoRepositorio,
   mockReloj,
   pacienteEjemplo,
-  planEjemplo,
   turnoEjemplo,
 } from "../_ayudas-test";
 

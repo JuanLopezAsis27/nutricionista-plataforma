@@ -116,7 +116,7 @@ export function SeccionTracking({ pacienteId }: { pacienteId?: string }) {
         </p>
       ) : (
         <>
-          {esNutri && <TarjetasHabitos pacienteId={pacienteId!} desde={desde} hasta={hasta} />}
+          {esNutri && <TarjetasHabitos pacienteId={pacienteId} desde={desde} hasta={hasta} />}
           <TarjetaPeso peso={datos.peso} />
           <TarjetaAdherencia adherencia={datos.adherencia} />
           <TarjetaConcordancia concordancia={datos.concordancia} />

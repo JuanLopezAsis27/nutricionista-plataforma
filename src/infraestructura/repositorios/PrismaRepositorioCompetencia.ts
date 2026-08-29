@@ -1,6 +1,6 @@
 import type { PrismaClient, Competencia as CompetenciaFila } from "@prisma/client";
 import type { ICompetenciaRepositorio } from "@/dominio/repositorios/ICompetenciaRepositorio";
-import { Competencia, type ImportanciaCompetencia } from "@/dominio/entidades/Competencia";
+import { Competencia } from "@/dominio/entidades/Competencia";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /**
@@ -79,7 +79,7 @@ export class PrismaRepositorioCompetencia implements ICompetenciaRepositorio {
       lugar: fila.lugar,
       objetivo: fila.objetivo,
       resultado: fila.resultado,
-      importancia: fila.importancia as ImportanciaCompetencia,
+      importancia: fila.importancia,
       notas: fila.notas,
       creadoEn: fila.creadoEn,
     });

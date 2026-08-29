@@ -83,7 +83,7 @@ const traducirErroresDominio = t.middleware(async ({ next, path, ctx }) => {
   monitorErrores.capturar(original ?? error, {
     origen: "trpc",
     ruta: path,
-    usuarioId: (ctx as Contexto).usuario?.id,
+    usuarioId: (ctx).usuario?.id,
   });
   throw new TRPCError({
     code: "INTERNAL_SERVER_ERROR",

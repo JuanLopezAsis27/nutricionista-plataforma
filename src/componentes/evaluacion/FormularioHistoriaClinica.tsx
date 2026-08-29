@@ -37,7 +37,7 @@ export function FormularioHistoriaClinica({ pacienteId }: { pacienteId: string }
       form.reset(
         Object.fromEntries(
           CAMPOS.map((c) => [c.nombre, historia.data?.[c.nombre] ?? ""]),
-        ) as DatosFormulario,
+        ),
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset solo al llegar datos

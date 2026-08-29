@@ -53,7 +53,7 @@ export class PrismaRepositorioCuentaConectada implements ICuentaConectadaReposit
   private mapear(fila: CuentaFila): CuentaConectada {
     return CuentaConectada.reconstruir({
       id: fila.id,
-      proveedor: fila.proveedor as ProveedorCuenta,
+      proveedor: fila.proveedor,
       emailCuenta: fila.emailCuenta,
       accessToken: this.cifrador.descifrar(fila.accessTokenCifrado),
       refreshToken: fila.refreshTokenCifrado

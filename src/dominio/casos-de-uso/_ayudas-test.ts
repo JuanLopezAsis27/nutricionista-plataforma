@@ -554,7 +554,7 @@ export function mockBusEventos(
 ): IBusEventos {
   return {
     publicar: vi.fn(async () => {}),
-    // eslint-disable-next-line require-yield
+     
     suscribir: vi.fn(async function* () {}),
     ...parcial,
   };

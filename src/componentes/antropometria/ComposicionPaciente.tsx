@@ -13,7 +13,6 @@ import {
   Waves,
 } from "lucide-react";
 import type {
-  MedicionComposicionDto,
   ObjetivoComposicionDto,
 } from "@/aplicacion/dtos/evaluacion.dto";
 import type { EstadoProyeccion } from "@/dominio/servicios/proyeccionComposicion";

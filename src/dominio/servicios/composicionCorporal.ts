@@ -853,7 +853,7 @@ function calcularIndices(
     m.plieguePantorrilla,
   ].map(positivo);
   const suma6 = pliegues6.every((p) => p != null)
-    ? pliegues6.reduce((total: number, p) => total + p!, 0)
+    ? pliegues6.reduce((total: number, p) => total + p, 0)
     : null;
 
   const muscular = fraccionamiento?.muscular.kg ?? null;

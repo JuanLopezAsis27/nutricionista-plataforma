@@ -1,10 +1,6 @@
 import type { PrismaClient, AlertaAlimentaria as AlertaFila } from "@prisma/client";
 import type { IAlertaAlimentariaRepositorio } from "@/dominio/repositorios/IAlertaAlimentariaRepositorio";
-import {
-  AlertaAlimentaria,
-  type TipoAlertaAlimentaria,
-  type SeveridadAlerta,
-} from "@/dominio/entidades/AlertaAlimentaria";
+import { AlertaAlimentaria } from "@/dominio/entidades/AlertaAlimentaria";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Implementación con Prisma del repositorio de Alertas Alimentarias. */
@@ -48,9 +44,9 @@ export class PrismaRepositorioAlertaAlimentaria implements IAlertaAlimentariaRep
     return AlertaAlimentaria.reconstruir({
       id: fila.id,
       pacienteId: fila.pacienteId,
-      tipo: fila.tipo as TipoAlertaAlimentaria,
+      tipo: fila.tipo,
       descripcion: fila.descripcion,
-      severidad: fila.severidad as SeveridadAlerta,
+      severidad: fila.severidad,
       notas: fila.notas,
       creadoEn: fila.creadoEn,
     });

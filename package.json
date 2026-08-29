@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "node scripts/iniciar-standalone.mjs",
     "start:next": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
     "worker": "tsx watch --env-file=.env src/trabajos/worker.ts",
@@ -23,7 +23,10 @@
     "cap:copy": "cap copy",
     "cap:open:android": "cap open android",
     "cap:open:ios": "cap open ios",
-    "cap:run:android": "cap run android"
+    "cap:run:android": "cap run android",
+    "lint:fix": "eslint . --fix",
+    "formato": "prettier --check .",
+    "formato:fix": "prettier --write ."
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
@@ -71,6 +74,8 @@
     "@capacitor/app": "^8.1.1",
     "@capacitor/cli": "^8.5.0",
     "@capacitor/core": "^8.5.0",
+    "@eslint/js": "^9.39.5",
+    "@next/eslint-plugin-next": "^16.3.3",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.10.0",
     "@types/nodemailer": "^8.0.1",
@@ -78,11 +83,17 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",
+    "eslint": "^9.39.5",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.11.0",
     "postcss": "^8.4.49",
+    "prettier": "^3.9.6",
     "prisma": "^6.2.0",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
+    "typescript-eslint": "^8.68.0",
     "vitest": "^2.1.8"
   },
   "overrides": {

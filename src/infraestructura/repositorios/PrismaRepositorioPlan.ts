@@ -9,11 +9,7 @@ import type {
   AsignacionConPaciente,
   FiltroPlanes,
 } from "@/dominio/repositorios/IPlanRepositorio";
-import {
-  PlanNutricional,
-  type TipoRecomendacionPlan,
-  type ModalidadPlan,
-} from "@/dominio/entidades/PlanNutricional";
+import { PlanNutricional } from "@/dominio/entidades/PlanNutricional";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Include estándar: franjas ordenadas con opciones (y nombre de receta), extras. */
@@ -495,11 +491,11 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
       })),
       recomendaciones: fila.recomendaciones.map((recomendacion) => ({
         id: recomendacion.id,
-        tipo: recomendacion.tipo as TipoRecomendacionPlan,
+        tipo: recomendacion.tipo,
         texto: recomendacion.texto,
         orden: recomendacion.orden,
       })),
-      modalidad: fila.modalidad as ModalidadPlan,
+      modalidad: fila.modalidad,
       grupoId: fila.grupoId,
       grupoNombre: fila.grupo?.nombre ?? null,
       archivos: fila.archivos.map((archivo) => ({

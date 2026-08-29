@@ -8,8 +8,6 @@ import {
   RegistroDiario,
   type ComidaConsumida,
   type ActividadFisica,
-  type CalidadSueno,
-  type IntensidadActividad,
 } from "@/dominio/entidades/RegistroDiario";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
@@ -218,7 +216,7 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
       pesoKg: fila.pesoKg === null ? null : fila.pesoKg.toNumber(),
       aguaMl: fila.aguaMl,
       horasSueno: fila.horasSueno === null ? null : fila.horasSueno.toNumber(),
-      calidadSueno: fila.calidadSueno as CalidadSueno | null,
+      calidadSueno: fila.calidadSueno,
       notas: fila.notas,
       comidas: fila.comidas.map((comida) => ({
         id: comida.id,
@@ -233,7 +231,7 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
         id: actividad.id,
         tipo: actividad.tipo,
         duracionMinutos: actividad.duracionMinutos,
-        intensidad: actividad.intensidad as IntensidadActividad | null,
+        intensidad: actividad.intensidad,
         notas: actividad.notas,
         creadoEn: actividad.creadoEn,
       })),
