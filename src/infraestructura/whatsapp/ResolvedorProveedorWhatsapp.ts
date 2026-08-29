@@ -22,7 +22,9 @@ export class ResolvedorProveedorWhatsapp implements IProveedorWhatsapp {
   private readonly cache = new Map<string, ProveedorWhatsappCloudApi>();
   private readonly enlace = new ProveedorWhatsappEnlace();
 
-  constructor(private readonly credenciales: ICredencialesIntegracionRepositorio) {}
+  constructor(
+    private readonly credenciales: ICredencialesIntegracionRepositorio,
+  ) {}
 
   async modoActual(): Promise<"ENLACE" | "API"> {
     return (await this.resolver()) ? "API" : "ENLACE";
@@ -33,7 +35,9 @@ export class ResolvedorProveedorWhatsapp implements IProveedorWhatsapp {
     return (proveedor ?? this.enlace).preparar(mensaje);
   }
 
-  async enviarPlantilla(envio: PlantillaWhatsappEnvio): Promise<ResultadoEnvioWhatsapp> {
+  async enviarPlantilla(
+    envio: PlantillaWhatsappEnvio,
+  ): Promise<ResultadoEnvioWhatsapp> {
     const proveedor = await this.resolver();
     return (proveedor ?? this.enlace).enviarPlantilla(envio);
   }
@@ -45,7 +49,10 @@ export class ResolvedorProveedorWhatsapp implements IProveedorWhatsapp {
     const clave = `${config.phoneNumberId}:${config.token}`;
     let proveedor = this.cache.get(clave);
     if (!proveedor) {
-      proveedor = new ProveedorWhatsappCloudApi(config.token, config.phoneNumberId);
+      proveedor = new ProveedorWhatsappCloudApi(
+        config.token,
+        config.phoneNumberId,
+      );
       this.cache.set(clave, proveedor);
     }
     return proveedor;
@@ -58,7 +65,10 @@ export class ResolvedorProveedorWhatsapp implements IProveedorWhatsapp {
     try {
       const c = await this.credenciales.obtener();
       if (c?.whatsappToken && c.whatsappPhoneNumberId) {
-        return { token: c.whatsappToken, phoneNumberId: c.whatsappPhoneNumberId };
+        return {
+          token: c.whatsappToken,
+          phoneNumberId: c.whatsappPhoneNumberId,
+        };
       }
     } catch {
       // Sin alcance de inquilino o error de lectura → probamos el entorno.

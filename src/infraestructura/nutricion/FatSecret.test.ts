@@ -14,7 +14,10 @@ function fetchSimulado(cuerpoBusqueda: unknown) {
         json: async () => ({ access_token: "tok", expires_in: 86400 }),
       } as unknown as Response;
     }
-    return { ok: true, json: async () => cuerpoBusqueda } as unknown as Response;
+    return {
+      ok: true,
+      json: async () => cuerpoBusqueda,
+    } as unknown as Response;
   });
 }
 
@@ -74,7 +77,10 @@ describe("ClienteFatSecret", () => {
   });
 
   it("devuelve [] si el token falla", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false }) as unknown as Response));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false }) as unknown as Response),
+    );
     expect(await new ClienteFatSecret().buscar(creds, "algo")).toEqual([]);
   });
 });
@@ -117,10 +123,10 @@ describe("ProveedorNutricionApp", () => {
         anthropicModelo: null,
         fatsecretClientId: clientId,
         whatsappToken: null,
-      whatsappPhoneNumberId: null,
-      whatsappVerifyToken: null,
-      whatsappAppSecret: null,
-      fatsecretClientSecret: clientId ? "sec" : null,
+        whatsappPhoneNumberId: null,
+        whatsappVerifyToken: null,
+        whatsappAppSecret: null,
+        fatsecretClientSecret: clientId ? "sec" : null,
         criterios: {
           excluirMarcas: false,
           requiereMacros: false,
@@ -145,7 +151,9 @@ describe("ProveedorNutricionApp", () => {
   });
 
   it("cae a OFF si FatSecret no trae resultados", async () => {
-    const fatVacio = { buscar: vi.fn(async () => []) } as unknown as ClienteFatSecret;
+    const fatVacio = {
+      buscar: vi.fn(async () => []),
+    } as unknown as ClienteFatSecret;
     const p = new ProveedorNutricionApp(repo("id"), fatVacio, off, null);
     const r = await p.buscar("xyz");
     expect(r[0]!.fuente).toBe("OFF");
@@ -154,9 +162,17 @@ describe("ProveedorNutricionApp", () => {
   it("traduce la consulta y los nombres cuando hay traductor", async () => {
     const traductor = {
       aIngles: vi.fn(async (t: string) => (t === "manzana" ? "apple" : t)),
-      aEspanol: vi.fn(async (n: string[]) => n.map((x) => (x === "FAT" ? "Manzana" : x))),
+      aEspanol: vi.fn(async (n: string[]) =>
+        n.map((x) => (x === "FAT" ? "Manzana" : x)),
+      ),
     };
-    const p = new ProveedorNutricionApp(repo("id"), fatFake, off, null, traductor);
+    const p = new ProveedorNutricionApp(
+      repo("id"),
+      fatFake,
+      off,
+      null,
+      traductor,
+    );
     const r = await p.buscar("manzana");
 
     expect(traductor.aIngles).toHaveBeenCalledWith("manzana");

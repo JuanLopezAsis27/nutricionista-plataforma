@@ -7,16 +7,16 @@ Tres medios para el mismo aviso, cada uno con su interruptor: **WhatsApp**,
 
 ## Dónde vive cada cosa, y por qué
 
-|                                  | Dónde                                       |
-| -------------------------------- | ------------------------------------------- |
-| Elegir a quién avisarle y mandar | Recordatorios → **Enviar**                  |
-| Declarar qué mensajes salieron   | Recordatorios → Enviar → **Sin confirmar**  |
-| Ver quién contestó               | Recordatorios → **Seguimiento**             |
-| Medios, anticipación y disparo   | Recordatorios → **Programación**            |
-| Texto del mensaje de WhatsApp    | Recordatorios → **Plantillas**              |
-| Texto del mensaje de email       | Recordatorios → **Plantillas**              |
-| Bienvenida y otros emails        | Configuración → **Plantillas de email**     |
-| La conversación con el paciente  | Mensajes → pestaña **WhatsApp**             |
+|                                  | Dónde                                      |
+| -------------------------------- | ------------------------------------------ |
+| Elegir a quién avisarle y mandar | Recordatorios → **Enviar**                 |
+| Declarar qué mensajes salieron   | Recordatorios → Enviar → **Sin confirmar** |
+| Ver quién contestó               | Recordatorios → **Seguimiento**            |
+| Medios, anticipación y disparo   | Recordatorios → **Programación**           |
+| Texto del mensaje de WhatsApp    | Recordatorios → **Plantillas**             |
+| Texto del mensaje de email       | Recordatorios → **Plantillas**             |
+| Bienvenida y otros emails        | Configuración → **Plantillas de email**    |
+| La conversación con el paciente  | Mensajes → pestaña **WhatsApp**            |
 
 **En la grilla de turnos no hay nada de esto.** Hubo un botón de recordatorio
 por turno y se sacó: avisar es una tarea de secretaría —se elige a quién, con

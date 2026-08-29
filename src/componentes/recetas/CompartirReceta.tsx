@@ -55,7 +55,10 @@ export function CompartirReceta({ recetaId }: { recetaId: string }) {
       ) : (
         <ul className="divide-y rounded-md border">
           {asignados.data!.map((pacienteId) => (
-            <li key={pacienteId} className="flex items-center justify-between p-2 text-sm">
+            <li
+              key={pacienteId}
+              className="flex items-center justify-between p-2 text-sm"
+            >
               {nombreDe(pacienteId)}
               <Button
                 variant="ghost"

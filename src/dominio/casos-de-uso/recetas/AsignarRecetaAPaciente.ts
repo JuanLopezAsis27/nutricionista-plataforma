@@ -13,7 +13,10 @@ export class AsignarRecetaAPaciente {
     private readonly pacientes: IPacienteRepositorio,
   ) {}
 
-  async ejecutar(datos: { recetaId: string; pacienteId: string }): Promise<void> {
+  async ejecutar(datos: {
+    recetaId: string;
+    pacienteId: string;
+  }): Promise<void> {
     const receta = await this.recetas.obtenerPorId(datos.recetaId);
     if (!receta) {
       throw new ErrorRecetaNoEncontrada(datos.recetaId);
@@ -22,6 +25,10 @@ export class AsignarRecetaAPaciente {
     if (!paciente) {
       throw new ErrorPacienteNoEncontrado(datos.pacienteId);
     }
-    await this.recetas.asignarAPaciente(datos.recetaId, datos.pacienteId, crypto.randomUUID());
+    await this.recetas.asignarAPaciente(
+      datos.recetaId,
+      datos.pacienteId,
+      crypto.randomUUID(),
+    );
   }
 }

@@ -1,4 +1,7 @@
-import type { PrismaClient, AlertaAlimentaria as AlertaFila } from "@prisma/client";
+import type {
+  PrismaClient,
+  AlertaAlimentaria as AlertaFila,
+} from "@prisma/client";
 import type { IAlertaAlimentariaRepositorio } from "@/dominio/repositorios/IAlertaAlimentariaRepositorio";
 import { AlertaAlimentaria } from "@/dominio/entidades/AlertaAlimentaria";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
@@ -15,7 +18,12 @@ export class PrismaRepositorioAlertaAlimentaria implements IAlertaAlimentariaRep
   }
 
   async actualizar(alerta: AlertaAlimentaria): Promise<AlertaAlimentaria> {
-    const { id, pacienteId: _paciente, creadoEn: _creado, ...datos } = alerta.aPrimitivos();
+    const {
+      id,
+      pacienteId: _paciente,
+      creadoEn: _creado,
+      ...datos
+    } = alerta.aPrimitivos();
     const fila = await this.prisma.alertaAlimentaria.update({
       where: { id },
       data: datos,
@@ -28,7 +36,9 @@ export class PrismaRepositorioAlertaAlimentaria implements IAlertaAlimentariaRep
   }
 
   async obtenerPorId(id: string): Promise<AlertaAlimentaria | null> {
-    const fila = await this.prisma.alertaAlimentaria.findUnique({ where: { id } });
+    const fila = await this.prisma.alertaAlimentaria.findUnique({
+      where: { id },
+    });
     return fila ? this.mapear(fila) : null;
   }
 

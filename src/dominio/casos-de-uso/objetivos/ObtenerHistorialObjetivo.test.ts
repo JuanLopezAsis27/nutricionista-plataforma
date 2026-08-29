@@ -27,6 +27,8 @@ describe("ObtenerHistorialObjetivo", () => {
 
   it("lanza ErrorObjetivoNoEncontrado si no existe", async () => {
     const casoUso = new ObtenerHistorialObjetivo(mockObjetivoRepositorio());
-    await expect(casoUso.ejecutar("nada")).rejects.toBeInstanceOf(ErrorObjetivoNoEncontrado);
+    await expect(casoUso.ejecutar("nada")).rejects.toBeInstanceOf(
+      ErrorObjetivoNoEncontrado,
+    );
   });
 });

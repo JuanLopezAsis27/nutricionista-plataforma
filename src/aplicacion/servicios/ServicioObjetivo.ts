@@ -41,12 +41,16 @@ export class ServicioObjetivo {
     return ServicioObjetivo.aSalida(objetivo);
   }
 
-  async actualizarObjetivo(datos: ActualizarObjetivoDto): Promise<ObjetivoSalidaDto> {
+  async actualizarObjetivo(
+    datos: ActualizarObjetivoDto,
+  ): Promise<ObjetivoSalidaDto> {
     const objetivo = await this.actualizarUC.ejecutar(datos);
     return ServicioObjetivo.aSalida(objetivo);
   }
 
-  async cambiarEstadoObjetivo(datos: CambiarEstadoObjetivoDto): Promise<ObjetivoSalidaDto> {
+  async cambiarEstadoObjetivo(
+    datos: CambiarEstadoObjetivoDto,
+  ): Promise<ObjetivoSalidaDto> {
     const objetivo = await this.cambiarEstadoUC.ejecutar(datos);
     return ServicioObjetivo.aSalida(objetivo);
   }
@@ -55,7 +59,9 @@ export class ServicioObjetivo {
     await this.eliminarUC.ejecutar(id);
   }
 
-  async obtenerObjetivosDePaciente(pacienteId: string): Promise<ObjetivoSalidaDto[]> {
+  async obtenerObjetivosDePaciente(
+    pacienteId: string,
+  ): Promise<ObjetivoSalidaDto[]> {
     const objetivos = await this.obtenerDePacienteUC.ejecutar(pacienteId);
     return objetivos.map(ServicioObjetivo.aSalida);
   }
@@ -64,7 +70,9 @@ export class ServicioObjetivo {
     await this.agregarEstrategiaUC.ejecutar(datos);
   }
 
-  async cambiarEstadoEstrategia(datos: CambiarEstadoEstrategiaDto): Promise<void> {
+  async cambiarEstadoEstrategia(
+    datos: CambiarEstadoEstrategiaDto,
+  ): Promise<void> {
     await this.cambiarEstadoEstrategiaUC.ejecutar(datos);
   }
 
@@ -72,7 +80,9 @@ export class ServicioObjetivo {
     await this.eliminarEstrategiaUC.ejecutar(datos);
   }
 
-  async obtenerHistorial(objetivoId: string): Promise<EventoObjetivoSalidaDto[]> {
+  async obtenerHistorial(
+    objetivoId: string,
+  ): Promise<EventoObjetivoSalidaDto[]> {
     return this.obtenerHistorialUC.ejecutar(objetivoId);
   }
 

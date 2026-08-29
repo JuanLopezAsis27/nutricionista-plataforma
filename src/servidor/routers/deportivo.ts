@@ -1,4 +1,8 @@
-import { crearRouter, nutricionistaProcedimiento, protegidoProcedimiento } from "../trpc";
+import {
+  crearRouter,
+  nutricionistaProcedimiento,
+  protegidoProcedimiento,
+} from "../trpc";
 import { pacienteDeSesion } from "@/dominio/servicios/politicaAcceso";
 import {
   guardarPerfilDeportivoDto,
@@ -54,10 +58,14 @@ export const routerDeportivo = crearRouter({
 
   // --- Portal del paciente (pacienteId de la sesión) -----------------------
   miPerfil: protegidoProcedimiento.query(async ({ ctx }) => {
-    return await ctx.servicios.deportivo.obtenerPerfil(pacienteDeSesion(ctx.usuario));
+    return await ctx.servicios.deportivo.obtenerPerfil(
+      pacienteDeSesion(ctx.usuario),
+    );
   }),
 
   misCompetencias: protegidoProcedimiento.query(async ({ ctx }) => {
-    return await ctx.servicios.deportivo.listarCompetencias(pacienteDeSesion(ctx.usuario));
+    return await ctx.servicios.deportivo.listarCompetencias(
+      pacienteDeSesion(ctx.usuario),
+    );
   }),
 });

@@ -96,7 +96,11 @@ export interface PropiedadesObjetivo {
 export class Objetivo {
   private constructor(private readonly props: PropiedadesObjetivo) {}
 
-  static crear(datos: DatosNuevoObjetivo, id: string, ahora: Date = new Date()): Objetivo {
+  static crear(
+    datos: DatosNuevoObjetivo,
+    id: string,
+    ahora: Date = new Date(),
+  ): Objetivo {
     if (!datos.pacienteId?.trim()) {
       throw new ErrorValidacion("El objetivo debe pertenecer a un paciente.");
     }
@@ -127,7 +131,8 @@ export class Objetivo {
 
   /** Versión actualizada e inmutable (preserva estado, estrategias y creadoEn). */
   actualizar(cambios: CambiosObjetivo, ahora: Date = new Date()): Objetivo {
-    const titulo = cambios.titulo !== undefined ? cambios.titulo.trim() : this.props.titulo;
+    const titulo =
+      cambios.titulo !== undefined ? cambios.titulo.trim() : this.props.titulo;
     if (titulo.length === 0) {
       throw new ErrorValidacion("El objetivo debe tener un título.");
     }
@@ -144,7 +149,9 @@ export class Objetivo {
           : this.props.descripcion,
       prioridad: cambios.prioridad ?? this.props.prioridad,
       fechaObjetivo:
-        cambios.fechaObjetivo !== undefined ? cambios.fechaObjetivo : this.props.fechaObjetivo,
+        cambios.fechaObjetivo !== undefined
+          ? cambios.fechaObjetivo
+          : this.props.fechaObjetivo,
       objetivoComposicionId:
         cambios.objetivoComposicionId !== undefined
           ? cambios.objetivoComposicionId?.trim() || null
@@ -212,12 +219,18 @@ export class Objetivo {
   }
 
   aPrimitivos(): PropiedadesObjetivo {
-    return { ...this.props, estrategias: this.props.estrategias.map((e) => ({ ...e })) };
+    return {
+      ...this.props,
+      estrategias: this.props.estrategias.map((e) => ({ ...e })),
+    };
   }
 }
 
 function validarFecha(fecha: Date | null | undefined): void {
-  if (fecha != null && (!(fecha instanceof Date) || Number.isNaN(fecha.getTime()))) {
+  if (
+    fecha != null &&
+    (!(fecha instanceof Date) || Number.isNaN(fecha.getTime()))
+  ) {
     throw new ErrorValidacion("La fecha del objetivo no es válida.");
   }
 }

@@ -64,7 +64,11 @@ export function FormularioRestablecer({ token }: { token: string }) {
       setListo(true);
       setTimeout(() => router.replace("/login"), 2500);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo restablecer la contraseña.");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "No se pudo restablecer la contraseña.",
+      );
     }
   }
 
@@ -110,11 +114,16 @@ export function FormularioRestablecer({ token }: { token: string }) {
           <>
             <CardHeader>
               <CardTitle className="text-2xl">Nueva contraseña</CardTitle>
-              <CardDescription>Elegí una contraseña nueva para tu cuenta.</CardDescription>
+              <CardDescription>
+                Elegí una contraseña nueva para tu cuenta.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(alEnviar)} className="space-y-4">
+                <form
+                  onSubmit={form.handleSubmit(alEnviar)}
+                  className="space-y-4"
+                >
                   <FormField
                     control={form.control}
                     name="password"
@@ -132,10 +141,18 @@ export function FormularioRestablecer({ token }: { token: string }) {
                             <button
                               type="button"
                               onClick={() => setMostrar((v) => !v)}
-                              aria-label={mostrar ? "Ocultar contraseña" : "Mostrar contraseña"}
+                              aria-label={
+                                mostrar
+                                  ? "Ocultar contraseña"
+                                  : "Mostrar contraseña"
+                              }
                               className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
                             >
-                              {mostrar ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              {mostrar ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
                             </button>
                           </div>
                         </FormControl>
@@ -160,8 +177,14 @@ export function FormularioRestablecer({ token }: { token: string }) {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full" disabled={restablecer.isPending}>
-                    {restablecer.isPending ? "Guardando…" : "Guardar contraseña"}
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={restablecer.isPending}
+                  >
+                    {restablecer.isPending
+                      ? "Guardando…"
+                      : "Guardar contraseña"}
                   </Button>
                   <Button asChild variant="ghost" className="w-full">
                     <Link href="/login">

@@ -14,7 +14,9 @@ describe("ObtenerLaboratorios", () => {
       mockLaboratorioRepositorio({
         listarPorPaciente: vi.fn(async () => [laboratorioEjemplo()]),
       }),
-      mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => pacienteEjemplo()) }),
+      mockPacienteRepositorio({
+        obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+      }),
     );
 
     const laboratorios = await casoUso.ejecutar("pac-1");

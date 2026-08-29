@@ -6,8 +6,9 @@ import type {
 import { ErrorLaboratorioNoEncontrado } from "../../errores/ErrorLaboratorioNoEncontrado";
 
 /** Cambios aplicables a un laboratorio existente. */
-export interface CambiosLaboratorio
-  extends Partial<Omit<DatosNuevoLaboratorio, "pacienteId">> {
+export interface CambiosLaboratorio extends Partial<
+  Omit<DatosNuevoLaboratorio, "pacienteId">
+> {
   /** Archivos nuevos a vincular (los existentes se quitan con EliminarArchivo). */
   archivoIdsNuevos?: string[];
 }
@@ -16,12 +17,18 @@ export interface CambiosLaboratorio
 export class ActualizarLaboratorio {
   constructor(private readonly laboratorios: ILaboratorioRepositorio) {}
 
-  async ejecutar(id: string, cambios: CambiosLaboratorio): Promise<Laboratorio> {
+  async ejecutar(
+    id: string,
+    cambios: CambiosLaboratorio,
+  ): Promise<Laboratorio> {
     const existente = await this.laboratorios.obtenerPorId(id);
     if (!existente) {
       throw new ErrorLaboratorioNoEncontrado(id);
     }
     const actualizado = existente.actualizar(cambios);
-    return this.laboratorios.actualizar(actualizado, cambios.archivoIdsNuevos ?? []);
+    return this.laboratorios.actualizar(
+      actualizado,
+      cambios.archivoIdsNuevos ?? [],
+    );
   }
 }

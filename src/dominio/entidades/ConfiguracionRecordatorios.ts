@@ -131,8 +131,7 @@ export class ConfiguracionRecordatorios {
         cambios.calendarioMinutosAntes ?? this.props.calendarioMinutosAntes,
       ),
       horaEnvio: cambios.horaEnvio ?? this.props.horaEnvio,
-      horasEntreAvisos:
-        cambios.horasEntreAvisos ?? this.props.horasEntreAvisos,
+      horasEntreAvisos: cambios.horasEntreAvisos ?? this.props.horasEntreAvisos,
     };
     validar(datos);
     return new ConfiguracionRecordatorios({
@@ -176,7 +175,10 @@ export class ConfiguracionRecordatorios {
    * insistir dos días después ya no tiene que apagar la protección de todo el
    * lote para lograrlo.
    */
-  puedeVolverAAvisar(ultimoAviso: Date | null, ahora: Date = new Date()): boolean {
+  puedeVolverAAvisar(
+    ultimoAviso: Date | null,
+    ahora: Date = new Date(),
+  ): boolean {
     if (ultimoAviso == null) return true;
     const horas = (ahora.getTime() - ultimoAviso.getTime()) / (60 * 60 * 1000);
     return horas >= this.props.horasEntreAvisos;

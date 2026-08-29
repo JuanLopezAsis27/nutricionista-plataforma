@@ -20,6 +20,9 @@ export const routerWhatsapp = crearRouter({
   enviarMensaje: nutricionistaProcedimiento
     .input(enviarMensajeWhatsappDto)
     .mutation(async ({ ctx, input }) => {
-      return await ctx.servicios.whatsapp.enviarMensaje(input.pacienteId, input.cuerpo);
+      return await ctx.servicios.whatsapp.enviarMensaje(
+        input.pacienteId,
+        input.cuerpo,
+      );
     }),
 });

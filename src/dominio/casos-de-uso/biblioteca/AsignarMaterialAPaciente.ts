@@ -13,7 +13,10 @@ export class AsignarMaterialAPaciente {
     private readonly pacientes: IPacienteRepositorio,
   ) {}
 
-  async ejecutar(datos: { materialId: string; pacienteId: string }): Promise<void> {
+  async ejecutar(datos: {
+    materialId: string;
+    pacienteId: string;
+  }): Promise<void> {
     const material = await this.materiales.obtenerPorId(datos.materialId);
     if (!material) {
       throw new ErrorMaterialNoEncontrado(datos.materialId);

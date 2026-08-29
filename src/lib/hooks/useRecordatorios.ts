@@ -96,9 +96,12 @@ export function useRecordatorios() {
   const enviarIndividual = trpc.recordatorios.enviarIndividual.useMutation({
     onSuccess: (r) => {
       const detalle = r.detalles[0];
-      if (detalle?.estado === "FALLIDO") toast.error(detalle.motivo ?? "No se pudo enviar.");
-      else if (detalle?.estado === "OMITIDO") toast.info(detalle.motivo ?? "No se envió.");
-      else if (detalle?.emailEnviado) toast.success("Recordatorio enviado por WhatsApp y email.");
+      if (detalle?.estado === "FALLIDO")
+        toast.error(detalle.motivo ?? "No se pudo enviar.");
+      else if (detalle?.estado === "OMITIDO")
+        toast.info(detalle.motivo ?? "No se envió.");
+      else if (detalle?.emailEnviado)
+        toast.success("Recordatorio enviado por WhatsApp y email.");
       else toast.success("Recordatorio enviado.");
       invalidar();
     },

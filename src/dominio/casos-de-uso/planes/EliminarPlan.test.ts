@@ -22,7 +22,9 @@ describe("EliminarPlan", () => {
     });
     const casoUso = new EliminarPlan(planes);
 
-    await expect(casoUso.ejecutar("pla-1")).rejects.toBeInstanceOf(ErrorValidacion);
+    await expect(casoUso.ejecutar("pla-1")).rejects.toBeInstanceOf(
+      ErrorValidacion,
+    );
     expect(planes.eliminar).not.toHaveBeenCalled();
   });
 

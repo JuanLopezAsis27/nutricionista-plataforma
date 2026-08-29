@@ -28,7 +28,10 @@ export class AsistenteAnaliticoClaude implements IAsistenteAnalitico {
     private readonly respaldo: IAsistenteAnalitico,
   ) {}
 
-  async responder(pregunta: string, herramientas: HerramientaAsistente[]): Promise<string> {
+  async responder(
+    pregunta: string,
+    herramientas: HerramientaAsistente[],
+  ): Promise<string> {
     const llm = await this.resolver.obtenerLLM();
     if (!llm) return this.respaldo.responder(pregunta, herramientas);
 

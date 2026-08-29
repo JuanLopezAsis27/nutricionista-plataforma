@@ -18,7 +18,11 @@ export interface DiaCalendario {
 export class ObtenerCalendarioDiario {
   constructor(private readonly registros: IRegistroDiarioRepositorio) {}
 
-  async ejecutar(pacienteId: string, anio: number, mes: number): Promise<DiaCalendario[]> {
+  async ejecutar(
+    pacienteId: string,
+    anio: number,
+    mes: number,
+  ): Promise<DiaCalendario[]> {
     if (!Number.isInteger(anio) || anio < 2000 || anio > 2100) {
       throw new ErrorValidacion("Año fuera de rango.");
     }
@@ -29,7 +33,11 @@ export class ObtenerCalendarioDiario {
     const desde = new Date(Date.UTC(anio, mes - 1, 1));
     const hasta = new Date(Date.UTC(anio, mes, 0)); // último día del mes
 
-    const registros = await this.registros.listarPorRango(pacienteId, desde, hasta);
+    const registros = await this.registros.listarPorRango(
+      pacienteId,
+      desde,
+      hasta,
+    );
 
     return registros.map((registro) => {
       const datos = registro.aPrimitivos();

@@ -5,7 +5,11 @@ import type { MetricaDispositivo } from "../../entidades/MetricaDispositivo";
 export class ObtenerMetricasDelPaciente {
   constructor(private readonly metricas: IMetricaDispositivoRepositorio) {}
 
-  ejecutar(pacienteId: string, desde: Date, hasta: Date): Promise<MetricaDispositivo[]> {
+  ejecutar(
+    pacienteId: string,
+    desde: Date,
+    hasta: Date,
+  ): Promise<MetricaDispositivo[]> {
     return this.metricas.listarPorRango(pacienteId, desde, hasta);
   }
 }

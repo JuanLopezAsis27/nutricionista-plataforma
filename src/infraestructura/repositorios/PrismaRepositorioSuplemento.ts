@@ -1,4 +1,7 @@
-import type { PrismaClient, Suplemento as SuplementoFila } from "@prisma/client";
+import type {
+  PrismaClient,
+  Suplemento as SuplementoFila,
+} from "@prisma/client";
 import type { ISuplementoRepositorio } from "@/dominio/repositorios/ISuplementoRepositorio";
 import { Suplemento } from "@/dominio/entidades/Suplemento";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";

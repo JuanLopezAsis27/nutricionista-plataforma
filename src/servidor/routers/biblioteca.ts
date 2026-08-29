@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { crearRouter, nutricionistaProcedimiento, protegidoProcedimiento } from "../trpc";
+import {
+  crearRouter,
+  nutricionistaProcedimiento,
+  protegidoProcedimiento,
+} from "../trpc";
 import { pacienteDeSesion } from "@/dominio/servicios/politicaAcceso";
 import {
   crearMaterialDto,
@@ -67,14 +71,18 @@ export const routerBiblioteca = crearRouter({
   pacientesAsignados: nutricionistaProcedimiento
     .input(idMaterialDto)
     .query(async ({ ctx, input }) => {
-      return await ctx.servicios.biblioteca.obtenerPacientesDeMaterial(input.id);
+      return await ctx.servicios.biblioteca.obtenerPacientesDeMaterial(
+        input.id,
+      );
     }),
 
   // El nutricionista consulta el material compartido con un paciente concreto.
   obtenerDelPaciente: nutricionistaProcedimiento
     .input(z.object({ pacienteId: z.string().min(1) }))
     .query(async ({ ctx, input }) => {
-      return await ctx.servicios.biblioteca.obtenerMaterialesDelPaciente(input.pacienteId);
+      return await ctx.servicios.biblioteca.obtenerMaterialesDelPaciente(
+        input.pacienteId,
+      );
     }),
 
   // Portal: el paciente ve su material (pacienteId de la sesión).

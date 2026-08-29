@@ -49,6 +49,7 @@ Sólo hay **dos ajustes que NO podés omitir** (ya están en
    (recetas, labs, Excel de alimentos) necesitan `client_max_body_size 16m;`.
 
 **Discos** (según tu VPS):
+
 - **Disco principal** → app + **PostgreSQL** (volúmenes Docker en `/var/lib/docker`).
 - **Disco secundario** → **bucket MinIO** (fotos de recetas/labs, PDFs), montado
   con bind-mount en `RUTA_BUCKET`.
@@ -70,6 +71,7 @@ la app usa los stubs y funciona igual).
   (para los backups offsite).
 
 Instalar Docker (Debian/Ubuntu):
+
 ```bash
 curl -fsSL https://get.docker.com | sh
 ```
@@ -79,6 +81,7 @@ curl -fsSL https://get.docker.com | sh
 ## 3. Preparar el disco secundario (bucket)
 
 Averiguá el disco extra y montalo (ejemplo con `/dev/sdb`):
+
 ```bash
 lsblk                                  # ver los discos
 sudo mkfs.ext4 /dev/sdb                # SOLO si el disco está vacío
@@ -88,6 +91,7 @@ sudo mount /dev/sdb /mnt/bucket
 echo "/dev/sdb  /mnt/bucket  ext4  defaults,nofail  0  2" | sudo tee -a /etc/fstab
 sudo mkdir -p /mnt/bucket/minio
 ```
+
 Después, en `.env.produccion` poné `RUTA_BUCKET=/mnt/bucket/minio`.
 
 > Para mover el bucket a otro disco en el futuro: parás el stack, copiás
@@ -123,10 +127,12 @@ sudo certbot --nginx -d TU_DOMINIO_REAL          # emite y renueva el certificad
 ```
 
 Verificá:
+
 ```bash
 docker compose -p nutri_prod -f docker-compose.prod.yml ps     # todo "Up"/"healthy"
 curl -I http://127.0.0.1:3000                                  # la app responde en localhost
 ```
+
 Entrá a `https://tudominio.com` (nginx + certbot ya resolvieron el certificado).
 
 > **Staging con nginx:** publicá la app de staging en otro puerto de localhost
@@ -161,9 +167,11 @@ trabajos **en la misma base PostgreSQL** (no hace falta Redis).
   local del profesional (definido en el `.env`).
 
 Ver los logs del worker:
+
 ```bash
 docker compose -p nutri_prod -f docker-compose.prod.yml logs -f worker
 ```
+
 Si el worker se cae, `restart: unless-stopped` lo reinicia; los trabajos quedan
 persistidos en la base y se retoman.
 
@@ -174,22 +182,24 @@ persistidos en la base y se retoman.
 El servicio **`respaldo`** (perfil `respaldos`, solo en prod) corre un
 programador que hace **un respaldo diario** a la hora `HORA_RESPALDO` (local):
 
-1. **`pg_dump`** de la base en formato *custom* (comprimido, restaurable) →
+1. **`pg_dump`** de la base en formato _custom_ (comprimido, restaurable) →
    guarda en el volumen local `/respaldos/db` y lo **sube a OVH** (`db/`).
 2. **Espeja el bucket** de archivos (MinIO → OVH, carpeta `bucket/`). Nunca
    borra del destino: una eliminación accidental en la app no destruye la copia.
 3. **Retención**: borra los dumps más viejos que `RETENCION_DIAS` (local y en OVH).
 
 Así, si el VPS o el disco mueren, **la base y los archivos están fuera del
-servidor** (en OVH). Además OVH ofrece *snapshots* de disco como red extra.
+servidor** (en OVH). Además OVH ofrece _snapshots_ de disco como red extra.
 
 **Correr un respaldo manual ahora:**
+
 ```bash
 docker compose -p nutri_prod --env-file .env.produccion \
   -f docker-compose.prod.yml exec respaldo respaldo.sh
 ```
 
 **Restaurar la base** (desde un dump):
+
 ```bash
 # Si el dump está en OVH, bajalo primero al contenedor:
 docker compose -p nutri_prod -f docker-compose.prod.yml exec respaldo sh -c \
@@ -199,6 +209,7 @@ docker compose -p nutri_prod -f docker-compose.prod.yml exec respaldo sh -c \
 docker compose -p nutri_prod -f docker-compose.prod.yml exec respaldo \
   restaurar-db.sh /respaldos/db/nutricionista-AAAAMMDD-HHMMSS.dump
 ```
+
 Para restaurar el **bucket**, es un `mc mirror` de OVH → MinIO (inverso al del
 respaldo). **Probá una restauración de vez en cuando**: un backup sin restore
 probado no es un backup.
@@ -223,6 +234,7 @@ publicá staging en otro puerto (`APP_PORT=3001`) y agregá un `server {}` para
 ya apunta a `mailpit`). Nunca cargues la base de pacientes reales en staging.
 
 Para apagar solo el worker en staging (evitar emails):
+
 ```bash
 docker compose -p nutri_staging -f docker-compose.prod.yml stop worker
 ```
@@ -235,6 +247,7 @@ docker compose -p nutri_staging -f docker-compose.prod.yml stop worker
 git pull            # o lo hace el script
 ./scripts/desplegar.sh prod
 ```
+
 El script hace `git pull`, reconstruye la imagen, **aplica las migraciones**
 (servicio `migrate`, one-shot) y reinicia app/worker. La base y el bucket
 persisten (volúmenes/bind-mount). Recomendado: probá primero en `staging`.

@@ -9,6 +9,8 @@ export class ErrorTokenInvalido extends ErrorDominio {
   readonly codigo: CodigoErrorDominio = "VALIDACION";
 
   constructor() {
-    super("El enlace de recuperación no es válido o expiró. Solicitá uno nuevo.");
+    super(
+      "El enlace de recuperación no es válido o expiró. Solicitá uno nuevo.",
+    );
   }
 }

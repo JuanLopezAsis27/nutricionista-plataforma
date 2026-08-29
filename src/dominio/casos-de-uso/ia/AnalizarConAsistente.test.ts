@@ -12,10 +12,12 @@ import {
   pacienteEjemplo,
 } from "../_ayudas-test";
 
-function crear(overrides: {
-  pacientes?: Parameters<typeof mockPacienteRepositorio>[0];
-  responder?: (p: string, h: HerramientaAsistente[]) => Promise<string>;
-} = {}) {
+function crear(
+  overrides: {
+    pacientes?: Parameters<typeof mockPacienteRepositorio>[0];
+    responder?: (p: string, h: HerramientaAsistente[]) => Promise<string>;
+  } = {},
+) {
   const responder = vi.fn(overrides.responder ?? (async () => "análisis demo"));
   const uc = new AnalizarConAsistente(
     mockPacienteRepositorio(overrides.pacientes),
@@ -35,7 +37,10 @@ describe("AnalizarConAsistente", () => {
 
     const r = await uc.ejecutar("¿Cuántos pacientes tengo?");
 
-    expect(r).toEqual({ pregunta: "¿Cuántos pacientes tengo?", respuesta: "análisis demo" });
+    expect(r).toEqual({
+      pregunta: "¿Cuántos pacientes tengo?",
+      respuesta: "análisis demo",
+    });
     expect(responder).toHaveBeenCalledOnce();
     const herramientas = responder.mock.calls[0]![1];
     expect(herramientas.map((h) => h.nombre)).toEqual(

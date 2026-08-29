@@ -43,7 +43,10 @@ export class AsistenteNutricionalClaude implements IAsistenteNutricional {
           return herramienta.ejecutar(args);
         },
       });
-      return texto || (await this.respaldo.responder(pregunta, contexto, herramientas));
+      return (
+        texto ||
+        (await this.respaldo.responder(pregunta, contexto, herramientas))
+      );
     } catch {
       return this.respaldo.responder(pregunta, contexto, herramientas);
     }
@@ -53,10 +56,16 @@ export class AsistenteNutricionalClaude implements IAsistenteNutricional {
 /** Arma el system prompt fundamentando la respuesta en el contexto del paciente. */
 function construirPrompt(contexto: ContextoAsistente): string {
   const objetivos =
-    contexto.objetivos.length > 0 ? contexto.objetivos.join(", ") : "ninguno cargado";
-  const plan = contexto.tienePlan ? "sí (usá la herramienta para ver el detalle)" : "no";
+    contexto.objetivos.length > 0
+      ? contexto.objetivos.join(", ")
+      : "ninguno cargado";
+  const plan = contexto.tienePlan
+    ? "sí (usá la herramienta para ver el detalle)"
+    : "no";
   const restricciones =
-    contexto.restricciones.length > 0 ? contexto.restricciones.join("; ") : "ninguna registrada";
+    contexto.restricciones.length > 0
+      ? contexto.restricciones.join("; ")
+      : "ninguna registrada";
   const recomendaciones =
     contexto.recomendacionesNutricionista.length > 0
       ? contexto.recomendacionesNutricionista.map((r) => `  • ${r}`).join("\n")

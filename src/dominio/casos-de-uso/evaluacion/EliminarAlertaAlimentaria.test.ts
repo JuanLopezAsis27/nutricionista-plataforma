@@ -19,7 +19,9 @@ describe("EliminarAlertaAlimentaria", () => {
   });
 
   it("rechaza si la alerta no existe", async () => {
-    const casoUso = new EliminarAlertaAlimentaria(mockAlertaAlimentariaRepositorio());
+    const casoUso = new EliminarAlertaAlimentaria(
+      mockAlertaAlimentariaRepositorio(),
+    );
     await expect(casoUso.ejecutar("no-existe")).rejects.toBeInstanceOf(
       ErrorAlertaAlimentariaNoEncontrada,
     );

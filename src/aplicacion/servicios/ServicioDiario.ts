@@ -63,7 +63,11 @@ export class ServicioDiario {
     desde: Date,
     hasta: Date,
   ): Promise<RegistroDiarioSalidaDto[]> {
-    const registros = await this.obtenerRangoUC.ejecutar(pacienteId, desde, hasta);
+    const registros = await this.obtenerRangoUC.ejecutar(
+      pacienteId,
+      desde,
+      hasta,
+    );
     return registros.map(ServicioDiario.aSalida);
   }
 
@@ -72,7 +76,11 @@ export class ServicioDiario {
     datos: AgregarComidaDto,
   ): Promise<RegistroDiarioSalidaDto> {
     const { fecha, ...comida } = datos;
-    const registro = await this.agregarComidaUC.ejecutar(pacienteId, fecha, comida);
+    const registro = await this.agregarComidaUC.ejecutar(
+      pacienteId,
+      fecha,
+      comida,
+    );
     return ServicioDiario.aSalida(registro);
   }
 
@@ -85,11 +93,18 @@ export class ServicioDiario {
     datos: AgregarActividadDto,
   ): Promise<RegistroDiarioSalidaDto> {
     const { fecha, ...actividad } = datos;
-    const registro = await this.agregarActividadUC.ejecutar(pacienteId, fecha, actividad);
+    const registro = await this.agregarActividadUC.ejecutar(
+      pacienteId,
+      fecha,
+      actividad,
+    );
     return ServicioDiario.aSalida(registro);
   }
 
-  async eliminarActividad(pacienteId: string, actividadId: string): Promise<void> {
+  async eliminarActividad(
+    pacienteId: string,
+    actividadId: string,
+  ): Promise<void> {
     await this.eliminarActividadUC.ejecutar(pacienteId, actividadId);
   }
 

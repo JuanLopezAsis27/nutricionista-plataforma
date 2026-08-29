@@ -27,8 +27,12 @@ export class GuardarDia {
     );
 
     if (existente) {
-      return this.registros.actualizarEscalares(existente.actualizarEscalares(datos));
+      return this.registros.actualizarEscalares(
+        existente.actualizarEscalares(datos),
+      );
     }
-    return this.registros.crear(RegistroDiario.crear(datos, crypto.randomUUID()));
+    return this.registros.crear(
+      RegistroDiario.crear(datos, crypto.randomUUID()),
+    );
   }
 }

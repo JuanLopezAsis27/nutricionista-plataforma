@@ -1,4 +1,8 @@
-import type { IProveedorLLM, OpcionesLLM, OpcionesConversacion } from "./IProveedorLLM";
+import type {
+  IProveedorLLM,
+  OpcionesLLM,
+  OpcionesConversacion,
+} from "./IProveedorLLM";
 import { ejecutarHerramientaSegura, parsearArgumentos } from "./herramientas";
 
 const URL = "https://openrouter.ai/api/v1/chat/completions";
@@ -33,7 +37,10 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
     const contenido = opts.usuario.map((b) =>
       b.tipo === "texto"
         ? { type: "text", text: b.texto }
-        : { type: "image_url", image_url: { url: `data:${b.mimeType};base64,${b.base64}` } },
+        : {
+            type: "image_url",
+            image_url: { url: `data:${b.mimeType};base64,${b.base64}` },
+          },
     );
 
     // OpenRouter no soporta `response_format: json_object` en varios modelos
@@ -64,7 +71,9 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
     });
     if (!respuesta.ok) {
       const detalle = await respuesta.text().catch(() => "");
-      throw new Error(`OpenRouter respondió ${respuesta.status}. ${detalle.slice(0, 300)}`);
+      throw new Error(
+        `OpenRouter respondió ${respuesta.status}. ${detalle.slice(0, 300)}`,
+      );
     }
     const j = (await respuesta.json()) as RespuestaOpenRouter;
     if (j.error) throw new Error(j.error.message ?? "Error de OpenRouter.");
@@ -77,7 +86,11 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
   async conversar(opts: OpcionesConversacion): Promise<string> {
     const tools = opts.herramientas.map((h) => ({
       type: "function",
-      function: { name: h.nombre, description: h.descripcion, parameters: h.esquema },
+      function: {
+        name: h.nombre,
+        description: h.descripcion,
+        parameters: h.esquema,
+      },
     }));
     const messages: Array<Record<string, unknown>> = [
       { role: "system", content: opts.system },
@@ -106,17 +119,27 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
           llamada.function?.name ?? "",
           parsearArgumentos(llamada.function?.arguments),
         );
-        messages.push({ role: "tool", tool_call_id: llamada.id, content: salida });
+        messages.push({
+          role: "tool",
+          tool_call_id: llamada.id,
+          content: salida,
+        });
       }
     }
 
     // Se agotaron las vueltas: una llamada final SIN herramientas para cerrar.
-    const cierre = await this.pedir({ model: this.modelo, max_tokens: opts.maxTokens, messages });
+    const cierre = await this.pedir({
+      model: this.modelo,
+      max_tokens: opts.maxTokens,
+      messages,
+    });
     return (cierre.content ?? "").trim();
   }
 
   /** POST a OpenRouter; devuelve el `message` de la primera choice. */
-  private async pedir(body: Record<string, unknown>): Promise<MensajeOpenRouter> {
+  private async pedir(
+    body: Record<string, unknown>,
+  ): Promise<MensajeOpenRouter> {
     const respuesta = await fetch(URL, {
       method: "POST",
       headers: {
@@ -129,7 +152,9 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
     });
     if (!respuesta.ok) {
       const detalle = await respuesta.text().catch(() => "");
-      throw new Error(`OpenRouter respondió ${respuesta.status}. ${detalle.slice(0, 300)}`);
+      throw new Error(
+        `OpenRouter respondió ${respuesta.status}. ${detalle.slice(0, 300)}`,
+      );
     }
     const j = (await respuesta.json()) as RespuestaOpenRouter;
     if (j.error) throw new Error(j.error.message ?? "Error de OpenRouter.");
@@ -146,7 +171,10 @@ function clavesDe(esquema: Record<string, unknown>): string[] {
 function extraerJSON(texto: string): string {
   let s = texto.trim();
   if (s.startsWith("```")) {
-    s = s.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+    s = s
+      .replace(/^```(?:json)?/i, "")
+      .replace(/```$/, "")
+      .trim();
   }
   const inicio = s.indexOf("{");
   const fin = s.lastIndexOf("}");

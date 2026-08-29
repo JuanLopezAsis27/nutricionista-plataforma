@@ -27,7 +27,10 @@ type ObjetivoConEstrategias = Prisma.ObjetivoGetPayload<{
 export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async crear(objetivo: Objetivo, evento: DatosEventoObjetivo): Promise<Objetivo> {
+  async crear(
+    objetivo: Objetivo,
+    evento: DatosEventoObjetivo,
+  ): Promise<Objetivo> {
     const d = objetivo.aPrimitivos();
     const fila = await this.prisma.$transaction(async (tx) => {
       await tx.objetivo.create({
@@ -40,7 +43,9 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
           descripcion: d.descripcion,
           prioridad: d.prioridad,
           estado: d.estado,
-          fechaObjetivo: d.fechaObjetivo ? this.soloFecha(d.fechaObjetivo) : null,
+          fechaObjetivo: d.fechaObjetivo
+            ? this.soloFecha(d.fechaObjetivo)
+            : null,
           creadoEn: d.creadoEn,
           actualizadoEn: d.actualizadoEn,
         },
@@ -54,7 +59,10 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
     return this.mapear(fila);
   }
 
-  async actualizar(objetivo: Objetivo, evento: DatosEventoObjetivo): Promise<Objetivo> {
+  async actualizar(
+    objetivo: Objetivo,
+    evento: DatosEventoObjetivo,
+  ): Promise<Objetivo> {
     const d = objetivo.aPrimitivos();
     const fila = await this.prisma.$transaction(async (tx) => {
       await tx.objetivo.update({
@@ -65,7 +73,9 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
           descripcion: d.descripcion,
           prioridad: d.prioridad,
           estado: d.estado,
-          fechaObjetivo: d.fechaObjetivo ? this.soloFecha(d.fechaObjetivo) : null,
+          fechaObjetivo: d.fechaObjetivo
+            ? this.soloFecha(d.fechaObjetivo)
+            : null,
         },
       });
       await this.registrarEvento(tx, d.id, evento);

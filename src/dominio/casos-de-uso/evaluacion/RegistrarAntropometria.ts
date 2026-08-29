@@ -26,7 +26,9 @@ export class RegistrarAntropometria {
 
     const medicion = Antropometria.crear(datos, crypto.randomUUID());
 
-    if (await this.antropometrias.existeEnFecha(datos.pacienteId, medicion.fecha)) {
+    if (
+      await this.antropometrias.existeEnFecha(datos.pacienteId, medicion.fecha)
+    ) {
       throw new ErrorAntropometriaDuplicada(medicion.fecha);
     }
 

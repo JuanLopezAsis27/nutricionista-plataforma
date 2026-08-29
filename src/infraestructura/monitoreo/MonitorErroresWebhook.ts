@@ -1,4 +1,7 @@
-import type { IMonitorErrores, ContextoError } from "@/dominio/servicios/IMonitorErrores";
+import type {
+  IMonitorErrores,
+  ContextoError,
+} from "@/dominio/servicios/IMonitorErrores";
 import { describirError } from "./MonitorErroresConsola";
 
 /**

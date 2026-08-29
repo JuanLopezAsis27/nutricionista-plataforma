@@ -33,6 +33,8 @@ describe("EliminarMaterial", () => {
       mockArchivoRepositorio(),
       mockAlmacenamientoArchivos(),
     );
-    await expect(casoUso.ejecutar("nada")).rejects.toBeInstanceOf(ErrorMaterialNoEncontrado);
+    await expect(casoUso.ejecutar("nada")).rejects.toBeInstanceOf(
+      ErrorMaterialNoEncontrado,
+    );
   });
 });

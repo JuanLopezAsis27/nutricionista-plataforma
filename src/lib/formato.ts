@@ -21,12 +21,16 @@ const formateadorFechaLarga = new Intl.DateTimeFormat("es-AR", {
   timeZone: "UTC",
 });
 
-export function formatearFecha(fecha: Date | string | null | undefined): string {
+export function formatearFecha(
+  fecha: Date | string | null | undefined,
+): string {
   if (!fecha) return "—";
   return formateadorFecha.format(new Date(fecha));
 }
 
-export function formatearFechaLarga(fecha: Date | string | null | undefined): string {
+export function formatearFechaLarga(
+  fecha: Date | string | null | undefined,
+): string {
   if (!fecha) return "—";
   return formateadorFechaLarga.format(new Date(fecha));
 }

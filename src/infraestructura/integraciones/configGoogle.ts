@@ -25,7 +25,10 @@ export function obtenerConfigGoogle(): ConfigGoogle | null {
   if (!clientId || !clientSecret || !process.env.TOKENS_SECRET) {
     return null;
   }
-  const base = (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const base = (process.env.APP_URL ?? "http://localhost:3000").replace(
+    /\/$/,
+    "",
+  );
   return {
     clientId,
     clientSecret,

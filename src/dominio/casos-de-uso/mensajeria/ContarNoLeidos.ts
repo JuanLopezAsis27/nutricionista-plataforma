@@ -10,7 +10,8 @@ export class ContarNoLeidos {
 
   async ejecutar(viewerId: string, pacienteId?: string): Promise<number> {
     if (pacienteId) {
-      const conversacion = await this.repositorio.obtenerConversacionPorPaciente(pacienteId);
+      const conversacion =
+        await this.repositorio.obtenerConversacionPorPaciente(pacienteId);
       if (!conversacion) return 0;
       return this.repositorio.contarNoLeidos(viewerId, conversacion.id);
     }

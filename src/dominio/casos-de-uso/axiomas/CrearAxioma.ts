@@ -1,5 +1,8 @@
 import type { IAxiomaRepositorio } from "../../repositorios/IAxiomaRepositorio";
-import { AxiomaNutricional, type DatosNuevoAxioma } from "../../entidades/AxiomaNutricional";
+import {
+  AxiomaNutricional,
+  type DatosNuevoAxioma,
+} from "../../entidades/AxiomaNutricional";
 
 /** Caso de uso: crear un axioma de la base de conocimiento. */
 export class CrearAxioma {

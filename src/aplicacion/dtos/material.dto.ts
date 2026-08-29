@@ -42,7 +42,9 @@ export const listarMaterialesPaginadoDto = z.object({
   pagina: z.number().int().positive().default(1),
   porPagina: z.number().int().positive().max(100).default(10),
 });
-export type ListarMaterialesPaginadoDto = z.infer<typeof listarMaterialesPaginadoDto>;
+export type ListarMaterialesPaginadoDto = z.infer<
+  typeof listarMaterialesPaginadoDto
+>;
 
 export const asignarMaterialDto = z.object({
   materialId: z.string().min(1),
@@ -59,7 +61,11 @@ export const materialSalidaDto = z.object({
   categoria: z.string().nullable(),
   etiquetas: z.array(z.string()),
   archivo: z
-    .object({ id: z.string(), nombreOriginal: z.string(), mimeType: z.string() })
+    .object({
+      id: z.string(),
+      nombreOriginal: z.string(),
+      mimeType: z.string(),
+    })
     .nullable(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),

@@ -1,4 +1,7 @@
-import type { CuentaConectada, ProveedorCuenta } from "../entidades/CuentaConectada";
+import type {
+  CuentaConectada,
+  ProveedorCuenta,
+} from "../entidades/CuentaConectada";
 
 /**
  * Contrato de persistencia de las cuentas externas conectadas. Está acotado por

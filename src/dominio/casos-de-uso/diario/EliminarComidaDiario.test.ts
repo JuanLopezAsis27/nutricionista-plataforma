@@ -11,7 +11,11 @@ import {
 
 describe("EliminarComidaDiario", () => {
   it("elimina la comida y borra su foto del bucket", async () => {
-    const foto = archivoEjemplo({ contexto: "foto-comida", nombreOriginal: "plato.jpg", mimeType: "image/jpeg" });
+    const foto = archivoEjemplo({
+      contexto: "foto-comida",
+      nombreOriginal: "plato.jpg",
+      mimeType: "image/jpeg",
+    });
     const registros = mockRegistroDiarioRepositorio({
       obtenerComida: vi.fn(async () => ({
         id: "com-1",
@@ -23,7 +27,11 @@ describe("EliminarComidaDiario", () => {
       listarPorDueno: vi.fn(async () => [foto]),
     });
     const almacenamiento = mockAlmacenamientoArchivos();
-    const casoUso = new EliminarComidaDiario(registros, archivos, almacenamiento);
+    const casoUso = new EliminarComidaDiario(
+      registros,
+      archivos,
+      almacenamiento,
+    );
 
     await casoUso.ejecutar("pac-1", "com-1");
 

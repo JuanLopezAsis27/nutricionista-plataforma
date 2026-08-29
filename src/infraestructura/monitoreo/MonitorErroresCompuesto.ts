@@ -1,4 +1,7 @@
-import type { IMonitorErrores, ContextoError } from "@/dominio/servicios/IMonitorErrores";
+import type {
+  IMonitorErrores,
+  ContextoError,
+} from "@/dominio/servicios/IMonitorErrores";
 
 /**
  * Compone varios monitores en uno: reenvía cada captura a todos los destinos

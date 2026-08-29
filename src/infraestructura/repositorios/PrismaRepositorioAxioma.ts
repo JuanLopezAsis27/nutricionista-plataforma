@@ -55,7 +55,9 @@ export class PrismaRepositorioAxioma implements IAxiomaRepositorio {
   }
 
   async obtenerPorId(id: string): Promise<AxiomaNutricional | null> {
-    const fila = await this.prisma.axiomaNutricional.findUnique({ where: { id } });
+    const fila = await this.prisma.axiomaNutricional.findUnique({
+      where: { id },
+    });
     return fila ? this.mapear(fila) : null;
   }
 

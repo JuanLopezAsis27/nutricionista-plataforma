@@ -18,9 +18,15 @@ export interface PropiedadesConversacion {
 export class Conversacion {
   private constructor(private readonly props: PropiedadesConversacion) {}
 
-  static crear(pacienteId: string, id: string, ahora: Date = new Date()): Conversacion {
+  static crear(
+    pacienteId: string,
+    id: string,
+    ahora: Date = new Date(),
+  ): Conversacion {
     if (!pacienteId) {
-      throw new ErrorValidacion("La conversación debe pertenecer a un paciente.");
+      throw new ErrorValidacion(
+        "La conversación debe pertenecer a un paciente.",
+      );
     }
     return new Conversacion({
       id,
@@ -38,7 +44,8 @@ export class Conversacion {
 
   /** Actualiza el resumen del último mensaje (recortado para el listado). */
   registrarUltimoMensaje(texto: string, cuando: Date): void {
-    this.props.ultimoMensajeTexto = texto.length > 120 ? `${texto.slice(0, 117)}…` : texto;
+    this.props.ultimoMensajeTexto =
+      texto.length > 120 ? `${texto.slice(0, 117)}…` : texto;
     this.props.ultimoMensajeEn = cuando;
     this.props.actualizadoEn = cuando;
   }

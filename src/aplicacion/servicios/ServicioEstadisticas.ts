@@ -18,7 +18,9 @@ export class ServicioEstadisticas {
     return this.obtenerEstadisticasUC.ejecutar(datos.desde, datos.hasta);
   }
 
-  async detalle(datos: DetalleEstadisticaDto): Promise<PacienteEstadisticaDto[]> {
+  async detalle(
+    datos: DetalleEstadisticaDto,
+  ): Promise<PacienteEstadisticaDto[]> {
     return this.obtenerDetalleUC.ejecutar(datos.tipo, datos.desde, datos.hasta);
   }
 }

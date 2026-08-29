@@ -74,9 +74,12 @@ export function GestionAlertas({ pacienteId }: { pacienteId: string }) {
     useEvaluacion();
   const alertas = obtenerAlertas({ pacienteId });
 
-  const [editando, setEditando] = useState<AlertaAlimentariaSalidaDto | null>(null);
+  const [editando, setEditando] = useState<AlertaAlimentariaSalidaDto | null>(
+    null,
+  );
   const [abierta, setAbierta] = useState(false);
-  const [eliminando, setEliminando] = useState<AlertaAlimentariaSalidaDto | null>(null);
+  const [eliminando, setEliminando] =
+    useState<AlertaAlimentariaSalidaDto | null>(null);
 
   // Estado del formulario (simple, sin react-hook-form: 4 campos controlados).
   const [tipo, setTipo] = useState<TipoAlertaAlimentaria>("INTOLERANCIA");
@@ -157,7 +160,9 @@ export function GestionAlertas({ pacienteId }: { pacienteId: string }) {
                   {ETIQUETAS_TIPO_ALERTA[alerta.tipo]}: {alerta.descripcion}
                 </p>
                 {alerta.notas && (
-                  <p className="text-xs text-muted-foreground">{alerta.notas}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {alerta.notas}
+                  </p>
                 )}
               </div>
               <Button
@@ -184,13 +189,18 @@ export function GestionAlertas({ pacienteId }: { pacienteId: string }) {
       <Dialog open={abierta} onOpenChange={setAbierta}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editando ? "Editar alerta" : "Nueva alerta"}</DialogTitle>
+            <DialogTitle>
+              {editando ? "Editar alerta" : "Nueva alerta"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tipo</Label>
-                <Select value={tipo} onValueChange={(v) => setTipo(v as TipoAlertaAlimentaria)}>
+                <Select
+                  value={tipo}
+                  onValueChange={(v) => setTipo(v as TipoAlertaAlimentaria)}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -239,10 +249,17 @@ export function GestionAlertas({ pacienteId }: { pacienteId: string }) {
               />
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setAbierta(false)} disabled={enviando}>
+              <Button
+                variant="outline"
+                onClick={() => setAbierta(false)}
+                disabled={enviando}
+              >
                 Cancelar
               </Button>
-              <Button onClick={guardar} disabled={enviando || !descripcion.trim()}>
+              <Button
+                onClick={guardar}
+                disabled={enviando || !descripcion.trim()}
+              >
                 {enviando ? "Guardando…" : "Guardar"}
               </Button>
             </div>

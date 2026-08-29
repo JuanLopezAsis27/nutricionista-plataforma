@@ -7,7 +7,9 @@ import {
   recordatorioWhatsappEjemplo,
 } from "../_ayudas-test";
 
-function mensajeEjemplo(estado: "ENVIADO" | "LEIDO" = "ENVIADO"): MensajeWhatsapp {
+function mensajeEjemplo(
+  estado: "ENVIADO" | "LEIDO" = "ENVIADO",
+): MensajeWhatsapp {
   return MensajeWhatsapp.crear(
     {
       pacienteId: "pac-1",
@@ -26,7 +28,10 @@ describe("RegistrarEstadoWhatsapp", () => {
     const mensajes = mockMensajeWhatsappRepositorio({
       obtenerPorIdExterno: vi.fn(async () => mensajeEjemplo()),
     });
-    const caso = new RegistrarEstadoWhatsapp(mensajes, mockRecordatorioWhatsappRepositorio());
+    const caso = new RegistrarEstadoWhatsapp(
+      mensajes,
+      mockRecordatorioWhatsappRepositorio(),
+    );
 
     await caso.ejecutar([{ idExterno: "wamid.ABC", estado: "LEIDO" }]);
 
@@ -40,7 +45,10 @@ describe("RegistrarEstadoWhatsapp", () => {
     const mensajes = mockMensajeWhatsappRepositorio({
       obtenerPorIdExterno: vi.fn(async () => mensajeEjemplo("LEIDO")),
     });
-    const caso = new RegistrarEstadoWhatsapp(mensajes, mockRecordatorioWhatsappRepositorio());
+    const caso = new RegistrarEstadoWhatsapp(
+      mensajes,
+      mockRecordatorioWhatsappRepositorio(),
+    );
 
     await caso.ejecutar([{ idExterno: "wamid.ABC", estado: "ENTREGADO" }]);
 
@@ -51,10 +59,17 @@ describe("RegistrarEstadoWhatsapp", () => {
     const mensajes = mockMensajeWhatsappRepositorio({
       obtenerPorIdExterno: vi.fn(async () => mensajeEjemplo()),
     });
-    const caso = new RegistrarEstadoWhatsapp(mensajes, mockRecordatorioWhatsappRepositorio());
+    const caso = new RegistrarEstadoWhatsapp(
+      mensajes,
+      mockRecordatorioWhatsappRepositorio(),
+    );
 
     await caso.ejecutar([
-      { idExterno: "wamid.ABC", estado: "FALLIDO", error: "Fuera de la ventana de 24 h" },
+      {
+        idExterno: "wamid.ABC",
+        estado: "FALLIDO",
+        error: "Fuera de la ventana de 24 h",
+      },
     ]);
 
     const [actualizado] = vi.mocked(mensajes.actualizar).mock.calls[0]!;
@@ -71,7 +86,10 @@ describe("RegistrarEstadoWhatsapp", () => {
         recordatorioWhatsappEjemplo({ idExterno: "wamid.ABC" }),
       ),
     });
-    const caso = new RegistrarEstadoWhatsapp(mockMensajeWhatsappRepositorio(), recordatorios);
+    const caso = new RegistrarEstadoWhatsapp(
+      mockMensajeWhatsappRepositorio(),
+      recordatorios,
+    );
 
     await caso.ejecutar([{ idExterno: "wamid.ABC", estado: "ENVIADO" }]);
 
@@ -85,10 +103,15 @@ describe("RegistrarEstadoWhatsapp", () => {
   it("sigue avanzando la escala de entrega hasta LEIDO", async () => {
     const recordatorios = mockRecordatorioWhatsappRepositorio({
       obtenerPorIdExterno: vi.fn(async () =>
-        recordatorioWhatsappEjemplo({ idExterno: "wamid.ABC" }).confirmarEnvio(),
+        recordatorioWhatsappEjemplo({
+          idExterno: "wamid.ABC",
+        }).confirmarEnvio(),
       ),
     });
-    const caso = new RegistrarEstadoWhatsapp(mockMensajeWhatsappRepositorio(), recordatorios);
+    const caso = new RegistrarEstadoWhatsapp(
+      mockMensajeWhatsappRepositorio(),
+      recordatorios,
+    );
 
     await caso.ejecutar([{ idExterno: "wamid.ABC", estado: "LEIDO" }]);
 
@@ -104,10 +127,17 @@ describe("RegistrarEstadoWhatsapp", () => {
         recordatorioWhatsappEjemplo({ idExterno: "wamid.ABC" }),
       ),
     });
-    const caso = new RegistrarEstadoWhatsapp(mockMensajeWhatsappRepositorio(), recordatorios);
+    const caso = new RegistrarEstadoWhatsapp(
+      mockMensajeWhatsappRepositorio(),
+      recordatorios,
+    );
 
     await caso.ejecutar([
-      { idExterno: "wamid.ABC", estado: "FALLIDO", error: "Fuera de la ventana de 24 h" },
+      {
+        idExterno: "wamid.ABC",
+        estado: "FALLIDO",
+        error: "Fuera de la ventana de 24 h",
+      },
     ]);
 
     const [resuelto] = vi.mocked(recordatorios.actualizar).mock.calls[0]!;
@@ -121,10 +151,15 @@ describe("RegistrarEstadoWhatsapp", () => {
   it("no retrocede el estado del recordatorio", async () => {
     const recordatorios = mockRecordatorioWhatsappRepositorio({
       obtenerPorIdExterno: vi.fn(async () =>
-        recordatorioWhatsappEjemplo({ idExterno: "wamid.ABC" }).registrarEstado("LEIDO"),
+        recordatorioWhatsappEjemplo({ idExterno: "wamid.ABC" }).registrarEstado(
+          "LEIDO",
+        ),
       ),
     });
-    const caso = new RegistrarEstadoWhatsapp(mockMensajeWhatsappRepositorio(), recordatorios);
+    const caso = new RegistrarEstadoWhatsapp(
+      mockMensajeWhatsappRepositorio(),
+      recordatorios,
+    );
 
     await caso.ejecutar([{ idExterno: "wamid.ABC", estado: "ENTREGADO" }]);
 

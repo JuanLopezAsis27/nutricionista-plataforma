@@ -1,7 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { CrearPlantilla } from "./CrearPlantilla";
 import { ErrorValidacion } from "../../errores/ErrorValidacion";
-import { mockPlantillaEmailRepositorio, plantillaEmailEjemplo } from "../_ayudas-test";
+import {
+  mockPlantillaEmailRepositorio,
+  plantillaEmailEjemplo,
+} from "../_ayudas-test";
 
 const datos = {
   clave: "SEGUIMIENTO",
@@ -27,9 +30,13 @@ describe("CrearPlantilla", () => {
 
   it("rechaza una clave ya existente", async () => {
     const repo = mockPlantillaEmailRepositorio({
-      obtenerPorClave: vi.fn(async () => plantillaEmailEjemplo({ clave: "SEGUIMIENTO" })),
+      obtenerPorClave: vi.fn(async () =>
+        plantillaEmailEjemplo({ clave: "SEGUIMIENTO" }),
+      ),
     });
 
-    await expect(new CrearPlantilla(repo).ejecutar(datos)).rejects.toBeInstanceOf(ErrorValidacion);
+    await expect(
+      new CrearPlantilla(repo).ejecutar(datos),
+    ).rejects.toBeInstanceOf(ErrorValidacion);
   });
 });

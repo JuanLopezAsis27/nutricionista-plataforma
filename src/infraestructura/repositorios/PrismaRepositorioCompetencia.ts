@@ -1,4 +1,7 @@
-import type { PrismaClient, Competencia as CompetenciaFila } from "@prisma/client";
+import type {
+  PrismaClient,
+  Competencia as CompetenciaFila,
+} from "@prisma/client";
 import type { ICompetenciaRepositorio } from "@/dominio/repositorios/ICompetenciaRepositorio";
 import { Competencia } from "@/dominio/entidades/Competencia";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";

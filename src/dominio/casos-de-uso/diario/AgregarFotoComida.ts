@@ -17,7 +17,11 @@ export class AgregarFotoComida {
     private readonly almacenamiento: IAlmacenamientoArchivos,
   ) {}
 
-  async ejecutar(pacienteId: string, comidaId: string, archivoId: string): Promise<void> {
+  async ejecutar(
+    pacienteId: string,
+    comidaId: string,
+    archivoId: string,
+  ): Promise<void> {
     const comida = await this.registros.obtenerComida(comidaId);
     if (!comida) {
       throw new ErrorRegistroDiarioNoEncontrado("esa comida en el diario");
@@ -32,12 +36,16 @@ export class AgregarFotoComida {
     }
 
     // Reemplaza la foto anterior si existía.
-    const anteriores = await this.archivos.listarPorDueno({ comidaConsumidaId: comidaId });
+    const anteriores = await this.archivos.listarPorDueno({
+      comidaConsumidaId: comidaId,
+    });
     for (const anterior of anteriores) {
       await this.archivos.eliminar(anterior.id);
       await this.almacenamiento.eliminar(anterior.clave);
     }
 
-    await this.archivos.vincularDueno(archivoId, { comidaConsumidaId: comidaId });
+    await this.archivos.vincularDueno(archivoId, {
+      comidaConsumidaId: comidaId,
+    });
   }
 }

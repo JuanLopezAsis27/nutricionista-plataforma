@@ -41,8 +41,18 @@ const TEMAS = {
 } as const;
 
 const MESES_CORTOS = [
-  "ene", "feb", "mar", "abr", "may", "jun",
-  "jul", "ago", "sep", "oct", "nov", "dic",
+  "ene",
+  "feb",
+  "mar",
+  "abr",
+  "may",
+  "jun",
+  "jul",
+  "ago",
+  "sep",
+  "oct",
+  "nov",
+  "dic",
 ];
 
 /** Convierte "AAAA-MM" a una etiqueta corta "jul 26". */
@@ -81,7 +91,11 @@ export function GraficoTurnosMensuales({
 
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <BarChart data={filas} margin={{ top: 6, right: 12, bottom: 0, left: 0 }} barGap={2}>
+      <BarChart
+        data={filas}
+        margin={{ top: 6, right: 12, bottom: 0, left: 0 }}
+        barGap={2}
+      >
         <CartesianGrid stroke={tema.grilla} strokeWidth={1} vertical={false} />
         <XAxis
           dataKey="mes"
@@ -117,7 +131,12 @@ export function GraficoTurnosMensuales({
             </span>
           )}
         />
-        <Bar dataKey="total" fill={tema.total} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+        <Bar
+          dataKey="total"
+          fill={tema.total}
+          radius={[4, 4, 0, 0]}
+          isAnimationActive={false}
+        />
         <Bar
           dataKey="completados"
           fill={tema.completados}

@@ -1,5 +1,8 @@
 import type { IAlimentoPropioRepositorio } from "../../repositorios/IAlimentoPropioRepositorio";
-import { AlimentoPropio, type DatosNuevoAlimentoPropio } from "../../entidades/AlimentoPropio";
+import {
+  AlimentoPropio,
+  type DatosNuevoAlimentoPropio,
+} from "../../entidades/AlimentoPropio";
 import { ErrorValidacion } from "../../errores/ErrorValidacion";
 
 const MAXIMO_FILAS = 20000;
@@ -15,7 +18,9 @@ export class ImportarAlimentos {
 
   async ejecutar(filas: DatosNuevoAlimentoPropio[]): Promise<number> {
     if (filas.length > MAXIMO_FILAS) {
-      throw new ErrorValidacion(`La planilla supera el máximo de ${MAXIMO_FILAS} filas.`);
+      throw new ErrorValidacion(
+        `La planilla supera el máximo de ${MAXIMO_FILAS} filas.`,
+      );
     }
 
     const alimentos: AlimentoPropio[] = [];

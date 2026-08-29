@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { AMBITOS_AXIOMA, OPERADORES_AXIOMA } from "@/dominio/entidades/AxiomaNutricional";
+import {
+  AMBITOS_AXIOMA,
+  OPERADORES_AXIOMA,
+} from "@/dominio/entidades/AxiomaNutricional";
 
 /** DTOs de la Base de conocimiento (axiomas nutricionales). */
 

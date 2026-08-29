@@ -9,11 +9,13 @@ import {
   usuarioEjemplo,
 } from "../_ayudas-test";
 
-function armar(overrides: {
-  usuarios?: Parameters<typeof mockUsuarioRepositorio>[0];
-  tokens?: Parameters<typeof mockTokenRecuperacionRepositorio>[0];
-  email?: Parameters<typeof mockServicioEmail>[0];
-} = {}) {
+function armar(
+  overrides: {
+    usuarios?: Parameters<typeof mockUsuarioRepositorio>[0];
+    tokens?: Parameters<typeof mockTokenRecuperacionRepositorio>[0];
+    email?: Parameters<typeof mockServicioEmail>[0];
+  } = {},
+) {
   const usuarios = mockUsuarioRepositorio(overrides.usuarios);
   const tokens = mockTokenRecuperacionRepositorio(overrides.tokens);
   const generador = mockGeneradorTokens();
@@ -44,16 +46,20 @@ describe("SolicitarRecuperacionPassword", () => {
     expect(tokens.eliminarDeUsuario).toHaveBeenCalledWith(usuario.id);
     // Guarda el token (solo su hash, nunca el token en claro).
     expect(tokens.crear).toHaveBeenCalledTimes(1);
-    const guardado = (tokens.crear as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    const guardado = (tokens.crear as ReturnType<typeof vi.fn>).mock
+      .calls[0]![0];
     expect(guardado.tokenHash).toBe("hash:token-claro");
     expect(guardado.expiraEn.getTime()).toBe(
       new Date("2026-07-14T13:00:00Z").getTime(), // +1 hora
     );
     // Envía el email con el enlace que lleva el token EN CLARO.
     expect(email.enviar).toHaveBeenCalledTimes(1);
-    const mensaje = (email.enviar as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    const mensaje = (email.enviar as ReturnType<typeof vi.fn>).mock
+      .calls[0]![0];
     expect(mensaje.para).toBe("nutri@mail.com");
-    expect(mensaje.html).toContain("https://app.local/restablecer?token=token-claro");
+    expect(mensaje.html).toContain(
+      "https://app.local/restablecer?token=token-claro",
+    );
   });
 
   it("con un email inexistente: no crea token ni envía email (no revela la cuenta)", async () => {

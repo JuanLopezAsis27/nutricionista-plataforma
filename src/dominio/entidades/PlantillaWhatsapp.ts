@@ -4,7 +4,12 @@ import { ErrorValidacion } from "../errores/ErrorValidacion";
  * Variables que el recordatorio sabe reemplazar. Son las MISMAS que usan las
  * plantillas de email para que el profesional no aprenda dos vocabularios.
  */
-export const VARIABLES_RECORDATORIO = ["paciente", "fecha", "hora", "profesional"] as const;
+export const VARIABLES_RECORDATORIO = [
+  "paciente",
+  "fecha",
+  "hora",
+  "profesional",
+] as const;
 export type VariableRecordatorio = (typeof VARIABLES_RECORDATORIO)[number];
 
 export const MAX_LARGO_CUERPO_PLANTILLA = 1000;
@@ -72,7 +77,12 @@ export class PlantillaWhatsapp {
   ): PlantillaWhatsapp {
     const normalizados = normalizar(datos);
     validar(normalizados);
-    return new PlantillaWhatsapp({ ...normalizados, id, creadoEn: ahora, actualizadoEn: ahora });
+    return new PlantillaWhatsapp({
+      ...normalizados,
+      id,
+      creadoEn: ahora,
+      actualizadoEn: ahora,
+    });
   }
 
   static reconstruir(props: PropiedadesPlantillaWhatsapp): PlantillaWhatsapp {
@@ -87,14 +97,21 @@ export class PlantillaWhatsapp {
     const datos = normalizar({
       nombre: cambios.nombre ?? this.props.nombre,
       cuerpo: cambios.cuerpo ?? this.props.cuerpo,
-      claveMeta: cambios.claveMeta !== undefined ? cambios.claveMeta : this.props.claveMeta,
+      claveMeta:
+        cambios.claveMeta !== undefined
+          ? cambios.claveMeta
+          : this.props.claveMeta,
       idiomaMeta: cambios.idiomaMeta ?? this.props.idiomaMeta,
       variablesMeta: cambios.variablesMeta ?? this.props.variablesMeta,
       predeterminada: cambios.predeterminada ?? this.props.predeterminada,
       activa: cambios.activa ?? this.props.activa,
     });
     validar(datos);
-    return new PlantillaWhatsapp({ ...this.props, ...datos, actualizadoEn: ahora });
+    return new PlantillaWhatsapp({
+      ...this.props,
+      ...datos,
+      actualizadoEn: ahora,
+    });
   }
 
   /** Deja de ser la predeterminada (al marcar otra en su lugar). */
@@ -161,7 +178,9 @@ function validar(d: DatosPlantillaWhatsapp): void {
     throw new ErrorValidacion("La plantilla necesita un nombre.");
   }
   if (d.nombre.length > 80) {
-    throw new ErrorValidacion("El nombre de la plantilla no puede superar los 80 caracteres.");
+    throw new ErrorValidacion(
+      "El nombre de la plantilla no puede superar los 80 caracteres.",
+    );
   }
   if (d.cuerpo.length === 0) {
     throw new ErrorValidacion("La plantilla no puede tener un cuerpo vacío.");
@@ -185,10 +204,16 @@ function validar(d: DatosPlantillaWhatsapp): void {
   }
   for (const variable of d.variablesMeta) {
     if (!VARIABLES_RECORDATORIO.includes(variable)) {
-      throw new ErrorValidacion(`«${variable}» no es una variable del recordatorio.`);
+      throw new ErrorValidacion(
+        `«${variable}» no es una variable del recordatorio.`,
+      );
     }
   }
-  if (d.claveMeta != null && d.variablesMeta.length === 0 && /{{\s*\w+\s*}}/.test(d.cuerpo)) {
+  if (
+    d.claveMeta != null &&
+    d.variablesMeta.length === 0 &&
+    /{{\s*\w+\s*}}/.test(d.cuerpo)
+  ) {
     throw new ErrorValidacion(
       "El cuerpo tiene variables pero no se indicó el orden de los parámetros de Meta.",
     );

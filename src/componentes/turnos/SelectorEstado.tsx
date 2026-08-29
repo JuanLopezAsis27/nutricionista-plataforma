@@ -40,7 +40,11 @@ export function SelectorEstado({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" disabled={deshabilitado || sinOpciones}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={deshabilitado || sinOpciones}
+        >
           Cambiar estado
           <ChevronDown className="h-4 w-4" />
         </Button>

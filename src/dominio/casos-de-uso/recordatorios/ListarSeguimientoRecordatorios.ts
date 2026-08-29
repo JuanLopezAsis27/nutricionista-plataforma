@@ -97,7 +97,10 @@ export class ListarSeguimientoRecordatorios {
           this.mensajes.ultimosPorPacientes(pacienteIds),
           this.mensajes.ultimosEntrantesPorPacientes(pacienteIds),
         ])
-      : [new Map<string, MensajeWhatsapp>(), new Map<string, MensajeWhatsapp>()];
+      : [
+          new Map<string, MensajeWhatsapp>(),
+          new Map<string, MensajeWhatsapp>(),
+        ];
 
     const ahora = this.reloj.ahora().getTime();
     const filas: SeguimientoRecordatorio[] = [];

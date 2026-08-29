@@ -3,7 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Bot, Send } from "lucide-react";
 import { useIA } from "@/lib/hooks/useIA";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 import { Textarea } from "@/componentes/ui/textarea";
 import { Button } from "@/componentes/ui/button";
 import { PensandoAnimado } from "@/componentes/ia/PensandoAnimado";
@@ -22,7 +27,9 @@ const SUGERENCIAS = [
 export function AsistenteAnaliticoChat() {
   const { analizar, estado } = useIA();
   const activo = estado().data?.asistenteActivo ?? false;
-  const [mensajes, setMensajes] = useState<{ pregunta: string; respuesta: string }[]>([]);
+  const [mensajes, setMensajes] = useState<
+    { pregunta: string; respuesta: string }[]
+  >([]);
   const [texto, setTexto] = useState("");
   const finRef = useRef<HTMLDivElement>(null);
 
@@ -36,7 +43,13 @@ export function AsistenteAnaliticoChat() {
     setTexto("");
     analizar.mutate(
       { pregunta: p },
-      { onSuccess: (data) => setMensajes((prev) => [...prev, { pregunta: p, respuesta: data.respuesta }]) },
+      {
+        onSuccess: (data) =>
+          setMensajes((prev) => [
+            ...prev,
+            { pregunta: p, respuesta: data.respuesta },
+          ]),
+      },
     );
   }
 
@@ -46,7 +59,9 @@ export function AsistenteAnaliticoChat() {
         <CardTitle className="flex items-center gap-2 text-base">
           <Bot className="h-5 w-5 text-primary" /> Asistente analítico
           {!activo && (
-            <span className="text-xs font-normal text-muted-foreground">(demostración)</span>
+            <span className="text-xs font-normal text-muted-foreground">
+              (demostración)
+            </span>
           )}
         </CardTitle>
       </CardHeader>

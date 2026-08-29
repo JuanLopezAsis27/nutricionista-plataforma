@@ -6,8 +6,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
  * - `global`: sin filtro (SUPERADMIN, login, worker que recorre inquilinos).
  */
 export type AlcanceTenant =
-  | { tipo: "nutricionista"; nutricionistaId: string }
-  | { tipo: "global" };
+  { tipo: "nutricionista"; nutricionistaId: string } | { tipo: "global" };
 
 const almacen = new AsyncLocalStorage<AlcanceTenant>();
 
@@ -23,7 +22,10 @@ export function ejecutarEnNutricionista<T>(
   nutricionistaId: string,
   fn: () => Promise<T>,
 ): Promise<T> {
-  return almacen.run({ tipo: "nutricionista", nutricionistaId }, async () => await fn());
+  return almacen.run(
+    { tipo: "nutricionista", nutricionistaId },
+    async () => await fn(),
+  );
 }
 
 /** Corre `fn` con alcance global (sin filtro por inquilino). */

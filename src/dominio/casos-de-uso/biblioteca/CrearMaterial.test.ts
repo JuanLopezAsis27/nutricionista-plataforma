@@ -17,7 +17,10 @@ describe("CrearMaterial", () => {
     });
 
     expect(material).toBeInstanceOf(MaterialBiblioteca);
-    expect(materiales.crear).toHaveBeenCalledWith(expect.any(MaterialBiblioteca), "arc-1");
+    expect(materiales.crear).toHaveBeenCalledWith(
+      expect.any(MaterialBiblioteca),
+      "arc-1",
+    );
   });
 
   it("rechaza un material ARCHIVO sin archivo subido", async () => {
@@ -49,6 +52,9 @@ describe("CrearMaterial", () => {
       url: "https://youtube.com/watch?v=x",
     });
 
-    expect(materiales.crear).toHaveBeenCalledWith(expect.any(MaterialBiblioteca), null);
+    expect(materiales.crear).toHaveBeenCalledWith(
+      expect.any(MaterialBiblioteca),
+      null,
+    );
   });
 });

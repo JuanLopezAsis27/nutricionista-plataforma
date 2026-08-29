@@ -8,7 +8,12 @@ describe("ImportarMetricas", () => {
     const casoUso = new ImportarMetricas(metricas);
 
     const cantidad = await casoUso.ejecutar("pac-1", [
-      { fecha: new Date("2026-07-10"), fuente: "APPLE_WATCH", pasos: 9000, horasSueno: 7 },
+      {
+        fecha: new Date("2026-07-10"),
+        fuente: "APPLE_WATCH",
+        pasos: 9000,
+        horasSueno: 7,
+      },
       { fecha: new Date("2026-07-11"), fuente: "APPLE_WATCH", pasos: 5000 },
     ]);
 

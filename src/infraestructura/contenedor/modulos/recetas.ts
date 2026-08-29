@@ -30,7 +30,11 @@ export function crearServicioReceta(deps: {
     new ObtenerRecetaPorId(deps.recetas),
     new ActualizarReceta(deps.recetas),
     new EliminarReceta(deps.recetas, deps.archivos, deps.almacenamiento),
-    new EliminarArchivoDeReceta(deps.recetas, deps.archivos, deps.almacenamiento),
+    new EliminarArchivoDeReceta(
+      deps.recetas,
+      deps.archivos,
+      deps.almacenamiento,
+    ),
     new MarcarFotoPrincipal(deps.recetas),
     new AsignarRecetaAPaciente(deps.recetas, deps.pacientes),
     new DesasignarRecetaDePaciente(deps.recetas),

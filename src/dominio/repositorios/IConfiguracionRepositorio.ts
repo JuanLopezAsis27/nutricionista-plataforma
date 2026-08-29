@@ -6,5 +6,7 @@ import type { ConfiguracionConsultorio } from "../entidades/ConfiguracionConsult
  */
 export interface IConfiguracionRepositorio {
   obtener(): Promise<ConfiguracionConsultorio | null>;
-  guardar(configuracion: ConfiguracionConsultorio): Promise<ConfiguracionConsultorio>;
+  guardar(
+    configuracion: ConfiguracionConsultorio,
+  ): Promise<ConfiguracionConsultorio>;
 }

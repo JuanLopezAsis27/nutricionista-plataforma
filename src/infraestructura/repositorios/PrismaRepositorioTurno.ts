@@ -98,7 +98,9 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
 
   async listarEntreFechas(desde: Date, hasta: Date): Promise<Turno[]> {
     const filas = await this.prisma.turno.findMany({
-      where: { fecha: { gte: this.soloFecha(desde), lte: this.soloFecha(hasta) } },
+      where: {
+        fecha: { gte: this.soloFecha(desde), lte: this.soloFecha(hasta) },
+      },
       orderBy: [{ fecha: "asc" }, { hora: "asc" }],
     });
     return filas.map((fila) => this.mapearATurno(fila));

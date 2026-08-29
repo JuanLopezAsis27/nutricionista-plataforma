@@ -25,7 +25,12 @@ import { Input } from "@/componentes/ui/input";
 import { Label } from "@/componentes/ui/label";
 import { Textarea } from "@/componentes/ui/textarea";
 import { Skeleton } from "@/componentes/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 import {
   Select,
   SelectTrigger,
@@ -97,7 +102,9 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
   useEffect(() => {
     setPeso(registro?.pesoKg != null ? String(registro.pesoKg) : "");
     setAgua(registro?.aguaMl ?? 0);
-    setHorasSueno(registro?.horasSueno != null ? String(registro.horasSueno) : "");
+    setHorasSueno(
+      registro?.horasSueno != null ? String(registro.horasSueno) : "",
+    );
     setCalidadSueno(registro?.calidadSueno ?? "");
     setNotas(registro?.notas ?? "");
     setFotoPara(null);
@@ -159,7 +166,9 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
 
   return (
     <div className="space-y-4">
-      <h2 className="font-semibold capitalize">{formatearFechaLarga(fechaISO)}</h2>
+      <h2 className="font-semibold capitalize">
+        {formatearFechaLarga(fechaISO)}
+      </h2>
 
       {/* Escalares del día */}
       <Card>
@@ -194,7 +203,10 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
                   value={calidadSueno}
                   onValueChange={(v) => setCalidadSueno(v as CalidadSueno)}
                 >
-                  <SelectTrigger className="w-28" aria-label="Calidad del sueño">
+                  <SelectTrigger
+                    className="w-28"
+                    aria-label="Calidad del sueño"
+                  >
                     <SelectValue placeholder="Calidad" />
                   </SelectTrigger>
                   <SelectContent>
@@ -214,10 +226,20 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
               <GlassWater className="h-4 w-4" /> Agua: {agua} ml
             </Label>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => setAgua(agua + 250)}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setAgua(agua + 250)}
+              >
                 +250 ml
               </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => setAgua(agua + 500)}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setAgua(agua + 500)}
+              >
                 +500 ml
               </Button>
               <Button
@@ -234,11 +256,18 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
 
           <div className="space-y-1.5">
             <Label className="text-sm">Notas del día</Label>
-            <Textarea rows={2} value={notas} onChange={(e) => setNotas(e.target.value)} />
+            <Textarea
+              rows={2}
+              value={notas}
+              onChange={(e) => setNotas(e.target.value)}
+            />
           </div>
 
           <div className="flex justify-end">
-            <Button onClick={guardarEscalares} disabled={guardarMiDia.isPending}>
+            <Button
+              onClick={guardarEscalares}
+              disabled={guardarMiDia.isPending}
+            >
               {guardarMiDia.isPending ? "Guardando…" : "Guardar mi día"}
             </Button>
           </div>
@@ -267,11 +296,18 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
                       </span>
                     ) : null}
                   </p>
-                  <p className="whitespace-pre-wrap text-muted-foreground">{comida.descripcion}</p>
+                  <p className="whitespace-pre-wrap text-muted-foreground">
+                    {comida.descripcion}
+                  </p>
                 </div>
                 <span className="flex gap-0.5">
                   {comida.fotoArchivoId ? (
-                    <Button asChild variant="ghost" size="icon" aria-label="Ver foto">
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Ver foto"
+                    >
                       <a
                         href={`/api/archivos/${comida.fotoArchivoId}`}
                         target="_blank"
@@ -425,7 +461,9 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
             <Button
               onClick={registrarActividad}
               disabled={
-                agregarActividad.isPending || !tipoActividad.trim() || !aNumero(duracion)
+                agregarActividad.isPending ||
+                !tipoActividad.trim() ||
+                !aNumero(duracion)
               }
             >
               Agregar

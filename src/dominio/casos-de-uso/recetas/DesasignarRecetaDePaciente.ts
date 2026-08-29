@@ -4,7 +4,10 @@ import type { IRecetaRepositorio } from "../../repositorios/IRecetaRepositorio";
 export class DesasignarRecetaDePaciente {
   constructor(private readonly recetas: IRecetaRepositorio) {}
 
-  async ejecutar(datos: { recetaId: string; pacienteId: string }): Promise<void> {
+  async ejecutar(datos: {
+    recetaId: string;
+    pacienteId: string;
+  }): Promise<void> {
     await this.recetas.desasignarDePaciente(datos.recetaId, datos.pacienteId);
   }
 }

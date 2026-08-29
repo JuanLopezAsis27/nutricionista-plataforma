@@ -26,9 +26,9 @@ describe("ActualizarObjetivo", () => {
 
   it("lanza ErrorObjetivoNoEncontrado si no existe", async () => {
     const casoUso = new ActualizarObjetivo(mockObjetivoRepositorio());
-    await expect(casoUso.ejecutar({ id: "nada", titulo: "X" })).rejects.toBeInstanceOf(
-      ErrorObjetivoNoEncontrado,
-    );
+    await expect(
+      casoUso.ejecutar({ id: "nada", titulo: "X" }),
+    ).rejects.toBeInstanceOf(ErrorObjetivoNoEncontrado);
   });
 
   it("permite vincular y desvincular la meta de composición", async () => {

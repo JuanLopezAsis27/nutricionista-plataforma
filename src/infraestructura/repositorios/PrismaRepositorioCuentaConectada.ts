@@ -22,7 +22,9 @@ export class PrismaRepositorioCuentaConectada implements ICuentaConectadaReposit
   ) {}
 
   async obtener(proveedor: ProveedorCuenta): Promise<CuentaConectada | null> {
-    const fila = await this.prisma.cuentaConectada.findFirst({ where: { proveedor } });
+    const fila = await this.prisma.cuentaConectada.findFirst({
+      where: { proveedor },
+    });
     return fila ? this.mapear(fila) : null;
   }
 
@@ -32,7 +34,9 @@ export class PrismaRepositorioCuentaConectada implements ICuentaConectadaReposit
       proveedor: d.proveedor,
       emailCuenta: d.emailCuenta,
       accessTokenCifrado: this.cifrador.cifrar(d.accessToken),
-      refreshTokenCifrado: d.refreshToken ? this.cifrador.cifrar(d.refreshToken) : null,
+      refreshTokenCifrado: d.refreshToken
+        ? this.cifrador.cifrar(d.refreshToken)
+        : null,
       scopes: d.scopes,
       expiraEn: d.expiraEn,
     };
@@ -41,8 +45,13 @@ export class PrismaRepositorioCuentaConectada implements ICuentaConectadaReposit
       where: { proveedor: d.proveedor },
     });
     const fila = existente
-      ? await this.prisma.cuentaConectada.update({ where: { id: existente.id }, data: datos })
-      : await this.prisma.cuentaConectada.create({ data: { id: d.id, nutricionistaId: inquilinoActual(), ...datos } });
+      ? await this.prisma.cuentaConectada.update({
+          where: { id: existente.id },
+          data: datos,
+        })
+      : await this.prisma.cuentaConectada.create({
+          data: { id: d.id, nutricionistaId: inquilinoActual(), ...datos },
+        });
     return this.mapear(fila);
   }
 

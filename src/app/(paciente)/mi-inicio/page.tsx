@@ -19,7 +19,12 @@ import { formatearFechaLarga, aFechaISO, hoyLocalISO } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { Skeleton } from "@/componentes/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 
 /** Hora local HH:mm actual (para ubicar la franja del plan). */
 function horaAhora(): string {
@@ -44,25 +49,37 @@ export default function PaginaMiInicio() {
   const hoyISO = aFechaISO(hoy);
   const proximo = (turnos.data ?? [])
     .filter((t) => aFechaISO(t.fecha) >= hoyISO && t.estado !== "CANCELADO")
-    .sort((a, b) => aFechaISO(a.fecha).localeCompare(aFechaISO(b.fecha)) || a.hora.localeCompare(b.hora))[0];
+    .sort(
+      (a, b) =>
+        aFechaISO(a.fecha).localeCompare(aFechaISO(b.fecha)) ||
+        a.hora.localeCompare(b.hora),
+    )[0];
 
   // --- Franja actual (o próxima) del plan ---
   const ahora = horaAhora();
   const comidas = plan.data?.comidas ?? [];
   const franjaActual =
     comidas.find(
-      (c) => c.horaDesde && c.horaHasta && c.horaDesde <= ahora && ahora <= c.horaHasta,
+      (c) =>
+        c.horaDesde &&
+        c.horaHasta &&
+        c.horaDesde <= ahora &&
+        ahora <= c.horaHasta,
     ) ??
     comidas
       .filter((c) => c.horaDesde && c.horaDesde >= ahora)
-      .sort((a, b) => (a.horaDesde ?? "").localeCompare(b.horaDesde ?? ""))[0] ??
+      .sort((a, b) =>
+        (a.horaDesde ?? "").localeCompare(b.horaDesde ?? ""),
+      )[0] ??
     comidas[0];
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Hoy</h1>
-        <p className="text-sm capitalize text-muted-foreground">{formatearFechaLarga(hoy)}</p>
+        <p className="text-sm capitalize text-muted-foreground">
+          {formatearFechaLarga(hoy)}
+        </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -79,7 +96,9 @@ export default function PaginaMiInicio() {
             ) : proximo ? (
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <p className="font-medium capitalize">{formatearFechaLarga(proximo.fecha)}</p>
+                  <p className="font-medium capitalize">
+                    {formatearFechaLarga(proximo.fecha)}
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     {proximo.hora} · {proximo.duracionMinutos} min
                   </p>
@@ -89,7 +108,9 @@ export default function PaginaMiInicio() {
                 </Button>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No tenés turnos próximos.</p>
+              <p className="text-sm text-muted-foreground">
+                No tenés turnos próximos.
+              </p>
             )}
           </CardContent>
         </Card>
@@ -111,14 +132,22 @@ export default function PaginaMiInicio() {
                   {franjaActual.horaDesde && (
                     <span className="ml-2 text-xs font-normal text-muted-foreground">
                       {franjaActual.horaDesde}
-                      {franjaActual.horaHasta ? `–${franjaActual.horaHasta}` : ""}
+                      {franjaActual.horaHasta
+                        ? `–${franjaActual.horaHasta}`
+                        : ""}
                     </span>
                   )}
                 </p>
                 <p className="line-clamp-3 whitespace-pre-wrap text-sm text-muted-foreground">
-                  {franjaActual.opciones[0]?.contenido ?? "Sin opciones cargadas."}
+                  {franjaActual.opciones[0]?.contenido ??
+                    "Sin opciones cargadas."}
                 </p>
-                <Button asChild variant="link" size="sm" className="h-auto px-0">
+                <Button
+                  asChild
+                  variant="link"
+                  size="sm"
+                  className="h-auto px-0"
+                >
                   <Link href="/mi-plan">Ver plan completo</Link>
                 </Button>
               </div>
@@ -153,10 +182,26 @@ export default function PaginaMiInicio() {
 
       {/* Accesos directos */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <AccesoDirecto href="/mi-diario" icono={NotebookPen} etiqueta="Mi diario" />
-        <AccesoDirecto href="/mi-progreso" icono={TrendingUp} etiqueta="Mi progreso" />
-        <AccesoDirecto href="/mensajes" icono={MessageSquare} etiqueta="Mensajes" />
-        <AccesoDirecto href="/mi-plan" icono={ClipboardList} etiqueta="Mi plan" />
+        <AccesoDirecto
+          href="/mi-diario"
+          icono={NotebookPen}
+          etiqueta="Mi diario"
+        />
+        <AccesoDirecto
+          href="/mi-progreso"
+          icono={TrendingUp}
+          etiqueta="Mi progreso"
+        />
+        <AccesoDirecto
+          href="/mensajes"
+          icono={MessageSquare}
+          etiqueta="Mensajes"
+        />
+        <AccesoDirecto
+          href="/mi-plan"
+          icono={ClipboardList}
+          etiqueta="Mi plan"
+        />
       </div>
     </div>
   );
@@ -175,7 +220,10 @@ function RegistroRapido({
   aguaActual: number | null;
   cargando: boolean;
   guardando: boolean;
-  onGuardar: (cambios: { pesoKg?: number | null; aguaMl?: number | null }) => void;
+  onGuardar: (cambios: {
+    pesoKg?: number | null;
+    aguaMl?: number | null;
+  }) => void;
 }) {
   const [peso, setPeso] = useState("");
   useEffect(() => {
@@ -210,7 +258,11 @@ function RegistroRapido({
               <Button
                 onClick={() => {
                   const valor = peso.trim() === "" ? null : Number(peso);
-                  if (valor != null && (Number.isNaN(valor) || valor < 20 || valor > 400)) return;
+                  if (
+                    valor != null &&
+                    (Number.isNaN(valor) || valor < 20 || valor > 400)
+                  )
+                    return;
                   onGuardar({ pesoKg: valor });
                 }}
                 disabled={guardando}
@@ -225,7 +277,9 @@ function RegistroRapido({
         <div className="space-y-2">
           <p className="flex items-center gap-2 text-sm font-medium">
             <GlassWater className="h-4 w-4 text-primary" /> Agua
-            <span className="ml-auto tabular-nums text-muted-foreground">{agua} ml</span>
+            <span className="ml-auto tabular-nums text-muted-foreground">
+              {agua} ml
+            </span>
           </p>
           {cargando ? (
             <Skeleton className="h-10 w-full" />

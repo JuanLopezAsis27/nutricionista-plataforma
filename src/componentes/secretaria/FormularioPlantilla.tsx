@@ -25,7 +25,10 @@ import {
 const esquema = z.object({
   clave: z
     .string()
-    .regex(/^[A-Za-z][A-Za-z0-9_]*$/, "Identificador en MAYÚSCULAS, ej. SEGUIMIENTO")
+    .regex(
+      /^[A-Za-z][A-Za-z0-9_]*$/,
+      "Identificador en MAYÚSCULAS, ej. SEGUIMIENTO",
+    )
     .max(60),
   nombre: z.string().min(1, "El nombre es obligatorio").max(120),
   asunto: z.string().min(1, "El asunto es obligatorio").max(200),
@@ -94,7 +97,10 @@ export function FormularioPlantilla({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(alEnviar)} className="grid gap-6 md:grid-cols-2">
+      <form
+        onSubmit={form.handleSubmit(alEnviar)}
+        className="grid gap-6 md:grid-cols-2"
+      >
         {/* Columna de edición */}
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
@@ -105,7 +111,11 @@ export function FormularioPlantilla({
                 <FormItem>
                   <FormLabel>Clave</FormLabel>
                   <FormControl>
-                    <Input {...field} disabled={esEdicion} className="font-mono uppercase" />
+                    <Input
+                      {...field}
+                      disabled={esEdicion}
+                      className="font-mono uppercase"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -133,7 +143,10 @@ export function FormularioPlantilla({
               <FormItem>
                 <FormLabel>Asunto</FormLabel>
                 <FormControl>
-                  <Input placeholder="Recordatorio de tu turno del {{fecha}}" {...field} />
+                  <Input
+                    placeholder="Recordatorio de tu turno del {{fecha}}"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -182,7 +195,10 @@ export function FormularioPlantilla({
               <FormItem>
                 <FormLabel>Descripción (opcional)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Cuándo se usa esta plantilla" {...field} />
+                  <Input
+                    placeholder="Cuándo se usa esta plantilla"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -212,11 +228,20 @@ export function FormularioPlantilla({
         </div>
 
         <div className="flex justify-end gap-2 md:col-span-2">
-          <Button type="button" variant="outline" onClick={onTerminado} disabled={enviando}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onTerminado}
+            disabled={enviando}
+          >
             Cancelar
           </Button>
           <Button type="submit" disabled={enviando}>
-            {enviando ? "Guardando…" : esEdicion ? "Guardar cambios" : "Crear plantilla"}
+            {enviando
+              ? "Guardando…"
+              : esEdicion
+                ? "Guardar cambios"
+                : "Crear plantilla"}
           </Button>
         </div>
       </form>

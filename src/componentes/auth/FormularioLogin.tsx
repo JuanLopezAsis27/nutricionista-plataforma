@@ -63,7 +63,11 @@ export function FormularioLogin() {
     const sesion = await getSession();
     const rol = sesion?.user.rol;
     const destino =
-      rol === "SUPERADMIN" ? "/admin" : rol === "NUTRICIONISTA" ? "/dashboard" : "/mi-inicio";
+      rol === "SUPERADMIN"
+        ? "/admin"
+        : rol === "NUTRICIONISTA"
+          ? "/dashboard"
+          : "/mi-inicio";
     router.replace(destino);
     router.refresh();
   }
@@ -76,68 +80,77 @@ export function FormularioLogin() {
           <CardTitle className="text-2xl">Iniciar sesión</CardTitle>
           <CardDescription>Ingresá con tu email y contraseña.</CardDescription>
         </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(alEnviar)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="vos@ejemplo.com" autoComplete="email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Contraseña</FormLabel>
-                  <FormControl>
-                    <div className="relative">
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(alEnviar)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
                       <Input
-                        type={mostrarPassword ? "text" : "password"}
-                        autoComplete="current-password"
-                        className="pr-10"
+                        type="email"
+                        placeholder="vos@ejemplo.com"
+                        autoComplete="email"
                         {...field}
                       />
-                      <button
-                        type="button"
-                        onClick={() => setMostrarPassword((v) => !v)}
-                        aria-label={mostrarPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                        className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
-                      >
-                        {mostrarPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={enviando}>
-              {enviando ? "Ingresando…" : "Ingresar"}
-            </Button>
-            <div className="text-center">
-              <Link
-                href="/recuperar"
-                className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-              >
-                ¿Olvidaste tu contraseña?
-              </Link>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contraseña</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          type={mostrarPassword ? "text" : "password"}
+                          autoComplete="current-password"
+                          className="pr-10"
+                          {...field}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setMostrarPassword((v) => !v)}
+                          aria-label={
+                            mostrarPassword
+                              ? "Ocultar contraseña"
+                              : "Mostrar contraseña"
+                          }
+                          className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+                        >
+                          {mostrarPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full" disabled={enviando}>
+                {enviando ? "Ingresando…" : "Ingresar"}
+              </Button>
+              <div className="text-center">
+                <Link
+                  href="/recuperar"
+                  className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
       </Card>
     </div>
   );

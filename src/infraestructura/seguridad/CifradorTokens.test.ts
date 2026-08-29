@@ -22,14 +22,20 @@ describe("CifradorTokens", () => {
     const cifrador = new CifradorTokens(SECRETO);
     const cifrado = cifrador.cifrar("secreto");
     const [iv, tag] = cifrado.split(".");
-    const manipulado = [iv, tag, Buffer.from("otracosa").toString("base64")].join(".");
+    const manipulado = [
+      iv,
+      tag,
+      Buffer.from("otracosa").toString("base64"),
+    ].join(".");
 
     expect(() => cifrador.descifrar(manipulado)).toThrow();
   });
 
   it("no descifra con otro secreto", () => {
     const cifrado = new CifradorTokens(SECRETO).cifrar("secreto");
-    const otro = new CifradorTokens("otro-secreto-completamente-distinto-0987654321");
+    const otro = new CifradorTokens(
+      "otro-secreto-completamente-distinto-0987654321",
+    );
     expect(() => otro.descifrar(cifrado)).toThrow();
   });
 

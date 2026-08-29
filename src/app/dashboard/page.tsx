@@ -2,13 +2,23 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { Users, CalendarDays, CalendarClock, ClipboardList } from "lucide-react";
+import {
+  Users,
+  CalendarDays,
+  CalendarClock,
+  ClipboardList,
+} from "lucide-react";
 import { usePacientes } from "@/lib/hooks/usePacientes";
 import { useTurnos } from "@/lib/hooks/useTurnos";
 import { usePlanes } from "@/lib/hooks/usePlanes";
 import { PanelAlertas } from "@/componentes/seguimiento/PanelAlertas";
 import { aFechaISO } from "@/lib/formato";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 import { Skeleton } from "@/componentes/ui/skeleton";
 import { EstadoBadge } from "@/componentes/comunes/EstadoBadge";
 import { SelectorEstado } from "@/componentes/turnos/SelectorEstado";
@@ -27,7 +37,9 @@ function Metrica({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{titulo}</CardTitle>
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          {titulo}
+        </CardTitle>
         <Icono className="h-5 w-5 text-muted-foreground" />
       </CardHeader>
       <CardContent>
@@ -54,7 +66,9 @@ export default function PaginaDashboard() {
 
   const mapaPacientes = useMemo(() => {
     const mapa = new Map<string, string>();
-    pacientes.data?.pacientes.forEach((p) => mapa.set(p.id, `${p.nombre} ${p.apellido}`));
+    pacientes.data?.pacientes.forEach((p) =>
+      mapa.set(p.id, `${p.nombre} ${p.apellido}`),
+    );
     return mapa;
   }, [pacientes.data]);
 
@@ -71,7 +85,8 @@ export default function PaginaDashboard() {
     return { turnosHoy, cantidadSemana };
   }, [turnos.data, hoy]);
 
-  const cargandoMetricas = pacientes.isLoading || turnos.isLoading || planes.isLoading;
+  const cargandoMetricas =
+    pacientes.isLoading || turnos.isLoading || planes.isLoading;
 
   return (
     <div className="space-y-6">
@@ -114,13 +129,20 @@ export default function PaginaDashboard() {
               ))}
             </div>
           ) : turnos.isError ? (
-            <p className="text-sm text-destructive">No se pudieron cargar los turnos.</p>
+            <p className="text-sm text-destructive">
+              No se pudieron cargar los turnos.
+            </p>
           ) : turnosHoy.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No hay turnos para hoy.</p>
+            <p className="text-sm text-muted-foreground">
+              No hay turnos para hoy.
+            </p>
           ) : (
             <ul className="divide-y">
               {turnosHoy.map((turno) => (
-                <li key={turno.id} className="flex items-center justify-between gap-4 py-3">
+                <li
+                  key={turno.id}
+                  className="flex items-center justify-between gap-4 py-3"
+                >
                   <div className="flex items-center gap-4">
                     <span className="w-14 font-mono text-sm">{turno.hora}</span>
                     <Link

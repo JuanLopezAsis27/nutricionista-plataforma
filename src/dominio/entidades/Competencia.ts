@@ -43,9 +43,15 @@ export interface PropiedadesCompetencia {
 export class Competencia {
   private constructor(private readonly props: PropiedadesCompetencia) {}
 
-  static crear(datos: DatosCompetencia, id: string, ahora: Date = new Date()): Competencia {
+  static crear(
+    datos: DatosCompetencia,
+    id: string,
+    ahora: Date = new Date(),
+  ): Competencia {
     if (!datos.pacienteId?.trim()) {
-      throw new ErrorValidacion("La competencia debe pertenecer a un paciente.");
+      throw new ErrorValidacion(
+        "La competencia debe pertenecer a un paciente.",
+      );
     }
     const nombre = datos.nombre?.trim() ?? "";
     if (nombre.length === 0) {
@@ -83,7 +89,10 @@ export class Competencia {
       { ...cambios, pacienteId: this.props.pacienteId },
       this.props.id,
     );
-    return new Competencia({ ...actualizada.props, creadoEn: this.props.creadoEn });
+    return new Competencia({
+      ...actualizada.props,
+      creadoEn: this.props.creadoEn,
+    });
   }
 
   get id(): string {

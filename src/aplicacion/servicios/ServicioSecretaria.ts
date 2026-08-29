@@ -44,15 +44,23 @@ export class ServicioSecretaria {
   }
 
   async obtenerPlantilla(id: string): Promise<PlantillaSalidaDto> {
-    return ServicioSecretaria.plantillaASalida(await this.obtenerPlantillaUC.ejecutar(id));
+    return ServicioSecretaria.plantillaASalida(
+      await this.obtenerPlantillaUC.ejecutar(id),
+    );
   }
 
   async crearPlantilla(datos: CrearPlantillaDto): Promise<PlantillaSalidaDto> {
-    return ServicioSecretaria.plantillaASalida(await this.crearPlantillaUC.ejecutar(datos));
+    return ServicioSecretaria.plantillaASalida(
+      await this.crearPlantillaUC.ejecutar(datos),
+    );
   }
 
-  async actualizarPlantilla(datos: ActualizarPlantillaDto): Promise<PlantillaSalidaDto> {
-    return ServicioSecretaria.plantillaASalida(await this.actualizarPlantillaUC.ejecutar(datos));
+  async actualizarPlantilla(
+    datos: ActualizarPlantillaDto,
+  ): Promise<PlantillaSalidaDto> {
+    return ServicioSecretaria.plantillaASalida(
+      await this.actualizarPlantillaUC.ejecutar(datos),
+    );
   }
 
   async eliminarPlantilla(id: string): Promise<void> {
@@ -65,12 +73,16 @@ export class ServicioSecretaria {
     return this.enviarPruebaUC.ejecutar(datos.plantillaId, datos.para);
   }
 
-  async listarEmailsRecientes(limite?: number): Promise<EmailEnviadoSalidaDto[]> {
+  async listarEmailsRecientes(
+    limite?: number,
+  ): Promise<EmailEnviadoSalidaDto[]> {
     const emails = await this.listarEmailsUC.ejecutar(limite);
     return emails.map((e) => e.aPrimitivos());
   }
 
-  private static plantillaASalida(plantilla: PlantillaEmail): PlantillaSalidaDto {
+  private static plantillaASalida(
+    plantilla: PlantillaEmail,
+  ): PlantillaSalidaDto {
     return plantilla.aPrimitivos();
   }
 }

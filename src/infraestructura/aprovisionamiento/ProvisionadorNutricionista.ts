@@ -46,9 +46,36 @@ const PLANTILLAS_SISTEMA = [
 
 /** Axiomas de ejemplo con los que arranca la base de conocimiento del nutri. */
 const AXIOMAS_EJEMPLO = [
-  { ambito: "SUENO" as const, parametro: "horasSueno", operador: "MAYOR_IGUAL" as const, valor: 7, unidad: "h", texto: "Dormir al menos 7 horas favorece la recuperación y el control del peso.", prioridad: 10 },
-  { ambito: "HIDRATACION" as const, parametro: "aguaMl", operador: "MAYOR_IGUAL" as const, valor: 2000, unidad: "ml", texto: "Tomar al menos 2 litros de agua por día mantiene una buena hidratación.", prioridad: 8 },
-  { ambito: "ACTIVIDAD" as const, parametro: "actividadMinutosDia", operador: "MAYOR_IGUAL" as const, valor: 30, unidad: "min", texto: "Al menos 30 minutos de actividad física por día mejoran la composición corporal.", prioridad: 6 },
+  {
+    ambito: "SUENO" as const,
+    parametro: "horasSueno",
+    operador: "MAYOR_IGUAL" as const,
+    valor: 7,
+    unidad: "h",
+    texto:
+      "Dormir al menos 7 horas favorece la recuperación y el control del peso.",
+    prioridad: 10,
+  },
+  {
+    ambito: "HIDRATACION" as const,
+    parametro: "aguaMl",
+    operador: "MAYOR_IGUAL" as const,
+    valor: 2000,
+    unidad: "ml",
+    texto:
+      "Tomar al menos 2 litros de agua por día mantiene una buena hidratación.",
+    prioridad: 8,
+  },
+  {
+    ambito: "ACTIVIDAD" as const,
+    parametro: "actividadMinutosDia",
+    operador: "MAYOR_IGUAL" as const,
+    valor: 30,
+    unidad: "min",
+    texto:
+      "Al menos 30 minutos de actividad física por día mejoran la composición corporal.",
+    prioridad: 6,
+  },
 ];
 
 /**
@@ -69,11 +96,16 @@ export class ProvisionadorNutricionista implements IProvisionadorNutricionista {
       await this.configuracion.guardar(ConfiguracionConsultorio.porDefecto());
       for (const datos of PLANTILLAS_SISTEMA) {
         await this.plantillas.crear(
-          PlantillaEmail.crear({ ...datos, deSistema: true }, crypto.randomUUID()),
+          PlantillaEmail.crear(
+            { ...datos, deSistema: true },
+            crypto.randomUUID(),
+          ),
         );
       }
       for (const datos of AXIOMAS_EJEMPLO) {
-        await this.axiomas.crear(AxiomaNutricional.crear(datos, crypto.randomUUID()));
+        await this.axiomas.crear(
+          AxiomaNutricional.crear(datos, crypto.randomUUID()),
+        );
       }
 
       // Recordatorios: la política por defecto y UNA plantilla de WhatsApp
@@ -82,7 +114,9 @@ export class ProvisionadorNutricionista implements IProvisionadorNutricionista {
       // La plantilla arranca sin `claveMeta` porque aprobarla en Meta es un
       // trámite del profesional: sirve igual para el enlace wa.me y para la
       // vista previa, y la pantalla dice qué falta para que salga sola.
-      await this.configRecordatorios.guardar(ConfiguracionRecordatorios.porDefecto());
+      await this.configRecordatorios.guardar(
+        ConfiguracionRecordatorios.porDefecto(),
+      );
       await this.plantillasWhatsapp.crear(
         PlantillaWhatsapp.crear(
           {

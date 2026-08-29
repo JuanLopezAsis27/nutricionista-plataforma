@@ -54,7 +54,8 @@ function FormularioSuplemento({
   onTerminado: () => void;
 }) {
   const { registrarSuplemento, actualizarSuplemento } = useSeguimiento();
-  const enviando = registrarSuplemento.isPending || actualizarSuplemento.isPending;
+  const enviando =
+    registrarSuplemento.isPending || actualizarSuplemento.isPending;
 
   const form = useForm<DatosFormulario>({
     resolver: zodResolver(esquema),
@@ -83,11 +84,18 @@ function FormularioSuplemento({
     };
     if (suplementoInicial) {
       actualizarSuplemento.mutate(
-        { id: suplementoInicial.id, activo: suplementoInicial.activo, ...cuerpo },
+        {
+          id: suplementoInicial.id,
+          activo: suplementoInicial.activo,
+          ...cuerpo,
+        },
         { onSuccess: onTerminado },
       );
     } else {
-      registrarSuplemento.mutate({ pacienteId, ...cuerpo }, { onSuccess: onTerminado });
+      registrarSuplemento.mutate(
+        { pacienteId, ...cuerpo },
+        { onSuccess: onTerminado },
+      );
     }
   }
 
@@ -129,7 +137,10 @@ function FormularioSuplemento({
             <FormItem>
               <FormLabel>Frecuencia</FormLabel>
               <FormControl>
-                <Input placeholder="Todos los días, post entrenamiento" {...field} />
+                <Input
+                  placeholder="Todos los días, post entrenamiento"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -177,11 +188,20 @@ function FormularioSuplemento({
           )}
         />
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onTerminado} disabled={enviando}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onTerminado}
+            disabled={enviando}
+          >
             Cancelar
           </Button>
           <Button type="submit" disabled={enviando}>
-            {enviando ? "Guardando…" : suplementoInicial ? "Guardar cambios" : "Indicar suplemento"}
+            {enviando
+              ? "Guardando…"
+              : suplementoInicial
+                ? "Guardar cambios"
+                : "Indicar suplemento"}
           </Button>
         </div>
       </form>
@@ -193,7 +213,10 @@ function FormularioSuplemento({
 export function SeccionSuplementos({ pacienteId }: { pacienteId: string }) {
   const { suplementosDelPaciente, actualizarSuplemento, eliminarSuplemento } =
     useSeguimiento();
-  const consulta = suplementosDelPaciente({ pacienteId, incluirInactivos: true });
+  const consulta = suplementosDelPaciente({
+    pacienteId,
+    incluirInactivos: true,
+  });
 
   const [formAbierto, setFormAbierto] = useState(false);
   const [editar, setEditar] = useState<SuplementoSalidaDto | null>(null);
@@ -235,17 +258,23 @@ export function SeccionSuplementos({ pacienteId }: { pacienteId: string }) {
               <div className="min-w-0">
                 <p className="flex flex-wrap items-center gap-2 font-medium">
                   {suplemento.nombre}
-                  {!suplemento.activo && <Badge variant="outline">Finalizado</Badge>}
+                  {!suplemento.activo && (
+                    <Badge variant="outline">Finalizado</Badge>
+                  )}
                 </p>
                 <p className="text-muted-foreground">
-                  {[suplemento.dosis, suplemento.frecuencia].filter(Boolean).join(" · ") ||
-                    "Sin dosis indicada"}
+                  {[suplemento.dosis, suplemento.frecuencia]
+                    .filter(Boolean)
+                    .join(" · ") || "Sin dosis indicada"}
                   {suplemento.desde &&
                     ` · desde ${formatearFecha(suplemento.desde)}`}
-                  {suplemento.hasta && ` hasta ${formatearFecha(suplemento.hasta)}`}
+                  {suplemento.hasta &&
+                    ` hasta ${formatearFecha(suplemento.hasta)}`}
                 </p>
                 {suplemento.notas && (
-                  <p className="text-xs text-muted-foreground">{suplemento.notas}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {suplemento.notas}
+                  </p>
                 )}
               </div>
               <span className="flex shrink-0 gap-1">
@@ -298,7 +327,9 @@ export function SeccionSuplementos({ pacienteId }: { pacienteId: string }) {
       <Dialog open={formAbierto} onOpenChange={setFormAbierto}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editar ? "Editar suplemento" : "Indicar suplemento"}</DialogTitle>
+            <DialogTitle>
+              {editar ? "Editar suplemento" : "Indicar suplemento"}
+            </DialogTitle>
           </DialogHeader>
           <FormularioSuplemento
             pacienteId={pacienteId}
@@ -316,7 +347,10 @@ export function SeccionSuplementos({ pacienteId }: { pacienteId: string }) {
         onCancelar={() => setEliminar(null)}
         onConfirmar={() => {
           if (!eliminar) return;
-          eliminarSuplemento.mutate({ id: eliminar.id }, { onSuccess: () => setEliminar(null) });
+          eliminarSuplemento.mutate(
+            { id: eliminar.id },
+            { onSuccess: () => setEliminar(null) },
+          );
         }}
       />
     </div>

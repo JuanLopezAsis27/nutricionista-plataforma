@@ -22,7 +22,10 @@ export interface DatosImportarMetrica {
 export class ImportarMetricas {
   constructor(private readonly metricas: IMetricaDispositivoRepositorio) {}
 
-  async ejecutar(pacienteId: string, dias: DatosImportarMetrica[]): Promise<number> {
+  async ejecutar(
+    pacienteId: string,
+    dias: DatosImportarMetrica[],
+  ): Promise<number> {
     for (const dia of dias) {
       const metrica = MetricaDispositivo.crear(
         { pacienteId, ...dia },

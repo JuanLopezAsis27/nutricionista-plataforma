@@ -23,7 +23,11 @@ describe("ActualizarGrupoPlan", () => {
     });
     const casoUso = new ActualizarGrupoPlan(grupos);
 
-    await casoUso.ejecutar({ id: "gru-1", nombre: "Julia Pérez", descripcion: "Nueva" });
+    await casoUso.ejecutar({
+      id: "gru-1",
+      nombre: "Julia Pérez",
+      descripcion: "Nueva",
+    });
 
     // Sin `excluirId`, editar la descripción chocaría con su propio nombre.
     expect(grupos.existeNombre).toHaveBeenCalledWith("Julia Pérez", "gru-1");
@@ -46,8 +50,8 @@ describe("ActualizarGrupoPlan", () => {
     const grupos = mockGrupoPlanRepositorio();
     const casoUso = new ActualizarGrupoPlan(grupos);
 
-    await expect(casoUso.ejecutar({ id: "gru-x", nombre: "X" })).rejects.toBeInstanceOf(
-      ErrorGrupoPlanNoEncontrado,
-    );
+    await expect(
+      casoUso.ejecutar({ id: "gru-x", nombre: "X" }),
+    ).rejects.toBeInstanceOf(ErrorGrupoPlanNoEncontrado);
   });
 });

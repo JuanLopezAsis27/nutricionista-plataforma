@@ -10,7 +10,10 @@ import { Textarea } from "@/componentes/ui/textarea";
 import { Skeleton } from "@/componentes/ui/skeleton";
 
 function hora(fecha: Date): string {
-  return new Date(fecha).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+  return new Date(fecha).toLocaleTimeString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 /**
@@ -41,10 +44,15 @@ export function HiloMensajes({
   // Al abrir el hilo, captura (una sola vez) el primer mensaje NO leído del otro,
   // para marcar dónde arrancan los nuevos. Se fija antes de marcarlos como leídos,
   // así el divisor no desaparece cuando `leidoEn` se actualiza.
-  const [primerNuevoId, setPrimerNuevoId] = useState<string | null | undefined>(undefined);
+  const [primerNuevoId, setPrimerNuevoId] = useState<string | null | undefined>(
+    undefined,
+  );
   useEffect(() => {
-    if (primerNuevoId !== undefined || cargando || mensajes.length === 0) return;
-    const nuevo = mensajes.find((m) => m.autorId !== miId && m.leidoEn === null);
+    if (primerNuevoId !== undefined || cargando || mensajes.length === 0)
+      return;
+    const nuevo = mensajes.find(
+      (m) => m.autorId !== miId && m.leidoEn === null,
+    );
     setPrimerNuevoId(nuevo?.id ?? null);
   }, [cargando, mensajes, miId, primerNuevoId]);
 
@@ -68,7 +76,9 @@ export function HiloMensajes({
             <Skeleton className="ml-auto h-10 w-1/2" />
           </div>
         ) : mensajes.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">{textoVacio}</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            {textoVacio}
+          </p>
         ) : (
           mensajes.map((mensaje) => {
             const mio = mensaje.autorId === miId;
@@ -76,7 +86,10 @@ export function HiloMensajes({
             return (
               <div key={mensaje.id} className="flex flex-col">
                 {esPrimerNuevo && (
-                  <div className="my-2 flex items-center gap-2" aria-label="Mensajes nuevos">
+                  <div
+                    className="my-2 flex items-center gap-2"
+                    aria-label="Mensajes nuevos"
+                  >
                     <span className="h-px flex-1 bg-primary/40" />
                     <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">
                       Mensajes nuevos
@@ -84,17 +97,22 @@ export function HiloMensajes({
                     <span className="h-px flex-1 bg-primary/40" />
                   </div>
                 )}
-                <div className={cn("flex flex-col", mio ? "items-end" : "items-start")}>
                 <div
                   className={cn(
-                    "max-w-[80%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm",
-                    mio
-                      ? "rounded-br-sm bg-primary text-primary-foreground"
-                      : "rounded-bl-sm bg-muted text-foreground",
+                    "flex flex-col",
+                    mio ? "items-end" : "items-start",
                   )}
                 >
-                  {mensaje.cuerpo}
-                </div>
+                  <div
+                    className={cn(
+                      "max-w-[80%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm",
+                      mio
+                        ? "rounded-br-sm bg-primary text-primary-foreground"
+                        : "rounded-bl-sm bg-muted text-foreground",
+                    )}
+                  >
+                    {mensaje.cuerpo}
+                  </div>
                   <span className="mt-0.5 px-1 text-[10px] text-muted-foreground">
                     {hora(mensaje.creadoEn)}
                   </span>
@@ -111,7 +129,11 @@ export function HiloMensajes({
           rows={1}
           value={borrador}
           disabled={deshabilitado || enviando}
-          placeholder={deshabilitado ? "Seleccioná una conversación" : "Escribí un mensaje…"}
+          placeholder={
+            deshabilitado
+              ? "Seleccioná una conversación"
+              : "Escribí un mensaje…"
+          }
           className="max-h-32 min-h-10 resize-none"
           onChange={(e) => setBorrador(e.target.value)}
           onKeyDown={(e) => {

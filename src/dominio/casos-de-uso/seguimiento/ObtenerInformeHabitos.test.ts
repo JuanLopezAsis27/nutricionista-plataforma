@@ -17,7 +17,10 @@ describe("ObtenerInformeHabitos", () => {
     // Día 1: agua 1500, peso, sin actividad. Día 2: sueño 8 BUENA + 30 min de bici.
     const dia1 = registroDiarioEjemplo(); // aguaMl 1500
     const dia2 = RegistroDiario.reconstruir({
-      ...registroDiarioEjemplo({ fecha: new Date("2026-07-11"), aguaMl: 2500 }, "reg-2").aPrimitivos(),
+      ...registroDiarioEjemplo(
+        { fecha: new Date("2026-07-11"), aguaMl: 2500 },
+        "reg-2",
+      ).aPrimitivos(),
       horasSueno: 8,
       calidadSueno: "BUENA",
       actividades: [
@@ -55,8 +58,8 @@ describe("ObtenerInformeHabitos", () => {
       mockRegistroDiarioRepositorio(),
       mockPacienteRepositorio(),
     );
-    await expect(casoUso.ejecutar("inexistente", desde, hasta)).rejects.toBeInstanceOf(
-      ErrorPacienteNoEncontrado,
-    );
+    await expect(
+      casoUso.ejecutar("inexistente", desde, hasta),
+    ).rejects.toBeInstanceOf(ErrorPacienteNoEncontrado);
   });
 });

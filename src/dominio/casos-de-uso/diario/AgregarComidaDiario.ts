@@ -27,7 +27,10 @@ export class AgregarComidaDiario {
       throw new ErrorPacienteNoEncontrado(pacienteId);
     }
 
-    let registro = await this.registros.obtenerPorPacienteYFecha(pacienteId, fecha);
+    let registro = await this.registros.obtenerPorPacienteYFecha(
+      pacienteId,
+      fecha,
+    );
     if (!registro) {
       registro = await this.registros.crear(
         RegistroDiario.crear({ pacienteId, fecha }, crypto.randomUUID()),
@@ -37,7 +40,10 @@ export class AgregarComidaDiario {
     const comida = RegistroDiario.crearComida(datos, crypto.randomUUID());
     await this.registros.agregarComida(registro.id, comida);
 
-    const actualizado = await this.registros.obtenerPorPacienteYFecha(pacienteId, fecha);
+    const actualizado = await this.registros.obtenerPorPacienteYFecha(
+      pacienteId,
+      fecha,
+    );
     return actualizado ?? registro;
   }
 }

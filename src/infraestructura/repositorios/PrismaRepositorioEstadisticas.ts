@@ -16,7 +16,9 @@ import type {
 export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async obtener(params: ParametrosEstadisticas): Promise<DatosCrudosEstadisticas> {
+  async obtener(
+    params: ParametrosEstadisticas,
+  ): Promise<DatosCrudosEstadisticas> {
     const { desde, hasta, sinActividadDesde, meses } = params;
     const rangoFecha = { gte: desde, lte: hasta };
 
@@ -121,7 +123,10 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
   private async ultimaActividadPorPaciente(): Promise<Map<string, Date>> {
     const [turnos, registros] = await Promise.all([
       this.prisma.turno.groupBy({ by: ["pacienteId"], _max: { fecha: true } }),
-      this.prisma.registroDiario.groupBy({ by: ["pacienteId"], _max: { fecha: true } }),
+      this.prisma.registroDiario.groupBy({
+        by: ["pacienteId"],
+        _max: { fecha: true },
+      }),
     ]);
     const ultima = new Map<string, Date>();
     const registrar = (pacienteId: string, fecha: Date | null): void => {
@@ -137,7 +142,10 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
   /** Pacientes vigentes sin turno NI registro diario desde la fecha umbral. */
   private async contarEnRiesgo(sinActividadDesde: Date): Promise<number> {
     const [activos, conActividad] = await Promise.all([
-      this.prisma.paciente.findMany({ where: { archivadoEn: null }, select: { id: true } }),
+      this.prisma.paciente.findMany({
+        where: { archivadoEn: null },
+        select: { id: true },
+      }),
       this.idsConActividad(sinActividadDesde),
     ]);
     return activos.filter((p) => !conActividad.has(p.id)).length;
@@ -163,11 +171,17 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
   private async sumarIngresos(
     where: Parameters<PrismaClient["turno"]["aggregate"]>[0]["where"],
   ): Promise<number> {
-    const r = await this.prisma.turno.aggregate({ _sum: { precio: true }, where });
+    const r = await this.prisma.turno.aggregate({
+      _sum: { precio: true },
+      where,
+    });
     return r._sum.precio == null ? 0 : Number(r._sum.precio);
   }
 
-  private async serieMensual(hasta: Date, meses: number): Promise<PuntoSerieMensual[]> {
+  private async serieMensual(
+    hasta: Date,
+    meses: number,
+  ): Promise<PuntoSerieMensual[]> {
     const inicio = new Date(
       Date.UTC(hasta.getUTCFullYear(), hasta.getUTCMonth() - (meses - 1), 1),
     );
@@ -179,7 +193,9 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
     // Inicializa cada mes del rango en cero para no dejar huecos en el gráfico.
     const mapa = new Map<string, PuntoSerieMensual>();
     for (let i = 0; i < meses; i += 1) {
-      const d = new Date(Date.UTC(inicio.getUTCFullYear(), inicio.getUTCMonth() + i, 1));
+      const d = new Date(
+        Date.UTC(inicio.getUTCFullYear(), inicio.getUTCMonth() + i, 1),
+      );
       const clave = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
       mapa.set(clave, { mes: clave, total: 0, completados: 0 });
     }

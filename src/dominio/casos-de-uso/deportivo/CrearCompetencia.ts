@@ -1,6 +1,9 @@
 import type { ICompetenciaRepositorio } from "../../repositorios/ICompetenciaRepositorio";
 import type { IPacienteRepositorio } from "../../repositorios/IPacienteRepositorio";
-import { Competencia, type DatosCompetencia } from "../../entidades/Competencia";
+import {
+  Competencia,
+  type DatosCompetencia,
+} from "../../entidades/Competencia";
 import { ErrorPacienteNoEncontrado } from "../../errores/ErrorPacienteNoEncontrado";
 
 /** Caso de uso: agregar una competencia al calendario del paciente. */

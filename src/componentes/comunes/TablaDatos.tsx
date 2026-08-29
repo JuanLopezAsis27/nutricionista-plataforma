@@ -48,7 +48,9 @@ export function TablaDatos<T>({
   onCambiarPagina,
 }: PropsTablaDatos<T>) {
   const hayPaginacion =
-    pagina !== undefined && totalPaginas !== undefined && onCambiarPagina !== undefined;
+    pagina !== undefined &&
+    totalPaginas !== undefined &&
+    onCambiarPagina !== undefined;
 
   return (
     <div className="space-y-4">
@@ -87,10 +89,16 @@ export function TablaDatos<T>({
               datos.map((fila) => (
                 <TableRow key={obtenerClave(fila)}>
                   {columnas.map((columna) => (
-                    <TableCell key={columna.clave} className={columna.className}>
+                    <TableCell
+                      key={columna.clave}
+                      className={columna.className}
+                    >
                       {columna.render
                         ? columna.render(fila)
-                        : String((fila as Record<string, unknown>)[columna.clave] ?? "—")}
+                        : String(
+                            (fila as Record<string, unknown>)[columna.clave] ??
+                              "—",
+                          )}
                     </TableCell>
                   ))}
                 </TableRow>

@@ -54,7 +54,9 @@ export default function PaginaMensajes() {
   }, [pacienteId, cantidad, hilo.data, marcar]);
 
   const conversacionesLista = lista.data ?? [];
-  const seleccionada = conversacionesLista.find((c) => c.pacienteId === pacienteId);
+  const seleccionada = conversacionesLista.find(
+    (c) => c.pacienteId === pacienteId,
+  );
 
   return (
     <div className="flex h-[calc(100vh-8rem)] flex-col">
@@ -78,8 +80,8 @@ export default function PaginaMensajes() {
             </div>
           ) : conversacionesLista.length === 0 ? (
             <p className="p-4 text-sm text-muted-foreground">
-              Todavía no hay conversaciones. Aparecen cuando un paciente escribe o cuando le
-              escribís desde su ficha.
+              Todavía no hay conversaciones. Aparecen cuando un paciente escribe
+              o cuando le escribís desde su ficha.
             </p>
           ) : (
             <ul className="divide-y">
@@ -95,7 +97,9 @@ export default function PaginaMensajes() {
                   >
                     <div className="min-w-0 flex-1">
                       <p className="flex items-center justify-between gap-2 font-medium">
-                        <span className="truncate">{conversacion.pacienteNombre}</span>
+                        <span className="truncate">
+                          {conversacion.pacienteNombre}
+                        </span>
                         {conversacion.ultimoMensajeEn && (
                           <span className="shrink-0 text-[10px] text-muted-foreground">
                             {formatearFecha(conversacion.ultimoMensajeEn)}
@@ -108,7 +112,9 @@ export default function PaginaMensajes() {
                     </div>
                     {conversacion.noLeidos > 0 && (
                       <span className="mt-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
-                        {conversacion.noLeidos > 9 ? "9+" : conversacion.noLeidos}
+                        {conversacion.noLeidos > 9
+                          ? "9+"
+                          : conversacion.noLeidos}
                       </span>
                     )}
                   </button>
@@ -141,10 +147,15 @@ export default function PaginaMensajes() {
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <p className="font-medium">{seleccionada?.pacienteNombre ?? "Paciente"}</p>
+                <p className="font-medium">
+                  {seleccionada?.pacienteNombre ?? "Paciente"}
+                </p>
 
                 <div className="ml-auto flex rounded-md border p-0.5 text-xs">
-                  <BotonCanal activo={canal === "interno"} onClick={() => setCanal("interno")}>
+                  <BotonCanal
+                    activo={canal === "interno"}
+                    onClick={() => setCanal("interno")}
+                  >
                     <MessageSquare className="h-3.5 w-3.5" /> Portal
                   </BotonCanal>
                   <BotonCanal
@@ -157,14 +168,19 @@ export default function PaginaMensajes() {
               </div>
               <div className="min-h-0 flex-1">
                 {canal === "whatsapp" ? (
-                  <HiloWhatsapp key={`wa-${pacienteId}`} pacienteId={pacienteId} />
+                  <HiloWhatsapp
+                    key={`wa-${pacienteId}`}
+                    pacienteId={pacienteId}
+                  />
                 ) : (
                   <HiloMensajes
                     key={pacienteId}
                     mensajes={mensajes}
                     cargando={hilo.isLoading}
                     enviando={enviarA.isPending}
-                    onEnviar={(cuerpo) => enviarA.mutate({ pacienteId, cuerpo })}
+                    onEnviar={(cuerpo) =>
+                      enviarA.mutate({ pacienteId, cuerpo })
+                    }
                   />
                 )}
               </div>

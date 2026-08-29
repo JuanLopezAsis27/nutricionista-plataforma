@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { NIVELES_DEPORTIVOS, FASES_TEMPORADA } from "@/dominio/entidades/PerfilDeportivo";
+import {
+  NIVELES_DEPORTIVOS,
+  FASES_TEMPORADA,
+} from "@/dominio/entidades/PerfilDeportivo";
 import { IMPORTANCIAS_COMPETENCIA } from "@/dominio/entidades/Competencia";
 
 /** DTOs del módulo deportivo (perfil del deportista + calendario de competencias). */
@@ -11,14 +14,22 @@ export const guardarPerfilDeportivoDto = z.object({
   disciplina: z.string().max(80).optional().nullable(),
   nivel: z.enum(NIVELES_DEPORTIVOS).optional(),
   fase: z.enum(FASES_TEMPORADA).optional(),
-  diasEntrenamientoSemana: z.number().int().min(0).max(14).optional().nullable(),
+  diasEntrenamientoSemana: z
+    .number()
+    .int()
+    .min(0)
+    .max(14)
+    .optional()
+    .nullable(),
   horasSemana: z.number().min(0).max(80).optional().nullable(),
   pesoCategoriaKg: z.number().min(20).max(400).optional().nullable(),
   posicion: z.string().max(60).optional().nullable(),
   objetivo: z.string().max(500).optional().nullable(),
   notas: z.string().max(1000).optional().nullable(),
 });
-export type GuardarPerfilDeportivoDto = z.infer<typeof guardarPerfilDeportivoDto>;
+export type GuardarPerfilDeportivoDto = z.infer<
+  typeof guardarPerfilDeportivoDto
+>;
 
 export const perfilDeportivoSalidaDto = z.object({
   id: z.string(),
@@ -75,5 +86,7 @@ export const competenciaSalidaDto = z.object({
 });
 export type CompetenciaSalidaDto = z.infer<typeof competenciaSalidaDto>;
 
-export const idPacienteDeportivoDto = z.object({ pacienteId: z.string().min(1) });
+export const idPacienteDeportivoDto = z.object({
+  pacienteId: z.string().min(1),
+});
 export const idCompetenciaDto = z.object({ id: z.string().min(1) });

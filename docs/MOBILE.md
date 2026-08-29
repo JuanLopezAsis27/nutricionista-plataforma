@@ -11,11 +11,11 @@ por las tiendas). Solo hace falta re-publicar en la tienda si cambiás algo
 
 ## Requisitos
 
-| | iOS | Android |
-|---|---|---|
-| Herramienta | **Xcode** (solo en Mac) | **Android Studio** (Win/Mac/Linux) |
-| Cuenta | Apple Developer (USD 99/año) | Google Play Console (USD 25, único) |
-| Salida | `.ipa` → App Store Connect | `.aab` → Play Console |
+|             | iOS                          | Android                             |
+| ----------- | ---------------------------- | ----------------------------------- |
+| Herramienta | **Xcode** (solo en Mac)      | **Android Studio** (Win/Mac/Linux)  |
+| Cuenta      | Apple Developer (USD 99/año) | Google Play Console (USD 25, único) |
+| Salida      | `.ipa` → App Store Connect   | `.aab` → Play Console               |
 
 ## Preparar el proyecto (una vez)
 
@@ -79,7 +79,7 @@ Scripts disponibles: `cap:add:android` / `cap:add:ios`, `cap:sync`, `cap:copy`,
 ## iOS → App Store
 
 1. `npx cap open ios` (abre Xcode).
-2. En **Signing & Capabilities**: elegí tu *Team* (Apple Developer); Xcode firma solo.
+2. En **Signing & Capabilities**: elegí tu _Team_ (Apple Developer); Xcode firma solo.
 3. Subí el número de versión/build; elegí "Any iOS Device".
 4. **Product → Archive** → cuando termina, **Distribute App → App Store Connect → Upload**.
 5. En [App Store Connect](https://appstoreconnect.apple.com): completá ficha

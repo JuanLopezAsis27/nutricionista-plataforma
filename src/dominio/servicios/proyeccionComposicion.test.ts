@@ -552,10 +552,9 @@ describe("proyectarPlieguesParaMeta", () => {
         CONTEXTO,
       )!;
 
-      expect(valorTrasAplicar(p, (r) => r.fraccionamiento?.adiposa.kg ?? null)).toBeCloseTo(
-        14,
-        1,
-      );
+      expect(
+        valorTrasAplicar(p, (r) => r.fraccionamiento?.adiposa.kg ?? null),
+      ).toBeCloseTo(14, 1);
     });
 
     it("también con la masa adiposa en porcentaje", () => {
@@ -570,7 +569,10 @@ describe("proyectarPlieguesParaMeta", () => {
       )!;
 
       expect(
-        valorTrasAplicar(p, (r) => r.fraccionamiento?.adiposa.porcentaje ?? null),
+        valorTrasAplicar(
+          p,
+          (r) => r.fraccionamiento?.adiposa.porcentaje ?? null,
+        ),
       ).toBeCloseTo(16, 1);
     });
 
@@ -601,8 +603,9 @@ describe("proyectarPlieguesParaMeta", () => {
       const obtenido = valorTrasAplicar(
         p,
         (r) =>
-          r.grasaPorPliegues.resultados.find((x) => x.metodo === "YUHASZ_CARTER")
-            ?.porcentajeGrasa ?? null,
+          r.grasaPorPliegues.resultados.find(
+            (x) => x.metodo === "YUHASZ_CARTER",
+          )?.porcentajeGrasa ?? null,
       );
       expect(obtenido).toBeCloseTo(9, 1);
     });
@@ -625,7 +628,11 @@ describe("proyectarPlieguesParaMeta", () => {
 
   it("mantiene el reparto proporcional entre sitios", () => {
     const p = proyectarPlieguesParaMeta(
-      { variable: "SUMATORIA_6_PLIEGUES", metodoGrasa: null, valorObjetivo: 34 },
+      {
+        variable: "SUMATORIA_6_PLIEGUES",
+        metodoGrasa: null,
+        valorObjetivo: 34,
+      },
       MEDIDAS,
       CONTEXTO,
     )!;

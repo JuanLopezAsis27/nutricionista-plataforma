@@ -100,13 +100,17 @@ export function SidebarNav({
               )}
             >
               <Icono className="h-4 w-4 shrink-0" />
-              {conEtiquetas && <span className="flex-1 truncate">{enlace.etiqueta}</span>}
+              {conEtiquetas && (
+                <span className="flex-1 truncate">{enlace.etiqueta}</span>
+              )}
               {tieneBadge &&
                 (conEtiquetas ? (
                   <span
                     className={cn(
                       "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
-                      activo ? "bg-background text-foreground" : "bg-primary text-primary-foreground",
+                      activo
+                        ? "bg-background text-foreground"
+                        : "bg-primary text-primary-foreground",
                     )}
                   >
                     {enlace.badge! > 9 ? "9+" : enlace.badge}
@@ -130,7 +134,10 @@ export function SidebarNav({
     return (
       <div className={cn("space-y-2 border-t p-3", !conEtiquetas && "px-2")}>
         {conEtiquetas && (
-          <p className="truncate px-3 text-xs text-muted-foreground" title={email}>
+          <p
+            className="truncate px-3 text-xs text-muted-foreground"
+            title={email}
+          >
             {email}
           </p>
         )}

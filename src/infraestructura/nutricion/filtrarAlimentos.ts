@@ -15,7 +15,8 @@ export function filtrarAlimentos(
   if (!criterio) return alimentos;
 
   return alimentos.filter((a) => {
-    if (criterio.excluirMarcas && a.marca && a.marca.trim() !== "") return false;
+    if (criterio.excluirMarcas && a.marca && a.marca.trim() !== "")
+      return false;
     if (criterio.requiereMacros && !macrosCompletos(a)) return false;
     if (
       criterio.maxCaloriasPor100 != null &&

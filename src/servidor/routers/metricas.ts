@@ -1,4 +1,8 @@
-import { crearRouter, nutricionistaProcedimiento, protegidoProcedimiento } from "../trpc";
+import {
+  crearRouter,
+  nutricionistaProcedimiento,
+  protegidoProcedimiento,
+} from "../trpc";
 import { pacienteDeSesion } from "@/dominio/servicios/politicaAcceso";
 import {
   importarMetricasDto,
@@ -18,13 +22,22 @@ export const routerMetricas = crearRouter({
   importar: protegidoProcedimiento
     .input(importarMetricasDto)
     .mutation(async ({ ctx, input }) => {
-      const importadas = await ctx.servicios.metricas.importar(pacienteDeSesion(ctx.usuario), input);
+      const importadas = await ctx.servicios.metricas.importar(
+        pacienteDeSesion(ctx.usuario),
+        input,
+      );
       return { importadas };
     }),
 
-  mias: protegidoProcedimiento.input(rangoMetricasDto).query(async ({ ctx, input }) => {
-    return await ctx.servicios.metricas.listar(pacienteDeSesion(ctx.usuario), input.desde, input.hasta);
-  }),
+  mias: protegidoProcedimiento
+    .input(rangoMetricasDto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.metricas.listar(
+        pacienteDeSesion(ctx.usuario),
+        input.desde,
+        input.hasta,
+      );
+    }),
 
   fijarInclusion: protegidoProcedimiento
     .input(fijarInclusionDto)
@@ -41,6 +54,10 @@ export const routerMetricas = crearRouter({
   dePaciente: nutricionistaProcedimiento
     .input(rangoMetricasDePacienteDto)
     .query(async ({ ctx, input }) => {
-      return await ctx.servicios.metricas.listar(input.pacienteId, input.desde, input.hasta);
+      return await ctx.servicios.metricas.listar(
+        input.pacienteId,
+        input.desde,
+        input.hasta,
+      );
     }),
 });

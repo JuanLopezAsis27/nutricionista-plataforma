@@ -7,7 +7,9 @@ import { ErrorAntropometriaNoEncontrada } from "../../errores/ErrorAntropometria
 import { ErrorAntropometriaDuplicada } from "../../errores/ErrorAntropometriaDuplicada";
 
 /** Cambios aplicables a una medición existente. */
-export type CambiosAntropometria = Partial<Omit<DatosNuevaAntropometria, "pacienteId">>;
+export type CambiosAntropometria = Partial<
+  Omit<DatosNuevaAntropometria, "pacienteId">
+>;
 
 /**
  * Caso de uso: corregir una medición antropométrica existente.
@@ -16,7 +18,10 @@ export type CambiosAntropometria = Partial<Omit<DatosNuevaAntropometria, "pacien
 export class ActualizarAntropometria {
   constructor(private readonly antropometrias: IAntropometriaRepositorio) {}
 
-  async ejecutar(id: string, cambios: CambiosAntropometria): Promise<Antropometria> {
+  async ejecutar(
+    id: string,
+    cambios: CambiosAntropometria,
+  ): Promise<Antropometria> {
     const existente = await this.antropometrias.obtenerPorId(id);
     if (!existente) {
       throw new ErrorAntropometriaNoEncontrada(id);

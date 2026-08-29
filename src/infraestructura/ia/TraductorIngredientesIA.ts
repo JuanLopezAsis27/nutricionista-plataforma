@@ -57,7 +57,9 @@ export class TraductorIngredientesIA implements ITraductorIngredientes {
 
     const faltan = [
       ...new Set(
-        nombres.map((n) => n.trim()).filter((n) => n && !this.cacheEs.has(n.toLowerCase())),
+        nombres
+          .map((n) => n.trim())
+          .filter((n) => n && !this.cacheEs.has(n.toLowerCase())),
       ),
     ];
 
@@ -76,7 +78,8 @@ export class TraductorIngredientesIA implements ITraductorIngredientes {
         const trad = datos.traducciones ?? [];
         faltan.forEach((n, i) => {
           const t = trad[i];
-          if (typeof t === "string" && t.trim()) this.cacheEs.set(n.toLowerCase(), t.trim());
+          if (typeof t === "string" && t.trim())
+            this.cacheEs.set(n.toLowerCase(), t.trim());
         });
       } catch {
         // Dejamos los nombres en inglés si algo falla.

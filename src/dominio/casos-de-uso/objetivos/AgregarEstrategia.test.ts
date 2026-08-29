@@ -35,7 +35,11 @@ describe("AgregarEstrategia", () => {
     const casoUso = new AgregarEstrategia(objetivos);
 
     await expect(
-      casoUso.ejecutar({ objetivoId: "obj-1", descripcion: "Caminar 30 min", motivo: "  " }),
+      casoUso.ejecutar({
+        objetivoId: "obj-1",
+        descripcion: "Caminar 30 min",
+        motivo: "  ",
+      }),
     ).rejects.toBeInstanceOf(ErrorValidacion);
     expect(objetivos.agregarEstrategia).not.toHaveBeenCalled();
   });

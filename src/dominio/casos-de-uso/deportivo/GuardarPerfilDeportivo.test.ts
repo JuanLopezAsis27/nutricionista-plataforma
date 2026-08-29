@@ -21,7 +21,11 @@ describe("GuardarPerfilDeportivo", () => {
     });
     const uc = new GuardarPerfilDeportivo(perfiles, pacientes);
 
-    const perfil = await uc.ejecutar({ pacienteId: "pac-1", deporte: "Boxeo", nivel: "AMATEUR" });
+    const perfil = await uc.ejecutar({
+      pacienteId: "pac-1",
+      deporte: "Boxeo",
+      nivel: "AMATEUR",
+    });
 
     expect(perfil).toBeInstanceOf(PerfilDeportivo);
     expect(guardar).toHaveBeenCalledOnce();
@@ -40,7 +44,11 @@ describe("GuardarPerfilDeportivo", () => {
     });
     const uc = new GuardarPerfilDeportivo(perfiles, pacientes);
 
-    await uc.ejecutar({ pacienteId: "pac-1", deporte: "Fútbol", nivel: "ELITE" });
+    await uc.ejecutar({
+      pacienteId: "pac-1",
+      deporte: "Fútbol",
+      nivel: "ELITE",
+    });
 
     const guardado = guardar.mock.calls[0]![0].aPrimitivos();
     expect(guardado.id).toBe("dep-9"); // conserva el id existente
@@ -50,7 +58,9 @@ describe("GuardarPerfilDeportivo", () => {
 
   it("falla si el paciente no es del inquilino (guard)", async () => {
     const perfiles = mockPerfilDeportivoRepositorio();
-    const pacientes = mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => null) });
+    const pacientes = mockPacienteRepositorio({
+      obtenerPorId: vi.fn(async () => null),
+    });
     const uc = new GuardarPerfilDeportivo(perfiles, pacientes);
 
     await expect(

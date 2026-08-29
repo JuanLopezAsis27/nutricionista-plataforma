@@ -26,12 +26,19 @@ export default function PaginaBiblioteca() {
   const [busqueda, setBusqueda] = useState("");
   const [pagina, setPagina] = useState(1);
   const debounced = useDebounce(busqueda, 300);
-  const consulta = listarPaginado({ texto: debounced || undefined, pagina, porPagina: 10 });
+  const consulta = listarPaginado({
+    texto: debounced || undefined,
+    pagina,
+    porPagina: 10,
+  });
 
   const [formAbierto, setFormAbierto] = useState(false);
-  const [materialEditar, setMaterialEditar] = useState<MaterialSalidaDto | null>(null);
-  const [materialCompartir, setMaterialCompartir] = useState<MaterialSalidaDto | null>(null);
-  const [materialEliminar, setMaterialEliminar] = useState<MaterialSalidaDto | null>(null);
+  const [materialEditar, setMaterialEditar] =
+    useState<MaterialSalidaDto | null>(null);
+  const [materialCompartir, setMaterialCompartir] =
+    useState<MaterialSalidaDto | null>(null);
+  const [materialEliminar, setMaterialEliminar] =
+    useState<MaterialSalidaDto | null>(null);
 
   const materiales = consulta.data?.materiales ?? [];
 
@@ -64,7 +71,9 @@ export default function PaginaBiblioteca() {
       {consulta.isLoading ? (
         <Skeleton className="h-48 w-full" />
       ) : consulta.isError ? (
-        <p className="text-sm text-destructive">No se pudo cargar la biblioteca.</p>
+        <p className="text-sm text-destructive">
+          No se pudo cargar la biblioteca.
+        </p>
       ) : materiales.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           {debounced
@@ -123,7 +132,9 @@ export default function PaginaBiblioteca() {
       <Dialog open={formAbierto} onOpenChange={setFormAbierto}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{materialEditar ? "Editar material" : "Nuevo material"}</DialogTitle>
+            <DialogTitle>
+              {materialEditar ? "Editar material" : "Nuevo material"}
+            </DialogTitle>
           </DialogHeader>
           <FormularioMaterial
             materialInicial={materialEditar}
@@ -141,7 +152,9 @@ export default function PaginaBiblioteca() {
           <DialogHeader>
             <DialogTitle>Compartir «{materialCompartir?.titulo}»</DialogTitle>
           </DialogHeader>
-          {materialCompartir && <CompartirMaterial materialId={materialCompartir.id} />}
+          {materialCompartir && (
+            <CompartirMaterial materialId={materialCompartir.id} />
+          )}
         </DialogContent>
       </Dialog>
 
@@ -150,7 +163,9 @@ export default function PaginaBiblioteca() {
         abierto={Boolean(materialEliminar)}
         titulo="Eliminar material"
         descripcion={`¿Eliminar «${materialEliminar?.titulo}» de la biblioteca?${
-          materialEliminar?.tipo === "ARCHIVO" ? " Se borra también el archivo." : ""
+          materialEliminar?.tipo === "ARCHIVO"
+            ? " Se borra también el archivo."
+            : ""
         }`}
         cargando={eliminar.isPending}
         onCancelar={() => setMaterialEliminar(null)}

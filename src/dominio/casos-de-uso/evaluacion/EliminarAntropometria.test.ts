@@ -1,7 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { EliminarAntropometria } from "./EliminarAntropometria";
 import { ErrorAntropometriaNoEncontrada } from "../../errores/ErrorAntropometriaNoEncontrada";
-import { mockAntropometriaRepositorio, antropometriaEjemplo } from "../_ayudas-test";
+import {
+  mockAntropometriaRepositorio,
+  antropometriaEjemplo,
+} from "../_ayudas-test";
 
 describe("EliminarAntropometria", () => {
   it("elimina la medición existente", async () => {

@@ -35,7 +35,10 @@ export class ProveedorOpenFoodFacts implements IProveedorDatosNutricionales {
 
     const url = this.construirUrl(consulta, limite);
     const controlador = new AbortController();
-    const temporizador = setTimeout(() => controlador.abort(), TIEMPO_LIMITE_MS);
+    const temporizador = setTimeout(
+      () => controlador.abort(),
+      TIEMPO_LIMITE_MS,
+    );
     try {
       const respuesta = await fetch(url, {
         method: "GET",
@@ -68,7 +71,8 @@ export class ProveedorOpenFoodFacts implements IProveedorDatosNutricionales {
       action: "process",
       json: "1",
       page_size: String(Math.min(Math.max(limite, 1), 25)),
-      fields: "product_name,product_name_es,generic_name,generic_name_es,brands,code,nutriments",
+      fields:
+        "product_name,product_name_es,generic_name,generic_name_es,brands,code,nutriments",
     });
     return `${this.config.baseUrl}/cgi/search.pl?${params.toString()}`;
   }

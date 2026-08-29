@@ -35,9 +35,10 @@ export function useEvaluacion() {
     registrarAntropometria: trpc.evaluacion.registrarAntropometria.useMutation(
       conToasts("Medición registrada."),
     ),
-    actualizarAntropometria: trpc.evaluacion.actualizarAntropometria.useMutation(
-      conToasts("Medición actualizada."),
-    ),
+    actualizarAntropometria:
+      trpc.evaluacion.actualizarAntropometria.useMutation(
+        conToasts("Medición actualizada."),
+      ),
     eliminarAntropometria: trpc.evaluacion.eliminarAntropometria.useMutation(
       conToasts("Medición eliminada."),
     ),

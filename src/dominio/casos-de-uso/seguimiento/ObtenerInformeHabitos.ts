@@ -24,7 +24,11 @@ export class ObtenerInformeHabitos {
     private readonly pacientes: IPacienteRepositorio,
   ) {}
 
-  async ejecutar(pacienteId: string, desde: Date, hasta: Date): Promise<InformeHabitos> {
+  async ejecutar(
+    pacienteId: string,
+    desde: Date,
+    hasta: Date,
+  ): Promise<InformeHabitos> {
     const paciente = await this.pacientes.obtenerPorId(pacienteId);
     if (!paciente) {
       throw new ErrorPacienteNoEncontrado(pacienteId);
@@ -34,7 +38,11 @@ export class ObtenerInformeHabitos {
 
     const conAgua: number[] = [];
     const conSueno: number[] = [];
-    const calidadSueno: Record<CalidadSueno, number> = { MALA: 0, REGULAR: 0, BUENA: 0 };
+    const calidadSueno: Record<CalidadSueno, number> = {
+      MALA: 0,
+      REGULAR: 0,
+      BUENA: 0,
+    };
     let diasConActividad = 0;
     let minutosActividadTotal = 0;
     let comidasRegistradas = 0;
@@ -55,7 +63,9 @@ export class ObtenerInformeHabitos {
     const promedio = (valores: number[]): number | null =>
       valores.length === 0
         ? null
-        : Math.round((valores.reduce((a, b) => a + b, 0) / valores.length) * 10) / 10;
+        : Math.round(
+            (valores.reduce((a, b) => a + b, 0) / valores.length) * 10,
+          ) / 10;
 
     return {
       diasEnRango: Math.round((hasta.getTime() - desde.getTime()) / DIA_MS) + 1,

@@ -78,7 +78,9 @@ export class PrismaRepositorioAlertaSeguimiento implements IAlertaSeguimientoRep
   }
 
   async contarPendientes(): Promise<number> {
-    return this.prisma.alertaSeguimiento.count({ where: { estado: "PENDIENTE" } });
+    return this.prisma.alertaSeguimiento.count({
+      where: { estado: "PENDIENTE" },
+    });
   }
 
   private mapear(fila: AlertaConPaciente): AlertaSeguimiento {

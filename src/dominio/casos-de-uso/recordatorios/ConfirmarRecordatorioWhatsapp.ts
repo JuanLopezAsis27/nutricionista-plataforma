@@ -13,7 +13,9 @@ import { ErrorRecordatorioNoEncontrado } from "../../errores/ErrorRecordatorioNo
  * respuesta del paciente.
  */
 export class ConfirmarRecordatorioWhatsapp {
-  constructor(private readonly recordatorios: IRecordatorioWhatsappRepositorio) {}
+  constructor(
+    private readonly recordatorios: IRecordatorioWhatsappRepositorio,
+  ) {}
 
   async ejecutar(id: string, enviado: boolean): Promise<RecordatorioWhatsapp> {
     const recordatorio = await this.recordatorios.obtenerPorId(id);
@@ -21,7 +23,9 @@ export class ConfirmarRecordatorioWhatsapp {
       throw new ErrorRecordatorioNoEncontrado(id);
     }
     // La entidad impide re-resolver uno ya confirmado o descartado.
-    const resuelto = enviado ? recordatorio.confirmarEnvio() : recordatorio.descartar();
+    const resuelto = enviado
+      ? recordatorio.confirmarEnvio()
+      : recordatorio.descartar();
     return this.recordatorios.actualizar(resuelto);
   }
 }

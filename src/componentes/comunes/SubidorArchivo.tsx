@@ -38,22 +38,32 @@ export function SubidorArchivo({
   const inputRef = useRef<HTMLInputElement>(null);
   const { subir, subiendo } = useSubirArchivo();
   const [arrastrando, setArrastrando] = useState(false);
-  const [vistaPrevia, setVistaPrevia] = useState<{ nombre: string; url: string | null } | null>(
-    null,
-  );
+  const [vistaPrevia, setVistaPrevia] = useState<{
+    nombre: string;
+    url: string | null;
+  } | null>(null);
 
   async function manejarArchivo(archivo: File) {
     setVistaPrevia({
       nombre: archivo.name,
-      url: archivo.type.startsWith("image/") ? URL.createObjectURL(archivo) : null,
+      url: archivo.type.startsWith("image/")
+        ? URL.createObjectURL(archivo)
+        : null,
     });
     try {
-      const subido = await subir(archivo, { contexto, titulo, categoria, pacienteId });
+      const subido = await subir(archivo, {
+        contexto,
+        titulo,
+        categoria,
+        pacienteId,
+      });
       onSubido(subido);
       toast.success(`"${archivo.name}" subido correctamente.`);
     } catch (error) {
       setVistaPrevia(null);
-      toast.error(error instanceof Error ? error.message : "No se pudo subir el archivo.");
+      toast.error(
+        error instanceof Error ? error.message : "No se pudo subir el archivo.",
+      );
     }
   }
 
@@ -80,7 +90,9 @@ export function SubidorArchivo({
         onDrop={alSoltar}
         className={cn(
           "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors",
-          arrastrando ? "border-primary bg-accent" : "border-input hover:border-primary/50",
+          arrastrando
+            ? "border-primary bg-accent"
+            : "border-input hover:border-primary/50",
         )}
       >
         {subiendo ? (

@@ -83,7 +83,10 @@ describe("ProveedorNutricionHTTP", () => {
   });
 
   it("cae al respaldo si el servicio responde no-OK", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, json: async () => ({}) })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, json: async () => ({}) })),
+    );
     const respaldo = respaldoQueDevuelve("OFF");
     const p = new ProveedorNutricionHTTP(config, respaldo);
 

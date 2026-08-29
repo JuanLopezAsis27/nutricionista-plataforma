@@ -1,4 +1,8 @@
-import { crearRouter, nutricionistaProcedimiento, protegidoProcedimiento } from "../trpc";
+import {
+  crearRouter,
+  nutricionistaProcedimiento,
+  protegidoProcedimiento,
+} from "../trpc";
 import { pacienteDeSesion } from "@/dominio/servicios/politicaAcceso";
 import {
   enviarMensajeNutriDto,
@@ -41,13 +45,18 @@ export const routerMensajeria = crearRouter({
   marcarLeidosDe: nutricionistaProcedimiento
     .input(pacienteObjetivoDto)
     .mutation(async ({ ctx, input }) => {
-      await ctx.servicios.mensajeria.marcarLeidos(input.pacienteId, ctx.usuario.id);
+      await ctx.servicios.mensajeria.marcarLeidos(
+        input.pacienteId,
+        ctx.usuario.id,
+      );
       return { ok: true };
     }),
 
   // --- Portal del paciente -------------------------------------------------
   miHilo: protegidoProcedimiento.query(async ({ ctx }) => {
-    return await ctx.servicios.mensajeria.abrirHilo(pacienteDeSesion(ctx.usuario));
+    return await ctx.servicios.mensajeria.abrirHilo(
+      pacienteDeSesion(ctx.usuario),
+    );
   }),
 
   misNoLeidos: protegidoProcedimiento.query(async ({ ctx }) => {

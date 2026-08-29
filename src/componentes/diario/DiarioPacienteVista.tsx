@@ -9,9 +9,18 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useDiario } from "@/lib/hooks/useDiario";
-import { formatearFechaLarga, formatearNumero, hoyLocalISO } from "@/lib/formato";
+import {
+  formatearFechaLarga,
+  formatearNumero,
+  hoyLocalISO,
+} from "@/lib/formato";
 import { Skeleton } from "@/componentes/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 
 const DIAS_VISTA = 14;
 
@@ -25,7 +34,9 @@ export function DiarioPacienteVista({ pacienteId }: { pacienteId: string }) {
   // Fechas ancladas al día (no `new Date()` por render: cambiaría la clave
   // de la query en cada render y la consulta quedaría cargando para siempre).
   const hasta = new Date(hoyLocalISO());
-  const desde = new Date(hasta.getTime() - (DIAS_VISTA - 1) * 24 * 60 * 60 * 1000);
+  const desde = new Date(
+    hasta.getTime() - (DIAS_VISTA - 1) * 24 * 60 * 60 * 1000,
+  );
   const registros = obtenerRango({ pacienteId, desde, hasta });
 
   if (registros.isLoading) {
@@ -56,7 +67,8 @@ export function DiarioPacienteVista({ pacienteId }: { pacienteId: string }) {
               <span className="flex flex-wrap gap-3 text-xs font-normal normal-case text-muted-foreground">
                 {dia.pesoKg != null && (
                   <span className="inline-flex items-center gap-1">
-                    <Scale className="h-3.5 w-3.5" /> {formatearNumero(dia.pesoKg)} kg
+                    <Scale className="h-3.5 w-3.5" />{" "}
+                    {formatearNumero(dia.pesoKg)} kg
                   </span>
                 )}
                 {dia.aguaMl != null && (
@@ -66,8 +78,11 @@ export function DiarioPacienteVista({ pacienteId }: { pacienteId: string }) {
                 )}
                 {dia.horasSueno != null && (
                   <span className="inline-flex items-center gap-1">
-                    <Moon className="h-3.5 w-3.5" /> {formatearNumero(dia.horasSueno)} h
-                    {dia.calidadSueno ? ` (${dia.calidadSueno.toLowerCase()})` : ""}
+                    <Moon className="h-3.5 w-3.5" />{" "}
+                    {formatearNumero(dia.horasSueno)} h
+                    {dia.calidadSueno
+                      ? ` (${dia.calidadSueno.toLowerCase()})`
+                      : ""}
                   </span>
                 )}
               </span>
@@ -120,7 +135,9 @@ export function DiarioPacienteVista({ pacienteId }: { pacienteId: string }) {
               </div>
             )}
             {dia.notas && (
-              <p className="text-xs text-muted-foreground">Notas: {dia.notas}</p>
+              <p className="text-xs text-muted-foreground">
+                Notas: {dia.notas}
+              </p>
             )}
           </CardContent>
         </Card>

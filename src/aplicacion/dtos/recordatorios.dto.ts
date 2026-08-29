@@ -280,7 +280,9 @@ export const recordatorioPendienteSalidaDto = z.object({
   enlace: z.string(),
   abiertoEn: z.date(),
 });
-export type RecordatorioPendienteSalidaDto = z.infer<typeof recordatorioPendienteSalidaDto>;
+export type RecordatorioPendienteSalidaDto = z.infer<
+  typeof recordatorioPendienteSalidaDto
+>;
 
 export const confirmarEnvioDto = z.object({
   recordatorioId: z.string().min(1),

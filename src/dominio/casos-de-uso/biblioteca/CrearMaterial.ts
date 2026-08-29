@@ -20,7 +20,9 @@ export class CrearMaterial {
 
   async ejecutar(datos: DatosCrearMaterial): Promise<MaterialBiblioteca> {
     if (datos.tipo === "ARCHIVO" && !datos.archivoId?.trim()) {
-      throw new ErrorValidacion("El material de tipo archivo necesita un archivo subido.");
+      throw new ErrorValidacion(
+        "El material de tipo archivo necesita un archivo subido.",
+      );
     }
     const material = MaterialBiblioteca.crear(datos, crypto.randomUUID());
     return this.materiales.crear(

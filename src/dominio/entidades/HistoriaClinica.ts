@@ -48,7 +48,9 @@ export class HistoriaClinica {
     ahora: Date = new Date(),
   ): HistoriaClinica {
     if (!datos.pacienteId?.trim()) {
-      throw new ErrorValidacion("La historia clínica debe pertenecer a un paciente.");
+      throw new ErrorValidacion(
+        "La historia clínica debe pertenecer a un paciente.",
+      );
     }
 
     const campos = normalizarCampos(datos);
@@ -76,7 +78,11 @@ export class HistoriaClinica {
     ahora: Date = new Date(),
   ): HistoriaClinica {
     return HistoriaClinica.crear(
-      { pacienteId: this.props.pacienteId, ...camposDe(this.props), ...cambios },
+      {
+        pacienteId: this.props.pacienteId,
+        ...camposDe(this.props),
+        ...cambios,
+      },
       this.props.id,
       ahora,
     );
@@ -97,7 +103,9 @@ export class HistoriaClinica {
   }
 }
 
-function normalizarCampos(datos: Partial<CamposHistoriaClinica>): CamposHistoriaClinica {
+function normalizarCampos(
+  datos: Partial<CamposHistoriaClinica>,
+): CamposHistoriaClinica {
   const resultado = {} as CamposHistoriaClinica;
   for (const campo of CAMPOS_CONTENIDO) {
     resultado[campo] = datos[campo]?.trim() || null;

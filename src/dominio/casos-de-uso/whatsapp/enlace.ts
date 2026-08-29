@@ -6,6 +6,9 @@
  * Lo usa también el cliente, para rearmar el enlace si el profesional edita el
  * texto en la vista previa.
  */
-export function construirEnlaceWhatsapp(telefonoE164: string, texto: string): string {
+export function construirEnlaceWhatsapp(
+  telefonoE164: string,
+  texto: string,
+): string {
   return `https://wa.me/${telefonoE164}?text=${encodeURIComponent(texto)}`;
 }

@@ -19,7 +19,10 @@ import { ListarConsultasIA } from "@/dominio/casos-de-uso/ia/ListarConsultasIA";
 import { ObtenerInsightsPredictivos } from "@/dominio/casos-de-uso/ia/ObtenerInsightsPredictivos";
 import { AnalizarConAsistente } from "@/dominio/casos-de-uso/ia/AnalizarConAsistente";
 import { RegistrarRetroalimentacionInsight } from "@/dominio/casos-de-uso/ia/RegistrarRetroalimentacionInsight";
-import { ServicioIA, type EstadoIADeps } from "@/aplicacion/servicios/ServicioIA";
+import {
+  ServicioIA,
+  type EstadoIADeps,
+} from "@/aplicacion/servicios/ServicioIA";
 
 /** Arma el servicio de IA (adaptadores Claude/ML con degradación a stub). */
 export function crearServicioIA(deps: {
@@ -65,7 +68,10 @@ export function crearServicioIA(deps: {
       deps.alertas,
       deps.asistenteAnalitico,
     ),
-    new RegistrarRetroalimentacionInsight(deps.retroalimentacion, deps.pacientes),
+    new RegistrarRetroalimentacionInsight(
+      deps.retroalimentacion,
+      deps.pacientes,
+    ),
     deps.estado,
   );
 }

@@ -1,4 +1,7 @@
-import type { PrismaClient, HistoriaClinica as HistoriaFila } from "@prisma/client";
+import type {
+  PrismaClient,
+  HistoriaClinica as HistoriaFila,
+} from "@prisma/client";
 import type { IHistoriaClinicaRepositorio } from "@/dominio/repositorios/IHistoriaClinicaRepositorio";
 import { HistoriaClinica } from "@/dominio/entidades/HistoriaClinica";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
@@ -18,7 +21,9 @@ export class PrismaRepositorioHistoriaClinica implements IHistoriaClinicaReposit
     return this.mapear(fila);
   }
 
-  async obtenerPorPaciente(pacienteId: string): Promise<HistoriaClinica | null> {
+  async obtenerPorPaciente(
+    pacienteId: string,
+  ): Promise<HistoriaClinica | null> {
     const fila = await this.prisma.historiaClinica.findUnique({
       where: { pacienteId },
     });

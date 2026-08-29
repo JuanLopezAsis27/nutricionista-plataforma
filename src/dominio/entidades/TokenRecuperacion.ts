@@ -29,7 +29,11 @@ export interface PropiedadesTokenRecuperacion {
 export class TokenRecuperacion {
   private constructor(private readonly props: PropiedadesTokenRecuperacion) {}
 
-  static crear(datos: DatosNuevoToken, id: string, ahora: Date = new Date()): TokenRecuperacion {
+  static crear(
+    datos: DatosNuevoToken,
+    id: string,
+    ahora: Date = new Date(),
+  ): TokenRecuperacion {
     if (!datos.usuarioId) {
       throw new ErrorValidacion("El token debe pertenecer a un usuario.");
     }
@@ -55,7 +59,10 @@ export class TokenRecuperacion {
 
   /** Un token es utilizable si no fue usado y no venció. */
   estaVigente(ahora: Date = new Date()): boolean {
-    return this.props.usadoEn === null && this.props.expiraEn.getTime() > ahora.getTime();
+    return (
+      this.props.usadoEn === null &&
+      this.props.expiraEn.getTime() > ahora.getTime()
+    );
   }
 
   get id(): string {

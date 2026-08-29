@@ -1,10 +1,15 @@
 import type { ISuplementoRepositorio } from "../../repositorios/ISuplementoRepositorio";
-import type { Suplemento, DatosNuevoSuplemento } from "../../entidades/Suplemento";
+import type {
+  Suplemento,
+  DatosNuevoSuplemento,
+} from "../../entidades/Suplemento";
 import { ErrorSuplementoNoEncontrado } from "../../errores/ErrorSuplementoNoEncontrado";
 
 /** Datos de entrada: id + cambios (incluye activar/desactivar). */
-export interface DatosActualizarSuplemento
-  extends Omit<DatosNuevoSuplemento, "pacienteId"> {
+export interface DatosActualizarSuplemento extends Omit<
+  DatosNuevoSuplemento,
+  "pacienteId"
+> {
   id: string;
 }
 

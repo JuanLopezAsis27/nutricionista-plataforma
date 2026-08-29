@@ -6,5 +6,8 @@ export interface IHistorialIARepositorio {
   guardarConsulta(consulta: ConsultaIA): Promise<void>;
   listarConsultas(pacienteId: string, limite?: number): Promise<ConsultaIA[]>;
   guardarAnalisis(analisis: AnalisisComida): Promise<void>;
-  listarAnalisis(pacienteId: string, limite?: number): Promise<AnalisisComida[]>;
+  listarAnalisis(
+    pacienteId: string,
+    limite?: number,
+  ): Promise<AnalisisComida[]>;
 }

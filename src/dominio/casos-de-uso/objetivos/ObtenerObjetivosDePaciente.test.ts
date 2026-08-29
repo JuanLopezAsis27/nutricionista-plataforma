@@ -29,6 +29,8 @@ describe("ObtenerObjetivosDePaciente", () => {
       mockObjetivoRepositorio(),
       mockPacienteRepositorio(),
     );
-    await expect(casoUso.ejecutar("nadie")).rejects.toBeInstanceOf(ErrorPacienteNoEncontrado);
+    await expect(casoUso.ejecutar("nadie")).rejects.toBeInstanceOf(
+      ErrorPacienteNoEncontrado,
+    );
   });
 });

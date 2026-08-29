@@ -11,7 +11,11 @@ import type {
 export class ServicioTracking {
   constructor(private readonly obtenerUC: ObtenerTrackingDePaciente) {}
 
-  obtener(pacienteId: string, desde: Date, hasta: Date): Promise<TrackingPaciente> {
+  obtener(
+    pacienteId: string,
+    desde: Date,
+    hasta: Date,
+  ): Promise<TrackingPaciente> {
     return this.obtenerUC.ejecutar(pacienteId, desde, hasta);
   }
 }

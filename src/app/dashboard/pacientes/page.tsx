@@ -15,7 +15,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/componentes/ui/dialog";
-import { TablaDatos, type ColumnaTabla } from "@/componentes/comunes/TablaDatos";
+import {
+  TablaDatos,
+  type ColumnaTabla,
+} from "@/componentes/comunes/TablaDatos";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { FormularioPaciente } from "@/componentes/pacientes/FormularioPaciente";
 
@@ -29,8 +32,10 @@ export default function PaginaPacientes() {
   const busquedaDebounced = useDebounce(busqueda, 300);
 
   const [formAbierto, setFormAbierto] = useState(false);
-  const [pacienteEditar, setPacienteEditar] = useState<PacienteSalidaDto | null>(null);
-  const [pacienteEliminar, setPacienteEliminar] = useState<PacienteSalidaDto | null>(null);
+  const [pacienteEditar, setPacienteEditar] =
+    useState<PacienteSalidaDto | null>(null);
+  const [pacienteEliminar, setPacienteEliminar] =
+    useState<PacienteSalidaDto | null>(null);
 
   const consulta = listar({
     pagina,
@@ -59,7 +64,11 @@ export default function PaginaPacientes() {
       ),
     },
     { clave: "email", encabezado: "Email", render: (p) => p.email },
-    { clave: "telefono", encabezado: "Teléfono", render: (p) => p.telefono ?? "—" },
+    {
+      clave: "telefono",
+      encabezado: "Teléfono",
+      render: (p) => p.telefono ?? "—",
+    },
     {
       clave: "fechaNacimiento",
       encabezado: "Nacimiento",
@@ -76,7 +85,12 @@ export default function PaginaPacientes() {
               <Eye className="h-4 w-4" />
             </Link>
           </Button>
-          <Button variant="ghost" size="icon" title="Editar" onClick={() => abrirEditar(p)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Editar"
+            onClick={() => abrirEditar(p)}
+          >
             <Pencil className="h-4 w-4" />
           </Button>
           <Button
@@ -114,7 +128,9 @@ export default function PaginaPacientes() {
       </div>
 
       {consulta.isError ? (
-        <p className="text-sm text-destructive">No se pudieron cargar los pacientes.</p>
+        <p className="text-sm text-destructive">
+          No se pudieron cargar los pacientes.
+        </p>
       ) : (
         <TablaDatos
           columnas={columnas}

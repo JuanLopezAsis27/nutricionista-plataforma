@@ -40,7 +40,9 @@ export class ServicioBiblioteca {
     return ServicioBiblioteca.aSalida(material);
   }
 
-  async actualizarMaterial(datos: ActualizarMaterialDto): Promise<MaterialSalidaDto> {
+  async actualizarMaterial(
+    datos: ActualizarMaterialDto,
+  ): Promise<MaterialSalidaDto> {
     const material = await this.actualizarUC.ejecutar(datos);
     return ServicioBiblioteca.aSalida(material);
   }
@@ -49,15 +51,24 @@ export class ServicioBiblioteca {
     await this.eliminarUC.ejecutar(id);
   }
 
-  async obtenerMateriales(filtro?: FiltroMaterialesDto): Promise<MaterialSalidaDto[]> {
+  async obtenerMateriales(
+    filtro?: FiltroMaterialesDto,
+  ): Promise<MaterialSalidaDto[]> {
     const materiales = await this.obtenerTodosUC.ejecutar(filtro);
     return materiales.map(ServicioBiblioteca.aSalida);
   }
 
   /** Biblioteca paginada (trae solo la página pedida). */
-  async obtenerMaterialesPaginado(datos: ListarMaterialesPaginadoDto): Promise<MaterialesPaginados> {
-    const { items, total, paginas } = await this.obtenerPaginadoUC.ejecutar(datos);
-    return { materiales: items.map(ServicioBiblioteca.aSalida), total, paginas };
+  async obtenerMaterialesPaginado(
+    datos: ListarMaterialesPaginadoDto,
+  ): Promise<MaterialesPaginados> {
+    const { items, total, paginas } =
+      await this.obtenerPaginadoUC.ejecutar(datos);
+    return {
+      materiales: items.map(ServicioBiblioteca.aSalida),
+      total,
+      paginas,
+    };
   }
 
   async asignarMaterialAPaciente(datos: AsignarMaterialDto): Promise<void> {
@@ -68,7 +79,9 @@ export class ServicioBiblioteca {
     await this.desasignarUC.ejecutar(datos);
   }
 
-  async obtenerMaterialesDelPaciente(pacienteId: string): Promise<MaterialSalidaDto[]> {
+  async obtenerMaterialesDelPaciente(
+    pacienteId: string,
+  ): Promise<MaterialSalidaDto[]> {
     const materiales = await this.obtenerDelPacienteUC.ejecutar(pacienteId);
     return materiales.map(ServicioBiblioteca.aSalida);
   }

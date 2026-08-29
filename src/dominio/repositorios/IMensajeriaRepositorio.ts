@@ -20,7 +20,9 @@ export interface ResumenConversacion {
  */
 export interface IMensajeriaRepositorio {
   obtenerConversacionPorId(id: string): Promise<Conversacion | null>;
-  obtenerConversacionPorPaciente(pacienteId: string): Promise<Conversacion | null>;
+  obtenerConversacionPorPaciente(
+    pacienteId: string,
+  ): Promise<Conversacion | null>;
   crearConversacion(conversacion: Conversacion): Promise<Conversacion>;
   actualizarConversacion(conversacion: Conversacion): Promise<Conversacion>;
   /** Todas las conversaciones con nombre del paciente, último mensaje y no-leídos para `viewerId`. */
@@ -29,7 +31,11 @@ export interface IMensajeriaRepositorio {
   crearMensaje(mensaje: Mensaje): Promise<Mensaje>;
   listarMensajes(conversacionId: string, limite?: number): Promise<Mensaje[]>;
   /** Marca como leídos los mensajes de la conversación no escritos por `viewerId`. */
-  marcarLeidos(conversacionId: string, viewerId: string, ahora: Date): Promise<void>;
+  marcarLeidos(
+    conversacionId: string,
+    viewerId: string,
+    ahora: Date,
+  ): Promise<void>;
   /** Cantidad de no-leídos para `viewerId`; si se pasa conversación, solo la de esa. */
   contarNoLeidos(viewerId: string, conversacionId?: string): Promise<number>;
 }

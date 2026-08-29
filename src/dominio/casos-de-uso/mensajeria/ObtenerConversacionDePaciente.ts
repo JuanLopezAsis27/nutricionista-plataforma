@@ -10,7 +10,8 @@ export class ObtenerConversacionDePaciente {
   constructor(private readonly repositorio: IMensajeriaRepositorio) {}
 
   async ejecutar(pacienteId: string): Promise<Conversacion> {
-    const existente = await this.repositorio.obtenerConversacionPorPaciente(pacienteId);
+    const existente =
+      await this.repositorio.obtenerConversacionPorPaciente(pacienteId);
     if (existente) {
       return existente;
     }

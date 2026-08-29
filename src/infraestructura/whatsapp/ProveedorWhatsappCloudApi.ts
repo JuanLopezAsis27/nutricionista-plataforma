@@ -47,7 +47,9 @@ export class ProveedorWhatsappCloudApi implements IProveedorWhatsapp {
    * orden del array ES el mapeo. Mandarlos en otro orden no falla: le llega al
    * paciente la fecha donde iba el nombre.
    */
-  async enviarPlantilla(envio: PlantillaWhatsappEnvio): Promise<ResultadoEnvioWhatsapp> {
+  async enviarPlantilla(
+    envio: PlantillaWhatsappEnvio,
+  ): Promise<ResultadoEnvioWhatsapp> {
     return this.enviar({
       to: envio.telefono,
       type: "template",
@@ -59,7 +61,10 @@ export class ProveedorWhatsappCloudApi implements IProveedorWhatsapp {
               components: [
                 {
                   type: "body",
-                  parameters: envio.parametros.map((texto) => ({ type: "text", text: texto })),
+                  parameters: envio.parametros.map((texto) => ({
+                    type: "text",
+                    text: texto,
+                  })),
                 },
               ],
             }
@@ -68,7 +73,9 @@ export class ProveedorWhatsappCloudApi implements IProveedorWhatsapp {
     });
   }
 
-  private async enviar(cuerpo: Record<string, unknown>): Promise<ResultadoEnvioWhatsapp> {
+  private async enviar(
+    cuerpo: Record<string, unknown>,
+  ): Promise<ResultadoEnvioWhatsapp> {
     const respuesta = await fetch(
       `https://graph.facebook.com/${VERSION_API}/${this.phoneNumberId}/messages`,
       {

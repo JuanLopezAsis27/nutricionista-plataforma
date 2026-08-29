@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import { Plug, CheckCircle2, Circle } from "lucide-react";
 import { useCredenciales } from "@/lib/hooks/useCredenciales";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 import { Input } from "@/componentes/ui/input";
 import { Label } from "@/componentes/ui/label";
 import { Button } from "@/componentes/ui/button";
@@ -62,14 +67,21 @@ export function FormularioWhatsappApi() {
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="space-y-1.5 text-sm">
-          <Marca activo={e.whatsappConfigurado} texto="Envío conectado (token + número)" />
-          <Marca activo={e.whatsappWebhookListo} texto="Webhook listo (verify token + app secret)" />
+          <Marca
+            activo={e.whatsappConfigurado}
+            texto="Envío conectado (token + número)"
+          />
+          <Marca
+            activo={e.whatsappWebhookListo}
+            texto="Webhook listo (verify token + app secret)"
+          />
         </div>
 
         <p className="text-sm text-muted-foreground">
-          Necesita un número dedicado dado de alta en Meta Business: ese número deja de funcionar
-          en la app de WhatsApp del celular y no arrastra el historial previo. Sin esto cargado,
-          el recordatorio sigue funcionando por enlace wa.me.
+          Necesita un número dedicado dado de alta en Meta Business: ese número
+          deja de funcionar en la app de WhatsApp del celular y no arrastra el
+          historial previo. Sin esto cargado, el recordatorio sigue funcionando
+          por enlace wa.me.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -88,7 +100,11 @@ export function FormularioWhatsappApi() {
               id="wa-token"
               type="password"
               autoComplete="off"
-              placeholder={e.whatsappConfigurado ? "Guardado — dejalo vacío para no cambiarlo" : "EAAG…"}
+              placeholder={
+                e.whatsappConfigurado
+                  ? "Guardado — dejalo vacío para no cambiarlo"
+                  : "EAAG…"
+              }
               value={token}
               onChange={(ev) => setToken(ev.target.value)}
             />
@@ -99,7 +115,11 @@ export function FormularioWhatsappApi() {
               id="wa-verify"
               type="password"
               autoComplete="off"
-              placeholder={e.whatsappWebhookListo ? "Guardado" : "El que inventes y pegues en Meta"}
+              placeholder={
+                e.whatsappWebhookListo
+                  ? "Guardado"
+                  : "El que inventes y pegues en Meta"
+              }
               value={verifyToken}
               onChange={(ev) => setVerifyToken(ev.target.value)}
             />
@@ -110,7 +130,9 @@ export function FormularioWhatsappApi() {
               id="wa-secret"
               type="password"
               autoComplete="off"
-              placeholder={e.whatsappWebhookListo ? "Guardado" : "De la app de Meta"}
+              placeholder={
+                e.whatsappWebhookListo ? "Guardado" : "De la app de Meta"
+              }
               value={appSecret}
               onChange={(ev) => setAppSecret(ev.target.value)}
             />
@@ -119,15 +141,25 @@ export function FormularioWhatsappApi() {
 
         <div className="space-y-1.5">
           <Label htmlFor="wa-url">URL del webhook (pegala en Meta)</Label>
-          <Input id="wa-url" readOnly value={urlWebhook} onFocus={(ev) => ev.target.select()} />
+          <Input
+            id="wa-url"
+            readOnly
+            value={urlWebhook}
+            onFocus={(ev) => ev.target.select()}
+          />
           <p className="text-xs text-muted-foreground">
-            Suscribite al campo <code className="rounded bg-muted px-1">messages</code>. Sin el app
+            Suscribite al campo{" "}
+            <code className="rounded bg-muted px-1">messages</code>. Sin el app
             secret cargado, la app rechaza todos los webhooks que entren.
           </p>
         </div>
 
         <div className="flex justify-end">
-          <Button type="button" disabled={guardar.isPending} onClick={onGuardar}>
+          <Button
+            type="button"
+            disabled={guardar.isPending}
+            onClick={onGuardar}
+          >
             Guardar conexión
           </Button>
         </div>

@@ -14,7 +14,9 @@ export class AnalisisComidaIAStub implements IAnalisisComidaIA {
     descripcion?: string;
   }): Promise<ResultadoAnalisisComida> {
     return {
-      descripcion: entrada.descripcion?.trim() || "Plato con proteína, guarnición y vegetales",
+      descripcion:
+        entrada.descripcion?.trim() ||
+        "Plato con proteína, guarnición y vegetales",
       porcionEstimada: "1 plato (~350 g)",
       calorias: 520,
       proteinasG: 32,

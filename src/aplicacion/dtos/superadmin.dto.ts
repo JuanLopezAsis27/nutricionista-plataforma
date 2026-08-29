@@ -8,13 +8,17 @@ export const crearCuentaNutricionistaDto = z.object({
   // Política única para toda la app (ver dtos/password.ts).
   password: passwordNuevaDto,
 });
-export type CrearCuentaNutricionistaDto = z.infer<typeof crearCuentaNutricionistaDto>;
+export type CrearCuentaNutricionistaDto = z.infer<
+  typeof crearCuentaNutricionistaDto
+>;
 
 export const cambiarEstadoNutricionistaDto = z.object({
   id: z.string().min(1),
   activo: z.boolean(),
 });
-export type CambiarEstadoNutricionistaDto = z.infer<typeof cambiarEstadoNutricionistaDto>;
+export type CambiarEstadoNutricionistaDto = z.infer<
+  typeof cambiarEstadoNutricionistaDto
+>;
 
 export const nutricionistaSalidaDto = z.object({
   id: z.string(),

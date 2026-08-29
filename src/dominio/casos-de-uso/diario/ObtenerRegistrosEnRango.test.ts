@@ -15,7 +15,9 @@ describe("ObtenerRegistrosEnRango", () => {
       mockRegistroDiarioRepositorio({
         listarPorRango: vi.fn(async () => [registroDiarioEjemplo()]),
       }),
-      mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => pacienteEjemplo()) }),
+      mockPacienteRepositorio({
+        obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+      }),
     );
 
     const registros = await casoUso.ejecutar(
@@ -33,14 +35,20 @@ describe("ObtenerRegistrosEnRango", () => {
       mockPacienteRepositorio(),
     );
     await expect(
-      casoUso.ejecutar("no-existe", new Date("2026-07-01"), new Date("2026-07-14")),
+      casoUso.ejecutar(
+        "no-existe",
+        new Date("2026-07-01"),
+        new Date("2026-07-14"),
+      ),
     ).rejects.toBeInstanceOf(ErrorPacienteNoEncontrado);
   });
 
   it("rechaza un rango invertido", async () => {
     const casoUso = new ObtenerRegistrosEnRango(
       mockRegistroDiarioRepositorio(),
-      mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => pacienteEjemplo()) }),
+      mockPacienteRepositorio({
+        obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+      }),
     );
     await expect(
       casoUso.ejecutar("pac-1", new Date("2026-07-14"), new Date("2026-07-01")),

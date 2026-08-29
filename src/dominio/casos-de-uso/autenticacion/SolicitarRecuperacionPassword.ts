@@ -50,7 +50,11 @@ export class SolicitarRecuperacionPassword {
     const ahora = this.reloj.ahora();
     const { token, hash } = this.generador.generar();
     const registro = TokenRecuperacion.crear(
-      { usuarioId: usuario.id, tokenHash: hash, expiraEn: new Date(ahora.getTime() + VALIDEZ_MS) },
+      {
+        usuarioId: usuario.id,
+        tokenHash: hash,
+        expiraEn: new Date(ahora.getTime() + VALIDEZ_MS),
+      },
       crypto.randomUUID(),
       ahora,
     );

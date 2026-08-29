@@ -1,4 +1,9 @@
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "node:crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  randomBytes,
+  scryptSync,
+} from "node:crypto";
 
 /**
  * Cifrador simétrico de tokens con AES-256-GCM.
@@ -30,9 +35,16 @@ export class CifradorTokens {
   cifrar(textoPlano: string): string {
     const iv = randomBytes(12); // 96 bits, recomendado para GCM
     const cipher = createCipheriv("aes-256-gcm", this.clave, iv);
-    const cifrado = Buffer.concat([cipher.update(textoPlano, "utf8"), cipher.final()]);
+    const cifrado = Buffer.concat([
+      cipher.update(textoPlano, "utf8"),
+      cipher.final(),
+    ]);
     const tag = cipher.getAuthTag();
-    return [iv.toString("base64"), tag.toString("base64"), cifrado.toString("base64")].join(".");
+    return [
+      iv.toString("base64"),
+      tag.toString("base64"),
+      cifrado.toString("base64"),
+    ].join(".");
   }
 
   /** Descifra un string producido por `cifrar`. Lanza si fue manipulado. */

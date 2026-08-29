@@ -51,7 +51,12 @@ describe("CambiarEstadoEstrategia", () => {
     const casoUso = new CambiarEstadoEstrategia(objetivos);
 
     await expect(
-      casoUso.ejecutar({ objetivoId: "obj-1", estrategiaId: "est-1", estado: "LOGRADA", motivo: "" }),
+      casoUso.ejecutar({
+        objetivoId: "obj-1",
+        estrategiaId: "est-1",
+        estado: "LOGRADA",
+        motivo: "",
+      }),
     ).rejects.toBeInstanceOf(ErrorValidacion);
     expect(objetivos.actualizarEstrategia).not.toHaveBeenCalled();
   });
@@ -63,7 +68,12 @@ describe("CambiarEstadoEstrategia", () => {
     const casoUso = new CambiarEstadoEstrategia(objetivos);
 
     await expect(
-      casoUso.ejecutar({ objetivoId: "obj-1", estrategiaId: "ajena", estado: "LOGRADA", motivo: "x" }),
+      casoUso.ejecutar({
+        objetivoId: "obj-1",
+        estrategiaId: "ajena",
+        estado: "LOGRADA",
+        motivo: "x",
+      }),
     ).rejects.toBeInstanceOf(ErrorValidacion);
   });
 });

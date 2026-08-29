@@ -19,12 +19,18 @@ describe("EliminarLaboratorio", () => {
       listarPorDueno: vi.fn(async () => [adjunto]),
     });
     const almacenamiento = mockAlmacenamientoArchivos();
-    const casoUso = new EliminarLaboratorio(laboratorios, archivos, almacenamiento);
+    const casoUso = new EliminarLaboratorio(
+      laboratorios,
+      archivos,
+      almacenamiento,
+    );
 
     await casoUso.ejecutar("lab-1");
 
     expect(laboratorios.eliminar).toHaveBeenCalledWith("lab-1");
-    expect(archivos.listarPorDueno).toHaveBeenCalledWith({ laboratorioId: "lab-1" });
+    expect(archivos.listarPorDueno).toHaveBeenCalledWith({
+      laboratorioId: "lab-1",
+    });
     expect(almacenamiento.eliminar).toHaveBeenCalledWith(adjunto.clave);
   });
 

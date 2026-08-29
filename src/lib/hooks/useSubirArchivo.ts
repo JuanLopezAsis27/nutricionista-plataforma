@@ -20,7 +20,10 @@ export interface DatosSubida {
 export function useSubirArchivo() {
   const [subiendo, setSubiendo] = useState(false);
 
-  async function subir(archivo: File, datos: DatosSubida): Promise<ArchivoSalidaDto> {
+  async function subir(
+    archivo: File,
+    datos: DatosSubida,
+  ): Promise<ArchivoSalidaDto> {
     setSubiendo(true);
     try {
       const formulario = new FormData();
@@ -36,11 +39,11 @@ export function useSubirArchivo() {
       });
 
       const cuerpo = (await respuesta.json()) as
-        | { archivo: ArchivoSalidaDto }
-        | { error: string };
+        { archivo: ArchivoSalidaDto } | { error: string };
 
       if (!respuesta.ok || "error" in cuerpo) {
-        const mensaje = "error" in cuerpo ? cuerpo.error : "No se pudo subir el archivo.";
+        const mensaje =
+          "error" in cuerpo ? cuerpo.error : "No se pudo subir el archivo.";
         throw new Error(mensaje);
       }
       return cuerpo.archivo;

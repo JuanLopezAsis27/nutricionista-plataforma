@@ -23,13 +23,21 @@ export default function GlobalError({
         mensaje: error.message,
         stack: error.stack,
         digest: error.digest,
-        ruta: typeof window !== "undefined" ? window.location.pathname : undefined,
+        ruta:
+          typeof window !== "undefined" ? window.location.pathname : undefined,
       });
       // sendBeacon sobrevive a la navegación; fetch como respaldo.
       if (navigator.sendBeacon) {
-        navigator.sendBeacon("/api/monitoreo", new Blob([cuerpo], { type: "application/json" }));
+        navigator.sendBeacon(
+          "/api/monitoreo",
+          new Blob([cuerpo], { type: "application/json" }),
+        );
       } else {
-        void fetch("/api/monitoreo", { method: "POST", body: cuerpo, keepalive: true });
+        void fetch("/api/monitoreo", {
+          method: "POST",
+          body: cuerpo,
+          keepalive: true,
+        });
       }
     } catch {
       // Nunca dejar que el reporte del error genere otro error.
@@ -51,7 +59,13 @@ export default function GlobalError({
         }}
       >
         <div style={{ maxWidth: 420, textAlign: "center" }}>
-          <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "0.5rem" }}>
+          <h1
+            style={{
+              fontSize: "1.5rem",
+              fontWeight: 700,
+              marginBottom: "0.5rem",
+            }}
+          >
             Algo salió mal
           </h1>
           <p style={{ color: "#6b7280", marginBottom: "1.5rem" }}>

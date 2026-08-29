@@ -76,7 +76,8 @@ export class PlantillaEmail {
         "La clave debe ser un identificador en MAYÚSCULAS (ej. RECORDATORIO_TURNO).",
       );
     }
-    const { nombre, asunto, cuerpoHtml } = PlantillaEmail.validarContenido(datos);
+    const { nombre, asunto, cuerpoHtml } =
+      PlantillaEmail.validarContenido(datos);
 
     return new PlantillaEmail({
       id,
@@ -97,10 +98,16 @@ export class PlantillaEmail {
 
   /** Edita el contenido (nunca la clave ni `deSistema`); actualiza la fecha. */
   actualizar(
-    cambios: { nombre: string; asunto: string; cuerpoHtml: string; descripcion?: string | null },
+    cambios: {
+      nombre: string;
+      asunto: string;
+      cuerpoHtml: string;
+      descripcion?: string | null;
+    },
     ahora: Date = new Date(),
   ): PlantillaEmail {
-    const { nombre, asunto, cuerpoHtml } = PlantillaEmail.validarContenido(cambios);
+    const { nombre, asunto, cuerpoHtml } =
+      PlantillaEmail.validarContenido(cambios);
     return new PlantillaEmail({
       ...this.props,
       nombre,

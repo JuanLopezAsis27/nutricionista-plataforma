@@ -83,7 +83,10 @@ export function FormularioRecuperar() {
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(alEnviar)} className="space-y-4">
+                <form
+                  onSubmit={form.handleSubmit(alEnviar)}
+                  className="space-y-4"
+                >
                   <FormField
                     control={form.control}
                     name="email"
@@ -107,7 +110,9 @@ export function FormularioRecuperar() {
                     className="w-full"
                     disabled={solicitarRecuperacion.isPending}
                   >
-                    {solicitarRecuperacion.isPending ? "Enviando…" : "Enviar enlace"}
+                    {solicitarRecuperacion.isPending
+                      ? "Enviando…"
+                      : "Enviar enlace"}
                   </Button>
                   <Button asChild variant="ghost" className="w-full">
                     <Link href="/login">

@@ -109,7 +109,8 @@ export class EnviarRecordatorioWhatsapp {
     // aviso, y antes la única salida era tildar "reenviar a todos".
     if (previo?.salio && !pedido.forzar) {
       const desde = previo.salioEn;
-      const horas = (pedido.ahora.getTime() - (desde?.getTime() ?? 0)) / HORA_MS;
+      const horas =
+        (pedido.ahora.getTime() - (desde?.getTime() ?? 0)) / HORA_MS;
       if (horas < pedido.horasEntreAvisos) {
         return {
           estado: "OMITIDO",

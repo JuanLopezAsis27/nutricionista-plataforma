@@ -5,7 +5,10 @@ import type { Suplemento } from "../../entidades/Suplemento";
 export class ObtenerSuplementosDelPaciente {
   constructor(private readonly suplementos: ISuplementoRepositorio) {}
 
-  async ejecutar(pacienteId: string, incluirInactivos = false): Promise<Suplemento[]> {
+  async ejecutar(
+    pacienteId: string,
+    incluirInactivos = false,
+  ): Promise<Suplemento[]> {
     return this.suplementos.listarPorPaciente(pacienteId, incluirInactivos);
   }
 }

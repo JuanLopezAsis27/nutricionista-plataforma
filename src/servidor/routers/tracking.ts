@@ -1,6 +1,13 @@
-import { crearRouter, nutricionistaProcedimiento, protegidoProcedimiento } from "../trpc";
+import {
+  crearRouter,
+  nutricionistaProcedimiento,
+  protegidoProcedimiento,
+} from "../trpc";
 import { pacienteDeSesion } from "@/dominio/servicios/politicaAcceso";
-import { rangoTrackingDto, rangoTrackingPacienteDto } from "@/aplicacion/dtos/tracking.dto";
+import {
+  rangoTrackingDto,
+  rangoTrackingPacienteDto,
+} from "@/aplicacion/dtos/tracking.dto";
 
 /**
  * Router del Tracking del paciente. El paciente ve SU progreso (pacienteId de la
@@ -22,6 +29,10 @@ export const routerTracking = crearRouter({
   dePaciente: nutricionistaProcedimiento
     .input(rangoTrackingPacienteDto)
     .query(async ({ ctx, input }) => {
-      return await ctx.servicios.tracking.obtener(input.pacienteId, input.desde, input.hasta);
+      return await ctx.servicios.tracking.obtener(
+        input.pacienteId,
+        input.desde,
+        input.hasta,
+      );
     }),
 });

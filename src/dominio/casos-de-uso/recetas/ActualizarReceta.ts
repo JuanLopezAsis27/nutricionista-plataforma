@@ -22,7 +22,10 @@ export class ActualizarReceta {
       throw new ErrorRecetaNoEncontrada(datos.id);
     }
     const actualizada = existente.actualizar(datos);
-    const archivoIds = [...(datos.fotoIdsNuevos ?? []), ...(datos.documentoIdsNuevos ?? [])];
+    const archivoIds = [
+      ...(datos.fotoIdsNuevos ?? []),
+      ...(datos.documentoIdsNuevos ?? []),
+    ];
     return this.recetas.actualizar(actualizada, archivoIds);
   }
 }

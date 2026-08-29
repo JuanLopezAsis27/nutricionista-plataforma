@@ -17,7 +17,8 @@ export function VistaReceta({ receta }: { receta: RecetaSalidaDto }) {
   const totales = [
     receta.totales.calorias != null && `${receta.totales.calorias} kcal`,
     receta.totales.proteinasG != null && `${receta.totales.proteinasG} g prot`,
-    receta.totales.carbohidratosG != null && `${receta.totales.carbohidratosG} g carb`,
+    receta.totales.carbohidratosG != null &&
+      `${receta.totales.carbohidratosG} g carb`,
     receta.totales.grasasG != null && `${receta.totales.grasasG} g grasas`,
   ].filter(Boolean);
 
@@ -32,16 +33,22 @@ export function VistaReceta({ receta }: { receta: RecetaSalidaDto }) {
         {macros.length > 0 && (
           <span className="flex items-center gap-1">
             <Flame className="h-4 w-4" /> {macros.join(" · ")}
-            {receta.porciones != null && receta.porciones > 1 ? " / porción" : ""}
+            {receta.porciones != null && receta.porciones > 1
+              ? " / porción"
+              : ""}
           </span>
         )}
       </div>
 
-      {receta.macrosCalculados && totales.length > 0 && receta.porciones != null && receta.porciones > 1 && (
-        <p className="text-xs text-muted-foreground">
-          Total de la receta: {totales.join(" · ")} (calculado de los ingredientes)
-        </p>
-      )}
+      {receta.macrosCalculados &&
+        totales.length > 0 &&
+        receta.porciones != null &&
+        receta.porciones > 1 && (
+          <p className="text-xs text-muted-foreground">
+            Total de la receta: {totales.join(" · ")} (calculado de los
+            ingredientes)
+          </p>
+        )}
 
       {receta.descripcion && <p className="text-sm">{receta.descripcion}</p>}
 
@@ -68,20 +75,20 @@ export function VistaReceta({ receta }: { receta: RecetaSalidaDto }) {
                   : 0,
             )
             .map((foto) => (
-            <a
-              key={foto.id}
-              href={`/api/archivos/${foto.id}`}
-              target="_blank"
-              rel="noreferrer"
-              title={foto.nombreOriginal}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element -- URL firmada temporal, no optimizable */}
-              <img
-                src={`/api/archivos/${foto.id}`}
-                alt={`Foto de ${receta.nombre}`}
-                className="h-28 w-28 rounded-lg border object-cover"
-              />
-            </a>
+              <a
+                key={foto.id}
+                href={`/api/archivos/${foto.id}`}
+                target="_blank"
+                rel="noreferrer"
+                title={foto.nombreOriginal}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- URL firmada temporal, no optimizable */}
+                <img
+                  src={`/api/archivos/${foto.id}`}
+                  alt={`Foto de ${receta.nombre}`}
+                  className="h-28 w-28 rounded-lg border object-cover"
+                />
+              </a>
             ))}
         </div>
       )}
@@ -94,7 +101,10 @@ export function VistaReceta({ receta }: { receta: RecetaSalidaDto }) {
               <li key={indice}>
                 {ingrediente.nombre}
                 {ingrediente.cantidadGramos != null && (
-                  <span className="text-muted-foreground"> — {ingrediente.cantidadGramos} g</span>
+                  <span className="text-muted-foreground">
+                    {" "}
+                    — {ingrediente.cantidadGramos} g
+                  </span>
                 )}
               </li>
             ))}

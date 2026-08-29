@@ -15,7 +15,12 @@ import { TrendingUp, Target, UtensilsCrossed } from "lucide-react";
 import { useTracking } from "@/lib/hooks/useTracking";
 import { formatearFecha, formatearNumero, hoyLocalISO } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
 import { MetricasDispositivo } from "./MetricasDispositivo";
@@ -111,20 +116,26 @@ export function SeccionTracking({ pacienteId }: { pacienteId?: string }) {
         </div>
       ) : datos.diasConRegistro === 0 && datos.peso.puntos.length === 0 ? (
         <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Todavía no hay registros en este período. Cargá tu peso, agua, sueño y comidas
-          para ver tu progreso acá.
+          Todavía no hay registros en este período. Cargá tu peso, agua, sueño y
+          comidas para ver tu progreso acá.
         </p>
       ) : (
         <>
-          {esNutri && <TarjetasHabitos pacienteId={pacienteId} desde={desde} hasta={hasta} />}
+          {esNutri && (
+            <TarjetasHabitos
+              pacienteId={pacienteId}
+              desde={desde}
+              hasta={hasta}
+            />
+          )}
           <TarjetaPeso peso={datos.peso} />
           <TarjetaAdherencia adherencia={datos.adherencia} />
           <TarjetaConcordancia concordancia={datos.concordancia} />
           {esNutri && (
             <p className="text-xs text-muted-foreground">
               El peso de acá es el que registra el paciente en su diario. Las
-              medidas de consulta —pliegues, perímetros, masas y somatotipo— están
-              en la pestaña «Antropometría».
+              medidas de consulta —pliegues, perímetros, masas y somatotipo—
+              están en la pestaña «Antropometría».
             </p>
           )}
         </>
@@ -158,7 +169,10 @@ function TarjetaPeso({
   useEffect(() => setMontado(true), []);
   const tema = resolvedTheme === "dark" ? TEMAS.dark : TEMAS.light;
 
-  const serie = peso.puntos.map((p) => ({ fecha: formatearFecha(p.fecha), valor: p.peso }));
+  const serie = peso.puntos.map((p) => ({
+    fecha: formatearFecha(p.fecha),
+    valor: p.peso,
+  }));
 
   return (
     <Card>
@@ -187,8 +201,15 @@ function TarjetaPeso({
           </p>
         ) : !montado ? null : (
           <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={serie} margin={{ top: 6, right: 12, bottom: 0, left: 0 }}>
-              <CartesianGrid stroke={tema.grilla} strokeWidth={1} vertical={false} />
+            <LineChart
+              data={serie}
+              margin={{ top: 6, right: 12, bottom: 0, left: 0 }}
+            >
+              <CartesianGrid
+                stroke={tema.grilla}
+                strokeWidth={1}
+                vertical={false}
+              />
               <XAxis
                 dataKey="fecha"
                 tick={{ fill: tema.tinta, fontSize: 11 }}
@@ -211,7 +232,10 @@ function TarjetaPeso({
                   color: tema.texto,
                   fontSize: 12,
                 }}
-                formatter={(valor) => [`${formatearNumero(valor as number)} kg`, "Peso"]}
+                formatter={(valor) => [
+                  `${formatearNumero(valor as number)} kg`,
+                  "Peso",
+                ]}
               />
               <Line
                 type="monotone"
@@ -258,7 +282,9 @@ function TarjetaAdherencia({
             Todavía no hay objetivos de hábitos cargados.
           </p>
         ) : (
-          adherencia.map((a) => <FilaAdherencia key={a.axiomaId} adherencia={a} />)
+          adherencia.map((a) => (
+            <FilaAdherencia key={a.axiomaId} adherencia={a} />
+          ))
         )}
       </CardContent>
     </Card>
@@ -334,7 +360,8 @@ function TarjetaConcordancia({
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
-          <UtensilsCrossed className="h-5 w-5 text-primary" /> Concordancia con el plan
+          <UtensilsCrossed className="h-5 w-5 text-primary" /> Concordancia con
+          el plan
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -357,7 +384,9 @@ function TarjetaConcordancia({
               <span
                 className={cn(
                   "font-semibold tabular-nums",
-                  (c.coberturaPromedio ?? 0) >= 60 ? "text-primary" : "text-destructive",
+                  (c.coberturaPromedio ?? 0) >= 60
+                    ? "text-primary"
+                    : "text-destructive",
                 )}
               >
                 {c.coberturaPromedio}%
@@ -370,9 +399,14 @@ function TarjetaConcordancia({
             <ul className="space-y-1.5 pt-1">
               {c.porFranja.map((f) => {
                 const pct =
-                  f.esperados > 0 ? Math.round((f.registrados / f.esperados) * 100) : 0;
+                  f.esperados > 0
+                    ? Math.round((f.registrados / f.esperados) * 100)
+                    : 0;
                 return (
-                  <li key={f.franja} className="flex items-center gap-2 text-xs">
+                  <li
+                    key={f.franja}
+                    className="flex items-center gap-2 text-xs"
+                  >
                     <span className="w-28 shrink-0 truncate text-muted-foreground">
                       {f.franja}
                     </span>
@@ -393,12 +427,21 @@ function TarjetaConcordancia({
 
 // --- Barra de progreso reutilizable ------------------------------------------
 
-function BarraProgreso({ porcentaje, bien }: { porcentaje: number; bien: boolean }) {
+function BarraProgreso({
+  porcentaje,
+  bien,
+}: {
+  porcentaje: number;
+  bien: boolean;
+}) {
   const ancho = Math.max(0, Math.min(100, porcentaje));
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
       <div
-        className={cn("h-full rounded-full transition-all", bien ? "bg-primary" : "bg-destructive")}
+        className={cn(
+          "h-full rounded-full transition-all",
+          bien ? "bg-primary" : "bg-destructive",
+        )}
         style={{ width: `${ancho}%` }}
       />
     </div>

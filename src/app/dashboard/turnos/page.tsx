@@ -7,7 +7,12 @@ import type { TurnoSalidaDto } from "@/aplicacion/dtos/turno.dto";
 import { ESTADOS_TURNO, type EstadoTurno } from "@/dominio/entidades/Turno";
 import { useTurnos } from "@/lib/hooks/useTurnos";
 import { usePacientes } from "@/lib/hooks/usePacientes";
-import { formatearFecha, formatearFechaLarga, aFechaISO, ETIQUETAS_ESTADO_TURNO } from "@/lib/formato";
+import {
+  formatearFecha,
+  formatearFechaLarga,
+  aFechaISO,
+  ETIQUETAS_ESTADO_TURNO,
+} from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import {
@@ -23,7 +28,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/componentes/ui/dialog";
-import { TablaDatos, type ColumnaTabla } from "@/componentes/comunes/TablaDatos";
+import {
+  TablaDatos,
+  type ColumnaTabla,
+} from "@/componentes/comunes/TablaDatos";
 import { EstadoBadge } from "@/componentes/comunes/EstadoBadge";
 import { FormularioTurno } from "@/componentes/turnos/FormularioTurno";
 import { FormularioReprogramar } from "@/componentes/turnos/FormularioReprogramar";
@@ -38,11 +46,14 @@ export default function PaginaTurnos() {
   const { listar: listarPacientes } = usePacientes();
 
   const [vista, setVista] = useState<Vista>("lista");
-  const [filtroEstado, setFiltroEstado] = useState<EstadoTurno | "TODOS">("TODOS");
+  const [filtroEstado, setFiltroEstado] = useState<EstadoTurno | "TODOS">(
+    "TODOS",
+  );
   const [filtroFecha, setFiltroFecha] = useState("");
   const [agendarAbierto, setAgendarAbierto] = useState(false);
   const [fechaParaAgendar, setFechaParaAgendar] = useState<string | null>(null);
-  const [turnoReprogramar, setTurnoReprogramar] = useState<TurnoSalidaDto | null>(null);
+  const [turnoReprogramar, setTurnoReprogramar] =
+    useState<TurnoSalidaDto | null>(null);
   const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(null);
 
   const pacientes = listarPacientes({ pagina: 1, porPagina: 100 });
@@ -50,7 +61,10 @@ export default function PaginaTurnos() {
   const mapaPacientes = useMemo(() => {
     const mapa = new Map<string, { nombre: string; telefono: string | null }>();
     pacientes.data?.pacientes.forEach((p) =>
-      mapa.set(p.id, { nombre: `${p.nombre} ${p.apellido}`, telefono: p.telefono }),
+      mapa.set(p.id, {
+        nombre: `${p.nombre} ${p.apellido}`,
+        telefono: p.telefono,
+      }),
     );
     return mapa;
   }, [pacientes.data]);
@@ -81,25 +95,41 @@ export default function PaginaTurnos() {
       clave: "paciente",
       encabezado: "Paciente",
       render: (t) => (
-        <Link href={`/dashboard/pacientes/${t.pacienteId}`} className="font-medium hover:underline">
+        <Link
+          href={`/dashboard/pacientes/${t.pacienteId}`}
+          className="font-medium hover:underline"
+        >
           {nombrePaciente(t.pacienteId)}
         </Link>
       ),
     },
-    { clave: "fecha", encabezado: "Fecha", render: (t) => formatearFecha(t.fecha) },
+    {
+      clave: "fecha",
+      encabezado: "Fecha",
+      render: (t) => formatearFecha(t.fecha),
+    },
     { clave: "hora", encabezado: "Hora", render: (t) => t.hora },
-    { clave: "duracion", encabezado: "Duración", render: (t) => `${t.duracionMinutos} min` },
-    { clave: "estado", encabezado: "Estado", render: (t) => <EstadoBadge estado={t.estado} /> },
-    { clave: "cobro", encabezado: "Cobro", render: (t) => <CobroTurno turno={t} /> },
+    {
+      clave: "duracion",
+      encabezado: "Duración",
+      render: (t) => `${t.duracionMinutos} min`,
+    },
+    {
+      clave: "estado",
+      encabezado: "Estado",
+      render: (t) => <EstadoBadge estado={t.estado} />,
+    },
+    {
+      clave: "cobro",
+      encabezado: "Cobro",
+      render: (t) => <CobroTurno turno={t} />,
+    },
     {
       clave: "acciones",
       encabezado: "Acciones",
       className: "text-right",
       render: (t) => (
-        <AccionesTurno
-          turno={t}
-          onReprogramar={setTurnoReprogramar}
-        />
+        <AccionesTurno turno={t} onReprogramar={setTurnoReprogramar} />
       ),
     },
   ];
@@ -166,7 +196,9 @@ export default function PaginaTurnos() {
       </div>
 
       {turnos.isError ? (
-        <p className="text-sm text-destructive">No se pudieron cargar los turnos.</p>
+        <p className="text-sm text-destructive">
+          No se pudieron cargar los turnos.
+        </p>
       ) : vista === "lista" ? (
         <TablaDatos
           columnas={columnas}
@@ -204,19 +236,29 @@ export default function PaginaTurnos() {
       </Dialog>
 
       {/* Detalle del día (desde el calendario) */}
-      <Dialog open={Boolean(diaSeleccionado)} onOpenChange={(e) => !e && setDiaSeleccionado(null)}>
+      <Dialog
+        open={Boolean(diaSeleccionado)}
+        onOpenChange={(e) => !e && setDiaSeleccionado(null)}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="capitalize">
-              {diaSeleccionado ? formatearFechaLarga(new Date(diaSeleccionado)) : ""}
+              {diaSeleccionado
+                ? formatearFechaLarga(new Date(diaSeleccionado))
+                : ""}
             </DialogTitle>
           </DialogHeader>
           {turnosDelDia.length === 0 ? (
-            <p className="py-4 text-sm text-muted-foreground">No hay turnos ese día.</p>
+            <p className="py-4 text-sm text-muted-foreground">
+              No hay turnos ese día.
+            </p>
           ) : (
             <ul className="divide-y">
               {turnosDelDia.map((turno) => (
-                <li key={turno.id} className="flex items-center justify-between gap-3 py-3">
+                <li
+                  key={turno.id}
+                  className="flex items-center justify-between gap-3 py-3"
+                >
                   <div className="flex items-center gap-3">
                     <span className="w-12 font-mono text-sm">{turno.hora}</span>
                     <div>

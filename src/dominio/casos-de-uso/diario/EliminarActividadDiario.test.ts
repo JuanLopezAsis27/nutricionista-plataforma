@@ -35,7 +35,9 @@ describe("EliminarActividadDiario", () => {
   });
 
   it("rechaza si la actividad no existe", async () => {
-    const casoUso = new EliminarActividadDiario(mockRegistroDiarioRepositorio());
+    const casoUso = new EliminarActividadDiario(
+      mockRegistroDiarioRepositorio(),
+    );
     await expect(casoUso.ejecutar("pac-1", "no-existe")).rejects.toBeInstanceOf(
       ErrorRegistroDiarioNoEncontrado,
     );

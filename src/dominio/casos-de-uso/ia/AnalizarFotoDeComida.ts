@@ -32,7 +32,11 @@ export class AnalizarFotoDeComida {
 
     await this.historial.guardarAnalisis(
       AnalisisComida.crear(
-        { pacienteId: datos.pacienteId, archivoId: datos.archivoId ?? null, resultado },
+        {
+          pacienteId: datos.pacienteId,
+          archivoId: datos.archivoId ?? null,
+          resultado,
+        },
         crypto.randomUUID(),
       ),
     );

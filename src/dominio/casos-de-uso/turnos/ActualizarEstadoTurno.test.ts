@@ -32,9 +32,9 @@ describe("ActualizarEstadoTurno", () => {
     });
     const casoUso = new ActualizarEstadoTurno(repositorio);
 
-    await expect(casoUso.ejecutar("tur-1", "COMPLETADO")).rejects.toBeInstanceOf(
-      ErrorValidacion,
-    );
+    await expect(
+      casoUso.ejecutar("tur-1", "COMPLETADO"),
+    ).rejects.toBeInstanceOf(ErrorValidacion);
     expect(repositorio.actualizar).not.toHaveBeenCalled();
   });
 });

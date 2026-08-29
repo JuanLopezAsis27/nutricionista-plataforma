@@ -71,7 +71,12 @@ describe("Antropometria", () => {
   it("reproduce los kg bajados por consulta de la planilla (incluida una suba)", () => {
     const derivados = Antropometria.calcularDerivados(medicionesReales());
     expect(derivados.map((d) => d.kgBajadosVsAnterior)).toEqual([
-      null, 3.8, 0.9, 1.6, 0.9, -3.8,
+      null,
+      3.8,
+      0.9,
+      1.6,
+      0.9,
+      -3.8,
     ]);
   });
 
@@ -107,7 +112,11 @@ describe("Antropometria", () => {
       Antropometria.crear({ ...base, pesoKg: 10 }, "a", AHORA),
     ).toThrow(ErrorValidacion);
     expect(() =>
-      Antropometria.crear({ ...base, pesoKg: 80, pliegueMuslo: 95 }, "a", AHORA),
+      Antropometria.crear(
+        { ...base, pesoKg: 80, pliegueMuslo: 95 },
+        "a",
+        AHORA,
+      ),
     ).toThrow(ErrorValidacion);
     expect(() =>
       Antropometria.crear(
@@ -125,6 +134,8 @@ describe("Antropometria", () => {
     expect(actualizada.pacienteId).toBe(medicion.pacienteId);
     expect(actualizada.creadoEn).toEqual(medicion.creadoEn);
     expect(actualizada.pesoKg).toBe(79.5);
-    expect(() => medicion.actualizar({ pesoKg: 500 }, AHORA)).toThrow(ErrorValidacion);
+    expect(() => medicion.actualizar({ pesoKg: 500 }, AHORA)).toThrow(
+      ErrorValidacion,
+    );
   });
 });

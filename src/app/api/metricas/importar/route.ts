@@ -19,7 +19,10 @@ export function POST(request: Request): Promise<NextResponse> {
   return conAlcanceDeSesion(async () => {
     const usuario = await usuarioDeSesion();
     if (!usuario) {
-      return NextResponse.json({ error: "Necesitás iniciar sesión." }, { status: 401 });
+      return NextResponse.json(
+        { error: "Necesitás iniciar sesión." },
+        { status: 401 },
+      );
     }
     if (!usuario.pacienteId) {
       return NextResponse.json(
@@ -36,7 +39,10 @@ export function POST(request: Request): Promise<NextResponse> {
           { status: 400 },
         );
       }
-      const importadas = await servicioMetricas().importar(usuario.pacienteId, cuerpo.data);
+      const importadas = await servicioMetricas().importar(
+        usuario.pacienteId,
+        cuerpo.data,
+      );
       return NextResponse.json({ importadas }, { status: 201 });
     } catch (error) {
       return aRespuestaError(error);

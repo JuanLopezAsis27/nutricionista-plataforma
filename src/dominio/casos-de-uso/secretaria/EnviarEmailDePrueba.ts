@@ -36,7 +36,11 @@ export class EnviarEmailDePrueba {
       variablesEjemplo(this.nombreProfesional, this.reloj.hoy()),
     );
 
-    await this.servicioEmail.enviar({ para, asunto: `[PRUEBA] ${asunto}`, html });
+    await this.servicioEmail.enviar({
+      para,
+      asunto: `[PRUEBA] ${asunto}`,
+      html,
+    });
 
     await this.emails.registrar(
       EmailEnviado.crear(

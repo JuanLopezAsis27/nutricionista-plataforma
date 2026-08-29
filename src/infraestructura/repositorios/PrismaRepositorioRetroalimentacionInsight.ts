@@ -10,9 +10,7 @@ import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
  * (nutricionistaId, pacienteId, tipoInsight): el último voto reemplaza al
  * anterior. La extensión multi-inquilino setea/filtra `nutricionistaId`.
  */
-export class PrismaRepositorioRetroalimentacionInsight
-  implements IRetroalimentacionInsightRepositorio
-{
+export class PrismaRepositorioRetroalimentacionInsight implements IRetroalimentacionInsightRepositorio {
   constructor(private readonly prisma: PrismaClient) {}
 
   async registrar(datos: DatosRetroalimentacion): Promise<void> {

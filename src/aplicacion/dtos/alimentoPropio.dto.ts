@@ -23,4 +23,6 @@ export const estadoAlimentosPropiosDto = z.object({
   cantidad: z.number().int(),
   activo: z.boolean(),
 });
-export type EstadoAlimentosPropiosDto = z.infer<typeof estadoAlimentosPropiosDto>;
+export type EstadoAlimentosPropiosDto = z.infer<
+  typeof estadoAlimentosPropiosDto
+>;

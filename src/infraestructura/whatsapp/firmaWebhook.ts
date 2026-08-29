@@ -18,7 +18,11 @@ export function firmaValida(
   if (!appSecret || !cabecera?.startsWith("sha256=")) return false;
 
   const recibida = Buffer.from(cabecera.slice("sha256=".length), "hex");
-  const esperada = createHmac("sha256", appSecret).update(cuerpoCrudo, "utf8").digest();
+  const esperada = createHmac("sha256", appSecret)
+    .update(cuerpoCrudo, "utf8")
+    .digest();
 
-  return recibida.length === esperada.length && timingSafeEqual(recibida, esperada);
+  return (
+    recibida.length === esperada.length && timingSafeEqual(recibida, esperada)
+  );
 }

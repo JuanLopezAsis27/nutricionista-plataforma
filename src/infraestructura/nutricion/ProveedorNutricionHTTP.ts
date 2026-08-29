@@ -29,8 +29,11 @@ export class ProveedorNutricionHTTP implements IProveedorDatosNutricionales {
     if (t.length < 2) return [];
 
     try {
-      const cabeceras: Record<string, string> = { "content-type": "application/json" };
-      if (this.config.token) cabeceras["authorization"] = `Bearer ${this.config.token}`;
+      const cabeceras: Record<string, string> = {
+        "content-type": "application/json",
+      };
+      if (this.config.token)
+        cabeceras["authorization"] = `Bearer ${this.config.token}`;
 
       const resp = await fetch(this.config.url, {
         method: "POST",
@@ -43,7 +46,8 @@ export class ProveedorNutricionHTTP implements IProveedorDatosNutricionales {
 
       const datos = (await resp.json()) as { alimentos?: unknown };
       const crudos = Array.isArray(datos.alimentos) ? datos.alimentos : [];
-      if (crudos.length === 0) return this.respaldo.buscar(termino, limite, criterio);
+      if (crudos.length === 0)
+        return this.respaldo.buscar(termino, limite, criterio);
 
       return crudos.map((a) => normalizar(a)).slice(0, limite);
     } catch {
@@ -58,7 +62,8 @@ function normalizar(crudo: unknown): AlimentoNutricional {
   return {
     nombre: typeof o.nombre === "string" ? o.nombre : "",
     marca: typeof o.marca === "string" ? o.marca : null,
-    referenciaExterna: typeof o.referenciaExterna === "string" ? o.referenciaExterna : null,
+    referenciaExterna:
+      typeof o.referenciaExterna === "string" ? o.referenciaExterna : null,
     fuente: typeof o.fuente === "string" ? o.fuente : "FATSECRET",
     caloriasPor100: numeroONulo(o.caloriasPor100),
     proteinasPor100: numeroONulo(o.proteinasPor100),

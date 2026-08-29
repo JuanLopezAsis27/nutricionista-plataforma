@@ -5,7 +5,12 @@ import { FileText, Plus, Pencil, Trash2, ExternalLink } from "lucide-react";
 import type { LaboratorioSalidaDto } from "@/aplicacion/dtos/evaluacion.dto";
 import type { ArchivoSalidaDto } from "@/aplicacion/dtos/archivo.dto";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
-import { formatearFecha, formatearTamano, aFechaISO, hoyISO } from "@/lib/formato";
+import {
+  formatearFecha,
+  formatearTamano,
+  aFechaISO,
+  hoyISO,
+} from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { Label } from "@/componentes/ui/label";
@@ -31,7 +36,9 @@ export function ListaLaboratorios({ pacienteId }: { pacienteId: string }) {
 
   const [abierto, setAbierto] = useState(false);
   const [editando, setEditando] = useState<LaboratorioSalidaDto | null>(null);
-  const [eliminando, setEliminando] = useState<LaboratorioSalidaDto | null>(null);
+  const [eliminando, setEliminando] = useState<LaboratorioSalidaDto | null>(
+    null,
+  );
 
   const [titulo, setTitulo] = useState("");
   const [fecha, setFecha] = useState(hoyISO());
@@ -64,7 +71,11 @@ export function ListaLaboratorios({ pacienteId }: { pacienteId: string }) {
     };
     if (editando) {
       actualizarLaboratorio.mutate(
-        { id: editando.id, ...base, archivoIdsNuevos: archivosNuevos.map((a) => a.id) },
+        {
+          id: editando.id,
+          ...base,
+          archivoIdsNuevos: archivosNuevos.map((a) => a.id),
+        },
         { onSuccess: () => setAbierto(false) },
       );
     } else {
@@ -75,7 +86,8 @@ export function ListaLaboratorios({ pacienteId }: { pacienteId: string }) {
     }
   }
 
-  const enviando = registrarLaboratorio.isPending || actualizarLaboratorio.isPending;
+  const enviando =
+    registrarLaboratorio.isPending || actualizarLaboratorio.isPending;
 
   return (
     <div className="space-y-3">
@@ -169,19 +181,29 @@ export function ListaLaboratorios({ pacienteId }: { pacienteId: string }) {
               </div>
               <div className="space-y-2">
                 <Label>Fecha</Label>
-                <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+                <Input
+                  type="date"
+                  value={fecha}
+                  onChange={(e) => setFecha(e.target.value)}
+                />
               </div>
             </div>
             <div className="space-y-2">
               <Label>Notas (opcional)</Label>
-              <Textarea rows={2} value={notas} onChange={(e) => setNotas(e.target.value)} />
+              <Textarea
+                rows={2}
+                value={notas}
+                onChange={(e) => setNotas(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label>Adjuntos {editando ? "nuevos" : ""} (PDF o imagen)</Label>
               <SubidorArchivo
                 contexto="laboratorio"
                 accept="application/pdf,image/*"
-                onSubido={(archivo) => setArchivosNuevos((previos) => [...previos, archivo])}
+                onSubido={(archivo) =>
+                  setArchivosNuevos((previos) => [...previos, archivo])
+                }
               />
               {archivosNuevos.length > 0 && (
                 <p className="text-xs text-muted-foreground">
@@ -191,7 +213,11 @@ export function ListaLaboratorios({ pacienteId }: { pacienteId: string }) {
               )}
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setAbierto(false)} disabled={enviando}>
+              <Button
+                variant="outline"
+                onClick={() => setAbierto(false)}
+                disabled={enviando}
+              >
                 Cancelar
               </Button>
               <Button onClick={guardar} disabled={enviando || !titulo.trim()}>

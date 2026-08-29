@@ -1,4 +1,7 @@
-import type { PrismaClient, Antropometria as AntropometriaFila } from "@prisma/client";
+import type {
+  PrismaClient,
+  Antropometria as AntropometriaFila,
+} from "@prisma/client";
 import type { IAntropometriaRepositorio } from "@/dominio/repositorios/IAntropometriaRepositorio";
 import { Antropometria } from "@/dominio/entidades/Antropometria";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
@@ -24,7 +27,12 @@ export class PrismaRepositorioAntropometria implements IAntropometriaRepositorio
   }
 
   async actualizar(medicion: Antropometria): Promise<Antropometria> {
-    const { id, pacienteId: _paciente, creadoEn: _creado, ...datos } = medicion.aPrimitivos();
+    const {
+      id,
+      pacienteId: _paciente,
+      creadoEn: _creado,
+      ...datos
+    } = medicion.aPrimitivos();
     const fila = await this.prisma.antropometria.update({
       where: { id },
       data: { ...datos, fecha: this.soloFecha(datos.fecha) },

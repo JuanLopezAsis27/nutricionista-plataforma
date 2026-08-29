@@ -23,7 +23,9 @@ export class ServicioIntegraciones {
 
   async estado(): Promise<EstadoIntegracionesDto> {
     if (!this.googleConfigurado || !this.obtenerCuentaUC) {
-      return { google: { configurado: false, conectado: false, emailCuenta: null } };
+      return {
+        google: { configurado: false, conectado: false, emailCuenta: null },
+      };
     }
     const cuenta = await this.obtenerCuentaUC.ejecutar();
     return {

@@ -31,10 +31,14 @@ describe("normalizarTelefonoE164", () => {
   });
 
   it("rechaza un texto sin dígitos", () => {
-    expect(() => normalizarTelefonoE164("no tiene", "54")).toThrow(ErrorValidacion);
+    expect(() => normalizarTelefonoE164("no tiene", "54")).toThrow(
+      ErrorValidacion,
+    );
   });
 
   it("rechaza un número demasiado largo", () => {
-    expect(() => normalizarTelefonoE164("+1234567890123456789", "54")).toThrow(ErrorValidacion);
+    expect(() => normalizarTelefonoE164("+1234567890123456789", "54")).toThrow(
+      ErrorValidacion,
+    );
   });
 });

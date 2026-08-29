@@ -40,7 +40,11 @@ export function TarjetaReceta({ receta, onVer, acciones }: PropsTarjetaReceta) {
         )}
       </button>
       <CardContent className="space-y-2 p-3">
-        <button type="button" onClick={onVer} className="block w-full text-left">
+        <button
+          type="button"
+          onClick={onVer}
+          className="block w-full text-left"
+        >
           <p className="font-medium leading-tight">{receta.nombre}</p>
         </button>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -55,7 +59,9 @@ export function TarjetaReceta({ receta, onVer, acciones }: PropsTarjetaReceta) {
             </Badge>
           ))}
         </div>
-        {acciones && <div className="flex justify-end gap-1 pt-1">{acciones}</div>}
+        {acciones && (
+          <div className="flex justify-end gap-1 pt-1">{acciones}</div>
+        )}
       </CardContent>
     </Card>
   );

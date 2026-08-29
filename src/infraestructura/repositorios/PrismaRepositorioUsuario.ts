@@ -47,7 +47,9 @@ export class PrismaRepositorioUsuario implements IUsuarioRepositorio {
   }
 
   async obtenerPorPacienteId(pacienteId: string): Promise<Usuario | null> {
-    const fila = await this.prisma.usuario.findUnique({ where: { pacienteId } });
+    const fila = await this.prisma.usuario.findUnique({
+      where: { pacienteId },
+    });
     return fila ? this.mapearAUsuario(fila) : null;
   }
 

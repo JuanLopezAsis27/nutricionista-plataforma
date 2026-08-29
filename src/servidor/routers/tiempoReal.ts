@@ -7,9 +7,15 @@ import type { EventoTiempoReal } from "@/dominio/servicios/IBusEventos";
  * invalidando queries y mostrando avisos (ver useTiempoReal).
  */
 export const routerTiempoReal = crearRouter({
-  suscribirse: protegidoProcedimiento.subscription(async function* ({ ctx, signal }) {
+  suscribirse: protegidoProcedimiento.subscription(async function* ({
+    ctx,
+    signal,
+  }) {
     // `signal` se aborta cuando el cliente cierra la conexión SSE.
-    for await (const evento of ctx.busEventos.suscribir(ctx.usuario.id, signal!)) {
+    for await (const evento of ctx.busEventos.suscribir(
+      ctx.usuario.id,
+      signal!,
+    )) {
       yield evento satisfies EventoTiempoReal;
     }
   }),

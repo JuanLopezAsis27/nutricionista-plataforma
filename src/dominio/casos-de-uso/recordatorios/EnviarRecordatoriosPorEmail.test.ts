@@ -28,15 +28,21 @@ function armar(overrides: {
   const registrar = vi.fn(async () => {});
 
   const uc = new EnviarRecordatoriosPorEmail(
-    mockPlantillaEmailRepositorio({ obtenerPorClave: vi.fn(async () => plantilla) }),
+    mockPlantillaEmailRepositorio({
+      obtenerPorClave: vi.fn(async () => plantilla),
+    }),
     mockEmailEnviadoRepositorio({
       yaEnviado: vi.fn(async () => overrides.yaEnviado ?? false),
       registrar,
     }),
-    mockTurnoRepositorio({ obtenerEnFecha: vi.fn(async () => overrides.turnos ?? []) }),
+    mockTurnoRepositorio({
+      obtenerEnFecha: vi.fn(async () => overrides.turnos ?? []),
+    }),
     mockPacienteRepositorio({
       obtenerPorId: vi.fn(async () =>
-        overrides.paciente === undefined ? pacienteEjemplo() : overrides.paciente,
+        overrides.paciente === undefined
+          ? pacienteEjemplo()
+          : overrides.paciente,
       ),
     }),
     mockServicioEmail({ enviar }),
@@ -103,10 +109,14 @@ describe("EnviarRecordatoriosPorEmail", () => {
     const plantilla = plantillaEmailEjemplo();
     const registrar = vi.fn(async () => {});
     const uc = new EnviarRecordatoriosPorEmail(
-      mockPlantillaEmailRepositorio({ obtenerPorClave: vi.fn(async () => plantilla) }),
+      mockPlantillaEmailRepositorio({
+        obtenerPorClave: vi.fn(async () => plantilla),
+      }),
       mockEmailEnviadoRepositorio({ registrar }),
       mockTurnoRepositorio({ obtenerEnFecha: vi.fn(async () => [turno]) }),
-      mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => pacienteEjemplo()) }),
+      mockPacienteRepositorio({
+        obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+      }),
       mockServicioEmail({
         enviar: vi.fn(async () => {
           throw new Error("smtp caído");
@@ -125,7 +135,9 @@ describe("EnviarRecordatoriosPorEmail", () => {
 
   it("lanza ErrorPlantillaNoEncontrada si falta la plantilla del sistema", async () => {
     const uc = new EnviarRecordatoriosPorEmail(
-      mockPlantillaEmailRepositorio({ obtenerPorClave: vi.fn(async () => null) }),
+      mockPlantillaEmailRepositorio({
+        obtenerPorClave: vi.fn(async () => null),
+      }),
       mockEmailEnviadoRepositorio(),
       mockTurnoRepositorio(),
       mockPacienteRepositorio(),
@@ -135,6 +147,8 @@ describe("EnviarRecordatoriosPorEmail", () => {
       PROFESIONAL,
     );
 
-    await expect(uc.ejecutar()).rejects.toBeInstanceOf(ErrorPlantillaNoEncontrada);
+    await expect(uc.ejecutar()).rejects.toBeInstanceOf(
+      ErrorPlantillaNoEncontrada,
+    );
   });
 });

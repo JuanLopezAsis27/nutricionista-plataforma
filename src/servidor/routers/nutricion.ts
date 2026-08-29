@@ -19,8 +19,10 @@ export const routerNutricion = crearRouter({
     return await ctx.servicios.alimentosPropios.estado();
   }),
 
-  vaciarAlimentosPropios: nutricionistaProcedimiento.mutation(async ({ ctx }) => {
-    await ctx.servicios.alimentosPropios.vaciar();
-    return { ok: true };
-  }),
+  vaciarAlimentosPropios: nutricionistaProcedimiento.mutation(
+    async ({ ctx }) => {
+      await ctx.servicios.alimentosPropios.vaciar();
+      return { ok: true };
+    },
+  ),
 });

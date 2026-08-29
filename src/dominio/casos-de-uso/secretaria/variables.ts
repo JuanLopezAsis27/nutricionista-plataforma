@@ -28,7 +28,10 @@ export function variablesRecordatorio(datos: {
 }
 
 /** Variables de ejemplo para la vista previa / email de prueba. */
-export function variablesEjemplo(nombreProfesional: string, hoy: Date): Record<string, string> {
+export function variablesEjemplo(
+  nombreProfesional: string,
+  hoy: Date,
+): Record<string, string> {
   return {
     paciente: "Juan Pérez",
     fecha: formatearFechaCorta(hoy),

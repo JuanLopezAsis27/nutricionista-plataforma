@@ -4,7 +4,12 @@ import { Watch, Footprints, Moon, Activity } from "lucide-react";
 import type { MetricaSalidaDto } from "@/aplicacion/dtos/metricas.dto";
 import { useMetricas } from "@/lib/hooks/useMetricas";
 import { formatearFecha } from "@/lib/formato";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
 
@@ -32,7 +37,12 @@ interface DiaMetrica {
  * si cuentan en su seguimiento (opt-in). Los datos los importa la app nativa
  * (Capacitor + HealthKit/Health Connect); ver docs/WEARABLES.md.
  */
-export function MetricasDispositivo({ pacienteId, editable, desde, hasta }: Props) {
+export function MetricasDispositivo({
+  pacienteId,
+  editable,
+  desde,
+  hasta,
+}: Props) {
   const { mias, dePaciente, fijarInclusion } = useMetricas();
 
   const esNutri = pacienteId != null;
@@ -70,11 +80,14 @@ export function MetricasDispositivo({ pacienteId, editable, desde, hasta }: Prop
                 key={dia.fecha.toISOString()}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-2 text-sm"
               >
-                <span className="w-24 shrink-0 font-medium">{formatearFecha(dia.fecha)}</span>
+                <span className="w-24 shrink-0 font-medium">
+                  {formatearFecha(dia.fecha)}
+                </span>
                 <span className="flex flex-1 flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
                   {dia.pasos != null && (
                     <span className="flex items-center gap-1">
-                      <Footprints className="h-3.5 w-3.5" /> {dia.pasos.toLocaleString("es-AR")}
+                      <Footprints className="h-3.5 w-3.5" />{" "}
+                      {dia.pasos.toLocaleString("es-AR")}
                     </span>
                   )}
                   {dia.horasSueno != null && (
@@ -84,7 +97,8 @@ export function MetricasDispositivo({ pacienteId, editable, desde, hasta }: Prop
                   )}
                   {dia.minutosActividad != null && (
                     <span className="flex items-center gap-1">
-                      <Activity className="h-3.5 w-3.5" /> {dia.minutosActividad} min
+                      <Activity className="h-3.5 w-3.5" />{" "}
+                      {dia.minutosActividad} min
                     </span>
                   )}
                 </span>
@@ -94,7 +108,10 @@ export function MetricasDispositivo({ pacienteId, editable, desde, hasta }: Prop
                     variant={dia.incluir ? "default" : "outline"}
                     disabled={fijarInclusion.isPending}
                     onClick={() =>
-                      fijarInclusion.mutate({ fecha: dia.fecha, incluir: !dia.incluir })
+                      fijarInclusion.mutate({
+                        fecha: dia.fecha,
+                        incluir: !dia.incluir,
+                      })
                     }
                   >
                     {dia.incluir ? "Cuenta" : "No cuenta"}
@@ -102,7 +119,9 @@ export function MetricasDispositivo({ pacienteId, editable, desde, hasta }: Prop
                 ) : (
                   <span
                     className={
-                      dia.incluir ? "text-xs text-primary" : "text-xs text-muted-foreground"
+                      dia.incluir
+                        ? "text-xs text-primary"
+                        : "text-xs text-muted-foreground"
                     }
                   >
                     {dia.incluir ? "En seguimiento" : "Excluido"}

@@ -4,9 +4,7 @@ import type { IRecetaRepositorio } from "../../repositorios/IRecetaRepositorio";
 import type { ITurnoRepositorio } from "../../repositorios/ITurnoRepositorio";
 import type { IObjetivoRepositorio } from "../../repositorios/IObjetivoRepositorio";
 import type { IAlertaAlimentariaRepositorio } from "../../repositorios/IAlertaAlimentariaRepositorio";
-import type {
-  IAsistenteAnalitico,
-} from "../../servicios/IAsistenteAnalitico";
+import type { IAsistenteAnalitico } from "../../servicios/IAsistenteAnalitico";
 import type { HerramientaAsistente } from "../../servicios/IAsistenteNutricional";
 
 /** Resultado de una consulta analítica del nutricionista. */
@@ -15,10 +13,16 @@ export interface RespuestaAnalisis {
   respuesta: string;
 }
 
-const SIN_ARGUMENTOS = { type: "object", properties: {}, additionalProperties: false };
+const SIN_ARGUMENTOS = {
+  type: "object",
+  properties: {},
+  additionalProperties: false,
+};
 const CON_PACIENTE = {
   type: "object",
-  properties: { pacienteId: { type: "string", description: "id del paciente" } },
+  properties: {
+    pacienteId: { type: "string", description: "id del paciente" },
+  },
   required: ["pacienteId"],
   additionalProperties: false,
 };
@@ -42,7 +46,10 @@ export class AnalizarConAsistente {
   ) {}
 
   async ejecutar(pregunta: string): Promise<RespuestaAnalisis> {
-    const respuesta = await this.asistente.responder(pregunta, this.construirHerramientas());
+    const respuesta = await this.asistente.responder(
+      pregunta,
+      this.construirHerramientas(),
+    );
     return { pregunta, respuesta };
   }
 
@@ -59,7 +66,12 @@ export class AnalizarConAsistente {
           return JSON.stringify(
             pacientes.slice(0, 300).map((p) => {
               const d = p.aPrimitivos();
-              return { id: d.id, nombre: `${d.nombre} ${d.apellido}`, email: d.email, notas: d.notas };
+              return {
+                id: d.id,
+                nombre: `${d.nombre} ${d.apellido}`,
+                email: d.email,
+                notas: d.notas,
+              };
             }),
           );
         },
@@ -71,7 +83,8 @@ export class AnalizarConAsistente {
           "restricciones alimentarias. Requiere el id (obtenelo con listar_pacientes).",
         esquema: CON_PACIENTE,
         ejecutar: async (args) => {
-          const pacienteId = typeof args.pacienteId === "string" ? args.pacienteId : "";
+          const pacienteId =
+            typeof args.pacienteId === "string" ? args.pacienteId : "";
           const paciente = await this.pacientes.obtenerPorId(pacienteId);
           if (!paciente) return "No existe un paciente con ese id.";
           const [plan, objetivos, alertas] = await Promise.all([
@@ -90,7 +103,11 @@ export class AnalizarConAsistente {
               : null,
             objetivos: objetivos.map((o) => {
               const d = o.aPrimitivos();
-              return { titulo: d.titulo, estado: d.estado, prioridad: d.prioridad };
+              return {
+                titulo: d.titulo,
+                estado: d.estado,
+                prioridad: d.prioridad,
+              };
             }),
             restricciones: alertas.map((a) => {
               const d = a.aPrimitivos();
@@ -154,14 +171,20 @@ export class AnalizarConAsistente {
             this.turnos.listar({ estado: "CONFIRMADO" }),
             this.pacientes.listar(),
           ]);
-          const nombrePorId = new Map(pacientes.map((p) => [p.aPrimitivos().id, p.nombreCompleto]));
+          const nombrePorId = new Map(
+            pacientes.map((p) => [p.aPrimitivos().id, p.nombreCompleto]),
+          );
           const inicioHoy = new Date();
           inicioHoy.setHours(0, 0, 0, 0);
 
           const proximos = [...pendientes, ...confirmados]
             .map((t) => t.aPrimitivos())
             .filter((t) => t.fecha.getTime() >= inicioHoy.getTime())
-            .sort((a, b) => a.fecha.getTime() - b.fecha.getTime() || a.hora.localeCompare(b.hora))
+            .sort(
+              (a, b) =>
+                a.fecha.getTime() - b.fecha.getTime() ||
+                a.hora.localeCompare(b.hora),
+            )
             .slice(0, 25)
             .map((t) => ({
               fecha: t.fecha.toISOString().slice(0, 10),

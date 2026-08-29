@@ -11,14 +11,22 @@ import {
 describe("ObtenerEvolucionAntropometrica", () => {
   it("devuelve las mediciones con sus derivados calculados", async () => {
     const mediciones = [
-      antropometriaEjemplo({ fecha: new Date("2026-05-01"), pesoKg: 81.3 }, "ant-1"),
-      antropometriaEjemplo({ fecha: new Date("2026-06-01"), pesoKg: 77.5 }, "ant-2"),
+      antropometriaEjemplo(
+        { fecha: new Date("2026-05-01"), pesoKg: 81.3 },
+        "ant-1",
+      ),
+      antropometriaEjemplo(
+        { fecha: new Date("2026-06-01"), pesoKg: 77.5 },
+        "ant-2",
+      ),
     ];
     const casoUso = new ObtenerEvolucionAntropometrica(
       mockAntropometriaRepositorio({
         listarPorPaciente: vi.fn(async () => mediciones),
       }),
-      mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => pacienteEjemplo()) }),
+      mockPacienteRepositorio({
+        obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+      }),
     );
 
     const evolucion = await casoUso.ejecutar("pac-1");

@@ -4,7 +4,16 @@ import { useEffect, useState } from "react";
 import { useForm, useFieldArray, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ImagePlus, FileText, LinkIcon, X, Plus, Trash2, Search, Loader2 } from "lucide-react";
+import {
+  ImagePlus,
+  FileText,
+  LinkIcon,
+  X,
+  Plus,
+  Trash2,
+  Search,
+  Loader2,
+} from "lucide-react";
 import type { RecetaSalidaDto } from "@/aplicacion/dtos/receta.dto";
 import type { AlimentoNutricionalSalidaDto } from "@/aplicacion/dtos/nutricion.dto";
 import type { ArchivoSalidaDto } from "@/aplicacion/dtos/archivo.dto";
@@ -26,7 +35,10 @@ import { AdjuntosGuardados } from "@/componentes/recetas/AdjuntosGuardados";
 
 const numeroOpcional = z
   .string()
-  .refine((v) => v === "" || Number(v.replace(",", ".")) >= 0, "Debe ser un número positivo");
+  .refine(
+    (v) => v === "" || Number(v.replace(",", ".")) >= 0,
+    "Debe ser un número positivo",
+  );
 
 const ingredienteEsquema = z.object({
   nombre: z.string().min(1, "Nombre").max(200),
@@ -122,13 +134,19 @@ function porPorcion(m: Macros, porciones: number | null): Macros {
   return {
     calorias: m.calorias != null ? Math.round(m.calorias / p) : null,
     proteinasG: m.proteinasG != null ? redondear1(m.proteinasG / p) : null,
-    carbohidratosG: m.carbohidratosG != null ? redondear1(m.carbohidratosG / p) : null,
+    carbohidratosG:
+      m.carbohidratosG != null ? redondear1(m.carbohidratosG / p) : null,
     grasasG: m.grasasG != null ? redondear1(m.grasasG / p) : null,
   };
 }
 
 function hayMacros(m: Macros): boolean {
-  return m.calorias != null || m.proteinasG != null || m.carbohidratosG != null || m.grasasG != null;
+  return (
+    m.calorias != null ||
+    m.proteinasG != null ||
+    m.carbohidratosG != null ||
+    m.grasasG != null
+  );
 }
 
 const INGREDIENTE_VACIO: IngredienteFormulario = {
@@ -152,12 +170,17 @@ interface PropsFormularioReceta {
  * nutricionales en Open Food Facts y suma automática de macros), preparación,
  * etiquetas y fotos.
  */
-export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormularioReceta) {
+export function FormularioReceta({
+  recetaInicial,
+  onTerminado,
+}: PropsFormularioReceta) {
   const { crear, actualizar } = useRecetas();
   const enviando = crear.isPending || actualizar.isPending;
 
   const [fotosNuevas, setFotosNuevas] = useState<ArchivoSalidaDto[]>([]);
-  const [documentosNuevos, setDocumentosNuevos] = useState<ArchivoSalidaDto[]>([]);
+  const [documentosNuevos, setDocumentosNuevos] = useState<ArchivoSalidaDto[]>(
+    [],
+  );
 
   const form = useForm<DatosFormulario>({
     resolver: zodResolver(esquema),
@@ -185,7 +208,10 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
     },
   });
 
-  const ingredientes = useFieldArray({ control: form.control, name: "ingredientes" });
+  const ingredientes = useFieldArray({
+    control: form.control,
+    name: "ingredientes",
+  });
 
   // Totales en vivo desde lo que hay cargado.
   const ingredientesActuales = form.watch("ingredientes");
@@ -196,7 +222,9 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
 
   function elegirAlimento(alimento: AlimentoNutricionalSalidaDto) {
     ingredientes.append({
-      nombre: alimento.marca ? `${alimento.nombre} (${alimento.marca})` : alimento.nombre,
+      nombre: alimento.marca
+        ? `${alimento.nombre} (${alimento.marca})`
+        : alimento.nombre,
       cantidadGramos: "100",
       caloriasPor100: alimento.caloriasPor100?.toString() ?? "",
       proteinasPor100: alimento.proteinasPor100?.toString() ?? "",
@@ -235,7 +263,10 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
         .map((enlace) => enlace.trim())
         .filter(Boolean),
       // Fallback manual (se usa solo si ningún ingrediente trae macros).
-      calorias: aNumero(datos.calorias) != null ? Math.round(aNumero(datos.calorias)!) : null,
+      calorias:
+        aNumero(datos.calorias) != null
+          ? Math.round(aNumero(datos.calorias)!)
+          : null,
       proteinasG: aNumero(datos.proteinasG),
       carbohidratosG: aNumero(datos.carbohidratosG),
       grasasG: aNumero(datos.grasasG),
@@ -254,7 +285,10 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
         { onSuccess: onTerminado },
       );
     } else {
-      crear.mutate({ ...cuerpo, fotoIds, documentoIds }, { onSuccess: onTerminado });
+      crear.mutate(
+        { ...cuerpo, fotoIds, documentoIds },
+        { onSuccess: onTerminado },
+      );
     }
   }
 
@@ -312,7 +346,8 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
 
           {ingredientes.fields.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              Buscá un alimento arriba para agregarlo con sus macros, o cargá uno a mano.
+              Buscá un alimento arriba para agregarlo con sus macros, o cargá
+              uno a mano.
             </p>
           )}
 
@@ -357,7 +392,11 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
             <FormItem>
               <FormLabel>Preparación</FormLabel>
               <FormControl>
-                <Textarea rows={4} placeholder="Pasos de la preparación…" {...field} />
+                <Textarea
+                  rows={4}
+                  placeholder="Pasos de la preparación…"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -370,8 +409,8 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
             Macros por porción a mano (opcional)
           </summary>
           <p className="mt-1 text-xs text-muted-foreground">
-            Se usan solo si la receta no tiene ingredientes con datos nutricionales. Si los tiene,
-            los macros se calculan automáticamente.
+            Se usan solo si la receta no tiene ingredientes con datos
+            nutricionales. Si los tiene, los macros se calculan automáticamente.
           </p>
           <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
             {(
@@ -407,7 +446,10 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
             <FormItem>
               <FormLabel>Etiquetas (separadas por coma)</FormLabel>
               <FormControl>
-                <Input placeholder="vegetariano, sin TACC, alta proteína" {...field} />
+                <Input
+                  placeholder="vegetariano, sin TACC, alta proteína"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -437,7 +479,9 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
                     size="icon"
                     aria-label="Quitar foto"
                     onClick={() =>
-                      setFotosNuevas((previas) => previas.filter((f) => f.id !== foto.id))
+                      setFotosNuevas((previas) =>
+                        previas.filter((f) => f.id !== foto.id),
+                      )
                     }
                   >
                     <X className="h-4 w-4" />
@@ -449,7 +493,9 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
           <SubidorArchivo
             contexto="receta"
             accept="image/*"
-            onSubido={(archivo) => setFotosNuevas((previas) => [...previas, archivo])}
+            onSubido={(archivo) =>
+              setFotosNuevas((previas) => [...previas, archivo])
+            }
           />
         </div>
 
@@ -472,7 +518,9 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
                     size="icon"
                     aria-label="Quitar documento"
                     onClick={() =>
-                      setDocumentosNuevos((previos) => previos.filter((d) => d.id !== doc.id))
+                      setDocumentosNuevos((previos) =>
+                        previos.filter((d) => d.id !== doc.id),
+                      )
                     }
                   >
                     <X className="h-4 w-4" />
@@ -484,7 +532,9 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
           <SubidorArchivo
             contexto="receta"
             accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            onSubido={(archivo) => setDocumentosNuevos((previos) => [...previos, archivo])}
+            onSubido={(archivo) =>
+              setDocumentosNuevos((previos) => [...previos, archivo])
+            }
           />
         </div>
 
@@ -495,7 +545,8 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
           render={({ field }) => (
             <FormItem>
               <FormLabel className="flex items-center gap-1.5">
-                <LinkIcon className="h-4 w-4" /> Enlaces de referencia (uno por línea)
+                <LinkIcon className="h-4 w-4" /> Enlaces de referencia (uno por
+                línea)
               </FormLabel>
               <FormControl>
                 <Textarea
@@ -510,11 +561,20 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
         />
 
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onTerminado} disabled={enviando}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onTerminado}
+            disabled={enviando}
+          >
             Cancelar
           </Button>
           <Button type="submit" disabled={enviando}>
-            {enviando ? "Guardando…" : recetaInicial ? "Guardar cambios" : "Crear receta"}
+            {enviando
+              ? "Guardando…"
+              : recetaInicial
+                ? "Guardar cambios"
+                : "Crear receta"}
           </Button>
         </div>
       </form>
@@ -532,7 +592,8 @@ function TotalItem({ etiqueta, macros }: { etiqueta: string; macros: Macros }) {
   ].filter(Boolean);
   return (
     <span>
-      <span className="text-muted-foreground">{etiqueta}:</span> {partes.join(" · ")}
+      <span className="text-muted-foreground">{etiqueta}:</span>{" "}
+      {partes.join(" · ")}
     </span>
   );
 }
@@ -569,7 +630,12 @@ function FilaIngrediente({
             render={({ field }) => (
               <FormItem>
                 <FormControl>
-                  <Input inputMode="decimal" placeholder="g" aria-label="Gramos" {...field} />
+                  <Input
+                    inputMode="decimal"
+                    placeholder="g"
+                    aria-label="Gramos"
+                    {...field}
+                  />
                 </FormControl>
               </FormItem>
             )}
@@ -601,9 +667,16 @@ function FilaIngrediente({
             name={`ingredientes.${indice}.${nombre}`}
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-[0.65rem] text-muted-foreground">{etiqueta}</FormLabel>
+                <FormLabel className="text-[0.65rem] text-muted-foreground">
+                  {etiqueta}
+                </FormLabel>
                 <FormControl>
-                  <Input inputMode="decimal" placeholder="—" className="h-8" {...field} />
+                  <Input
+                    inputMode="decimal"
+                    placeholder="—"
+                    className="h-8"
+                    {...field}
+                  />
                 </FormControl>
               </FormItem>
             )}
@@ -678,14 +751,20 @@ function BuscadorAlimento({
               <span className="font-medium">
                 {alimento.nombre}
                 {alimento.marca ? (
-                  <span className="text-muted-foreground"> · {alimento.marca}</span>
+                  <span className="text-muted-foreground">
+                    {" "}
+                    · {alimento.marca}
+                  </span>
                 ) : null}
               </span>
               <span className="text-xs text-muted-foreground">
                 {[
-                  alimento.caloriasPor100 != null && `${alimento.caloriasPor100} kcal`,
-                  alimento.proteinasPor100 != null && `${alimento.proteinasPor100} P`,
-                  alimento.carbohidratosPor100 != null && `${alimento.carbohidratosPor100} C`,
+                  alimento.caloriasPor100 != null &&
+                    `${alimento.caloriasPor100} kcal`,
+                  alimento.proteinasPor100 != null &&
+                    `${alimento.proteinasPor100} P`,
+                  alimento.carbohidratosPor100 != null &&
+                    `${alimento.carbohidratosPor100} C`,
                   alimento.grasasPor100 != null && `${alimento.grasasPor100} G`,
                 ]
                   .filter(Boolean)

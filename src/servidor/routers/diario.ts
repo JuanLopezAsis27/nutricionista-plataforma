@@ -35,12 +35,14 @@ function pacienteDeSesion(usuario: { pacienteId: string | null }): string {
  */
 export const routerDiario = crearRouter({
   // --- Portal del paciente ------------------------------------------------------
-  miDia: protegidoProcedimiento.input(fechaDiaDto).query(async ({ ctx, input }) => {
-    return await ctx.servicios.diario.obtenerDia(
-      pacienteDeSesion(ctx.usuario),
-      input.fecha,
-    );
-  }),
+  miDia: protegidoProcedimiento
+    .input(fechaDiaDto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.diario.obtenerDia(
+        pacienteDeSesion(ctx.usuario),
+        input.fecha,
+      );
+    }),
 
   miCalendario: protegidoProcedimiento
     .input(mesCalendarioDto)
@@ -55,7 +57,10 @@ export const routerDiario = crearRouter({
   guardarMiDia: protegidoProcedimiento
     .input(guardarDiaDto)
     .mutation(async ({ ctx, input }) => {
-      return await ctx.servicios.diario.guardarDia(pacienteDeSesion(ctx.usuario), input);
+      return await ctx.servicios.diario.guardarDia(
+        pacienteDeSesion(ctx.usuario),
+        input,
+      );
     }),
 
   agregarComida: protegidoProcedimiento
@@ -70,7 +75,10 @@ export const routerDiario = crearRouter({
   eliminarComida: protegidoProcedimiento
     .input(idHijoDiarioDto)
     .mutation(async ({ ctx, input }) => {
-      await ctx.servicios.diario.eliminarComida(pacienteDeSesion(ctx.usuario), input.id);
+      await ctx.servicios.diario.eliminarComida(
+        pacienteDeSesion(ctx.usuario),
+        input.id,
+      );
       return { eliminado: true };
     }),
 

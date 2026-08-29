@@ -28,7 +28,10 @@ export class LimitadorIntentos {
   ) {}
 
   /** ¿La clave está bloqueada ahora? Devuelve además los segundos restantes. */
-  estaBloqueada(clave: string): { bloqueada: boolean; restanteSegundos: number } {
+  estaBloqueada(clave: string): {
+    bloqueada: boolean;
+    restanteSegundos: number;
+  } {
     const estado = this.estados.get(clave);
     if (!estado) return { bloqueada: false, restanteSegundos: 0 };
     const ahora = this.ahora();
@@ -45,7 +48,10 @@ export class LimitadorIntentos {
    * Registra un intento fallido. Si con este fallo se alcanza el máximo dentro
    * de la ventana, bloquea la clave. Devuelve el estado de bloqueo resultante.
    */
-  registrarFallo(clave: string): { bloqueada: boolean; restanteSegundos: number } {
+  registrarFallo(clave: string): {
+    bloqueada: boolean;
+    restanteSegundos: number;
+  } {
     const ahora = this.ahora();
     const estado = this.estados.get(clave) ?? { fallos: [], bloqueadaHasta: 0 };
     // Descartar fallos fuera de la ventana.
@@ -70,7 +76,9 @@ export class LimitadorIntentos {
   private podar(ahora: number): void {
     if (this.estados.size < 5000) return;
     for (const [clave, estado] of this.estados) {
-      const sinFallosVigentes = estado.fallos.every((t) => ahora - t >= this.ventanaMs);
+      const sinFallosVigentes = estado.fallos.every(
+        (t) => ahora - t >= this.ventanaMs,
+      );
       if (estado.bloqueadaHasta <= ahora && sinFallosVigentes) {
         this.estados.delete(clave);
       }

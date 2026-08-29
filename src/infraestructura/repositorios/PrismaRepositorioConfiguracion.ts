@@ -19,7 +19,9 @@ export class PrismaRepositorioConfiguracion implements IConfiguracionRepositorio
     return fila ? this.mapear(fila) : null;
   }
 
-  async guardar(configuracion: ConfiguracionConsultorio): Promise<ConfiguracionConsultorio> {
+  async guardar(
+    configuracion: ConfiguracionConsultorio,
+  ): Promise<ConfiguracionConsultorio> {
     const d = configuracion.aPrimitivos();
     const datos = {
       turnoDuracionMinutos: d.turnoDuracionMinutos,

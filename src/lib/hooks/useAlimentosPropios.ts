@@ -26,9 +26,12 @@ export function useAlimentosPropios() {
         method: "POST",
         body: formulario,
       });
-      const cuerpo = (await respuesta.json()) as { importados: number } | { error: string };
+      const cuerpo = (await respuesta.json()) as
+        { importados: number } | { error: string };
       if (!respuesta.ok || "error" in cuerpo) {
-        throw new Error("error" in cuerpo ? cuerpo.error : "No se pudo importar la planilla.");
+        throw new Error(
+          "error" in cuerpo ? cuerpo.error : "No se pudo importar la planilla.",
+        );
       }
       await utils.nutricion.estadoAlimentosPropios.invalidate();
       return cuerpo.importados;

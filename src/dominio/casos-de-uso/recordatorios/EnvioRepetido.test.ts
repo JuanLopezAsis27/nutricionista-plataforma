@@ -79,7 +79,9 @@ function armar(horasEntreAvisos = 24) {
     mockEmailEnviadoRepositorio(),
     mockTurnoRepositorio(),
     mockPacienteRepositorio({
-      obtenerPorId: vi.fn(async () => pacienteEjemplo({ telefono: "011 15 5555-4444" })),
+      obtenerPorId: vi.fn(async () =>
+        pacienteEjemplo({ telefono: "011 15 5555-4444" }),
+      ),
     }),
     mockServicioEmail({ enviar: enviarEmail }),
     mockReloj(),
@@ -151,7 +153,9 @@ describe("apretar Enviar varias veces sobre el mismo turno", () => {
     for (let i = 0; i < 4; i += 1) {
       await caso.ejecutar({ turnoIds: ["tur-1"], usuarioId: "usr-1" });
       const [vigente] = [...recordatorios.filas.values()];
-      await recordatorios.actualizar(vigente!.registrarFallo("Meta lo rechazó"));
+      await recordatorios.actualizar(
+        vigente!.registrarFallo("Meta lo rechazó"),
+      );
     }
 
     expect(recordatorios.filas.size).toBe(1);

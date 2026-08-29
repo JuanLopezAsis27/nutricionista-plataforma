@@ -61,9 +61,12 @@ describe("GuardarHistoriaClinica", () => {
     const pacientes = mockPacienteRepositorio({
       obtenerPorId: vi.fn(async () => pacienteEjemplo()),
     });
-    const casoUso = new GuardarHistoriaClinica(mockHistoriaClinicaRepositorio(), pacientes);
-    await expect(casoUso.ejecutar({ pacienteId: "pac-1" })).rejects.toBeInstanceOf(
-      ErrorValidacion,
+    const casoUso = new GuardarHistoriaClinica(
+      mockHistoriaClinicaRepositorio(),
+      pacientes,
     );
+    await expect(
+      casoUso.ejecutar({ pacienteId: "pac-1" }),
+    ).rejects.toBeInstanceOf(ErrorValidacion);
   });
 });

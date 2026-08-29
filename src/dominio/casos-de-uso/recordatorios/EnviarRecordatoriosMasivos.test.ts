@@ -43,7 +43,9 @@ function armar(
     mockEmailEnviadoRepositorio(),
     mockTurnoRepositorio(),
     mockPacienteRepositorio({
-      obtenerPorId: vi.fn(async () => pacienteEjemplo({ telefono: "011 15 5555-4444" })),
+      obtenerPorId: vi.fn(async () =>
+        pacienteEjemplo({ telefono: "011 15 5555-4444" }),
+      ),
     }),
     mockServicioEmail({ enviar: enviarEmail }),
     mockReloj(),
@@ -181,7 +183,10 @@ describe("EnviarRecordatoriosMasivos", () => {
       existentes: new Map([["tur-1", [borrador]]]),
     });
 
-    const resultado = await caso.ejecutar({ turnoIds: ["tur-1"], usuarioId: "usr-1" });
+    const resultado = await caso.ejecutar({
+      turnoIds: ["tur-1"],
+      usuarioId: "usr-1",
+    });
 
     expect(resultado.preparados).toBe(1);
     expect(recordatorios.registrar).not.toHaveBeenCalled();
@@ -250,7 +255,9 @@ describe("EnviarRecordatoriosMasivos", () => {
 
   // Apagar un medio no puede dejar al paciente sin ningún aviso: el otro sale.
   it("con WhatsApp desactivado manda igual por email", async () => {
-    const { caso, recordatorios, enviarEmail } = armar({ whatsappActivo: false });
+    const { caso, recordatorios, enviarEmail } = armar({
+      whatsappActivo: false,
+    });
 
     const resultado = await caso.ejecutar({
       turnoIds: ["tur-1"],

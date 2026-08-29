@@ -1,4 +1,7 @@
-import type { PrismaClient, PlantillaEmail as PlantillaFila } from "@prisma/client";
+import type {
+  PrismaClient,
+  PlantillaEmail as PlantillaFila,
+} from "@prisma/client";
 import type { IPlantillaEmailRepositorio } from "@/dominio/repositorios/IPlantillaEmailRepositorio";
 import { PlantillaEmail } from "@/dominio/entidades/PlantillaEmail";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
@@ -53,12 +56,16 @@ export class PrismaRepositorioPlantillaEmail implements IPlantillaEmailRepositor
   async obtenerPorClave(clave: string): Promise<PlantillaEmail | null> {
     // `clave` es única POR nutricionista (@@unique([nutricionistaId, clave])); la
     // extensión multi-inquilino acota el findFirst al nutricionista de la request.
-    const fila = await this.prisma.plantillaEmail.findFirst({ where: { clave } });
+    const fila = await this.prisma.plantillaEmail.findFirst({
+      where: { clave },
+    });
     return fila ? this.mapear(fila) : null;
   }
 
   async listar(): Promise<PlantillaEmail[]> {
-    const filas = await this.prisma.plantillaEmail.findMany({ orderBy: { nombre: "asc" } });
+    const filas = await this.prisma.plantillaEmail.findMany({
+      orderBy: { nombre: "asc" },
+    });
     return filas.map((fila) => this.mapear(fila));
   }
 

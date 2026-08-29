@@ -1,7 +1,11 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
 
 /** Roles de acceso al sistema. */
-export const ROLES_USUARIO = ["SUPERADMIN", "NUTRICIONISTA", "PACIENTE"] as const;
+export const ROLES_USUARIO = [
+  "SUPERADMIN",
+  "NUTRICIONISTA",
+  "PACIENTE",
+] as const;
 export type RolUsuario = (typeof ROLES_USUARIO)[number];
 
 /** Datos para crear un usuario nuevo (la contraseña ya viene hasheada). */
@@ -43,13 +47,19 @@ const PATRON_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export class Usuario {
   private constructor(private readonly props: PropiedadesUsuario) {}
 
-  static crear(datos: DatosNuevoUsuario, id: string, ahora: Date = new Date()): Usuario {
+  static crear(
+    datos: DatosNuevoUsuario,
+    id: string,
+    ahora: Date = new Date(),
+  ): Usuario {
     const email = datos.email?.trim().toLowerCase() ?? "";
     if (!PATRON_EMAIL.test(email)) {
       throw new ErrorValidacion("El email del usuario no es válido.");
     }
     if (!datos.passwordHash || datos.passwordHash.length === 0) {
-      throw new ErrorValidacion("El usuario debe tener una contraseña hasheada.");
+      throw new ErrorValidacion(
+        "El usuario debe tener una contraseña hasheada.",
+      );
     }
     Usuario.validarCoherenciaRol(datos.rol, datos.pacienteId ?? null);
 
@@ -90,15 +100,22 @@ export class Usuario {
    */
   cambiarPassword(nuevoHash: string): Usuario {
     if (!nuevoHash || nuevoHash.length === 0) {
-      throw new ErrorValidacion("El usuario debe tener una contraseña hasheada.");
+      throw new ErrorValidacion(
+        "El usuario debe tener una contraseña hasheada.",
+      );
     }
     return new Usuario({ ...this.props, passwordHash: nuevoHash });
   }
 
   /** Garantiza que el rol y el pacienteId sean coherentes entre sí. */
-  private static validarCoherenciaRol(rol: RolUsuario, pacienteId: string | null): void {
+  private static validarCoherenciaRol(
+    rol: RolUsuario,
+    pacienteId: string | null,
+  ): void {
     if (rol === "PACIENTE" && !pacienteId) {
-      throw new ErrorValidacion("Un usuario con rol PACIENTE debe tener un paciente asociado.");
+      throw new ErrorValidacion(
+        "Un usuario con rol PACIENTE debe tener un paciente asociado.",
+      );
     }
     if (rol !== "PACIENTE" && pacienteId) {
       throw new ErrorValidacion(

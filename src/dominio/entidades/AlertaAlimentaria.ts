@@ -57,7 +57,9 @@ export class AlertaAlimentaria {
     }
     const descripcion = datos.descripcion?.trim() ?? "";
     if (descripcion.length === 0) {
-      throw new ErrorValidacion("La alerta debe describir el alimento o condición.");
+      throw new ErrorValidacion(
+        "La alerta debe describir el alimento o condición.",
+      );
     }
 
     return new AlertaAlimentaria({

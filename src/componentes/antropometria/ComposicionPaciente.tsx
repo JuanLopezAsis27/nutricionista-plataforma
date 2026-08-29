@@ -12,9 +12,7 @@ import {
   TrendingUp,
   Waves,
 } from "lucide-react";
-import type {
-  ObjetivoComposicionDto,
-} from "@/aplicacion/dtos/evaluacion.dto";
+import type { ObjetivoComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
 import type { EstadoProyeccion } from "@/dominio/servicios/proyeccionComposicion";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
 import { formatearFecha, formatearNumero } from "@/lib/formato";

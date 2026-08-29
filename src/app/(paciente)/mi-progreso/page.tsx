@@ -12,8 +12,8 @@ export default function PaginaMiProgreso() {
           <TrendingUp className="h-6 w-6 text-primary" /> Mi progreso
         </h1>
         <p className="text-sm text-muted-foreground">
-          Tu evolución a partir de lo que vas cargando: peso, hábitos y qué tanto seguís tu
-          plan.
+          Tu evolución a partir de lo que vas cargando: peso, hábitos y qué
+          tanto seguís tu plan.
         </p>
       </div>
 

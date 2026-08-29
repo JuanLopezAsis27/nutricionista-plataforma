@@ -21,7 +21,11 @@ export interface RespuestaAsistente {
 }
 
 /** Esquema de una herramienta sin argumentos. */
-const SIN_ARGUMENTOS = { type: "object", properties: {}, additionalProperties: false };
+const SIN_ARGUMENTOS = {
+  type: "object",
+  properties: {},
+  additionalProperties: false,
+};
 
 /**
  * Caso de uso: responder una pregunta del paciente al asistente. Arma el
@@ -45,7 +49,10 @@ export class PreguntarAlAsistente {
     private readonly competencias: ICompetenciaRepositorio,
   ) {}
 
-  async ejecutar(pacienteId: string, pregunta: string): Promise<RespuestaAsistente> {
+  async ejecutar(
+    pacienteId: string,
+    pregunta: string,
+  ): Promise<RespuestaAsistente> {
     const paciente = await this.pacientes.obtenerPorId(pacienteId);
     if (!paciente) {
       throw new ErrorPacienteNoEncontrado(pacienteId);
@@ -77,7 +84,10 @@ export class PreguntarAlAsistente {
     );
 
     await this.historial.guardarConsulta(
-      ConsultaIA.crear({ pacienteId, pregunta, respuesta }, crypto.randomUUID()),
+      ConsultaIA.crear(
+        { pacienteId, pregunta, respuesta },
+        crypto.randomUUID(),
+      ),
     );
 
     return { pregunta, respuesta };
@@ -93,7 +103,8 @@ export class PreguntarAlAsistente {
           "opciones, y las metas de macros. Usalo cuando pregunte por su plan, sus comidas o qué comer.",
         esquema: SIN_ARGUMENTOS,
         ejecutar: async () => {
-          const plan = await this.planes.obtenerPlanActivoDePaciente(pacienteId);
+          const plan =
+            await this.planes.obtenerPlanActivoDePaciente(pacienteId);
           if (!plan) return "El paciente no tiene un plan activo asignado.";
           const p = plan.aPrimitivos();
           return JSON.stringify({
@@ -121,7 +132,8 @@ export class PreguntarAlAsistente {
         esquema: SIN_ARGUMENTOS,
         ejecutar: async () => {
           const recetas = await this.recetas.listarPorPaciente(pacienteId);
-          if (recetas.length === 0) return "El paciente no tiene recetas asignadas.";
+          if (recetas.length === 0)
+            return "El paciente no tiene recetas asignadas.";
           return JSON.stringify(
             recetas.map((r) => {
               const p = r.aPrimitivos();
@@ -135,7 +147,9 @@ export class PreguntarAlAsistente {
                   grasasG: p.grasasG,
                 },
                 ingredientes: p.ingredientes.map((i) =>
-                  i.cantidadGramos != null ? `${i.nombre} (${i.cantidadGramos} g)` : i.nombre,
+                  i.cantidadGramos != null
+                    ? `${i.nombre} (${i.cantidadGramos} g)`
+                    : i.nombre,
                 ),
                 preparacion: p.preparacion,
               };
@@ -151,7 +165,8 @@ export class PreguntarAlAsistente {
         esquema: SIN_ARGUMENTOS,
         ejecutar: async () => {
           const objetivos = await this.objetivos.listarPorPaciente(pacienteId);
-          if (objetivos.length === 0) return "El paciente no tiene objetivos cargados.";
+          if (objetivos.length === 0)
+            return "El paciente no tiene objetivos cargados.";
           return JSON.stringify(
             objetivos.map((o) => {
               const p = o.aPrimitivos();

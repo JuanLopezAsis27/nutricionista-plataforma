@@ -24,8 +24,8 @@ describe("ActualizarMaterial", () => {
 
   it("lanza ErrorMaterialNoEncontrado si no existe", async () => {
     const casoUso = new ActualizarMaterial(mockMaterialRepositorio());
-    await expect(casoUso.ejecutar({ id: "nada", titulo: "X" })).rejects.toBeInstanceOf(
-      ErrorMaterialNoEncontrado,
-    );
+    await expect(
+      casoUso.ejecutar({ id: "nada", titulo: "X" }),
+    ).rejects.toBeInstanceOf(ErrorMaterialNoEncontrado);
   });
 });

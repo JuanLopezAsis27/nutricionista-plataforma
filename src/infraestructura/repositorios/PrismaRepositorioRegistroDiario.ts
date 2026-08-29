@@ -115,7 +115,10 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
 
     const [totales, conPeso, conActividad] = await Promise.all([
       // Cuántos registros tiene cada paciente en toda su historia.
-      this.prisma.registroDiario.groupBy({ by: ["pacienteId"], _count: { _all: true } }),
+      this.prisma.registroDiario.groupBy({
+        by: ["pacienteId"],
+        _count: { _all: true },
+      }),
       // Quiénes registraron peso dentro del rango.
       this.prisma.registroDiario.findMany({
         where: { fecha: rango, pesoKg: { not: null } },
@@ -144,7 +147,10 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
     return resumen;
   }
 
-  async agregarComida(registroId: string, comida: ComidaConsumida): Promise<void> {
+  async agregarComida(
+    registroId: string,
+    comida: ComidaConsumida,
+  ): Promise<void> {
     await this.prisma.comidaConsumida.create({
       data: {
         nutricionistaId: inquilinoActual(),
@@ -166,14 +172,25 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
   async obtenerComida(comidaId: string): Promise<HijoDiario | null> {
     const fila = await this.prisma.comidaConsumida.findUnique({
       where: { id: comidaId },
-      select: { id: true, registroId: true, registro: { select: { pacienteId: true } } },
+      select: {
+        id: true,
+        registroId: true,
+        registro: { select: { pacienteId: true } },
+      },
     });
     return fila
-      ? { id: fila.id, registroId: fila.registroId, pacienteId: fila.registro.pacienteId }
+      ? {
+          id: fila.id,
+          registroId: fila.registroId,
+          pacienteId: fila.registro.pacienteId,
+        }
       : null;
   }
 
-  async agregarActividad(registroId: string, actividad: ActividadFisica): Promise<void> {
+  async agregarActividad(
+    registroId: string,
+    actividad: ActividadFisica,
+  ): Promise<void> {
     await this.prisma.actividadFisica.create({
       data: {
         nutricionistaId: inquilinoActual(),
@@ -195,10 +212,18 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
   async obtenerActividad(actividadId: string): Promise<HijoDiario | null> {
     const fila = await this.prisma.actividadFisica.findUnique({
       where: { id: actividadId },
-      select: { id: true, registroId: true, registro: { select: { pacienteId: true } } },
+      select: {
+        id: true,
+        registroId: true,
+        registro: { select: { pacienteId: true } },
+      },
     });
     return fila
-      ? { id: fila.id, registroId: fila.registroId, pacienteId: fila.registro.pacienteId }
+      ? {
+          id: fila.id,
+          registroId: fila.registroId,
+          pacienteId: fila.registro.pacienteId,
+        }
       : null;
   }
 

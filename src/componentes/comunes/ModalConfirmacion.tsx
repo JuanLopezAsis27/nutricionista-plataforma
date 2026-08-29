@@ -44,7 +44,11 @@ export function ModalConfirmacion({
           <Button variant="outline" onClick={onCancelar} disabled={cargando}>
             Cancelar
           </Button>
-          <Button variant="destructive" onClick={onConfirmar} disabled={cargando}>
+          <Button
+            variant="destructive"
+            onClick={onConfirmar}
+            disabled={cargando}
+          >
             {cargando ? "Procesando…" : textoConfirmar}
           </Button>
         </DialogFooter>

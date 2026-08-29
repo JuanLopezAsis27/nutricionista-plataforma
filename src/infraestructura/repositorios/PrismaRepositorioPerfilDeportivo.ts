@@ -1,4 +1,8 @@
-import type { PrismaClient, Prisma, PerfilDeportivo as PerfilFila } from "@prisma/client";
+import type {
+  PrismaClient,
+  Prisma,
+  PerfilDeportivo as PerfilFila,
+} from "@prisma/client";
 import type { IPerfilDeportivoRepositorio } from "@/dominio/repositorios/IPerfilDeportivoRepositorio";
 import { PerfilDeportivo } from "@/dominio/entidades/PerfilDeportivo";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
@@ -11,8 +15,12 @@ import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 export class PrismaRepositorioPerfilDeportivo implements IPerfilDeportivoRepositorio {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async obtenerPorPaciente(pacienteId: string): Promise<PerfilDeportivo | null> {
-    const fila = await this.prisma.perfilDeportivo.findUnique({ where: { pacienteId } });
+  async obtenerPorPaciente(
+    pacienteId: string,
+  ): Promise<PerfilDeportivo | null> {
+    const fila = await this.prisma.perfilDeportivo.findUnique({
+      where: { pacienteId },
+    });
     return fila ? this.mapear(fila) : null;
   }
 

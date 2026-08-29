@@ -20,7 +20,10 @@ describe("ObtenerUrlArchivo", () => {
 
     expect(resultado.archivo).toBe(archivo);
     expect(resultado.url).toContain(archivo.clave);
-    expect(almacenamiento.generarUrlLectura).toHaveBeenCalledWith(archivo.clave, 120);
+    expect(almacenamiento.generarUrlLectura).toHaveBeenCalledWith(
+      archivo.clave,
+      120,
+    );
   });
 
   it("lanza ErrorArchivoNoEncontrado si el archivo no existe", async () => {

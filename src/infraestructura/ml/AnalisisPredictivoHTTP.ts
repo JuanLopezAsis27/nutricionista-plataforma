@@ -22,7 +22,9 @@ export class AnalisisPredictivoHTTP implements IAnalisisPredictivo {
       const alcance = alcanceActual();
       const nutricionistaId =
         alcance?.tipo === "nutricionista" ? alcance.nutricionistaId : null;
-      return await this.cliente.postar<InsightPaciente[]>("/insights", { nutricionistaId });
+      return await this.cliente.postar<InsightPaciente[]>("/insights", {
+        nutricionistaId,
+      });
     } catch (error) {
       console.error("[ml] insights falló, se usa el stub:", error);
       return this.fallback.insights();

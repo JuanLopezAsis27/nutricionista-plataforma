@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Send, Check, CheckCheck, AlertTriangle, MessageCircle } from "lucide-react";
+import {
+  Send,
+  Check,
+  CheckCheck,
+  AlertTriangle,
+  MessageCircle,
+} from "lucide-react";
 import type { MensajeWhatsappSalidaDto } from "@/aplicacion/dtos/whatsapp.dto";
 import { useWhatsapp } from "@/lib/hooks/useWhatsapp";
 import { cn } from "@/lib/utilidades";
@@ -10,7 +16,10 @@ import { Textarea } from "@/componentes/ui/textarea";
 import { Skeleton } from "@/componentes/ui/skeleton";
 
 function hora(fecha: Date | string): string {
-  return new Date(fecha).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+  return new Date(fecha).toLocaleTimeString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 /**
@@ -41,9 +50,9 @@ export function HiloWhatsapp({ pacienteId }: { pacienteId: string }) {
         <MessageCircle className="h-8 w-8 text-muted-foreground" />
         <p className="text-sm font-medium">WhatsApp no está conectado</p>
         <p className="max-w-sm text-sm text-muted-foreground">
-          Cargá las credenciales de la API oficial en Integraciones → WhatsApp para ver acá los
-          mensajes con tus pacientes. Mientras tanto los recordatorios salen como enlaces que
-          abrís vos, desde Recordatorios.
+          Cargá las credenciales de la API oficial en Integraciones → WhatsApp
+          para ver acá los mensajes con tus pacientes. Mientras tanto los
+          recordatorios salen como enlaces que abrís vos, desde Recordatorios.
         </p>
       </div>
     );
@@ -54,7 +63,10 @@ export function HiloWhatsapp({ pacienteId }: { pacienteId: string }) {
   function enviar() {
     const cuerpo = borrador.trim();
     if (!cuerpo || enviarMensaje.isPending) return;
-    enviarMensaje.mutate({ pacienteId, cuerpo }, { onSuccess: () => setBorrador("") });
+    enviarMensaje.mutate(
+      { pacienteId, cuerpo },
+      { onSuccess: () => setBorrador("") },
+    );
   }
 
   return (
@@ -65,7 +77,9 @@ export function HiloWhatsapp({ pacienteId }: { pacienteId: string }) {
             Todavía no hay mensajes de WhatsApp con este paciente.
           </p>
         ) : (
-          mensajes.map((mensaje) => <Burbuja key={mensaje.id} mensaje={mensaje} />)
+          mensajes.map((mensaje) => (
+            <Burbuja key={mensaje.id} mensaje={mensaje} />
+          ))
         )}
         <div ref={finRef} />
       </div>
@@ -74,8 +88,9 @@ export function HiloWhatsapp({ pacienteId }: { pacienteId: string }) {
         <p className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
           <span>
-            Pasaron más de 24 h desde el último mensaje del paciente. WhatsApp solo permite
-            escribirle con una plantilla aprobada; un texto libre va a ser rechazado.
+            Pasaron más de 24 h desde el último mensaje del paciente. WhatsApp
+            solo permite escribirle con una plantilla aprobada; un texto libre
+            va a ser rechazado.
           </span>
         </p>
       )}
@@ -135,9 +150,15 @@ function Burbuja({ mensaje }: { mensaje: MensajeWhatsappSalidaDto }) {
 }
 
 /** Los mismos tildes que muestra WhatsApp: uno enviado, dos entregado, azul leído. */
-function IconoEstado({ estado }: { estado: MensajeWhatsappSalidaDto["estado"] }) {
-  if (estado === "FALLIDO") return <AlertTriangle className="h-3 w-3 text-destructive" />;
-  if (estado === "LEIDO") return <CheckCheck className="h-3 w-3 text-sky-300" />;
+function IconoEstado({
+  estado,
+}: {
+  estado: MensajeWhatsappSalidaDto["estado"];
+}) {
+  if (estado === "FALLIDO")
+    return <AlertTriangle className="h-3 w-3 text-destructive" />;
+  if (estado === "LEIDO")
+    return <CheckCheck className="h-3 w-3 text-sky-300" />;
   if (estado === "ENTREGADO") return <CheckCheck className="h-3 w-3" />;
   if (estado === "ENVIADO") return <Check className="h-3 w-3" />;
   return null;

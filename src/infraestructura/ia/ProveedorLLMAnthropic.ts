@@ -1,10 +1,19 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import type { IProveedorLLM, OpcionesLLM, OpcionesConversacion } from "./IProveedorLLM";
+import type {
+  IProveedorLLM,
+  OpcionesLLM,
+  OpcionesConversacion,
+} from "./IProveedorLLM";
 import { extraerTexto } from "./respuestaClaude";
 import { ejecutarHerramientaSegura } from "./herramientas";
 
 type MediaType = "image/jpeg" | "image/png" | "image/gif" | "image/webp";
-const MIMES: ReadonlyArray<string> = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+const MIMES: ReadonlyArray<string> = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+];
 
 /** Proveedor LLM con la API de Anthropic (Claude directo). */
 export class ProveedorLLMAnthropic implements IProveedorLLM {
@@ -14,13 +23,18 @@ export class ProveedorLLMAnthropic implements IProveedorLLM {
   ) {}
 
   async completar(opts: OpcionesLLM): Promise<string> {
-    const contenido: Anthropic.Messages.ContentBlockParam[] = opts.usuario.map((b) =>
-      b.tipo === "texto"
-        ? { type: "text", text: b.texto }
-        : {
-            type: "image",
-            source: { type: "base64", media_type: normalizarMime(b.mimeType), data: b.base64 },
-          },
+    const contenido: Anthropic.Messages.ContentBlockParam[] = opts.usuario.map(
+      (b) =>
+        b.tipo === "texto"
+          ? { type: "text", text: b.texto }
+          : {
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: normalizarMime(b.mimeType),
+                data: b.base64,
+              },
+            },
     );
 
     const respuesta = await this.cliente.messages.create({
@@ -30,7 +44,12 @@ export class ProveedorLLMAnthropic implements IProveedorLLM {
       output_config: {
         effort: "low",
         ...(opts.esquemaJson
-          ? { format: { type: "json_schema" as const, schema: opts.esquemaJson.esquema } }
+          ? {
+              format: {
+                type: "json_schema" as const,
+                schema: opts.esquemaJson.esquema,
+              },
+            }
           : {}),
       },
       system: opts.system,
@@ -74,8 +93,16 @@ export class ProveedorLLMAnthropic implements IProveedorLLM {
       const resultados: Anthropic.Messages.ToolResultBlockParam[] = [];
       for (const bloque of respuesta.content) {
         if (bloque.type === "tool_use") {
-          const salida = await ejecutarHerramientaSegura(opts.ejecutar, bloque.name, bloque.input);
-          resultados.push({ type: "tool_result", tool_use_id: bloque.id, content: salida });
+          const salida = await ejecutarHerramientaSegura(
+            opts.ejecutar,
+            bloque.name,
+            bloque.input,
+          );
+          resultados.push({
+            type: "tool_result",
+            tool_use_id: bloque.id,
+            content: salida,
+          });
         }
       }
       messages.push({ role: "user", content: resultados });

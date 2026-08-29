@@ -49,7 +49,11 @@ export function crearServicioSeguimiento(deps: {
     new ObtenerAlertasPendientes(deps.alertas),
     new ContarAlertasPendientes(deps.alertas),
     new ResolverAlerta(deps.alertas),
-    new ObtenerInformeProgreso(deps.antropometrias, deps.registros, deps.pacientes),
+    new ObtenerInformeProgreso(
+      deps.antropometrias,
+      deps.registros,
+      deps.pacientes,
+    ),
     new ObtenerInformeHabitos(deps.registros, deps.pacientes),
     deps.usuarios,
     deps.bus,

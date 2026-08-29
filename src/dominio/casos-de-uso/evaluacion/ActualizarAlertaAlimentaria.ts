@@ -14,7 +14,10 @@ export type CambiosAlertaAlimentaria = Partial<
 export class ActualizarAlertaAlimentaria {
   constructor(private readonly alertas: IAlertaAlimentariaRepositorio) {}
 
-  async ejecutar(id: string, cambios: CambiosAlertaAlimentaria): Promise<AlertaAlimentaria> {
+  async ejecutar(
+    id: string,
+    cambios: CambiosAlertaAlimentaria,
+  ): Promise<AlertaAlimentaria> {
     const existente = await this.alertas.obtenerPorId(id);
     if (!existente) {
       throw new ErrorAlertaAlimentariaNoEncontrada(id);

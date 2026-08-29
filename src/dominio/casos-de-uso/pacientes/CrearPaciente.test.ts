@@ -1,5 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
-import { CrearPaciente, type DatosNuevoPacienteConAcceso } from "./CrearPaciente";
+import {
+  CrearPaciente,
+  type DatosNuevoPacienteConAcceso,
+} from "./CrearPaciente";
 import { Paciente } from "../../entidades/Paciente";
 import { ErrorValidacion } from "../../errores/ErrorValidacion";
 import {
@@ -25,7 +28,12 @@ describe("CrearPaciente", () => {
     const repositorio = mockPacienteRepositorio();
     const usuarios = mockUsuarioRepositorio();
     const hasheador = mockHasheador();
-    const casoUso = new CrearPaciente(repositorio, usuarios, hasheador, mockConfiguracionRepositorio());
+    const casoUso = new CrearPaciente(
+      repositorio,
+      usuarios,
+      hasheador,
+      mockConfiguracionRepositorio(),
+    );
 
     const paciente = await casoUso.ejecutar(datos);
 
@@ -40,9 +48,16 @@ describe("CrearPaciente", () => {
       obtenerPorEmail: vi.fn(async () => pacienteEjemplo({}, "existente")),
     });
     const usuarios = mockUsuarioRepositorio();
-    const casoUso = new CrearPaciente(repositorio, usuarios, mockHasheador(), mockConfiguracionRepositorio());
+    const casoUso = new CrearPaciente(
+      repositorio,
+      usuarios,
+      mockHasheador(),
+      mockConfiguracionRepositorio(),
+    );
 
-    await expect(casoUso.ejecutar(datos)).rejects.toBeInstanceOf(ErrorValidacion);
+    await expect(casoUso.ejecutar(datos)).rejects.toBeInstanceOf(
+      ErrorValidacion,
+    );
     expect(repositorio.crear).not.toHaveBeenCalled();
     expect(usuarios.crear).not.toHaveBeenCalled();
   });
@@ -54,7 +69,12 @@ describe("CrearPaciente", () => {
         throw new Error("fallo al crear usuario");
       }),
     });
-    const casoUso = new CrearPaciente(repositorio, usuarios, mockHasheador(), mockConfiguracionRepositorio());
+    const casoUso = new CrearPaciente(
+      repositorio,
+      usuarios,
+      mockHasheador(),
+      mockConfiguracionRepositorio(),
+    );
 
     await expect(casoUso.ejecutar(datos)).rejects.toThrow();
     expect(repositorio.eliminar).toHaveBeenCalledOnce();

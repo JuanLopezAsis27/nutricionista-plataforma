@@ -154,7 +154,10 @@ export class ObjetivoComposicion {
       throw new ErrorValidacion("La variable del objetivo no es válida.");
     }
     validarValor(datos.variable, datos.valorObjetivo);
-    const metodoGrasa = validarMetodo(datos.variable, datos.metodoGrasa ?? null);
+    const metodoGrasa = validarMetodo(
+      datos.variable,
+      datos.metodoGrasa ?? null,
+    );
 
     return new ObjetivoComposicion({
       id,

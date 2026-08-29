@@ -28,7 +28,9 @@ export class EnviarMensaje {
   ) {}
 
   async ejecutar(datos: DatosEnviarMensaje): Promise<Mensaje> {
-    let conversacion = await this.repositorio.obtenerConversacionPorPaciente(datos.pacienteId);
+    let conversacion = await this.repositorio.obtenerConversacionPorPaciente(
+      datos.pacienteId,
+    );
     if (!conversacion) {
       conversacion = await this.repositorio.crearConversacion(
         Conversacion.crear(datos.pacienteId, crypto.randomUUID()),
@@ -37,7 +39,11 @@ export class EnviarMensaje {
 
     const mensaje = await this.repositorio.crearMensaje(
       Mensaje.crear(
-        { conversacionId: conversacion.id, autorId: datos.autorId, cuerpo: datos.cuerpo },
+        {
+          conversacionId: conversacion.id,
+          autorId: datos.autorId,
+          cuerpo: datos.cuerpo,
+        },
         crypto.randomUUID(),
       ),
     );
@@ -60,7 +66,9 @@ export class EnviarMensaje {
 
   private async destinatarios(datos: DatosEnviarMensaje): Promise<string[]> {
     if (datos.autorEsNutricionista) {
-      const usuario = await this.usuarios.obtenerPorPacienteId(datos.pacienteId);
+      const usuario = await this.usuarios.obtenerPorPacienteId(
+        datos.pacienteId,
+      );
       return usuario ? [usuario.id] : [];
     }
     const nutris = await this.usuarios.listarPorRol("NUTRICIONISTA");

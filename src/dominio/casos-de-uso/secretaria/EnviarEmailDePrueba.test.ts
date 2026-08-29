@@ -14,7 +14,9 @@ describe("EnviarEmailDePrueba", () => {
     const enviar = vi.fn(async () => {});
     const registrar = vi.fn(async () => {});
     const uc = new EnviarEmailDePrueba(
-      mockPlantillaEmailRepositorio({ obtenerPorId: vi.fn(async () => plantillaEmailEjemplo()) }),
+      mockPlantillaEmailRepositorio({
+        obtenerPorId: vi.fn(async () => plantillaEmailEjemplo()),
+      }),
       mockEmailEnviadoRepositorio({ registrar }),
       mockServicioEmail({ enviar }),
       mockReloj(),
@@ -43,6 +45,8 @@ describe("EnviarEmailDePrueba", () => {
       "Lic. López Asis",
     );
 
-    await expect(uc.ejecutar("x", "a@b.com")).rejects.toBeInstanceOf(ErrorPlantillaNoEncontrada);
+    await expect(uc.ejecutar("x", "a@b.com")).rejects.toBeInstanceOf(
+      ErrorPlantillaNoEncontrada,
+    );
   });
 });

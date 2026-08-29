@@ -1,4 +1,7 @@
-import type { PrismaClient, TokenRecuperacion as TokenFila } from "@prisma/client";
+import type {
+  PrismaClient,
+  TokenRecuperacion as TokenFila,
+} from "@prisma/client";
 import type { ITokenRecuperacionRepositorio } from "@/dominio/repositorios/ITokenRecuperacionRepositorio";
 import { TokenRecuperacion } from "@/dominio/entidades/TokenRecuperacion";
 
@@ -27,12 +30,17 @@ export class PrismaRepositorioTokenRecuperacion implements ITokenRecuperacionRep
   }
 
   async obtenerPorHash(tokenHash: string): Promise<TokenRecuperacion | null> {
-    const fila = await this.prisma.tokenRecuperacion.findUnique({ where: { tokenHash } });
+    const fila = await this.prisma.tokenRecuperacion.findUnique({
+      where: { tokenHash },
+    });
     return fila ? this.mapear(fila) : null;
   }
 
   async marcarUsado(id: string, usadoEn: Date): Promise<void> {
-    await this.prisma.tokenRecuperacion.update({ where: { id }, data: { usadoEn } });
+    await this.prisma.tokenRecuperacion.update({
+      where: { id },
+      data: { usadoEn },
+    });
   }
 
   async eliminarDeUsuario(usuarioId: string): Promise<void> {

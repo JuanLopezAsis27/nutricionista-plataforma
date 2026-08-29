@@ -48,13 +48,17 @@ export class ServicioSeguimiento {
 
   // --- Suplementos ---------------------------------------------------------
 
-  async registrarSuplemento(datos: RegistrarSuplementoDto): Promise<SuplementoSalidaDto> {
+  async registrarSuplemento(
+    datos: RegistrarSuplementoDto,
+  ): Promise<SuplementoSalidaDto> {
     return ServicioSeguimiento.suplementoASalida(
       await this.registrarSuplementoUC.ejecutar(datos),
     );
   }
 
-  async actualizarSuplemento(datos: ActualizarSuplementoDto): Promise<SuplementoSalidaDto> {
+  async actualizarSuplemento(
+    datos: ActualizarSuplementoDto,
+  ): Promise<SuplementoSalidaDto> {
     return ServicioSeguimiento.suplementoASalida(
       await this.actualizarSuplementoUC.ejecutar(datos),
     );
@@ -104,20 +108,36 @@ export class ServicioSeguimiento {
   }
 
   async resolverAlerta(datos: ResolverAlertaDto): Promise<AlertaSalidaDto> {
-    return ServicioSeguimiento.alertaASalida(await this.resolverAlertaUC.ejecutar(datos));
+    return ServicioSeguimiento.alertaASalida(
+      await this.resolverAlertaUC.ejecutar(datos),
+    );
   }
 
   // --- Informes ------------------------------------------------------------
 
-  async obtenerInformeProgreso(datos: RangoInformeDto): Promise<InformeProgresoSalidaDto> {
-    return this.informeProgresoUC.ejecutar(datos.pacienteId, datos.desde, datos.hasta);
+  async obtenerInformeProgreso(
+    datos: RangoInformeDto,
+  ): Promise<InformeProgresoSalidaDto> {
+    return this.informeProgresoUC.ejecutar(
+      datos.pacienteId,
+      datos.desde,
+      datos.hasta,
+    );
   }
 
-  async obtenerInformeHabitos(datos: RangoInformeDto): Promise<InformeHabitosSalidaDto> {
-    return this.informeHabitosUC.ejecutar(datos.pacienteId, datos.desde, datos.hasta);
+  async obtenerInformeHabitos(
+    datos: RangoInformeDto,
+  ): Promise<InformeHabitosSalidaDto> {
+    return this.informeHabitosUC.ejecutar(
+      datos.pacienteId,
+      datos.desde,
+      datos.hasta,
+    );
   }
 
-  private static suplementoASalida(suplemento: Suplemento): SuplementoSalidaDto {
+  private static suplementoASalida(
+    suplemento: Suplemento,
+  ): SuplementoSalidaDto {
     return suplemento.aPrimitivos();
   }
 

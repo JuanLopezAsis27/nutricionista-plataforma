@@ -27,7 +27,11 @@ export interface IRecetaRepositorio {
   contar(filtro?: FiltroRecetas): Promise<number>;
 
   // --- Asignaciones a pacientes ---
-  asignarAPaciente(recetaId: string, pacienteId: string, id: string): Promise<void>;
+  asignarAPaciente(
+    recetaId: string,
+    pacienteId: string,
+    id: string,
+  ): Promise<void>;
   desasignarDePaciente(recetaId: string, pacienteId: string): Promise<void>;
   listarPorPaciente(pacienteId: string): Promise<Receta[]>;
   /** Ids de los pacientes que tienen asignada la receta. */

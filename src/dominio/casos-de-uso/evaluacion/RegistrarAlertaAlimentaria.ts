@@ -13,7 +13,9 @@ export class RegistrarAlertaAlimentaria {
     private readonly pacientes: IPacienteRepositorio,
   ) {}
 
-  async ejecutar(datos: DatosNuevaAlertaAlimentaria): Promise<AlertaAlimentaria> {
+  async ejecutar(
+    datos: DatosNuevaAlertaAlimentaria,
+  ): Promise<AlertaAlimentaria> {
     const paciente = await this.pacientes.obtenerPorId(datos.pacienteId);
     if (!paciente) {
       throw new ErrorPacienteNoEncontrado(datos.pacienteId);

@@ -15,14 +15,18 @@ export class ClienteML {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(this.config.token ? { Authorization: `Bearer ${this.config.token}` } : {}),
+          ...(this.config.token
+            ? { Authorization: `Bearer ${this.config.token}` }
+            : {}),
         },
         body: JSON.stringify(cuerpo),
         signal: control.signal,
       });
       if (!respuesta.ok) {
         const detalle = await respuesta.text().catch(() => "");
-        throw new Error(`ML ${ruta} (${respuesta.status}): ${detalle.slice(0, 200)}`);
+        throw new Error(
+          `ML ${ruta} (${respuesta.status}): ${detalle.slice(0, 200)}`,
+        );
       }
       return (await respuesta.json()) as T;
     } finally {

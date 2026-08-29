@@ -1,4 +1,8 @@
-import type { PrismaClient, Paciente as PacienteFila, Prisma } from "@prisma/client";
+import type {
+  PrismaClient,
+  Paciente as PacienteFila,
+  Prisma,
+} from "@prisma/client";
 import type {
   IPacienteRepositorio,
   FiltroPacientes,
@@ -77,7 +81,9 @@ export class PrismaRepositorioPaciente implements IPacienteRepositorio {
   }
 
   async obtenerPorTelefonoE164(telefonoE164: string): Promise<Paciente | null> {
-    const fila = await this.prisma.paciente.findFirst({ where: { telefonoE164 } });
+    const fila = await this.prisma.paciente.findFirst({
+      where: { telefonoE164 },
+    });
     return fila ? this.mapearAPaciente(fila) : null;
   }
 

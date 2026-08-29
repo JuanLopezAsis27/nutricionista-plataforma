@@ -42,7 +42,10 @@ describe("RegistrarSuplemento", () => {
     const pacientes = mockPacienteRepositorio({
       obtenerPorId: vi.fn(async () => pacienteEjemplo()),
     });
-    const casoUso = new RegistrarSuplemento(mockSuplementoRepositorio(), pacientes);
+    const casoUso = new RegistrarSuplemento(
+      mockSuplementoRepositorio(),
+      pacientes,
+    );
 
     await expect(
       casoUso.ejecutar({

@@ -44,11 +44,7 @@ const RONDAS = 12;
  * producción cae al valor de ejemplo, que es lo que hace usable `npm run db:seed`
  * en una máquina de desarrollo recién clonada.
  */
-function credencial(
-  variable: string,
-  porDefecto: string,
-  minimo = 1,
-): string {
+function credencial(variable: string, porDefecto: string, minimo = 1): string {
   const valor = process.env[variable];
 
   if (EN_PRODUCCION) {
@@ -70,7 +66,9 @@ function credencial(
 }
 
 async function sembrarSuperAdmin(): Promise<void> {
-  const email = credencial("SUPERADMIN_EMAIL", "admin@demo.com").trim().toLowerCase();
+  const email = credencial("SUPERADMIN_EMAIL", "admin@demo.com")
+    .trim()
+    .toLowerCase();
   const password = credencial("SUPERADMIN_PASSWORD", "cambiar123", 12);
 
   if (await prisma.usuario.findUnique({ where: { email } })) {
@@ -106,7 +104,9 @@ async function sembrarSuperAdmin(): Promise<void> {
 }
 
 async function sembrarNutricionista(): Promise<string | null> {
-  const email = credencial("SEED_EMAIL", "nutricionista@demo.com").trim().toLowerCase();
+  const email = credencial("SEED_EMAIL", "nutricionista@demo.com")
+    .trim()
+    .toLowerCase();
   const password = credencial("SEED_PASSWORD", "cambiar123", 12);
 
   const existente = await prisma.usuario.findUnique({ where: { email } });
@@ -173,8 +173,14 @@ const PLANTILLAS_SISTEMA = [
 
 async function sembrarPlantillas(): Promise<void> {
   for (const datos of PLANTILLAS_SISTEMA) {
-    if (await prisma.plantillaEmail.findFirst({ where: { clave: datos.clave } })) continue;
-    const plantilla = PlantillaEmail.crear({ ...datos, deSistema: true }, crypto.randomUUID());
+    if (
+      await prisma.plantillaEmail.findFirst({ where: { clave: datos.clave } })
+    )
+      continue;
+    const plantilla = PlantillaEmail.crear(
+      { ...datos, deSistema: true },
+      crypto.randomUUID(),
+    );
     const d = plantilla.aPrimitivos();
     await prisma.plantillaEmail.create({
       data: {
@@ -203,9 +209,36 @@ async function sembrarConfiguracion(): Promise<void> {
 }
 
 const AXIOMAS_EJEMPLO = [
-  { ambito: "SUENO" as const, parametro: "horasSueno", operador: "MAYOR_IGUAL" as const, valor: 7, unidad: "h", texto: "Dormir al menos 7 horas favorece la recuperación y el control del peso.", prioridad: 10 },
-  { ambito: "HIDRATACION" as const, parametro: "aguaMl", operador: "MAYOR_IGUAL" as const, valor: 2000, unidad: "ml", texto: "Tomar al menos 2 litros de agua por día mantiene una buena hidratación.", prioridad: 8 },
-  { ambito: "ACTIVIDAD" as const, parametro: "actividadMinutosDia", operador: "MAYOR_IGUAL" as const, valor: 30, unidad: "min", texto: "Al menos 30 minutos de actividad física por día mejoran la composición corporal.", prioridad: 6 },
+  {
+    ambito: "SUENO" as const,
+    parametro: "horasSueno",
+    operador: "MAYOR_IGUAL" as const,
+    valor: 7,
+    unidad: "h",
+    texto:
+      "Dormir al menos 7 horas favorece la recuperación y el control del peso.",
+    prioridad: 10,
+  },
+  {
+    ambito: "HIDRATACION" as const,
+    parametro: "aguaMl",
+    operador: "MAYOR_IGUAL" as const,
+    valor: 2000,
+    unidad: "ml",
+    texto:
+      "Tomar al menos 2 litros de agua por día mantiene una buena hidratación.",
+    prioridad: 8,
+  },
+  {
+    ambito: "ACTIVIDAD" as const,
+    parametro: "actividadMinutosDia",
+    operador: "MAYOR_IGUAL" as const,
+    valor: 30,
+    unidad: "min",
+    texto:
+      "Al menos 30 minutos de actividad física por día mejoran la composición corporal.",
+    prioridad: 6,
+  },
 ];
 
 async function sembrarAxiomas(): Promise<void> {

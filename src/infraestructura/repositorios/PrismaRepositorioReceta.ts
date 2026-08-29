@@ -71,12 +71,18 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
         },
       });
       await this.vincularArchivos(tx, d.id, archivoIds);
-      return tx.receta.findUniqueOrThrow({ where: { id: d.id }, include: INCLUIR });
+      return tx.receta.findUniqueOrThrow({
+        where: { id: d.id },
+        include: INCLUIR,
+      });
     });
     return this.mapear(fila);
   }
 
-  async actualizar(receta: Receta, archivoIdsNuevos: string[]): Promise<Receta> {
+  async actualizar(
+    receta: Receta,
+    archivoIdsNuevos: string[],
+  ): Promise<Receta> {
     const d = receta.aPrimitivos();
     const fila = await this.prisma.$transaction(async (tx) => {
       await tx.receta.update({
@@ -94,11 +100,17 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
           grasasG: d.grasasG,
           fotoPrincipalId: d.fotoPrincipalId,
           // Reemplaza la lista completa de ingredientes (agregado).
-          ingredientes: { deleteMany: {}, create: d.ingredientes.map(datosIngrediente) },
+          ingredientes: {
+            deleteMany: {},
+            create: d.ingredientes.map(datosIngrediente),
+          },
         },
       });
       await this.vincularArchivos(tx, d.id, archivoIdsNuevos);
-      return tx.receta.findUniqueOrThrow({ where: { id: d.id }, include: INCLUIR });
+      return tx.receta.findUniqueOrThrow({
+        where: { id: d.id },
+        include: INCLUIR,
+      });
     });
     return this.mapear(fila);
   }
@@ -146,7 +158,11 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
     return where;
   }
 
-  async asignarAPaciente(recetaId: string, pacienteId: string, id: string): Promise<void> {
+  async asignarAPaciente(
+    recetaId: string,
+    pacienteId: string,
+    id: string,
+  ): Promise<void> {
     await this.prisma.asignacionReceta.upsert({
       where: { recetaId_pacienteId: { recetaId, pacienteId } },
       create: { id, nutricionistaId: inquilinoActual(), recetaId, pacienteId },
@@ -154,8 +170,13 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
     });
   }
 
-  async desasignarDePaciente(recetaId: string, pacienteId: string): Promise<void> {
-    await this.prisma.asignacionReceta.deleteMany({ where: { recetaId, pacienteId } });
+  async desasignarDePaciente(
+    recetaId: string,
+    pacienteId: string,
+  ): Promise<void> {
+    await this.prisma.asignacionReceta.deleteMany({
+      where: { recetaId, pacienteId },
+    });
   }
 
   async listarPorPaciente(pacienteId: string): Promise<Receta[]> {

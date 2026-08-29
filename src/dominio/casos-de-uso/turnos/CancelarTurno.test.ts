@@ -20,9 +20,14 @@ describe("CancelarTurno", () => {
 
   it("lanza ErrorTurnoNoEncontrado si no existe", async () => {
     const repositorio = mockTurnoRepositorio();
-    const casoUso = new CancelarTurno(repositorio, new ActualizarEstadoTurno(repositorio));
+    const casoUso = new CancelarTurno(
+      repositorio,
+      new ActualizarEstadoTurno(repositorio),
+    );
 
-    await expect(casoUso.ejecutar("x")).rejects.toBeInstanceOf(ErrorTurnoNoEncontrado);
+    await expect(casoUso.ejecutar("x")).rejects.toBeInstanceOf(
+      ErrorTurnoNoEncontrado,
+    );
   });
 
   it("no permite cancelar un turno ya COMPLETADO", async () => {
@@ -32,8 +37,13 @@ describe("CancelarTurno", () => {
     const repositorio = mockTurnoRepositorio({
       obtenerPorId: vi.fn(async () => completado),
     });
-    const casoUso = new CancelarTurno(repositorio, new ActualizarEstadoTurno(repositorio));
+    const casoUso = new CancelarTurno(
+      repositorio,
+      new ActualizarEstadoTurno(repositorio),
+    );
 
-    await expect(casoUso.ejecutar("tur-1")).rejects.toBeInstanceOf(ErrorValidacion);
+    await expect(casoUso.ejecutar("tur-1")).rejects.toBeInstanceOf(
+      ErrorValidacion,
+    );
   });
 });

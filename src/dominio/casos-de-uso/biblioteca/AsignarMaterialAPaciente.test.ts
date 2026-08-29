@@ -35,16 +35,23 @@ describe("AsignarMaterialAPaciente", () => {
       mockMaterialRepositorio(),
       mockPacienteRepositorio(),
     );
-    await expect(casoUso.ejecutar(datos)).rejects.toBeInstanceOf(ErrorMaterialNoEncontrado);
+    await expect(casoUso.ejecutar(datos)).rejects.toBeInstanceOf(
+      ErrorMaterialNoEncontrado,
+    );
   });
 
   it("lanza ErrorPacienteNoEncontrado si el paciente no existe", async () => {
     const materiales = mockMaterialRepositorio({
       obtenerPorId: vi.fn(async () => materialEjemplo()),
     });
-    const casoUso = new AsignarMaterialAPaciente(materiales, mockPacienteRepositorio());
+    const casoUso = new AsignarMaterialAPaciente(
+      materiales,
+      mockPacienteRepositorio(),
+    );
 
-    await expect(casoUso.ejecutar(datos)).rejects.toBeInstanceOf(ErrorPacienteNoEncontrado);
+    await expect(casoUso.ejecutar(datos)).rejects.toBeInstanceOf(
+      ErrorPacienteNoEncontrado,
+    );
     expect(materiales.asignarAPaciente).not.toHaveBeenCalled();
   });
 });

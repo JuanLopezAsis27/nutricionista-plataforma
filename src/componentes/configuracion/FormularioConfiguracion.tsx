@@ -8,7 +8,12 @@ import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { Label } from "@/componentes/ui/label";
 import { Skeleton } from "@/componentes/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 
 const DIAS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
@@ -49,7 +54,9 @@ export function FormularioConfiguracion() {
 
   function alternarDia(d: number) {
     setDias((actuales) =>
-      actuales.includes(d) ? actuales.filter((x) => x !== d) : [...actuales, d].sort(),
+      actuales.includes(d)
+        ? actuales.filter((x) => x !== d)
+        : [...actuales, d].sort(),
     );
   }
 

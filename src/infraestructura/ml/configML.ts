@@ -13,5 +13,8 @@ export interface ConfigML {
 export function obtenerConfigML(): ConfigML | null {
   const url = process.env.ML_SERVICE_URL;
   if (!url) return null;
-  return { url: url.replace(/\/$/, ""), token: process.env.ML_SERVICE_TOKEN ?? null };
+  return {
+    url: url.replace(/\/$/, ""),
+    token: process.env.ML_SERVICE_TOKEN ?? null,
+  };
 }

@@ -50,7 +50,10 @@ export default function PaginaMisRecetas() {
         </div>
       )}
 
-      <Dialog open={Boolean(recetaVer)} onOpenChange={(abierto) => !abierto && setRecetaVer(null)}>
+      <Dialog
+        open={Boolean(recetaVer)}
+        onOpenChange={(abierto) => !abierto && setRecetaVer(null)}
+      >
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{recetaVer?.nombre}</DialogTitle>

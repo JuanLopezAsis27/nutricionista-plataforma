@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { crearRouter, nutricionistaProcedimiento, protegidoProcedimiento } from "../trpc";
+import {
+  crearRouter,
+  nutricionistaProcedimiento,
+  protegidoProcedimiento,
+} from "../trpc";
 import { pacienteDeSesion } from "@/dominio/servicios/politicaAcceso";
 import {
   crearObjetivoDto,
@@ -20,12 +24,16 @@ export const routerObjetivos = crearRouter({
   obtenerDePaciente: nutricionistaProcedimiento
     .input(z.object({ pacienteId: z.string().min(1) }))
     .query(async ({ ctx, input }) => {
-      return await ctx.servicios.objetivo.obtenerObjetivosDePaciente(input.pacienteId);
+      return await ctx.servicios.objetivo.obtenerObjetivosDePaciente(
+        input.pacienteId,
+      );
     }),
 
   // Portal: el paciente ve sus objetivos en modo lectura (pacienteId de sesión).
   mios: protegidoProcedimiento.query(async ({ ctx }) => {
-    return await ctx.servicios.objetivo.obtenerObjetivosDePaciente(pacienteDeSesion(ctx.usuario));
+    return await ctx.servicios.objetivo.obtenerObjetivosDePaciente(
+      pacienteDeSesion(ctx.usuario),
+    );
   }),
 
   crear: nutricionistaProcedimiento

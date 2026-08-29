@@ -11,7 +11,12 @@ import { Input } from "@/componentes/ui/input";
 import { Textarea } from "@/componentes/ui/textarea";
 import { Skeleton } from "@/componentes/ui/skeleton";
 import { Card, CardContent } from "@/componentes/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/componentes/ui/tabs";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/componentes/ui/tabs";
 import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
 import { PensandoAnimado } from "@/componentes/ia/PensandoAnimado";
 
@@ -20,8 +25,9 @@ function BannerDemo() {
     <div className="flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
       <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
       <p className="text-muted-foreground">
-        Función en preparación. Hoy ves una <strong>demostración</strong>: cuando la IA esté
-        activa, va a usar tus datos para darte respuestas y análisis reales.
+        Función en preparación. Hoy ves una <strong>demostración</strong>:
+        cuando la IA esté activa, va a usar tus datos para darte respuestas y
+        análisis reales.
       </p>
     </div>
   );
@@ -148,11 +154,16 @@ function AnalizarComida() {
   const { analizarFoto } = useIA();
   const [archivo, setArchivo] = useState<ArchivoSalidaDto | null>(null);
   const [descripcion, setDescripcion] = useState("");
-  const [resultado, setResultado] = useState<ResultadoAnalisisComidaDto | null>(null);
+  const [resultado, setResultado] = useState<ResultadoAnalisisComidaDto | null>(
+    null,
+  );
 
   function analizar() {
     analizarFoto.mutate(
-      { archivoId: archivo?.id ?? null, descripcion: descripcion.trim() || null },
+      {
+        archivoId: archivo?.id ?? null,
+        descripcion: descripcion.trim() || null,
+      },
       { onSuccess: (r) => setResultado(r) },
     );
   }
@@ -176,7 +187,9 @@ function AnalizarComida() {
 
       <Button
         onClick={analizar}
-        disabled={analizarFoto.isPending || (!archivo && descripcion.trim() === "")}
+        disabled={
+          analizarFoto.isPending || (!archivo && descripcion.trim() === "")
+        }
       >
         <Camera className="h-4 w-4" />
         {analizarFoto.isPending ? "Analizando…" : "Analizar comida"}
@@ -192,7 +205,10 @@ function AnalizarComida() {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Macro etiqueta="Calorías" valor={`${resultado.calorias}`} />
               <Macro etiqueta="Proteínas" valor={`${resultado.proteinasG} g`} />
-              <Macro etiqueta="Carbohidratos" valor={`${resultado.carbohidratosG} g`} />
+              <Macro
+                etiqueta="Carbohidratos"
+                valor={`${resultado.carbohidratosG} g`}
+              />
               <Macro etiqueta="Grasas" valor={`${resultado.grasasG} g`} />
             </div>
             <p

@@ -14,7 +14,11 @@ const COMIDA_PROPIA = { id: "com-1", registroId: "reg-1", pacienteId: "pac-1" };
 describe("AgregarFotoComida", () => {
   it("vincula la foto a la comida", async () => {
     const nueva = archivoEjemplo(
-      { contexto: "foto-comida", nombreOriginal: "plato.jpg", mimeType: "image/jpeg" },
+      {
+        contexto: "foto-comida",
+        nombreOriginal: "plato.jpg",
+        mimeType: "image/jpeg",
+      },
       "arc-nueva",
     );
     const registros = mockRegistroDiarioRepositorio({
@@ -23,7 +27,11 @@ describe("AgregarFotoComida", () => {
     const archivos = mockArchivoRepositorio({
       obtenerPorId: vi.fn(async () => nueva),
     });
-    const casoUso = new AgregarFotoComida(registros, archivos, mockAlmacenamientoArchivos());
+    const casoUso = new AgregarFotoComida(
+      registros,
+      archivos,
+      mockAlmacenamientoArchivos(),
+    );
 
     await casoUso.ejecutar("pac-1", "com-1", "arc-nueva");
 
@@ -34,11 +42,19 @@ describe("AgregarFotoComida", () => {
 
   it("reemplaza la foto anterior si existía", async () => {
     const anterior = archivoEjemplo(
-      { contexto: "foto-comida", nombreOriginal: "vieja.jpg", mimeType: "image/jpeg" },
+      {
+        contexto: "foto-comida",
+        nombreOriginal: "vieja.jpg",
+        mimeType: "image/jpeg",
+      },
       "arc-vieja",
     );
     const nueva = archivoEjemplo(
-      { contexto: "foto-comida", nombreOriginal: "nueva.jpg", mimeType: "image/jpeg" },
+      {
+        contexto: "foto-comida",
+        nombreOriginal: "nueva.jpg",
+        mimeType: "image/jpeg",
+      },
       "arc-nueva",
     );
     const registros = mockRegistroDiarioRepositorio({
@@ -62,16 +78,19 @@ describe("AgregarFotoComida", () => {
 
   it("rechaza si la comida es de otro paciente", async () => {
     const registros = mockRegistroDiarioRepositorio({
-      obtenerComida: vi.fn(async () => ({ ...COMIDA_PROPIA, pacienteId: "pac-OTRO" })),
+      obtenerComida: vi.fn(async () => ({
+        ...COMIDA_PROPIA,
+        pacienteId: "pac-OTRO",
+      })),
     });
     const casoUso = new AgregarFotoComida(
       registros,
       mockArchivoRepositorio(),
       mockAlmacenamientoArchivos(),
     );
-    await expect(casoUso.ejecutar("pac-1", "com-1", "arc-1")).rejects.toBeInstanceOf(
-      ErrorAccesoDenegado,
-    );
+    await expect(
+      casoUso.ejecutar("pac-1", "com-1", "arc-1"),
+    ).rejects.toBeInstanceOf(ErrorAccesoDenegado);
   });
 
   it("rechaza si el archivo no existe", async () => {
@@ -83,8 +102,8 @@ describe("AgregarFotoComida", () => {
       mockArchivoRepositorio(),
       mockAlmacenamientoArchivos(),
     );
-    await expect(casoUso.ejecutar("pac-1", "com-1", "no-existe")).rejects.toBeInstanceOf(
-      ErrorArchivoNoEncontrado,
-    );
+    await expect(
+      casoUso.ejecutar("pac-1", "com-1", "no-existe"),
+    ).rejects.toBeInstanceOf(ErrorArchivoNoEncontrado);
   });
 });

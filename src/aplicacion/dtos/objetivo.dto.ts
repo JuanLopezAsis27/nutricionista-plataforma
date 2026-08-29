@@ -43,7 +43,10 @@ export type IdObjetivoDto = z.infer<typeof idObjetivoDto>;
 export const agregarEstrategiaDto = z.object({
   objetivoId: z.string().min(1),
   descripcion: z.string().min(1, "La descripción es obligatoria").max(1000),
-  motivo: z.string().min(1, "Indicá por qué elegiste esta estrategia").max(1000),
+  motivo: z
+    .string()
+    .min(1, "Indicá por qué elegiste esta estrategia")
+    .max(1000),
 });
 export type AgregarEstrategiaDto = z.infer<typeof agregarEstrategiaDto>;
 
@@ -53,7 +56,9 @@ export const cambiarEstadoEstrategiaDto = z.object({
   estado: z.enum(ESTADOS_ESTRATEGIA),
   motivo: z.string().min(1, "Indicá el motivo del cambio").max(1000),
 });
-export type CambiarEstadoEstrategiaDto = z.infer<typeof cambiarEstadoEstrategiaDto>;
+export type CambiarEstadoEstrategiaDto = z.infer<
+  typeof cambiarEstadoEstrategiaDto
+>;
 
 export const eliminarEstrategiaDto = z.object({
   objetivoId: z.string().min(1),

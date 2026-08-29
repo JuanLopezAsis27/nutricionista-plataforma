@@ -32,7 +32,10 @@ describe("CrearObjetivo", () => {
   });
 
   it("lanza ErrorPacienteNoEncontrado si el paciente no existe", async () => {
-    const casoUso = new CrearObjetivo(mockObjetivoRepositorio(), mockPacienteRepositorio());
+    const casoUso = new CrearObjetivo(
+      mockObjetivoRepositorio(),
+      mockPacienteRepositorio(),
+    );
     await expect(
       casoUso.ejecutar({ pacienteId: "nadie", titulo: "X" }),
     ).rejects.toBeInstanceOf(ErrorPacienteNoEncontrado);

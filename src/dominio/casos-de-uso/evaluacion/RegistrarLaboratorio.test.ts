@@ -47,9 +47,16 @@ describe("RegistrarLaboratorio", () => {
     const pacientes = mockPacienteRepositorio({
       obtenerPorId: vi.fn(async () => pacienteEjemplo()),
     });
-    const casoUso = new RegistrarLaboratorio(mockLaboratorioRepositorio(), pacientes);
+    const casoUso = new RegistrarLaboratorio(
+      mockLaboratorioRepositorio(),
+      pacientes,
+    );
     await expect(
-      casoUso.ejecutar({ pacienteId: "pac-1", fecha: new Date("2026-07-01"), titulo: " " }),
+      casoUso.ejecutar({
+        pacienteId: "pac-1",
+        fecha: new Date("2026-07-01"),
+        titulo: " ",
+      }),
     ).rejects.toBeInstanceOf(ErrorValidacion);
   });
 });

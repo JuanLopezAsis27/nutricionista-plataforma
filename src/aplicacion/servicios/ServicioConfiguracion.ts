@@ -20,11 +20,17 @@ export class ServicioConfiguracion {
     return ServicioConfiguracion.aSalida(await this.obtenerUC.ejecutar());
   }
 
-  async guardar(cambios: GuardarConfiguracionDto): Promise<ConfiguracionSalidaDto> {
-    return ServicioConfiguracion.aSalida(await this.guardarUC.ejecutar(cambios));
+  async guardar(
+    cambios: GuardarConfiguracionDto,
+  ): Promise<ConfiguracionSalidaDto> {
+    return ServicioConfiguracion.aSalida(
+      await this.guardarUC.ejecutar(cambios),
+    );
   }
 
-  private static aSalida(config: ConfiguracionConsultorio): ConfiguracionSalidaDto {
+  private static aSalida(
+    config: ConfiguracionConsultorio,
+  ): ConfiguracionSalidaDto {
     return config.aPrimitivos();
   }
 }

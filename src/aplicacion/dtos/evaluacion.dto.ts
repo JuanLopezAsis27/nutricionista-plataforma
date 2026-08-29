@@ -43,7 +43,9 @@ export const guardarHistoriaClinicaDto = z.object({
   habitos: campoTextoLargo,
   contexto: campoTextoLargo,
 });
-export type GuardarHistoriaClinicaDto = z.infer<typeof guardarHistoriaClinicaDto>;
+export type GuardarHistoriaClinicaDto = z.infer<
+  typeof guardarHistoriaClinicaDto
+>;
 
 export const historiaClinicaSalidaDto = z.object({
   id: z.string(),
@@ -105,7 +107,9 @@ export const registrarAntropometriaDto = medidasAntropometricasDto.extend({
   pacienteId: z.string().min(1),
   fecha: z.coerce.date(),
 });
-export type RegistrarAntropometriaDto = z.infer<typeof registrarAntropometriaDto>;
+export type RegistrarAntropometriaDto = z.infer<
+  typeof registrarAntropometriaDto
+>;
 
 export const actualizarAntropometriaDto = medidasAntropometricasDto
   .partial()
@@ -113,7 +117,9 @@ export const actualizarAntropometriaDto = medidasAntropometricasDto
     id: z.string().min(1),
     fecha: z.coerce.date().optional(),
   });
-export type ActualizarAntropometriaDto = z.infer<typeof actualizarAntropometriaDto>;
+export type ActualizarAntropometriaDto = z.infer<
+  typeof actualizarAntropometriaDto
+>;
 
 export const idAntropometriaDto = z.object({ id: z.string().min(1) });
 
@@ -271,7 +277,9 @@ export const registrarAlertaAlimentariaDto = z.object({
   severidad: z.enum(SEVERIDADES_ALERTA).optional(),
   notas: z.string().max(1000).optional().nullable(),
 });
-export type RegistrarAlertaAlimentariaDto = z.infer<typeof registrarAlertaAlimentariaDto>;
+export type RegistrarAlertaAlimentariaDto = z.infer<
+  typeof registrarAlertaAlimentariaDto
+>;
 
 export const actualizarAlertaAlimentariaDto = z.object({
   id: z.string().min(1),
@@ -280,7 +288,9 @@ export const actualizarAlertaAlimentariaDto = z.object({
   severidad: z.enum(SEVERIDADES_ALERTA).optional(),
   notas: z.string().max(1000).optional().nullable(),
 });
-export type ActualizarAlertaAlimentariaDto = z.infer<typeof actualizarAlertaAlimentariaDto>;
+export type ActualizarAlertaAlimentariaDto = z.infer<
+  typeof actualizarAlertaAlimentariaDto
+>;
 
 export const alertaAlimentariaSalidaDto = z.object({
   id: z.string(),
@@ -291,7 +301,9 @@ export const alertaAlimentariaSalidaDto = z.object({
   notas: z.string().nullable(),
   creadoEn: z.date(),
 });
-export type AlertaAlimentariaSalidaDto = z.infer<typeof alertaAlimentariaSalidaDto>;
+export type AlertaAlimentariaSalidaDto = z.infer<
+  typeof alertaAlimentariaSalidaDto
+>;
 
 // --- Laboratorios ---------------------------------------------------------------
 
@@ -333,4 +345,6 @@ export type LaboratorioSalidaDto = z.infer<typeof laboratorioSalidaDto>;
 
 // --- Comunes --------------------------------------------------------------------
 
-export const idPacienteEvaluacionDto = z.object({ pacienteId: z.string().min(1) });
+export const idPacienteEvaluacionDto = z.object({
+  pacienteId: z.string().min(1),
+});

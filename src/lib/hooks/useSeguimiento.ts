@@ -17,13 +17,14 @@ export function useSeguimiento() {
     onError: (error) => toast.error(error.message),
   });
 
-  const actualizarSuplemento = trpc.seguimiento.actualizarSuplemento.useMutation({
-    onSuccess: () => {
-      toast.success("Suplemento actualizado.");
-      invalidar();
-    },
-    onError: (error) => toast.error(error.message),
-  });
+  const actualizarSuplemento =
+    trpc.seguimiento.actualizarSuplemento.useMutation({
+      onSuccess: () => {
+        toast.success("Suplemento actualizado.");
+        invalidar();
+      },
+      onError: (error) => toast.error(error.message),
+    });
 
   const eliminarSuplemento = trpc.seguimiento.eliminarSuplemento.useMutation({
     onSuccess: () => {

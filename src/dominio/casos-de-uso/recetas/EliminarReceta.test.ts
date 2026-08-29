@@ -11,7 +11,10 @@ import {
 
 describe("EliminarReceta", () => {
   it("elimina la receta y borra sus fotos del bucket", async () => {
-    const foto = archivoEjemplo({ contexto: "receta", mimeType: "image/jpeg" }, "arc-1");
+    const foto = archivoEjemplo(
+      { contexto: "receta", mimeType: "image/jpeg" },
+      "arc-1",
+    );
     const recetas = mockRecetaRepositorio({
       obtenerPorId: vi.fn(async () => recetaEjemplo()),
     });

@@ -45,7 +45,11 @@ const PATRON_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 export class Turno {
   private constructor(private readonly props: PropiedadesTurno) {}
 
-  static crear(datos: DatosNuevoTurno, id: string, ahora: Date = new Date()): Turno {
+  static crear(
+    datos: DatosNuevoTurno,
+    id: string,
+    ahora: Date = new Date(),
+  ): Turno {
     if (!datos.pacienteId) {
       throw new ErrorValidacion("El turno debe estar asociado a un paciente.");
     }
@@ -54,7 +58,9 @@ export class Turno {
     }
     const duracion = datos.duracionMinutos ?? 30;
     if (!Number.isInteger(duracion) || duracion <= 0) {
-      throw new ErrorValidacion("La duración del turno debe ser un entero positivo.");
+      throw new ErrorValidacion(
+        "La duración del turno debe ser un entero positivo.",
+      );
     }
 
     return new Turno({
@@ -82,7 +88,10 @@ export class Turno {
    *   CANCELADO  → (ninguna, estado final)
    *   COMPLETADO → (ninguna, estado final)
    */
-  private static readonly TRANSICIONES: Record<EstadoTurno, ReadonlyArray<EstadoTurno>> = {
+  private static readonly TRANSICIONES: Record<
+    EstadoTurno,
+    ReadonlyArray<EstadoTurno>
+  > = {
     PENDIENTE: ["CONFIRMADO", "CANCELADO"],
     CONFIRMADO: ["COMPLETADO", "CANCELADO"],
     CANCELADO: [],
@@ -102,12 +111,16 @@ export class Turno {
 
   /** Indica si el turno puede cancelarse (solo PENDIENTE o CONFIRMADO). */
   puedeCancelarse(): boolean {
-    return this.props.estado === "PENDIENTE" || this.props.estado === "CONFIRMADO";
+    return (
+      this.props.estado === "PENDIENTE" || this.props.estado === "CONFIRMADO"
+    );
   }
 
   /** Indica si el turno puede reprogramarse (solo PENDIENTE o CONFIRMADO). */
   puedeReprogramarse(): boolean {
-    return this.props.estado === "PENDIENTE" || this.props.estado === "CONFIRMADO";
+    return (
+      this.props.estado === "PENDIENTE" || this.props.estado === "CONFIRMADO"
+    );
   }
 
   /**
@@ -116,7 +129,11 @@ export class Turno {
    * duración igual que en la creación. No verifica solapamiento: eso lo hace
    * el caso de uso con el repositorio.
    */
-  reprogramar(datos: { fecha: Date; hora: string; duracionMinutos?: number }): void {
+  reprogramar(datos: {
+    fecha: Date;
+    hora: string;
+    duracionMinutos?: number;
+  }): void {
     if (!this.puedeReprogramarse()) {
       throw new ErrorValidacion(
         `No se puede reprogramar un turno en estado ${this.props.estado}.`,
@@ -127,7 +144,9 @@ export class Turno {
     }
     const duracion = datos.duracionMinutos ?? this.props.duracionMinutos;
     if (!Number.isInteger(duracion) || duracion <= 0) {
-      throw new ErrorValidacion("La duración del turno debe ser un entero positivo.");
+      throw new ErrorValidacion(
+        "La duración del turno debe ser un entero positivo.",
+      );
     }
     this.props.fecha = datos.fecha;
     this.props.hora = datos.hora;
@@ -150,7 +169,9 @@ export class Turno {
       }
     }
     if (pagado && precio == null) {
-      throw new ErrorValidacion("No se puede marcar como pagado un turno sin precio.");
+      throw new ErrorValidacion(
+        "No se puede marcar como pagado un turno sin precio.",
+      );
     }
     this.props.precio = precio;
     this.props.pagado = pagado;

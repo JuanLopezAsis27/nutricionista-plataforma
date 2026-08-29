@@ -29,9 +29,16 @@ export interface HijoDiario {
 export interface IRegistroDiarioRepositorio {
   crear(registro: RegistroDiario): Promise<RegistroDiario>;
   actualizarEscalares(registro: RegistroDiario): Promise<RegistroDiario>;
-  obtenerPorPacienteYFecha(pacienteId: string, fecha: Date): Promise<RegistroDiario | null>;
+  obtenerPorPacienteYFecha(
+    pacienteId: string,
+    fecha: Date,
+  ): Promise<RegistroDiario | null>;
   /** Registros del rango [desde, hasta], orden ascendente por fecha. */
-  listarPorRango(pacienteId: string, desde: Date, hasta: Date): Promise<RegistroDiario[]>;
+  listarPorRango(
+    pacienteId: string,
+    desde: Date,
+    hasta: Date,
+  ): Promise<RegistroDiario[]>;
   /** Cantidad total de registros del paciente (¿inició su diario?). */
   contarRegistros(pacienteId: string): Promise<number>;
 
@@ -43,13 +50,19 @@ export interface IRegistroDiarioRepositorio {
    * Solo aparecen los pacientes que alguna vez usaron el diario: no haber
    * registrado nunca nada no es una señal de abandono.
    */
-  resumenPorPacienteEnRango(desde: Date, hasta: Date): Promise<Map<string, ResumenDiario>>;
+  resumenPorPacienteEnRango(
+    desde: Date,
+    hasta: Date,
+  ): Promise<Map<string, ResumenDiario>>;
 
   agregarComida(registroId: string, comida: ComidaConsumida): Promise<void>;
   eliminarComida(comidaId: string): Promise<void>;
   obtenerComida(comidaId: string): Promise<HijoDiario | null>;
 
-  agregarActividad(registroId: string, actividad: ActividadFisica): Promise<void>;
+  agregarActividad(
+    registroId: string,
+    actividad: ActividadFisica,
+  ): Promise<void>;
   eliminarActividad(actividadId: string): Promise<void>;
   obtenerActividad(actividadId: string): Promise<HijoDiario | null>;
 }

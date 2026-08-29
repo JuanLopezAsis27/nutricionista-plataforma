@@ -9,7 +9,9 @@ import {
 } from "../_ayudas-test";
 import type { ResumenConversacion } from "../../repositorios/IMensajeriaRepositorio";
 
-function resumenEjemplo(cambios: Partial<ResumenConversacion> = {}): ResumenConversacion {
+function resumenEjemplo(
+  cambios: Partial<ResumenConversacion> = {},
+): ResumenConversacion {
   return {
     id: "conv-1",
     pacienteId: "pac-1",
@@ -21,7 +23,9 @@ function resumenEjemplo(cambios: Partial<ResumenConversacion> = {}): ResumenConv
   };
 }
 
-function correoEjemplo(cambios: { error?: string | null; creadoEn?: Date } = {}): EmailEnviado {
+function correoEjemplo(
+  cambios: { error?: string | null; creadoEn?: Date } = {},
+): EmailEnviado {
   return EmailEnviado.crear(
     {
       plantillaClave: "RECORDATORIO_TURNO",
@@ -46,14 +50,20 @@ describe("ObtenerCentroDeNotificaciones", () => {
         listarResumen: vi.fn(async () => [resumenEjemplo()]), // 2026-07-20
       }),
       mockEmailEnviadoRepositorio({
-        listarRecientes: vi.fn(async () => [correoEjemplo({ error: "SMTP timeout" })]), // 2026-07-19
+        listarRecientes: vi.fn(async () => [
+          correoEjemplo({ error: "SMTP timeout" }),
+        ]), // 2026-07-19
       }),
     );
 
     const centro = await caso.ejecutar("usr-nutri");
 
     expect(centro.items).toHaveLength(3);
-    expect(centro.items.map((n) => n.tipo)).toEqual(["MENSAJE", "CORREO", "ALERTA"]);
+    expect(centro.items.map((n) => n.tipo)).toEqual([
+      "MENSAJE",
+      "CORREO",
+      "ALERTA",
+    ]);
     expect(centro.total).toBe(2); // 1 alerta + 1 conversación con no-leídos
   });
 
@@ -75,7 +85,9 @@ describe("ObtenerCentroDeNotificaciones", () => {
   it("enlaza el mensaje directo a la conversación del paciente", async () => {
     const caso = new ObtenerCentroDeNotificaciones(
       mockAlertaSeguimientoRepositorio(),
-      mockMensajeriaRepositorio({ listarResumen: vi.fn(async () => [resumenEjemplo()]) }),
+      mockMensajeriaRepositorio({
+        listarResumen: vi.fn(async () => [resumenEjemplo()]),
+      }),
       mockEmailEnviadoRepositorio(),
     );
 
@@ -104,7 +116,9 @@ describe("ObtenerCentroDeNotificaciones", () => {
       mockAlertaSeguimientoRepositorio(),
       mockMensajeriaRepositorio(),
       mockEmailEnviadoRepositorio({
-        listarRecientes: vi.fn(async () => [correoEjemplo({ error: "SMTP timeout" })]),
+        listarRecientes: vi.fn(async () => [
+          correoEjemplo({ error: "SMTP timeout" }),
+        ]),
       }),
     );
 

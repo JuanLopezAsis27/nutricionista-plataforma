@@ -1,6 +1,9 @@
 import type { ISuplementoRepositorio } from "../../repositorios/ISuplementoRepositorio";
 import type { IPacienteRepositorio } from "../../repositorios/IPacienteRepositorio";
-import { Suplemento, type DatosNuevoSuplemento } from "../../entidades/Suplemento";
+import {
+  Suplemento,
+  type DatosNuevoSuplemento,
+} from "../../entidades/Suplemento";
 import { ErrorPacienteNoEncontrado } from "../../errores/ErrorPacienteNoEncontrado";
 
 /** Caso de uso: indicar un suplemento a un paciente. */

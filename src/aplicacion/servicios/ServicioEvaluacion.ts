@@ -106,20 +106,27 @@ export class ServicioEvaluacion {
     await this.eliminarAntropometriaUC.ejecutar(id);
   }
 
-  async obtenerEvolucion(pacienteId: string): Promise<EvolucionAntropometricaDto> {
-    const { mediciones, derivados } = await this.obtenerEvolucionUC.ejecutar(pacienteId);
-    const salida: MedicionEvolucionDto[] = mediciones.map((medicion, indice) => ({
-      ...medicion.aPrimitivos(),
-      sumatoria6Pliegues: derivados[indice]?.sumatoria6Pliegues ?? null,
-      kgBajadosVsAnterior: derivados[indice]?.kgBajadosVsAnterior ?? null,
-      kgBajadosAcumulados: derivados[indice]?.kgBajadosAcumulados ?? null,
-    }));
+  async obtenerEvolucion(
+    pacienteId: string,
+  ): Promise<EvolucionAntropometricaDto> {
+    const { mediciones, derivados } =
+      await this.obtenerEvolucionUC.ejecutar(pacienteId);
+    const salida: MedicionEvolucionDto[] = mediciones.map(
+      (medicion, indice) => ({
+        ...medicion.aPrimitivos(),
+        sumatoria6Pliegues: derivados[indice]?.sumatoria6Pliegues ?? null,
+        kgBajadosVsAnterior: derivados[indice]?.kgBajadosVsAnterior ?? null,
+        kgBajadosAcumulados: derivados[indice]?.kgBajadosAcumulados ?? null,
+      }),
+    );
     return { mediciones: salida };
   }
 
   // --- Composición corporal ---------------------------------------------------
 
-  async obtenerComposicion(pacienteId: string): Promise<ComposicionCorporalDto> {
+  async obtenerComposicion(
+    pacienteId: string,
+  ): Promise<ComposicionCorporalDto> {
     const composicion = await this.obtenerComposicionUC.ejecutar(pacienteId);
 
     const mediciones: MedicionComposicionDto[] = composicion.mediciones.map(
@@ -230,7 +237,9 @@ export class ServicioEvaluacion {
     await this.eliminarAlertaUC.ejecutar(id);
   }
 
-  async obtenerAlertas(pacienteId: string): Promise<AlertaAlimentariaSalidaDto[]> {
+  async obtenerAlertas(
+    pacienteId: string,
+  ): Promise<AlertaAlimentariaSalidaDto[]> {
     const alertas = await this.obtenerAlertasUC.ejecutar(pacienteId);
     return alertas.map((alerta) => alerta.aPrimitivos());
   }
@@ -248,7 +257,10 @@ export class ServicioEvaluacion {
     datos: ActualizarLaboratorioDto,
   ): Promise<LaboratorioSalidaDto> {
     const { id, ...cambios } = datos;
-    const laboratorio = await this.actualizarLaboratorioUC.ejecutar(id, cambios);
+    const laboratorio = await this.actualizarLaboratorioUC.ejecutar(
+      id,
+      cambios,
+    );
     return laboratorio.aPrimitivos();
   }
 
@@ -256,7 +268,9 @@ export class ServicioEvaluacion {
     await this.eliminarLaboratorioUC.ejecutar(id);
   }
 
-  async obtenerLaboratorios(pacienteId: string): Promise<LaboratorioSalidaDto[]> {
+  async obtenerLaboratorios(
+    pacienteId: string,
+  ): Promise<LaboratorioSalidaDto[]> {
     const laboratorios = await this.obtenerLaboratoriosUC.ejecutar(pacienteId);
     return laboratorios.map((laboratorio) => laboratorio.aPrimitivos());
   }

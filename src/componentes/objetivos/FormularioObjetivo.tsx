@@ -47,7 +47,11 @@ interface Props {
 }
 
 /** Alta/edición de un objetivo (título, prioridad, fecha meta). */
-export function FormularioObjetivo({ pacienteId, objetivoInicial, onTerminado }: Props) {
+export function FormularioObjetivo({
+  pacienteId,
+  objetivoInicial,
+  onTerminado,
+}: Props) {
   const { crear, actualizar } = useObjetivos();
   // Las metas numéricas del paciente: este plan puede perseguir una.
   const { obtenerComposicion } = useEvaluacion();
@@ -80,7 +84,10 @@ export function FormularioObjetivo({ pacienteId, objetivoInicial, onTerminado }:
           : datos.objetivoComposicionId,
     };
     if (objetivoInicial) {
-      actualizar.mutate({ id: objetivoInicial.id, ...cuerpo }, { onSuccess: onTerminado });
+      actualizar.mutate(
+        { id: objetivoInicial.id, ...cuerpo },
+        { onSuccess: onTerminado },
+      );
     } else {
       crear.mutate({ pacienteId, ...cuerpo }, { onSuccess: onTerminado });
     }
@@ -177,7 +184,9 @@ export function FormularioObjetivo({ pacienteId, objetivoInicial, onTerminado }:
                   {metas.map((meta) => (
                     <SelectItem key={meta.id} value={meta.id}>
                       {meta.descripcion}: {formatearNumero(meta.valorObjetivo)}
-                      {meta.proyeccion.unidad ? ` ${meta.proyeccion.unidad}` : ""}
+                      {meta.proyeccion.unidad
+                        ? ` ${meta.proyeccion.unidad}`
+                        : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -193,11 +202,20 @@ export function FormularioObjetivo({ pacienteId, objetivoInicial, onTerminado }:
         />
 
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onTerminado} disabled={enviando}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onTerminado}
+            disabled={enviando}
+          >
             Cancelar
           </Button>
           <Button type="submit" disabled={enviando}>
-            {enviando ? "Guardando…" : objetivoInicial ? "Guardar cambios" : "Crear objetivo"}
+            {enviando
+              ? "Guardando…"
+              : objetivoInicial
+                ? "Guardar cambios"
+                : "Crear objetivo"}
           </Button>
         </div>
       </form>

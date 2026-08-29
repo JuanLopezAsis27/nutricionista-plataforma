@@ -32,7 +32,9 @@ export const crearPacienteConAccesoDto = crearPacienteDto.extend({
   // decisión.
   password: passwordNuevaDto,
 });
-export type CrearPacienteConAccesoDto = z.infer<typeof crearPacienteConAccesoDto>;
+export type CrearPacienteConAccesoDto = z.infer<
+  typeof crearPacienteConAccesoDto
+>;
 
 export const actualizarPacienteDto = crearPacienteDto.partial().extend({
   id: z.string().min(1),

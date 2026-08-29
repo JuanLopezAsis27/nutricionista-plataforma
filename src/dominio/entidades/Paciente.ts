@@ -1,5 +1,8 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
-import { normalizarTelefonoE164, PREFIJO_PAIS_POR_DEFECTO } from "../servicios/telefono";
+import {
+  normalizarTelefonoE164,
+  PREFIJO_PAIS_POR_DEFECTO,
+} from "../servicios/telefono";
 import {
   SEXOS_BIOLOGICOS,
   type SexoBiologico,
@@ -78,7 +81,10 @@ export class Paciente {
     if (!PATRON_EMAIL.test(email)) {
       throw new ErrorValidacion("El email del paciente no es válido.");
     }
-    if (datos.fechaNacimiento && datos.fechaNacimiento.getTime() > ahora.getTime()) {
+    if (
+      datos.fechaNacimiento &&
+      datos.fechaNacimiento.getTime() > ahora.getTime()
+    ) {
       throw new ErrorValidacion("La fecha de nacimiento no puede ser futura.");
     }
     if (datos.sexo != null && !SEXOS_BIOLOGICOS.includes(datos.sexo)) {
@@ -122,7 +128,8 @@ export class Paciente {
       nombre: cambios.nombre ?? this.props.nombre,
       apellido: cambios.apellido ?? this.props.apellido,
       email: cambios.email ?? this.props.email,
-      telefono: cambios.telefono !== undefined ? cambios.telefono : this.props.telefono,
+      telefono:
+        cambios.telefono !== undefined ? cambios.telefono : this.props.telefono,
       fechaNacimiento:
         cambios.fechaNacimiento !== undefined
           ? cambios.fechaNacimiento

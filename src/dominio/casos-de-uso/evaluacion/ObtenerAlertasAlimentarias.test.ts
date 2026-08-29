@@ -14,7 +14,9 @@ describe("ObtenerAlertasAlimentarias", () => {
       mockAlertaAlimentariaRepositorio({
         listarPorPaciente: vi.fn(async () => [alertaAlimentariaEjemplo()]),
       }),
-      mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => pacienteEjemplo()) }),
+      mockPacienteRepositorio({
+        obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+      }),
     );
 
     const alertas = await casoUso.ejecutar("pac-1");

@@ -8,7 +8,9 @@ import { mockAxiomaRepositorio, axiomaEjemplo } from "../_ayudas-test";
 describe("CrearAxioma", () => {
   it("crea un axioma válido", async () => {
     const crear = vi.fn(async (a) => a);
-    const axioma = await new CrearAxioma(mockAxiomaRepositorio({ crear })).ejecutar({
+    const axioma = await new CrearAxioma(
+      mockAxiomaRepositorio({ crear }),
+    ).ejecutar({
       ambito: "HIDRATACION",
       parametro: "aguaMl",
       operador: "MAYOR_IGUAL",
@@ -50,7 +52,9 @@ describe("ActualizarAxioma", () => {
       actualizar,
     });
 
-    const resultado = await new ActualizarAxioma(repo).ejecutar("axi-1", { valor: 8 });
+    const resultado = await new ActualizarAxioma(repo).ejecutar("axi-1", {
+      valor: 8,
+    });
 
     expect(resultado.aPrimitivos().valor).toBe(8);
     expect(actualizar).toHaveBeenCalledOnce();

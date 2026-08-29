@@ -34,18 +34,28 @@ export class ServicioPaciente {
     private readonly reactivarUC: ReactivarPaciente,
   ) {}
 
-  async crearPaciente(datos: CrearPacienteConAccesoDto): Promise<PacienteSalidaDto> {
+  async crearPaciente(
+    datos: CrearPacienteConAccesoDto,
+  ): Promise<PacienteSalidaDto> {
     const paciente = await this.crearUC.ejecutar(datos);
     // Email de bienvenida best-effort: nunca hace fallar el alta del paciente.
     try {
-      await this.enviarBienvenidaUC.ejecutar(paciente.nombreCompleto, paciente.email);
+      await this.enviarBienvenidaUC.ejecutar(
+        paciente.nombreCompleto,
+        paciente.email,
+      );
     } catch (error) {
-      console.error("[bienvenida] no se pudo enviar el email de bienvenida:", error);
+      console.error(
+        "[bienvenida] no se pudo enviar el email de bienvenida:",
+        error,
+      );
     }
     return ServicioPaciente.aSalida(paciente);
   }
 
-  async obtenerPacientes(datos: ListarPacientesDto): Promise<PacientesPaginados> {
+  async obtenerPacientes(
+    datos: ListarPacientesDto,
+  ): Promise<PacientesPaginados> {
     const resultado = await this.obtenerTodosUC.ejecutar(datos);
     return {
       pacientes: resultado.pacientes.map(ServicioPaciente.aSalida),
@@ -59,7 +69,9 @@ export class ServicioPaciente {
     return ServicioPaciente.aSalida(paciente);
   }
 
-  async actualizarPaciente(datos: ActualizarPacienteDto): Promise<PacienteSalidaDto> {
+  async actualizarPaciente(
+    datos: ActualizarPacienteDto,
+  ): Promise<PacienteSalidaDto> {
     const paciente = await this.actualizarUC.ejecutar(datos);
     return ServicioPaciente.aSalida(paciente);
   }
@@ -68,7 +80,10 @@ export class ServicioPaciente {
     await this.eliminarUC.ejecutar(id);
   }
 
-  async archivarPaciente(id: string, motivo: string | null): Promise<PacienteSalidaDto> {
+  async archivarPaciente(
+    id: string,
+    motivo: string | null,
+  ): Promise<PacienteSalidaDto> {
     return ServicioPaciente.aSalida(await this.archivarUC.ejecutar(id, motivo));
   }
 

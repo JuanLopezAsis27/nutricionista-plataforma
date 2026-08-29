@@ -15,7 +15,9 @@ export class EliminarPlantilla {
       throw new ErrorPlantillaNoEncontrada(id);
     }
     if (plantilla.deSistema) {
-      throw new ErrorValidacion("Las plantillas de sistema no se pueden eliminar.");
+      throw new ErrorValidacion(
+        "Las plantillas de sistema no se pueden eliminar.",
+      );
     }
     await this.plantillas.eliminar(id);
   }

@@ -18,4 +18,6 @@ export const alimentoNutricionalSalidaDto = z.object({
   carbohidratosPor100: z.number().nullable(),
   grasasPor100: z.number().nullable(),
 });
-export type AlimentoNutricionalSalidaDto = z.infer<typeof alimentoNutricionalSalidaDto>;
+export type AlimentoNutricionalSalidaDto = z.infer<
+  typeof alimentoNutricionalSalidaDto
+>;

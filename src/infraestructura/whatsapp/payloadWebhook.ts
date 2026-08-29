@@ -23,7 +23,11 @@ const ESTADOS: Record<string, EstadoMensajeWhatsapp> = {
  * ignora en silencio en vez de romper la ingesta.
  */
 export function parsearWebhook(cuerpo: unknown): WebhookWhatsapp {
-  const resultado: WebhookWhatsapp = { phoneNumberId: null, mensajes: [], estados: [] };
+  const resultado: WebhookWhatsapp = {
+    phoneNumberId: null,
+    mensajes: [],
+    estados: [],
+  };
 
   for (const cambio of cambiosDe(cuerpo)) {
     const valor = objeto(cambio.value);
@@ -45,7 +49,9 @@ export function parsearWebhook(cuerpo: unknown): WebhookWhatsapp {
   return resultado;
 }
 
-function aMensajeEntrante(bruto: Record<string, unknown>): MensajeEntranteWhatsapp | null {
+function aMensajeEntrante(
+  bruto: Record<string, unknown>,
+): MensajeEntranteWhatsapp | null {
   if (texto(bruto.type) !== "text") return null;
 
   const idExterno = texto(bruto.id);
@@ -55,12 +61,17 @@ function aMensajeEntrante(bruto: Record<string, unknown>): MensajeEntranteWhatsa
 
   // `timestamp` viene en segundos, como string.
   const segundos = Number(texto(bruto.timestamp));
-  const enviadoEn = Number.isFinite(segundos) && segundos > 0 ? new Date(segundos * 1000) : new Date();
+  const enviadoEn =
+    Number.isFinite(segundos) && segundos > 0
+      ? new Date(segundos * 1000)
+      : new Date();
 
   return { idExterno, telefono, cuerpo, enviadoEn };
 }
 
-function aEstadoEntrega(bruto: Record<string, unknown>): EstadoEntregaWhatsapp | null {
+function aEstadoEntrega(
+  bruto: Record<string, unknown>,
+): EstadoEntregaWhatsapp | null {
   const idExterno = texto(bruto.id);
   const estado = ESTADOS[texto(bruto.status) ?? ""];
   if (!idExterno || !estado) return null;
@@ -69,7 +80,9 @@ function aEstadoEntrega(bruto: Record<string, unknown>): EstadoEntregaWhatsapp |
   return {
     idExterno,
     estado,
-    error: primerError ? (texto(primerError.title) ?? texto(primerError.message)) : null,
+    error: primerError
+      ? (texto(primerError.title) ?? texto(primerError.message))
+      : null,
   };
 }
 
@@ -88,7 +101,9 @@ function objeto(valor: unknown): Record<string, unknown> | null {
 
 function arreglo(valor: unknown): Record<string, unknown>[] {
   if (!Array.isArray(valor)) return [];
-  return valor.filter((item): item is Record<string, unknown> => objeto(item) !== null);
+  return valor.filter(
+    (item): item is Record<string, unknown> => objeto(item) !== null,
+  );
 }
 
 function texto(valor: unknown): string | undefined {

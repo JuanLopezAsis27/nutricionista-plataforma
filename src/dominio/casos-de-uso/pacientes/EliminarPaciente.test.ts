@@ -26,7 +26,9 @@ describe("EliminarPaciente", () => {
     const usuarios = mockUsuarioRepositorio();
     const casoUso = new EliminarPaciente(repositorio, usuarios);
 
-    await expect(casoUso.ejecutar("x")).rejects.toBeInstanceOf(ErrorPacienteNoEncontrado);
+    await expect(casoUso.ejecutar("x")).rejects.toBeInstanceOf(
+      ErrorPacienteNoEncontrado,
+    );
     expect(repositorio.eliminar).not.toHaveBeenCalled();
     expect(usuarios.eliminarPorPacienteId).not.toHaveBeenCalled();
   });

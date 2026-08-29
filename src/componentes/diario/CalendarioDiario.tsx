@@ -8,8 +8,18 @@ import { Button } from "@/componentes/ui/button";
 
 const DIAS_SEMANA = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const MESES = [
-  "enero", "febrero", "marzo", "abril", "mayo", "junio",
-  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+  "enero",
+  "febrero",
+  "marzo",
+  "abril",
+  "mayo",
+  "junio",
+  "julio",
+  "agosto",
+  "septiembre",
+  "octubre",
+  "noviembre",
+  "diciembre",
 ];
 
 interface PropsCalendario {
@@ -59,10 +69,20 @@ export function CalendarioDiario({
           {MESES[mes - 1]} {anio}
         </h3>
         <div className="flex gap-1">
-          <Button variant="outline" size="icon" aria-label="Mes anterior" onClick={mesAnterior}>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Mes anterior"
+            onClick={mesAnterior}
+          >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon" aria-label="Mes siguiente" onClick={mesSiguiente}>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Mes siguiente"
+            onClick={mesSiguiente}
+          >
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -98,7 +118,9 @@ export function CalendarioDiario({
                 fechaISO === seleccionada
                   ? "border-primary bg-accent font-semibold text-accent-foreground"
                   : "hover:bg-muted",
-                fechaISO === hoy && fechaISO !== seleccionada && "border-primary/50",
+                fechaISO === hoy &&
+                  fechaISO !== seleccionada &&
+                  "border-primary/50",
                 esFutura && "cursor-not-allowed opacity-40",
               )}
             >
@@ -109,7 +131,9 @@ export function CalendarioDiario({
                   title={[
                     datos.tienePeso ? "peso" : null,
                     datos.tieneAgua ? "agua" : null,
-                    datos.cantidadComidas > 0 ? `${datos.cantidadComidas} comida(s)` : null,
+                    datos.cantidadComidas > 0
+                      ? `${datos.cantidadComidas} comida(s)`
+                      : null,
                     datos.cantidadActividades > 0 ? "actividad" : null,
                   ]
                     .filter(Boolean)
@@ -139,13 +163,16 @@ export function CalendarioDiario({
           <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Peso
         </span>
         <span className="inline-flex items-center gap-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-blue-500 dark:bg-blue-400" /> Agua
+          <span className="h-1.5 w-1.5 rounded-full bg-blue-500 dark:bg-blue-400" />{" "}
+          Agua
         </span>
         <span className="inline-flex items-center gap-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-green-600 dark:bg-green-400" /> Comidas
+          <span className="h-1.5 w-1.5 rounded-full bg-green-600 dark:bg-green-400" />{" "}
+          Comidas
         </span>
         <span className="inline-flex items-center gap-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-violet-600 dark:bg-violet-400" /> Actividad
+          <span className="h-1.5 w-1.5 rounded-full bg-violet-600 dark:bg-violet-400" />{" "}
+          Actividad
         </span>
       </p>
     </div>

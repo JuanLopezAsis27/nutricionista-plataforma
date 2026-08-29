@@ -12,8 +12,11 @@ import {
 export class GuardarConfiguracion {
   constructor(private readonly repo: IConfiguracionRepositorio) {}
 
-  async ejecutar(cambios: Partial<DatosConfiguracion>): Promise<ConfiguracionConsultorio> {
-    const actual = (await this.repo.obtener()) ?? ConfiguracionConsultorio.porDefecto();
+  async ejecutar(
+    cambios: Partial<DatosConfiguracion>,
+  ): Promise<ConfiguracionConsultorio> {
+    const actual =
+      (await this.repo.obtener()) ?? ConfiguracionConsultorio.porDefecto();
     return this.repo.guardar(actual.actualizar(cambios));
   }
 }

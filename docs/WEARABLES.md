@@ -70,8 +70,10 @@ abrir/volver a la app y una vez por día:
 import { Health } from "capacitor-health"; // o el plugin que uses
 
 async function leerDia(fecha: Date) {
-  const desde = new Date(fecha); desde.setHours(0, 0, 0, 0);
-  const hasta = new Date(fecha); hasta.setHours(23, 59, 59, 999);
+  const desde = new Date(fecha);
+  desde.setHours(0, 0, 0, 0);
+  const hasta = new Date(fecha);
+  hasta.setHours(23, 59, 59, 999);
   const [pasos, sueno, actividad] = await Promise.all([
     Health.querySteps({ startDate: desde, endDate: hasta }),
     Health.querySleepHours({ startDate: desde, endDate: hasta }),
@@ -89,7 +91,8 @@ async function leerDia(fecha: Date) {
 export async function sincronizar(diasAtras = 7) {
   const dias = [];
   for (let i = 0; i < diasAtras; i++) {
-    const f = new Date(); f.setDate(f.getDate() - i);
+    const f = new Date();
+    f.setDate(f.getDate() - i);
     dias.push(await leerDia(f));
   }
   await fetch("/api/metricas/importar", {

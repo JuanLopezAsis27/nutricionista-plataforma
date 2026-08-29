@@ -12,6 +12,8 @@ describe("ObtenerArchivosDeDueno", () => {
     const resultado = await casoUso.ejecutar({ pacienteId: "pac-1" });
 
     expect(resultado).toHaveLength(1);
-    expect(archivos.listarPorDueno).toHaveBeenCalledWith({ pacienteId: "pac-1" });
+    expect(archivos.listarPorDueno).toHaveBeenCalledWith({
+      pacienteId: "pac-1",
+    });
   });
 });

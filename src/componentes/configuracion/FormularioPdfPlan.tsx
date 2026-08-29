@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import { FileText } from "lucide-react";
 import { useConfiguracion } from "@/lib/hooks/useConfiguracion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 import { Input } from "@/componentes/ui/input";
 import { Label } from "@/componentes/ui/label";
 import { Textarea } from "@/componentes/ui/textarea";
@@ -57,14 +62,15 @@ export function FormularioPdfPlan() {
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
-          <FileText className="h-5 w-5 text-primary" /> Apariencia del PDF del plan
+          <FileText className="h-5 w-5 text-primary" /> Apariencia del PDF del
+          plan
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
         <p className="text-sm text-muted-foreground">
-          Personalizá cómo se ve el PDF que descargás e imprimís. El membrete usa el nombre y la
-          matrícula de la pestaña «Turnos y membrete». Los cambios se aplican al descargar
-          cualquier plan.
+          Personalizá cómo se ve el PDF que descargás e imprimís. El membrete
+          usa el nombre y la matrícula de la pestaña «Turnos y membrete». Los
+          cambios se aplican al descargar cualquier plan.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -111,9 +117,21 @@ export function FormularioPdfPlan() {
 
         <div className="space-y-2.5">
           <Label>Secciones a incluir</Label>
-          <Casilla etiqueta="Recetas completas del plan" activo={mostrarRecetas} onCambio={setMostrarRecetas} />
-          <Casilla etiqueta="Metas de macros" activo={mostrarMacros} onCambio={setMostrarMacros} />
-          <Casilla etiqueta="Equivalencias" activo={mostrarEquivalencias} onCambio={setMostrarEquivalencias} />
+          <Casilla
+            etiqueta="Recetas completas del plan"
+            activo={mostrarRecetas}
+            onCambio={setMostrarRecetas}
+          />
+          <Casilla
+            etiqueta="Metas de macros"
+            activo={mostrarMacros}
+            onCambio={setMostrarMacros}
+          />
+          <Casilla
+            etiqueta="Equivalencias"
+            activo={mostrarEquivalencias}
+            onCambio={setMostrarEquivalencias}
+          />
           <Casilla
             etiqueta="Recomendaciones"
             activo={mostrarRecomendaciones}
@@ -122,7 +140,11 @@ export function FormularioPdfPlan() {
         </div>
 
         <div className="flex justify-end">
-          <Button type="button" disabled={guardar.isPending} onClick={onGuardar}>
+          <Button
+            type="button"
+            disabled={guardar.isPending}
+            onClick={onGuardar}
+          >
             Guardar apariencia
           </Button>
         </div>

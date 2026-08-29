@@ -28,7 +28,10 @@ const recetaBase = z.object({
   preparacion: z.string().max(5000).optional().nullable(),
   ingredientes: z.array(ingredienteEntradaDto).max(100).optional(),
   etiquetas: z.array(z.string().max(60)).max(30).optional(),
-  enlaces: z.array(z.string().url("Debe ser una URL válida").max(500)).max(20).optional(),
+  enlaces: z
+    .array(z.string().url("Debe ser una URL válida").max(500))
+    .max(20)
+    .optional(),
   ...macros,
 });
 

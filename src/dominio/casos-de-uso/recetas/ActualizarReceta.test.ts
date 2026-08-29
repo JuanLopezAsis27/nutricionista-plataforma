@@ -19,7 +19,9 @@ describe("ActualizarReceta", () => {
     });
 
     expect(receta.nombre).toBe("Tortilla renovada");
-    expect(recetas.actualizar).toHaveBeenCalledWith(expect.any(Receta), ["arc-9"]);
+    expect(recetas.actualizar).toHaveBeenCalledWith(expect.any(Receta), [
+      "arc-9",
+    ]);
   });
 
   it("lanza ErrorRecetaNoEncontrada si la receta no existe", async () => {

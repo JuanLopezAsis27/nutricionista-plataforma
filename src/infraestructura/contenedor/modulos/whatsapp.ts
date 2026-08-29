@@ -27,7 +27,10 @@ export function crearServicioWhatsapp(deps: {
   bus: IBusEventos;
 }): ServicioWhatsapp {
   // El filtro de ingesta: sin paciente que matchee, el mensaje se descarta.
-  const resolverPaciente = new ResolverPacientePorTelefono(deps.pacientes, deps.configuracion);
+  const resolverPaciente = new ResolverPacientePorTelefono(
+    deps.pacientes,
+    deps.configuracion,
+  );
 
   return new ServicioWhatsapp(
     new ObtenerHiloWhatsapp(deps.mensajes, deps.proveedor),

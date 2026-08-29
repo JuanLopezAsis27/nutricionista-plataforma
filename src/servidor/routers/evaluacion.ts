@@ -39,7 +39,9 @@ export const routerEvaluacion = crearRouter({
   obtenerHistoria: nutricionistaProcedimiento
     .input(idPacienteEvaluacionDto)
     .query(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.obtenerHistoriaClinica(input.pacienteId);
+      return await ctx.servicios.evaluacion.obtenerHistoriaClinica(
+        input.pacienteId,
+      );
     }),
 
   guardarHistoria: nutricionistaProcedimiento
@@ -78,7 +80,9 @@ export const routerEvaluacion = crearRouter({
   obtenerComposicion: nutricionistaProcedimiento
     .input(idPacienteEvaluacionDto)
     .query(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.obtenerComposicion(input.pacienteId);
+      return await ctx.servicios.evaluacion.obtenerComposicion(
+        input.pacienteId,
+      );
     }),
 
   guardarObjetivoComposicion: nutricionistaProcedimiento
@@ -153,7 +157,9 @@ export const routerEvaluacion = crearRouter({
   obtenerLaboratorios: nutricionistaProcedimiento
     .input(idPacienteEvaluacionDto)
     .query(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.obtenerLaboratorios(input.pacienteId);
+      return await ctx.servicios.evaluacion.obtenerLaboratorios(
+        input.pacienteId,
+      );
     }),
 
   registrarLaboratorio: nutricionistaProcedimiento

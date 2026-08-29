@@ -23,12 +23,18 @@ type NombreCampo = (typeof CAMPOS)[number]["nombre"];
 type DatosFormulario = Record<NombreCampo, string>;
 
 /** Formulario de historia clínica del paciente (upsert de los 7 campos). */
-export function FormularioHistoriaClinica({ pacienteId }: { pacienteId: string }) {
+export function FormularioHistoriaClinica({
+  pacienteId,
+}: {
+  pacienteId: string;
+}) {
   const { obtenerHistoria, guardarHistoria } = useEvaluacion();
   const historia = obtenerHistoria({ pacienteId });
 
   const form = useForm<DatosFormulario>({
-    defaultValues: Object.fromEntries(CAMPOS.map((c) => [c.nombre, ""])) as DatosFormulario,
+    defaultValues: Object.fromEntries(
+      CAMPOS.map((c) => [c.nombre, ""]),
+    ) as DatosFormulario,
   });
 
   // Carga los valores cuando llega la historia (o cambia el paciente).
@@ -83,7 +89,9 @@ export function FormularioHistoriaClinica({ pacienteId }: { pacienteId: string }
 
       <div className="flex justify-end">
         <Button type="submit" disabled={guardarHistoria.isPending}>
-          {guardarHistoria.isPending ? "Guardando…" : "Guardar historia clínica"}
+          {guardarHistoria.isPending
+            ? "Guardando…"
+            : "Guardar historia clínica"}
         </Button>
       </div>
     </form>

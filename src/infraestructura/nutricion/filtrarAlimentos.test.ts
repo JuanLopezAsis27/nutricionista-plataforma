@@ -33,25 +33,37 @@ describe("filtrarAlimentos", () => {
   });
 
   it("excluirMarcas deja solo los genéricos", () => {
-    const lista = [alimento({ nombre: "A" }), alimento({ nombre: "B", marca: "Coca" })];
+    const lista = [
+      alimento({ nombre: "A" }),
+      alimento({ nombre: "B", marca: "Coca" }),
+    ];
     const r = filtrarAlimentos(lista, { ...base, excluirMarcas: true });
     expect(r.map((a) => a.nombre)).toEqual(["A"]);
   });
 
   it("requiereMacros descarta los que no tienen los 4", () => {
-    const lista = [alimento({ nombre: "Completo" }), alimento({ nombre: "Sin", proteinasPor100: null })];
+    const lista = [
+      alimento({ nombre: "Completo" }),
+      alimento({ nombre: "Sin", proteinasPor100: null }),
+    ];
     const r = filtrarAlimentos(lista, { ...base, requiereMacros: true });
     expect(r.map((a) => a.nombre)).toEqual(["Completo"]);
   });
 
   it("maxCaloriasPor100 descarta los que superan el tope", () => {
-    const lista = [alimento({ nombre: "Liviano", caloriasPor100: 200 }), alimento({ nombre: "Pesado", caloriasPor100: 500 })];
+    const lista = [
+      alimento({ nombre: "Liviano", caloriasPor100: 200 }),
+      alimento({ nombre: "Pesado", caloriasPor100: 500 }),
+    ];
     const r = filtrarAlimentos(lista, { ...base, maxCaloriasPor100: 300 });
     expect(r.map((a) => a.nombre)).toEqual(["Liviano"]);
   });
 
   it("excluirTexto descarta por coincidencia en el nombre (case-insensitive)", () => {
-    const lista = [alimento({ nombre: "Papa hervida" }), alimento({ nombre: "Papa FRITA" })];
+    const lista = [
+      alimento({ nombre: "Papa hervida" }),
+      alimento({ nombre: "Papa FRITA" }),
+    ];
     const r = filtrarAlimentos(lista, { ...base, excluirTexto: ["frita"] });
     expect(r.map((a) => a.nombre)).toEqual(["Papa hervida"]);
   });

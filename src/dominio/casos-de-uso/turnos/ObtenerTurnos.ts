@@ -1,4 +1,7 @@
-import type { ITurnoRepositorio, FiltroTurnos } from "../../repositorios/ITurnoRepositorio";
+import type {
+  ITurnoRepositorio,
+  FiltroTurnos,
+} from "../../repositorios/ITurnoRepositorio";
 import type { Turno } from "../../entidades/Turno";
 
 /**

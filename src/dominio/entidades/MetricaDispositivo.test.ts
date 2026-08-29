@@ -33,7 +33,12 @@ describe("MetricaDispositivo", () => {
   it("rechaza horas de sueño fuera de 0–24", () => {
     expect(() =>
       MetricaDispositivo.crear(
-        { pacienteId: "pac-1", fecha: new Date(), fuente: "MANUAL", horasSueno: 30 },
+        {
+          pacienteId: "pac-1",
+          fecha: new Date(),
+          fuente: "MANUAL",
+          horasSueno: 30,
+        },
         "met-3",
       ),
     ).toThrow(ErrorValidacion);

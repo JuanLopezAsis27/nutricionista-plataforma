@@ -1,9 +1,15 @@
 import type { ICompetenciaRepositorio } from "../../repositorios/ICompetenciaRepositorio";
-import type { Competencia, DatosCompetencia } from "../../entidades/Competencia";
+import type {
+  Competencia,
+  DatosCompetencia,
+} from "../../entidades/Competencia";
 import { ErrorCompetenciaNoEncontrada } from "../../errores/ErrorCompetenciaNoEncontrada";
 
 /** Datos de entrada: id + cambios de la competencia (sin cambiar el paciente). */
-export interface DatosActualizarCompetencia extends Omit<DatosCompetencia, "pacienteId"> {
+export interface DatosActualizarCompetencia extends Omit<
+  DatosCompetencia,
+  "pacienteId"
+> {
   id: string;
 }
 

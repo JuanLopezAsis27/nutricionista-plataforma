@@ -53,7 +53,9 @@ export const routerSecretaria = crearRouter({
     }),
 
   emailsRecientes: nutricionistaProcedimiento
-    .input(z.object({ limite: z.number().int().positive().max(100).optional() }))
+    .input(
+      z.object({ limite: z.number().int().positive().max(100).optional() }),
+    )
     .query(async ({ ctx, input }) => {
       return await ctx.servicios.secretaria.listarEmailsRecientes(input.limite);
     }),

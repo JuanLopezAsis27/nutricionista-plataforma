@@ -1,4 +1,7 @@
-import { servicioWhatsapp, directorioWhatsapp } from "@/infraestructura/contenedor/contenedor";
+import {
+  servicioWhatsapp,
+  directorioWhatsapp,
+} from "@/infraestructura/contenedor/contenedor";
 import { ejecutarEnNutricionista } from "@/infraestructura/multitenancy/contextoTenant";
 import { firmaValida } from "@/infraestructura/whatsapp/firmaWebhook";
 import { parsearWebhook } from "@/infraestructura/whatsapp/payloadWebhook";
@@ -26,7 +29,10 @@ export async function GET(peticion: Request): Promise<Response> {
   const token = parametros.get("hub.verify_token") ?? "";
   const desafio = parametros.get("hub.challenge") ?? "";
 
-  if (modo !== "subscribe" || !(await directorioWhatsapp().verifyTokenValido(token))) {
+  if (
+    modo !== "subscribe" ||
+    !(await directorioWhatsapp().verifyTokenValido(token))
+  ) {
     return new Response(null, { status: 403 });
   }
   return new Response(desafio, {
@@ -57,11 +63,19 @@ export async function POST(peticion: Request): Promise<Response> {
 
   // Se parsea antes de validar solo para saber a quién pertenece el webhook;
   // hasta que la firma no da, no se escribe absolutamente nada.
-  const inquilino = await directorioWhatsapp().porPhoneNumberId(webhook.phoneNumberId);
+  const inquilino = await directorioWhatsapp().porPhoneNumberId(
+    webhook.phoneNumberId,
+  );
   if (!inquilino) {
     return new Response(null, { status: 404 });
   }
-  if (!firmaValida(crudo, peticion.headers.get("x-hub-signature-256"), inquilino.appSecret)) {
+  if (
+    !firmaValida(
+      crudo,
+      peticion.headers.get("x-hub-signature-256"),
+      inquilino.appSecret,
+    )
+  ) {
     return new Response(null, { status: 401 });
   }
 
@@ -71,9 +85,12 @@ export async function POST(peticion: Request): Promise<Response> {
       await servicioWhatsapp().registrarEstados(webhook.estados);
     });
   } catch (error) {
-    monitorErrores.capturar(error instanceof Error ? error : new Error(String(error)), {
-      origen: "whatsapp-webhook",
-    });
+    monitorErrores.capturar(
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        origen: "whatsapp-webhook",
+      },
+    );
     // Un 500 hace que Meta reintente; la ingesta es idempotente por wamid.
     return new Response(null, { status: 500 });
   }

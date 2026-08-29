@@ -52,8 +52,11 @@ export class ServicioReceta {
   }
 
   /** Recetario paginado (trae solo la página pedida). */
-  async obtenerRecetasPaginado(datos: ListarRecetasPaginadoDto): Promise<RecetasPaginadas> {
-    const { items, total, paginas } = await this.obtenerPaginadoUC.ejecutar(datos);
+  async obtenerRecetasPaginado(
+    datos: ListarRecetasPaginadoDto,
+  ): Promise<RecetasPaginadas> {
+    const { items, total, paginas } =
+      await this.obtenerPaginadoUC.ejecutar(datos);
     return { recetas: items.map(ServicioReceta.aSalida), total, paginas };
   }
 
@@ -99,7 +102,9 @@ export class ServicioReceta {
     await this.desasignarUC.ejecutar(datos);
   }
 
-  async obtenerRecetasDelPaciente(pacienteId: string): Promise<RecetaSalidaDto[]> {
+  async obtenerRecetasDelPaciente(
+    pacienteId: string,
+  ): Promise<RecetaSalidaDto[]> {
     const recetas = await this.obtenerDelPacienteUC.ejecutar(pacienteId);
     return recetas.map(ServicioReceta.aSalida);
   }

@@ -1,9 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bot, Utensils, CheckCircle2, Circle, SlidersHorizontal } from "lucide-react";
+import {
+  Bot,
+  Utensils,
+  CheckCircle2,
+  Circle,
+  SlidersHorizontal,
+} from "lucide-react";
 import { useCredenciales } from "@/lib/hooks/useCredenciales";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 import { Input } from "@/componentes/ui/input";
 import { Button } from "@/componentes/ui/button";
 import { Label } from "@/componentes/ui/label";
@@ -52,7 +63,9 @@ export function FormularioCredenciales() {
     if (!c) return;
     setExcluirMarcas(c.excluirMarcas);
     setRequiereMacros(c.requiereMacros);
-    setMaxCalorias(c.maxCaloriasPor100 != null ? String(c.maxCaloriasPor100) : "");
+    setMaxCalorias(
+      c.maxCaloriasPor100 != null ? String(c.maxCaloriasPor100) : "",
+    );
     setExcluirTexto(c.excluirTexto.join(", "));
   }, [e?.criterios]);
 
@@ -110,24 +123,35 @@ export function FormularioCredenciales() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Habilita el chat del paciente y el análisis de la foto de comida. Podés usar la API
-            de Anthropic directa o <strong>OpenRouter</strong> (una sola key para varios modelos).
-            Sin clave, esas funciones quedan en modo demostración.
+            Habilita el chat del paciente y el análisis de la foto de comida.
+            Podés usar la API de Anthropic directa o <strong>OpenRouter</strong>{" "}
+            (una sola key para varios modelos). Sin clave, esas funciones quedan
+            en modo demostración.
           </p>
           <div className="space-y-1.5">
             <Label>Proveedor</Label>
-            <Select value={proveedor} onValueChange={(v) => setProveedor(v as ProveedorIA)}>
-              <SelectTrigger aria-label="Proveedor de IA" className="w-full sm:w-64">
+            <Select
+              value={proveedor}
+              onValueChange={(v) => setProveedor(v as ProveedorIA)}
+            >
+              <SelectTrigger
+                aria-label="Proveedor de IA"
+                className="w-full sm:w-64"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ANTHROPIC">Anthropic (Claude directo)</SelectItem>
+                <SelectItem value="ANTHROPIC">
+                  Anthropic (Claude directo)
+                </SelectItem>
                 <SelectItem value="OPENROUTER">OpenRouter</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="claudeKey">API key {esOpenRouter ? "de OpenRouter" : "de Anthropic"}</Label>
+            <Label htmlFor="claudeKey">
+              API key {esOpenRouter ? "de OpenRouter" : "de Anthropic"}
+            </Label>
             <Input
               id="claudeKey"
               type="password"
@@ -167,7 +191,11 @@ export function FormularioCredenciales() {
                 Quitar clave
               </Button>
             )}
-            <Button type="button" disabled={guardar.isPending} onClick={guardarClaude}>
+            <Button
+              type="button"
+              disabled={guardar.isPending}
+              onClick={guardarClaude}
+            >
               Guardar
             </Button>
           </div>
@@ -179,19 +207,22 @@ export function FormularioCredenciales() {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center justify-between gap-2 text-base">
             <span className="flex items-center gap-2">
-              <Utensils className="h-5 w-5 text-primary" /> Ingredientes (FatSecret)
+              <Utensils className="h-5 w-5 text-primary" /> Ingredientes
+              (FatSecret)
             </span>
             <Estado activo={e.fatsecretConfigurado} />
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Trae los macros de los ingredientes desde FatSecret Platform (OAuth 2.0:{" "}
-            <strong>Client ID</strong> + <strong>Client Secret</strong> desde su portal).{" "}
-            <strong>Importante:</strong> FatSecret exige habilitar la IP de tu servidor en la
-            cuenta (<em>IP Restrictions</em>); si no, no devuelve datos. Su base está en inglés:
-            con la clave de Claude cargada arriba, la búsqueda y los resultados se traducen al
-            español automáticamente. Sin credenciales de FatSecret se usa Open Food Facts (gratis).
+            Trae los macros de los ingredientes desde FatSecret Platform (OAuth
+            2.0: <strong>Client ID</strong> + <strong>Client Secret</strong>{" "}
+            desde su portal). <strong>Importante:</strong> FatSecret exige
+            habilitar la IP de tu servidor en la cuenta (
+            <em>IP Restrictions</em>); si no, no devuelve datos. Su base está en
+            inglés: con la clave de Claude cargada arriba, la búsqueda y los
+            resultados se traducen al español automáticamente. Sin credenciales
+            de FatSecret se usa Open Food Facts (gratis).
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
@@ -223,7 +254,10 @@ export function FormularioCredenciales() {
                 variant="outline"
                 disabled={guardar.isPending}
                 onClick={() =>
-                  guardar.mutate({ fatsecretClientId: "", fatsecretClientSecret: "" })
+                  guardar.mutate({
+                    fatsecretClientId: "",
+                    fatsecretClientSecret: "",
+                  })
                 }
               >
                 Quitar
@@ -244,13 +278,15 @@ export function FormularioCredenciales() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
-            <SlidersHorizontal className="h-5 w-5 text-primary" /> Criterios de ingredientes
+            <SlidersHorizontal className="h-5 w-5 text-primary" /> Criterios de
+            ingredientes
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Filtrá los alimentos que trae la búsqueda de ingredientes. Se aplican a todas
-            tus búsquedas (recetas y planes). Dejalos vacíos para no filtrar.
+            Filtrá los alimentos que trae la búsqueda de ingredientes. Se
+            aplican a todas tus búsquedas (recetas y planes). Dejalos vacíos
+            para no filtrar.
           </p>
 
           <label className="flex items-start gap-2.5">
@@ -278,13 +314,16 @@ export function FormularioCredenciales() {
             <span className="text-sm">
               <span className="font-medium">Solo con macros completos</span>
               <span className="block text-xs text-muted-foreground">
-                Descarta los que no traen calorías, proteínas, carbohidratos y grasas.
+                Descarta los que no traen calorías, proteínas, carbohidratos y
+                grasas.
               </span>
             </span>
           </label>
 
           <div className="space-y-1.5">
-            <Label htmlFor="maxCalorias">Máximo de calorías por 100 g (opcional)</Label>
+            <Label htmlFor="maxCalorias">
+              Máximo de calorías por 100 g (opcional)
+            </Label>
             <Input
               id="maxCalorias"
               type="number"
@@ -298,7 +337,9 @@ export function FormularioCredenciales() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="excluirTexto">Excluir si el nombre contiene (separá con comas)</Label>
+            <Label htmlFor="excluirTexto">
+              Excluir si el nombre contiene (separá con comas)
+            </Label>
             <Input
               id="excluirTexto"
               placeholder="ej: frito, jarabe, light"
@@ -308,7 +349,11 @@ export function FormularioCredenciales() {
           </div>
 
           <div className="flex justify-end">
-            <Button type="button" disabled={guardar.isPending} onClick={guardarCriterios}>
+            <Button
+              type="button"
+              disabled={guardar.isPending}
+              onClick={guardarCriterios}
+            >
               Guardar criterios
             </Button>
           </div>

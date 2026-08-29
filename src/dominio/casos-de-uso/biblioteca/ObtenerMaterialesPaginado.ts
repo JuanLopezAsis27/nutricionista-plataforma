@@ -20,8 +20,14 @@ export interface FiltroMaterialesPaginado extends ParametrosPagina {
 export class ObtenerMaterialesPaginado {
   constructor(private readonly materiales: IMaterialRepositorio) {}
 
-  async ejecutar(filtro: FiltroMaterialesPaginado): Promise<Pagina<MaterialBiblioteca>> {
-    const base = { texto: filtro.texto, categoria: filtro.categoria, etiqueta: filtro.etiqueta };
+  async ejecutar(
+    filtro: FiltroMaterialesPaginado,
+  ): Promise<Pagina<MaterialBiblioteca>> {
+    const base = {
+      texto: filtro.texto,
+      categoria: filtro.categoria,
+      etiqueta: filtro.etiqueta,
+    };
     const [items, total] = await Promise.all([
       this.materiales.listar({
         ...base,

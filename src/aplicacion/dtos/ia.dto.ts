@@ -37,7 +37,9 @@ export const resultadoAnalisisComidaDto = z.object({
   confianza: z.number(),
   nota: z.string(),
 });
-export type ResultadoAnalisisComidaDto = z.infer<typeof resultadoAnalisisComidaDto>;
+export type ResultadoAnalisisComidaDto = z.infer<
+  typeof resultadoAnalisisComidaDto
+>;
 
 export const insightPacienteDto = z.object({
   tipo: z.string(),

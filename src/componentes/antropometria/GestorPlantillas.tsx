@@ -343,7 +343,10 @@ function EditorPlantilla({
         <p className="mb-2 text-xs font-semibold">
           Con estos {seleccionados.length} campos vas a poder calcular:
         </p>
-        <ListaRequisitos cubiertos={cubiertos} faltaParaServir={faltaParaServir} />
+        <ListaRequisitos
+          cubiertos={cubiertos}
+          faltaParaServir={faltaParaServir}
+        />
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
@@ -468,7 +471,12 @@ function ResumenAlcance({ alcance }: { alcance: AlcancePlantilla }) {
     ...alcance.metodosGrasa.map(
       ({ metodo, sexo }) =>
         (REQUISITOS_RESULTADO.find((r) => r.clave === metodo)?.etiqueta ??
-          metodo) + (sexo === "AMBOS" ? "" : sexo === "FEMENINO" ? " (mujeres)" : " (varones)"),
+          metodo) +
+        (sexo === "AMBOS"
+          ? ""
+          : sexo === "FEMENINO"
+            ? " (mujeres)"
+            : " (varones)"),
     ),
     ...(alcance.cincoMasas ? ["5 masas (Kerr)"] : []),
     ...(alcance.somatotipo ? ["Somatotipo"] : []),

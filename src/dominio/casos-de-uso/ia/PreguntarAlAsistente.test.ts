@@ -20,11 +20,17 @@ describe("PreguntarAlAsistente", () => {
     const responder = vi.fn(async () => "respuesta demo");
     const guardarConsulta = vi.fn(async () => {});
     const uc = new PreguntarAlAsistente(
-      mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => pacienteEjemplo()) }),
+      mockPacienteRepositorio({
+        obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+      }),
       mockObjetivoRepositorio({ listarPorPaciente: vi.fn(async () => []) }),
-      mockPlanRepositorio({ obtenerPlanActivoDePaciente: vi.fn(async () => null) }),
+      mockPlanRepositorio({
+        obtenerPlanActivoDePaciente: vi.fn(async () => null),
+      }),
       mockRecetaRepositorio({ listarPorPaciente: vi.fn(async () => []) }),
-      mockAlertaAlimentariaRepositorio({ listarPorPaciente: vi.fn(async () => []) }),
+      mockAlertaAlimentariaRepositorio({
+        listarPorPaciente: vi.fn(async () => []),
+      }),
       mockAxiomaRepositorio({ listarActivos: vi.fn(async () => []) }),
       mockAsistenteNutricional({ responder }),
       mockHistorialIARepositorio({ guardarConsulta }),
@@ -32,13 +38,21 @@ describe("PreguntarAlAsistente", () => {
       mockCompetenciaRepositorio(),
     );
 
-    const resultado = await uc.ejecutar("pac-1", "¿Cuántas calorías tiene mi plan?");
+    const resultado = await uc.ejecutar(
+      "pac-1",
+      "¿Cuántas calorías tiene mi plan?",
+    );
 
     expect(resultado.respuesta).toBe("respuesta demo");
     expect(responder).toHaveBeenCalledWith(
       "¿Cuántas calorías tiene mi plan?",
-      expect.objectContaining({ nombrePaciente: "Ana García", tienePlan: false }),
-      expect.arrayContaining([expect.objectContaining({ nombre: "obtener_plan_nutricional" })]),
+      expect.objectContaining({
+        nombrePaciente: "Ana García",
+        tienePlan: false,
+      }),
+      expect.arrayContaining([
+        expect.objectContaining({ nombre: "obtener_plan_nutricional" }),
+      ]),
     );
     expect(guardarConsulta).toHaveBeenCalledOnce();
   });
@@ -57,6 +71,8 @@ describe("PreguntarAlAsistente", () => {
       mockCompetenciaRepositorio(),
     );
 
-    await expect(uc.ejecutar("x", "hola")).rejects.toBeInstanceOf(ErrorPacienteNoEncontrado);
+    await expect(uc.ejecutar("x", "hola")).rejects.toBeInstanceOf(
+      ErrorPacienteNoEncontrado,
+    );
   });
 });

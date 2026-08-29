@@ -80,9 +80,13 @@ function armar(
         obtenerPorClave: vi.fn(async () => plantillaEmailEjemplo()),
       }),
       mockEmailEnviadoRepositorio(),
-      mockTurnoRepositorio({ obtenerEnFecha: vi.fn(async () => opciones.turnos ?? []) }),
+      mockTurnoRepositorio({
+        obtenerEnFecha: vi.fn(async () => opciones.turnos ?? []),
+      }),
       mockPacienteRepositorio({
-        obtenerPorId: vi.fn(async () => pacienteEjemplo({ telefono: "011 15 5555-4444" })),
+        obtenerPorId: vi.fn(async () =>
+          pacienteEjemplo({ telefono: "011 15 5555-4444" }),
+        ),
       }),
       mockServicioEmail({ enviar: enviarEmail }),
       { ahora: () => AHORA, hoy: () => HOY },
@@ -207,7 +211,9 @@ describe("EnviarRecordatoriosProgramados", () => {
 
     expect(resultado.email.enviados).toBe(1);
     expect(enviarEmail).toHaveBeenCalledTimes(1);
-    expect(resultado.enviados).toBe(resultado.whatsapp.enviados + resultado.email.enviados);
+    expect(resultado.enviados).toBe(
+      resultado.whatsapp.enviados + resultado.email.enviados,
+    );
   });
 
   // Un medio roto no puede llevarse puesto al otro: son avisos independientes.

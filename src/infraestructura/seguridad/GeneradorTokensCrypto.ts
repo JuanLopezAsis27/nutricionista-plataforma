@@ -1,5 +1,8 @@
 import { randomBytes, createHash } from "node:crypto";
-import type { IGeneradorTokens, TokenGenerado } from "@/dominio/servicios/IGeneradorTokens";
+import type {
+  IGeneradorTokens,
+  TokenGenerado,
+} from "@/dominio/servicios/IGeneradorTokens";
 
 /**
  * Implementación del generador de tokens con `node:crypto`.

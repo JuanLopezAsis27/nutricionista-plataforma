@@ -30,7 +30,9 @@ export class ProveedorWhatsappEnlace implements IProveedorWhatsapp {
    * plantillas de Meta son restricciones de la API, y acá el mensaje lo manda
    * una persona desde su teléfono. Se usa el texto ya renderizado.
    */
-  async enviarPlantilla(envio: PlantillaWhatsappEnvio): Promise<ResultadoEnvioWhatsapp> {
+  async enviarPlantilla(
+    envio: PlantillaWhatsappEnvio,
+  ): Promise<ResultadoEnvioWhatsapp> {
     return {
       modo: "ENLACE",
       enlace: construirEnlaceWhatsapp(envio.telefono, envio.textoEquivalente),

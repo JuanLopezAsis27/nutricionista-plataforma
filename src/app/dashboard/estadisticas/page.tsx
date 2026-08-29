@@ -15,7 +15,12 @@ import { useEstadisticas } from "@/lib/hooks/useEstadisticas";
 import { formatearMoneda, formatearFecha, hoyLocalISO } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -37,14 +42,23 @@ type TipoDetalle = "EN_RIESGO" | "NUEVOS" | "ACTIVOS";
 export default function PaginaEstadisticas() {
   const { obtener, detalle } = useEstadisticas();
   const [meses, setMeses] = useState<number>(3);
-  const [desglose, setDesglose] = useState<{ tipo: TipoDetalle; titulo: string } | null>(null);
+  const [desglose, setDesglose] = useState<{
+    tipo: TipoDetalle;
+    titulo: string;
+  } | null>(null);
 
   // Fechas ancladas al día local (claves de query estables dentro del día).
   const hasta = new Date(hoyLocalISO());
   const desde =
     meses === 1
       ? new Date(Date.UTC(hasta.getUTCFullYear(), hasta.getUTCMonth(), 1))
-      : new Date(Date.UTC(hasta.getUTCFullYear(), hasta.getUTCMonth() - (meses - 1), 1));
+      : new Date(
+          Date.UTC(
+            hasta.getUTCFullYear(),
+            hasta.getUTCMonth() - (meses - 1),
+            1,
+          ),
+        );
 
   const consulta = obtener({ desde, hasta });
   const datos = consulta.data;
@@ -78,7 +92,9 @@ export default function PaginaEstadisticas() {
       </div>
 
       {consulta.isError ? (
-        <p className="text-sm text-destructive">No se pudieron cargar las estadísticas.</p>
+        <p className="text-sm text-destructive">
+          No se pudieron cargar las estadísticas.
+        </p>
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -87,24 +103,35 @@ export default function PaginaEstadisticas() {
               titulo="Pacientes activos"
               valor={datos ? String(datos.pacientesActivos) : null}
               detalle="con seguimiento vigente"
-              onVer={() => setDesglose({ tipo: "ACTIVOS", titulo: "Pacientes activos" })}
+              onVer={() =>
+                setDesglose({ tipo: "ACTIVOS", titulo: "Pacientes activos" })
+              }
             />
             <Kpi
               icono={UserPlus}
               titulo="Nuevos en el período"
               valor={datos ? String(datos.pacientesNuevos) : null}
               detalle="altas dentro del rango"
-              onVer={() => setDesglose({ tipo: "NUEVOS", titulo: "Nuevos en el período" })}
+              onVer={() =>
+                setDesglose({ tipo: "NUEVOS", titulo: "Nuevos en el período" })
+              }
             />
             <Kpi
               icono={UserX}
               titulo="En riesgo de abandono"
               valor={datos ? String(datos.pacientesEnRiesgo) : null}
               detalle={
-                datos ? `sin actividad hace +${datos.diasAbandono} días` : "sin actividad reciente"
+                datos
+                  ? `sin actividad hace +${datos.diasAbandono} días`
+                  : "sin actividad reciente"
               }
               alerta={Boolean(datos && datos.pacientesEnRiesgo > 0)}
-              onVer={() => setDesglose({ tipo: "EN_RIESGO", titulo: "En riesgo de abandono" })}
+              onVer={() =>
+                setDesglose({
+                  tipo: "EN_RIESGO",
+                  titulo: "En riesgo de abandono",
+                })
+              }
             />
             <Kpi
               icono={CalendarCheck}
@@ -132,7 +159,9 @@ export default function PaginaEstadisticas() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Turnos por mes (últimos 6 meses)</CardTitle>
+              <CardTitle className="text-base">
+                Turnos por mes (últimos 6 meses)
+              </CardTitle>
             </CardHeader>
             <CardContent className="pl-0 pr-3">
               <GraficoTurnosMensuales
@@ -145,7 +174,10 @@ export default function PaginaEstadisticas() {
       )}
 
       {/* Desglose de pacientes de una métrica */}
-      <Dialog open={Boolean(desglose)} onOpenChange={(a) => !a && setDesglose(null)}>
+      <Dialog
+        open={Boolean(desglose)}
+        onOpenChange={(a) => !a && setDesglose(null)}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{desglose?.titulo}</DialogTitle>
@@ -177,7 +209,9 @@ export default function PaginaEstadisticas() {
                       </span>
                       {paciente.referencia && (
                         <span className="text-xs text-muted-foreground">
-                          {desglose?.tipo === "EN_RIESGO" ? "Última actividad: " : "Alta: "}
+                          {desglose?.tipo === "EN_RIESGO"
+                            ? "Última actividad: "
+                            : "Alta: "}
                           {formatearFecha(paciente.referencia)}
                         </span>
                       )}
@@ -211,12 +245,24 @@ function Kpi({
 }) {
   return (
     <Card
-      className={onVer ? "cursor-pointer transition-colors hover:border-primary/50" : undefined}
+      className={
+        onVer
+          ? "cursor-pointer transition-colors hover:border-primary/50"
+          : undefined
+      }
       onClick={onVer}
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{titulo}</CardTitle>
-        <Icono className={alerta ? "h-5 w-5 text-destructive" : "h-5 w-5 text-muted-foreground"} />
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          {titulo}
+        </CardTitle>
+        <Icono
+          className={
+            alerta
+              ? "h-5 w-5 text-destructive"
+              : "h-5 w-5 text-muted-foreground"
+          }
+        />
       </CardHeader>
       <CardContent>
         {valor == null ? (

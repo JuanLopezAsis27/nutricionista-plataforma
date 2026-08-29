@@ -31,7 +31,11 @@ export class ObtenerInformeProgreso {
     private readonly pacientes: IPacienteRepositorio,
   ) {}
 
-  async ejecutar(pacienteId: string, desde: Date, hasta: Date): Promise<InformeProgreso> {
+  async ejecutar(
+    pacienteId: string,
+    desde: Date,
+    hasta: Date,
+  ): Promise<InformeProgreso> {
     const paciente = await this.pacientes.obtenerPorId(pacienteId);
     if (!paciente) {
       throw new ErrorPacienteNoEncontrado(pacienteId);

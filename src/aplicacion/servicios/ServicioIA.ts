@@ -48,7 +48,10 @@ export class ServicioIA {
     };
   }
 
-  async preguntar(pacienteId: string, pregunta: string): Promise<RespuestaAsistenteDto> {
+  async preguntar(
+    pacienteId: string,
+    pregunta: string,
+  ): Promise<RespuestaAsistenteDto> {
     return this.preguntarUC.ejecutar(pacienteId, pregunta);
   }
 
@@ -67,7 +70,12 @@ export class ServicioIA {
     const consultas = await this.listarConsultasUC.ejecutar(pacienteId);
     return consultas.map((c) => {
       const p = c.aPrimitivos();
-      return { id: p.id, pregunta: p.pregunta, respuesta: p.respuesta, creadoEn: p.creadoEn };
+      return {
+        id: p.id,
+        pregunta: p.pregunta,
+        respuesta: p.respuesta,
+        creadoEn: p.creadoEn,
+      };
     });
   }
 

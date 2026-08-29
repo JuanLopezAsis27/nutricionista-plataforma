@@ -1,7 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { ActualizarPlantilla } from "./ActualizarPlantilla";
 import { ErrorPlantillaNoEncontrada } from "../../errores/ErrorPlantillaNoEncontrada";
-import { mockPlantillaEmailRepositorio, plantillaEmailEjemplo } from "../_ayudas-test";
+import {
+  mockPlantillaEmailRepositorio,
+  plantillaEmailEjemplo,
+} from "../_ayudas-test";
 
 describe("ActualizarPlantilla", () => {
   it("edita el contenido y persiste la plantilla", async () => {
@@ -24,7 +27,9 @@ describe("ActualizarPlantilla", () => {
   });
 
   it("lanza ErrorPlantillaNoEncontrada si no existe", async () => {
-    const repo = mockPlantillaEmailRepositorio({ obtenerPorId: vi.fn(async () => null) });
+    const repo = mockPlantillaEmailRepositorio({
+      obtenerPorId: vi.fn(async () => null),
+    });
 
     await expect(
       new ActualizarPlantilla(repo).ejecutar({

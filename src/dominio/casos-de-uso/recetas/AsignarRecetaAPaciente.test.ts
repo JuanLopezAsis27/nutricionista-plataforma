@@ -35,7 +35,9 @@ describe("AsignarRecetaAPaciente", () => {
     const pacientes = mockPacienteRepositorio();
     const casoUso = new AsignarRecetaAPaciente(recetas, pacientes);
 
-    await expect(casoUso.ejecutar(datos)).rejects.toBeInstanceOf(ErrorRecetaNoEncontrada);
+    await expect(casoUso.ejecutar(datos)).rejects.toBeInstanceOf(
+      ErrorRecetaNoEncontrada,
+    );
   });
 
   it("lanza ErrorPacienteNoEncontrado si el paciente no existe", async () => {
@@ -45,7 +47,9 @@ describe("AsignarRecetaAPaciente", () => {
     const pacientes = mockPacienteRepositorio();
     const casoUso = new AsignarRecetaAPaciente(recetas, pacientes);
 
-    await expect(casoUso.ejecutar(datos)).rejects.toBeInstanceOf(ErrorPacienteNoEncontrado);
+    await expect(casoUso.ejecutar(datos)).rejects.toBeInstanceOf(
+      ErrorPacienteNoEncontrado,
+    );
     expect(recetas.asignarAPaciente).not.toHaveBeenCalled();
   });
 });

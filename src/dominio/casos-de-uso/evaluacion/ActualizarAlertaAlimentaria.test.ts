@@ -21,7 +21,9 @@ describe("ActualizarAlertaAlimentaria", () => {
   });
 
   it("rechaza si la alerta no existe", async () => {
-    const casoUso = new ActualizarAlertaAlimentaria(mockAlertaAlimentariaRepositorio());
+    const casoUso = new ActualizarAlertaAlimentaria(
+      mockAlertaAlimentariaRepositorio(),
+    );
     await expect(
       casoUso.ejecutar("no-existe", { severidad: "SEVERA" }),
     ).rejects.toBeInstanceOf(ErrorAlertaAlimentariaNoEncontrada);

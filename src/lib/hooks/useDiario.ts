@@ -25,9 +25,15 @@ export function useDiario() {
     // Portal del paciente
     miDia: trpc.diario.miDia.useQuery,
     miCalendario: trpc.diario.miCalendario.useQuery,
-    guardarMiDia: trpc.diario.guardarMiDia.useMutation(conToasts("Día guardado.")),
-    agregarComida: trpc.diario.agregarComida.useMutation(conToasts("Comida registrada.")),
-    eliminarComida: trpc.diario.eliminarComida.useMutation(conToasts("Comida eliminada.")),
+    guardarMiDia: trpc.diario.guardarMiDia.useMutation(
+      conToasts("Día guardado."),
+    ),
+    agregarComida: trpc.diario.agregarComida.useMutation(
+      conToasts("Comida registrada."),
+    ),
+    eliminarComida: trpc.diario.eliminarComida.useMutation(
+      conToasts("Comida eliminada."),
+    ),
     agregarActividad: trpc.diario.agregarActividad.useMutation(
       conToasts("Actividad registrada."),
     ),

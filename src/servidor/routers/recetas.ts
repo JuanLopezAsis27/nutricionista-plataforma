@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { crearRouter, nutricionistaProcedimiento, protegidoProcedimiento } from "../trpc";
+import {
+  crearRouter,
+  nutricionistaProcedimiento,
+  protegidoProcedimiento,
+} from "../trpc";
 import { pacienteDeSesion } from "@/dominio/servicios/politicaAcceso";
 import {
   crearRecetaDto,
@@ -104,11 +108,15 @@ export const routerRecetas = crearRouter({
   obtenerDelPaciente: nutricionistaProcedimiento
     .input(z.object({ pacienteId: z.string().min(1) }))
     .query(async ({ ctx, input }) => {
-      return await ctx.servicios.receta.obtenerRecetasDelPaciente(input.pacienteId);
+      return await ctx.servicios.receta.obtenerRecetasDelPaciente(
+        input.pacienteId,
+      );
     }),
 
   // Portal: el paciente ve sus recetas (pacienteId de la sesión).
   obtenerMisRecetas: protegidoProcedimiento.query(async ({ ctx }) => {
-    return await ctx.servicios.receta.obtenerRecetasDelPaciente(pacienteDeSesion(ctx.usuario));
+    return await ctx.servicios.receta.obtenerRecetasDelPaciente(
+      pacienteDeSesion(ctx.usuario),
+    );
   }),
 });

@@ -9,17 +9,23 @@ import { SCOPES_GOOGLE, type ConfigGoogle } from "./configGoogle";
 const URL_CONSENTIMIENTO = "https://accounts.google.com/o/oauth2/v2/auth";
 const URL_TOKEN = "https://oauth2.googleapis.com/token";
 const URL_USERINFO = "https://www.googleapis.com/oauth2/v3/userinfo";
-const URL_CALENDAR = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
-const URL_GMAIL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send";
+const URL_CALENDAR =
+  "https://www.googleapis.com/calendar/v3/calendars/primary/events";
+const URL_GMAIL =
+  "https://gmail.googleapis.com/gmail/v1/users/me/messages/send";
 
 function expiraEnDesde(segundos: unknown): Date | null {
-  return typeof segundos === "number" ? new Date(Date.now() + segundos * 1000) : null;
+  return typeof segundos === "number"
+    ? new Date(Date.now() + segundos * 1000)
+    : null;
 }
 
 async function verificar(respuesta: Response, contexto: string): Promise<void> {
   if (!respuesta.ok) {
     const cuerpo = await respuesta.text().catch(() => "");
-    throw new Error(`Google ${contexto} falló (${respuesta.status}): ${cuerpo.slice(0, 300)}`);
+    throw new Error(
+      `Google ${contexto} falló (${respuesta.status}): ${cuerpo.slice(0, 300)}`,
+    );
   }
 }
 
@@ -120,31 +126,47 @@ export class ProveedorGoogle implements IProveedorGoogle {
       }),
     });
     await verificar(respuesta, "refresh de token");
-    const datos = (await respuesta.json()) as { access_token: string; expires_in?: number };
-    return { accessToken: datos.access_token, expiraEn: expiraEnDesde(datos.expires_in) };
+    const datos = (await respuesta.json()) as {
+      access_token: string;
+      expires_in?: number;
+    };
+    return {
+      accessToken: datos.access_token,
+      expiraEn: expiraEnDesde(datos.expires_in),
+    };
   }
 
-  async crearEvento(accessToken: string, ev: EventoCalendario): Promise<string> {
-    const respuesta = await fetch(conNotificaciones(URL_CALENDAR, Boolean(ev.invitados?.length)), {
-      method: "POST",
-      headers: this.headers(accessToken),
-      body: JSON.stringify(evento(ev)),
-    });
+  async crearEvento(
+    accessToken: string,
+    ev: EventoCalendario,
+  ): Promise<string> {
+    const respuesta = await fetch(
+      conNotificaciones(URL_CALENDAR, Boolean(ev.invitados?.length)),
+      {
+        method: "POST",
+        headers: this.headers(accessToken),
+        body: JSON.stringify(evento(ev)),
+      },
+    );
     await verificar(respuesta, "crear evento");
     const datos = (await respuesta.json()) as { id: string };
     return datos.id;
   }
 
-  async actualizarEvento(accessToken: string, eventoId: string, ev: EventoCalendario): Promise<void> {
+  async actualizarEvento(
+    accessToken: string,
+    eventoId: string,
+    ev: EventoCalendario,
+  ): Promise<void> {
     const respuesta = await fetch(
       conNotificaciones(
         `${URL_CALENDAR}/${encodeURIComponent(eventoId)}`,
         Boolean(ev.invitados?.length),
       ),
       {
-      method: "PATCH",
-      headers: this.headers(accessToken),
-      body: JSON.stringify(evento(ev)),
+        method: "PATCH",
+        headers: this.headers(accessToken),
+        body: JSON.stringify(evento(ev)),
       },
     );
     await verificar(respuesta, "actualizar evento");
@@ -186,7 +208,10 @@ export class ProveedorGoogle implements IProveedorGoogle {
   }
 
   private headers(accessToken: string): Record<string, string> {
-    return { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
+    return {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    };
   }
 
   /** Codifica el asunto en RFC 2047 si tiene caracteres no ASCII (acentos). */

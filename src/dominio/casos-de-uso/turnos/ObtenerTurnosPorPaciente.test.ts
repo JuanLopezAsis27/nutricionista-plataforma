@@ -29,7 +29,9 @@ describe("ObtenerTurnosPorPaciente", () => {
     const pacientes = mockPacienteRepositorio();
     const casoUso = new ObtenerTurnosPorPaciente(turnos, pacientes);
 
-    await expect(casoUso.ejecutar("x")).rejects.toBeInstanceOf(ErrorPacienteNoEncontrado);
+    await expect(casoUso.ejecutar("x")).rejects.toBeInstanceOf(
+      ErrorPacienteNoEncontrado,
+    );
     expect(turnos.obtenerPorPaciente).not.toHaveBeenCalled();
   });
 });

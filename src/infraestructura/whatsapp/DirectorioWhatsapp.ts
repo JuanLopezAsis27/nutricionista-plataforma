@@ -37,7 +37,9 @@ export class DirectorioWhatsapp {
    * (antes nada lo impedía y el ruteo quedaba a merced de cuál devolviera
    * Postgres primero).
    */
-  async porPhoneNumberId(phoneNumberId: string): Promise<InquilinoWhatsapp | null> {
+  async porPhoneNumberId(
+    phoneNumberId: string,
+  ): Promise<InquilinoWhatsapp | null> {
     const fila = await ejecutarGlobal(() =>
       this.prisma.credencialProveedor.findFirst({
         where: { ...WHATSAPP_PHONE_NUMBER_ID, valor: phoneNumberId },

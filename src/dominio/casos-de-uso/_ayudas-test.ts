@@ -554,7 +554,7 @@ export function mockBusEventos(
 ): IBusEventos {
   return {
     publicar: vi.fn(async () => {}),
-     
+
     suscribir: vi.fn(async function* () {}),
     ...parcial,
   };

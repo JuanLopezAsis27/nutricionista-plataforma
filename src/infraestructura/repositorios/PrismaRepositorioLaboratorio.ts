@@ -16,7 +16,10 @@ type LaboratorioConArchivos = Prisma.LaboratorioGetPayload<{
 export class PrismaRepositorioLaboratorio implements ILaboratorioRepositorio {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async crear(laboratorio: Laboratorio, archivoIds: string[]): Promise<Laboratorio> {
+  async crear(
+    laboratorio: Laboratorio,
+    archivoIds: string[],
+  ): Promise<Laboratorio> {
     const datos = laboratorio.aPrimitivos();
     const fila = await this.prisma.$transaction(async (tx) => {
       await tx.laboratorio.create({

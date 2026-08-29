@@ -31,11 +31,17 @@ describe("CrearCompetencia", () => {
 
   it("falla si el paciente no es del inquilino (guard)", async () => {
     const competencias = mockCompetenciaRepositorio();
-    const pacientes = mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => null) });
+    const pacientes = mockPacienteRepositorio({
+      obtenerPorId: vi.fn(async () => null),
+    });
     const uc = new CrearCompetencia(competencias, pacientes);
 
     await expect(
-      uc.ejecutar({ pacienteId: "ajeno", nombre: "x", fecha: new Date("2026-10-01") }),
+      uc.ejecutar({
+        pacienteId: "ajeno",
+        nombre: "x",
+        fecha: new Date("2026-10-01"),
+      }),
     ).rejects.toBeInstanceOf(ErrorPacienteNoEncontrado);
     expect(competencias.crear).not.toHaveBeenCalled();
   });
@@ -51,7 +57,11 @@ describe("ActualizarCompetencia", () => {
     });
     const uc = new ActualizarCompetencia(competencias);
 
-    await uc.ejecutar({ id: "com-7", nombre: "nueva", fecha: new Date("2026-11-01") });
+    await uc.ejecutar({
+      id: "com-7",
+      nombre: "nueva",
+      fecha: new Date("2026-11-01"),
+    });
 
     const guardada = actualizar.mock.calls[0]![0].aPrimitivos();
     expect(guardada.id).toBe("com-7");
@@ -60,7 +70,9 @@ describe("ActualizarCompetencia", () => {
   });
 
   it("falla si la competencia no existe", async () => {
-    const competencias = mockCompetenciaRepositorio({ obtenerPorId: vi.fn(async () => null) });
+    const competencias = mockCompetenciaRepositorio({
+      obtenerPorId: vi.fn(async () => null),
+    });
     const uc = new ActualizarCompetencia(competencias);
 
     await expect(

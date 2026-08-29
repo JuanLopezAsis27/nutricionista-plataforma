@@ -146,7 +146,9 @@ export function proyectarObjetivo(
     estado: "SIN_DATOS",
   };
 
-  const todos = [...serie].sort((a, b) => a.fecha.getTime() - b.fecha.getTime());
+  const todos = [...serie].sort(
+    (a, b) => a.fecha.getTime() - b.fecha.getTime(),
+  );
   const ultimo = todos[todos.length - 1];
   if (!ultimo) return base;
 
@@ -155,7 +157,9 @@ export function proyectarObjetivo(
   const creadoEn = objetivo.creadoEn ?? null;
   const primero =
     (creadoEn != null
-      ? [...todos].reverse().find((p) => p.fecha.getTime() <= creadoEn.getTime())
+      ? [...todos]
+          .reverse()
+          .find((p) => p.fecha.getTime() <= creadoEn.getTime())
       : todos[0]) ?? todos[0]!;
 
   // Para el ritmo, lo medido desde la partida. Mezclar años previos aplana la

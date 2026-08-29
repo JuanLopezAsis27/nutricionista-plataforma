@@ -25,7 +25,9 @@ export class EliminarComidaDiario {
       throw new ErrorAccesoDenegado("La comida pertenece a otro paciente.");
     }
 
-    const fotos = await this.archivos.listarPorDueno({ comidaConsumidaId: comidaId });
+    const fotos = await this.archivos.listarPorDueno({
+      comidaConsumidaId: comidaId,
+    });
     await this.registros.eliminarComida(comidaId);
 
     for (const foto of fotos) {

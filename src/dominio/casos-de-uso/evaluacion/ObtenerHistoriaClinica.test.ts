@@ -15,7 +15,9 @@ describe("ObtenerHistoriaClinica", () => {
       mockHistoriaClinicaRepositorio({
         obtenerPorPaciente: vi.fn(async () => historia),
       }),
-      mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => pacienteEjemplo()) }),
+      mockPacienteRepositorio({
+        obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+      }),
     );
     expect(await casoUso.ejecutar("pac-1")).toBe(historia);
   });
@@ -23,7 +25,9 @@ describe("ObtenerHistoriaClinica", () => {
   it("devuelve null si todavía no se cargó (no es error)", async () => {
     const casoUso = new ObtenerHistoriaClinica(
       mockHistoriaClinicaRepositorio(),
-      mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => pacienteEjemplo()) }),
+      mockPacienteRepositorio({
+        obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+      }),
     );
     expect(await casoUso.ejecutar("pac-1")).toBeNull();
   });

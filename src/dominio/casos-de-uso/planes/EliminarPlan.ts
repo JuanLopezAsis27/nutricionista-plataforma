@@ -16,7 +16,8 @@ export class EliminarPlan {
       throw new ErrorPlanNoEncontrado(id);
     }
 
-    const asignacionesActivas = await this.planes.contarAsignacionesActivasDePlan(id);
+    const asignacionesActivas =
+      await this.planes.contarAsignacionesActivasDePlan(id);
     if (asignacionesActivas > 0) {
       throw new ErrorValidacion(
         "No se puede eliminar un plan asignado a pacientes. Archivalo, o desasignalo primero.",

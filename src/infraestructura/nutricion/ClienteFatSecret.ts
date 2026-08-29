@@ -18,7 +18,10 @@ interface FoodFatSecret {
  * del `food_description`. Ante cualquier fallo devuelve [] (degradación).
  */
 export class ClienteFatSecret {
-  private readonly tokens = new Map<string, { token: string; expira: number }>();
+  private readonly tokens = new Map<
+    string,
+    { token: string; expira: number }
+  >();
 
   async buscar(
     creds: ConfigFatSecret,
@@ -61,7 +64,9 @@ export class ClienteFatSecret {
     const cache = this.tokens.get(creds.clientId);
     if (cache && cache.expira > Date.now() + 60_000) return cache.token;
 
-    const basic = Buffer.from(`${creds.clientId}:${creds.clientSecret}`).toString("base64");
+    const basic = Buffer.from(
+      `${creds.clientId}:${creds.clientSecret}`,
+    ).toString("base64");
     const respuesta = await fetch(URL_TOKEN, {
       method: "POST",
       headers: {
@@ -73,7 +78,10 @@ export class ClienteFatSecret {
     });
     if (!respuesta.ok) return null;
 
-    const j = (await respuesta.json()) as { access_token?: string; expires_in?: number };
+    const j = (await respuesta.json()) as {
+      access_token?: string;
+      expires_in?: number;
+    };
     if (!j.access_token) return null;
     this.tokens.set(creds.clientId, {
       token: j.access_token,
@@ -83,7 +91,9 @@ export class ClienteFatSecret {
   }
 }
 
-function normalizarLista(food: FoodFatSecret | FoodFatSecret[] | undefined): FoodFatSecret[] {
+function normalizarLista(
+  food: FoodFatSecret | FoodFatSecret[] | undefined,
+): FoodFatSecret[] {
   if (!food) return [];
   return Array.isArray(food) ? food : [food];
 }
@@ -98,11 +108,14 @@ function parsear(food: FoodFatSecret): AlimentoNutricional | null {
   const grasas = extraer(desc, /Fat:\s*([\d.]+)\s*g/i);
   const carbos = extraer(desc, /Carbs:\s*([\d.]+)\s*g/i);
   const proteinas = extraer(desc, /Protein:\s*([\d.]+)\s*g/i);
-  if (kcal == null && grasas == null && carbos == null && proteinas == null) return null;
+  if (kcal == null && grasas == null && carbos == null && proteinas == null)
+    return null;
 
   // Escala a 100 g según la porción indicada ("Per 100g" o "(30 g)").
   const gramos =
-    extraer(desc, /Per\s+([\d.]+)\s*g\b/i) ?? extraer(desc, /\(([\d.]+)\s*g\)/i) ?? 100;
+    extraer(desc, /Per\s+([\d.]+)\s*g\b/i) ??
+    extraer(desc, /\(([\d.]+)\s*g\)/i) ??
+    100;
   const factor = gramos > 0 ? 100 / gramos : 1;
 
   return {

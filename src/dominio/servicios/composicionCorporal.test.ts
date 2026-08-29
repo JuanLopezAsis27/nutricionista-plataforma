@@ -135,7 +135,10 @@ describe("calcularComposicion — caso de la planilla del profesional", () => {
         74.07,
         1,
       );
-      expect(porVariable.get("circCinturaMinima")!.scoreZ).toBeCloseTo(0.485, 3);
+      expect(porVariable.get("circCinturaMinima")!.scoreZ).toBeCloseTo(
+        0.485,
+        3,
+      );
       expect(porVariable.get("pliegueTricipital")!.scoreZ).toBeCloseTo(
         -2.46,
         2,

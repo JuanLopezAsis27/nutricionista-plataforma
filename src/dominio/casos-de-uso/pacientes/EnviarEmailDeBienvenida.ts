@@ -14,7 +14,10 @@ export class EnviarEmailDeBienvenida {
     private readonly nombreProfesional: string,
   ) {}
 
-  async ejecutar(nombrePaciente: string, email: string | null): Promise<boolean> {
+  async ejecutar(
+    nombrePaciente: string,
+    email: string | null,
+  ): Promise<boolean> {
     if (!email) return false;
     const plantilla = await this.plantillas.obtenerPorClave(CLAVE_BIENVENIDA);
     if (!plantilla) return false;

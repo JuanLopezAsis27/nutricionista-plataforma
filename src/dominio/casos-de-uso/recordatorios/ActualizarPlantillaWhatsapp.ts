@@ -17,7 +17,11 @@ export class ActualizarPlantillaWhatsapp {
       throw new ErrorPlantillaWhatsappNoEncontrada(id);
     }
     if (cambios.predeterminada) {
-      await desmarcarOtrasPredeterminadas(this.plantillas, await this.plantillas.listar(), id);
+      await desmarcarOtrasPredeterminadas(
+        this.plantillas,
+        await this.plantillas.listar(),
+        id,
+      );
     }
     return this.plantillas.actualizar(plantilla.actualizar(cambios));
   }

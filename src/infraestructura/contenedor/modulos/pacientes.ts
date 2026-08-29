@@ -25,12 +25,21 @@ export function crearServicioPaciente(deps: {
   nombreProfesional: string;
 }): ServicioPaciente {
   return new ServicioPaciente(
-    new CrearPaciente(deps.pacientes, deps.usuarios, deps.hasheador, deps.configuracion),
+    new CrearPaciente(
+      deps.pacientes,
+      deps.usuarios,
+      deps.hasheador,
+      deps.configuracion,
+    ),
     new ObtenerPacientes(deps.pacientes),
     new ObtenerPacientePorId(deps.pacientes),
     new ActualizarPaciente(deps.pacientes, deps.usuarios, deps.configuracion),
     new EliminarPaciente(deps.pacientes, deps.usuarios),
-    new EnviarEmailDeBienvenida(deps.plantillas, deps.servicioEmail, deps.nombreProfesional),
+    new EnviarEmailDeBienvenida(
+      deps.plantillas,
+      deps.servicioEmail,
+      deps.nombreProfesional,
+    ),
     new ArchivarPaciente(deps.pacientes),
     new ReactivarPaciente(deps.pacientes),
   );

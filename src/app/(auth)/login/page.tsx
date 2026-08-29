@@ -9,7 +9,9 @@ import { FormularioLogin } from "@/componentes/auth/FormularioLogin";
 export default async function PaginaLogin() {
   const sesion = await auth();
   if (sesion?.user) {
-    redirect(sesion.user.rol === "NUTRICIONISTA" ? "/dashboard" : "/mis-turnos");
+    redirect(
+      sesion.user.rol === "NUTRICIONISTA" ? "/dashboard" : "/mis-turnos",
+    );
   }
 
   return <FormularioLogin />;

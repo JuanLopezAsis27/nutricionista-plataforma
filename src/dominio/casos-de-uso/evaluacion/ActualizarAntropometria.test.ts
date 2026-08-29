@@ -2,7 +2,10 @@ import { describe, it, expect, vi } from "vitest";
 import { ActualizarAntropometria } from "./ActualizarAntropometria";
 import { ErrorAntropometriaNoEncontrada } from "../../errores/ErrorAntropometriaNoEncontrada";
 import { ErrorAntropometriaDuplicada } from "../../errores/ErrorAntropometriaDuplicada";
-import { mockAntropometriaRepositorio, antropometriaEjemplo } from "../_ayudas-test";
+import {
+  mockAntropometriaRepositorio,
+  antropometriaEjemplo,
+} from "../_ayudas-test";
 
 describe("ActualizarAntropometria", () => {
   it("actualiza la medición existente", async () => {
@@ -19,9 +22,9 @@ describe("ActualizarAntropometria", () => {
 
   it("rechaza si la medición no existe", async () => {
     const casoUso = new ActualizarAntropometria(mockAntropometriaRepositorio());
-    await expect(casoUso.ejecutar("no-existe", { pesoKg: 79 })).rejects.toBeInstanceOf(
-      ErrorAntropometriaNoEncontrada,
-    );
+    await expect(
+      casoUso.ejecutar("no-existe", { pesoKg: 79 }),
+    ).rejects.toBeInstanceOf(ErrorAntropometriaNoEncontrada);
   });
 
   it("rechaza mover la medición a una fecha ya ocupada", async () => {

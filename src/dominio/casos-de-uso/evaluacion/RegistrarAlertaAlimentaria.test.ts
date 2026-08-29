@@ -32,7 +32,11 @@ describe("RegistrarAlertaAlimentaria", () => {
       mockPacienteRepositorio(),
     );
     await expect(
-      casoUso.ejecutar({ pacienteId: "no-existe", tipo: "ALERGIA", descripcion: "Maní" }),
+      casoUso.ejecutar({
+        pacienteId: "no-existe",
+        tipo: "ALERGIA",
+        descripcion: "Maní",
+      }),
     ).rejects.toBeInstanceOf(ErrorPacienteNoEncontrado);
   });
 
@@ -45,7 +49,11 @@ describe("RegistrarAlertaAlimentaria", () => {
       pacientes,
     );
     await expect(
-      casoUso.ejecutar({ pacienteId: "pac-1", tipo: "ALERGIA", descripcion: "  " }),
+      casoUso.ejecutar({
+        pacienteId: "pac-1",
+        tipo: "ALERGIA",
+        descripcion: "  ",
+      }),
     ).rejects.toBeInstanceOf(ErrorValidacion);
   });
 });

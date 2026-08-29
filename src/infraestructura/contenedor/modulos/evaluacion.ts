@@ -64,7 +64,11 @@ export function crearServicioEvaluacion(deps: {
     new ObtenerAlertasAlimentarias(deps.alertas, deps.pacientes),
     new RegistrarLaboratorio(deps.laboratorios, deps.pacientes),
     new ActualizarLaboratorio(deps.laboratorios),
-    new EliminarLaboratorio(deps.laboratorios, deps.archivos, deps.almacenamiento),
+    new EliminarLaboratorio(
+      deps.laboratorios,
+      deps.archivos,
+      deps.almacenamiento,
+    ),
     new ObtenerLaboratorios(deps.laboratorios, deps.pacientes),
   );
 }

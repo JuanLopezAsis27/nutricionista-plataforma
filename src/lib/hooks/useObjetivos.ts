@@ -49,13 +49,14 @@ export function useObjetivos() {
     onError: (error) => toast.error(error.message),
   });
 
-  const cambiarEstadoEstrategia = trpc.objetivos.cambiarEstadoEstrategia.useMutation({
-    onSuccess: () => {
-      toast.success("Estado de la estrategia actualizado.");
-      invalidar();
-    },
-    onError: (error) => toast.error(error.message),
-  });
+  const cambiarEstadoEstrategia =
+    trpc.objetivos.cambiarEstadoEstrategia.useMutation({
+      onSuccess: () => {
+        toast.success("Estado de la estrategia actualizado.");
+        invalidar();
+      },
+      onError: (error) => toast.error(error.message),
+    });
 
   const eliminarEstrategia = trpc.objetivos.eliminarEstrategia.useMutation({
     onSuccess: () => {

@@ -26,7 +26,9 @@ describe("MODELOS_INQUILINO", () => {
   });
 
   it("no declara tablas que no tienen la columna", () => {
-    const sobrantes = [...MODELOS_INQUILINO].filter((m) => !conColumna.includes(m));
+    const sobrantes = [...MODELOS_INQUILINO].filter(
+      (m) => !conColumna.includes(m),
+    );
     expect(sobrantes).toEqual([]);
   });
 

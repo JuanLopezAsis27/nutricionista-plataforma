@@ -35,7 +35,8 @@ export const onRequestError: Instrumentation.onRequestError = async (
 ) => {
   // Edge runtime no tiene acceso a todo; solo reportamos desde Node.
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
-  const { monitorErrores } = await import("@/infraestructura/monitoreo/monitor");
+  const { monitorErrores } =
+    await import("@/infraestructura/monitoreo/monitor");
   monitorErrores.capturar(error, {
     origen: "servidor",
     ruta: request.path,

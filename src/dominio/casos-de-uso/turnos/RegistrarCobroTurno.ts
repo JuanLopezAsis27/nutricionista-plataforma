@@ -12,7 +12,11 @@ import { ErrorTurnoNoEncontrado } from "../../errores/ErrorTurnoNoEncontrado";
 export class RegistrarCobroTurno {
   constructor(private readonly turnos: ITurnoRepositorio) {}
 
-  async ejecutar(id: string, precio: number | null, pagado: boolean): Promise<Turno> {
+  async ejecutar(
+    id: string,
+    precio: number | null,
+    pagado: boolean,
+  ): Promise<Turno> {
     const turno = await this.turnos.obtenerPorId(id);
     if (!turno) {
       throw new ErrorTurnoNoEncontrado(id);

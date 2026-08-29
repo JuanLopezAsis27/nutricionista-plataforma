@@ -53,7 +53,10 @@ describe("EnviarMensaje", () => {
     expect(crearConversacion).toHaveBeenCalledOnce();
     expect(mensaje.cuerpo).toBe("Hola, tengo una duda");
     expect(publicar).toHaveBeenCalledWith(
-      expect.objectContaining({ tipo: "mensaje.nuevo", usuarioId: "usr-nutri" }),
+      expect.objectContaining({
+        tipo: "mensaje.nuevo",
+        usuarioId: "usr-nutri",
+      }),
     );
   });
 
@@ -68,7 +71,11 @@ describe("EnviarMensaje", () => {
     });
     const publicar = vi.fn(async () => {});
 
-    await new EnviarMensaje(repo, usuarios, mockBusEventos({ publicar })).ejecutar({
+    await new EnviarMensaje(
+      repo,
+      usuarios,
+      mockBusEventos({ publicar }),
+    ).ejecutar({
       autorId: "usr-nutri",
       autorEsNutricionista: true,
       pacienteId: "pac-1",
@@ -90,7 +97,11 @@ describe("EnviarMensaje", () => {
     });
     const publicar = vi.fn(async () => {});
 
-    await new EnviarMensaje(repo, usuarios, mockBusEventos({ publicar })).ejecutar({
+    await new EnviarMensaje(
+      repo,
+      usuarios,
+      mockBusEventos({ publicar }),
+    ).ejecutar({
       autorId: "usr-nutri", // el autor está entre los nutris
       autorEsNutricionista: false,
       pacienteId: "pac-1",
@@ -104,7 +115,9 @@ describe("EnviarMensaje", () => {
     await expect(
       new EnviarMensaje(
         mockMensajeriaRepositorio({
-          obtenerConversacionPorPaciente: vi.fn(async () => conversacionEjemplo()),
+          obtenerConversacionPorPaciente: vi.fn(async () =>
+            conversacionEjemplo(),
+          ),
         }),
         mockUsuarioRepositorio(),
         mockBusEventos(),

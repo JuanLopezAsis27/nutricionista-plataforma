@@ -28,7 +28,10 @@ export class PrismaRepositorioHistorialIA implements IHistorialIARepositorio {
     });
   }
 
-  async listarConsultas(pacienteId: string, limite = 30): Promise<ConsultaIA[]> {
+  async listarConsultas(
+    pacienteId: string,
+    limite = 30,
+  ): Promise<ConsultaIA[]> {
     const filas = await this.prisma.consultaIA.findMany({
       where: { pacienteId },
       orderBy: { creadoEn: "desc" },
@@ -51,7 +54,10 @@ export class PrismaRepositorioHistorialIA implements IHistorialIARepositorio {
     });
   }
 
-  async listarAnalisis(pacienteId: string, limite = 30): Promise<AnalisisComida[]> {
+  async listarAnalisis(
+    pacienteId: string,
+    limite = 30,
+  ): Promise<AnalisisComida[]> {
     const filas = await this.prisma.analisisComida.findMany({
       where: { pacienteId },
       orderBy: { creadoEn: "desc" },

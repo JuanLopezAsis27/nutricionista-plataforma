@@ -127,7 +127,11 @@ export function crearServicioRecordatorios(
       deps.proveedor,
       deps.reloj,
     ),
-    new ListarRecordatoriosPendientes(deps.recordatorios, deps.pacientes, deps.turnos),
+    new ListarRecordatoriosPendientes(
+      deps.recordatorios,
+      deps.pacientes,
+      deps.turnos,
+    ),
     new ObtenerVistaPreviaRecordatorio(
       deps.turnos,
       deps.pacientes,

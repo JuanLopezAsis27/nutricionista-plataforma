@@ -70,7 +70,9 @@ export class MensajeWhatsapp {
       throw new ErrorValidacion("El mensaje no puede estar vacío.");
     }
     if (cuerpo.length > LARGO_MAXIMO) {
-      throw new ErrorValidacion(`El mensaje no puede superar ${LARGO_MAXIMO} caracteres.`);
+      throw new ErrorValidacion(
+        `El mensaje no puede superar ${LARGO_MAXIMO} caracteres.`,
+      );
     }
     if (!datos.pacienteId) {
       throw new ErrorValidacion("El mensaje debe pertenecer a un paciente.");
@@ -83,7 +85,9 @@ export class MensajeWhatsapp {
       telefono: datos.telefono,
       cuerpo,
       idExterno: datos.idExterno ?? null,
-      estado: datos.estado ?? (datos.direccion === "ENTRANTE" ? "ENTREGADO" : "PENDIENTE"),
+      estado:
+        datos.estado ??
+        (datos.direccion === "ENTRANTE" ? "ENTREGADO" : "PENDIENTE"),
       error: null,
       creadoEn: ahora,
       actualizadoEn: ahora,
@@ -99,7 +103,10 @@ export class MensajeWhatsapp {
    * desordenados (`delivered` después de `read`), así que un estado nunca
    * retrocede.
    */
-  registrarEstado(estado: EstadoMensajeWhatsapp, ahora: Date = new Date()): MensajeWhatsapp {
+  registrarEstado(
+    estado: EstadoMensajeWhatsapp,
+    ahora: Date = new Date(),
+  ): MensajeWhatsapp {
     if (ORDEN[estado] <= ORDEN[this.props.estado]) {
       return this;
     }

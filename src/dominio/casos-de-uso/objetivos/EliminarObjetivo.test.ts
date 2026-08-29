@@ -16,6 +16,8 @@ describe("EliminarObjetivo", () => {
 
   it("lanza ErrorObjetivoNoEncontrado si no existe", async () => {
     const casoUso = new EliminarObjetivo(mockObjetivoRepositorio());
-    await expect(casoUso.ejecutar("nada")).rejects.toBeInstanceOf(ErrorObjetivoNoEncontrado);
+    await expect(casoUso.ejecutar("nada")).rejects.toBeInstanceOf(
+      ErrorObjetivoNoEncontrado,
+    );
   });
 });

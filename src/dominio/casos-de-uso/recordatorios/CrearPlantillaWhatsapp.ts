@@ -23,7 +23,10 @@ export class CrearPlantillaWhatsapp {
       await desmarcarOtrasPredeterminadas(this.plantillas, existentes, null);
     }
     return this.plantillas.crear(
-      PlantillaWhatsapp.crear({ ...datos, predeterminada }, crypto.randomUUID()),
+      PlantillaWhatsapp.crear(
+        { ...datos, predeterminada },
+        crypto.randomUUID(),
+      ),
     );
   }
 }

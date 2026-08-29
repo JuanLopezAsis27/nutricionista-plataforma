@@ -36,9 +36,9 @@ export default function PaginaAnalisisIA() {
         <div className="flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <p className="text-muted-foreground">
-            <strong>Vista previa.</strong> Este módulo todavía no está activo: muestra los
-            análisis que vas a poder hacer. Los datos ya se están acumulando (turnos, diario,
-            adherencia) para alimentarlos.
+            <strong>Vista previa.</strong> Este módulo todavía no está activo:
+            muestra los análisis que vas a poder hacer. Los datos ya se están
+            acumulando (turnos, diario, adherencia) para alimentarlos.
           </p>
         </div>
       )}

@@ -100,13 +100,22 @@ export interface PropiedadesReceta {
 export class Receta {
   private constructor(private readonly props: PropiedadesReceta) {}
 
-  static crear(datos: DatosNuevaReceta, id: string, ahora: Date = new Date()): Receta {
+  static crear(
+    datos: DatosNuevaReceta,
+    id: string,
+    ahora: Date = new Date(),
+  ): Receta {
     const nombre = datos.nombre?.trim() ?? "";
     if (nombre.length === 0) {
       throw new ErrorValidacion("La receta debe tener un nombre.");
     }
-    if (datos.porciones != null && (!Number.isInteger(datos.porciones) || datos.porciones <= 0)) {
-      throw new ErrorValidacion("Las porciones deben ser un número entero positivo.");
+    if (
+      datos.porciones != null &&
+      (!Number.isInteger(datos.porciones) || datos.porciones <= 0)
+    ) {
+      throw new ErrorValidacion(
+        "Las porciones deben ser un número entero positivo.",
+      );
     }
     validarNoNegativo(datos.calorias, "Las calorías");
     validarNoNegativo(datos.proteinasG, "Las proteínas");
@@ -256,7 +265,9 @@ const MAX_LARGO_ENLACE = 500;
  * http/https, deduplica y limita la cantidad. Lanza si alguna URL es inválida.
  */
 function normalizarEnlaces(valores: string[] | undefined): string[] {
-  const limpios = (valores ?? []).map((v) => v.trim()).filter((v) => v.length > 0);
+  const limpios = (valores ?? [])
+    .map((v) => v.trim())
+    .filter((v) => v.length > 0);
   const vistos = new Set<string>();
   const resultado: string[] = [];
   for (const enlace of limpios) {
@@ -264,7 +275,9 @@ function normalizarEnlaces(valores: string[] | undefined): string[] {
       throw new ErrorValidacion("Un enlace es demasiado largo.");
     }
     if (!/^https?:\/\//i.test(enlace)) {
-      throw new ErrorValidacion(`El enlace «${enlace}» debe empezar con http:// o https://`);
+      throw new ErrorValidacion(
+        `El enlace «${enlace}» debe empezar con http:// o https://`,
+      );
     }
     if (!vistos.has(enlace)) {
       vistos.add(enlace);
@@ -272,7 +285,9 @@ function normalizarEnlaces(valores: string[] | undefined): string[] {
     }
   }
   if (resultado.length > MAX_ENLACES) {
-    throw new ErrorValidacion(`No se pueden agregar más de ${MAX_ENLACES} enlaces.`);
+    throw new ErrorValidacion(
+      `No se pueden agregar más de ${MAX_ENLACES} enlaces.`,
+    );
   }
   return resultado;
 }
@@ -291,14 +306,26 @@ function normalizarIngredientes(
       const nombre = ing.nombre?.trim() ?? "";
       return {
         nombre,
-        cantidadGramos: normalizarNumero(ing.cantidadGramos, `La cantidad de «${nombre}»`),
-        caloriasPor100: normalizarNumero(ing.caloriasPor100, `Las calorías de «${nombre}»`),
-        proteinasPor100: normalizarNumero(ing.proteinasPor100, `Las proteínas de «${nombre}»`),
+        cantidadGramos: normalizarNumero(
+          ing.cantidadGramos,
+          `La cantidad de «${nombre}»`,
+        ),
+        caloriasPor100: normalizarNumero(
+          ing.caloriasPor100,
+          `Las calorías de «${nombre}»`,
+        ),
+        proteinasPor100: normalizarNumero(
+          ing.proteinasPor100,
+          `Las proteínas de «${nombre}»`,
+        ),
         carbohidratosPor100: normalizarNumero(
           ing.carbohidratosPor100,
           `Los carbohidratos de «${nombre}»`,
         ),
-        grasasPor100: normalizarNumero(ing.grasasPor100, `Las grasas de «${nombre}»`),
+        grasasPor100: normalizarNumero(
+          ing.grasasPor100,
+          `Las grasas de «${nombre}»`,
+        ),
         fuente: ing.fuente?.trim() || null,
         referenciaExterna: ing.referenciaExterna?.trim() || null,
       };
@@ -306,7 +333,10 @@ function normalizarIngredientes(
     .filter((ing) => ing.nombre.length > 0);
 }
 
-function normalizarNumero(valor: number | null | undefined, etiqueta: string): number | null {
+function normalizarNumero(
+  valor: number | null | undefined,
+  etiqueta: string,
+): number | null {
   if (valor == null) return null;
   if (!Number.isFinite(valor) || valor < 0) {
     throw new ErrorValidacion(`${etiqueta} no puede ser negativa.`);
@@ -356,19 +386,30 @@ function calcularTotales(ingredientes: IngredienteDeReceta[]): MacrosReceta {
 }
 
 /** Divide los totales por la cantidad de porciones (1 si no se indica). */
-function porPorcion(totales: MacrosReceta, porciones: number | null): MacrosReceta {
+function porPorcion(
+  totales: MacrosReceta,
+  porciones: number | null,
+): MacrosReceta {
   const p = porciones != null && porciones > 0 ? porciones : 1;
   return {
-    calorias: totales.calorias != null ? Math.round(totales.calorias / p) : null,
-    proteinasG: totales.proteinasG != null ? redondear1(totales.proteinasG / p) : null,
-    carbohidratosG: totales.carbohidratosG != null ? redondear1(totales.carbohidratosG / p) : null,
+    calorias:
+      totales.calorias != null ? Math.round(totales.calorias / p) : null,
+    proteinasG:
+      totales.proteinasG != null ? redondear1(totales.proteinasG / p) : null,
+    carbohidratosG:
+      totales.carbohidratosG != null
+        ? redondear1(totales.carbohidratosG / p)
+        : null,
     grasasG: totales.grasasG != null ? redondear1(totales.grasasG / p) : null,
   };
 }
 
 function tieneAlgunMacro(m: MacrosReceta): boolean {
   return (
-    m.calorias != null || m.proteinasG != null || m.carbohidratosG != null || m.grasasG != null
+    m.calorias != null ||
+    m.proteinasG != null ||
+    m.carbohidratosG != null ||
+    m.grasasG != null
   );
 }
 
@@ -376,7 +417,10 @@ function redondear1(valor: number): number {
   return Math.round(valor * 10) / 10;
 }
 
-function validarNoNegativo(valor: number | null | undefined, etiqueta: string): void {
+function validarNoNegativo(
+  valor: number | null | undefined,
+  etiqueta: string,
+): void {
   if (valor != null && (!Number.isFinite(valor) || valor < 0)) {
     throw new ErrorValidacion(`${etiqueta} no pueden ser negativas.`);
   }

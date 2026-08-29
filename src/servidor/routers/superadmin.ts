@@ -22,6 +22,9 @@ export const routerSuperAdmin = crearRouter({
   cambiarEstado: superadminProcedimiento
     .input(cambiarEstadoNutricionistaDto)
     .mutation(async ({ ctx, input }) => {
-      return await ctx.servicios.superadmin.cambiarEstado(input.id, input.activo);
+      return await ctx.servicios.superadmin.cambiarEstado(
+        input.id,
+        input.activo,
+      );
     }),
 });

@@ -20,8 +20,12 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
     return fila ? this.mapearConversacion(fila) : null;
   }
 
-  async obtenerConversacionPorPaciente(pacienteId: string): Promise<Conversacion | null> {
-    const fila = await this.prisma.conversacion.findUnique({ where: { pacienteId } });
+  async obtenerConversacionPorPaciente(
+    pacienteId: string,
+  ): Promise<Conversacion | null> {
+    const fila = await this.prisma.conversacion.findUnique({
+      where: { pacienteId },
+    });
     return fila ? this.mapearConversacion(fila) : null;
   }
 
@@ -41,7 +45,9 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
     return this.mapearConversacion(fila);
   }
 
-  async actualizarConversacion(conversacion: Conversacion): Promise<Conversacion> {
+  async actualizarConversacion(
+    conversacion: Conversacion,
+  ): Promise<Conversacion> {
     const d = conversacion.aPrimitivos();
     const fila = await this.prisma.conversacion.update({
       where: { id: d.id },
@@ -93,7 +99,10 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
     return this.mapearMensaje(fila);
   }
 
-  async listarMensajes(conversacionId: string, limite = 200): Promise<Mensaje[]> {
+  async listarMensajes(
+    conversacionId: string,
+    limite = 200,
+  ): Promise<Mensaje[]> {
     // Trae los más recientes y los devuelve en orden cronológico ascendente.
     const filas = await this.prisma.mensaje.findMany({
       where: { conversacionId },
@@ -103,14 +112,21 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
     return filas.reverse().map((fila) => this.mapearMensaje(fila));
   }
 
-  async marcarLeidos(conversacionId: string, viewerId: string, ahora: Date): Promise<void> {
+  async marcarLeidos(
+    conversacionId: string,
+    viewerId: string,
+    ahora: Date,
+  ): Promise<void> {
     await this.prisma.mensaje.updateMany({
       where: { conversacionId, autorId: { not: viewerId }, leidoEn: null },
       data: { leidoEn: ahora },
     });
   }
 
-  async contarNoLeidos(viewerId: string, conversacionId?: string): Promise<number> {
+  async contarNoLeidos(
+    viewerId: string,
+    conversacionId?: string,
+  ): Promise<number> {
     return this.prisma.mensaje.count({
       where: {
         leidoEn: null,

@@ -68,7 +68,11 @@ export interface PropiedadesAxioma {
 export class AxiomaNutricional {
   private constructor(private readonly props: PropiedadesAxioma) {}
 
-  static crear(datos: DatosNuevoAxioma, id: string, ahora: Date = new Date()): AxiomaNutricional {
+  static crear(
+    datos: DatosNuevoAxioma,
+    id: string,
+    ahora: Date = new Date(),
+  ): AxiomaNutricional {
     return new AxiomaNutricional(normalizar(datos, id, ahora, ahora));
   }
 
@@ -77,7 +81,10 @@ export class AxiomaNutricional {
   }
 
   /** Copia con los cambios aplicados y validados (id/creadoEn intactos). */
-  actualizar(cambios: Partial<DatosNuevoAxioma>, ahora: Date = new Date()): AxiomaNutricional {
+  actualizar(
+    cambios: Partial<DatosNuevoAxioma>,
+    ahora: Date = new Date(),
+  ): AxiomaNutricional {
     const fusionar = <T>(nuevo: T | undefined, actual: T): T =>
       nuevo !== undefined ? nuevo : actual;
 
@@ -92,7 +99,9 @@ export class AxiomaNutricional {
       prioridad: cambios.prioridad ?? this.props.prioridad,
       activo: cambios.activo ?? this.props.activo,
     };
-    return new AxiomaNutricional(normalizar(combinado, this.props.id, this.props.creadoEn, ahora));
+    return new AxiomaNutricional(
+      normalizar(combinado, this.props.id, this.props.creadoEn, ahora),
+    );
   }
 
   /**
@@ -100,7 +109,11 @@ export class AxiomaNutricional {
    * es evaluable (INFORMATIVO, sin umbral, o el paciente no tiene el dato).
    */
   evaluar(valor: number | null): boolean | null {
-    if (valor == null || this.props.operador === "INFORMATIVO" || this.props.valor == null) {
+    if (
+      valor == null ||
+      this.props.operador === "INFORMATIVO" ||
+      this.props.valor == null
+    ) {
       return null;
     }
     switch (this.props.operador) {
@@ -152,7 +165,9 @@ function normalizar(
     throw new ErrorValidacion(`Ámbito de axioma desconocido: ${datos.ambito}.`);
   }
   if (!OPERADORES_AXIOMA.includes(datos.operador)) {
-    throw new ErrorValidacion(`Operador de axioma desconocido: ${datos.operador}.`);
+    throw new ErrorValidacion(
+      `Operador de axioma desconocido: ${datos.operador}.`,
+    );
   }
 
   let valor = datos.valor ?? null;
@@ -164,10 +179,14 @@ function normalizar(
     }
     if (datos.operador === "ENTRE") {
       if (valorMax == null || Number.isNaN(valorMax)) {
-        throw new ErrorValidacion("El rango del axioma necesita un valor máximo.");
+        throw new ErrorValidacion(
+          "El rango del axioma necesita un valor máximo.",
+        );
       }
       if (valorMax < valor) {
-        throw new ErrorValidacion("El máximo del axioma no puede ser menor que el mínimo.");
+        throw new ErrorValidacion(
+          "El máximo del axioma no puede ser menor que el mínimo.",
+        );
       }
     } else {
       valorMax = null; // MAYOR_IGUAL / MENOR_IGUAL no usan máximo

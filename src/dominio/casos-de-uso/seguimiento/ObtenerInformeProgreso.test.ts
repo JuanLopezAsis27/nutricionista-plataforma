@@ -26,7 +26,11 @@ describe("ObtenerInformeProgreso", () => {
     const pacientes = mockPacienteRepositorio({
       obtenerPorId: vi.fn(async () => pacienteEjemplo()),
     });
-    const casoUso = new ObtenerInformeProgreso(antropometrias, registros, pacientes);
+    const casoUso = new ObtenerInformeProgreso(
+      antropometrias,
+      registros,
+      pacientes,
+    );
 
     const informe = await casoUso.ejecutar("pac-1", desde, hasta);
 
@@ -67,8 +71,8 @@ describe("ObtenerInformeProgreso", () => {
       mockRegistroDiarioRepositorio(),
       mockPacienteRepositorio(),
     );
-    await expect(casoUso.ejecutar("inexistente", desde, hasta)).rejects.toBeInstanceOf(
-      ErrorPacienteNoEncontrado,
-    );
+    await expect(
+      casoUso.ejecutar("inexistente", desde, hasta),
+    ).rejects.toBeInstanceOf(ErrorPacienteNoEncontrado);
   });
 });

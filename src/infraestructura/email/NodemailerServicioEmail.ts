@@ -1,5 +1,8 @@
 import nodemailer, { type Transporter } from "nodemailer";
-import type { IServicioEmail, MensajeEmail } from "@/dominio/servicios/IServicioEmail";
+import type {
+  IServicioEmail,
+  MensajeEmail,
+} from "@/dominio/servicios/IServicioEmail";
 
 /**
  * Implementación SMTP del puerto de email (Nodemailer).

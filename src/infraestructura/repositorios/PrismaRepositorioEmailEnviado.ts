@@ -24,7 +24,10 @@ export class PrismaRepositorioEmailEnviado implements IEmailEnviadoRepositorio {
     });
   }
 
-  async yaEnviado(plantillaClave: string, referenciaId: string): Promise<boolean> {
+  async yaEnviado(
+    plantillaClave: string,
+    referenciaId: string,
+  ): Promise<boolean> {
     // La unicidad pasó a ser (nutricionistaId, plantillaClave, referenciaId):
     // antes dos consultorios con el mismo referenciaId se pisaban la
     // idempotencia y al segundo no le llegaba el recordatorio.

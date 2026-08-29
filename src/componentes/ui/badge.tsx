@@ -9,7 +9,8 @@ const variantesBadge = cva(
       variant: {
         default: "border-transparent bg-primary text-primary-foreground",
         secondary: "border-transparent bg-secondary text-secondary-foreground",
-        destructive: "border-transparent bg-destructive text-destructive-foreground",
+        destructive:
+          "border-transparent bg-destructive text-destructive-foreground",
         outline: "text-foreground",
       },
     },
@@ -18,11 +19,14 @@ const variantesBadge = cva(
 );
 
 export interface PropsBadge
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends
+    React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof variantesBadge> {}
 
 function Badge({ className, variant, ...props }: PropsBadge) {
-  return <div className={cn(variantesBadge({ variant }), className)} {...props} />;
+  return (
+    <div className={cn(variantesBadge({ variant }), className)} {...props} />
+  );
 }
 
 export { Badge, variantesBadge };

@@ -276,17 +276,17 @@ export function FormularioMedicion({
     paraMasas = false,
   ) =>
     !visible(nombre) ? null : (
-    <CampoMedida
-      key={nombre}
-      nombre={nombre}
-      etiqueta={etiqueta}
-      // La marca de "necesaria para las 5 masas" solo tiene sentido en ese
-      // protocolo; en 2 componentes sería una exigencia inventada.
-      marcada={paraMasas && protocolo === "CINCO_COMPONENTES"}
-      valor={form.watch(nombre)}
-      tallaCm={tallaCm}
-      registro={form.register(nombre)}
-    />
+      <CampoMedida
+        key={nombre}
+        nombre={nombre}
+        etiqueta={etiqueta}
+        // La marca de "necesaria para las 5 masas" solo tiene sentido en ese
+        // protocolo; en 2 componentes sería una exigencia inventada.
+        marcada={paraMasas && protocolo === "CINCO_COMPONENTES"}
+        valor={form.watch(nombre)}
+        tallaCm={tallaCm}
+        registro={form.register(nombre)}
+      />
     );
 
   // En 2 componentes los diámetros no participan de ningún cálculo: se

@@ -14,13 +14,19 @@ describe("CrearCuentaNutricionista", () => {
     const aprovisionar = vi.fn(async () => {});
     const nutricionistas = mockNutricionistaRepositorio();
     const uc = new CrearCuentaNutricionista(
-      mockUsuarioRepositorio({ obtenerPorEmail: vi.fn(async () => null), crear }),
+      mockUsuarioRepositorio({
+        obtenerPorEmail: vi.fn(async () => null),
+        crear,
+      }),
       mockHasheador(),
       { aprovisionar },
       nutricionistas,
     );
 
-    const usuario = await uc.ejecutar({ email: "nuevo@consultorio.com", password: "clave1234" });
+    const usuario = await uc.ejecutar({
+      email: "nuevo@consultorio.com",
+      password: "clave1234",
+    });
 
     expect(usuario.esNutricionista).toBe(true);
     expect(usuario.nutricionistaId).toBe(usuario.id); // self-tenant
@@ -42,7 +48,9 @@ describe("CrearCuentaNutricionista", () => {
 
     await expect(
       new CrearCuentaNutricionista(
-        mockUsuarioRepositorio({ obtenerPorEmail: vi.fn(async () => existente) }),
+        mockUsuarioRepositorio({
+          obtenerPorEmail: vi.fn(async () => existente),
+        }),
         mockHasheador(),
         { aprovisionar: vi.fn(async () => {}) },
         mockNutricionistaRepositorio(),

@@ -4,7 +4,14 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Trophy, CalendarDays, Plus, Pencil, Trash2, Dumbbell } from "lucide-react";
+import {
+  Trophy,
+  CalendarDays,
+  Plus,
+  Pencil,
+  Trash2,
+  Dumbbell,
+} from "lucide-react";
 import type {
   PerfilDeportivoSalidaDto,
   CompetenciaSalidaDto,
@@ -33,7 +40,12 @@ import {
   SelectContent,
   SelectItem,
 } from "@/componentes/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/componentes/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/componentes/ui/dialog";
 import {
   Form,
   FormField,
@@ -103,7 +115,8 @@ function FormularioPerfil({
       disciplina: perfil?.disciplina ?? "",
       nivel: perfil?.nivel ?? "AMATEUR",
       fase: perfil?.fase ?? "PRETEMPORADA",
-      diasEntrenamientoSemana: perfil?.diasEntrenamientoSemana?.toString() ?? "",
+      diasEntrenamientoSemana:
+        perfil?.diasEntrenamientoSemana?.toString() ?? "",
       horasSemana: perfil?.horasSemana?.toString() ?? "",
       pesoCategoriaKg: perfil?.pesoCategoriaKg?.toString() ?? "",
       posicion: perfil?.posicion ?? "",
@@ -289,7 +302,12 @@ function FormularioPerfil({
           )}
         />
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onTerminado} disabled={guardarPerfil.isPending}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onTerminado}
+            disabled={guardarPerfil.isPending}
+          >
             Cancelar
           </Button>
           <Button type="submit" disabled={guardarPerfil.isPending}>
@@ -323,13 +341,16 @@ function FormularioCompetencia({
   onTerminado: () => void;
 }) {
   const { crearCompetencia, actualizarCompetencia } = useDeportivo();
-  const enviando = crearCompetencia.isPending || actualizarCompetencia.isPending;
+  const enviando =
+    crearCompetencia.isPending || actualizarCompetencia.isPending;
 
   const form = useForm<DatosCompetenciaForm>({
     resolver: zodResolver(esquemaCompetencia),
     defaultValues: {
       nombre: competencia?.nombre ?? "",
-      fecha: competencia?.fecha ? new Date(competencia.fecha).toISOString().slice(0, 10) : "",
+      fecha: competencia?.fecha
+        ? new Date(competencia.fecha).toISOString().slice(0, 10)
+        : "",
       lugar: competencia?.lugar ?? "",
       importancia: competencia?.importancia ?? "B",
       objetivo: competencia?.objetivo ?? "",
@@ -349,9 +370,15 @@ function FormularioCompetencia({
       notas: datos.notas.trim() || null,
     };
     if (competencia) {
-      actualizarCompetencia.mutate({ id: competencia.id, ...cuerpo }, { onSuccess: onTerminado });
+      actualizarCompetencia.mutate(
+        { id: competencia.id, ...cuerpo },
+        { onSuccess: onTerminado },
+      );
     } else {
-      crearCompetencia.mutate({ pacienteId, ...cuerpo }, { onSuccess: onTerminado });
+      crearCompetencia.mutate(
+        { pacienteId, ...cuerpo },
+        { onSuccess: onTerminado },
+      );
     }
   }
 
@@ -463,11 +490,20 @@ function FormularioCompetencia({
           )}
         />
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onTerminado} disabled={enviando}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onTerminado}
+            disabled={enviando}
+          >
             Cancelar
           </Button>
           <Button type="submit" disabled={enviando}>
-            {enviando ? "Guardando…" : competencia ? "Guardar cambios" : "Agregar competencia"}
+            {enviando
+              ? "Guardando…"
+              : competencia
+                ? "Guardar cambios"
+                : "Agregar competencia"}
           </Button>
         </div>
       </form>
@@ -477,14 +513,19 @@ function FormularioCompetencia({
 
 /** Pestaña Deporte de la ficha: perfil deportivo + calendario de competencias. */
 export function SeccionDeportiva({ pacienteId }: { pacienteId: string }) {
-  const { obtenerPerfil, listarCompetencias, eliminarCompetencia } = useDeportivo();
+  const { obtenerPerfil, listarCompetencias, eliminarCompetencia } =
+    useDeportivo();
   const consultaPerfil = obtenerPerfil({ pacienteId });
   const consultaCompetencias = listarCompetencias({ pacienteId });
 
   const [perfilAbierto, setPerfilAbierto] = useState(false);
   const [compAbierta, setCompAbierta] = useState(false);
-  const [compEditar, setCompEditar] = useState<CompetenciaSalidaDto | null>(null);
-  const [compEliminar, setCompEliminar] = useState<CompetenciaSalidaDto | null>(null);
+  const [compEditar, setCompEditar] = useState<CompetenciaSalidaDto | null>(
+    null,
+  );
+  const [compEliminar, setCompEliminar] = useState<CompetenciaSalidaDto | null>(
+    null,
+  );
 
   const perfil = consultaPerfil.data ?? null;
   const competencias = consultaCompetencias.data ?? [];
@@ -499,7 +540,11 @@ export function SeccionDeportiva({ pacienteId }: { pacienteId: string }) {
           <h3 className="flex items-center gap-2 font-semibold">
             <Dumbbell className="h-4 w-4 text-primary" /> Perfil deportivo
           </h3>
-          <Button size="sm" variant={perfil ? "outline" : "default"} onClick={() => setPerfilAbierto(true)}>
+          <Button
+            size="sm"
+            variant={perfil ? "outline" : "default"}
+            onClick={() => setPerfilAbierto(true)}
+          >
             <Pencil className="h-4 w-4" />
             {perfil ? "Editar" : "Cargar perfil"}
           </Button>
@@ -509,8 +554,8 @@ export function SeccionDeportiva({ pacienteId }: { pacienteId: string }) {
           <Skeleton className="h-24 w-full" />
         ) : !perfil ? (
           <p className="text-sm text-muted-foreground">
-            El paciente no tiene perfil deportivo cargado. Cargalo para adaptar su plan y el
-            asistente.
+            El paciente no tiene perfil deportivo cargado. Cargalo para adaptar
+            su plan y el asistente.
           </p>
         ) : (
           <div className="grid gap-2 rounded-md border p-4 text-sm sm:grid-cols-2">
@@ -520,16 +565,23 @@ export function SeccionDeportiva({ pacienteId }: { pacienteId: string }) {
             <Dato etiqueta="Fase" valor={ETIQUETA_FASE[perfil.fase]} />
             <Dato
               etiqueta="Entrenamiento"
-              valor={[
-                perfil.diasEntrenamientoSemana != null && `${perfil.diasEntrenamientoSemana} días/sem`,
-                perfil.horasSemana != null && `${perfil.horasSemana} h/sem`,
-              ]
-                .filter(Boolean)
-                .join(" · ") || null}
+              valor={
+                [
+                  perfil.diasEntrenamientoSemana != null &&
+                    `${perfil.diasEntrenamientoSemana} días/sem`,
+                  perfil.horasSemana != null && `${perfil.horasSemana} h/sem`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || null
+              }
             />
             <Dato
               etiqueta="Peso de categoría"
-              valor={perfil.pesoCategoriaKg != null ? `${perfil.pesoCategoriaKg} kg` : null}
+              valor={
+                perfil.pesoCategoriaKg != null
+                  ? `${perfil.pesoCategoriaKg} kg`
+                  : null
+              }
             />
             <Dato etiqueta="Posición" valor={perfil.posicion} />
             <Dato etiqueta="Objetivo" valor={perfil.objetivo} />
@@ -547,7 +599,8 @@ export function SeccionDeportiva({ pacienteId }: { pacienteId: string }) {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="flex items-center gap-2 font-semibold">
-            <CalendarDays className="h-4 w-4 text-primary" /> Calendario de competencias
+            <CalendarDays className="h-4 w-4 text-primary" /> Calendario de
+            competencias
           </h3>
           <Button
             size="sm"
@@ -564,7 +617,9 @@ export function SeccionDeportiva({ pacienteId }: { pacienteId: string }) {
         {consultaCompetencias.isLoading ? (
           <Skeleton className="h-20 w-full" />
         ) : competencias.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Sin competencias cargadas.</p>
+          <p className="text-sm text-muted-foreground">
+            Sin competencias cargadas.
+          </p>
         ) : (
           <ul className="divide-y rounded-md border">
             {competencias.map((comp) => {
@@ -578,7 +633,11 @@ export function SeccionDeportiva({ pacienteId }: { pacienteId: string }) {
                     <p className="flex flex-wrap items-center gap-2 font-medium">
                       <Trophy className="h-4 w-4 text-primary" />
                       {comp.nombre}
-                      <Badge variant={comp.importancia === "A" ? "default" : "secondary"}>
+                      <Badge
+                        variant={
+                          comp.importancia === "A" ? "default" : "secondary"
+                        }
+                      >
                         {comp.importancia}
                       </Badge>
                       {pasada && <Badge variant="outline">Finalizada</Badge>}
@@ -622,7 +681,9 @@ export function SeccionDeportiva({ pacienteId }: { pacienteId: string }) {
       <Dialog open={perfilAbierto} onOpenChange={setPerfilAbierto}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{perfil ? "Editar perfil deportivo" : "Cargar perfil deportivo"}</DialogTitle>
+            <DialogTitle>
+              {perfil ? "Editar perfil deportivo" : "Cargar perfil deportivo"}
+            </DialogTitle>
           </DialogHeader>
           <FormularioPerfil
             pacienteId={pacienteId}
@@ -635,7 +696,9 @@ export function SeccionDeportiva({ pacienteId }: { pacienteId: string }) {
       <Dialog open={compAbierta} onOpenChange={setCompAbierta}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{compEditar ? "Editar competencia" : "Agregar competencia"}</DialogTitle>
+            <DialogTitle>
+              {compEditar ? "Editar competencia" : "Agregar competencia"}
+            </DialogTitle>
           </DialogHeader>
           <FormularioCompetencia
             pacienteId={pacienteId}

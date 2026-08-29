@@ -2,7 +2,10 @@ import type { IPacienteRepositorio } from "../../repositorios/IPacienteRepositor
 import type { IConfiguracionRepositorio } from "../../repositorios/IConfiguracionRepositorio";
 import type { Paciente } from "../../entidades/Paciente";
 import { ConfiguracionConsultorio } from "../../entidades/ConfiguracionConsultorio";
-import { normalizarTelefonoE164, PREFIJO_PAIS_POR_DEFECTO } from "../../servicios/telefono";
+import {
+  normalizarTelefonoE164,
+  PREFIJO_PAIS_POR_DEFECTO,
+} from "../../servicios/telefono";
 
 /**
  * Caso de uso: encontrar al paciente del inquilino dueño de un número.
@@ -28,7 +31,8 @@ export class ResolverPacientePorTelefono {
 
   async ejecutar(telefono: string): Promise<Paciente | null> {
     const config =
-      (await this.configuracion.obtener()) ?? ConfiguracionConsultorio.porDefecto();
+      (await this.configuracion.obtener()) ??
+      ConfiguracionConsultorio.porDefecto();
     const prefijo = config.whatsappPrefijoPais ?? PREFIJO_PAIS_POR_DEFECTO;
 
     const buscado = this.normalizar(telefono, prefijo);

@@ -30,7 +30,11 @@ export interface PropiedadesEmailEnviado {
 export class EmailEnviado {
   private constructor(private readonly props: PropiedadesEmailEnviado) {}
 
-  static crear(datos: DatosEmailEnviado, id: string, ahora: Date = new Date()): EmailEnviado {
+  static crear(
+    datos: DatosEmailEnviado,
+    id: string,
+    ahora: Date = new Date(),
+  ): EmailEnviado {
     return new EmailEnviado({
       id,
       plantillaClave: datos.plantillaClave,

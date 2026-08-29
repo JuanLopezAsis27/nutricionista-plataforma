@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Image as ImagenIcono, Trash2, ExternalLink } from "lucide-react";
+import {
+  FileText,
+  Image as ImagenIcono,
+  Trash2,
+  ExternalLink,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { ArchivoSalidaDto } from "@/aplicacion/dtos/archivo.dto";
 import { trpc } from "@/lib/trpc";
@@ -35,18 +40,23 @@ export function ArchivosPaciente({ pacienteId }: { pacienteId: string }) {
         contexto="paciente"
         pacienteId={pacienteId}
         accept="application/pdf,image/*,.doc,.docx"
-        onSubido={() => void utils.archivos.obtenerDePaciente.invalidate({ pacienteId })}
+        onSubido={() =>
+          void utils.archivos.obtenerDePaciente.invalidate({ pacienteId })
+        }
       />
 
       {(archivos.data ?? []).length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Sin archivos. Subí consentimientos, informes o cualquier documento
-          del paciente.
+          Sin archivos. Subí consentimientos, informes o cualquier documento del
+          paciente.
         </p>
       ) : (
         <ul className="divide-y rounded-md border">
           {archivos.data!.map((archivo) => (
-            <li key={archivo.id} className="flex items-center gap-3 p-3 text-sm">
+            <li
+              key={archivo.id}
+              className="flex items-center gap-3 p-3 text-sm"
+            >
               {archivo.mimeType.startsWith("image/") ? (
                 <ImagenIcono className="h-4 w-4 shrink-0 text-muted-foreground" />
               ) : (

@@ -24,13 +24,14 @@ export function useDeportivo() {
     onError: (error) => toast.error(error.message),
   });
 
-  const actualizarCompetencia = trpc.deportivo.actualizarCompetencia.useMutation({
-    onSuccess: () => {
-      toast.success("Competencia actualizada.");
-      invalidar();
-    },
-    onError: (error) => toast.error(error.message),
-  });
+  const actualizarCompetencia =
+    trpc.deportivo.actualizarCompetencia.useMutation({
+      onSuccess: () => {
+        toast.success("Competencia actualizada.");
+        invalidar();
+      },
+      onError: (error) => toast.error(error.message),
+    });
 
   const eliminarCompetencia = trpc.deportivo.eliminarCompetencia.useMutation({
     onSuccess: () => {

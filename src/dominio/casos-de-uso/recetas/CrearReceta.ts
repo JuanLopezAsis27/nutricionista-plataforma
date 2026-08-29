@@ -17,7 +17,10 @@ export class CrearReceta {
 
   async ejecutar(datos: DatosCrearReceta): Promise<Receta> {
     const receta = Receta.crear(datos, crypto.randomUUID());
-    const archivoIds = [...(datos.fotoIds ?? []), ...(datos.documentoIds ?? [])];
+    const archivoIds = [
+      ...(datos.fotoIds ?? []),
+      ...(datos.documentoIds ?? []),
+    ];
     return this.recetas.crear(receta, archivoIds);
   }
 }

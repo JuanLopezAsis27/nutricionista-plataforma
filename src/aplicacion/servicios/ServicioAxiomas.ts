@@ -37,7 +37,9 @@ export class ServicioAxiomas {
 
   async actualizar(datos: ActualizarAxiomaDto): Promise<AxiomaSalidaDto> {
     const { id, ...cambios } = datos;
-    return ServicioAxiomas.aSalida(await this.actualizarUC.ejecutar(id, cambios));
+    return ServicioAxiomas.aSalida(
+      await this.actualizarUC.ejecutar(id, cambios),
+    );
   }
 
   async eliminar(id: string): Promise<void> {

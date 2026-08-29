@@ -9,8 +9,18 @@ describe("Receta — cálculo de macros desde los ingredientes", () => {
         nombre: "Bowl",
         porciones: 2,
         ingredientes: [
-          { nombre: "A", cantidadGramos: 200, caloriasPor100: 100, proteinasPor100: 20 },
-          { nombre: "B", cantidadGramos: 50, caloriasPor100: 400, carbohidratosPor100: 10 },
+          {
+            nombre: "A",
+            cantidadGramos: 200,
+            caloriasPor100: 100,
+            proteinasPor100: 20,
+          },
+          {
+            nombre: "B",
+            cantidadGramos: 50,
+            caloriasPor100: 400,
+            carbohidratosPor100: 10,
+          },
         ],
       },
       "rec-1",
@@ -82,7 +92,9 @@ describe("Receta — cálculo de macros desde los ingredientes", () => {
       "rec-4",
     );
 
-    expect(receta.aPrimitivos().ingredientes.map((i) => i.nombre)).toEqual(["Pollo"]);
+    expect(receta.aPrimitivos().ingredientes.map((i) => i.nombre)).toEqual([
+      "Pollo",
+    ]);
   });
 
   it("rechaza cantidades o macros negativos", () => {

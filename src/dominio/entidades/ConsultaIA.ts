@@ -23,7 +23,11 @@ export interface PropiedadesConsultaIA {
 export class ConsultaIA {
   private constructor(private readonly props: PropiedadesConsultaIA) {}
 
-  static crear(datos: DatosNuevaConsultaIA, id: string, ahora: Date = new Date()): ConsultaIA {
+  static crear(
+    datos: DatosNuevaConsultaIA,
+    id: string,
+    ahora: Date = new Date(),
+  ): ConsultaIA {
     const pregunta = datos.pregunta?.trim() ?? "";
     if (pregunta.length === 0) {
       throw new ErrorValidacion("La pregunta no puede estar vacía.");

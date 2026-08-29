@@ -6,7 +6,10 @@ import { ConfiguracionConsultorio } from "../../entidades/ConfiguracionConsultor
 import { MensajeWhatsapp } from "../../entidades/MensajeWhatsapp";
 import { ErrorPacienteNoEncontrado } from "../../errores/ErrorPacienteNoEncontrado";
 import { ErrorValidacion } from "../../errores/ErrorValidacion";
-import { normalizarTelefonoE164, PREFIJO_PAIS_POR_DEFECTO } from "../../servicios/telefono";
+import {
+  normalizarTelefonoE164,
+  PREFIJO_PAIS_POR_DEFECTO,
+} from "../../servicios/telefono";
 
 /**
  * Caso de uso: escribirle a un paciente por WhatsApp desde la app.
@@ -29,13 +32,17 @@ export class EnviarMensajeWhatsapp {
       throw new ErrorPacienteNoEncontrado(pacienteId);
     }
     const config =
-      (await this.configuracion.obtener()) ?? ConfiguracionConsultorio.porDefecto();
+      (await this.configuracion.obtener()) ??
+      ConfiguracionConsultorio.porDefecto();
     const telefono = normalizarTelefonoE164(
       paciente.telefono,
       config.whatsappPrefijoPais ?? PREFIJO_PAIS_POR_DEFECTO,
     );
 
-    const resultado = await this.proveedor.preparar({ telefono, texto: cuerpo });
+    const resultado = await this.proveedor.preparar({
+      telefono,
+      texto: cuerpo,
+    });
     if (resultado.modo !== "API") {
       throw new ErrorValidacion(
         "WhatsApp no está conectado a la app. Usá el botón del turno para abrir el chat.",

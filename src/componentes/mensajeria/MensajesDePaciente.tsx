@@ -5,7 +5,12 @@ import { useMensajeria } from "@/lib/hooks/useMensajeria";
 import { HiloMensajes } from "@/componentes/mensajeria/HiloMensajes";
 import { HiloWhatsapp } from "@/componentes/mensajeria/HiloWhatsapp";
 import { Card } from "@/componentes/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/componentes/ui/tabs";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/componentes/ui/tabs";
 
 /**
  * Mensajería con un paciente (ficha del nutricionista): el chat propio de la

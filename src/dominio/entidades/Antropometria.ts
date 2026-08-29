@@ -3,10 +3,7 @@ import type {
   MedidasComposicion,
   NivelActividad,
 } from "../servicios/composicionCorporal";
-import {
-  METODOS_GRASA,
-  type MetodoGrasa,
-} from "../servicios/grasaPorPliegues";
+import { METODOS_GRASA, type MetodoGrasa } from "../servicios/grasaPorPliegues";
 
 /**
  * Modelo que el profesional destaca en la consulta. No restringe el cálculo:
@@ -247,7 +244,9 @@ export class Antropometria {
    * Derivados por medición para la vista de evolución (como la planilla:
    * "KG BAJADOS" = peso anterior − peso actual). Ordena por fecha ascendente.
    */
-  static calcularDerivados(mediciones: readonly Antropometria[]): DerivadosMedicion[] {
+  static calcularDerivados(
+    mediciones: readonly Antropometria[],
+  ): DerivadosMedicion[] {
     const ordenadas = [...mediciones].sort(
       (a, b) => a.fecha.getTime() - b.fecha.getTime(),
     );
@@ -344,17 +343,32 @@ function validarFecha(fecha: Date, ahora: Date): void {
   if (!(fecha instanceof Date) || Number.isNaN(fecha.getTime())) {
     throw new ErrorValidacion("La fecha de la medición no es válida.");
   }
-  const hoy = Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate());
-  const dia = Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate());
+  const hoy = Date.UTC(
+    ahora.getUTCFullYear(),
+    ahora.getUTCMonth(),
+    ahora.getUTCDate(),
+  );
+  const dia = Date.UTC(
+    fecha.getUTCFullYear(),
+    fecha.getUTCMonth(),
+    fecha.getUTCDate(),
+  );
   if (dia > hoy) {
     throw new ErrorValidacion("La fecha de la medición no puede ser futura.");
   }
 }
 
-function validarMedidas(datos: Partial<MedidasAntropometricas> & { pesoKg: number }): void {
+function validarMedidas(
+  datos: Partial<MedidasAntropometricas> & { pesoKg: number },
+): void {
   validarRango(datos.pesoKg, 20, 400, "El peso debe estar entre 20 y 400 kg.");
   if (datos.tallaCm != null) {
-    validarRango(datos.tallaCm, 100, 250, "La talla debe estar entre 100 y 250 cm.");
+    validarRango(
+      datos.tallaCm,
+      100,
+      250,
+      "La talla debe estar entre 100 y 250 cm.",
+    );
   }
   if (datos.tallaSentadoCm != null) {
     validarRango(
@@ -367,13 +381,23 @@ function validarMedidas(datos: Partial<MedidasAntropometricas> & { pesoKg: numbe
   for (const campo of CAMPOS_DIAMETROS) {
     const valor = datos[campo];
     if (valor != null) {
-      validarRango(valor, 2, 60, `El diámetro debe estar entre 2 y 60 cm (${campo}).`);
+      validarRango(
+        valor,
+        2,
+        60,
+        `El diámetro debe estar entre 2 y 60 cm (${campo}).`,
+      );
     }
   }
   for (const campo of CAMPOS_PLIEGUES) {
     const valor = datos[campo];
     if (valor != null) {
-      validarRango(valor, 1, 80, `El pliegue debe estar entre 1 y 80 mm (${campo}).`);
+      validarRango(
+        valor,
+        1,
+        80,
+        `El pliegue debe estar entre 1 y 80 mm (${campo}).`,
+      );
     }
   }
   for (const campo of CAMPOS_CIRCUNFERENCIAS) {
@@ -397,11 +421,21 @@ function validarMedidas(datos: Partial<MedidasAntropometricas> & { pesoKg: numbe
     throw new ErrorValidacion("El método de estimación de grasa no es válido.");
   }
   if (datos.kgGrasa != null) {
-    validarRango(datos.kgGrasa, 0, 150, "Los kg de grasa deben estar entre 0 y 150.");
+    validarRango(
+      datos.kgGrasa,
+      0,
+      150,
+      "Los kg de grasa deben estar entre 0 y 150.",
+    );
   }
 }
 
-function validarRango(valor: number, min: number, max: number, mensaje: string): void {
+function validarRango(
+  valor: number,
+  min: number,
+  max: number,
+  mensaje: string,
+): void {
   if (!Number.isFinite(valor) || valor < min || valor > max) {
     throw new ErrorValidacion(mensaje);
   }

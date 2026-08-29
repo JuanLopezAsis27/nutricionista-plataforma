@@ -7,7 +7,9 @@ import { MaterialBiblioteca } from "@/dominio/entidades/MaterialBiblioteca";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Include estándar: el archivo del bucket (si el material es tipo ARCHIVO). */
-const INCLUIR_ARCHIVO = { archivo: true } satisfies Prisma.MaterialBibliotecaInclude;
+const INCLUIR_ARCHIVO = {
+  archivo: true,
+} satisfies Prisma.MaterialBibliotecaInclude;
 
 type MaterialConArchivo = Prisma.MaterialBibliotecaGetPayload<{
   include: typeof INCLUIR_ARCHIVO;
@@ -97,10 +99,14 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
   }
 
   contar(filtro?: FiltroMateriales): Promise<number> {
-    return this.prisma.materialBiblioteca.count({ where: this.construirWhere(filtro) });
+    return this.prisma.materialBiblioteca.count({
+      where: this.construirWhere(filtro),
+    });
   }
 
-  private construirWhere(filtro?: FiltroMateriales): Prisma.MaterialBibliotecaWhereInput {
+  private construirWhere(
+    filtro?: FiltroMateriales,
+  ): Prisma.MaterialBibliotecaWhereInput {
     const where: Prisma.MaterialBibliotecaWhereInput = {};
     if (filtro?.texto) {
       where.OR = [
@@ -117,16 +123,30 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
     return where;
   }
 
-  async asignarAPaciente(materialId: string, pacienteId: string, id: string): Promise<void> {
+  async asignarAPaciente(
+    materialId: string,
+    pacienteId: string,
+    id: string,
+  ): Promise<void> {
     await this.prisma.asignacionMaterial.upsert({
       where: { materialId_pacienteId: { materialId, pacienteId } },
-      create: { id, nutricionistaId: inquilinoActual(), materialId, pacienteId },
+      create: {
+        id,
+        nutricionistaId: inquilinoActual(),
+        materialId,
+        pacienteId,
+      },
       update: {},
     });
   }
 
-  async desasignarDePaciente(materialId: string, pacienteId: string): Promise<void> {
-    await this.prisma.asignacionMaterial.deleteMany({ where: { materialId, pacienteId } });
+  async desasignarDePaciente(
+    materialId: string,
+    pacienteId: string,
+  ): Promise<void> {
+    await this.prisma.asignacionMaterial.deleteMany({
+      where: { materialId, pacienteId },
+    });
   }
 
   async listarPorPaciente(pacienteId: string): Promise<MaterialBiblioteca[]> {

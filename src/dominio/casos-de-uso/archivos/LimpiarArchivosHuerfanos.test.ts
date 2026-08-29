@@ -1,6 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import { LimpiarArchivosHuerfanos } from "./LimpiarArchivosHuerfanos";
-import { mockArchivoRepositorio, mockAlmacenamientoArchivos } from "../_ayudas-test";
+import {
+  mockArchivoRepositorio,
+  mockAlmacenamientoArchivos,
+} from "../_ayudas-test";
 
 describe("LimpiarArchivosHuerfanos", () => {
   it("elimina del bucket solo los objetos sin fila de metadatos", async () => {
@@ -20,7 +23,9 @@ describe("LimpiarArchivosHuerfanos", () => {
 
     expect(resultado.objetosEliminados).toBe(1);
     expect(almacenamiento.eliminar).toHaveBeenCalledOnce();
-    expect(almacenamiento.eliminar).toHaveBeenCalledWith("recetas/huerfano.jpg");
+    expect(almacenamiento.eliminar).toHaveBeenCalledWith(
+      "recetas/huerfano.jpg",
+    );
   });
 
   it("no elimina nada cuando bucket y base coinciden", async () => {

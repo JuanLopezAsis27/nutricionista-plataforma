@@ -14,7 +14,10 @@ export interface Pagina<T> {
 }
 
 /** Offset (0-indexado) a partir de la página y el tamaño. */
-export function desplazamientoDe({ pagina, porPagina }: ParametrosPagina): number {
+export function desplazamientoDe({
+  pagina,
+  porPagina,
+}: ParametrosPagina): number {
   return Math.max(0, (pagina - 1) * porPagina);
 }
 

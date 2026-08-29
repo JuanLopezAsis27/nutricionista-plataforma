@@ -13,7 +13,11 @@ describe("RegistrarCobroTurno", () => {
       actualizar,
     });
 
-    const resultado = await new RegistrarCobroTurno(repo).ejecutar("tur-1", 15000, true);
+    const resultado = await new RegistrarCobroTurno(repo).ejecutar(
+      "tur-1",
+      15000,
+      true,
+    );
 
     expect(resultado.precio).toBe(15000);
     expect(resultado.pagado).toBe(true);
@@ -22,9 +26,15 @@ describe("RegistrarCobroTurno", () => {
 
   it("permite dejar el turno sin precio (sin cargo)", async () => {
     const turno = turnoEjemplo();
-    const repo = mockTurnoRepositorio({ obtenerPorId: vi.fn(async () => turno) });
+    const repo = mockTurnoRepositorio({
+      obtenerPorId: vi.fn(async () => turno),
+    });
 
-    const resultado = await new RegistrarCobroTurno(repo).ejecutar("tur-1", null, false);
+    const resultado = await new RegistrarCobroTurno(repo).ejecutar(
+      "tur-1",
+      null,
+      false,
+    );
 
     expect(resultado.precio).toBeNull();
     expect(resultado.pagado).toBe(false);
@@ -32,7 +42,9 @@ describe("RegistrarCobroTurno", () => {
 
   it("rechaza marcar pagado un turno sin precio", async () => {
     const turno = turnoEjemplo();
-    const repo = mockTurnoRepositorio({ obtenerPorId: vi.fn(async () => turno) });
+    const repo = mockTurnoRepositorio({
+      obtenerPorId: vi.fn(async () => turno),
+    });
 
     await expect(
       new RegistrarCobroTurno(repo).ejecutar("tur-1", null, true),
@@ -41,7 +53,9 @@ describe("RegistrarCobroTurno", () => {
 
   it("rechaza un precio negativo", async () => {
     const turno = turnoEjemplo();
-    const repo = mockTurnoRepositorio({ obtenerPorId: vi.fn(async () => turno) });
+    const repo = mockTurnoRepositorio({
+      obtenerPorId: vi.fn(async () => turno),
+    });
 
     await expect(
       new RegistrarCobroTurno(repo).ejecutar("tur-1", -5, false),
@@ -49,7 +63,9 @@ describe("RegistrarCobroTurno", () => {
   });
 
   it("lanza ErrorTurnoNoEncontrado si el turno no existe", async () => {
-    const repo = mockTurnoRepositorio({ obtenerPorId: vi.fn(async () => null) });
+    const repo = mockTurnoRepositorio({
+      obtenerPorId: vi.fn(async () => null),
+    });
 
     await expect(
       new RegistrarCobroTurno(repo).ejecutar("inexistente", 100, true),

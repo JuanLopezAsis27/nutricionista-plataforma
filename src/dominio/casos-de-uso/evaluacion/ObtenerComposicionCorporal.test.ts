@@ -231,7 +231,9 @@ describe("ObtenerComposicionCorporal", () => {
     const primera = composicion.mediciones[0]!.resultado.grasaPorPliegues;
 
     const faulkner = primera.resultados.find((r) => r.metodo === "FAULKNER")!;
-    const yuhasz = primera.resultados.find((r) => r.metodo === "YUHASZ_CARTER")!;
+    const yuhasz = primera.resultados.find(
+      (r) => r.metodo === "YUHASZ_CARTER",
+    )!;
 
     expect(proyeccion.valorInicial).toBe(faulkner.porcentajeGrasa);
     expect(proyeccion.valorInicial).not.toBe(yuhasz.porcentajeGrasa);

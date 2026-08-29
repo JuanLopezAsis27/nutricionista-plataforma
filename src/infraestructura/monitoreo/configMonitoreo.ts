@@ -21,5 +21,7 @@ export function crearMonitorErrores(): IMonitorErrores {
     destinos.push(new MonitorErroresWebhook(webhook));
   }
 
-  return destinos.length === 1 ? destinos[0]! : new MonitorErroresCompuesto(destinos);
+  return destinos.length === 1
+    ? destinos[0]!
+    : new MonitorErroresCompuesto(destinos);
 }

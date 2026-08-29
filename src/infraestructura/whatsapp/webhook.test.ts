@@ -89,7 +89,11 @@ describe("parsearWebhook", () => {
                 metadata: { phone_number_id: "123456" },
                 statuses: [
                   { id: "wamid.ABC", status: "read" },
-                  { id: "wamid.DEF", status: "failed", errors: [{ title: "Fuera de ventana" }] },
+                  {
+                    id: "wamid.DEF",
+                    status: "failed",
+                    errors: [{ title: "Fuera de ventana" }],
+                  },
                 ],
               },
             },
@@ -105,7 +109,11 @@ describe("parsearWebhook", () => {
   });
 
   it("no rompe con un payload inesperado", () => {
-    expect(parsearWebhook(null)).toEqual({ phoneNumberId: null, mensajes: [], estados: [] });
+    expect(parsearWebhook(null)).toEqual({
+      phoneNumberId: null,
+      mensajes: [],
+      estados: [],
+    });
     expect(parsearWebhook({ entry: "no es un arreglo" }).mensajes).toEqual([]);
   });
 });

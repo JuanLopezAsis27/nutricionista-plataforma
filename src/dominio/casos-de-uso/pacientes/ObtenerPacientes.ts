@@ -24,7 +24,9 @@ export interface PacientesPaginados {
 export class ObtenerPacientes {
   constructor(private readonly repositorio: IPacienteRepositorio) {}
 
-  async ejecutar(params: ParametrosPaginacionPacientes): Promise<PacientesPaginados> {
+  async ejecutar(
+    params: ParametrosPaginacionPacientes,
+  ): Promise<PacientesPaginados> {
     const { pagina, porPagina, busqueda, incluirArchivados } = params;
     const desplazamiento = (pagina - 1) * porPagina;
 

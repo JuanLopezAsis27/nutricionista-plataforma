@@ -8,5 +8,8 @@ import type { HerramientaAsistente } from "./IAsistenteNutricional";
  * no hay IA configurada.
  */
 export interface IAsistenteAnalitico {
-  responder(pregunta: string, herramientas: HerramientaAsistente[]): Promise<string>;
+  responder(
+    pregunta: string,
+    herramientas: HerramientaAsistente[],
+  ): Promise<string>;
 }

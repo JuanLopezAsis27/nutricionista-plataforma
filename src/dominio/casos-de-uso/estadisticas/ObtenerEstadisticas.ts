@@ -40,7 +40,9 @@ export class ObtenerEstadisticas {
   constructor(private readonly repositorio: IEstadisticasRepositorio) {}
 
   async ejecutar(desde: Date, hasta: Date): Promise<EstadisticasConsultorio> {
-    const sinActividadDesde = new Date(hasta.getTime() - DIAS_ABANDONO * DIA_MS);
+    const sinActividadDesde = new Date(
+      hasta.getTime() - DIAS_ABANDONO * DIA_MS,
+    );
 
     const datos = await this.repositorio.obtener({
       desde,
@@ -49,20 +51,31 @@ export class ObtenerEstadisticas {
       meses: MESES_SERIE,
     });
 
-    const { PENDIENTE, CONFIRMADO, CANCELADO, COMPLETADO } = datos.turnosPorEstado;
+    const { PENDIENTE, CONFIRMADO, CANCELADO, COMPLETADO } =
+      datos.turnosPorEstado;
     const pendientes = PENDIENTE + CONFIRMADO;
     const total = pendientes + CANCELADO + COMPLETADO;
     const baseAsistencia = COMPLETADO + CANCELADO;
     const tasaAsistencia =
-      baseAsistencia === 0 ? 0 : Math.round((COMPLETADO / baseAsistencia) * 1000) / 10;
+      baseAsistencia === 0
+        ? 0
+        : Math.round((COMPLETADO / baseAsistencia) * 1000) / 10;
 
     return {
       pacientesActivos: datos.pacientesActivos,
       pacientesNuevos: datos.pacientesNuevos,
       pacientesEnRiesgo: datos.pacientesEnRiesgo,
-      turnos: { completados: COMPLETADO, cancelados: CANCELADO, pendientes, total },
+      turnos: {
+        completados: COMPLETADO,
+        cancelados: CANCELADO,
+        pendientes,
+        total,
+      },
       tasaAsistencia,
-      ingresos: { cobrado: datos.ingresoCobrado, pendiente: datos.ingresoPendiente },
+      ingresos: {
+        cobrado: datos.ingresoCobrado,
+        pendiente: datos.ingresoPendiente,
+      },
       serieMensual: datos.serieMensual,
       diasAbandono: DIAS_ABANDONO,
     };

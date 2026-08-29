@@ -12,7 +12,9 @@ function aNumero(valor: Prisma.Decimal | null): number | null {
 
 /** Solo la parte de la fecha (UTC), para el índice único por día. */
 function soloFecha(fecha: Date): Date {
-  return new Date(Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()));
+  return new Date(
+    Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
+  );
 }
 
 /**
@@ -29,7 +31,11 @@ export class PrismaRepositorioMetricaDispositivo implements IMetricaDispositivoR
     const fecha = soloFecha(d.fecha);
     await this.prisma.metricaDispositivo.upsert({
       where: {
-        pacienteId_fecha_fuente: { pacienteId: d.pacienteId, fecha, fuente: d.fuente },
+        pacienteId_fecha_fuente: {
+          pacienteId: d.pacienteId,
+          fecha,
+          fuente: d.fuente,
+        },
       },
       create: {
         id: d.id,
@@ -63,13 +69,20 @@ export class PrismaRepositorioMetricaDispositivo implements IMetricaDispositivoR
     hasta: Date,
   ): Promise<MetricaDispositivo[]> {
     const filas = await this.prisma.metricaDispositivo.findMany({
-      where: { pacienteId, fecha: { gte: soloFecha(desde), lte: soloFecha(hasta) } },
+      where: {
+        pacienteId,
+        fecha: { gte: soloFecha(desde), lte: soloFecha(hasta) },
+      },
       orderBy: { fecha: "asc" },
     });
     return filas.map((fila) => this.mapear(fila));
   }
 
-  async fijarInclusion(pacienteId: string, fecha: Date, incluir: boolean): Promise<void> {
+  async fijarInclusion(
+    pacienteId: string,
+    fecha: Date,
+    incluir: boolean,
+  ): Promise<void> {
     await this.prisma.metricaDispositivo.updateMany({
       where: { pacienteId, fecha: soloFecha(fecha) },
       data: { incluir },

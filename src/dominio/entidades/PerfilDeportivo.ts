@@ -1,7 +1,12 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
 
 /** Nivel competitivo del deportista. */
-export const NIVELES_DEPORTIVOS = ["RECREATIVO", "AMATEUR", "COMPETITIVO", "ELITE"] as const;
+export const NIVELES_DEPORTIVOS = [
+  "RECREATIVO",
+  "AMATEUR",
+  "COMPETITIVO",
+  "ELITE",
+] as const;
 export type NivelDeportivo = (typeof NIVELES_DEPORTIVOS)[number];
 
 /** Fase de la temporada (periodización). */
@@ -70,7 +75,9 @@ export class PerfilDeportivo {
     ahora: Date = new Date(),
   ): PerfilDeportivo {
     if (!datos.pacienteId?.trim()) {
-      throw new ErrorValidacion("El perfil deportivo debe pertenecer a un paciente.");
+      throw new ErrorValidacion(
+        "El perfil deportivo debe pertenecer a un paciente.",
+      );
     }
     const deporte = datos.deporte?.trim() ?? "";
     if (deporte.length === 0) {
@@ -84,9 +91,19 @@ export class PerfilDeportivo {
     if (!FASES_TEMPORADA.includes(fase)) {
       throw new ErrorValidacion("La fase de temporada no es válida.");
     }
-    const dias = validarRango(datos.diasEntrenamientoSemana, 0, 14, "Los días de entrenamiento");
+    const dias = validarRango(
+      datos.diasEntrenamientoSemana,
+      0,
+      14,
+      "Los días de entrenamiento",
+    );
     const horas = validarRango(datos.horasSemana, 0, 80, "Las horas semanales");
-    const peso = validarRango(datos.pesoCategoriaKg, 20, 400, "El peso de categoría");
+    const peso = validarRango(
+      datos.pesoCategoriaKg,
+      20,
+      400,
+      "El peso de categoría",
+    );
 
     return new PerfilDeportivo({
       id,
@@ -111,13 +128,19 @@ export class PerfilDeportivo {
   }
 
   /** Versión actualizada e inmutable (preserva id, paciente y creadoEn). */
-  actualizar(cambios: Omit<DatosPerfilDeportivo, "pacienteId">, ahora: Date = new Date()): PerfilDeportivo {
+  actualizar(
+    cambios: Omit<DatosPerfilDeportivo, "pacienteId">,
+    ahora: Date = new Date(),
+  ): PerfilDeportivo {
     const actualizado = PerfilDeportivo.crear(
       { ...cambios, pacienteId: this.props.pacienteId },
       this.props.id,
       ahora,
     );
-    return new PerfilDeportivo({ ...actualizado.props, creadoEn: this.props.creadoEn });
+    return new PerfilDeportivo({
+      ...actualizado.props,
+      creadoEn: this.props.creadoEn,
+    });
   }
 
   get id(): string {

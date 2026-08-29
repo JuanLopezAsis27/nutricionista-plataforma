@@ -8,7 +8,15 @@ import type { MetricaDispositivo } from "../entidades/MetricaDispositivo";
 export interface IMetricaDispositivoRepositorio {
   guardar(metrica: MetricaDispositivo): Promise<void>;
   /** Métricas del rango [desde, hasta], orden ascendente por fecha. */
-  listarPorRango(pacienteId: string, desde: Date, hasta: Date): Promise<MetricaDispositivo[]>;
+  listarPorRango(
+    pacienteId: string,
+    desde: Date,
+    hasta: Date,
+  ): Promise<MetricaDispositivo[]>;
   /** Fija el opt-in de TODAS las fuentes de un día del paciente. */
-  fijarInclusion(pacienteId: string, fecha: Date, incluir: boolean): Promise<void>;
+  fijarInclusion(
+    pacienteId: string,
+    fecha: Date,
+    incluir: boolean,
+  ): Promise<void>;
 }

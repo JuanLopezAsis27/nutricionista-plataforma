@@ -22,12 +22,20 @@ export class ServicioMetricas {
     return this.importarUC.ejecutar(pacienteId, datos.dias);
   }
 
-  async listar(pacienteId: string, desde: Date, hasta: Date): Promise<MetricaSalidaDto[]> {
+  async listar(
+    pacienteId: string,
+    desde: Date,
+    hasta: Date,
+  ): Promise<MetricaSalidaDto[]> {
     const metricas = await this.obtenerUC.ejecutar(pacienteId, desde, hasta);
     return metricas.map(ServicioMetricas.aSalida);
   }
 
-  fijarInclusion(pacienteId: string, fecha: Date, incluir: boolean): Promise<void> {
+  fijarInclusion(
+    pacienteId: string,
+    fecha: Date,
+    incluir: boolean,
+  ): Promise<void> {
     return this.fijarInclusionUC.ejecutar(pacienteId, fecha, incluir);
   }
 

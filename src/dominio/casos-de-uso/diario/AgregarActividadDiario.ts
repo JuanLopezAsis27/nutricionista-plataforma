@@ -26,7 +26,10 @@ export class AgregarActividadDiario {
       throw new ErrorPacienteNoEncontrado(pacienteId);
     }
 
-    let registro = await this.registros.obtenerPorPacienteYFecha(pacienteId, fecha);
+    let registro = await this.registros.obtenerPorPacienteYFecha(
+      pacienteId,
+      fecha,
+    );
     if (!registro) {
       registro = await this.registros.crear(
         RegistroDiario.crear({ pacienteId, fecha }, crypto.randomUUID()),
@@ -36,7 +39,10 @@ export class AgregarActividadDiario {
     const actividad = RegistroDiario.crearActividad(datos, crypto.randomUUID());
     await this.registros.agregarActividad(registro.id, actividad);
 
-    const actualizado = await this.registros.obtenerPorPacienteYFecha(pacienteId, fecha);
+    const actualizado = await this.registros.obtenerPorPacienteYFecha(
+      pacienteId,
+      fecha,
+    );
     return actualizado ?? registro;
   }
 }

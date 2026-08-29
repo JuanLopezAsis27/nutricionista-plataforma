@@ -1,11 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, TrendingUp, AlertTriangle, Activity, Search } from "lucide-react";
+import {
+  Sparkles,
+  TrendingUp,
+  AlertTriangle,
+  Activity,
+  Search,
+} from "lucide-react";
 import type { InsightPacienteDto } from "@/aplicacion/dtos/ia.dto";
 import { cn } from "@/lib/utilidades";
 import { Input } from "@/componentes/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 import { FeedbackInsight } from "@/componentes/ia/FeedbackInsight";
 
 const ICONO_TIPO: Record<string, typeof TrendingUp> = {
@@ -117,7 +128,10 @@ export function ListaInsights({
               </h3>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {items.map((insight, i) => (
-                  <TarjetaInsight key={`${insight.pacienteId ?? i}`} insight={insight} />
+                  <TarjetaInsight
+                    key={`${insight.pacienteId ?? i}`}
+                    insight={insight}
+                  />
                 ))}
               </div>
             </section>
@@ -128,13 +142,21 @@ export function ListaInsights({
   );
 }
 
-function TarjetaInsight({ insight, demo = false }: { insight: InsightPacienteDto; demo?: boolean }) {
+function TarjetaInsight({
+  insight,
+  demo = false,
+}: {
+  insight: InsightPacienteDto;
+  demo?: boolean;
+}) {
   const Icono = ICONO_TIPO[insight.tipo] ?? Sparkles;
   return (
     <Card className={cn(demo && "opacity-90")}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
-          <Icono className={cn("h-5 w-5", ESTILO_SEVERIDAD[insight.severidad])} />
+          <Icono
+            className={cn("h-5 w-5", ESTILO_SEVERIDAD[insight.severidad])}
+          />
           {insight.titulo}
         </CardTitle>
       </CardHeader>

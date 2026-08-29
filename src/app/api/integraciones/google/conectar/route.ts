@@ -12,7 +12,8 @@ export const runtime = "nodejs";
  */
 export async function GET(request: Request): Promise<NextResponse> {
   const usuario = await usuarioDeSesion();
-  const volver = (q: string) => NextResponse.redirect(new URL(`/dashboard/integraciones${q}`, request.url));
+  const volver = (q: string) =>
+    NextResponse.redirect(new URL(`/dashboard/integraciones${q}`, request.url));
 
   if (usuario?.rol !== "NUTRICIONISTA") {
     return NextResponse.redirect(new URL("/login", request.url));

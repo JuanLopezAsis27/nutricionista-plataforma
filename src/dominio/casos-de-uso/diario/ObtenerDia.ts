@@ -8,7 +8,10 @@ import type { RegistroDiario } from "../../entidades/RegistroDiario";
 export class ObtenerDia {
   constructor(private readonly registros: IRegistroDiarioRepositorio) {}
 
-  async ejecutar(pacienteId: string, fecha: Date): Promise<RegistroDiario | null> {
+  async ejecutar(
+    pacienteId: string,
+    fecha: Date,
+  ): Promise<RegistroDiario | null> {
     return this.registros.obtenerPorPacienteYFecha(pacienteId, fecha);
   }
 }

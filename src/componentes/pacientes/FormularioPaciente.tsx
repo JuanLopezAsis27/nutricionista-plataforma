@@ -41,7 +41,10 @@ interface PropsFormularioPaciente {
 }
 
 /** Formulario reutilizable para crear y editar pacientes. */
-export function FormularioPaciente({ pacienteInicial, onTerminado }: PropsFormularioPaciente) {
+export function FormularioPaciente({
+  pacienteInicial,
+  onTerminado,
+}: PropsFormularioPaciente) {
   const { crear, actualizar } = usePacientes();
   const editando = Boolean(pacienteInicial);
 
@@ -87,15 +90,23 @@ export function FormularioPaciente({ pacienteInicial, onTerminado }: PropsFormul
       apellido: datos.apellido,
       email: datos.email,
       telefono: datos.telefono?.trim() ? datos.telefono : null,
-      fechaNacimiento: datos.fechaNacimiento ? new Date(datos.fechaNacimiento) : null,
+      fechaNacimiento: datos.fechaNacimiento
+        ? new Date(datos.fechaNacimiento)
+        : null,
       sexo: datos.sexo === SIN_SEXO ? null : datos.sexo,
       notas: datos.notas?.trim() ? datos.notas : null,
     };
 
     if (pacienteInicial) {
-      actualizar.mutate({ id: pacienteInicial.id, ...base }, { onSuccess: onTerminado });
+      actualizar.mutate(
+        { id: pacienteInicial.id, ...base },
+        { onSuccess: onTerminado },
+      );
     } else {
-      crear.mutate({ ...base, password: datos.password ?? "" }, { onSuccess: onTerminado });
+      crear.mutate(
+        { ...base, password: datos.password ?? "" },
+        { onSuccess: onTerminado },
+      );
     }
   }
 
@@ -153,7 +164,11 @@ export function FormularioPaciente({ pacienteInicial, onTerminado }: PropsFormul
               <FormItem>
                 <FormLabel>Contraseña de acceso del paciente</FormLabel>
                 <FormControl>
-                  <Input type="text" placeholder="Mínimo 6 caracteres" {...field} />
+                  <Input
+                    type="text"
+                    placeholder="Mínimo 6 caracteres"
+                    {...field}
+                  />
                 </FormControl>
                 <p className="text-xs text-muted-foreground">
                   El paciente iniciará sesión con su email y esta contraseña.
@@ -216,7 +231,8 @@ export function FormularioPaciente({ pacienteInicial, onTerminado }: PropsFormul
               </Select>
               <p className="text-xs text-muted-foreground">
                 Lo usa la antropometría: el fraccionamiento en 5 masas, el peso
-                ideal y el metabolismo basal tienen constantes distintas por sexo.
+                ideal y el metabolismo basal tienen constantes distintas por
+                sexo.
               </p>
               <FormMessage />
             </FormItem>
@@ -238,11 +254,20 @@ export function FormularioPaciente({ pacienteInicial, onTerminado }: PropsFormul
         />
 
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onTerminado} disabled={enviando}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onTerminado}
+            disabled={enviando}
+          >
             Cancelar
           </Button>
           <Button type="submit" disabled={enviando}>
-            {enviando ? "Guardando…" : editando ? "Guardar cambios" : "Crear paciente"}
+            {enviando
+              ? "Guardando…"
+              : editando
+                ? "Guardar cambios"
+                : "Crear paciente"}
           </Button>
         </div>
       </form>

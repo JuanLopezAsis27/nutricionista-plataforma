@@ -35,7 +35,10 @@ export function Proveedores({ children }: { children: ReactNode }) {
         // Las subscriptions (tiempo real) van por SSE; el resto por batch HTTP.
         splitLink({
           condition: (op) => op.type === "subscription",
-          true: httpSubscriptionLink({ url: "/api/trpc", transformer: superjson }),
+          true: httpSubscriptionLink({
+            url: "/api/trpc",
+            transformer: superjson,
+          }),
           false: httpBatchLink({ url: "/api/trpc", transformer: superjson }),
         }),
       ],
@@ -51,7 +54,9 @@ export function Proveedores({ children }: { children: ReactNode }) {
         disableTransitionOnChange
       >
         <trpc.Provider client={clienteTrpc} queryClient={clienteQuery}>
-          <QueryClientProvider client={clienteQuery}>{children}</QueryClientProvider>
+          <QueryClientProvider client={clienteQuery}>
+            {children}
+          </QueryClientProvider>
         </trpc.Provider>
       </ThemeProvider>
     </SessionProvider>

@@ -28,27 +28,32 @@ describe("ConfirmarRecordatorioWhatsapp", () => {
       obtenerPorId: vi.fn(async () => recordatorioWhatsappEjemplo()),
     });
 
-    const resultado = await new ConfirmarRecordatorioWhatsapp(repo).ejecutar("rec-1", false);
+    const resultado = await new ConfirmarRecordatorioWhatsapp(repo).ejecutar(
+      "rec-1",
+      false,
+    );
 
     expect(resultado.estado).toBe("DESCARTADO");
   });
 
   it("no re-resuelve un recordatorio ya resuelto", async () => {
     const repo = mockRecordatorioWhatsappRepositorio({
-      obtenerPorId: vi.fn(async () => recordatorioWhatsappEjemplo().confirmarEnvio()),
+      obtenerPorId: vi.fn(async () =>
+        recordatorioWhatsappEjemplo().confirmarEnvio(),
+      ),
     });
 
-    await expect(new ConfirmarRecordatorioWhatsapp(repo).ejecutar("rec-1", true)).rejects.toThrow(
-      ErrorValidacion,
-    );
+    await expect(
+      new ConfirmarRecordatorioWhatsapp(repo).ejecutar("rec-1", true),
+    ).rejects.toThrow(ErrorValidacion);
     expect(repo.actualizar).not.toHaveBeenCalled();
   });
 
   it("falla si el recordatorio no existe", async () => {
     const repo = mockRecordatorioWhatsappRepositorio();
 
-    await expect(new ConfirmarRecordatorioWhatsapp(repo).ejecutar("rec-x", true)).rejects.toThrow(
-      ErrorRecordatorioNoEncontrado,
-    );
+    await expect(
+      new ConfirmarRecordatorioWhatsapp(repo).ejecutar("rec-x", true),
+    ).rejects.toThrow(ErrorRecordatorioNoEncontrado);
   });
 });

@@ -1,4 +1,7 @@
-import type { IMonitorErrores, ContextoError } from "@/dominio/servicios/IMonitorErrores";
+import type {
+  IMonitorErrores,
+  ContextoError,
+} from "@/dominio/servicios/IMonitorErrores";
 
 /** Normaliza cualquier valor lanzado a { mensaje, stack, nombre }. */
 export function describirError(error: unknown): {
@@ -9,7 +12,10 @@ export function describirError(error: unknown): {
   if (error instanceof Error) {
     return { nombre: error.name, mensaje: error.message, stack: error.stack };
   }
-  return { nombre: "NoError", mensaje: typeof error === "string" ? error : JSON.stringify(error) };
+  return {
+    nombre: "NoError",
+    mensaje: typeof error === "string" ? error : JSON.stringify(error),
+  };
 }
 
 /**

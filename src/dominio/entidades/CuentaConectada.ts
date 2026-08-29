@@ -31,12 +31,18 @@ export interface PropiedadesCuentaConectada extends DatosCuentaConectada {
 export class CuentaConectada {
   private constructor(private readonly props: PropiedadesCuentaConectada) {}
 
-  static crear(datos: DatosCuentaConectada, id: string, ahora: Date = new Date()): CuentaConectada {
+  static crear(
+    datos: DatosCuentaConectada,
+    id: string,
+    ahora: Date = new Date(),
+  ): CuentaConectada {
     if (!datos.emailCuenta?.trim()) {
       throw new ErrorValidacion("La cuenta conectada necesita un email.");
     }
     if (!datos.accessToken?.trim()) {
-      throw new ErrorValidacion("La cuenta conectada necesita un access token.");
+      throw new ErrorValidacion(
+        "La cuenta conectada necesita un access token.",
+      );
     }
     return new CuentaConectada({
       id,
@@ -56,14 +62,25 @@ export class CuentaConectada {
   }
 
   /** Copia con el access token renovado (tras un refresh). */
-  conAccessToken(accessToken: string, expiraEn: Date | null, ahora: Date = new Date()): CuentaConectada {
-    return new CuentaConectada({ ...this.props, accessToken, expiraEn, actualizadoEn: ahora });
+  conAccessToken(
+    accessToken: string,
+    expiraEn: Date | null,
+    ahora: Date = new Date(),
+  ): CuentaConectada {
+    return new CuentaConectada({
+      ...this.props,
+      accessToken,
+      expiraEn,
+      actualizadoEn: ahora,
+    });
   }
 
   /** ¿El access token está vencido (o por vencer en `margenSegundos`)? */
   estaVencido(margenSegundos = 60, ahora: Date = new Date()): boolean {
     if (!this.props.expiraEn) return false;
-    return this.props.expiraEn.getTime() - ahora.getTime() <= margenSegundos * 1000;
+    return (
+      this.props.expiraEn.getTime() - ahora.getTime() <= margenSegundos * 1000
+    );
   }
 
   get id(): string {

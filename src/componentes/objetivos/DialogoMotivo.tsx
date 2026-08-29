@@ -42,12 +42,17 @@ export function DialogoMotivo({
   }
 
   return (
-    <Dialog open={abierto} onOpenChange={(estaAbierto) => !estaAbierto && cerrar()}>
+    <Dialog
+      open={abierto}
+      onOpenChange={(estaAbierto) => !estaAbierto && cerrar()}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{titulo}</DialogTitle>
         </DialogHeader>
-        {descripcion && <p className="text-sm text-muted-foreground">{descripcion}</p>}
+        {descripcion && (
+          <p className="text-sm text-muted-foreground">{descripcion}</p>
+        )}
         <div className="space-y-1.5">
           <Label htmlFor="motivo-cambio">Motivo (queda en el historial)</Label>
           <Textarea

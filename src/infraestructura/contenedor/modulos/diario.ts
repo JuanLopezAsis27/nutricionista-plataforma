@@ -26,7 +26,11 @@ export function crearServicioDiario(deps: {
     new ObtenerCalendarioDiario(deps.registros),
     new ObtenerRegistrosEnRango(deps.registros, deps.pacientes),
     new AgregarComidaDiario(deps.registros, deps.pacientes),
-    new EliminarComidaDiario(deps.registros, deps.archivos, deps.almacenamiento),
+    new EliminarComidaDiario(
+      deps.registros,
+      deps.archivos,
+      deps.almacenamiento,
+    ),
     new AgregarActividadDiario(deps.registros, deps.pacientes),
     new EliminarActividadDiario(deps.registros),
     new AgregarFotoComida(deps.registros, deps.archivos, deps.almacenamiento),

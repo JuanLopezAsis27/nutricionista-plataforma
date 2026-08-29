@@ -8,7 +8,11 @@ import { formatearMoneda } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { Label } from "@/componentes/ui/label";
-import { Popover, PopoverTrigger, PopoverContent } from "@/componentes/ui/popover";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/componentes/ui/popover";
 
 /**
  * Control compacto para registrar el cobro de un turno: muestra el precio y si
@@ -18,7 +22,9 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/componentes/ui/popove
 export function CobroTurno({ turno }: { turno: TurnoSalidaDto }) {
   const { registrarCobro } = useTurnos();
   const [abierto, setAbierto] = useState(false);
-  const [precio, setPrecio] = useState(turno.precio != null ? String(turno.precio) : "");
+  const [precio, setPrecio] = useState(
+    turno.precio != null ? String(turno.precio) : "",
+  );
   const [pagado, setPagado] = useState(turno.pagado);
 
   function guardar() {
@@ -41,7 +47,9 @@ export function CobroTurno({ turno }: { turno: TurnoSalidaDto }) {
         >
           <DollarSign className="h-4 w-4 text-muted-foreground" />
           {turno.precio != null ? (
-            <span className="tabular-nums">{formatearMoneda(turno.precio)}</span>
+            <span className="tabular-nums">
+              {formatearMoneda(turno.precio)}
+            </span>
           ) : (
             <span className="text-muted-foreground">Cobro</span>
           )}
@@ -83,7 +91,11 @@ export function CobroTurno({ turno }: { turno: TurnoSalidaDto }) {
           >
             Cancelar
           </Button>
-          <Button size="sm" onClick={guardar} disabled={registrarCobro.isPending}>
+          <Button
+            size="sm"
+            onClick={guardar}
+            disabled={registrarCobro.isPending}
+          >
             Guardar
           </Button>
         </div>

@@ -52,7 +52,10 @@ describe("AgregarComidaDiario", () => {
     const pacientes = mockPacienteRepositorio({
       obtenerPorId: vi.fn(async () => pacienteEjemplo()),
     });
-    const casoUso = new AgregarComidaDiario(mockRegistroDiarioRepositorio(), pacientes);
+    const casoUso = new AgregarComidaDiario(
+      mockRegistroDiarioRepositorio(),
+      pacientes,
+    );
 
     await expect(
       casoUso.ejecutar("pac-1", new Date("2026-07-10"), {

@@ -68,7 +68,11 @@ describe("GuardarDia", () => {
     });
     const casoUso = new GuardarDia(mockRegistroDiarioRepositorio(), pacientes);
     await expect(
-      casoUso.ejecutar({ pacienteId: "pac-1", fecha: new Date("2026-07-10"), aguaMl: -1 }),
+      casoUso.ejecutar({
+        pacienteId: "pac-1",
+        fecha: new Date("2026-07-10"),
+        aguaMl: -1,
+      }),
     ).rejects.toBeInstanceOf(ErrorValidacion);
   });
 });

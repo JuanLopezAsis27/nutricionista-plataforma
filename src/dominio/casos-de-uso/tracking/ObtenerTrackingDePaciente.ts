@@ -5,7 +5,10 @@ import type { IAntropometriaRepositorio } from "../../repositorios/IAntropometri
 import type { IPacienteRepositorio } from "../../repositorios/IPacienteRepositorio";
 import type { IMetricaDispositivoRepositorio } from "../../repositorios/IMetricaDispositivoRepositorio";
 import type { MetricaDispositivo } from "../../entidades/MetricaDispositivo";
-import type { AmbitoAxioma, OperadorAxioma } from "../../entidades/AxiomaNutricional";
+import type {
+  AmbitoAxioma,
+  OperadorAxioma,
+} from "../../entidades/AxiomaNutricional";
 import { AxiomaNutricional } from "../../entidades/AxiomaNutricional";
 import { ErrorPacienteNoEncontrado } from "../../errores/ErrorPacienteNoEncontrado";
 
@@ -96,19 +99,24 @@ export class ObtenerTrackingDePaciente {
     private readonly metricas: IMetricaDispositivoRepositorio,
   ) {}
 
-  async ejecutar(pacienteId: string, desde: Date, hasta: Date): Promise<TrackingPaciente> {
+  async ejecutar(
+    pacienteId: string,
+    desde: Date,
+    hasta: Date,
+  ): Promise<TrackingPaciente> {
     const paciente = await this.pacientes.obtenerPorId(pacienteId);
     if (!paciente) {
       throw new ErrorPacienteNoEncontrado(pacienteId);
     }
 
-    const [diario, plan, axiomasActivos, mediciones, metricas] = await Promise.all([
-      this.registros.listarPorRango(pacienteId, desde, hasta),
-      this.planes.obtenerPlanActivoDePaciente(pacienteId),
-      this.axiomas.listarActivos(),
-      this.antropometrias.listarPorPaciente(pacienteId),
-      this.metricas.listarPorRango(pacienteId, desde, hasta),
-    ]);
+    const [diario, plan, axiomasActivos, mediciones, metricas] =
+      await Promise.all([
+        this.registros.listarPorRango(pacienteId, desde, hasta),
+        this.planes.obtenerPlanActivoDePaciente(pacienteId),
+        this.axiomas.listarActivos(),
+        this.antropometrias.listarPorPaciente(pacienteId),
+        this.metricas.listarPorRango(pacienteId, desde, hasta),
+      ]);
 
     const dias = diario.map((r) => r.aPrimitivos());
     // Para la adherencia a los axiomas, los días del diario se completan con los
@@ -148,7 +156,10 @@ function fusionarConMetricas(
   }[],
   metricas: MetricaDispositivo[],
 ): DiaAdherencia[] {
-  const incluidas = new Map<string, { horasSueno: number | null; minutosActividad: number | null }>();
+  const incluidas = new Map<
+    string,
+    { horasSueno: number | null; minutosActividad: number | null }
+  >();
   for (const metrica of metricas) {
     if (!metrica.incluir) continue;
     const m = metrica.aPrimitivos();
@@ -167,7 +178,11 @@ function fusionarConMetricas(
     usadas.add(clave);
     const m = incluidas.get(clave);
     if (!m) {
-      return { horasSueno: dia.horasSueno, aguaMl: dia.aguaMl, actividades: dia.actividades };
+      return {
+        horasSueno: dia.horasSueno,
+        aguaMl: dia.aguaMl,
+        actividades: dia.actividades,
+      };
     }
     return {
       horasSueno: dia.horasSueno ?? m.horasSueno,
@@ -186,7 +201,10 @@ function fusionarConMetricas(
     resultado.push({
       horasSueno: m.horasSueno,
       aguaMl: null,
-      actividades: m.minutosActividad != null ? [{ duracionMinutos: m.minutosActividad }] : [],
+      actividades:
+        m.minutosActividad != null
+          ? [{ duracionMinutos: m.minutosActividad }]
+          : [],
     });
   }
   return resultado;
@@ -243,7 +261,8 @@ function calcularAdherencia(
         evaluable && diasEvaluados > 0
           ? Math.round((diasCumplidos / diasEvaluados) * 100)
           : null,
-      promedioPaciente: conValor > 0 ? Math.round((suma / conValor) * 10) / 10 : null,
+      promedioPaciente:
+        conValor > 0 ? Math.round((suma / conValor) * 10) / 10 : null,
     };
   });
 }
@@ -304,7 +323,9 @@ function calcularConcordancia(
     franjasPlanificadas: franjasPlan.length,
     diasEvaluados: diasConRegistro.length,
     coberturaPromedio:
-      totalEsperados > 0 ? Math.round((totalRegistrados / totalEsperados) * 100) : null,
+      totalEsperados > 0
+        ? Math.round((totalRegistrados / totalEsperados) * 100)
+        : null,
     porFranja,
   };
 }
@@ -319,7 +340,11 @@ function calcularPeso(
 
   for (const medicion of mediciones) {
     if (medicion.fecha < desde || medicion.fecha > hasta) continue;
-    puntos.push({ fecha: medicion.fecha, peso: medicion.aPrimitivos().pesoKg, fuente: "CONSULTA" });
+    puntos.push({
+      fecha: medicion.fecha,
+      peso: medicion.aPrimitivos().pesoKg,
+      fuente: "CONSULTA",
+    });
   }
   for (const dia of dias) {
     if (dia.pesoKg == null) continue;
@@ -336,6 +361,8 @@ function calcularPeso(
     inicial,
     actual,
     variacion:
-      inicial != null && actual != null ? Math.round((actual - inicial) * 10) / 10 : null,
+      inicial != null && actual != null
+        ? Math.round((actual - inicial) * 10) / 10
+        : null,
   };
 }

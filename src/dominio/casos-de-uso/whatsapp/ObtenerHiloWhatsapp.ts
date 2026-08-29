@@ -24,10 +24,18 @@ export class ObtenerHiloWhatsapp {
     private readonly proveedor: IProveedorWhatsapp,
   ) {}
 
-  async ejecutar(pacienteId: string, ahora: Date = new Date()): Promise<HiloWhatsapp> {
+  async ejecutar(
+    pacienteId: string,
+    ahora: Date = new Date(),
+  ): Promise<HiloWhatsapp> {
     const conectado = (await this.proveedor.modoActual()) === "API";
     if (!conectado) {
-      return { conectado: false, mensajes: [], ventanaAbierta: false, ventanaVenceEn: null };
+      return {
+        conectado: false,
+        mensajes: [],
+        ventanaAbierta: false,
+        ventanaVenceEn: null,
+      };
     }
 
     const mensajes = await this.mensajes.listarPorPaciente(pacienteId);

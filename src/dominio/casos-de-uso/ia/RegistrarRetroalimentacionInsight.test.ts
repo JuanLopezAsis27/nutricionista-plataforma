@@ -19,7 +19,9 @@ describe("RegistrarRetroalimentacionInsight", () => {
     const registrar = vi.fn(async () => {});
     const uc = new RegistrarRetroalimentacionInsight(
       mockRetroalimentacionInsightRepositorio({ registrar }),
-      mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => pacienteEjemplo()) }),
+      mockPacienteRepositorio({
+        obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+      }),
     );
 
     await uc.ejecutar(datos);
@@ -34,7 +36,9 @@ describe("RegistrarRetroalimentacionInsight", () => {
       mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => null) }),
     );
 
-    await expect(uc.ejecutar(datos)).rejects.toBeInstanceOf(ErrorPacienteNoEncontrado);
+    await expect(uc.ejecutar(datos)).rejects.toBeInstanceOf(
+      ErrorPacienteNoEncontrado,
+    );
     expect(registrar).not.toHaveBeenCalled();
   });
 });

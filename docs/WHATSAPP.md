@@ -3,12 +3,12 @@
 La app habla con WhatsApp de dos maneras, y la segunda no reemplaza a la primera:
 si la API oficial no está conectada, todo sigue funcionando por el enlace.
 
-| | Fase A — enlace `wa.me` | Fase B — Cloud API oficial |
-|---|---|---|
-| Requisitos | ninguno | número dedicado + alta en Meta |
+|                       | Fase A — enlace `wa.me`                                      | Fase B — Cloud API oficial                |
+| --------------------- | ------------------------------------------------------------ | ----------------------------------------- |
+| Requisitos            | ninguno                                                      | número dedicado + alta en Meta            |
 | Recordatorio de turno | abre el chat con el mensaje escrito; lo envía el profesional | sale solo desde el número del consultorio |
-| "¿Se envió?" | lo declara el profesional (ámbar → verde) | lo confirma el webhook de entrega |
-| Mensajes del paciente | no llegan a la app | aparecen en la ficha, pestaña WhatsApp |
+| "¿Se envió?"          | lo declara el profesional (ámbar → verde)                    | lo confirma el webhook de entrega         |
+| Mensajes del paciente | no llegan a la app                                           | aparecen en la ficha, pestaña WhatsApp    |
 
 > Los recordatorios de turno —a quién, cuándo, con qué texto y por qué medios—
 > están documentados aparte, en [RECORDATORIOS.md](RECORDATORIOS.md). Acá va
@@ -40,7 +40,7 @@ que esto falla. `011 15 5555-4444` se convierte en `5491155554444`.
 ### Pasos
 
 1. En [Meta for Developers](https://developers.facebook.com), crear una app de
-   tipo *Business* y agregarle el producto **WhatsApp**.
+   tipo _Business_ y agregarle el producto **WhatsApp**.
 2. Dar de alta el número en Meta Business y anotar su **phone number id**.
 3. Crear un **System User** con permiso sobre la cuenta de WhatsApp y generar un
    **access token permanente** (los tokens temporales duran 24 h).
@@ -84,13 +84,13 @@ Es el único endpoint de la app que recibe datos sin sesión.
 
 ### Diagnóstico
 
-| Síntoma | Causa habitual |
-|---|---|
-| Meta no valida el webhook (GET) | el verify token guardado no coincide con el que pusiste en Meta |
-| Entran webhooks pero no pasa nada | falta el app secret → la firma se rechaza (401) |
+| Síntoma                                                | Causa habitual                                                             |
+| ------------------------------------------------------ | -------------------------------------------------------------------------- |
+| Meta no valida el webhook (GET)                        | el verify token guardado no coincide con el que pusiste en Meta            |
+| Entran webhooks pero no pasa nada                      | falta el app secret → la firma se rechaza (401)                            |
 | Llegan los mensajes de algunos pacientes y de otros no | el teléfono del paciente está mal cargado; se compara el E.164 normalizado |
-| "WhatsApp rechazó el envío" fuera de las 24 h | ventana cerrada: hace falta una plantilla aprobada (ver abajo) |
-| El envío automático no manda nada | falta la plantilla predeterminada, o no tiene cargado su nombre de Meta |
+| "WhatsApp rechazó el envío" fuera de las 24 h          | ventana cerrada: hace falta una plantilla aprobada (ver abajo)             |
+| El envío automático no manda nada                      | falta la plantilla predeterminada, o no tiene cargado su nombre de Meta    |
 
 ## Plantillas aprobadas: lo que la ventana de 24 h obliga
 

@@ -1,6 +1,9 @@
 import type { SolicitarRecuperacionPassword } from "@/dominio/casos-de-uso/autenticacion/SolicitarRecuperacionPassword";
 import type { RestablecerPassword } from "@/dominio/casos-de-uso/autenticacion/RestablecerPassword";
-import type { SolicitarRecuperacionDto, RestablecerPasswordDto } from "../dtos/autenticacion.dto";
+import type {
+  SolicitarRecuperacionDto,
+  RestablecerPasswordDto,
+} from "../dtos/autenticacion.dto";
 
 /**
  * Servicio de aplicación de autenticación: orquesta el flujo de recuperación
@@ -13,13 +16,20 @@ export class ServicioAutenticacion {
   ) {}
 
   /** Siempre resuelve OK aunque el email no exista (no revela cuentas). */
-  async solicitarRecuperacion(datos: SolicitarRecuperacionDto): Promise<{ enviado: true }> {
+  async solicitarRecuperacion(
+    datos: SolicitarRecuperacionDto,
+  ): Promise<{ enviado: true }> {
     await this.solicitarUC.ejecutar({ email: datos.email });
     return { enviado: true };
   }
 
-  async restablecer(datos: RestablecerPasswordDto): Promise<{ restablecido: true }> {
-    await this.restablecerUC.ejecutar({ token: datos.token, nuevaPassword: datos.password });
+  async restablecer(
+    datos: RestablecerPasswordDto,
+  ): Promise<{ restablecido: true }> {
+    await this.restablecerUC.ejecutar({
+      token: datos.token,
+      nuevaPassword: datos.password,
+    });
     return { restablecido: true };
   }
 }

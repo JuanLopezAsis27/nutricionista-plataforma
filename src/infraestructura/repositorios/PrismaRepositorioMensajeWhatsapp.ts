@@ -1,4 +1,7 @@
-import type { PrismaClient, MensajeWhatsapp as MensajeFila } from "@prisma/client";
+import type {
+  PrismaClient,
+  MensajeWhatsapp as MensajeFila,
+} from "@prisma/client";
 import type { IMensajeWhatsappRepositorio } from "@/dominio/repositorios/IMensajeWhatsappRepositorio";
 import { MensajeWhatsapp } from "@/dominio/entidades/MensajeWhatsapp";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
@@ -40,12 +43,19 @@ export class PrismaRepositorioMensajeWhatsapp implements IMensajeWhatsappReposit
     return this.mapear(fila);
   }
 
-  async obtenerPorIdExterno(idExterno: string): Promise<MensajeWhatsapp | null> {
-    const fila = await this.prisma.mensajeWhatsapp.findFirst({ where: { idExterno } });
+  async obtenerPorIdExterno(
+    idExterno: string,
+  ): Promise<MensajeWhatsapp | null> {
+    const fila = await this.prisma.mensajeWhatsapp.findFirst({
+      where: { idExterno },
+    });
     return fila ? this.mapear(fila) : null;
   }
 
-  async listarPorPaciente(pacienteId: string, limite = 200): Promise<MensajeWhatsapp[]> {
+  async listarPorPaciente(
+    pacienteId: string,
+    limite = 200,
+  ): Promise<MensajeWhatsapp[]> {
     const filas = await this.prisma.mensajeWhatsapp.findMany({
       where: { pacienteId },
       orderBy: { creadoEn: "desc" },
@@ -91,7 +101,10 @@ export class PrismaRepositorioMensajeWhatsapp implements IMensajeWhatsappReposit
     if (pacienteIds.length === 0) return new Map();
 
     const filas = await this.prisma.mensajeWhatsapp.findMany({
-      where: { pacienteId: { in: pacienteIds }, ...(direccion ? { direccion } : {}) },
+      where: {
+        pacienteId: { in: pacienteIds },
+        ...(direccion ? { direccion } : {}),
+      },
       orderBy: { creadoEn: "desc" },
       take: pacienteIds.length * 50,
     });

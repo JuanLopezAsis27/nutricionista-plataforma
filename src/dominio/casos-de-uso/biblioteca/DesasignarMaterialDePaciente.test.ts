@@ -9,6 +9,9 @@ describe("DesasignarMaterialDePaciente", () => {
 
     await casoUso.ejecutar({ materialId: "mat-1", pacienteId: "pac-1" });
 
-    expect(materiales.desasignarDePaciente).toHaveBeenCalledWith("mat-1", "pac-1");
+    expect(materiales.desasignarDePaciente).toHaveBeenCalledWith(
+      "mat-1",
+      "pac-1",
+    );
   });
 });

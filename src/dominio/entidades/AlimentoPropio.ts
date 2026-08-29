@@ -66,7 +66,10 @@ function limpiarTexto(valor: string | null | undefined): string | null {
   return limpio === "" ? null : limpio;
 }
 
-function macro(valor: number | null | undefined, etiqueta: string): number | null {
+function macro(
+  valor: number | null | undefined,
+  etiqueta: string,
+): number | null {
   if (valor == null) return null;
   if (!Number.isFinite(valor) || valor < 0) {
     throw new ErrorValidacion(`El valor de ${etiqueta} no puede ser negativo.`);

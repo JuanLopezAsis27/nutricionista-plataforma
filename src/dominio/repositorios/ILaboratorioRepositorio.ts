@@ -8,7 +8,10 @@ import type { Laboratorio } from "../entidades/Laboratorio";
 export interface ILaboratorioRepositorio {
   crear(laboratorio: Laboratorio, archivoIds: string[]): Promise<Laboratorio>;
   /** Actualiza los datos y vincula los archivos nuevos (no desvincula). */
-  actualizar(laboratorio: Laboratorio, archivoIdsNuevos: string[]): Promise<Laboratorio>;
+  actualizar(
+    laboratorio: Laboratorio,
+    archivoIdsNuevos: string[],
+  ): Promise<Laboratorio>;
   eliminar(id: string): Promise<void>;
   obtenerPorId(id: string): Promise<Laboratorio | null>;
   /** Laboratorios del paciente ordenados por fecha descendente. */

@@ -40,7 +40,8 @@ function armar(
       // crearlo, que es donde ahora vive.
       mockPacienteRepositorio({
         obtenerPorTelefonoE164: vi.fn(
-          async (e164: string) => pacientes.find((p) => p.telefonoE164 === e164) ?? null,
+          async (e164: string) =>
+            pacientes.find((p) => p.telefonoE164 === e164) ?? null,
         ),
       }),
       mockConfiguracionRepositorio(),
@@ -78,7 +79,9 @@ describe("ProcesarMensajeEntranteWhatsapp", () => {
   // La garantía de privacidad: el WhatsApp personal del profesional no entra a
   // la app, y no entra porque no se persiste, no porque se filtre en la vista.
   it("descarta sin persistir nada el mensaje de un número que no es paciente", async () => {
-    const { caso, mensajes, bus } = armar([pacienteEjemplo({ telefono: "1122223333" })]);
+    const { caso, mensajes, bus } = armar([
+      pacienteEjemplo({ telefono: "1122223333" }),
+    ]);
 
     const resultado = await caso.ejecutar(ENTRANTE);
 
@@ -100,7 +103,12 @@ describe("ProcesarMensajeEntranteWhatsapp", () => {
     const { caso, mensajes } = armar();
     vi.mocked(mensajes.obtenerPorIdExterno).mockResolvedValueOnce(
       MensajeWhatsapp.crear(
-        { pacienteId: "pac-1", direccion: "ENTRANTE", telefono: "549", cuerpo: "hola" },
+        {
+          pacienteId: "pac-1",
+          direccion: "ENTRANTE",
+          telefono: "549",
+          cuerpo: "hola",
+        },
         "msg-1",
       ),
     );

@@ -1,6 +1,9 @@
 import type { IPerfilDeportivoRepositorio } from "../../repositorios/IPerfilDeportivoRepositorio";
 import type { IPacienteRepositorio } from "../../repositorios/IPacienteRepositorio";
-import { PerfilDeportivo, type DatosPerfilDeportivo } from "../../entidades/PerfilDeportivo";
+import {
+  PerfilDeportivo,
+  type DatosPerfilDeportivo,
+} from "../../entidades/PerfilDeportivo";
 import { ErrorPacienteNoEncontrado } from "../../errores/ErrorPacienteNoEncontrado";
 
 /**

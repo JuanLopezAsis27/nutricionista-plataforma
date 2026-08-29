@@ -9,7 +9,8 @@ export class MarcarLeidos {
   constructor(private readonly repositorio: IMensajeriaRepositorio) {}
 
   async ejecutar(pacienteId: string, viewerId: string): Promise<void> {
-    const conversacion = await this.repositorio.obtenerConversacionPorPaciente(pacienteId);
+    const conversacion =
+      await this.repositorio.obtenerConversacionPorPaciente(pacienteId);
     if (!conversacion) return;
     await this.repositorio.marcarLeidos(conversacion.id, viewerId, new Date());
   }

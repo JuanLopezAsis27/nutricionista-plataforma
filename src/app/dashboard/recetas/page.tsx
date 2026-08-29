@@ -34,10 +34,15 @@ export default function PaginaRecetas() {
   });
 
   const [formAbierto, setFormAbierto] = useState(false);
-  const [recetaEditar, setRecetaEditar] = useState<RecetaSalidaDto | null>(null);
+  const [recetaEditar, setRecetaEditar] = useState<RecetaSalidaDto | null>(
+    null,
+  );
   const [recetaVer, setRecetaVer] = useState<RecetaSalidaDto | null>(null);
-  const [recetaCompartir, setRecetaCompartir] = useState<RecetaSalidaDto | null>(null);
-  const [recetaEliminar, setRecetaEliminar] = useState<RecetaSalidaDto | null>(null);
+  const [recetaCompartir, setRecetaCompartir] =
+    useState<RecetaSalidaDto | null>(null);
+  const [recetaEliminar, setRecetaEliminar] = useState<RecetaSalidaDto | null>(
+    null,
+  );
 
   const recetas = consulta.data?.recetas ?? [];
 
@@ -74,7 +79,9 @@ export default function PaginaRecetas() {
           ))}
         </div>
       ) : consulta.isError ? (
-        <p className="text-sm text-destructive">No se pudieron cargar las recetas.</p>
+        <p className="text-sm text-destructive">
+          No se pudieron cargar las recetas.
+        </p>
       ) : recetas.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           {debounced
@@ -134,7 +141,9 @@ export default function PaginaRecetas() {
       <Dialog open={formAbierto} onOpenChange={setFormAbierto}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{recetaEditar ? "Editar receta" : "Nueva receta"}</DialogTitle>
+            <DialogTitle>
+              {recetaEditar ? "Editar receta" : "Nueva receta"}
+            </DialogTitle>
           </DialogHeader>
           <FormularioReceta
             recetaInicial={recetaEditar}
@@ -144,7 +153,10 @@ export default function PaginaRecetas() {
       </Dialog>
 
       {/* Detalle */}
-      <Dialog open={Boolean(recetaVer)} onOpenChange={(abierto) => !abierto && setRecetaVer(null)}>
+      <Dialog
+        open={Boolean(recetaVer)}
+        onOpenChange={(abierto) => !abierto && setRecetaVer(null)}
+      >
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{recetaVer?.nombre}</DialogTitle>
@@ -175,7 +187,10 @@ export default function PaginaRecetas() {
         onCancelar={() => setRecetaEliminar(null)}
         onConfirmar={() => {
           if (!recetaEliminar) return;
-          eliminar.mutate({ id: recetaEliminar.id }, { onSuccess: () => setRecetaEliminar(null) });
+          eliminar.mutate(
+            { id: recetaEliminar.id },
+            { onSuccess: () => setRecetaEliminar(null) },
+          );
         }}
       />
     </div>

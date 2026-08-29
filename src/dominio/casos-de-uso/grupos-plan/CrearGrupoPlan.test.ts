@@ -18,12 +18,14 @@ describe("CrearGrupoPlan", () => {
   });
 
   it("rechaza un nombre que ya está en uso", async () => {
-    const grupos = mockGrupoPlanRepositorio({ existeNombre: vi.fn(async () => true) });
+    const grupos = mockGrupoPlanRepositorio({
+      existeNombre: vi.fn(async () => true),
+    });
     const casoUso = new CrearGrupoPlan(grupos);
 
-    await expect(casoUso.ejecutar({ nombre: "Deportistas" })).rejects.toBeInstanceOf(
-      ErrorGrupoPlanDuplicado,
-    );
+    await expect(
+      casoUso.ejecutar({ nombre: "Deportistas" }),
+    ).rejects.toBeInstanceOf(ErrorGrupoPlanDuplicado);
     expect(grupos.crear).not.toHaveBeenCalled();
   });
 

@@ -21,7 +21,10 @@ export const detalleEstadisticaDto = z
     desde: z.coerce.date(),
     hasta: z.coerce.date(),
   })
-  .refine((d) => d.hasta >= d.desde, { message: "El rango está invertido", path: ["hasta"] });
+  .refine((d) => d.hasta >= d.desde, {
+    message: "El rango está invertido",
+    path: ["hasta"],
+  });
 export type DetalleEstadisticaDto = z.infer<typeof detalleEstadisticaDto>;
 
 export const pacienteEstadisticaDto = z.object({

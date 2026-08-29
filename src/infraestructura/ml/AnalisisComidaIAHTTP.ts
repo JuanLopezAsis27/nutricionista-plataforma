@@ -20,10 +20,13 @@ export class AnalisisComidaIAHTTP implements IAnalisisComidaIA {
     descripcion?: string;
   }): Promise<ResultadoAnalisisComida> {
     try {
-      return await this.cliente.postar<ResultadoAnalisisComida>("/analizar-comida", {
-        archivoClave: entrada.archivoClave ?? null,
-        descripcion: entrada.descripcion ?? null,
-      });
+      return await this.cliente.postar<ResultadoAnalisisComida>(
+        "/analizar-comida",
+        {
+          archivoClave: entrada.archivoClave ?? null,
+          descripcion: entrada.descripcion ?? null,
+        },
+      );
     } catch (error) {
       console.error("[ml] analizar-comida falló, se usa el stub:", error);
       return this.fallback.analizar(entrada);

@@ -34,15 +34,23 @@ export class ProveedorNutricionApp implements IProveedorDatosNutricionales {
   ): Promise<AlimentoNutricional[]> {
     const creds = await this.resolverFatSecret();
     if (!creds) {
-      return filtrarAlimentos(await this.respaldo.buscar(termino, limite), criterio);
+      return filtrarAlimentos(
+        await this.respaldo.buscar(termino, limite),
+        criterio,
+      );
     }
 
-    const consulta = this.traductor ? await this.traductor.aIngles(termino) : termino;
+    const consulta = this.traductor
+      ? await this.traductor.aIngles(termino)
+      : termino;
     const resultados = await this.fatsecret.buscar(creds, consulta, limite);
 
     // Sin resultados (o error de FatSecret) → OFF con el término original (español).
     if (resultados.length === 0) {
-      return filtrarAlimentos(await this.respaldo.buscar(termino, limite), criterio);
+      return filtrarAlimentos(
+        await this.respaldo.buscar(termino, limite),
+        criterio,
+      );
     }
 
     const traducidos = this.traductor
@@ -56,7 +64,9 @@ export class ProveedorNutricionApp implements IProveedorDatosNutricionales {
   private async traducirNombres(
     resultados: AlimentoNutricional[],
   ): Promise<AlimentoNutricional[]> {
-    const nombres = await this.traductor!.aEspanol(resultados.map((r) => r.nombre));
+    const nombres = await this.traductor!.aEspanol(
+      resultados.map((r) => r.nombre),
+    );
     return resultados.map((r, i) => ({ ...r, nombre: nombres[i] ?? r.nombre }));
   }
 
@@ -64,7 +74,10 @@ export class ProveedorNutricionApp implements IProveedorDatosNutricionales {
     try {
       const c = await this.credenciales.obtener();
       if (c?.fatsecretClientId && c?.fatsecretClientSecret) {
-        return { clientId: c.fatsecretClientId, clientSecret: c.fatsecretClientSecret };
+        return {
+          clientId: c.fatsecretClientId,
+          clientSecret: c.fatsecretClientSecret,
+        };
       }
     } catch {
       // Sin alcance de inquilino → probamos el entorno.

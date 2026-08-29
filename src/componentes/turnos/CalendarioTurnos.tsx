@@ -9,14 +9,26 @@ import { Button } from "@/componentes/ui/button";
 
 const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const MESES = [
-  "enero", "febrero", "marzo", "abril", "mayo", "junio",
-  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+  "enero",
+  "febrero",
+  "marzo",
+  "abril",
+  "mayo",
+  "junio",
+  "julio",
+  "agosto",
+  "septiembre",
+  "octubre",
+  "noviembre",
+  "diciembre",
 ];
 
 const COLOR_ESTADO: Record<string, string> = {
-  PENDIENTE: "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300",
+  PENDIENTE:
+    "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300",
   CONFIRMADO: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300",
-  COMPLETADO: "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300",
+  COMPLETADO:
+    "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300",
   CANCELADO: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
 };
 
@@ -28,7 +40,11 @@ interface PropsCalendario {
 }
 
 /** Calendario mensual con los turnos como eventos. */
-export function CalendarioTurnos({ turnos, mapaPacientes, onSeleccionarDia }: PropsCalendario) {
+export function CalendarioTurnos({
+  turnos,
+  mapaPacientes,
+  onSeleccionarDia,
+}: PropsCalendario) {
   const [referencia, setReferencia] = useState(() => {
     const ahora = new Date();
     return new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), 1));
@@ -80,12 +96,17 @@ export function CalendarioTurnos({ turnos, mapaPacientes, onSeleccionarDia }: Pr
 
       <div className="grid grid-cols-7 gap-px overflow-hidden rounded-md border bg-border">
         {DIAS.map((dia) => (
-          <div key={dia} className="bg-muted p-2 text-center text-xs font-medium">
+          <div
+            key={dia}
+            className="bg-muted p-2 text-center text-xs font-medium"
+          >
             {dia}
           </div>
         ))}
         {celdas.map((dia, i) => {
-          const claveFecha = dia ? aFechaISO(new Date(Date.UTC(anio, mes, dia))) : "";
+          const claveFecha = dia
+            ? aFechaISO(new Date(Date.UTC(anio, mes, dia)))
+            : "";
           const turnosDia = dia ? (porFecha.get(claveFecha) ?? []) : [];
           const esPasado = Boolean(dia) && claveFecha < hoyISO;
           const esHoy = claveFecha === hoyISO;
@@ -95,7 +116,9 @@ export function CalendarioTurnos({ turnos, mapaPacientes, onSeleccionarDia }: Pr
               key={i}
               role={clickeable ? "button" : undefined}
               tabIndex={clickeable ? 0 : undefined}
-              onClick={clickeable ? () => onSeleccionarDia!(claveFecha) : undefined}
+              onClick={
+                clickeable ? () => onSeleccionarDia!(claveFecha) : undefined
+              }
               onKeyDown={
                 clickeable
                   ? (e) => {
@@ -112,7 +135,8 @@ export function CalendarioTurnos({ turnos, mapaPacientes, onSeleccionarDia }: Pr
                 "flex h-28 flex-col bg-background p-1",
                 !dia && "bg-muted/30",
                 esPasado && dia && "bg-muted/20 text-muted-foreground",
-                clickeable && "cursor-pointer transition-colors hover:bg-secondary/60",
+                clickeable &&
+                  "cursor-pointer transition-colors hover:bg-secondary/60",
               )}
             >
               {dia && (
@@ -137,7 +161,8 @@ export function CalendarioTurnos({ turnos, mapaPacientes, onSeleccionarDia }: Pr
                       )}
                       title={`${turno.hora} · ${mapaPacientes.get(turno.pacienteId) ?? ""}`}
                     >
-                      {turno.hora} {mapaPacientes.get(turno.pacienteId) ?? "Paciente"}
+                      {turno.hora}{" "}
+                      {mapaPacientes.get(turno.pacienteId) ?? "Paciente"}
                     </div>
                   ))}
               </div>

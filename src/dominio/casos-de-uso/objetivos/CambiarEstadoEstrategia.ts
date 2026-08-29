@@ -1,5 +1,8 @@
 import type { IObjetivoRepositorio } from "../../repositorios/IObjetivoRepositorio";
-import type { EstadoEstrategia, EstrategiaObjetivo } from "../../entidades/Objetivo";
+import type {
+  EstadoEstrategia,
+  EstrategiaObjetivo,
+} from "../../entidades/Objetivo";
 import { ErrorObjetivoNoEncontrado } from "../../errores/ErrorObjetivoNoEncontrado";
 import { ErrorValidacion } from "../../errores/ErrorValidacion";
 
@@ -18,10 +21,14 @@ export interface DatosCambiarEstadoEstrategia {
 export class CambiarEstadoEstrategia {
   constructor(private readonly objetivos: IObjetivoRepositorio) {}
 
-  async ejecutar(datos: DatosCambiarEstadoEstrategia): Promise<EstrategiaObjetivo> {
+  async ejecutar(
+    datos: DatosCambiarEstadoEstrategia,
+  ): Promise<EstrategiaObjetivo> {
     const motivo = datos.motivo?.trim() ?? "";
     if (motivo.length === 0) {
-      throw new ErrorValidacion("Indicá el motivo del cambio de estado de la estrategia.");
+      throw new ErrorValidacion(
+        "Indicá el motivo del cambio de estado de la estrategia.",
+      );
     }
 
     const objetivo = await this.objetivos.obtenerPorId(datos.objetivoId);
@@ -29,15 +36,22 @@ export class CambiarEstadoEstrategia {
       throw new ErrorObjetivoNoEncontrado(datos.objetivoId);
     }
 
-    const estrategia = objetivo.estrategias.find((e) => e.id === datos.estrategiaId);
+    const estrategia = objetivo.estrategias.find(
+      (e) => e.id === datos.estrategiaId,
+    );
     if (!estrategia) {
       throw new ErrorValidacion("La estrategia no pertenece a este objetivo.");
     }
     if (estrategia.estado === datos.estado) {
-      throw new ErrorValidacion(`La estrategia ya está en estado ${datos.estado}.`);
+      throw new ErrorValidacion(
+        `La estrategia ya está en estado ${datos.estado}.`,
+      );
     }
 
-    const actualizada: EstrategiaObjetivo = { ...estrategia, estado: datos.estado };
+    const actualizada: EstrategiaObjetivo = {
+      ...estrategia,
+      estado: datos.estado,
+    };
     await this.objetivos.actualizarEstrategia(datos.objetivoId, actualizada, {
       tipo: "ESTRATEGIA_CAMBIO_ESTADO",
       detalle: `Estrategia «${estrategia.descripcion}»: ${estrategia.estado} → ${datos.estado}.`,

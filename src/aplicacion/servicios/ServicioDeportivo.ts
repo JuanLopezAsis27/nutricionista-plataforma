@@ -28,25 +28,39 @@ export class ServicioDeportivo {
     private readonly eliminarCompetenciaUC: EliminarCompetencia,
   ) {}
 
-  async obtenerPerfil(pacienteId: string): Promise<PerfilDeportivoSalidaDto | null> {
+  async obtenerPerfil(
+    pacienteId: string,
+  ): Promise<PerfilDeportivoSalidaDto | null> {
     const perfil = await this.obtenerPerfilUC.ejecutar(pacienteId);
     return perfil ? ServicioDeportivo.perfilASalida(perfil) : null;
   }
 
-  async guardarPerfil(datos: GuardarPerfilDeportivoDto): Promise<PerfilDeportivoSalidaDto> {
-    return ServicioDeportivo.perfilASalida(await this.guardarPerfilUC.ejecutar(datos));
+  async guardarPerfil(
+    datos: GuardarPerfilDeportivoDto,
+  ): Promise<PerfilDeportivoSalidaDto> {
+    return ServicioDeportivo.perfilASalida(
+      await this.guardarPerfilUC.ejecutar(datos),
+    );
   }
 
-  async listarCompetencias(pacienteId: string): Promise<CompetenciaSalidaDto[]> {
+  async listarCompetencias(
+    pacienteId: string,
+  ): Promise<CompetenciaSalidaDto[]> {
     const competencias = await this.listarCompetenciasUC.ejecutar(pacienteId);
     return competencias.map(ServicioDeportivo.competenciaASalida);
   }
 
-  async crearCompetencia(datos: CrearCompetenciaDto): Promise<CompetenciaSalidaDto> {
-    return ServicioDeportivo.competenciaASalida(await this.crearCompetenciaUC.ejecutar(datos));
+  async crearCompetencia(
+    datos: CrearCompetenciaDto,
+  ): Promise<CompetenciaSalidaDto> {
+    return ServicioDeportivo.competenciaASalida(
+      await this.crearCompetenciaUC.ejecutar(datos),
+    );
   }
 
-  async actualizarCompetencia(datos: ActualizarCompetenciaDto): Promise<CompetenciaSalidaDto> {
+  async actualizarCompetencia(
+    datos: ActualizarCompetenciaDto,
+  ): Promise<CompetenciaSalidaDto> {
     return ServicioDeportivo.competenciaASalida(
       await this.actualizarCompetenciaUC.ejecutar(datos),
     );
@@ -56,11 +70,15 @@ export class ServicioDeportivo {
     await this.eliminarCompetenciaUC.ejecutar(id);
   }
 
-  private static perfilASalida(perfil: PerfilDeportivo): PerfilDeportivoSalidaDto {
+  private static perfilASalida(
+    perfil: PerfilDeportivo,
+  ): PerfilDeportivoSalidaDto {
     return perfil.aPrimitivos();
   }
 
-  private static competenciaASalida(competencia: Competencia): CompetenciaSalidaDto {
+  private static competenciaASalida(
+    competencia: Competencia,
+  ): CompetenciaSalidaDto {
     return competencia.aPrimitivos();
   }
 }

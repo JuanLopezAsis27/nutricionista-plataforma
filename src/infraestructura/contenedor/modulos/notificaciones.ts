@@ -15,6 +15,10 @@ export function crearServicioNotificaciones(deps: {
   emails: IEmailEnviadoRepositorio;
 }): ServicioNotificaciones {
   return new ServicioNotificaciones(
-    new ObtenerCentroDeNotificaciones(deps.alertas, deps.mensajeria, deps.emails),
+    new ObtenerCentroDeNotificaciones(
+      deps.alertas,
+      deps.mensajeria,
+      deps.emails,
+    ),
   );
 }

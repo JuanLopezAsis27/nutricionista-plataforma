@@ -1,7 +1,12 @@
 "use client";
 
 import { Settings } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/componentes/ui/tabs";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/componentes/ui/tabs";
 import { FormularioConfiguracion } from "@/componentes/configuracion/FormularioConfiguracion";
 import { FormularioPdfPlan } from "@/componentes/configuracion/FormularioPdfPlan";
 import { FormularioWhatsapp } from "@/componentes/configuracion/FormularioWhatsapp";
@@ -17,7 +22,8 @@ export default function PaginaConfiguracion() {
           <Settings className="h-6 w-6 text-primary" /> Configuración
         </h1>
         <p className="text-sm text-muted-foreground">
-          Preferencias del consultorio y base de conocimiento para el seguimiento.
+          Preferencias del consultorio y base de conocimiento para el
+          seguimiento.
         </p>
       </div>
 
