@@ -18,7 +18,7 @@ export class PrismaRepositorioHistoriaClinica implements IHistoriaClinicaReposit
       create: { id, nutricionistaId: inquilinoActual(), pacienteId, ...campos },
       update: campos,
     });
-    return this.mapear(fila);
+    return mapearHistoriaClinica(fila);
   }
 
   async obtenerPorPaciente(
@@ -27,21 +27,21 @@ export class PrismaRepositorioHistoriaClinica implements IHistoriaClinicaReposit
     const fila = await this.prisma.historiaClinica.findUnique({
       where: { pacienteId },
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearHistoriaClinica(fila) : null;
   }
+}
 
-  private mapear(fila: HistoriaFila): HistoriaClinica {
-    return HistoriaClinica.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      motivoConsulta: fila.motivoConsulta,
-      diagnosticos: fila.diagnosticos,
-      medicacion: fila.medicacion,
-      antecedentesPersonales: fila.antecedentesPersonales,
-      antecedentesFamiliares: fila.antecedentesFamiliares,
-      habitos: fila.habitos,
-      contexto: fila.contexto,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+export function mapearHistoriaClinica(fila: HistoriaFila): HistoriaClinica {
+  return HistoriaClinica.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    motivoConsulta: fila.motivoConsulta,
+    diagnosticos: fila.diagnosticos,
+    medicacion: fila.medicacion,
+    antecedentesPersonales: fila.antecedentesPersonales,
+    antecedentesFamiliares: fila.antecedentesFamiliares,
+    habitos: fila.habitos,
+    contexto: fila.contexto,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

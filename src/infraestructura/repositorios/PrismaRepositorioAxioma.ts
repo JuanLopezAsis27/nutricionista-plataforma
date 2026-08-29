@@ -28,7 +28,7 @@ export class PrismaRepositorioAxioma implements IAxiomaRepositorio {
         creadoEn: d.creadoEn,
       },
     });
-    return this.mapear(fila);
+    return mapearAxioma(fila);
   }
 
   async actualizar(axioma: AxiomaNutricional): Promise<AxiomaNutricional> {
@@ -47,7 +47,7 @@ export class PrismaRepositorioAxioma implements IAxiomaRepositorio {
         activo: d.activo,
       },
     });
-    return this.mapear(fila);
+    return mapearAxioma(fila);
   }
 
   async eliminar(id: string): Promise<void> {
@@ -58,14 +58,14 @@ export class PrismaRepositorioAxioma implements IAxiomaRepositorio {
     const fila = await this.prisma.axiomaNutricional.findUnique({
       where: { id },
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearAxioma(fila) : null;
   }
 
   async listar(): Promise<AxiomaNutricional[]> {
     const filas = await this.prisma.axiomaNutricional.findMany({
       orderBy: [{ prioridad: "desc" }, { creadoEn: "asc" }],
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearAxioma(fila));
   }
 
   async listarActivos(): Promise<AxiomaNutricional[]> {
@@ -73,23 +73,23 @@ export class PrismaRepositorioAxioma implements IAxiomaRepositorio {
       where: { activo: true },
       orderBy: [{ prioridad: "desc" }, { creadoEn: "asc" }],
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearAxioma(fila));
   }
+}
 
-  private mapear(fila: AxiomaFila): AxiomaNutricional {
-    return AxiomaNutricional.reconstruir({
-      id: fila.id,
-      ambito: fila.ambito,
-      parametro: fila.parametro,
-      operador: fila.operador,
-      valor: fila.valor,
-      valorMax: fila.valorMax,
-      unidad: fila.unidad,
-      texto: fila.texto,
-      prioridad: fila.prioridad,
-      activo: fila.activo,
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+export function mapearAxioma(fila: AxiomaFila): AxiomaNutricional {
+  return AxiomaNutricional.reconstruir({
+    id: fila.id,
+    ambito: fila.ambito,
+    parametro: fila.parametro,
+    operador: fila.operador,
+    valor: fila.valor,
+    valorMax: fila.valorMax,
+    unidad: fila.unidad,
+    texto: fila.texto,
+    prioridad: fila.prioridad,
+    activo: fila.activo,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

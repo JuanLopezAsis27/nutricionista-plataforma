@@ -37,7 +37,7 @@ export class PrismaRepositorioHistorialIA implements IHistorialIARepositorio {
       orderBy: { creadoEn: "desc" },
       take: limite,
     });
-    return filas.reverse().map((f) => this.mapearConsulta(f));
+    return filas.reverse().map((f) => mapearConsultaIA(f));
   }
 
   async guardarAnalisis(analisis: AnalisisComida): Promise<void> {
@@ -63,26 +63,26 @@ export class PrismaRepositorioHistorialIA implements IHistorialIARepositorio {
       orderBy: { creadoEn: "desc" },
       take: limite,
     });
-    return filas.map((f) => this.mapearAnalisis(f));
+    return filas.map((f) => mapearAnalisisComida(f));
   }
+}
 
-  private mapearConsulta(fila: ConsultaFila): ConsultaIA {
-    return ConsultaIA.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      pregunta: fila.pregunta,
-      respuesta: fila.respuesta,
-      creadoEn: fila.creadoEn,
-    });
-  }
+export function mapearConsultaIA(fila: ConsultaFila): ConsultaIA {
+  return ConsultaIA.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    pregunta: fila.pregunta,
+    respuesta: fila.respuesta,
+    creadoEn: fila.creadoEn,
+  });
+}
 
-  private mapearAnalisis(fila: AnalisisFila): AnalisisComida {
-    return AnalisisComida.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      archivoId: fila.archivoId,
-      resultado: fila.resultado as unknown as ResultadoAnalisisComida,
-      creadoEn: fila.creadoEn,
-    });
-  }
+export function mapearAnalisisComida(fila: AnalisisFila): AnalisisComida {
+  return AnalisisComida.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    archivoId: fila.archivoId,
+    resultado: fila.resultado as unknown as ResultadoAnalisisComida,
+    creadoEn: fila.creadoEn,
+  });
 }

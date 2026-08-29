@@ -27,7 +27,7 @@ export class PrismaRepositorioSuplemento implements ISuplementoRepositorio {
         creadoEn: d.creadoEn,
       },
     });
-    return this.mapear(fila);
+    return mapearSuplemento(fila);
   }
 
   async actualizar(suplemento: Suplemento): Promise<Suplemento> {
@@ -44,7 +44,7 @@ export class PrismaRepositorioSuplemento implements ISuplementoRepositorio {
         notas: d.notas,
       },
     });
-    return this.mapear(fila);
+    return mapearSuplemento(fila);
   }
 
   async eliminar(id: string): Promise<void> {
@@ -53,7 +53,7 @@ export class PrismaRepositorioSuplemento implements ISuplementoRepositorio {
 
   async obtenerPorId(id: string): Promise<Suplemento | null> {
     const fila = await this.prisma.suplemento.findUnique({ where: { id } });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearSuplemento(fila) : null;
   }
 
   async listarPorPaciente(
@@ -64,7 +64,7 @@ export class PrismaRepositorioSuplemento implements ISuplementoRepositorio {
       where: { pacienteId, ...(incluirInactivos ? {} : { activo: true }) },
       orderBy: [{ activo: "desc" }, { creadoEn: "desc" }],
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearSuplemento(fila));
   }
 
   private soloFecha(fecha: Date): Date {
@@ -72,19 +72,19 @@ export class PrismaRepositorioSuplemento implements ISuplementoRepositorio {
       Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
     );
   }
+}
 
-  private mapear(fila: SuplementoFila): Suplemento {
-    return Suplemento.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      nombre: fila.nombre,
-      dosis: fila.dosis,
-      frecuencia: fila.frecuencia,
-      desde: fila.desde,
-      hasta: fila.hasta,
-      activo: fila.activo,
-      notas: fila.notas,
-      creadoEn: fila.creadoEn,
-    });
-  }
+export function mapearSuplemento(fila: SuplementoFila): Suplemento {
+  return Suplemento.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    nombre: fila.nombre,
+    dosis: fila.dosis,
+    frecuencia: fila.frecuencia,
+    desde: fila.desde,
+    hasta: fila.hasta,
+    activo: fila.activo,
+    notas: fila.notas,
+    creadoEn: fila.creadoEn,
+  });
 }

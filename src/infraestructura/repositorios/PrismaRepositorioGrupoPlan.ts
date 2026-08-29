@@ -15,7 +15,7 @@ export class PrismaRepositorioGrupoPlan implements IGrupoPlanRepositorio {
     const fila = await this.prisma.grupoPlan.create({
       data: { nutricionistaId: inquilinoActual(), ...d },
     });
-    return this.mapear(fila);
+    return mapearGrupoPlan(fila);
   }
 
   async actualizar(grupo: GrupoPlan): Promise<GrupoPlan> {
@@ -24,7 +24,7 @@ export class PrismaRepositorioGrupoPlan implements IGrupoPlanRepositorio {
       where: { id: d.id },
       data: { nombre: d.nombre, descripcion: d.descripcion },
     });
-    return this.mapear(fila);
+    return mapearGrupoPlan(fila);
   }
 
   async eliminar(id: string): Promise<void> {
@@ -34,7 +34,7 @@ export class PrismaRepositorioGrupoPlan implements IGrupoPlanRepositorio {
 
   async obtenerPorId(id: string): Promise<GrupoPlan | null> {
     const fila = await this.prisma.grupoPlan.findUnique({ where: { id } });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearGrupoPlan(fila) : null;
   }
 
   async listar(): Promise<GrupoPlanConTotal[]> {
@@ -56,7 +56,7 @@ export class PrismaRepositorioGrupoPlan implements IGrupoPlanRepositorio {
       )?._count._all ?? 0;
 
     return filas.map((fila) => ({
-      grupo: this.mapear(fila),
+      grupo: mapearGrupoPlan(fila),
       cantidadPlanes: contar(fila.id, false),
       cantidadPlantillas: contar(fila.id, true),
     }));
@@ -73,14 +73,14 @@ export class PrismaRepositorioGrupoPlan implements IGrupoPlanRepositorio {
     });
     return cantidad > 0;
   }
+}
 
-  private mapear(fila: GrupoFila): GrupoPlan {
-    return GrupoPlan.reconstruir({
-      id: fila.id,
-      nombre: fila.nombre,
-      descripcion: fila.descripcion,
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+export function mapearGrupoPlan(fila: GrupoFila): GrupoPlan {
+  return GrupoPlan.reconstruir({
+    id: fila.id,
+    nombre: fila.nombre,
+    descripcion: fila.descripcion,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

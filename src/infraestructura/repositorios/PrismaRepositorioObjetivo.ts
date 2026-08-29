@@ -56,7 +56,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
         include: INCLUIR_ESTRATEGIAS,
       });
     });
-    return this.mapear(fila);
+    return mapearObjetivo(fila);
   }
 
   async actualizar(
@@ -84,7 +84,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
         include: INCLUIR_ESTRATEGIAS,
       });
     });
-    return this.mapear(fila);
+    return mapearObjetivo(fila);
   }
 
   async eliminar(id: string): Promise<void> {
@@ -97,7 +97,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
       where: { id },
       include: INCLUIR_ESTRATEGIAS,
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearObjetivo(fila) : null;
   }
 
   async listarPorPaciente(pacienteId: string): Promise<Objetivo[]> {
@@ -106,7 +106,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
       include: INCLUIR_ESTRATEGIAS,
       orderBy: { creadoEn: "desc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearObjetivo(fila));
   }
 
   async agregarEstrategia(
@@ -194,26 +194,26 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
       Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
     );
   }
+}
 
-  private mapear(fila: ObjetivoConEstrategias): Objetivo {
-    return Objetivo.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      objetivoComposicionId: fila.objetivoComposicionId,
-      titulo: fila.titulo,
-      descripcion: fila.descripcion,
-      prioridad: fila.prioridad,
-      estado: fila.estado,
-      fechaObjetivo: fila.fechaObjetivo,
-      estrategias: fila.estrategias.map((estrategia) => ({
-        id: estrategia.id,
-        descripcion: estrategia.descripcion,
-        motivo: estrategia.motivo,
-        estado: estrategia.estado,
-        creadoEn: estrategia.creadoEn,
-      })),
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+export function mapearObjetivo(fila: ObjetivoConEstrategias): Objetivo {
+  return Objetivo.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    objetivoComposicionId: fila.objetivoComposicionId,
+    titulo: fila.titulo,
+    descripcion: fila.descripcion,
+    prioridad: fila.prioridad,
+    estado: fila.estado,
+    fechaObjetivo: fila.fechaObjetivo,
+    estrategias: fila.estrategias.map((estrategia) => ({
+      id: estrategia.id,
+      descripcion: estrategia.descripcion,
+      motivo: estrategia.motivo,
+      estado: estrategia.estado,
+      creadoEn: estrategia.creadoEn,
+    })),
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

@@ -55,7 +55,7 @@ export class PrismaRepositorioRecordatorioWhatsapp implements IRecordatorioWhats
         respondidoEn: d.respondidoEn,
       },
     });
-    return this.mapear(fila);
+    return mapearRecordatorioWhatsapp(fila);
   }
 
   async actualizar(
@@ -77,14 +77,14 @@ export class PrismaRepositorioRecordatorioWhatsapp implements IRecordatorioWhats
         respondidoEn: d.respondidoEn,
       },
     });
-    return this.mapear(fila);
+    return mapearRecordatorioWhatsapp(fila);
   }
 
   async obtenerPorId(id: string): Promise<RecordatorioWhatsapp | null> {
     const fila = await this.prisma.recordatorioWhatsapp.findUnique({
       where: { id },
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearRecordatorioWhatsapp(fila) : null;
   }
 
   async obtenerPorIdExterno(
@@ -93,7 +93,7 @@ export class PrismaRepositorioRecordatorioWhatsapp implements IRecordatorioWhats
     const fila = await this.prisma.recordatorioWhatsapp.findFirst({
       where: { idExterno },
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearRecordatorioWhatsapp(fila) : null;
   }
 
   async obtenerPorTurnoYDias(
@@ -103,7 +103,7 @@ export class PrismaRepositorioRecordatorioWhatsapp implements IRecordatorioWhats
     const fila = await this.prisma.recordatorioWhatsapp.findFirst({
       where: { turnoId, diasAntes },
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearRecordatorioWhatsapp(fila) : null;
   }
 
   async porTurnos(
@@ -119,7 +119,7 @@ export class PrismaRepositorioRecordatorioWhatsapp implements IRecordatorioWhats
     const mapa = new Map<string, RecordatorioWhatsapp[]>();
     for (const fila of filas) {
       const acumulado = mapa.get(fila.turnoId) ?? [];
-      acumulado.push(this.mapear(fila));
+      acumulado.push(mapearRecordatorioWhatsapp(fila));
       mapa.set(fila.turnoId, acumulado);
     }
     return mapa;
@@ -130,7 +130,7 @@ export class PrismaRepositorioRecordatorioWhatsapp implements IRecordatorioWhats
       where: { estado: "PREPARADO" },
       orderBy: { creadoEn: "desc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearRecordatorioWhatsapp(fila));
   }
 
   async listar(
@@ -144,7 +144,7 @@ export class PrismaRepositorioRecordatorioWhatsapp implements IRecordatorioWhats
       orderBy: { creadoEn: "desc" },
       take: filtro.limite ?? 100,
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearRecordatorioWhatsapp(fila));
   }
 
   async sinRespuestaDePaciente(
@@ -158,26 +158,28 @@ export class PrismaRepositorioRecordatorioWhatsapp implements IRecordatorioWhats
       },
       orderBy: { creadoEn: "desc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearRecordatorioWhatsapp(fila));
   }
+}
 
-  private mapear(fila: RecordatorioFila): RecordatorioWhatsapp {
-    return RecordatorioWhatsapp.reconstruir({
-      id: fila.id,
-      turnoId: fila.turnoId,
-      pacienteId: fila.pacienteId,
-      telefono: fila.telefono,
-      mensaje: fila.mensaje,
-      estado: fila.estado,
-      usuarioId: fila.usuarioId,
-      idExterno: fila.idExterno,
-      origen: fila.origen,
-      diasAntes: fila.diasAntes,
-      plantillaId: fila.plantillaId,
-      error: fila.error,
-      creadoEn: fila.creadoEn,
-      confirmadoEn: fila.confirmadoEn,
-      respondidoEn: fila.respondidoEn,
-    });
-  }
+export function mapearRecordatorioWhatsapp(
+  fila: RecordatorioFila,
+): RecordatorioWhatsapp {
+  return RecordatorioWhatsapp.reconstruir({
+    id: fila.id,
+    turnoId: fila.turnoId,
+    pacienteId: fila.pacienteId,
+    telefono: fila.telefono,
+    mensaje: fila.mensaje,
+    estado: fila.estado,
+    usuarioId: fila.usuarioId,
+    idExterno: fila.idExterno,
+    origen: fila.origen,
+    diasAntes: fila.diasAntes,
+    plantillaId: fila.plantillaId,
+    error: fila.error,
+    creadoEn: fila.creadoEn,
+    confirmadoEn: fila.confirmadoEn,
+    respondidoEn: fila.respondidoEn,
+  });
 }

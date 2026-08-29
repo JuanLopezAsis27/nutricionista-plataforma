@@ -57,7 +57,7 @@ export class PrismaRepositorioAlertaSeguimiento implements IAlertaSeguimientoRep
       data: { estado: d.estado, resueltaEn: d.resueltaEn },
       include: INCLUIR_PACIENTE,
     });
-    return this.mapear(fila);
+    return mapearAlertaSeguimiento(fila);
   }
 
   async obtenerPorId(id: string): Promise<AlertaSeguimiento | null> {
@@ -65,7 +65,7 @@ export class PrismaRepositorioAlertaSeguimiento implements IAlertaSeguimientoRep
       where: { id },
       include: INCLUIR_PACIENTE,
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearAlertaSeguimiento(fila) : null;
   }
 
   async listarPendientes(): Promise<AlertaSeguimiento[]> {
@@ -74,7 +74,7 @@ export class PrismaRepositorioAlertaSeguimiento implements IAlertaSeguimientoRep
       include: INCLUIR_PACIENTE,
       orderBy: { creadoEn: "desc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearAlertaSeguimiento(fila));
   }
 
   async contarPendientes(): Promise<number> {
@@ -82,19 +82,21 @@ export class PrismaRepositorioAlertaSeguimiento implements IAlertaSeguimientoRep
       where: { estado: "PENDIENTE" },
     });
   }
+}
 
-  private mapear(fila: AlertaConPaciente): AlertaSeguimiento {
-    return AlertaSeguimiento.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      pacienteNombre: `${fila.paciente.nombre} ${fila.paciente.apellido}`,
-      tipo: fila.tipo,
-      estado: fila.estado,
-      detalle: fila.detalle,
-      referenciaId: fila.referenciaId,
-      datos: (fila.datos as Record<string, unknown> | null) ?? null,
-      creadoEn: fila.creadoEn,
-      resueltaEn: fila.resueltaEn,
-    });
-  }
+export function mapearAlertaSeguimiento(
+  fila: AlertaConPaciente,
+): AlertaSeguimiento {
+  return AlertaSeguimiento.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    pacienteNombre: `${fila.paciente.nombre} ${fila.paciente.apellido}`,
+    tipo: fila.tipo,
+    estado: fila.estado,
+    detalle: fila.detalle,
+    referenciaId: fila.referenciaId,
+    datos: (fila.datos as Record<string, unknown> | null) ?? null,
+    creadoEn: fila.creadoEn,
+    resueltaEn: fila.resueltaEn,
+  });
 }

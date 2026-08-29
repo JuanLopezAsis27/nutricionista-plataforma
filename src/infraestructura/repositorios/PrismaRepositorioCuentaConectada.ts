@@ -25,7 +25,7 @@ export class PrismaRepositorioCuentaConectada implements ICuentaConectadaReposit
     const fila = await this.prisma.cuentaConectada.findFirst({
       where: { proveedor },
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearCuentaConectada(fila, this.cifrador) : null;
   }
 
   async guardar(cuenta: CuentaConectada): Promise<CuentaConectada> {
@@ -52,26 +52,35 @@ export class PrismaRepositorioCuentaConectada implements ICuentaConectadaReposit
       : await this.prisma.cuentaConectada.create({
           data: { id: d.id, nutricionistaId: inquilinoActual(), ...datos },
         });
-    return this.mapear(fila);
+    return mapearCuentaConectada(fila, this.cifrador);
   }
 
   async eliminar(proveedor: ProveedorCuenta): Promise<void> {
     await this.prisma.cuentaConectada.deleteMany({ where: { proveedor } });
   }
+}
 
-  private mapear(fila: CuentaFila): CuentaConectada {
-    return CuentaConectada.reconstruir({
-      id: fila.id,
-      proveedor: fila.proveedor,
-      emailCuenta: fila.emailCuenta,
-      accessToken: this.cifrador.descifrar(fila.accessTokenCifrado),
-      refreshToken: fila.refreshTokenCifrado
-        ? this.cifrador.descifrar(fila.refreshTokenCifrado)
-        : null,
-      scopes: fila.scopes,
-      expiraEn: fila.expiraEn,
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+/**
+ * Fila -> entidad. A diferencia del resto de los mapeadores necesita el
+ * cifrador: los tokens OAuth se guardan cifrados y solo se descifran al salir.
+ * Se recibe por parametro (y no via `this`) para que la funcion siga siendo
+ * pura y testeable con un cifrador de mentira.
+ */
+export function mapearCuentaConectada(
+  fila: CuentaFila,
+  cifrador: Pick<CifradorTokens, "descifrar">,
+): CuentaConectada {
+  return CuentaConectada.reconstruir({
+    id: fila.id,
+    proveedor: fila.proveedor,
+    emailCuenta: fila.emailCuenta,
+    accessToken: cifrador.descifrar(fila.accessTokenCifrado),
+    refreshToken: fila.refreshTokenCifrado
+      ? cifrador.descifrar(fila.refreshTokenCifrado)
+      : null,
+    scopes: fila.scopes,
+    expiraEn: fila.expiraEn,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

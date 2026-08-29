@@ -23,7 +23,7 @@ export class PrismaRepositorioUsuario implements IUsuarioRepositorio {
         creadoEn: datos.creadoEn,
       },
     });
-    return this.mapearAUsuario(fila);
+    return mapearUsuario(fila);
   }
 
   async actualizar(usuario: Usuario): Promise<Usuario> {
@@ -38,24 +38,24 @@ export class PrismaRepositorioUsuario implements IUsuarioRepositorio {
         activo: datos.activo,
       },
     });
-    return this.mapearAUsuario(fila);
+    return mapearUsuario(fila);
   }
 
   async obtenerPorId(id: string): Promise<Usuario | null> {
     const fila = await this.prisma.usuario.findUnique({ where: { id } });
-    return fila ? this.mapearAUsuario(fila) : null;
+    return fila ? mapearUsuario(fila) : null;
   }
 
   async obtenerPorPacienteId(pacienteId: string): Promise<Usuario | null> {
     const fila = await this.prisma.usuario.findUnique({
       where: { pacienteId },
     });
-    return fila ? this.mapearAUsuario(fila) : null;
+    return fila ? mapearUsuario(fila) : null;
   }
 
   async listarPorRol(rol: RolUsuario): Promise<Usuario[]> {
     const filas = await this.prisma.usuario.findMany({ where: { rol } });
-    return filas.map((fila) => this.mapearAUsuario(fila));
+    return filas.map((fila) => mapearUsuario(fila));
   }
 
   async eliminarPorPacienteId(pacienteId: string): Promise<void> {
@@ -66,20 +66,20 @@ export class PrismaRepositorioUsuario implements IUsuarioRepositorio {
     const fila = await this.prisma.usuario.findUnique({
       where: { email: email.trim().toLowerCase() },
     });
-    return fila ? this.mapearAUsuario(fila) : null;
+    return fila ? mapearUsuario(fila) : null;
   }
+}
 
-  /** Mapea una fila de Prisma a la entidad de dominio Usuario. */
-  private mapearAUsuario(fila: UsuarioFila): Usuario {
-    return Usuario.reconstruir({
-      id: fila.id,
-      email: fila.email,
-      passwordHash: fila.passwordHash,
-      rol: fila.rol,
-      pacienteId: fila.pacienteId,
-      nutricionistaId: fila.nutricionistaId,
-      activo: fila.activo,
-      creadoEn: fila.creadoEn,
-    });
-  }
+/** Mapea una fila de Prisma a la entidad de dominio Usuario. */
+export function mapearUsuario(fila: UsuarioFila): Usuario {
+  return Usuario.reconstruir({
+    id: fila.id,
+    email: fila.email,
+    passwordHash: fila.passwordHash,
+    rol: fila.rol,
+    pacienteId: fila.pacienteId,
+    nutricionistaId: fila.nutricionistaId,
+    activo: fila.activo,
+    creadoEn: fila.creadoEn,
+  });
 }

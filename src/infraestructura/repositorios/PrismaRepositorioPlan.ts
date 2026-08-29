@@ -140,7 +140,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
         include: INCLUIR_HIJOS,
       });
     });
-    return this.mapear(fila);
+    return mapearPlan(fila);
   }
 
   async actualizar(
@@ -214,7 +214,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
         include: INCLUIR_HIJOS,
       });
     });
-    return this.mapear(fila);
+    return mapearPlan(fila);
   }
 
   /**
@@ -270,7 +270,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
       where: { id },
       include: INCLUIR_HIJOS,
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearPlan(fila) : null;
   }
 
   async listar(filtro?: FiltroPlanes): Promise<PlanNutricional[]> {
@@ -281,7 +281,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
       skip: filtro?.desplazamiento,
       take: filtro?.limite,
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearPlan(fila));
   }
 
   contar(filtro?: FiltroPlanes): Promise<number> {
@@ -368,7 +368,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
         activa: asignacion.activa,
       },
     });
-    return this.mapearAsignacion(fila);
+    return mapearAsignacionPlan(fila);
   }
 
   async desactivarAsignacionesDe(
@@ -391,7 +391,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
       orderBy: [{ activa: "desc" }, { fechaInicio: "desc" }],
     });
     return filas.map((fila) => ({
-      ...this.mapearAsignacion(fila),
+      ...mapearAsignacionPlan(fila),
       pacienteNombre: fila.paciente.nombre,
       pacienteApellido: fila.paciente.apellido,
     }));
@@ -404,7 +404,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
       where: { pacienteId },
       orderBy: [{ fechaInicio: "desc" }, { creadoEn: "desc" }],
     });
-    return filas.map((fila) => this.mapearAsignacion(fila));
+    return filas.map((fila) => mapearAsignacionPlan(fila));
   }
 
   async obtenerAsignacionActiva(
@@ -413,7 +413,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
     const fila = await this.prisma.asignacionPlan.findFirst({
       where: { pacienteId, activa: true },
     });
-    return fila ? this.mapearAsignacion(fila) : null;
+    return fila ? mapearAsignacionPlan(fila) : null;
   }
 
   async obtenerPlanActivoDePaciente(
@@ -426,7 +426,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
     // `plan` puede ser null desde la migración 38: si el plan se borró, la
     // asignación queda en el historial sin él. Un paciente en ese estado no
     // tiene plan vigente, que es exactamente lo que devuelve este método.
-    return asignacion?.plan ? this.mapear(asignacion.plan) : null;
+    return asignacion?.plan ? mapearPlan(asignacion.plan) : null;
   }
 
   async listarAsignacionesActivasVencidas(
@@ -438,7 +438,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
         fechaFin: { not: null, lt: this.soloFecha(fechaLimite) },
       },
     });
-    return filas.map((fila) => this.mapearAsignacion(fila));
+    return filas.map((fila) => mapearAsignacionPlan(fila));
   }
 
   private soloFecha(fecha: Date): Date {
@@ -446,80 +446,80 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
       Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
     );
   }
+}
 
-  private mapear(fila: PlanConHijos): PlanNutricional {
-    return PlanNutricional.reconstruir({
-      id: fila.id,
-      nombre: fila.nombre,
-      descripcion: fila.descripcion,
-      esPlantilla: fila.esPlantilla,
-      planOrigenId: fila.planOrigenId,
-      archivado: fila.archivado,
-      caloriasMeta: fila.caloriasMeta,
-      proteinasMetaG: aNumero(fila.proteinasMetaG),
-      carbohidratosMetaG: aNumero(fila.carbohidratosMetaG),
-      grasasMetaG: aNumero(fila.grasasMetaG),
-      contactosUtiles: fila.contactosUtiles,
-      comidas: fila.comidas.map((comida) => ({
-        id: comida.id,
-        nombre: comida.nombre,
-        horaDesde: comida.horaDesde,
-        horaHasta: comida.horaHasta,
-        orden: comida.orden,
-        opciones: comida.opciones.map((opcion) => ({
-          id: opcion.id,
-          numero: opcion.numero,
-          contenido: opcion.contenido,
-          recetaId: opcion.recetaId,
-          recetaNombre: opcion.receta?.nombre ?? null,
-          recetaMacros: opcion.receta
-            ? {
-                calorias: aNumero(opcion.receta.calorias),
-                proteinasG: aNumero(opcion.receta.proteinasG),
-                carbohidratosG: aNumero(opcion.receta.carbohidratosG),
-                grasasG: aNumero(opcion.receta.grasasG),
-              }
-            : null,
-          orden: opcion.orden,
-        })),
+export function mapearPlan(fila: PlanConHijos): PlanNutricional {
+  return PlanNutricional.reconstruir({
+    id: fila.id,
+    nombre: fila.nombre,
+    descripcion: fila.descripcion,
+    esPlantilla: fila.esPlantilla,
+    planOrigenId: fila.planOrigenId,
+    archivado: fila.archivado,
+    caloriasMeta: fila.caloriasMeta,
+    proteinasMetaG: aNumero(fila.proteinasMetaG),
+    carbohidratosMetaG: aNumero(fila.carbohidratosMetaG),
+    grasasMetaG: aNumero(fila.grasasMetaG),
+    contactosUtiles: fila.contactosUtiles,
+    comidas: fila.comidas.map((comida) => ({
+      id: comida.id,
+      nombre: comida.nombre,
+      horaDesde: comida.horaDesde,
+      horaHasta: comida.horaHasta,
+      orden: comida.orden,
+      opciones: comida.opciones.map((opcion) => ({
+        id: opcion.id,
+        numero: opcion.numero,
+        contenido: opcion.contenido,
+        recetaId: opcion.recetaId,
+        recetaNombre: opcion.receta?.nombre ?? null,
+        recetaMacros: opcion.receta
+          ? {
+              calorias: aNumero(opcion.receta.calorias),
+              proteinasG: aNumero(opcion.receta.proteinasG),
+              carbohidratosG: aNumero(opcion.receta.carbohidratosG),
+              grasasG: aNumero(opcion.receta.grasasG),
+            }
+          : null,
+        orden: opcion.orden,
       })),
-      equivalencias: fila.equivalencias.map((equivalencia) => ({
-        id: equivalencia.id,
-        titulo: equivalencia.titulo,
-        detalle: equivalencia.detalle,
-        orden: equivalencia.orden,
-      })),
-      recomendaciones: fila.recomendaciones.map((recomendacion) => ({
-        id: recomendacion.id,
-        tipo: recomendacion.tipo,
-        texto: recomendacion.texto,
-        orden: recomendacion.orden,
-      })),
-      modalidad: fila.modalidad,
-      grupoId: fila.grupoId,
-      grupoNombre: fila.grupo?.nombre ?? null,
-      archivos: fila.archivos.map((archivo) => ({
-        id: archivo.id,
-        nombreOriginal: archivo.nombreOriginal,
-        mimeType: archivo.mimeType,
-        tamanoBytes: archivo.tamanoBytes,
-      })),
-      archivoPrincipalId: fila.archivoPrincipalId,
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+    })),
+    equivalencias: fila.equivalencias.map((equivalencia) => ({
+      id: equivalencia.id,
+      titulo: equivalencia.titulo,
+      detalle: equivalencia.detalle,
+      orden: equivalencia.orden,
+    })),
+    recomendaciones: fila.recomendaciones.map((recomendacion) => ({
+      id: recomendacion.id,
+      tipo: recomendacion.tipo,
+      texto: recomendacion.texto,
+      orden: recomendacion.orden,
+    })),
+    modalidad: fila.modalidad,
+    grupoId: fila.grupoId,
+    grupoNombre: fila.grupo?.nombre ?? null,
+    archivos: fila.archivos.map((archivo) => ({
+      id: archivo.id,
+      nombreOriginal: archivo.nombreOriginal,
+      mimeType: archivo.mimeType,
+      tamanoBytes: archivo.tamanoBytes,
+    })),
+    archivoPrincipalId: fila.archivoPrincipalId,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
+}
 
-  private mapearAsignacion(fila: AsignacionFila): AsignacionPlan {
-    return {
-      id: fila.id,
-      planId: fila.planId,
-      nombrePlan: fila.nombrePlan,
-      pacienteId: fila.pacienteId,
-      fechaInicio: fila.fechaInicio,
-      fechaFin: fila.fechaFin,
-      finalizadaEn: fila.finalizadaEn,
-      activa: fila.activa,
-    };
-  }
+export function mapearAsignacionPlan(fila: AsignacionFila): AsignacionPlan {
+  return {
+    id: fila.id,
+    planId: fila.planId,
+    nombrePlan: fila.nombrePlan,
+    pacienteId: fila.pacienteId,
+    fechaInicio: fila.fechaInicio,
+    fechaFin: fila.fechaFin,
+    finalizadaEn: fila.finalizadaEn,
+    activa: fila.activa,
+  };
 }

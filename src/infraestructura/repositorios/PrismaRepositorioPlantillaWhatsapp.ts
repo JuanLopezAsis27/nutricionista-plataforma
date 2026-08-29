@@ -23,21 +23,21 @@ export class PrismaRepositorioPlantillaWhatsapp implements IPlantillaWhatsappRep
       // La predeterminada primero: es la que el profesional busca al entrar.
       orderBy: [{ predeterminada: "desc" }, { nombre: "asc" }],
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearPlantillaWhatsapp(fila));
   }
 
   async obtenerPorId(id: string): Promise<PlantillaWhatsapp | null> {
     const fila = await this.prisma.plantillaWhatsapp.findUnique({
       where: { id },
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearPlantillaWhatsapp(fila) : null;
   }
 
   async obtenerPredeterminada(): Promise<PlantillaWhatsapp | null> {
     const fila = await this.prisma.plantillaWhatsapp.findFirst({
       where: { predeterminada: true, activa: true },
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearPlantillaWhatsapp(fila) : null;
   }
 
   async crear(plantilla: PlantillaWhatsapp): Promise<PlantillaWhatsapp> {
@@ -56,7 +56,7 @@ export class PrismaRepositorioPlantillaWhatsapp implements IPlantillaWhatsappRep
         creadoEn: d.creadoEn,
       },
     });
-    return this.mapear(fila);
+    return mapearPlantillaWhatsapp(fila);
   }
 
   async actualizar(plantilla: PlantillaWhatsapp): Promise<PlantillaWhatsapp> {
@@ -73,25 +73,27 @@ export class PrismaRepositorioPlantillaWhatsapp implements IPlantillaWhatsappRep
         activa: d.activa,
       },
     });
-    return this.mapear(fila);
+    return mapearPlantillaWhatsapp(fila);
   }
 
   async eliminar(id: string): Promise<void> {
     await this.prisma.plantillaWhatsapp.delete({ where: { id } });
   }
+}
 
-  private mapear(fila: PlantillaFila): PlantillaWhatsapp {
-    return PlantillaWhatsapp.reconstruir({
-      id: fila.id,
-      nombre: fila.nombre,
-      cuerpo: fila.cuerpo,
-      claveMeta: fila.claveMeta,
-      idiomaMeta: fila.idiomaMeta,
-      variablesMeta: fila.variablesMeta as VariableRecordatorio[],
-      predeterminada: fila.predeterminada,
-      activa: fila.activa,
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+export function mapearPlantillaWhatsapp(
+  fila: PlantillaFila,
+): PlantillaWhatsapp {
+  return PlantillaWhatsapp.reconstruir({
+    id: fila.id,
+    nombre: fila.nombre,
+    cuerpo: fila.cuerpo,
+    claveMeta: fila.claveMeta,
+    idiomaMeta: fila.idiomaMeta,
+    variablesMeta: fila.variablesMeta as VariableRecordatorio[],
+    predeterminada: fila.predeterminada,
+    activa: fila.activa,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

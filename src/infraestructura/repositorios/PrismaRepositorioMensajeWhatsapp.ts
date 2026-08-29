@@ -31,7 +31,7 @@ export class PrismaRepositorioMensajeWhatsapp implements IMensajeWhatsappReposit
         creadoEn: d.creadoEn,
       },
     });
-    return this.mapear(fila);
+    return mapearMensajeWhatsapp(fila);
   }
 
   async actualizar(mensaje: MensajeWhatsapp): Promise<MensajeWhatsapp> {
@@ -40,7 +40,7 @@ export class PrismaRepositorioMensajeWhatsapp implements IMensajeWhatsappReposit
       where: { id: d.id },
       data: { estado: d.estado, error: d.error },
     });
-    return this.mapear(fila);
+    return mapearMensajeWhatsapp(fila);
   }
 
   async obtenerPorIdExterno(
@@ -49,7 +49,7 @@ export class PrismaRepositorioMensajeWhatsapp implements IMensajeWhatsappReposit
     const fila = await this.prisma.mensajeWhatsapp.findFirst({
       where: { idExterno },
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearMensajeWhatsapp(fila) : null;
   }
 
   async listarPorPaciente(
@@ -62,7 +62,7 @@ export class PrismaRepositorioMensajeWhatsapp implements IMensajeWhatsappReposit
       take: limite,
     });
     // Se piden los últimos N y se devuelven en orden cronológico para el hilo.
-    return filas.reverse().map((fila) => this.mapear(fila));
+    return filas.reverse().map((fila) => mapearMensajeWhatsapp(fila));
   }
 
   async ultimoEntrante(pacienteId: string): Promise<MensajeWhatsapp | null> {
@@ -70,7 +70,7 @@ export class PrismaRepositorioMensajeWhatsapp implements IMensajeWhatsappReposit
       where: { pacienteId, direccion: "ENTRANTE" },
       orderBy: { creadoEn: "desc" },
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearMensajeWhatsapp(fila) : null;
   }
 
   async ultimosPorPacientes(
@@ -112,24 +112,24 @@ export class PrismaRepositorioMensajeWhatsapp implements IMensajeWhatsappReposit
     const mapa = new Map<string, MensajeWhatsapp>();
     for (const fila of filas) {
       if (!mapa.has(fila.pacienteId)) {
-        mapa.set(fila.pacienteId, this.mapear(fila));
+        mapa.set(fila.pacienteId, mapearMensajeWhatsapp(fila));
       }
     }
     return mapa;
   }
+}
 
-  private mapear(fila: MensajeFila): MensajeWhatsapp {
-    return MensajeWhatsapp.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      direccion: fila.direccion,
-      telefono: fila.telefono,
-      cuerpo: fila.cuerpo,
-      idExterno: fila.idExterno,
-      estado: fila.estado,
-      error: fila.error,
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+export function mapearMensajeWhatsapp(fila: MensajeFila): MensajeWhatsapp {
+  return MensajeWhatsapp.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    direccion: fila.direccion,
+    telefono: fila.telefono,
+    cuerpo: fila.cuerpo,
+    idExterno: fila.idExterno,
+    estado: fila.estado,
+    error: fila.error,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

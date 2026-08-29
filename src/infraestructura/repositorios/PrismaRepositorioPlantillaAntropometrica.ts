@@ -33,7 +33,7 @@ export class PrismaRepositorioPlantillaAntropometrica implements IPlantillaAntro
         campos: datos.campos,
       },
     });
-    return mapear(fila);
+    return mapearPlantillaAntropometrica(fila);
   }
 
   async eliminar(id: string): Promise<void> {
@@ -44,14 +44,14 @@ export class PrismaRepositorioPlantillaAntropometrica implements IPlantillaAntro
     const fila = await this.prisma.plantillaAntropometrica.findUnique({
       where: { id },
     });
-    return fila ? mapear(fila) : null;
+    return fila ? mapearPlantillaAntropometrica(fila) : null;
   }
 
   async listar(): Promise<PlantillaAntropometrica[]> {
     const filas = await this.prisma.plantillaAntropometrica.findMany({
       orderBy: { nombre: "asc" },
     });
-    return filas.map(mapear);
+    return filas.map(mapearPlantillaAntropometrica);
   }
 }
 
@@ -61,7 +61,9 @@ export class PrismaRepositorioPlantillaAntropometrica implements IPlantillaAntro
  * entrar: una plantilla vieja se degrada a los campos que siguen existiendo
  * en vez de romper la carga.
  */
-function mapear(fila: PlantillaFila): PlantillaAntropometrica {
+export function mapearPlantillaAntropometrica(
+  fila: PlantillaFila,
+): PlantillaAntropometrica {
   const conocidos = new Set<string>(CAMPOS_PLANTILLA);
   return PlantillaAntropometrica.reconstruir({
     id: fila.id,

@@ -17,7 +17,7 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
 
   async obtenerConversacionPorId(id: string): Promise<Conversacion | null> {
     const fila = await this.prisma.conversacion.findUnique({ where: { id } });
-    return fila ? this.mapearConversacion(fila) : null;
+    return fila ? mapearConversacion(fila) : null;
   }
 
   async obtenerConversacionPorPaciente(
@@ -26,7 +26,7 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
     const fila = await this.prisma.conversacion.findUnique({
       where: { pacienteId },
     });
-    return fila ? this.mapearConversacion(fila) : null;
+    return fila ? mapearConversacion(fila) : null;
   }
 
   async crearConversacion(conversacion: Conversacion): Promise<Conversacion> {
@@ -42,7 +42,7 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
         actualizadoEn: d.actualizadoEn,
       },
     });
-    return this.mapearConversacion(fila);
+    return mapearConversacion(fila);
   }
 
   async actualizarConversacion(
@@ -56,7 +56,7 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
         ultimoMensajeEn: d.ultimoMensajeEn,
       },
     });
-    return this.mapearConversacion(fila);
+    return mapearConversacion(fila);
   }
 
   async listarResumen(viewerId: string): Promise<ResumenConversacion[]> {
@@ -96,7 +96,7 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
         creadoEn: d.creadoEn,
       },
     });
-    return this.mapearMensaje(fila);
+    return mapearMensaje(fila);
   }
 
   async listarMensajes(
@@ -109,7 +109,7 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
       orderBy: { creadoEn: "desc" },
       take: limite,
     });
-    return filas.reverse().map((fila) => this.mapearMensaje(fila));
+    return filas.reverse().map((fila) => mapearMensaje(fila));
   }
 
   async marcarLeidos(
@@ -135,26 +135,26 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
       },
     });
   }
+}
 
-  private mapearConversacion(fila: ConversacionFila): Conversacion {
-    return Conversacion.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      ultimoMensajeTexto: fila.ultimoMensajeTexto,
-      ultimoMensajeEn: fila.ultimoMensajeEn,
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+export function mapearConversacion(fila: ConversacionFila): Conversacion {
+  return Conversacion.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    ultimoMensajeTexto: fila.ultimoMensajeTexto,
+    ultimoMensajeEn: fila.ultimoMensajeEn,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
+}
 
-  private mapearMensaje(fila: MensajeFila): Mensaje {
-    return Mensaje.reconstruir({
-      id: fila.id,
-      conversacionId: fila.conversacionId,
-      autorId: fila.autorId,
-      cuerpo: fila.cuerpo,
-      leidoEn: fila.leidoEn,
-      creadoEn: fila.creadoEn,
-    });
-  }
+export function mapearMensaje(fila: MensajeFila): Mensaje {
+  return Mensaje.reconstruir({
+    id: fila.id,
+    conversacionId: fila.conversacionId,
+    autorId: fila.autorId,
+    cuerpo: fila.cuerpo,
+    leidoEn: fila.leidoEn,
+    creadoEn: fila.creadoEn,
+  });
 }

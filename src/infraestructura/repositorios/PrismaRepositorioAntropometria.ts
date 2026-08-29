@@ -23,7 +23,7 @@ export class PrismaRepositorioAntropometria implements IAntropometriaRepositorio
         fecha: this.soloFecha(datos.fecha),
       },
     });
-    return this.mapear(fila);
+    return mapearAntropometria(fila);
   }
 
   async actualizar(medicion: Antropometria): Promise<Antropometria> {
@@ -37,7 +37,7 @@ export class PrismaRepositorioAntropometria implements IAntropometriaRepositorio
       where: { id },
       data: { ...datos, fecha: this.soloFecha(datos.fecha) },
     });
-    return this.mapear(fila);
+    return mapearAntropometria(fila);
   }
 
   async eliminar(id: string): Promise<void> {
@@ -46,7 +46,7 @@ export class PrismaRepositorioAntropometria implements IAntropometriaRepositorio
 
   async obtenerPorId(id: string): Promise<Antropometria | null> {
     const fila = await this.prisma.antropometria.findUnique({ where: { id } });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearAntropometria(fila) : null;
   }
 
   async listarPorPaciente(pacienteId: string): Promise<Antropometria[]> {
@@ -54,7 +54,7 @@ export class PrismaRepositorioAntropometria implements IAntropometriaRepositorio
       where: { pacienteId },
       orderBy: { fecha: "asc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearAntropometria(fila));
   }
 
   async existeEnFecha(
@@ -77,51 +77,51 @@ export class PrismaRepositorioAntropometria implements IAntropometriaRepositorio
       Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
     );
   }
-
-  private mapear(fila: AntropometriaFila): Antropometria {
-    return Antropometria.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      fecha: fila.fecha,
-      pesoKg: Number(fila.pesoKg),
-      tallaCm: aNumero(fila.tallaCm),
-      tallaSentadoCm: aNumero(fila.tallaSentadoCm),
-      nivelActividad: fila.nivelActividad,
-      protocolo: fila.protocolo,
-      metodoGrasa: fila.metodoGrasa,
-      diamBiacromial: aNumero(fila.diamBiacromial),
-      diamToraxTransverso: aNumero(fila.diamToraxTransverso),
-      diamToraxAnteroposterior: aNumero(fila.diamToraxAnteroposterior),
-      diamBiiliocrestideo: aNumero(fila.diamBiiliocrestideo),
-      diamHumeral: aNumero(fila.diamHumeral),
-      diamFemoral: aNumero(fila.diamFemoral),
-      pliegueTricipital: aNumero(fila.pliegueTricipital),
-      pliegueSubescapular: aNumero(fila.pliegueSubescapular),
-      pliegueSupraespinal: aNumero(fila.pliegueSupraespinal),
-      pliegueAbdominal: aNumero(fila.pliegueAbdominal),
-      pliegueMuslo: aNumero(fila.pliegueMuslo),
-      plieguePantorrilla: aNumero(fila.plieguePantorrilla),
-      pliegueBicipital: aNumero(fila.pliegueBicipital),
-      pliegueCrestaIliaca: aNumero(fila.pliegueCrestaIliaca),
-      circTorax: aNumero(fila.circTorax),
-      circCinturaMinima: aNumero(fila.circCinturaMinima),
-      circCinturaMaxima: aNumero(fila.circCinturaMaxima),
-      circCadera: aNumero(fila.circCadera),
-      circBrazo: aNumero(fila.circBrazo),
-      circBrazoContraido: aNumero(fila.circBrazoContraido),
-      circCabeza: aNumero(fila.circCabeza),
-      circAntebrazo: aNumero(fila.circAntebrazo),
-      circMusloMaximo: aNumero(fila.circMusloMaximo),
-      circMusloMedial: aNumero(fila.circMusloMedial),
-      circPantorrilla: aNumero(fila.circPantorrilla),
-      kgGrasa: aNumero(fila.kgGrasa),
-      observaciones: fila.observaciones,
-      creadoEn: fila.creadoEn,
-    });
-  }
 }
 
 /** Decimal de Prisma (o null) → number (o null). */
 function aNumero(valor: { toNumber(): number } | null): number | null {
   return valor === null ? null : valor.toNumber();
+}
+
+export function mapearAntropometria(fila: AntropometriaFila): Antropometria {
+  return Antropometria.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    fecha: fila.fecha,
+    pesoKg: Number(fila.pesoKg),
+    tallaCm: aNumero(fila.tallaCm),
+    tallaSentadoCm: aNumero(fila.tallaSentadoCm),
+    nivelActividad: fila.nivelActividad,
+    protocolo: fila.protocolo,
+    metodoGrasa: fila.metodoGrasa,
+    diamBiacromial: aNumero(fila.diamBiacromial),
+    diamToraxTransverso: aNumero(fila.diamToraxTransverso),
+    diamToraxAnteroposterior: aNumero(fila.diamToraxAnteroposterior),
+    diamBiiliocrestideo: aNumero(fila.diamBiiliocrestideo),
+    diamHumeral: aNumero(fila.diamHumeral),
+    diamFemoral: aNumero(fila.diamFemoral),
+    pliegueTricipital: aNumero(fila.pliegueTricipital),
+    pliegueSubescapular: aNumero(fila.pliegueSubescapular),
+    pliegueSupraespinal: aNumero(fila.pliegueSupraespinal),
+    pliegueAbdominal: aNumero(fila.pliegueAbdominal),
+    pliegueMuslo: aNumero(fila.pliegueMuslo),
+    plieguePantorrilla: aNumero(fila.plieguePantorrilla),
+    pliegueBicipital: aNumero(fila.pliegueBicipital),
+    pliegueCrestaIliaca: aNumero(fila.pliegueCrestaIliaca),
+    circTorax: aNumero(fila.circTorax),
+    circCinturaMinima: aNumero(fila.circCinturaMinima),
+    circCinturaMaxima: aNumero(fila.circCinturaMaxima),
+    circCadera: aNumero(fila.circCadera),
+    circBrazo: aNumero(fila.circBrazo),
+    circBrazoContraido: aNumero(fila.circBrazoContraido),
+    circCabeza: aNumero(fila.circCabeza),
+    circAntebrazo: aNumero(fila.circAntebrazo),
+    circMusloMaximo: aNumero(fila.circMusloMaximo),
+    circMusloMedial: aNumero(fila.circMusloMedial),
+    circPantorrilla: aNumero(fila.circPantorrilla),
+    kgGrasa: aNumero(fila.kgGrasa),
+    observaciones: fila.observaciones,
+    creadoEn: fila.creadoEn,
+  });
 }

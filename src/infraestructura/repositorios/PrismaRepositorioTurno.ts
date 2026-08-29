@@ -51,7 +51,7 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
           creadoEn: datos.creadoEn,
         },
       });
-      return this.mapearATurno(fila);
+      return mapearTurno(fila);
     } catch (error) {
       comoConflicto(error, datos.fecha, datos.hora);
     }
@@ -73,7 +73,7 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
           pagado: datos.pagado,
         },
       });
-      return this.mapearATurno(fila);
+      return mapearTurno(fila);
     } catch (error) {
       comoConflicto(error, datos.fecha, datos.hora);
     }
@@ -81,7 +81,7 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
 
   async obtenerPorId(id: string): Promise<Turno | null> {
     const fila = await this.prisma.turno.findUnique({ where: { id } });
-    return fila ? this.mapearATurno(fila) : null;
+    return fila ? mapearTurno(fila) : null;
   }
 
   async eliminar(id: string): Promise<void> {
@@ -93,7 +93,7 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
       where: { fecha: this.soloFecha(fecha) },
       orderBy: [{ hora: "asc" }],
     });
-    return filas.map((fila) => this.mapearATurno(fila));
+    return filas.map((fila) => mapearTurno(fila));
   }
 
   async listarEntreFechas(desde: Date, hasta: Date): Promise<Turno[]> {
@@ -103,7 +103,7 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
       },
       orderBy: [{ fecha: "asc" }, { hora: "asc" }],
     });
-    return filas.map((fila) => this.mapearATurno(fila));
+    return filas.map((fila) => mapearTurno(fila));
   }
 
   async obtenerPorPaciente(pacienteId: string): Promise<Turno[]> {
@@ -111,7 +111,7 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
       where: { pacienteId },
       orderBy: [{ fecha: "desc" }, { hora: "desc" }],
     });
-    return filas.map((fila) => this.mapearATurno(fila));
+    return filas.map((fila) => mapearTurno(fila));
   }
 
   async listar(filtro: FiltroTurnos = {}): Promise<Turno[]> {
@@ -124,7 +124,7 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
       where,
       orderBy: [{ fecha: "asc" }, { hora: "asc" }],
     });
-    return filas.map((fila) => this.mapearATurno(fila));
+    return filas.map((fila) => mapearTurno(fila));
   }
 
   /** Normaliza una fecha a medianoche UTC (coherente con la columna @db.Date). */
@@ -133,21 +133,21 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
       Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
     );
   }
+}
 
-  /** Mapea una fila de Prisma a la entidad de dominio Turno. */
-  private mapearATurno(fila: TurnoFila): Turno {
-    return Turno.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      fecha: fila.fecha,
-      hora: fila.hora,
-      duracionMinutos: fila.duracionMinutos,
-      estado: fila.estado,
-      notas: fila.notas,
-      // Decimal nunca cruza infraestructura: se mapea a number.
-      precio: fila.precio == null ? null : Number(fila.precio),
-      pagado: fila.pagado,
-      creadoEn: fila.creadoEn,
-    });
-  }
+/** Mapea una fila de Prisma a la entidad de dominio Turno. */
+export function mapearTurno(fila: TurnoFila): Turno {
+  return Turno.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    fecha: fila.fecha,
+    hora: fila.hora,
+    duracionMinutos: fila.duracionMinutos,
+    estado: fila.estado,
+    notas: fila.notas,
+    // Decimal nunca cruza infraestructura: se mapea a number.
+    precio: fila.precio == null ? null : Number(fila.precio),
+    pagado: fila.pagado,
+    creadoEn: fila.creadoEn,
+  });
 }

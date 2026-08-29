@@ -51,7 +51,7 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
       },
       include: INCLUIR_HIJOS,
     });
-    return this.mapear(fila);
+    return mapearRegistroDiario(fila);
   }
 
   async actualizarEscalares(registro: RegistroDiario): Promise<RegistroDiario> {
@@ -67,7 +67,7 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
       },
       include: INCLUIR_HIJOS,
     });
-    return this.mapear(fila);
+    return mapearRegistroDiario(fila);
   }
 
   async obtenerPorPacienteYFecha(
@@ -80,7 +80,7 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
       },
       include: INCLUIR_HIJOS,
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearRegistroDiario(fila) : null;
   }
 
   async listarPorRango(
@@ -96,7 +96,7 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
       include: INCLUIR_HIJOS,
       orderBy: { fecha: "asc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearRegistroDiario(fila));
   }
 
   async contarRegistros(pacienteId: string): Promise<number> {
@@ -232,36 +232,36 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
       Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
     );
   }
+}
 
-  private mapear(fila: RegistroConHijos): RegistroDiario {
-    return RegistroDiario.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      fecha: fila.fecha,
-      pesoKg: fila.pesoKg === null ? null : fila.pesoKg.toNumber(),
-      aguaMl: fila.aguaMl,
-      horasSueno: fila.horasSueno === null ? null : fila.horasSueno.toNumber(),
-      calidadSueno: fila.calidadSueno,
-      notas: fila.notas,
-      comidas: fila.comidas.map((comida) => ({
-        id: comida.id,
-        franja: comida.franja,
-        hora: comida.hora,
-        descripcion: comida.descripcion,
-        porcion: comida.porcion,
-        fotoArchivoId: comida.foto?.id ?? null,
-        creadoEn: comida.creadoEn,
-      })),
-      actividades: fila.actividades.map((actividad) => ({
-        id: actividad.id,
-        tipo: actividad.tipo,
-        duracionMinutos: actividad.duracionMinutos,
-        intensidad: actividad.intensidad,
-        notas: actividad.notas,
-        creadoEn: actividad.creadoEn,
-      })),
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+export function mapearRegistroDiario(fila: RegistroConHijos): RegistroDiario {
+  return RegistroDiario.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    fecha: fila.fecha,
+    pesoKg: fila.pesoKg === null ? null : fila.pesoKg.toNumber(),
+    aguaMl: fila.aguaMl,
+    horasSueno: fila.horasSueno === null ? null : fila.horasSueno.toNumber(),
+    calidadSueno: fila.calidadSueno,
+    notas: fila.notas,
+    comidas: fila.comidas.map((comida) => ({
+      id: comida.id,
+      franja: comida.franja,
+      hora: comida.hora,
+      descripcion: comida.descripcion,
+      porcion: comida.porcion,
+      fotoArchivoId: comida.foto?.id ?? null,
+      creadoEn: comida.creadoEn,
+    })),
+    actividades: fila.actividades.map((actividad) => ({
+      id: actividad.id,
+      tipo: actividad.tipo,
+      duracionMinutos: actividad.duracionMinutos,
+      intensidad: actividad.intensidad,
+      notas: actividad.notas,
+      creadoEn: actividad.creadoEn,
+    })),
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

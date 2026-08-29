@@ -16,7 +16,7 @@ export class PrismaRepositorioConfiguracion implements IConfiguracionRepositorio
 
   async obtener(): Promise<ConfiguracionConsultorio | null> {
     const fila = await this.prisma.configuracionConsultorio.findFirst();
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearConfiguracion(fila) : null;
   }
 
   async guardar(
@@ -51,30 +51,32 @@ export class PrismaRepositorioConfiguracion implements IConfiguracionRepositorio
       : await this.prisma.configuracionConsultorio.create({
           data: { id: d.id, nutricionistaId: inquilinoActual(), ...datos },
         });
-    return this.mapear(fila);
+    return mapearConfiguracion(fila);
   }
+}
 
-  private mapear(fila: ConfiguracionFila): ConfiguracionConsultorio {
-    return ConfiguracionConsultorio.reconstruir({
-      id: fila.id,
-      turnoDuracionMinutos: fila.turnoDuracionMinutos,
-      turnoPasoMinutos: fila.turnoPasoMinutos,
-      atencionHoraDesde: fila.atencionHoraDesde,
-      atencionHoraHasta: fila.atencionHoraHasta,
-      diasAtencion: fila.diasAtencion,
-      nombreProfesional: fila.nombreProfesional,
-      matricula: fila.matricula,
-      logoArchivoId: fila.logoArchivoId,
-      pdfColorPrimario: fila.pdfColorPrimario,
-      pdfSubtitulo: fila.pdfSubtitulo,
-      pdfPieTexto: fila.pdfPieTexto,
-      pdfMostrarRecetas: fila.pdfMostrarRecetas,
-      pdfMostrarMacros: fila.pdfMostrarMacros,
-      pdfMostrarEquivalencias: fila.pdfMostrarEquivalencias,
-      pdfMostrarRecomendaciones: fila.pdfMostrarRecomendaciones,
-      whatsappPrefijoPais: fila.whatsappPrefijoPais,
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+export function mapearConfiguracion(
+  fila: ConfiguracionFila,
+): ConfiguracionConsultorio {
+  return ConfiguracionConsultorio.reconstruir({
+    id: fila.id,
+    turnoDuracionMinutos: fila.turnoDuracionMinutos,
+    turnoPasoMinutos: fila.turnoPasoMinutos,
+    atencionHoraDesde: fila.atencionHoraDesde,
+    atencionHoraHasta: fila.atencionHoraHasta,
+    diasAtencion: fila.diasAtencion,
+    nombreProfesional: fila.nombreProfesional,
+    matricula: fila.matricula,
+    logoArchivoId: fila.logoArchivoId,
+    pdfColorPrimario: fila.pdfColorPrimario,
+    pdfSubtitulo: fila.pdfSubtitulo,
+    pdfPieTexto: fila.pdfPieTexto,
+    pdfMostrarRecetas: fila.pdfMostrarRecetas,
+    pdfMostrarMacros: fila.pdfMostrarMacros,
+    pdfMostrarEquivalencias: fila.pdfMostrarEquivalencias,
+    pdfMostrarRecomendaciones: fila.pdfMostrarRecomendaciones,
+    whatsappPrefijoPais: fila.whatsappPrefijoPais,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

@@ -16,7 +16,7 @@ export class PrismaRepositorioConfiguracionRecordatorios implements IConfiguraci
 
   async obtener(): Promise<ConfiguracionRecordatorios | null> {
     const fila = await this.prisma.configuracionRecordatorios.findFirst();
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearConfiguracionRecordatorios(fila) : null;
   }
 
   async guardar(
@@ -46,25 +46,27 @@ export class PrismaRepositorioConfiguracionRecordatorios implements IConfiguraci
       : await this.prisma.configuracionRecordatorios.create({
           data: { id: d.id, nutricionistaId: inquilinoActual(), ...datos },
         });
-    return this.mapear(fila);
+    return mapearConfiguracionRecordatorios(fila);
   }
+}
 
-  private mapear(fila: ConfiguracionFila): ConfiguracionRecordatorios {
-    return ConfiguracionRecordatorios.reconstruir({
-      id: fila.id,
-      whatsappActivo: fila.whatsappActivo,
-      whatsappAutomatico: fila.whatsappAutomatico,
-      whatsappDiasAntes: fila.whatsappDiasAntes,
-      emailActivo: fila.emailActivo,
-      emailAutomatico: fila.emailAutomatico,
-      emailDiasAntes: fila.emailDiasAntes,
-      calendarioActivo: fila.calendarioActivo,
-      calendarioInvitarPaciente: fila.calendarioInvitarPaciente,
-      calendarioMinutosAntes: fila.calendarioMinutosAntes,
-      horaEnvio: fila.horaEnvio,
-      horasEntreAvisos: fila.horasEntreAvisos,
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+export function mapearConfiguracionRecordatorios(
+  fila: ConfiguracionFila,
+): ConfiguracionRecordatorios {
+  return ConfiguracionRecordatorios.reconstruir({
+    id: fila.id,
+    whatsappActivo: fila.whatsappActivo,
+    whatsappAutomatico: fila.whatsappAutomatico,
+    whatsappDiasAntes: fila.whatsappDiasAntes,
+    emailActivo: fila.emailActivo,
+    emailAutomatico: fila.emailAutomatico,
+    emailDiasAntes: fila.emailDiasAntes,
+    calendarioActivo: fila.calendarioActivo,
+    calendarioInvitarPaciente: fila.calendarioInvitarPaciente,
+    calendarioMinutosAntes: fila.calendarioMinutosAntes,
+    horaEnvio: fila.horaEnvio,
+    horasEntreAvisos: fila.horasEntreAvisos,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

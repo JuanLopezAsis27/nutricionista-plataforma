@@ -24,12 +24,12 @@ export class PrismaRepositorioArchivo implements IArchivoRepositorio {
         planId: dueno?.planId ?? null,
       },
     });
-    return this.mapear(fila);
+    return mapearArchivo(fila);
   }
 
   async obtenerPorId(id: string): Promise<Archivo | null> {
     const fila = await this.prisma.archivo.findUnique({ where: { id } });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearArchivo(fila) : null;
   }
 
   async eliminar(id: string): Promise<void> {
@@ -48,7 +48,7 @@ export class PrismaRepositorioArchivo implements IArchivoRepositorio {
       },
       orderBy: { creadoEn: "desc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearArchivo(fila));
   }
 
   async vincularDueno(id: string, dueno: DuenoArchivo): Promise<void> {
@@ -94,18 +94,18 @@ export class PrismaRepositorioArchivo implements IArchivoRepositorio {
     });
     return filas.map((fila) => fila.clave);
   }
+}
 
-  private mapear(fila: ArchivoFila): Archivo {
-    return Archivo.reconstruir({
-      id: fila.id,
-      clave: fila.clave,
-      nombreOriginal: fila.nombreOriginal,
-      mimeType: fila.mimeType,
-      tamanoBytes: fila.tamanoBytes,
-      titulo: fila.titulo,
-      categoria: fila.categoria,
-      subidoPorId: fila.subidoPorId,
-      creadoEn: fila.creadoEn,
-    });
-  }
+export function mapearArchivo(fila: ArchivoFila): Archivo {
+  return Archivo.reconstruir({
+    id: fila.id,
+    clave: fila.clave,
+    nombreOriginal: fila.nombreOriginal,
+    mimeType: fila.mimeType,
+    tamanoBytes: fila.tamanoBytes,
+    titulo: fila.titulo,
+    categoria: fila.categoria,
+    subidoPorId: fila.subidoPorId,
+    creadoEn: fila.creadoEn,
+  });
 }

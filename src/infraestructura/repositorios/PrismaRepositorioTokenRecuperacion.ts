@@ -26,14 +26,14 @@ export class PrismaRepositorioTokenRecuperacion implements ITokenRecuperacionRep
         creadoEn: datos.creadoEn,
       },
     });
-    return this.mapear(fila);
+    return mapearTokenRecuperacion(fila);
   }
 
   async obtenerPorHash(tokenHash: string): Promise<TokenRecuperacion | null> {
     const fila = await this.prisma.tokenRecuperacion.findUnique({
       where: { tokenHash },
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearTokenRecuperacion(fila) : null;
   }
 
   async marcarUsado(id: string, usadoEn: Date): Promise<void> {
@@ -46,15 +46,15 @@ export class PrismaRepositorioTokenRecuperacion implements ITokenRecuperacionRep
   async eliminarDeUsuario(usuarioId: string): Promise<void> {
     await this.prisma.tokenRecuperacion.deleteMany({ where: { usuarioId } });
   }
+}
 
-  private mapear(fila: TokenFila): TokenRecuperacion {
-    return TokenRecuperacion.reconstruir({
-      id: fila.id,
-      usuarioId: fila.usuarioId,
-      tokenHash: fila.tokenHash,
-      expiraEn: fila.expiraEn,
-      usadoEn: fila.usadoEn,
-      creadoEn: fila.creadoEn,
-    });
-  }
+export function mapearTokenRecuperacion(fila: TokenFila): TokenRecuperacion {
+  return TokenRecuperacion.reconstruir({
+    id: fila.id,
+    usuarioId: fila.usuarioId,
+    tokenHash: fila.tokenHash,
+    expiraEn: fila.expiraEn,
+    usadoEn: fila.usadoEn,
+    creadoEn: fila.creadoEn,
+  });
 }

@@ -21,7 +21,7 @@ export class PrismaRepositorioPerfilDeportivo implements IPerfilDeportivoReposit
     const fila = await this.prisma.perfilDeportivo.findUnique({
       where: { pacienteId },
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearPerfilDeportivo(fila) : null;
   }
 
   async guardar(perfil: PerfilDeportivo): Promise<PerfilDeportivo> {
@@ -49,34 +49,34 @@ export class PrismaRepositorioPerfilDeportivo implements IPerfilDeportivoReposit
       },
       update: datos,
     });
-    return this.mapear(fila);
+    return mapearPerfilDeportivo(fila);
   }
 
   async eliminarPorPaciente(pacienteId: string): Promise<void> {
     await this.prisma.perfilDeportivo.deleteMany({ where: { pacienteId } });
-  }
-
-  private mapear(fila: PerfilFila): PerfilDeportivo {
-    return PerfilDeportivo.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      deporte: fila.deporte,
-      disciplina: fila.disciplina,
-      nivel: fila.nivel,
-      fase: fila.fase,
-      diasEntrenamientoSemana: fila.diasEntrenamientoSemana,
-      horasSemana: aNumero(fila.horasSemana),
-      pesoCategoriaKg: aNumero(fila.pesoCategoriaKg),
-      posicion: fila.posicion,
-      objetivo: fila.objetivo,
-      notas: fila.notas,
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
   }
 }
 
 /** Decimal (o null) → number (o null). El Decimal nunca cruza a capas altas. */
 function aNumero(valor: Prisma.Decimal | null): number | null {
   return valor === null ? null : Number(valor);
+}
+
+export function mapearPerfilDeportivo(fila: PerfilFila): PerfilDeportivo {
+  return PerfilDeportivo.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    deporte: fila.deporte,
+    disciplina: fila.disciplina,
+    nivel: fila.nivel,
+    fase: fila.fase,
+    diasEntrenamientoSemana: fila.diasEntrenamientoSemana,
+    horasSemana: aNumero(fila.horasSemana),
+    pesoCategoriaKg: aNumero(fila.pesoCategoriaKg),
+    posicion: fila.posicion,
+    objetivo: fila.objetivo,
+    notas: fila.notas,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

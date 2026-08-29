@@ -54,7 +54,7 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
         include: INCLUIR_ARCHIVO,
       });
     });
-    return this.mapear(fila);
+    return mapearMaterial(fila);
   }
 
   async actualizar(material: MaterialBiblioteca): Promise<MaterialBiblioteca> {
@@ -70,7 +70,7 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
       },
       include: INCLUIR_ARCHIVO,
     });
-    return this.mapear(fila);
+    return mapearMaterial(fila);
   }
 
   async eliminar(id: string): Promise<void> {
@@ -84,7 +84,7 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
       where: { id },
       include: INCLUIR_ARCHIVO,
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearMaterial(fila) : null;
   }
 
   async listar(filtro?: FiltroMateriales): Promise<MaterialBiblioteca[]> {
@@ -95,7 +95,7 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
       skip: filtro?.desplazamiento,
       take: filtro?.limite,
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearMaterial(fila));
   }
 
   contar(filtro?: FiltroMateriales): Promise<number> {
@@ -155,7 +155,7 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
       include: INCLUIR_ARCHIVO,
       orderBy: { titulo: "asc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearMaterial(fila));
   }
 
   async listarPacientesAsignados(materialId: string): Promise<string[]> {
@@ -165,25 +165,25 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
     });
     return filas.map((f) => f.pacienteId);
   }
+}
 
-  private mapear(fila: MaterialConArchivo): MaterialBiblioteca {
-    return MaterialBiblioteca.reconstruir({
-      id: fila.id,
-      tipo: fila.tipo,
-      titulo: fila.titulo,
-      descripcion: fila.descripcion,
-      url: fila.url,
-      categoria: fila.categoria,
-      etiquetas: fila.etiquetas,
-      archivo: fila.archivo
-        ? {
-            id: fila.archivo.id,
-            nombreOriginal: fila.archivo.nombreOriginal,
-            mimeType: fila.archivo.mimeType,
-          }
-        : null,
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+export function mapearMaterial(fila: MaterialConArchivo): MaterialBiblioteca {
+  return MaterialBiblioteca.reconstruir({
+    id: fila.id,
+    tipo: fila.tipo,
+    titulo: fila.titulo,
+    descripcion: fila.descripcion,
+    url: fila.url,
+    categoria: fila.categoria,
+    etiquetas: fila.etiquetas,
+    archivo: fila.archivo
+      ? {
+          id: fila.archivo.id,
+          nombreOriginal: fila.archivo.nombreOriginal,
+          mimeType: fila.archivo.mimeType,
+        }
+      : null,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

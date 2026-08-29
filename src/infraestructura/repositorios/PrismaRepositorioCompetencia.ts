@@ -30,7 +30,7 @@ export class PrismaRepositorioCompetencia implements ICompetenciaRepositorio {
         creadoEn: d.creadoEn,
       },
     });
-    return this.mapear(fila);
+    return mapearCompetencia(fila);
   }
 
   async actualizar(competencia: Competencia): Promise<Competencia> {
@@ -47,7 +47,7 @@ export class PrismaRepositorioCompetencia implements ICompetenciaRepositorio {
         notas: d.notas,
       },
     });
-    return this.mapear(fila);
+    return mapearCompetencia(fila);
   }
 
   async eliminar(id: string): Promise<void> {
@@ -56,7 +56,7 @@ export class PrismaRepositorioCompetencia implements ICompetenciaRepositorio {
 
   async obtenerPorId(id: string): Promise<Competencia | null> {
     const fila = await this.prisma.competencia.findUnique({ where: { id } });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearCompetencia(fila) : null;
   }
 
   async listarPorPaciente(pacienteId: string): Promise<Competencia[]> {
@@ -64,7 +64,7 @@ export class PrismaRepositorioCompetencia implements ICompetenciaRepositorio {
       where: { pacienteId },
       orderBy: { fecha: "asc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearCompetencia(fila));
   }
 
   private soloFecha(fecha: Date): Date {
@@ -72,19 +72,19 @@ export class PrismaRepositorioCompetencia implements ICompetenciaRepositorio {
       Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
     );
   }
+}
 
-  private mapear(fila: CompetenciaFila): Competencia {
-    return Competencia.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      nombre: fila.nombre,
-      fecha: fila.fecha,
-      lugar: fila.lugar,
-      objetivo: fila.objetivo,
-      resultado: fila.resultado,
-      importancia: fila.importancia,
-      notas: fila.notas,
-      creadoEn: fila.creadoEn,
-    });
-  }
+export function mapearCompetencia(fila: CompetenciaFila): Competencia {
+  return Competencia.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    nombre: fila.nombre,
+    fecha: fila.fecha,
+    lugar: fila.lugar,
+    objetivo: fila.objetivo,
+    resultado: fila.resultado,
+    importancia: fila.importancia,
+    notas: fila.notas,
+    creadoEn: fila.creadoEn,
+  });
 }

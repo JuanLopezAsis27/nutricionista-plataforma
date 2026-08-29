@@ -14,7 +14,7 @@ export class PrismaRepositorioAlertaAlimentaria implements IAlertaAlimentariaRep
     const fila = await this.prisma.alertaAlimentaria.create({
       data: { ...alerta.aPrimitivos(), nutricionistaId: inquilinoActual() },
     });
-    return this.mapear(fila);
+    return mapearAlertaAlimentaria(fila);
   }
 
   async actualizar(alerta: AlertaAlimentaria): Promise<AlertaAlimentaria> {
@@ -28,7 +28,7 @@ export class PrismaRepositorioAlertaAlimentaria implements IAlertaAlimentariaRep
       where: { id },
       data: datos,
     });
-    return this.mapear(fila);
+    return mapearAlertaAlimentaria(fila);
   }
 
   async eliminar(id: string): Promise<void> {
@@ -39,7 +39,7 @@ export class PrismaRepositorioAlertaAlimentaria implements IAlertaAlimentariaRep
     const fila = await this.prisma.alertaAlimentaria.findUnique({
       where: { id },
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearAlertaAlimentaria(fila) : null;
   }
 
   async listarPorPaciente(pacienteId: string): Promise<AlertaAlimentaria[]> {
@@ -47,18 +47,18 @@ export class PrismaRepositorioAlertaAlimentaria implements IAlertaAlimentariaRep
       where: { pacienteId },
       orderBy: [{ severidad: "desc" }, { creadoEn: "asc" }],
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearAlertaAlimentaria(fila));
   }
+}
 
-  private mapear(fila: AlertaFila): AlertaAlimentaria {
-    return AlertaAlimentaria.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      tipo: fila.tipo,
-      descripcion: fila.descripcion,
-      severidad: fila.severidad,
-      notas: fila.notas,
-      creadoEn: fila.creadoEn,
-    });
-  }
+export function mapearAlertaAlimentaria(fila: AlertaFila): AlertaAlimentaria {
+  return AlertaAlimentaria.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    tipo: fila.tipo,
+    descripcion: fila.descripcion,
+    severidad: fila.severidad,
+    notas: fila.notas,
+    creadoEn: fila.creadoEn,
+  });
 }

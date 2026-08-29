@@ -45,7 +45,7 @@ export class PrismaRepositorioObjetivoComposicion implements IObjetivoComposicio
         notas: datos.notas,
       },
     });
-    return mapear(fila);
+    return mapearObjetivoComposicion(fila);
   }
 
   async eliminar(id: string): Promise<void> {
@@ -56,7 +56,7 @@ export class PrismaRepositorioObjetivoComposicion implements IObjetivoComposicio
     const fila = await this.prisma.objetivoComposicion.findUnique({
       where: { id },
     });
-    return fila ? mapear(fila) : null;
+    return fila ? mapearObjetivoComposicion(fila) : null;
   }
 
   async obtenerPorVariable(
@@ -66,7 +66,7 @@ export class PrismaRepositorioObjetivoComposicion implements IObjetivoComposicio
     const fila = await this.prisma.objetivoComposicion.findUnique({
       where: { pacienteId_variable: { pacienteId, variable } },
     });
-    return fila ? mapear(fila) : null;
+    return fila ? mapearObjetivoComposicion(fila) : null;
   }
 
   async listarPorPaciente(pacienteId: string): Promise<ObjetivoComposicion[]> {
@@ -74,11 +74,13 @@ export class PrismaRepositorioObjetivoComposicion implements IObjetivoComposicio
       where: { pacienteId },
       orderBy: { creadoEn: "asc" },
     });
-    return filas.map(mapear);
+    return filas.map(mapearObjetivoComposicion);
   }
 }
 
-function mapear(fila: ObjetivoComposicionFila): ObjetivoComposicion {
+export function mapearObjetivoComposicion(
+  fila: ObjetivoComposicionFila,
+): ObjetivoComposicion {
   return ObjetivoComposicion.reconstruir({
     id: fila.id,
     pacienteId: fila.pacienteId,

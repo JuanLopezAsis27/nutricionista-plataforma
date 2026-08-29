@@ -44,7 +44,7 @@ export class PrismaRepositorioLaboratorio implements ILaboratorioRepositorio {
         include: { archivos: true },
       });
     });
-    return this.mapear(fila);
+    return mapearLaboratorio(fila);
   }
 
   async actualizar(
@@ -72,7 +72,7 @@ export class PrismaRepositorioLaboratorio implements ILaboratorioRepositorio {
         include: { archivos: true },
       });
     });
-    return this.mapear(fila);
+    return mapearLaboratorio(fila);
   }
 
   async eliminar(id: string): Promise<void> {
@@ -86,7 +86,7 @@ export class PrismaRepositorioLaboratorio implements ILaboratorioRepositorio {
       where: { id },
       include: { archivos: true },
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearLaboratorio(fila) : null;
   }
 
   async listarPorPaciente(pacienteId: string): Promise<Laboratorio[]> {
@@ -95,7 +95,7 @@ export class PrismaRepositorioLaboratorio implements ILaboratorioRepositorio {
       include: { archivos: true },
       orderBy: { fecha: "desc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearLaboratorio(fila));
   }
 
   private soloFecha(fecha: Date): Date {
@@ -103,21 +103,21 @@ export class PrismaRepositorioLaboratorio implements ILaboratorioRepositorio {
       Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
     );
   }
+}
 
-  private mapear(fila: LaboratorioConArchivos): Laboratorio {
-    return Laboratorio.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      fecha: fila.fecha,
-      titulo: fila.titulo,
-      notas: fila.notas,
-      adjuntos: fila.archivos.map((archivo) => ({
-        id: archivo.id,
-        nombreOriginal: archivo.nombreOriginal,
-        mimeType: archivo.mimeType,
-        tamanoBytes: archivo.tamanoBytes,
-      })),
-      creadoEn: fila.creadoEn,
-    });
-  }
+export function mapearLaboratorio(fila: LaboratorioConArchivos): Laboratorio {
+  return Laboratorio.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    fecha: fila.fecha,
+    titulo: fila.titulo,
+    notas: fila.notas,
+    adjuntos: fila.archivos.map((archivo) => ({
+      id: archivo.id,
+      nombreOriginal: archivo.nombreOriginal,
+      mimeType: archivo.mimeType,
+      tamanoBytes: archivo.tamanoBytes,
+    })),
+    creadoEn: fila.creadoEn,
+  });
 }

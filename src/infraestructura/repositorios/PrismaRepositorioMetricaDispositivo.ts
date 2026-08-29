@@ -75,7 +75,7 @@ export class PrismaRepositorioMetricaDispositivo implements IMetricaDispositivoR
       },
       orderBy: { fecha: "asc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearMetricaDispositivo(fila));
   }
 
   async fijarInclusion(
@@ -88,21 +88,23 @@ export class PrismaRepositorioMetricaDispositivo implements IMetricaDispositivoR
       data: { incluir },
     });
   }
+}
 
-  private mapear(fila: FilaMetrica): MetricaDispositivo {
-    return MetricaDispositivo.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      fecha: fila.fecha,
-      fuente: fila.fuente,
-      pasos: fila.pasos,
-      minutosActividad: fila.minutosActividad,
-      caloriasActivas: fila.caloriasActivas,
-      frecuenciaCardiacaReposo: fila.frecuenciaCardiacaReposo,
-      horasSueno: aNumero(fila.horasSueno),
-      incluir: fila.incluir,
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+export function mapearMetricaDispositivo(
+  fila: FilaMetrica,
+): MetricaDispositivo {
+  return MetricaDispositivo.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    fecha: fila.fecha,
+    fuente: fila.fuente,
+    pasos: fila.pasos,
+    minutosActividad: fila.minutosActividad,
+    caloriasActivas: fila.caloriasActivas,
+    frecuenciaCardiacaReposo: fila.frecuenciaCardiacaReposo,
+    horasSueno: aNumero(fila.horasSueno),
+    incluir: fila.incluir,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

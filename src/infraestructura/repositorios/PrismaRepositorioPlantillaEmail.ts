@@ -26,7 +26,7 @@ export class PrismaRepositorioPlantillaEmail implements IPlantillaEmailRepositor
         actualizadoEn: d.actualizadoEn,
       },
     });
-    return this.mapear(fila);
+    return mapearPlantillaEmail(fila);
   }
 
   async actualizar(plantilla: PlantillaEmail): Promise<PlantillaEmail> {
@@ -41,7 +41,7 @@ export class PrismaRepositorioPlantillaEmail implements IPlantillaEmailRepositor
         actualizadoEn: d.actualizadoEn,
       },
     });
-    return this.mapear(fila);
+    return mapearPlantillaEmail(fila);
   }
 
   async eliminar(id: string): Promise<void> {
@@ -50,7 +50,7 @@ export class PrismaRepositorioPlantillaEmail implements IPlantillaEmailRepositor
 
   async obtenerPorId(id: string): Promise<PlantillaEmail | null> {
     const fila = await this.prisma.plantillaEmail.findUnique({ where: { id } });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearPlantillaEmail(fila) : null;
   }
 
   async obtenerPorClave(clave: string): Promise<PlantillaEmail | null> {
@@ -59,27 +59,27 @@ export class PrismaRepositorioPlantillaEmail implements IPlantillaEmailRepositor
     const fila = await this.prisma.plantillaEmail.findFirst({
       where: { clave },
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearPlantillaEmail(fila) : null;
   }
 
   async listar(): Promise<PlantillaEmail[]> {
     const filas = await this.prisma.plantillaEmail.findMany({
       orderBy: { nombre: "asc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearPlantillaEmail(fila));
   }
+}
 
-  private mapear(fila: PlantillaFila): PlantillaEmail {
-    return PlantillaEmail.reconstruir({
-      id: fila.id,
-      clave: fila.clave,
-      nombre: fila.nombre,
-      asunto: fila.asunto,
-      cuerpoHtml: fila.cuerpoHtml,
-      descripcion: fila.descripcion,
-      deSistema: fila.deSistema,
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+export function mapearPlantillaEmail(fila: PlantillaFila): PlantillaEmail {
+  return PlantillaEmail.reconstruir({
+    id: fila.id,
+    clave: fila.clave,
+    nombre: fila.nombre,
+    asunto: fila.asunto,
+    cuerpoHtml: fila.cuerpoHtml,
+    descripcion: fila.descripcion,
+    deSistema: fila.deSistema,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

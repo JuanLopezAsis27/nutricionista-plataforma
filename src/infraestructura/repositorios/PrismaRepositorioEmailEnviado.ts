@@ -61,19 +61,19 @@ export class PrismaRepositorioEmailEnviado implements IEmailEnviadoRepositorio {
       orderBy: { creadoEn: "desc" },
       take: limite,
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearEmailEnviado(fila));
   }
+}
 
-  private mapear(fila: EmailFila): EmailEnviado {
-    return EmailEnviado.reconstruir({
-      id: fila.id,
-      plantillaClave: fila.plantillaClave,
-      para: fila.para,
-      asunto: fila.asunto,
-      referenciaId: fila.referenciaId,
-      pacienteId: fila.pacienteId,
-      error: fila.error,
-      creadoEn: fila.creadoEn,
-    });
-  }
+export function mapearEmailEnviado(fila: EmailFila): EmailEnviado {
+  return EmailEnviado.reconstruir({
+    id: fila.id,
+    plantillaClave: fila.plantillaClave,
+    para: fila.para,
+    asunto: fila.asunto,
+    referenciaId: fila.referenciaId,
+    pacienteId: fila.pacienteId,
+    error: fila.error,
+    creadoEn: fila.creadoEn,
+  });
 }

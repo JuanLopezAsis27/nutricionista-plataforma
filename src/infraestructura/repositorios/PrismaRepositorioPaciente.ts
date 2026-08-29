@@ -37,7 +37,7 @@ export class PrismaRepositorioPaciente implements IPacienteRepositorio {
         actualizadoEn: datos.actualizadoEn,
       },
     });
-    return this.mapearAPaciente(fila);
+    return mapearPaciente(fila);
   }
 
   async actualizar(paciente: Paciente): Promise<Paciente> {
@@ -58,7 +58,7 @@ export class PrismaRepositorioPaciente implements IPacienteRepositorio {
         actualizadoEn: datos.actualizadoEn,
       },
     });
-    return this.mapearAPaciente(fila);
+    return mapearPaciente(fila);
   }
 
   async eliminar(id: string): Promise<void> {
@@ -67,7 +67,7 @@ export class PrismaRepositorioPaciente implements IPacienteRepositorio {
 
   async obtenerPorId(id: string): Promise<Paciente | null> {
     const fila = await this.prisma.paciente.findUnique({ where: { id } });
-    return fila ? this.mapearAPaciente(fila) : null;
+    return fila ? mapearPaciente(fila) : null;
   }
 
   async obtenerPorEmail(email: string): Promise<Paciente | null> {
@@ -77,14 +77,14 @@ export class PrismaRepositorioPaciente implements IPacienteRepositorio {
     const fila = await this.prisma.paciente.findFirst({
       where: { email: email.trim().toLowerCase() },
     });
-    return fila ? this.mapearAPaciente(fila) : null;
+    return fila ? mapearPaciente(fila) : null;
   }
 
   async obtenerPorTelefonoE164(telefonoE164: string): Promise<Paciente | null> {
     const fila = await this.prisma.paciente.findFirst({
       where: { telefonoE164 },
     });
-    return fila ? this.mapearAPaciente(fila) : null;
+    return fila ? mapearPaciente(fila) : null;
   }
 
   async listar(filtro: FiltroPacientes = {}): Promise<Paciente[]> {
@@ -94,7 +94,7 @@ export class PrismaRepositorioPaciente implements IPacienteRepositorio {
       skip: filtro.desplazamiento,
       take: filtro.limite,
     });
-    return filas.map((fila) => this.mapearAPaciente(fila));
+    return filas.map((fila) => mapearPaciente(fila));
   }
 
   async contar(filtro: FiltroPacientes = {}): Promise<number> {
@@ -121,23 +121,23 @@ export class PrismaRepositorioPaciente implements IPacienteRepositorio {
     }
     return where;
   }
+}
 
-  /** Mapea una fila de Prisma a la entidad de dominio Paciente. */
-  private mapearAPaciente(fila: PacienteFila): Paciente {
-    return Paciente.reconstruir({
-      id: fila.id,
-      nombre: fila.nombre,
-      apellido: fila.apellido,
-      email: fila.email,
-      telefono: fila.telefono,
-      telefonoE164: fila.telefonoE164,
-      fechaNacimiento: fila.fechaNacimiento,
-      sexo: fila.sexo,
-      notas: fila.notas,
-      archivadoEn: fila.archivadoEn,
-      motivoArchivado: fila.motivoArchivado,
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+/** Mapea una fila de Prisma a la entidad de dominio Paciente. */
+export function mapearPaciente(fila: PacienteFila): Paciente {
+  return Paciente.reconstruir({
+    id: fila.id,
+    nombre: fila.nombre,
+    apellido: fila.apellido,
+    email: fila.email,
+    telefono: fila.telefono,
+    telefonoE164: fila.telefonoE164,
+    fechaNacimiento: fila.fechaNacimiento,
+    sexo: fila.sexo,
+    notas: fila.notas,
+    archivadoEn: fila.archivadoEn,
+    motivoArchivado: fila.motivoArchivado,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

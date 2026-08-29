@@ -76,7 +76,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
         include: INCLUIR,
       });
     });
-    return this.mapear(fila);
+    return mapearReceta(fila);
   }
 
   async actualizar(
@@ -112,7 +112,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
         include: INCLUIR,
       });
     });
-    return this.mapear(fila);
+    return mapearReceta(fila);
   }
 
   async eliminar(id: string): Promise<void> {
@@ -126,7 +126,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
       where: { id },
       include: INCLUIR,
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearReceta(fila) : null;
   }
 
   async listar(filtro?: FiltroRecetas): Promise<Receta[]> {
@@ -137,7 +137,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
       skip: filtro?.desplazamiento,
       take: filtro?.limite,
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearReceta(fila));
   }
 
   contar(filtro?: FiltroRecetas): Promise<number> {
@@ -185,7 +185,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
       include: INCLUIR,
       orderBy: { nombre: "asc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearReceta(fila));
   }
 
   async listarPacientesAsignados(recetaId: string): Promise<string[]> {
@@ -209,49 +209,49 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
       });
     }
   }
+}
 
-  private mapear(fila: RecetaConDetalle): Receta {
-    return Receta.reconstruir({
-      id: fila.id,
-      nombre: fila.nombre,
-      descripcion: fila.descripcion,
-      porciones: fila.porciones,
-      preparacion: fila.preparacion,
-      ingredientes: fila.ingredientes.map((ing) => ({
-        nombre: ing.nombre,
-        cantidadGramos: aNumero(ing.cantidadGramos),
-        caloriasPor100: aNumero(ing.caloriasPor100),
-        proteinasPor100: aNumero(ing.proteinasPor100),
-        carbohidratosPor100: aNumero(ing.carbohidratosPor100),
-        grasasPor100: aNumero(ing.grasasPor100),
-        fuente: ing.fuente,
-        referenciaExterna: ing.referenciaExterna,
+export function mapearReceta(fila: RecetaConDetalle): Receta {
+  return Receta.reconstruir({
+    id: fila.id,
+    nombre: fila.nombre,
+    descripcion: fila.descripcion,
+    porciones: fila.porciones,
+    preparacion: fila.preparacion,
+    ingredientes: fila.ingredientes.map((ing) => ({
+      nombre: ing.nombre,
+      cantidadGramos: aNumero(ing.cantidadGramos),
+      caloriasPor100: aNumero(ing.caloriasPor100),
+      proteinasPor100: aNumero(ing.proteinasPor100),
+      carbohidratosPor100: aNumero(ing.carbohidratosPor100),
+      grasasPor100: aNumero(ing.grasasPor100),
+      fuente: ing.fuente,
+      referenciaExterna: ing.referenciaExterna,
+    })),
+    etiquetas: fila.etiquetas,
+    fotoPrincipalId: fila.fotoPrincipalId,
+    enlaces: fila.enlaces,
+    calorias: aNumero(fila.calorias),
+    proteinasG: aNumero(fila.proteinasG),
+    carbohidratosG: aNumero(fila.carbohidratosG),
+    grasasG: aNumero(fila.grasasG),
+    // Los archivos vinculados a la receta se separan por tipo: las imágenes
+    // son fotos; el resto (PDF, Word) son documentos adjuntos.
+    fotos: fila.fotos
+      .filter((a) => a.mimeType.startsWith("image/"))
+      .map((foto) => ({
+        id: foto.id,
+        nombreOriginal: foto.nombreOriginal,
+        mimeType: foto.mimeType,
       })),
-      etiquetas: fila.etiquetas,
-      fotoPrincipalId: fila.fotoPrincipalId,
-      enlaces: fila.enlaces,
-      calorias: aNumero(fila.calorias),
-      proteinasG: aNumero(fila.proteinasG),
-      carbohidratosG: aNumero(fila.carbohidratosG),
-      grasasG: aNumero(fila.grasasG),
-      // Los archivos vinculados a la receta se separan por tipo: las imágenes
-      // son fotos; el resto (PDF, Word) son documentos adjuntos.
-      fotos: fila.fotos
-        .filter((a) => a.mimeType.startsWith("image/"))
-        .map((foto) => ({
-          id: foto.id,
-          nombreOriginal: foto.nombreOriginal,
-          mimeType: foto.mimeType,
-        })),
-      documentos: fila.fotos
-        .filter((a) => !a.mimeType.startsWith("image/"))
-        .map((doc) => ({
-          id: doc.id,
-          nombreOriginal: doc.nombreOriginal,
-          mimeType: doc.mimeType,
-        })),
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+    documentos: fila.fotos
+      .filter((a) => !a.mimeType.startsWith("image/"))
+      .map((doc) => ({
+        id: doc.id,
+        nombreOriginal: doc.nombreOriginal,
+        mimeType: doc.mimeType,
+      })),
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }
