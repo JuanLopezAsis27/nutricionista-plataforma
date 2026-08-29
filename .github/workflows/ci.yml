@@ -105,6 +105,9 @@ jobs:
       - name: Lint (eslint)
         run: npm run lint
 
+      - name: Formato (prettier)
+        run: npm run formato
+
       - name: Tests (vitest)
         run: npx vitest run
 

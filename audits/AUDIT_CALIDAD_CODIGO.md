@@ -9,6 +9,10 @@ historial completo) + tamaño/complejidad + criticidad de negocio. Se ejecutó l
 suite de tests (`vitest run`) y el script de lint (`npm run lint`) contra el
 árbol de trabajo actual.
 
+> **Estado de ejecución — hallazgos #1 y #15: RESUELTOS** (commits `2cd3257`,
+> `24eedf3`). Ver §7 para el registro de lo que se hizo, lo que se calibró y en
+> qué se equivocó esta auditoría al estimarlo.
+
 ---
 
 ## 0. Resumen ejecutivo
@@ -883,3 +887,112 @@ dos son redes que hoy directamente no existen.
 - **Calidad del schema de Prisma.** Cubierta en `audits/AUDIT_MODELO_DATOS.md`.
 - **Seguridad.** Cubierta en `audits/AUDIT_SEGURIDAD.md`. Los hallazgos de este
   informe son de mantenibilidad; ninguno es una vulnerabilidad.
+
+---
+
+## 7. Registro de ejecución — paso 1 de la hoja de ruta
+
+**Commits:** `2cd3257` (linter y arreglos) · `24eedf3` (formato) · `a7ce350` (este documento).
+**Resultado:** ESLint **0 errores**, 36 avisos anotados como deuda; `tsc --noEmit` OK;
+**722/722 tests** en verde antes y después.
+
+### 7.1 Qué se encontró al correr el linter por primera vez
+
+794 errores en la primera corrida. La distribución fue la evidencia más útil de
+toda la auditoría, porque **confirmó el diagnóstico del §0 por la vía negativa**:
+
+| Regla | Hallazgos | Veredicto |
+| --- | --- | --- |
+| `no-floating-promises` | **0** | El await olvidado, el bug que más se temía, no existe en esta base |
+| `no-explicit-any` | **0** | Los dos `any` conocidos estaban ya suprimidos y justificados |
+| `react-hooks/exhaustive-deps` | **0** | Los tres `disable` que había eran los únicos casos |
+| `require-await` | 660 | Ruido — ver §7.2 |
+| `no-unnecessary-type-assertion` | 26 | Mejora real — ver §7.3 |
+| `no-misused-promises` | 22 | Falso positivo de react-hook-form |
+| `unbound-method` | 25 | Falso positivo de mapeadores estáticos |
+| Reglas del React Compiler | 33 | Deuda real, anotada en `warn` |
+
+### 7.2 Calibraciones, con su justificación
+
+Cuatro reglas se ajustaron. Todas están documentadas **en el propio
+`eslint.config.mjs`**, no solo acá, para que el próximo que las vea sepa por qué:
+
+- **`require-await` → `off`.** 660 hallazgos, 583 en el dominio, **ninguno un
+  bug.** En esta base un método es `async` porque el *contrato de su interfaz*
+  lo es (`ejecutar(): Promise<T>`), no porque su cuerpo necesite `await`.
+  Obedecerla habría agregado un tick de microtask por llamada a cambio de nada.
+- **`no-misused-promises` con `checksVoidReturn.attributes: false`.** Los 22
+  hallazgos eran todos `onSubmit={form.handleSubmit(...)}`, el patrón documentado
+  de react-hook-form. El resto de la regla sigue activa.
+- **`unbound-method` con `ignoreStatic: true`.** Los 25 eran `.map(Servicio.aSalida)`
+  sobre mapeadores **estáticos**, que no tienen `this` que perder.
+- **Reglas del React Compiler en `warn`.** `set-state-in-effect` (21),
+  `static-components` (4), `purity` (1) señalan cosas reales: `SidebarNav.tsx`
+  crea componentes dentro del render (su estado se resetea en cada pintado) y
+  `dashboard/page.tsx:63` llama `Date.now()` en render (riesgo de desajuste de
+  hidratación). Van en `warn` por proceso, no por mérito: 33 hallazgos
+  bloqueantes en el día uno del linter es la receta para que alguien desactive
+  el gate entero. **Corresponde subirlas a `error` una vez saldadas.**
+
+### 7.3 Un hallazgo que corrige a esta misma auditoría
+
+El §1 hallazgo #3 afirma que los mapeadores hacen casts de enum «que el
+compilador no verifica», citando `fila.ambito as AmbitoAxioma`.
+
+**Al correr el linter resultó que esos 26 casts eran *innecesarios*:** Prisma ya
+genera el enum con el tipo correcto, y la aserción no cambiaba nada. El autofix
+los eliminó y `tsc` sigue pasando.
+
+El matiz importa y mejora el resultado: mientras estaba el `as`, el compilador
+tenía *orden de confiar*, así que un enum que dejara de coincidir con el schema
+habría pasado en silencio. Sin el `as`, **`tsc` ahora verifica ese borde de
+verdad.** Quitarlos no fue limpieza cosmética: convirtió 26 puntos de confianza
+ciega en 26 puntos verificados.
+
+Esto **no invalida** el hallazgo #3: los mapeadores siguen sin tests, y el riesgo
+de asignar un campo al atributo equivocado (`nombre: fila.apellido`) sigue intacto
+y sin cubrir. Solo achica el subconjunto de riesgo atribuible a los enums.
+
+### 7.4 La excepción que se dejó documentada
+
+`PrismaClienteSingleton.ts` concentraba los 19 `no-unsafe-*`, todos en el bloque
+`any` de la extensión de multi-tenancy. Se dejó como **excepción acotada con
+`eslint-disable`/`eslint-enable` de bloque** y una justificación extensa en el
+código, en vez de reescribirla:
+
+`$allOperations` recibe los args de cualquiera de los ~900 tipos de operación que
+genera Prisma; no hay un tipo común que los cubra y la manipulación es dinámica
+por diseño. El riesgo está cubierto donde importa —es fail-closed y está
+verificado por dos suites—, y "arreglarlo" para el linter significaba tocar el
+aislamiento entre consultorios sin ganar una sola garantía.
+
+### 7.5 En qué se equivocó esta auditoría
+
+§3.1 dijo: *«El estilo actual del repo ya es consistente, así que el diff inicial
+[de Prettier] debería ser mínimo»*.
+
+**Falso: 460 archivos difieren.** El estilo es consistente a ojo pero no
+equivale a ninguna configuración de Prettier (la mediana de línea es 32
+caracteres y el p99 llega a 99). Se resolvió con el mecanismo estándar —commit
+de formato aislado (`24eedf3`) más `.git-blame-ignore-revs`, verificado con
+`git blame`, que sigue atribuyendo las líneas a su autor original— pero la
+estimación estaba mal y conviene que quede registrado: **medir antes de
+prometer** aplica también a quien escribe la auditoría.
+
+### 7.6 Deuda que este paso deja anotada
+
+Los 36 avisos que quedan no son residuo: son trabajo identificado y localizado.
+
+| Regla | Cant. | Dónde | Acción |
+| --- | --- | --- | --- |
+| `react-hooks/set-state-in-effect` | 21 | `FormularioCredenciales`, `ToggleTema`, `useTemaComposicion`, +12 | Revisar uno por uno; varios son sincronización legítima con props |
+| `react-hooks/incompatible-library` | 7 | Varios | Diagnóstico del React Compiler sobre libs de terceros |
+| `react-hooks/static-components` | 4 | `SidebarNav.tsx:204,205,243,244` | **Bug real de estado**: componentes creados en render |
+| `no-base-to-string` | 3 | `TablaDatos.tsx:93`, `parsearPlanillaAlimentos.ts` | Riesgo de `[object Object]` visible al usuario |
+| `react-hooks/purity` | 1 | `dashboard/page.tsx:63` | `Date.now()` en render: riesgo de hidratación |
+
+**Siguiente en la hoja de ruta (§5): paso 3 — tests de los 31 mapeadores de
+repositorio.** El paso 2 (gates de CI) quedó hecho junto con este: `npm run lint`
+y `npm run formato` corren en el workflow después de `prisma generate`, porque
+las reglas type-aware necesitan el cliente generado. Falta solo la parte que no
+es código: activar branch protection en `main` exigiendo esos checks.
