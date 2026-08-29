@@ -26,9 +26,26 @@ x-app-env: &app-env
   AUTH_TRUST_HOST: "true"
   APP_URL: ${APP_URL}
   # Almacenamiento (MinIO interno de este stack).
+  #
+  # La app usa las credenciales de APLICACIÓN, no las de administración. Antes
+  # `S3_ACCESS_KEY` era a la vez la clave root de MinIO, así que un RCE o una
+  # SSRF en la app no se quedaba en "leer los archivos del consultorio": daba
+  # administración total del almacenamiento, incluido borrar el bucket que
+  # espeja los respaldos.
+  #
+  # `:-${S3_ACCESS_KEY}` es compatibilidad hacia atrás: si todavía no creaste la
+  # service account, sigue andando como antes. Para cerrar el hallazgo hay que
+  # crearla (una sola vez, con el stack levantado):
+  #
+  #   docker compose -p nutri_prod exec minio \
+  #     mc alias set local http://127.0.0.1:9000 "$S3_ACCESS_KEY" "$S3_SECRET_KEY"
+  #   docker compose -p nutri_prod exec minio \
+  #     mc admin user svcacct add local "$S3_ACCESS_KEY"
+  #
+  # y poner el par que devuelve en S3_APP_ACCESS_KEY / S3_APP_SECRET_KEY.
   S3_ENDPOINT: ${S3_ENDPOINT}
-  S3_ACCESS_KEY: ${S3_ACCESS_KEY}
-  S3_SECRET_KEY: ${S3_SECRET_KEY}
+  S3_ACCESS_KEY: ${S3_APP_ACCESS_KEY:-${S3_ACCESS_KEY}}
+  S3_SECRET_KEY: ${S3_APP_SECRET_KEY:-${S3_SECRET_KEY}}
   S3_BUCKET: ${S3_BUCKET}
   S3_REGION: ${S3_REGION:-us-east-1}
   S3_FORCE_PATH_STYLE: "true"
@@ -204,11 +221,20 @@ services:
       OVH_S3_SECRET_KEY: ${OVH_S3_SECRET_KEY:-}
       OVH_S3_BUCKET: ${OVH_S3_BUCKET:-}
       OVH_S3_REGION: ${OVH_S3_REGION:-}
+      # Clave PÚBLICA con la que se cifra el volcado antes de subirlo. La privada
+      # NO va en el VPS: sin ella el archivo del bucket externo no sirve de nada.
+      # Ver el encabezado de respaldos/respaldo.sh.
+      RESPALDO_GPG_RECIPIENT: ${RESPALDO_GPG_RECIPIENT:-}
+      # El directorio del llavero importado en el host, montado más abajo.
+      GNUPGHOME: /llaves
       RETENCION_DIAS: ${RETENCION_DIAS:-14}
       HORA_RESPALDO: ${HORA_RESPALDO:-03:00}
       TZ: ${TZ:-America/Argentina/Buenos_Aires}
     volumes:
       - datos_respaldos:/respaldos
+      # Llavero GPG del host, solo lectura: contiene únicamente la clave PÚBLICA
+      # con la que se cifra. Si no usás cifrado, esta línea es inofensiva.
+      - ${RUTA_LLAVES_GPG:-/etc/nutricionista/llaves}:/llaves:ro
     depends_on:
       postgres:
         condition: service_healthy

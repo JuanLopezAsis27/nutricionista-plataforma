@@ -1,6 +1,55 @@
-import { crearRouter, nutricionistaProcedimiento, protegidoProcedimiento } from "../trpc";
+import { TRPCError } from "@trpc/server";
+import {
+  crearRouter,
+  nutricionistaProcedimiento,
+  protegidoProcedimiento,
+} from "../trpc";
 import { pacienteDeSesion } from "@/dominio/servicios/politicaAcceso";
-import { preguntarDto, analizarComidaDto, feedbackInsightDto } from "@/aplicacion/dtos/ia.dto";
+import {
+  limitadorIaPaciente,
+  limitadorIaInquilino,
+} from "@/infraestructura/seguridad/LimitadorTasa";
+import {
+  preguntarDto,
+  analizarComidaDto,
+  feedbackInsightDto,
+} from "@/aplicacion/dtos/ia.dto";
+
+/**
+ * Cuota de uso de la IA.
+ *
+ * Cada llamada al modelo se factura contra la `ANTHROPIC_API_KEY` del
+ * profesional, así que un paciente en bucle no le degrada el servicio: le
+ * genera una factura. Es el único lugar de la app donde una acción de un
+ * usuario cuesta dinero por vez, y por eso es el único que necesita cuota.
+ *
+ * Dos techos, porque un solo techo no alcanza: el de paciente frena a una
+ * cuenta abusando, y el de consultorio frena el abuso repartido entre varias
+ * cuentas del mismo inquilino.
+ */
+function verificarCuotaIA(
+  pacienteId: string,
+  nutricionistaId: string | null,
+): void {
+  const porPaciente = limitadorIaPaciente.intentar(pacienteId);
+  if (!porPaciente.permitido) {
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message:
+        "Llegaste al límite de consultas al asistente por ahora. Probá de nuevo más tarde.",
+    });
+  }
+
+  const porInquilino = limitadorIaInquilino.intentar(
+    `inquilino:${nutricionistaId ?? "sin-inquilino"}`,
+  );
+  if (!porInquilino.permitido) {
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: "El asistente está con mucha demanda. Probá de nuevo más tarde.",
+    });
+  }
+}
 
 /**
  * Router de IA (andamiaje). Portal del paciente: asistente + análisis de foto
@@ -11,16 +60,17 @@ export const routerIA = crearRouter({
   preguntar: protegidoProcedimiento
     .input(preguntarDto)
     .mutation(async ({ ctx, input }) => {
-      return await ctx.servicios.ia.preguntar(
-        pacienteDeSesion(ctx.usuario),
-        input.pregunta,
-      );
+      const pacienteId = pacienteDeSesion(ctx.usuario);
+      verificarCuotaIA(pacienteId, ctx.usuario.nutricionistaId);
+      return await ctx.servicios.ia.preguntar(pacienteId, input.pregunta);
     }),
 
   analizarFoto: protegidoProcedimiento
     .input(analizarComidaDto)
     .mutation(async ({ ctx, input }) => {
-      return await ctx.servicios.ia.analizarFoto(pacienteDeSesion(ctx.usuario), {
+      const pacienteId = pacienteDeSesion(ctx.usuario);
+      verificarCuotaIA(pacienteId, ctx.usuario.nutricionistaId);
+      return await ctx.servicios.ia.analizarFoto(pacienteId, {
         archivoId: input.archivoId,
         descripcion: input.descripcion,
       });

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { passwordNuevaDto } from "./password";
 import { SEXOS_BIOLOGICOS } from "@/dominio/servicios/composicionCorporal";
 
 /**
@@ -26,7 +27,10 @@ export type CrearPacienteDto = z.infer<typeof crearPacienteDto>;
  * paciente también inicia sesión). El nutricionista define la contraseña.
  */
 export const crearPacienteConAccesoDto = crearPacienteDto.extend({
-  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres").max(72),
+  // Política única para toda la app (ver dtos/password.ts). Antes acá el
+  // mínimo era 6 y en el alta de nutricionista 8: dos criterios para la misma
+  // decisión.
+  password: passwordNuevaDto,
 });
 export type CrearPacienteConAccesoDto = z.infer<typeof crearPacienteConAccesoDto>;
 

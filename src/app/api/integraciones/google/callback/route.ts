@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { auth } from "@/lib/autenticacion/auth";
+import { usuarioDeSesion } from "@/lib/autenticacion/sesion";
 import {
   proveedorGoogle,
   servicioIntegraciones,
@@ -17,11 +17,11 @@ export const runtime = "nodejs";
  */
 export function GET(request: Request): Promise<NextResponse> {
   return conAlcanceDeSesion(async () => {
-    const sesion = await auth();
+    const usuario = await usuarioDeSesion();
     const volver = (q: string) =>
       NextResponse.redirect(new URL(`/dashboard/integraciones${q}`, request.url));
 
-    if (sesion?.user?.rol !== "NUTRICIONISTA" || !proveedorGoogle()) {
+    if (usuario?.rol !== "NUTRICIONISTA" || !proveedorGoogle()) {
       return volver("?error=no-disponible");
     }
 

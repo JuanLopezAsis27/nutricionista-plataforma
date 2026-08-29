@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
-import { auth } from "@/lib/autenticacion/auth";
+import { usuarioDeSesion } from "@/lib/autenticacion/sesion";
 import { proveedorGoogle } from "@/infraestructura/contenedor/contenedor";
 
 export const runtime = "nodejs";
@@ -11,10 +11,10 @@ export const runtime = "nodejs";
  * httpOnly que el callback verifica. Solo para el NUTRICIONISTA.
  */
 export async function GET(request: Request): Promise<NextResponse> {
-  const sesion = await auth();
+  const usuario = await usuarioDeSesion();
   const volver = (q: string) => NextResponse.redirect(new URL(`/dashboard/integraciones${q}`, request.url));
 
-  if (sesion?.user?.rol !== "NUTRICIONISTA") {
+  if (usuario?.rol !== "NUTRICIONISTA") {
     return NextResponse.redirect(new URL("/login", request.url));
   }
   // Se resuelve una sola vez: el getter es perezoso y TypeScript no puede

@@ -17,7 +17,10 @@ const manejador = (peticion: Request): Promise<Response> =>
       endpoint: "/api/trpc",
       req: peticion,
       router: routerApp,
-      createContext: crearContexto,
+      // Se le pasa la petición para que el contexto pueda resolver la IP de
+      // origen: los procedimientos públicos la necesitan para limitar por
+      // origen (ver routers/autenticacion.ts).
+      createContext: ({ req }) => crearContexto(req),
     }),
   );
 

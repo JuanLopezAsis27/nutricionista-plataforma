@@ -16,6 +16,28 @@
 #    renueva solo con un timer de systemd)
 # =============================================================================
 
+# =============================================================================
+# Límites de tasa (contexto http).
+#
+# IMPORTANTE: estas dos directivas `limit_req_zone` NO van dentro de `server`.
+# Si copiás este archivo a sites-available tal cual, movelas a /etc/nginx/nginx.conf
+# dentro del bloque `http { ... }`, o nginx no arranca.
+#
+# La app ya limita en memoria (login, recuperación de contraseña, monitoreo,
+# IA), pero ese estado se pierde en cada reinicio y no se comparte si algún día
+# hay más de una réplica. El límite de nginx está POR DELANTE, sobrevive a los
+# reinicios de la app y frena el tráfico antes de que llegue a gastar CPU.
+#
+# $binary_remote_addr y no $http_x_forwarded_for: la dirección real de la
+# conexión, que el cliente no puede falsear.
+# =============================================================================
+limit_req_zone $binary_remote_addr zone=autenticacion:10m rate=10r/m;
+limit_req_zone $binary_remote_addr zone=general:10m rate=30r/s;
+
+# Al superar el límite, 429 (y no el 503 por defecto): es lo que corresponde y
+# lo que los clientes saben interpretar.
+limit_req_status 429;
+
 # --- HTTP: redirige a HTTPS (certbot suele generarlo; si no, dejá este bloque) ---
 server {
     listen 80;
@@ -39,6 +61,15 @@ server {
     client_max_body_size 16m;
 
     # Seguridad básica.
+    #
+    # Estas cabeceras las emite AHORA la propia aplicación (next.config.ts →
+    # headers()), junto con la CSP, Referrer-Policy y Permissions-Policy que acá
+    # no estaban. Se dejan igual como segunda capa: si algún día la app se sirve
+    # con otra configuración, el proxy sigue poniendo el piso.
+    #
+    # nginx no duplica una cabecera que ya viene del upstream salvo que se use
+    # `always`; si ves valores repetidos en una respuesta, sacá las de acá y
+    # dejá las de la app, que son las más completas.
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
@@ -67,7 +98,42 @@ server {
         access_log off;
     }
 
+    # Autenticación: el objetivo natural de la fuerza bruta y del bombardeo de
+    # correo. 10 por minuto por IP, con un colchón de 5 para no castigar el
+    # reintento legítimo de alguien que se equivocó de contraseña.
+    #
+    # Cubre /api/auth/* (login de Auth.js). La recuperación de contraseña entra
+    # por /api/trpc, así que además tiene su propio límite en la app
+    # (LimitadorTasa) — acá no se puede distinguir un procedimiento de otro.
+    location /api/auth {
+        limit_req zone=autenticacion burst=5 nodelay;
+
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Ingesta de errores del cliente: pública y sin sesión, así que también con
+    # límite propio (la app la limita igual, pero esto llega antes).
+    location = /api/monitoreo {
+        limit_req zone=autenticacion burst=10 nodelay;
+
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     location / {
+        limit_req zone=general burst=60 nodelay;
+
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
 
@@ -88,6 +154,11 @@ server {
     # que ROMPE el stream (los eventos no llegan hasta cerrar la conexión). Para
     # las rutas de tRPC desactivamos el buffering y alargamos el timeout.
     location /api/trpc {
+        # Mismo límite general. El stream SSE es UNA sola request (larga), así
+        # que un límite por tasa no lo afecta: cuenta conexiones nuevas, no
+        # tiempo conectado.
+        limit_req zone=general burst=60 nodelay;
+
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
 

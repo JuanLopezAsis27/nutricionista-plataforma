@@ -12,6 +12,12 @@ concurrency:
   group: deploy-produccion
   cancel-in-progress: false
 
+# Permisos mínimos: este workflow no necesita escribir nada en el repositorio.
+# Es el job de mayor valor para un atacante —tiene la clave SSH del VPS— así que
+# es donde menos conviene repartir permisos de más.
+permissions:
+  contents: read
+
 jobs:
   deploy:
     name: Desplegar a producción (VPS)
@@ -22,8 +28,11 @@ jobs:
     #   VPS_SSH_KEY     clave privada SSH (la pública va en ~/.ssh/authorized_keys del VPS)
     #   VPS_DEPLOY_PATH ruta del repo en el VPS (ej. /home/deploy/nutricionista-app)
     steps:
+      # Fijada por SHA y no por tag: `v1` es mutable, y quien controle ese
+      # repositorio podría reapuntarlo a otro commit que se ejecutaría acá con
+      # la clave SSH de producción. El SHA no se puede reapuntar.
       - name: Conectar por SSH y desplegar
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}

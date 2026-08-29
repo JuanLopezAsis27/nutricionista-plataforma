@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/autenticacion/auth";
+import { usuarioDeSesion } from "@/lib/autenticacion/sesion";
 import {
   servicioPlan,
   servicioPaciente,
@@ -36,8 +36,8 @@ function nombreArchivo(nombrePlan: string): string {
  */
 export function GET(solicitud: Request, { params }: Parametros): Promise<NextResponse> {
   return conAlcanceDeSesion(async () => {
-  const sesion = await auth();
-  if (!sesion?.user) {
+  const usuario = await usuarioDeSesion();
+  if (!usuario) {
     return NextResponse.json({ error: "Necesitás iniciar sesión." }, { status: 401 });
   }
 
@@ -45,7 +45,7 @@ export function GET(solicitud: Request, { params }: Parametros): Promise<NextRes
     const { id } = await params;
     let nombrePaciente: string | null = null;
 
-    if (sesion.user.rol === "NUTRICIONISTA") {
+    if (usuario.rol === "NUTRICIONISTA") {
       const pacienteId = new URL(solicitud.url).searchParams.get("paciente");
       if (pacienteId) {
         const paciente = await servicioPaciente().obtenerPacientePorId(pacienteId);
@@ -53,17 +53,17 @@ export function GET(solicitud: Request, { params }: Parametros): Promise<NextRes
       }
     } else {
       // Paciente: solo puede descargar su propio plan activo.
-      if (!sesion.user.pacienteId) {
+      if (!usuario.pacienteId) {
         return NextResponse.json(
           { error: "Tu usuario no tiene un paciente asociado." },
           { status: 403 },
         );
       }
-      const planActivo = await servicioPlan().obtenerPlanDelPaciente(sesion.user.pacienteId);
+      const planActivo = await servicioPlan().obtenerPlanDelPaciente(usuario.pacienteId);
       if (!planActivo || planActivo.id !== id) {
         return NextResponse.json({ error: "No tenés acceso a este plan." }, { status: 403 });
       }
-      const paciente = await servicioPaciente().obtenerPacientePorId(sesion.user.pacienteId);
+      const paciente = await servicioPaciente().obtenerPacientePorId(usuario.pacienteId);
       nombrePaciente = `${paciente.nombre} ${paciente.apellido}`;
     }
 

@@ -16,6 +16,27 @@ export const authConfig = {
   },
   session: {
     strategy: "jwt",
+    /**
+     * 12 horas, no los 30 días que trae Auth.js por defecto.
+     *
+     * Con estrategia JWT la sesión no se puede revocar del lado del servidor:
+     * el token es válido hasta que vence, y punto. Eso convertía la duración
+     * por defecto en una ventana de un mes durante la cual una cuenta dada de
+     * baja seguía entrando. La duración corta es la primera mitad de la
+     * defensa; la segunda es `verificarSesionVigente`, que revalida contra la
+     * base en cada request (ver src/lib/autenticacion/sesion.ts).
+     *
+     * 12 h cubre una jornada completa del consultorio sin obligar a reingresar
+     * en el medio de la atención.
+     */
+    maxAge: 12 * 60 * 60,
+    /**
+     * Renueva el token si pasó más de 1 hora desde la última renovación. Sin
+     * esto, `maxAge` sería un corte duro a las 12 h aunque la persona estuviera
+     * trabajando; con esto, la sesión activa se extiende sola y solo caduca de
+     * verdad tras 12 h de inactividad.
+     */
+    updateAge: 60 * 60,
   },
   callbacks: {
     /**

@@ -1,5 +1,8 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
-import { renderizarPlantilla } from "../plantillas/renderizar";
+import {
+  renderizarPlantilla,
+  renderizarPlantillaHtml,
+} from "../plantillas/renderizar";
 
 /**
  * Claves de las plantillas de sistema (sembradas, no borrables). El cron de
@@ -112,11 +115,17 @@ export class PlantillaEmail {
    * Reemplaza los placeholders {{clave}} (con espacios opcionales) por los
    * valores provistos. Los placeholders sin valor se dejan intactos para que
    * el profesional detecte el error en la vista previa.
+   *
+   * El asunto es texto plano y va sin escapar; el cuerpo es HTML y los valores
+   * SÍ se escapan. La plantilla la escribe el profesional (contenido de
+   * confianza, con sus etiquetas), pero los valores sustituidos son datos —el
+   * nombre del paciente, por ejemplo— y sin escapar se inyectaban tal cual en
+   * un correo que sale hacia terceros.
    */
   renderizar(variables: Record<string, string>): EmailRenderizado {
     return {
       asunto: renderizarPlantilla(this.props.asunto, variables),
-      html: renderizarPlantilla(this.props.cuerpoHtml, variables),
+      html: renderizarPlantillaHtml(this.props.cuerpoHtml, variables),
     };
   }
 
