@@ -9,11 +9,11 @@ historial completo) + tamaño/complejidad + criticidad de negocio. Se ejecutó l
 suite de tests (`vitest run`) y el script de lint (`npm run lint`) contra el
 árbol de trabajo actual.
 
-> **Estado de ejecución — hallazgos #1, #2, #3 y #15: RESUELTOS.** Pasos 1 a 4
-> completos y el 5 arrancado. Ver §7 (linter y formato), §8 (mapeadores), §9 y
-> §10 (coherencia formulario↔DTO) y §11 (casos de uso) para el registro de lo
-> que se hizo, lo que se calibró, los ocho bugs que aparecieron y en qué se
-> equivocó esta auditoría al estimarlo.
+> **Estado de ejecución — hallazgos #1, #2, #3, #5 y #15: RESUELTOS.** Pasos 1 a
+> 4 y 6 completos; el 5, arrancado. Ver §7 (linter y formato), §8 (mapeadores), §9 y
+> §10 (coherencia formulario↔DTO), §11 y §12 (casos de uso) y §13 (partición de
+> los servicios) para el registro de lo que se hizo, lo que se calibró, los ocho
+> bugs que aparecieron y en qué se equivocó esta auditoría al estimarlo.
 
 ---
 
@@ -1347,3 +1347,124 @@ excepciones que conviene priorizar:
 2. **`ListarTurnosParaRecordar`** (141 ln): decide **a quién** se le manda en el
    barrido automático. Un error de más envía mensajes de sobra; uno de menos
    deja pacientes sin aviso.
+
+---
+
+## 12. Registro de ejecución — los dos casos de uso prioritarios de §11.4
+
+**Commit:** `a856533`. **862 → 892 tests.**
+
+### 12.1 `armadoRecordatorio` (75 ln)
+
+Produce el texto **exacto** que lee el paciente. No decide *si* se manda —eso es
+`EnviarRecordatorioWhatsapp`— sino *qué dice*, y lo comparten los tres caminos:
+vista previa, envío masivo y barrido automático.
+
+Lo más valioso que quedó fijado es el **orden de los parámetros de Meta**. Meta
+los numera (`{{1}}`, `{{2}}`…) en lugar de nombrarlos, así que el orden del
+array **es** el significado. Invertir dos posiciones no rompe nada técnico: manda
+*"Hola 10:30, te espero el Ana García"*. También quedó cubierto el formateo de
+fecha por componentes UTC — con zona local, un turno del 1 de julio se anunciaría
+como 30 de junio a cualquiera que corra el worker al oeste de Greenwich.
+
+### 12.2 `ListarTurnosParaRecordar` (141 ln)
+
+Decide **a quién** se le ofrece avisar. Un error de más ofrece escribirle a quien
+no corresponde; uno de menos deja pacientes sin aviso y nadie se entera, porque
+lo que no aparece en la lista no se extraña.
+
+Quedaron fijados el filtro de cancelados y archivados, el recorte de la ventana
+(sin tope, pedir 99.999 días barre la tabla entera), que un paciente sin teléfono
+**se muestra** con el impedimento explícito en vez de desaparecer, que se
+devuelven *todos* los avisos y no solo el último —con `[3, 1]` programados, saber
+que salió el de 3 días no dice nada del de 1— y que un `PREPARADO` no cuenta como
+avisado.
+
+### 12.3 Dos hallazgos sobre el dominio
+
+**El `?? ""` de `armadoRecordatorio` es defensa redundante por partida doble.**
+El tipo de `variablesMeta` es la unión de las variables válidas (una inventada no
+compila) y `PlantillaWhatsapp` además las valida al construirse. El test apunta a
+la segunda red, que es la que protegería al paciente de un `undefined` en su
+mensaje si el tipo se relajara.
+
+**Asimetría a tener presente en el dominio:** `Paciente.archivar` es **inmutable**
+y devuelve una instancia nueva, mientras que `Turno.cambiarEstado` **muta** la
+propia. No es un error —son decisiones distintas en entidades distintas— pero
+descartar el retorno de `archivar` deja un test que verifica lo contrario de lo
+que dice su nombre. Pasó al escribir estos tests.
+
+---
+
+## 13. Registro de ejecución — paso 6: partir los servicios gigantes
+
+**Commit:** `757abb9`. **Cierra el hallazgo #5.** Sin cambios de comportamiento:
+892/892 tests siguen en verde.
+
+| | Antes | Después |
+| --- | --- | --- |
+| `ServicioEvaluacion` | 286 ln, **20 deps** | fachada de 47 ln + 4 servicios |
+| `ServicioRecordatorios` | 267 ln, **17 deps** | fachada de 34 ln + 4 servicios |
+| Máximo de deps en el sistema | 20 | **10** |
+| Mediana de deps | — | **4** |
+
+### 13.1 Por qué cuatro y no seis (Evaluación)
+
+La auditoría (§2.2) proponía cuatro servicios. Al abrir el archivo había **seis**
+secciones marcadas con comentarios. La partición final es de cuatro, y la
+diferencia importa:
+
+**Antropometría, composición corporal y plantillas de carga se llaman entre sí.**
+`registrar()` devuelve la evolución completa; `guardarObjetivo()` devuelve la
+composición recalculada; las plantillas definen qué medidas se cargan. Partirlas
+habría obligado a que un servicio dependiera de otro para contestarle a la UI
+—acoplamiento peor que el que se venía a resolver—. Son **un subdominio con tres
+vistas**, y viven juntas en `ServicioAntropometria` (10 deps, el mayor que queda).
+
+Es el matiz que solo aparece leyendo los cuerpos: los comentarios de sección
+sugerían seis piezas, las llamadas internas decían cuatro.
+
+### 13.2 Cómo se repartió Recordatorios
+
+Por **las preguntas que se hace el profesional**, no por las tablas:
+
+| Servicio | La pregunta que responde |
+| --- | --- |
+| `configuracion` | ¿cómo aviso? — qué medios, con cuánta anticipación |
+| `plantillas` | ¿qué digo? — los textos, sueltos o aprobados en Meta |
+| `envio` | ¿a quién le mando ahora? — la consola y el barrido automático |
+| `seguimiento` | ¿qué pasó con lo que mandé? — historial y confirmación manual |
+
+`configuracion` se lleva el proveedor de WhatsApp y las cuentas conectadas porque
+su salida suma el **estado real de las integraciones** al estado guardado: sin
+eso la pantalla muestra "calendario activo" en un consultorio sin Google
+conectado, que es prometer un aviso que no sale.
+
+### 13.3 Un sitio de llamada que el grep no veía
+
+Buscar `ctx.servicios.recordatorios.` encontró 14 usos, todos en el router. Pero
+`tsc` marcó uno más: **`src/trabajos/manejadores/enviarRecordatorios.ts`**, el
+trabajo por cron, que toma el servicio del contenedor directamente y no pasa por
+el contexto de tRPC.
+
+Vale anotarlo como método: en este repo, buscar por el patrón del contexto deja
+afuera al worker. El typecheck lo agarró —es la ventaja de que el refactor sea
+mecánico y tipado— pero conviene recordarlo antes de confiar en un grep.
+
+### 13.4 Lo que este paso NO hizo
+
+**No se movieron los casos de uso de `dominio/` a `aplicacion/`.** Se conversó al
+cerrar el paso 4 y quedó como decisión pendiente, deliberadamente separada de
+este commit: es un refactor puramente nominal sobre 300+ archivos (188 casos de
+uso, 130 tests, el contenedor y el test de arquitectura) que cambia rutas y no
+comportamiento.
+
+El argumento a favor sigue en pie —Uncle Bob llama a los casos de uso
+*"Application Business Rules"*, y en DDD son *application services*— y el estado
+actual está medido: los casos de uso importan **solo rutas relativas**, cero
+dependencias hacia `@/aplicacion` o hacia afuera. **La regla de dependencia se
+cumple; el nombre de la carpeta es lo que no sigue la convención.**
+
+Este paso deja el terreno mejor preparado para ese movimiento, si se decide
+hacerlo: la capa de aplicación ya no es un puñado de fachadas de 20 dependencias
+sino ocho servicios cohesivos, que es donde los casos de uso encajarían.
