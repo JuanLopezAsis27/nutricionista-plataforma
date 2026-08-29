@@ -9,10 +9,11 @@ historial completo) + tamaño/complejidad + criticidad de negocio. Se ejecutó l
 suite de tests (`vitest run`) y el script de lint (`npm run lint`) contra el
 árbol de trabajo actual.
 
-> **Estado de ejecución — hallazgos #1, #15 y #3: RESUELTOS** (commits `2cd3257`,
-> `24eedf3`, `6bd6e9b`). Ver §7 (linter y formato) y §8 (mapeadores) para el
-> registro de lo que se hizo, lo que se calibró y en qué se equivocó esta
-> auditoría al estimarlo.
+> **Estado de ejecución — hallazgos #1, #2, #3 y #15: RESUELTOS.** Pasos 1 a 4
+> completos y el 5 arrancado. Ver §7 (linter y formato), §8 (mapeadores), §9 y
+> §10 (coherencia formulario↔DTO) y §11 (casos de uso) para el registro de lo
+> que se hizo, lo que se calibró, los ocho bugs que aparecieron y en qué se
+> equivocó esta auditoría al estimarlo.
 
 ---
 
@@ -1204,3 +1205,145 @@ nuevo son ~15 líneas.
 **Siguiente en la hoja de ruta (§5): paso 5 — tests de los 57 casos de uso sin
 cubrir**, empezando por `recordatorios/` y `whatsapp/`, que son los que envían
 mensajes reales a pacientes.
+
+---
+
+## 10. Registro de ejecución — los 11 formularios restantes (deuda de §9.5)
+
+**Commit:** `f279a12`. **806 → 832 tests.**
+
+§9.5 dejó anotado que quedaban once formularios con esquema propio sin comparar
+contra su DTO, con esta advertencia: *«La divergencia apareció en el primer par
+que se miró; no hay motivo para suponer que es la única.»*
+
+**Aparecieron seis más.** Todas de la misma familia —el formulario acota menos
+que el servidor— y ninguna la detectaba nada:
+
+| Formulario | Campo | El formulario validaba | El servidor exige |
+| --- | --- | --- | --- |
+| `FormularioReceta` | `enlaces` | solo el largo del textarea | `z.string().url()` **por elemento** |
+| `FormularioReceta` | `etiquetas` | solo el largo total | max 60 c/u, max 30 |
+| `FormularioReceta` | `porciones` | "positivo" | entero 1..100 |
+| `FormularioReceta` | macros | "positivo" | calorías ≤100.000, macros ≤10.000 |
+| `SeccionDeportiva` | `pesoCategoriaKg` | nada | **20..400** (con piso, no solo techo) |
+| `SeccionDeportiva` | `horasSemana`, `diasEntrenamientoSemana` | nada | 0..80 y 0..14 |
+| `FormularioMaterial` | `etiquetas` | solo el largo total | max 60 c/u, max 30 |
+| `FormularioTurno` | `duracion` | "no vacío" | entero 1..480 |
+| `FormularioTurno` | `notas` | sin tope | max 1000 |
+| `FormularioPlan` | metas de macros | "positivo" | los mismos topes que receta |
+| `FormularioPlan` | equivalencias, recomendaciones | sin tope | max 100 |
+
+**La más probable de todas es la de los enlaces de receta.** Pegar `google.com`
+sin `https://` es lo que hace cualquiera; el formulario lo aceptaba y la
+mutación lo rechazaba con "Debe ser una URL válida".
+
+**La más silenciosa es `pesoCategoriaKg`**: es el único campo del sistema con
+**piso** distinto de cero (20 kg). Ningún otro campo tiene esa forma, así que no
+había ningún patrón previo que lo cubriera por analogía.
+
+### 10.1 Un problema de fondo que apareció al arreglarlo
+
+Los campos de lista (`etiquetas`, `enlaces`) se escriben como texto y se parten
+al enviar. El corte estaba escrito **dos veces por formulario**: una en el
+esquema y otra en `alEnviar`. Con dos copias, la validación podía terminar
+mirando una lista distinta de la que efectivamente viajaba.
+
+Se creó `src/lib/validacionListas.ts` con el corte y la regla **juntos**
+(`partirEtiquetas`/`partirEnlaces` más los esquemas que los usan), y ambos lados
+lo importan. Lo mismo con `duracionTurno`, que ahora comparten `FormularioTurno`
+y `FormularioReprogramar` en vez de escribir el mismo rango dos veces.
+
+### 10.2 Los que ya estaban bien
+
+`NavegadorCarpetas`, `FormularioObjetivo`, `SeccionSuplementos`,
+`FormularioPlantilla`, `FormularioAsignacionPlan` y el esquema de competencia
+**no** tenían divergencias. Se testean igual: son el punto de referencia que
+avisa si alguien cambia un límite de un solo lado.
+
+También quedaron fijadas las reglas donde el formulario es **más estricto** que
+el servidor, que es la dirección permitida: confirmar la contraseña, fecha de
+fin no anterior a la de inicio, clave de plantilla con regex de identificador.
+
+**Verificado por mutación:** al revertir los arreglos de receta y deportivo, 4
+tests fallan.
+
+---
+
+## 11. Registro de ejecución — paso 5 (arranque): casos de uso sin test
+
+**Commit:** `ade173c`. **832 → 862 tests.**
+
+Se arrancó por donde §3.2 indicaba: **los módulos que envían mensajes reales al
+teléfono de un paciente.**
+
+### 11.1 `EnviarRecordatorioWhatsapp` — 286 líneas, cero tests
+
+Era el caso de uso sin test más grande que quedaba y el de mayor consecuencia.
+Sus reglas estaban documentadas en comentarios extensos —bien escritos— y
+verificadas por nadie. La regla de fondo, ahora fijada: **el log registra avisos
+que SALIERON, no intentos.**
+
+Quedaron cubiertas, entre otras:
+
+- Un aviso que salió bloquea **por un rato**, no para siempre. Un turno agendado
+  con tres semanas y reprogramado dos veces necesita más de un aviso.
+- Uno FALLIDO o DESCARTADO **no** bloquea, y el reintento **reusa la fila**: ese
+  era el bug histórico de apilar una fila por clic.
+- Un escalón programado reusa siempre (el índice único no deja otra); un reenvío
+  manual sobre un aviso que salió crea fila nueva — si la pisara, "le mandé el
+  lunes y volví a insistir el jueves" se convertiría en "le mandé el jueves".
+- **Un texto editado a mano no se manda como plantilla de Meta.** Si se mandara,
+  el paciente leería el texto que Meta aprobó y no el que el profesional acaba
+  de escribir. Es la regla más sutil del caso de uso y la de efecto más visible.
+
+### 11.2 `ResolverPacientePorTelefono`
+
+Es lo único que impide que el WhatsApp personal del profesional —familia,
+amigos— entre a la base del consultorio. Se fija que cuatro grafías del mismo
+número producen la misma búsqueda, que un teléfono ilegible devuelve `null` sin
+tumbar la ingesta del lote, y que funciona con el consultorio todavía sin
+configurar.
+
+### 11.3 Dos notas de construcción, para el próximo que escriba tests acá
+
+- **`Turno.crear` siempre nace PENDIENTE.** El `estado` que se le pase se
+  ignora: la única puerta es `cambiarEstado`, que valida la transición.
+- **Para probar el margen entre avisos hay que pasar el tercer parámetro de
+  `RecordatorioWhatsapp.crear`.** `salioEn` lee de `confirmadoEn`, que se sella
+  con ese reloj; sin él, el aviso "salió" en el instante real y el margen no se
+  puede simular.
+
+### 11.4 Estado real de la cobertura de casos de uso
+
+Medido por **importación en alguna suite**, no por archivo hermano —que
+subestima, porque un test puede cubrir varios casos de uso—:
+
+| | |
+| --- | --- |
+| Casos de uso | 186 |
+| **Cubiertos** | **140 (75 %)** |
+| Sin cubrir | 46 |
+
+Los 46 restantes, por módulo:
+
+| Cant. | Módulo | Casos de uso |
+| --- | --- | --- |
+| 10 | `recordatorios` | `ListarTurnosParaRecordar`, `ListarSeguimientoRecordatorios`, `ObtenerVistaPreviaRecordatorio`, `armadoRecordatorio`, plantillas WhatsApp (CRUD), … |
+| 5 | `mensajeria` | `ContarNoLeidos`, `ListarConversaciones`, `ListarMensajes`, `MarcarLeidos`, `ObtenerConversacionDePaciente` |
+| 4 | `evaluacion` | plantillas antropométricas y objetivos de composición |
+| 4 | `secretaria` | `ListarPlantillas`, `ObtenerPlantilla`, `variables`, `ListarEmailsEnviados` |
+| 4 | `whatsapp` | `EnviarMensajeWhatsapp`, `ObtenerHiloWhatsapp`, `enlace`, `plantilla` |
+| 3+3+2+2+2 | `axiomas`, `deportivo`, `ia`, `integraciones`, `superadmin` | mayormente listados |
+| 7 | varios (1 c/u) | `ObtenerDia`, `ObtenerGruposPlan`, `EnviarEmailDeBienvenida`, … |
+
+**El paso 5 está arrancado, no terminado.** Lo que queda es mayoritariamente
+lectura (`Listar*`, `Obtener*`), de menor riesgo que lo ya cubierto. Las dos
+excepciones que conviene priorizar:
+
+1. **`armadoRecordatorio`** (75 ln): arma el texto que le llega al paciente,
+   sustituyendo las variables de la plantilla. Un error ahí sale impreso en cada
+   mensaje. Hoy está cubierto indirectamente por los tests de
+   `EnviarRecordatorioWhatsapp`, pero no tiene tests propios.
+2. **`ListarTurnosParaRecordar`** (141 ln): decide **a quién** se le manda en el
+   barrido automático. Un error de más envía mensajes de sobra; uno de menos
+   deja pacientes sin aviso.
