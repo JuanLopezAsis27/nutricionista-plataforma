@@ -4,6 +4,8 @@ import type {
 } from "../../repositorios/IArchivoRepositorio";
 import type { IAlmacenamientoArchivos } from "../../servicios/IAlmacenamientoArchivos";
 import { Archivo, type ContextoArchivo } from "../../entidades/Archivo";
+import { contenidoCoincideConMime } from "../../servicios/firmaArchivo";
+import { ErrorArchivoInvalido } from "../../errores/ErrorArchivoInvalido";
 
 /** Datos de entrada para subir un archivo. */
 export interface DatosSubirArchivo {
@@ -33,6 +35,16 @@ export class SubirArchivo {
   ) {}
 
   async ejecutar(datos: DatosSubirArchivo): Promise<Archivo> {
+    // El MIME que llega es el que DECLARÓ quien sube (la cabecera de la parte
+    // multipart), no un hecho verificado. La lista blanca de `Archivo.crear`
+    // valida ese string; esto valida que los bytes le den la razón. Va antes de
+    // tocar el bucket para no dejar basura si el archivo miente.
+    if (!contenidoCoincideConMime(datos.contenido, datos.mimeType)) {
+      throw new ErrorArchivoInvalido(
+        "El contenido del archivo no se corresponde con su tipo declarado.",
+      );
+    }
+
     const archivo = Archivo.crear(
       {
         nombreOriginal: datos.nombreOriginal,
@@ -46,7 +58,11 @@ export class SubirArchivo {
       crypto.randomUUID(),
     );
 
-    await this.almacenamiento.subir(archivo.clave, datos.contenido, archivo.mimeType);
+    await this.almacenamiento.subir(
+      archivo.clave,
+      datos.contenido,
+      archivo.mimeType,
+    );
 
     try {
       return await this.archivos.crear(archivo, datos.dueno);

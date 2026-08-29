@@ -1,7 +1,7 @@
 # Publicar la app móvil (iOS + Android)
 
 La app móvil es un **shell nativo con Capacitor** que abre la app web en vivo
-dentro de un WebView (ver `capacitor.config.json` → `server.url`). No se
+dentro de un WebView (ver `capacitor.config.ts`). No se
 reescribe nada: el teléfono muestra el mismo sitio ya desplegado, y el shell
 agrega lo nativo (permisos, wearables — ver `docs/WEARABLES.md`).
 
@@ -20,12 +20,13 @@ por las tiendas). Solo hace falta re-publicar en la tienda si cambiás algo
 ## Preparar el proyecto (una vez)
 
 Las dependencias de Capacitor **ya están instaladas** (`@capacitor/core`, `cli`,
-`app`, `android`, `ios`) y `capacitor.config.json` ya existe en la raíz con el
+`app`, `android`, `ios`) y `capacitor.config.ts` ya existe en la raíz con el
 `appId` `com.consultorio.app`. Solo falta generar las carpetas nativas (esto
 requiere tener el SDK correspondiente: Android Studio y/o Xcode):
 
 ```bash
-# 1. En capacitor.config.json: server.url = tu dominio de producción (https).
+# 1. Para producción no hay que tocar nada: sin CAP_SERVER_URL, la app usa
+#    el origen de producción por HTTPS (ver capacitor.config.ts).
 # 2. Generar los proyectos nativos:
 npm run cap:add:android    # crea android/  (necesita Android Studio)
 npm run cap:add:ios        # crea ios/      (necesita una Mac con Xcode)
@@ -48,17 +49,29 @@ desplegar todavía):
 # 1. Levantá la web accesible en la LAN:
 npm run dev -- -H 0.0.0.0        # queda en http://<IP-de-tu-PC>:3000
 
-# 2. En capacitor.config.json, apuntá el shell a esa IP y permití http:
-#    "server": { "url": "http://192.168.x.x:3000", "cleartext": true, "androidScheme": "https" }
-#    (cleartext solo para desarrollo; en producción va https y se saca).
+# 2. Sincronizá apuntando el shell a esa IP, por variable de entorno:
+CAP_SERVER_URL=http://192.168.x.x:3000 npm run cap:sync
 
-# 3. Sincronizá y corré en el dispositivo/emulador:
-npm run cap:sync
+# 3. Corré en el dispositivo/emulador:
 npm run cap:run:android          # elige dispositivo y compila
 ```
 
-El teléfono y la PC tienen que estar en la **misma red**. Para producción,
-volvé a poner `server.url` al dominio https real y sacá `cleartext`.
+El teléfono y la PC tienen que estar en la **misma red**.
+
+> **Por qué es una variable de entorno y no un valor en el archivo.** Antes la
+> URL de desarrollo estaba escrita en `capacitor.config.json`, versionada y con
+> `cleartext: true`. Eso hacía que cualquier build salido de una copia limpia
+> del repo —incluido un release de la tienda— hablara HTTP contra una IP de red
+> local: sesión, credenciales y datos clínicos en texto plano, y encima
+> mandados a la máquina que tuviera esa IP en la red del usuario.
+>
+> Ahora el valor inseguro no puede quedar commiteado, porque no vive en ningún
+> archivo. Sin `CAP_SERVER_URL`, el build es el de producción. Y `cleartext`
+> se habilita únicamente si la URL pedida empieza con `http://`.
+
+**Para el build de producción: no definas `CAP_SERVER_URL`.** Es todo. Si por
+error quedara definida con un `http://` y `NODE_ENV=production`, la
+configuración aborta el build en vez de generar una app insegura.
 
 Scripts disponibles: `cap:add:android` / `cap:add:ios`, `cap:sync`, `cap:copy`,
 `cap:open:android` / `cap:open:ios`, `cap:run:android`.
@@ -101,7 +114,7 @@ Scripts disponibles: `cap:add:android` / `cap:add:ios`, `cap:sync`, `cap:copy`,
 - **Cambios de la web** (features, fixes de UI, la mayoría de lo que hacés): se
   ven al instante al desplegar la web; el WebView recarga el sitio. No tocás las
   tiendas.
-- **Cambios nativos** (plugins, permisos, `server.url`, íconos, versión):
+- **Cambios nativos** (plugins, permisos, `capacitor.config.ts`, íconos, versión):
   `npx cap sync`, subí el número de versión, re-archivá/re-buildea y volvé a
   publicar en la tienda.
 

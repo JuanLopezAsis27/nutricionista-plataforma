@@ -8,9 +8,16 @@
  *
  * Ejecutar con: npm run db:seed
  *
- * Credenciales (configurables por entorno):
- *   SUPERADMIN_EMAIL / SUPERADMIN_PASSWORD (default: admin@demo.com / cambiar123)
- *   SEED_EMAIL       / SEED_PASSWORD       (default: nutricionista@demo.com / cambiar123)
+ * Credenciales:
+ *   SUPERADMIN_EMAIL / SUPERADMIN_PASSWORD
+ *   SEED_EMAIL       / SEED_PASSWORD
+ *
+ * En desarrollo tienen valores por defecto para que la semilla ande sin
+ * configurar nada. En PRODUCCIÓN no: si faltan, el proceso ABORTA. Los valores
+ * por defecto eran públicos —están en este archivo, que está en el repo— así
+ * que correr la semilla en el VPS sin definirlas creaba la cuenta de mayor
+ * privilegio del sistema con una contraseña que sabe cualquiera. Fallar es
+ * ruidoso y se arregla en diez segundos; el default silencioso no se notaba.
  */
 import bcrypt from "bcryptjs";
 import { PrismaClienteSingleton } from "../src/infraestructura/repositorios/PrismaClienteSingleton";
@@ -25,9 +32,46 @@ import { AxiomaNutricional } from "../src/dominio/entidades/AxiomaNutricional";
 
 const prisma = PrismaClienteSingleton.obtenerInstancia();
 
+const EN_PRODUCCION = process.env.NODE_ENV === "production";
+
+/** Rondas de bcrypt para las cuentas sembradas (mismo costo que la app). */
+const RONDAS = 12;
+
+/**
+ * Credencial de una cuenta sembrada.
+ *
+ * En producción exige que la variable esté definida y no sea trivial. Fuera de
+ * producción cae al valor de ejemplo, que es lo que hace usable `npm run db:seed`
+ * en una máquina de desarrollo recién clonada.
+ */
+function credencial(
+  variable: string,
+  porDefecto: string,
+  minimo = 1,
+): string {
+  const valor = process.env[variable];
+
+  if (EN_PRODUCCION) {
+    if (!valor || valor.trim() === "") {
+      throw new Error(
+        `Falta ${variable}. En producción la semilla no usa credenciales por defecto: ` +
+          `definila antes de correr db:seed.`,
+      );
+    }
+    if (valor.length < minimo) {
+      throw new Error(
+        `${variable} es demasiado corta (mínimo ${minimo} caracteres).`,
+      );
+    }
+    return valor;
+  }
+
+  return valor && valor.trim() !== "" ? valor : porDefecto;
+}
+
 async function sembrarSuperAdmin(): Promise<void> {
-  const email = (process.env.SUPERADMIN_EMAIL ?? "admin@demo.com").trim().toLowerCase();
-  const password = process.env.SUPERADMIN_PASSWORD ?? "cambiar123";
+  const email = credencial("SUPERADMIN_EMAIL", "admin@demo.com").trim().toLowerCase();
+  const password = credencial("SUPERADMIN_PASSWORD", "cambiar123", 12);
 
   if (await prisma.usuario.findUnique({ where: { email } })) {
     console.log(`✔ El superadmin «${email}» ya existe.`);
@@ -36,7 +80,7 @@ async function sembrarSuperAdmin(): Promise<void> {
   const usuario = Usuario.crear(
     {
       email,
-      passwordHash: await bcrypt.hash(password, 10),
+      passwordHash: await bcrypt.hash(password, RONDAS),
       rol: "SUPERADMIN",
       pacienteId: null,
       nutricionistaId: null,
@@ -56,12 +100,14 @@ async function sembrarSuperAdmin(): Promise<void> {
       creadoEn: d.creadoEn,
     },
   });
-  console.log(`✔ SUPERADMIN creado: ${email}  (contraseña: ${password})`);
+  // Nunca se imprime la contraseña: la salida de la semilla termina en los logs
+  // de Docker, que se rotan y se respaldan.
+  console.log(`✔ SUPERADMIN creado: ${email}`);
 }
 
 async function sembrarNutricionista(): Promise<string | null> {
-  const email = (process.env.SEED_EMAIL ?? "nutricionista@demo.com").trim().toLowerCase();
-  const password = process.env.SEED_PASSWORD ?? "cambiar123";
+  const email = credencial("SEED_EMAIL", "nutricionista@demo.com").trim().toLowerCase();
+  const password = credencial("SEED_PASSWORD", "cambiar123", 12);
 
   const existente = await prisma.usuario.findUnique({ where: { email } });
   if (existente) {
@@ -74,7 +120,7 @@ async function sembrarNutricionista(): Promise<string | null> {
   const usuario = Usuario.crear(
     {
       email,
-      passwordHash: await bcrypt.hash(password, 10),
+      passwordHash: await bcrypt.hash(password, RONDAS),
       rol: "NUTRICIONISTA",
       pacienteId: null,
       nutricionistaId: id, // el nutricionista es su propio inquilino
@@ -94,7 +140,7 @@ async function sembrarNutricionista(): Promise<string | null> {
       creadoEn: d.creadoEn,
     },
   });
-  console.log(`✔ NUTRICIONISTA creado: ${email}  (contraseña: ${password})`);
+  console.log(`✔ NUTRICIONISTA creado: ${email}`);
   return id;
 }
 

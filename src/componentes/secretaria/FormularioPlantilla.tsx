@@ -6,7 +6,10 @@ import { z } from "zod";
 import type { PlantillaSalidaDto } from "@/aplicacion/dtos/secretaria.dto";
 import { PLACEHOLDERS_PLANTILLA } from "@/dominio/entidades/PlantillaEmail";
 import { useSecretaria } from "@/lib/hooks/useSecretaria";
-import { renderizarPlantillaCliente } from "@/lib/plantillaPreview";
+import {
+  renderizarPlantillaCliente,
+  renderizarHtmlCliente,
+} from "@/lib/plantillaPreview";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { Textarea } from "@/componentes/ui/textarea";
@@ -202,7 +205,7 @@ export function FormularioPlantilla({
               className="max-h-72 overflow-y-auto bg-white p-3 text-sm text-black"
               // El HTML lo escribe el profesional (contenido de confianza).
               dangerouslySetInnerHTML={{
-                __html: renderizarPlantillaCliente(cuerpoHtml || "<p>—</p>"),
+                __html: renderizarHtmlCliente(cuerpoHtml || "<p>—</p>"),
               }}
             />
           </div>

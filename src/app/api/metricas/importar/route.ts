@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/autenticacion/auth";
+import { usuarioDeSesion } from "@/lib/autenticacion/sesion";
 import { servicioMetricas } from "@/infraestructura/contenedor/contenedor";
 import { importarMetricasDto } from "@/aplicacion/dtos/metricas.dto";
 import { aRespuestaError } from "@/servidor/errores-http";
@@ -17,11 +17,11 @@ export const runtime = "nodejs";
  */
 export function POST(request: Request): Promise<NextResponse> {
   return conAlcanceDeSesion(async () => {
-    const sesion = await auth();
-    if (!sesion?.user) {
+    const usuario = await usuarioDeSesion();
+    if (!usuario) {
       return NextResponse.json({ error: "Necesitás iniciar sesión." }, { status: 401 });
     }
-    if (!sesion.user.pacienteId) {
+    if (!usuario.pacienteId) {
       return NextResponse.json(
         { error: "Tu usuario no tiene un paciente asociado." },
         { status: 403 },
@@ -36,7 +36,7 @@ export function POST(request: Request): Promise<NextResponse> {
           { status: 400 },
         );
       }
-      const importadas = await servicioMetricas().importar(sesion.user.pacienteId, cuerpo.data);
+      const importadas = await servicioMetricas().importar(usuario.pacienteId, cuerpo.data);
       return NextResponse.json({ importadas }, { status: 201 });
     } catch (error) {
       return aRespuestaError(error);

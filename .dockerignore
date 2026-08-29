@@ -6,9 +6,21 @@ build
 dist
 
 # Entorno y secretos (se inyectan por variables, nunca se copian)
-.env
-.env*.local
-.env.production
+#
+# El patrón tiene que ser `.env*`, no la lista de nombres.
+#
+# Docker hace coincidir `.env` SOLO con el archivo llamado exactamente `.env`,
+# así que la lista anterior (`.env`, `.env*.local`, `.env.production`) dejaba
+# afuera justo los dos que importan: `.env.produccion` y `.env.staging`, que
+# son los nombres que usa docker-compose.prod.yml y que viven en el mismo
+# directorio del proyecto — es decir, DENTRO del contexto de build. Como el
+# stage `build` hace `COPY . .`, esos archivos con AUTH_SECRET, TOKENS_SECRET,
+# DATABASE_URL y las claves S3 quedaban horneados en una capa de la imagen.
+.env*
+# ...salvo los de ejemplo, que no tienen secretos y sirven de documentación.
+!.env.example
+!.env.produccion.example
+!.env.staging.example
 
 # Git y metadatos
 .git

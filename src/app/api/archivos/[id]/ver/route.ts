@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/autenticacion/auth";
+import { usuarioDeSesion } from "@/lib/autenticacion/sesion";
 import { servicioArchivo } from "@/infraestructura/contenedor/contenedor";
 import { aRespuestaError } from "@/servidor/errores-http";
 import { conAlcanceDeSesion } from "@/servidor/alcanceRequest";
@@ -28,8 +28,8 @@ export function GET(
   { params }: Parametros,
 ): Promise<NextResponse> {
   return conAlcanceDeSesion(async () => {
-    const sesion = await auth();
-    if (!sesion?.user) {
+    const usuario = await usuarioDeSesion();
+    if (!usuario) {
       return NextResponse.json(
         { error: "Necesitás iniciar sesión." },
         { status: 401 },
@@ -39,10 +39,10 @@ export function GET(
     try {
       const { id } = await params;
 
-      if (sesion.user.rol !== "NUTRICIONISTA") {
+      if (usuario.rol !== "NUTRICIONISTA") {
         const permitido = await servicioArchivo().puedeVerPaciente(id, {
-          usuarioId: sesion.user.id,
-          pacienteId: sesion.user.pacienteId,
+          usuarioId: usuario.id,
+          pacienteId: usuario.pacienteId,
         });
         if (!permitido) {
           return NextResponse.json(
@@ -64,6 +64,27 @@ export function GET(
           // Privado: es contenido clínico de UN paciente y no puede quedar en
           // una caché compartida.
           "Cache-Control": "private, max-age=60",
+          // Servir contenido subido por usuarios EN LÍNEA y desde el mismo
+          // origen es cómodo (por eso existe esta ruta) y también es la vía
+          // clásica de XSS almacenado. Estas dos cabeceras son las que la
+          // cierran, y van explícitas acá aunque next.config.ts ya las ponga
+          // globalmente: esta respuesta es la que más las necesita y no debe
+          // depender de que nadie afloje la configuración general.
+          //
+          // `nosniff` es la que corta el ataque de raíz: obliga al navegador a
+          // respetar el Content-Type declarado en vez de adivinar por el
+          // contenido. Junto con la verificación de firma binaria de la subida
+          // (dominio/servicios/firmaArchivo.ts), el contenido no puede pasar por
+          // un tipo que no es.
+          //
+          // La CSP es el cinturón sobre los tirantes: si aun así algo llegara a
+          // interpretarse como documento, no puede ejecutar nada ni salir a la
+          // red. Deliberadamente NO se usa la directiva `sandbox`: el visor de
+          // PDF integrado del navegador deja de dibujar bajo sandbox, y mostrar
+          // el PDF adentro de la app es justamente para lo que existe esta ruta.
+          "X-Content-Type-Options": "nosniff",
+          "Content-Security-Policy":
+            "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; object-src 'none'; script-src 'none'; base-uri 'none'; form-action 'none'",
         },
       });
     } catch (error) {

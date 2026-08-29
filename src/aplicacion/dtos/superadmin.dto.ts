@@ -1,10 +1,12 @@
 import { z } from "zod";
+import { passwordNuevaDto } from "./password";
 
 /** DTOs del SuperAdmin (gestión de cuentas de nutricionista). */
 
 export const crearCuentaNutricionistaDto = z.object({
   email: z.string().email("Email inválido"),
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").max(100),
+  // Política única para toda la app (ver dtos/password.ts).
+  password: passwordNuevaDto,
 });
 export type CrearCuentaNutricionistaDto = z.infer<typeof crearCuentaNutricionistaDto>;
 

@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import type { FilaAlimentoPropioDto } from "@/aplicacion/dtos/alimentoPropio.dto";
+import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 
 /**
  * Parsea una planilla de alimentos (.xlsx o .csv) a filas `{nombre, marca,
@@ -20,7 +21,9 @@ export async function parsearPlanillaAlimentos(
   const encabezado = matriz[0]!.map(normalizarEncabezado);
   const col = mapearColumnas(encabezado);
   if (col.nombre < 0) {
-    throw new Error(
+    // Error de DOMINIO y no Error pelado: así el route handler lo distingue de
+    // un fallo interno del lector de Excel y puede mostrarlo sin exponer nada.
+    throw new ErrorValidacion(
       "No se encontró una columna de nombre. Poné un encabezado como «Nombre» (o Alimento/Insumo).",
     );
   }

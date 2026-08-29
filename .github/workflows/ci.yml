@@ -11,6 +11,13 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Permisos mínimos por defecto. Cada job pide lo que necesita de más (el de
+# CodeQL necesita `security-events: write`). Sin esto, el GITHUB_TOKEN viene con
+# permisos de escritura sobre el repositorio en muchas configuraciones, y una
+# acción comprometida podría usarlos.
+permissions:
+  contents: read
+
 jobs:
   app:
     name: App (typecheck · tests · build)
@@ -41,15 +48,42 @@ jobs:
       NODE_ENV: test
 
     steps:
-      - uses: actions/checkout@v4
+      # Las acciones van fijadas por SHA y no por tag.
+      #
+      # Un tag como `v4` es MUTABLE: quien controla el repositorio de la acción
+      # puede reapuntarlo a otro commit cuando quiera. Si esa cuenta se
+      # compromete, la próxima corrida de este workflow ejecuta código ajeno —y
+      # el workflow de despliegue lo hace con la clave SSH del VPS de
+      # producción. El SHA no se puede reapuntar.
+      #
+      # El comentario al lado deja legible qué versión es cada SHA.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
 
       - name: Instalar dependencias
         run: npm ci
+
+      # --- Seguridad de la cadena de suministro --------------------------------
+      #
+      # Va ANTES de compilar: si hay un aviso alto o crítico en algo que llega a
+      # producción, la corrida tiene que fallar rápido y ruidosamente. Esta es
+      # la red que faltaba: cuando se hizo la auditoría había 4 avisos críticos
+      # abiertos —uno en la propia biblioteca de autenticación— y nada en el CI
+      # los veía.
+      #
+      # `--omit=dev` es deliberado: acota la exigencia a lo que se despliega. Un
+      # fallo en el runner de tests no es un riesgo de producción y no debe
+      # frenar el trabajo de nadie. Lo de desarrollo se revisa en el paso
+      # siguiente, que informa pero no rompe.
+      - name: Auditoría de dependencias de producción
+        run: npm audit --audit-level=high --omit=dev
+
+      - name: Auditoría completa (informativa, incluye desarrollo)
+        run: npm audit || true
 
       - name: Generar cliente Prisma
         run: npx prisma generate
@@ -66,6 +100,49 @@ jobs:
       - name: Build (next)
         run: npx next build
 
+  # --- Análisis estático de seguridad ---------------------------------------
+  codeql:
+    name: CodeQL (SAST)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Necesario para publicar los hallazgos en la pestaña Security.
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Inicializar CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          # `security-extended` agrega las consultas de inyección, XSS y
+          # travesía de rutas que no trae el conjunto por defecto.
+          queries: security-extended
+
+      - name: Analizar
+        uses: github/codeql-action/analyze@v3
+
+  # --- Búsqueda de secretos en el historial ---------------------------------
+  #
+  # Hoy el historial está limpio (se verificó en la auditoría). Este paso existe
+  # para que siga estándolo: es mucho más barato frenar un secreto en el PR que
+  # rotarlo después de que quedó en un commit público.
+  secretos:
+    name: Escaneo de secretos
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # gitleaks necesita el historial completo, no solo el último commit.
+          fetch-depth: 0
+
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   go:
     name: Servicio de nutrición (Go)
     runs-on: ubuntu-latest
@@ -74,9 +151,9 @@ jobs:
         working-directory: nutricion-servicio
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version: "1.23"
           cache-dependency-path: nutricion-servicio/go.sum

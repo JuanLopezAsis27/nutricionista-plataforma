@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { passwordNuevaDto } from "./password";
 
 /**
  * DTOs de autenticación — recuperación de contraseña.
@@ -14,9 +15,9 @@ export type SolicitarRecuperacionDto = z.infer<typeof solicitarRecuperacionDto>;
 
 export const restablecerPasswordDto = z.object({
   token: z.string().min(1, "Falta el token de recuperación."),
-  password: z
-    .string()
-    .min(6, "La contraseña debe tener al menos 6 caracteres")
-    .max(72, "La contraseña es demasiado larga"),
+  // La MISMA política que al crear la cuenta (ver dtos/password.ts). Antes
+  // este mínimo era 6 y el del alta 8, así que "olvidé mi contraseña" servía
+  // para rebajar la política por la puerta de atrás.
+  password: passwordNuevaDto,
 });
 export type RestablecerPasswordDto = z.infer<typeof restablecerPasswordDto>;
