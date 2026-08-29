@@ -1,30 +1,49 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MessageSquare, ArrowLeft } from "lucide-react";
+import { MessageSquare, ArrowLeft, MessageCircle } from "lucide-react";
 import { useMensajeria } from "@/lib/hooks/useMensajeria";
 import { cn } from "@/lib/utilidades";
 import { formatearFecha } from "@/lib/formato";
 import { HiloMensajes } from "@/componentes/mensajeria/HiloMensajes";
+import { HiloWhatsapp } from "@/componentes/mensajeria/HiloWhatsapp";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
+
+/**
+ * Los dos canales de conversación con un paciente.
+ *
+ * Conviven en la misma pantalla porque son la misma conversación desde la
+ * cabeza del profesional ("¿qué hablé con este paciente?"), aunque por debajo
+ * sean dos transportes distintos: el chat interno del portal y WhatsApp. El
+ * recordatorio de turno se manda por el segundo, así que la respuesta también
+ * entra por ahí y desde Recordatorios se llega directo con ?canal=whatsapp.
+ */
+type Canal = "interno" | "whatsapp";
 
 export default function PaginaMensajes() {
   const { conversaciones, hiloDe, enviarA, marcarLeidosDe } = useMensajeria();
   const lista = conversaciones();
   const [pacienteId, setPacienteId] = useState<string | null>(null);
+  const [canal, setCanal] = useState<Canal>("interno");
 
-  // Deep-link desde la campana de notificaciones (?paciente=…): abre esa
-  // conversación al entrar y limpia el query de la URL.
+  // Deep-link desde la campana de notificaciones (?paciente=…) y desde el
+  // seguimiento de recordatorios (&canal=whatsapp): abre esa conversación en
+  // el canal pedido al entrar, y limpia el query de la URL.
   useEffect(() => {
-    const p = new URLSearchParams(window.location.search).get("paciente");
+    const params = new URLSearchParams(window.location.search);
+    const p = params.get("paciente");
     if (p) {
       setPacienteId(p);
+      if (params.get("canal") === "whatsapp") setCanal("whatsapp");
       window.history.replaceState({}, "", "/dashboard/mensajes");
     }
   }, []);
 
-  const hilo = hiloDe({ pacienteId: pacienteId ?? "" }, { enabled: Boolean(pacienteId) });
+  const hilo = hiloDe(
+    { pacienteId: pacienteId ?? "" },
+    { enabled: Boolean(pacienteId) && canal === "interno" },
+  );
   const mensajes = hilo.data?.mensajes ?? [];
   const cantidad = mensajes.length;
 
@@ -112,7 +131,7 @@ export default function PaginaMensajes() {
             </div>
           ) : (
             <>
-              <div className="mb-2 flex items-center gap-2 border-b pb-2">
+              <div className="mb-2 flex flex-wrap items-center gap-2 border-b pb-2">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -123,20 +142,59 @@ export default function PaginaMensajes() {
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <p className="font-medium">{seleccionada?.pacienteNombre ?? "Paciente"}</p>
+
+                <div className="ml-auto flex rounded-md border p-0.5 text-xs">
+                  <BotonCanal activo={canal === "interno"} onClick={() => setCanal("interno")}>
+                    <MessageSquare className="h-3.5 w-3.5" /> Portal
+                  </BotonCanal>
+                  <BotonCanal
+                    activo={canal === "whatsapp"}
+                    onClick={() => setCanal("whatsapp")}
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                  </BotonCanal>
+                </div>
               </div>
               <div className="min-h-0 flex-1">
-                <HiloMensajes
-                  key={pacienteId}
-                  mensajes={mensajes}
-                  cargando={hilo.isLoading}
-                  enviando={enviarA.isPending}
-                  onEnviar={(cuerpo) => enviarA.mutate({ pacienteId, cuerpo })}
-                />
+                {canal === "whatsapp" ? (
+                  <HiloWhatsapp key={`wa-${pacienteId}`} pacienteId={pacienteId} />
+                ) : (
+                  <HiloMensajes
+                    key={pacienteId}
+                    mensajes={mensajes}
+                    cargando={hilo.isLoading}
+                    enviando={enviarA.isPending}
+                    onEnviar={(cuerpo) => enviarA.mutate({ pacienteId, cuerpo })}
+                  />
+                )}
               </div>
             </>
           )}
         </section>
       </div>
     </div>
+  );
+}
+
+function BotonCanal({
+  activo,
+  onClick,
+  children,
+}: {
+  activo: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded px-2.5 py-1 transition-colors",
+        activo ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+      )}
+    >
+      {children}
+    </button>
   );
 }

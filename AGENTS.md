@@ -76,8 +76,33 @@ Lo más externo. Accede a la lógica SIEMPRE a través de los servicios de
 aplicación, nunca de Prisma ni de los casos de uso.
 
 - /src/app → páginas Next.js (App Router) y route handlers
+
+**Dónde va cada pantalla de configuración**, que se movió más de una vez:
+Integraciones son SERVICIOS EXTERNOS con credenciales (Google, WhatsApp Cloud
+API, IA, FatSecret), una pestaña por servicio. Configuración es lo que describe
+al CONSULTORIO (horarios, membrete, PDF, prefijo telefónico, plantillas de
+email que no son recordatorios). Recordatorios es la tarea de avisar turnos,
+completa. La pregunta que separa las tres: ¿esto es dar de alta algo de afuera,
+describir el consultorio, o hacer una tarea?
 - /src/servidor → routers tRPC, contexto, procedimientos
 - /src/componentes → componentes de UI (solo hablan por los hooks de tRPC)
+
+**Invalidación de caché: las mutaciones invalidan TODO** (`useInvalidar`), no
+su propio router. Los read models están armados para la pantalla, no para la
+tabla, así que los datos de un router aparecen en varios otros: Recordatorios
+lista turnos, la ficha del paciente muestra sus planes y recetas, el centro de
+notificaciones compone tres fuentes. Mantener a mano "qué routers toca cada
+mutación" se rompe solo, y olvidarse no da error: da datos viejos en pantalla.
+Ya pasó —borrar un turno lo dejaba visible en Recordatorios hasta recargar—.
+React Query solo refetchea las queries ACTIVAS, así que el costo lo acota la
+pantalla que está abierta.
+
+**Ojo con las copias congeladas.** Invalidar refresca las QUERIES, no un
+objeto que un componente haya guardado en `useState` (el típico
+`setRecetaEditar(receta)` antes de abrir un diálogo). Un componente que muestra
+datos que él mismo modifica tiene que LEERLOS de una query por id, no recibirlos
+por prop desde ese estado: si no, la mutación actualiza el servidor y la caché,
+y la pantalla sigue mostrando la foto que se acaba de borrar.
 
 Del dominio puede importar **tipos y constantes** (`import type EstadoTurno`,
 `PRIORIDADES_OBJETIVO`, `TIPO_RECONEXION`): son vocabulario compartido y se
@@ -189,6 +214,115 @@ Baja lógica con `archivadoEn` (no se borra).
 
 Estados: PENDIENTE | CONFIRMADO | CANCELADO | COMPLETADO
 Regla: no pueden existir dos turnos solapados en el mismo horario.
+
+Cancelar es baja LÓGICA (queda en la grilla: que alguien no vino es
+información clínica y de cobranza). `EliminarTurno` es la excepción —borrado
+real— y exige dos condiciones: estado CANCELADO y sin cobro registrado. Lo
+segundo no es capricho: un turno con precio ya entró en las estadísticas de
+ingresos, y borrarlo descuadra la caja de un mes que quizá está cerrado.
+
+### Recordatorios de turno
+
+Tres medios para el mismo aviso —WhatsApp, email y calendario— gobernados por
+UNA política (`ConfiguracionRecordatorios`, una fila por inquilino) que cada
+medio lee donde le toca actuar: el envío por WhatsApp en
+`casos-de-uso/recordatorios`, el del email en Secretaría y el del calendario en
+`SincronizadorCalendarioGoogle`, que corre al agendar. La pantalla es
+`/dashboard/recordatorios` (ver `docs/RECORDATORIOS.md`).
+
+Cada medio tiene DOS interruptores y no son lo mismo: `*Activo` es si el medio
+se usa, `*Automatico` es si además sale solo. Un medio activo pero no
+automático es el profesional que elige a mano a quién le manda.
+
+`*DiasAntes` es un ARRAY y no un número: la cantidad de avisos es su longitud.
+`[3, 1]` son dos recordatorios, uno tres días antes y otro el día anterior.
+
+**El antiduplicado es del motor, no del código:** `UNIQUE (nutricionistaId,
+turnoId, diasAntes)`. Cada escalón de la programación entra una sola vez por
+turno; un leer-y-después-escribir lo pasan dos procesos concurrentes. Los
+envíos manuales llevan `diasAntes` NULL y en Postgres los NULL no colisionan,
+así que insistir a mano sigue siendo posible: lo que se corta es el duplicado
+por error.
+
+**El log registra ENVÍOS, no intentos** (`filaAReusar` + `salio`). Un aviso que
+no llegó a salir —PREPARADO sin confirmar, DESCARTADO o FALLIDO— no es historia:
+es el mismo aviso pendiente, y el intento siguiente REUSA esa fila. Solo un
+aviso que salió de verdad se preserva, y un reenvío manual sobre uno de esos sí
+crea fila nueva (pisarlo borraría que se insistió).
+
+Costó dos vueltas: el primer arreglo solo reusaba el PREPARADO, así que
+preparar → descartar → preparar seguía insertando una fila por vuelta. La
+prueba que lo agarra es `EnvioRepetido.test.ts`, y usa un repositorio EN
+MEMORIA a propósito: con mocks de respuesta fija, apretar "Enviar" dos veces
+seguidas no se puede simular, y por eso los tests anteriores lo dejaron pasar.
+
+Los escalones programados reusan SIEMPRE, incluso una fila ya enviada: el
+índice único no deja insertar otra para el mismo escalón.
+
+**"Ya se le avisó" es TEMPORAL**, no definitivo: el envío manual omite a quien
+recibió un aviso hace menos de `horasEntreAvisos` (configurable, 24 h por
+defecto) y después lo deja pasar. Con el bloqueo definitivo, insistir obligaba
+a tildar "reenviar", que apaga la protección de todo el lote. Los escalones
+programados NO usan el margen: ahí la idempotencia dura es del índice único,
+porque el worker reintenta.
+
+Los borradores se resuelven en Recordatorios → Enviar → «Sin confirmar»
+(`ListarRecordatoriosPendientes` + `ConfirmarRecordatorioWhatsapp`). NO hay
+botón de recordatorio en la grilla de turnos: la confirmación no tenía dónde
+ocurrir ahí y los avisos quedaban colgados en PREPARADO.
+
+**Un solo camino por medio.** El email salía por su propio cron y por un botón
+en Secretaría; ahora sale por el MISMO barrido que WhatsApp
+(`EnviarRecordatoriosProgramados`, un trabajo `recordatorios-turnos` por hora) y
+por el MISMO envío manual (`EnviarRecordatoriosMasivos`, que manda por todos los
+medios activos). Dos botones para el mismo aviso terminan mandándolo dos veces;
+si hace falta un tercer medio, se suma a esos dos caminos.
+
+**Secretaría se disolvió en Recordatorios** (`/dashboard/plantillas` redirige).
+Era media tarea en otra pantalla: el texto del recordatorio por email y un
+segundo botón de disparo. Los emails que no son recordatorios (BIENVENIDA y las
+propias) quedaron en Configuración → Plantillas de email; `ServicioSecretaria`
+sobrevive como el CRUD de plantillas de email, sin envío de recordatorios.
+
+El estado del recordatorio va del canal al paciente: PREPARADO → ENVIADO →
+ENTREGADO → LEIDO → RESPONDIDO → CONFIRMADO, con FALLIDO y DESCARTADO como
+salidas. Los cuatro primeros los informa el webhook de Meta; los dos últimos
+salen de la respuesta del paciente (`RegistrarRespuestaDeRecordatorio`, que
+corre en la ingesta). Ojo con el vocabulario: CONFIRMADO es que el PACIENTE
+dijo que viene, no que el mensaje salió.
+
+**Plantillas propias** (`PlantillaWhatsapp`): guardan el texto en castellano y,
+opcionalmente, el nombre de la plantilla APROBADA en Meta con el ORDEN de sus
+parámetros. Fuera de la ventana de 24 h la Cloud API rechaza el texto libre —y
+un recordatorio casi siempre cae fuera—, así que sin clave de Meta el envío
+automático no sale. Meta numera los parámetros (`{{1}}`, `{{2}}`…) en vez de
+nombrarlos: el orden guardado ES el mapeo. Un texto editado a mano NUNCA sale
+como plantilla de Meta, porque ya no coincide con el cuerpo aprobado.
+
+Siempre hay una plantilla predeterminada y no se puede borrar: es la que usa el
+barrido, y quedarse sin ella se descubre el día en que los avisos no salieron.
+
+El barrido de WhatsApp corre CADA HORA y cada inquilino se apaga solo si no es
+su hora (`correspondeALaHora`). Es más simple que un cron por consultorio y
+sobrevive a un worker que arrancó tarde.
+
+### Receta
+
+Los adjuntos son `Archivo` con `recetaId`: las imágenes se leen como fotos y el
+resto (PDF/Word) como documentos, separados por MIME al mapear. Se suben ANTES
+de que la receta exista y se vinculan al guardarla — por eso el CHECK de
+`archivos` admite el huérfano temporal (ver migración 34).
+
+`fotoPrincipalId` es la portada elegida. Antes era `fotos[0]`, que sin ORDER BY
+no está garantizado y hacía rotar la foto del recetario sola. El fallback —si
+no hay elegida, o si la elegida ya no está— lo resuelve el getter
+`Receta.fotoPrincipal`, no cada pantalla: si lo repitiera la UI, la tarjeta y
+la vista podrían mostrar fotos distintas de la misma receta.
+
+Borrar un adjunto (`EliminarArchivoDeReceta`) verifica que sea DE esa receta
+antes de tocarlo. Sin eso el endpoint sería un borrado de archivos por id: la
+extensión de inquilino impide que sea de otro consultorio, pero no que sea el
+laboratorio de un paciente.
 
 ### Plan Nutricional
 
@@ -454,6 +588,15 @@ const repositorioMock: IPacienteRepositorio = {
 - Nunca envolver un resolver de tRPC en `try/catch` para traducir errores: de
   eso se encarga el middleware, y hacerlo a mano apaga el monitoreo
 - Nunca consultar una tabla de inquilino sin alcance fijado
+- Nunca llamar a `IProveedorWhatsapp.preparar()` desde una lectura: con la Cloud
+  API conectada ese método ENVÍA el mensaje. Una vista previa pregunta
+  `modoActual()` y arma el enlace por su cuenta (ya pasó una vez: el query de
+  vista previa mandaba un recordatorio cada vez que el cliente lo refrescaba)
+- Nunca agregar un CHECK que exija "exactamente un dueño" sobre `archivos`: la
+  app sube el archivo ANTES de que exista su dueño (una receta nueva no tiene
+  id hasta que se guarda) y lo vincula después. El invariante correcto es
+  `<= 1` y está en la migración 34; la 27 puso `= 1` y rompió todos los
+  adjuntos hasta que alguien lo reportó
 - Nunca importar el contenedor desde un componente de UI (arrastra Prisma al
   bundle del navegador)
 - Nunca usar `any`

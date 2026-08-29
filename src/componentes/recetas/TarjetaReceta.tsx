@@ -15,7 +15,8 @@ interface PropsTarjetaReceta {
 
 /** Tarjeta del recetario: foto principal, nombre, etiquetas y calorías. */
 export function TarjetaReceta({ receta, onVer, acciones }: PropsTarjetaReceta) {
-  const fotoId = receta.fotos[0]?.id;
+  // La portada la resuelve el servidor (elegida, o la primera si no hay).
+  const fotoId = receta.fotoPrincipalId;
 
   return (
     <Card className="overflow-hidden">

@@ -2,6 +2,7 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
 /**
  * Encapsula todas las llamadas tRPC de pacientes.
@@ -12,7 +13,7 @@ import { trpc } from "@/lib/trpc";
  */
 export function usePacientes() {
   const utils = trpc.useUtils();
-  const invalidar = () => utils.pacientes.invalidate();
+  const invalidar = useInvalidar();
 
   const crear = trpc.pacientes.crear.useMutation({
     onSuccess: () => {

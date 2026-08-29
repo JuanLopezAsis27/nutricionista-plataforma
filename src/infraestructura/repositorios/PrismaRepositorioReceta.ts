@@ -92,6 +92,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
           proteinasG: d.proteinasG,
           carbohidratosG: d.carbohidratosG,
           grasasG: d.grasasG,
+          fotoPrincipalId: d.fotoPrincipalId,
           // Reemplaza la lista completa de ingredientes (agregado).
           ingredientes: { deleteMany: {}, create: d.ingredientes.map(datosIngrediente) },
         },
@@ -206,6 +207,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
         referenciaExterna: ing.referenciaExterna,
       })),
       etiquetas: fila.etiquetas,
+      fotoPrincipalId: fila.fotoPrincipalId,
       enlaces: fila.enlaces,
       calorias: aNumero(fila.calorias),
       proteinasG: aNumero(fila.proteinasG),

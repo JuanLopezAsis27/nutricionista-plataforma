@@ -6,6 +6,7 @@ import type { DatosTurnoSync } from "@/dominio/servicios/ISincronizadorCalendari
 import {
   mockCuentaConectadaRepositorio,
   mockPacienteRepositorio,
+  mockConfiguracionRecordatoriosRepositorio,
   cuentaConectadaEjemplo,
   pacienteEjemplo,
 } from "@/dominio/casos-de-uso/_ayudas-test";
@@ -53,6 +54,7 @@ describe("SincronizadorCalendarioGoogle", () => {
       syncRepoMock({ guardar }),
       proveedorMock({ crearEvento }),
       mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => pacienteEjemplo()) }),
+      mockConfiguracionRecordatoriosRepositorio(),
     );
 
     await sinc.alAgendar(turno);
@@ -70,6 +72,7 @@ describe("SincronizadorCalendarioGoogle", () => {
       syncRepoMock(),
       proveedorMock({ crearEvento }),
       mockPacienteRepositorio(),
+      mockConfiguracionRecordatoriosRepositorio(),
     );
 
     await sinc.alAgendar(turno);
@@ -90,6 +93,7 @@ describe("SincronizadorCalendarioGoogle", () => {
       }),
       proveedorMock({ eliminarEvento }),
       mockPacienteRepositorio(),
+      mockConfiguracionRecordatoriosRepositorio(),
     );
 
     await sinc.alCancelar("tur-1");
@@ -104,6 +108,7 @@ describe("SincronizadorCalendarioGoogle", () => {
       syncRepoMock(),
       proveedorMock({ crearEvento: vi.fn(async () => { throw new Error("Google 500"); }) }),
       mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => pacienteEjemplo()) }),
+      mockConfiguracionRecordatoriosRepositorio(),
     );
 
     await expect(sinc.alAgendar(turno)).resolves.toBeUndefined();

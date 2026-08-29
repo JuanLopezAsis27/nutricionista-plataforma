@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { MAX_LARGO_PLANTILLA_WHATSAPP } from "@/dominio/casos-de-uso/whatsapp/plantilla";
 
 /** DTOs de la Configuración del consultorio. */
 
@@ -27,7 +26,6 @@ export const guardarConfiguracionDto = z.object({
   pdfMostrarMacros: z.boolean().optional(),
   pdfMostrarEquivalencias: z.boolean().optional(),
   pdfMostrarRecomendaciones: z.boolean().optional(),
-  whatsappPlantilla: z.string().max(MAX_LARGO_PLANTILLA_WHATSAPP).nullable().optional(),
   whatsappPrefijoPais: z
     .string()
     .regex(/^\d{1,4}$/, 'El prefijo debe ser solo dígitos, sin "+"')
@@ -53,7 +51,6 @@ export const configuracionSalidaDto = z.object({
   pdfMostrarMacros: z.boolean(),
   pdfMostrarEquivalencias: z.boolean(),
   pdfMostrarRecomendaciones: z.boolean(),
-  whatsappPlantilla: z.string().nullable(),
   whatsappPrefijoPais: z.string().nullable(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),

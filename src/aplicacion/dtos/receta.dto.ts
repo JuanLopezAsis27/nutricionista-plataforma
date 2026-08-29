@@ -45,6 +45,19 @@ export const actualizarRecetaDto = recetaBase.extend({
 });
 export type ActualizarRecetaDto = z.infer<typeof actualizarRecetaDto>;
 
+export const archivoDeRecetaDto = z.object({
+  recetaId: z.string().min(1),
+  archivoId: z.string().min(1),
+});
+export type ArchivoDeRecetaDto = z.infer<typeof archivoDeRecetaDto>;
+
+export const marcarFotoPrincipalDto = z.object({
+  recetaId: z.string().min(1),
+  /** null vuelve a la elección automática (la primera foto). */
+  fotoId: z.string().min(1).nullable(),
+});
+export type MarcarFotoPrincipalDto = z.infer<typeof marcarFotoPrincipalDto>;
+
 export const idRecetaDto = z.object({ id: z.string().min(1) });
 export type IdRecetaDto = z.infer<typeof idRecetaDto>;
 
@@ -117,6 +130,11 @@ export const recetaSalidaDto = z.object({
   macrosCalculados: z.boolean(),
   fotos: z.array(fotoRecetaSalidaDto),
   documentos: z.array(documentoRecetaSalidaDto),
+  /**
+   * La foto que representa la receta, ya resuelta por el dominio: si no hay
+   * una elegida, viene la primera disponible. La UI no repite ese fallback.
+   */
+  fotoPrincipalId: z.string().nullable(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
 });

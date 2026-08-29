@@ -8,6 +8,8 @@ import { ObtenerRecetasPaginado } from "@/dominio/casos-de-uso/recetas/ObtenerRe
 import { ObtenerRecetaPorId } from "@/dominio/casos-de-uso/recetas/ObtenerRecetaPorId";
 import { ActualizarReceta } from "@/dominio/casos-de-uso/recetas/ActualizarReceta";
 import { EliminarReceta } from "@/dominio/casos-de-uso/recetas/EliminarReceta";
+import { EliminarArchivoDeReceta } from "@/dominio/casos-de-uso/recetas/EliminarArchivoDeReceta";
+import { MarcarFotoPrincipal } from "@/dominio/casos-de-uso/recetas/MarcarFotoPrincipal";
 import { AsignarRecetaAPaciente } from "@/dominio/casos-de-uso/recetas/AsignarRecetaAPaciente";
 import { DesasignarRecetaDePaciente } from "@/dominio/casos-de-uso/recetas/DesasignarRecetaDePaciente";
 import { ObtenerRecetasDelPaciente } from "@/dominio/casos-de-uso/recetas/ObtenerRecetasDelPaciente";
@@ -28,6 +30,8 @@ export function crearServicioReceta(deps: {
     new ObtenerRecetaPorId(deps.recetas),
     new ActualizarReceta(deps.recetas),
     new EliminarReceta(deps.recetas, deps.archivos, deps.almacenamiento),
+    new EliminarArchivoDeReceta(deps.recetas, deps.archivos, deps.almacenamiento),
+    new MarcarFotoPrincipal(deps.recetas),
     new AsignarRecetaAPaciente(deps.recetas, deps.pacientes),
     new DesasignarRecetaDePaciente(deps.recetas),
     new ObtenerRecetasDelPaciente(deps.recetas),

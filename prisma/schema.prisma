@@ -29,14 +29,35 @@ enum EstadoTurno {
   COMPLETADO
 }
 
-/// Estado del recordatorio de turno enviado por WhatsApp. El enlace wa.me es
-/// de ida —WhatsApp nunca le devuelve nada a la app—, así que el envío no se
-/// detecta: se declara. PREPARADO = se abrió el chat con el mensaje cargado;
-/// CONFIRMADO = el profesional declaró haberlo enviado.
+/// Estado del recordatorio de turno enviado por WhatsApp. Es una escala que
+/// solo AVANZA, y cuánto avanza depende del canal:
+///
+///   * Enlace wa.me — WhatsApp nunca le devuelve nada a la app, así que el
+///     envío no se detecta: se declara. PREPARADO = se abrió el chat con el
+///     mensaje cargado; ENVIADO = el profesional declaró haberlo mandado.
+///   * Cloud API — el webhook informa ENVIADO → ENTREGADO → LEIDO, y FALLIDO
+///     con el motivo de Meta.
+///
+/// Los dos últimos escalones son del PACIENTE, no del canal: RESPONDIDO = el
+/// paciente escribió después del recordatorio; CONFIRMADO = esa respuesta (o
+/// el profesional a mano) confirmó que viene al turno. DESCARTADO es la salida
+/// lateral: se preparó y finalmente no se mandó.
 enum EstadoRecordatorioWhatsapp {
   PREPARADO
+  ENVIADO
+  ENTREGADO
+  LEIDO
+  RESPONDIDO
   CONFIRMADO
   DESCARTADO
+  FALLIDO
+}
+
+/// Quién disparó el recordatorio: el profesional desde la consola de envío
+/// (MANUAL) o el barrido del worker según la programación (AUTOMATICO).
+enum OrigenRecordatorio {
+  MANUAL
+  AUTOMATICO
 }
 
 /// Sentido del mensaje de WhatsApp respecto del consultorio.
@@ -240,6 +261,8 @@ model Nutricionista {
   alertasSeguimiento        AlertaSeguimiento[]
   turnos                    Turno[]
   recordatoriosWhatsapp     RecordatorioWhatsapp[]
+  plantillasWhatsapp        PlantillaWhatsapp[]
+  configuracionRecordatorio ConfiguracionRecordatorios?
   mensajesWhatsapp          MensajeWhatsapp[]
   registrosDiarios          RegistroDiario[]
   metricasDispositivo       MetricaDispositivo[]
@@ -503,17 +526,125 @@ model RecordatorioWhatsapp {
   usuarioId       String?
   /// wamid del mensaje cuando se envió por la API oficial; null con enlace wa.me.
   idExterno       String?
+  /// Quién lo disparó: la consola de envío (MANUAL) o el barrido (AUTOMATICO).
+  origen          OrigenRecordatorio         @default(MANUAL)
+  /// Escalón de la programación con el que salió ("3 días antes" → 3). NULL en
+  /// los envíos manuales, y esa nulidad es la que sostiene la unicidad de
+  /// abajo: en Postgres los NULL no colisionan entre sí, así que el profesional
+  /// puede insistir a mano las veces que quiera sin que el índice lo frene.
+  diasAntes       Int?
+  /// Plantilla con la que se armó el texto. SET NULL: borrarla no puede
+  /// llevarse puesto el log de auditoría.
+  plantillaId     String?
+  /// Motivo del rechazo cuando el estado es FALLIDO (lo informa Meta).
+  error           String?
   creadoEn        DateTime                   @default(now())
+  /// Momento en que quedó resuelto (enviado, descartado o fallido).
   confirmadoEn    DateTime?
+  /// Momento en que el paciente contestó ese recordatorio.
+  respondidoEn    DateTime?
 
-  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
-  turno         Turno         @relation(fields: [turnoId], references: [id], onDelete: Cascade)
-  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
-  usuario       Usuario?      @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  nutricionista Nutricionista      @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  turno         Turno              @relation(fields: [turnoId], references: [id], onDelete: Cascade)
+  paciente      Paciente           @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  usuario       Usuario?           @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  plantilla     PlantillaWhatsapp? @relation(fields: [plantillaId], references: [id], onDelete: SetNull)
 
+  /// El seguro contra el doble envío, a nivel motor y no a nivel de un
+  /// leer-y-después-escribir: cada escalón de la programación entra UNA sola
+  /// vez por turno. Reintentar un envío fallido ACTUALIZA esa fila en lugar de
+  /// insertar otra, así el reintento sigue siendo posible sin abrir la puerta
+  /// a que el paciente reciba dos veces el mismo aviso.
+  @@unique([nutricionistaId, turnoId, diasAntes])
   @@index([nutricionistaId, turnoId, creadoEn])
+  @@index([nutricionistaId, pacienteId, creadoEn])
   @@index([idExterno])
   @@map("recordatorios_whatsapp")
+}
+
+/// Plantilla del recordatorio por WhatsApp que arma el profesional.
+///
+/// Tiene DOS caras y las dos hacen falta. `cuerpo` es el texto en castellano
+/// con los mismos placeholders que las plantillas de email ({{paciente}},
+/// {{fecha}}…): es lo que se ve en la vista previa y lo que viaja por el
+/// enlace wa.me. `claveMeta` es el nombre de la plantilla APROBADA en Meta,
+/// que es lo único que la Cloud API acepta fuera de la ventana de 24 h —y un
+/// recordatorio, por definición, casi siempre cae fuera de esa ventana—.
+/// `variablesMeta` fija en qué orden se mapean los placeholders a los {{1}},
+/// {{2}}… del cuerpo aprobado: Meta los identifica por posición, no por nombre.
+///
+/// Sin `claveMeta` la plantilla sigue sirviendo (vista previa y wa.me), pero
+/// no se puede mandar sola por la API. La UI lo dice antes de que falle.
+model PlantillaWhatsapp {
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
+  nombre          String
+  cuerpo          String
+  claveMeta       String?
+  idiomaMeta      String   @default("es_AR")
+  variablesMeta   String[]
+  /// La que se ofrece por defecto en la consola y la que usa el barrido. Una
+  /// sola por consultorio: al marcar una, el caso de uso desmarca la anterior
+  /// en la misma operación.
+  predeterminada  Boolean  @default(false)
+  activa          Boolean  @default(true)
+  creadoEn        DateTime @default(now())
+  actualizadoEn   DateTime @updatedAt
+
+  nutricionista Nutricionista          @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  recordatorios RecordatorioWhatsapp[]
+
+  @@unique([nutricionistaId, nombre])
+  @@map("plantillas_whatsapp")
+}
+
+/// Qué medios de recordatorio están activos y cuándo salen. UNA FILA POR
+/// INQUILINO.
+///
+/// Vive aparte de `ConfiguracionConsultorio` porque responde otra pregunta:
+/// aquella describe el consultorio (horarios, membrete, PDF), esta gobierna
+/// una automatización que corre sola en el worker y le escribe a los
+/// pacientes. Mezclarlas haría que tocar el color del PDF y apagar los avisos
+/// automáticos fueran la misma operación.
+///
+/// `*DiasAntes` es la programación: un elemento por aviso ("3 días antes y 1
+/// día antes" → [3, 1]). Vacío = ese medio no manda nada automático, aunque
+/// esté activo para el envío manual.
+model ConfiguracionRecordatorios {
+  id              String @id @default(uuid(4))
+  nutricionistaId String @unique
+
+  whatsappActivo     Boolean @default(true)
+  whatsappAutomatico Boolean @default(false)
+  whatsappDiasAntes  Int[]   @default([3, 1])
+
+  emailActivo     Boolean @default(true)
+  emailAutomatico Boolean @default(true)
+  emailDiasAntes  Int[]   @default([1])
+
+  calendarioActivo          Boolean @default(true)
+  /// Suma al paciente como invitado del evento (le llega la invitación a su
+  /// mail y el turno le aparece en SU calendario, no solo en el del consultorio).
+  calendarioInvitarPaciente Boolean @default(true)
+  /// Avisos que Google dispara sobre el evento, en minutos antes del turno.
+  calendarioMinutosAntes    Int[]   @default([1440, 60])
+
+  /// Hora local a la que corre el barrido automático (HH:mm). El despachador
+  /// pasa cada hora en punto y compara la HORA, no el minuto.
+  horaEnvio String @default("09:00")
+
+  /// Cuántas horas tienen que pasar para volver a avisarle a un paciente el
+  /// mismo turno. Es lo que hace que "ya se le avisó" sea una condición
+  /// temporal y no definitiva: pasado el plazo, insistir deja de necesitar que
+  /// se apague la protección para todo el lote.
+  horasEntreAvisos Int @default(24)
+
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@map("configuracion_recordatorios")
 }
 
 /// Mensaje de WhatsApp intercambiado con un paciente a través de la Cloud API
@@ -565,13 +696,17 @@ model Archivo {
   recetaId          String? // fotos de una receta (1 a muchas)
   materialId        String? @unique // material de la biblioteca (1 a 1)
 
-  paciente        Paciente?                  @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
-  laboratorio     Laboratorio?               @relation(fields: [laboratorioId], references: [id], onDelete: Cascade)
-  comidaConsumida ComidaConsumida?           @relation(fields: [comidaConsumidaId], references: [id], onDelete: Cascade)
-  receta          Receta?                    @relation(fields: [recetaId], references: [id], onDelete: Cascade)
-  material        MaterialBiblioteca?        @relation(fields: [materialId], references: [id], onDelete: Cascade)
-  configuraciones ConfiguracionConsultorio[]
-  nutricionista   Nutricionista              @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  paciente          Paciente?                  @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  laboratorio       Laboratorio?               @relation(fields: [laboratorioId], references: [id], onDelete: Cascade)
+  comidaConsumida   ComidaConsumida?           @relation(fields: [comidaConsumidaId], references: [id], onDelete: Cascade)
+  receta            Receta?                    @relation("ArchivosDeReceta", fields: [recetaId], references: [id], onDelete: Cascade)
+  /// Contracara de `Receta.fotoPrincipal`: la receta que usa este archivo como
+  /// portada. Es una relación aparte de `receta` porque son dos cosas: estar
+  /// adjunto a la receta y ser SU foto principal.
+  recetaPrincipalDe Receta[]                   @relation("FotoPrincipalReceta")
+  material          MaterialBiblioteca?        @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  configuraciones   ConfiguracionConsultorio[]
+  nutricionista     Nutricionista              @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@index([nutricionistaId, pacienteId])
   @@index([nutricionistaId, laboratorioId])
@@ -1017,10 +1152,16 @@ model Receta {
   proteinasG      Decimal? @db.Decimal(7, 2)
   carbohidratosG  Decimal? @db.Decimal(7, 2)
   grasasG         Decimal? @db.Decimal(7, 2)
+  /// Cuál de las fotos subidas es la que representa la receta (la de la
+  /// tarjeta del recetario y la primera de la vista). Sin esto, "la principal"
+  /// era la que Postgres devolviera primero, que cambia sin aviso.
+  /// SET NULL al borrar el archivo: la receta se queda sin portada, no rota.
+  fotoPrincipalId String?
   creadoEn        DateTime @default(now())
   actualizadoEn   DateTime @updatedAt
 
-  fotos         Archivo[]
+  fotos         Archivo[]           @relation("ArchivosDeReceta")
+  fotoPrincipal Archivo?            @relation("FotoPrincipalReceta", fields: [fotoPrincipalId], references: [id], onDelete: SetNull)
   opciones      OpcionComida[]
   asignaciones  AsignacionReceta[]
   ingredientes  IngredienteReceta[]
@@ -1539,8 +1680,10 @@ model ConfiguracionConsultorio {
   pdfMostrarMacros          Boolean       @default(true)
   pdfMostrarEquivalencias   Boolean       @default(true)
   pdfMostrarRecomendaciones Boolean       @default(true)
-  // Recordatorio de turno por WhatsApp (enlace wa.me).
-  whatsappPlantilla         String? // texto con {{paciente}} {{fecha}} {{hora}} {{profesional}}
+  // Recordatorio de turno por WhatsApp. El TEXTO vive en `plantillas_whatsapp`
+  // (migración 33): una plantilla tiene que poder corresponderse con la que
+  // Meta aprobó, y eso no entra en un campo de texto suelto. Acá queda lo que
+  // sí es del consultorio: cómo se canonizan los teléfonos a E.164.
   whatsappPrefijoPais       String? // prefijo internacional sin "+", ej "54"
   creadoEn                  DateTime      @default(now())
   actualizadoEn             DateTime      @updatedAt

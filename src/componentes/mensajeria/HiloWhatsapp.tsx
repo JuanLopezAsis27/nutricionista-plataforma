@@ -41,9 +41,9 @@ export function HiloWhatsapp({ pacienteId }: { pacienteId: string }) {
         <MessageCircle className="h-8 w-8 text-muted-foreground" />
         <p className="text-sm font-medium">WhatsApp no está conectado</p>
         <p className="max-w-sm text-sm text-muted-foreground">
-          Cargá las credenciales de la API oficial en Configuración → WhatsApp para ver acá los
-          mensajes con tus pacientes. Mientras tanto podés seguir usando el botón de recordatorio
-          de los turnos.
+          Cargá las credenciales de la API oficial en Integraciones → WhatsApp para ver acá los
+          mensajes con tus pacientes. Mientras tanto los recordatorios salen como enlaces que
+          abrís vos, desde Recordatorios.
         </p>
       </div>
     );

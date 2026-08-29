@@ -26,6 +26,8 @@ import type { IEstadisticasRepositorio } from "../repositorios/IEstadisticasRepo
 import type { IMensajeriaRepositorio } from "../repositorios/IMensajeriaRepositorio";
 import type { IHistorialIARepositorio } from "../repositorios/IHistorialIARepositorio";
 import type { IConfiguracionRepositorio } from "../repositorios/IConfiguracionRepositorio";
+import type { IPlantillaWhatsappRepositorio } from "../repositorios/IPlantillaWhatsappRepositorio";
+import type { IConfiguracionRecordatoriosRepositorio } from "../repositorios/IConfiguracionRecordatoriosRepositorio";
 import type { INutricionistaRepositorio } from "../repositorios/INutricionistaRepositorio";
 import type { IRecordatorioWhatsappRepositorio } from "../repositorios/IRecordatorioWhatsappRepositorio";
 import type { IProveedorWhatsapp } from "../servicios/IProveedorWhatsapp";
@@ -94,6 +96,12 @@ import { PlantillaEmail, type DatosNuevaPlantilla } from "../entidades/Plantilla
 import { Conversacion } from "../entidades/Conversacion";
 import { Mensaje, type DatosNuevoMensaje } from "../entidades/Mensaje";
 import { ConfiguracionConsultorio } from "../entidades/ConfiguracionConsultorio";
+import { ConfiguracionRecordatorios } from "../entidades/ConfiguracionRecordatorios";
+import {
+  PlantillaWhatsapp,
+  type DatosPlantillaWhatsapp,
+  CUERPO_RECORDATORIO_POR_DEFECTO,
+} from "../entidades/PlantillaWhatsapp";
 import { AxiomaNutricional, type DatosNuevoAxioma } from "../entidades/AxiomaNutricional";
 import { CuentaConectada } from "../entidades/CuentaConectada";
 
@@ -128,7 +136,9 @@ export function mockTurnoRepositorio(
     crear: vi.fn(async (t: Turno) => t),
     actualizar: vi.fn(async (t: Turno) => t),
     obtenerPorId: vi.fn(async () => null),
+    eliminar: vi.fn(async () => {}),
     obtenerEnFecha: vi.fn(async () => []),
+    listarEntreFechas: vi.fn(async () => []),
     obtenerPorPaciente: vi.fn(async () => []),
     listar: vi.fn(async () => []),
     ...parcial,
@@ -443,6 +453,7 @@ export function mockEmailEnviadoRepositorio(
   return {
     registrar: vi.fn(async () => {}),
     yaEnviado: vi.fn(async () => false),
+    ultimoEnviadoParaTurno: vi.fn(async () => null),
     listarRecientes: vi.fn(async () => []),
     ...parcial,
   };
@@ -542,7 +553,11 @@ export function mockRecordatorioWhatsappRepositorio(
     actualizar: vi.fn(async (r: RecordatorioWhatsapp) => r),
     obtenerPorId: vi.fn(async () => null),
     obtenerPorIdExterno: vi.fn(async () => null),
-    ultimosPorTurnos: vi.fn(async () => new Map<string, RecordatorioWhatsapp>()),
+    obtenerPorTurnoYDias: vi.fn(async () => null),
+    porTurnos: vi.fn(async () => new Map<string, RecordatorioWhatsapp[]>()),
+    pendientesDeConfirmar: vi.fn(async () => []),
+    listar: vi.fn(async () => []),
+    sinRespuestaDePaciente: vi.fn(async () => []),
     ...parcial,
   };
 }
@@ -556,6 +571,8 @@ export function mockMensajeWhatsappRepositorio(
     obtenerPorIdExterno: vi.fn(async () => null),
     listarPorPaciente: vi.fn(async () => []),
     ultimoEntrante: vi.fn(async () => null),
+    ultimosPorPacientes: vi.fn(async () => new Map<string, MensajeWhatsapp>()),
+    ultimosEntrantesPorPacientes: vi.fn(async () => new Map<string, MensajeWhatsapp>()),
     ...parcial,
   };
 }
@@ -568,6 +585,10 @@ export function mockProveedorWhatsapp(
     preparar: vi.fn(async (m) => ({
       modo: "ENLACE" as const,
       enlace: `https://wa.me/${m.telefono}`,
+    })),
+    enviarPlantilla: vi.fn(async (e) => ({
+      modo: "ENLACE" as const,
+      enlace: `https://wa.me/${e.telefono}`,
     })),
     ...parcial,
   };
@@ -607,6 +628,30 @@ export function mockConfiguracionRepositorio(
   return {
     obtener: vi.fn(async () => null),
     guardar: vi.fn(async (c: ConfiguracionConsultorio) => c),
+    ...parcial,
+  };
+}
+
+export function mockPlantillaWhatsappRepositorio(
+  parcial: Partial<IPlantillaWhatsappRepositorio> = {},
+): IPlantillaWhatsappRepositorio {
+  return {
+    listar: vi.fn(async () => []),
+    obtenerPorId: vi.fn(async () => null),
+    obtenerPredeterminada: vi.fn(async () => plantillaWhatsappEjemplo()),
+    crear: vi.fn(async (p: PlantillaWhatsapp) => p),
+    actualizar: vi.fn(async (p: PlantillaWhatsapp) => p),
+    eliminar: vi.fn(async () => {}),
+    ...parcial,
+  };
+}
+
+export function mockConfiguracionRecordatoriosRepositorio(
+  parcial: Partial<IConfiguracionRecordatoriosRepositorio> = {},
+): IConfiguracionRecordatoriosRepositorio {
+  return {
+    obtener: vi.fn(async () => null),
+    guardar: vi.fn(async (c: ConfiguracionRecordatorios) => c),
     ...parcial,
   };
 }
@@ -1105,6 +1150,35 @@ export function plantillaEmailEjemplo(
 
 export function configuracionEjemplo(): ConfiguracionConsultorio {
   return ConfiguracionConsultorio.porDefecto(new Date("2026-07-14T12:00:00Z"));
+}
+
+export function configuracionRecordatoriosEjemplo(
+  cambios: Partial<Parameters<ConfiguracionRecordatorios["actualizar"]>[0]> = {},
+): ConfiguracionRecordatorios {
+  const base = ConfiguracionRecordatorios.porDefecto(new Date("2026-07-14T12:00:00Z"));
+  return Object.keys(cambios).length === 0
+    ? base
+    : base.actualizar(cambios, new Date("2026-07-14T12:00:00Z"));
+}
+
+export function plantillaWhatsappEjemplo(
+  cambios: Partial<DatosPlantillaWhatsapp> = {},
+  id = "pla-wa-1",
+): PlantillaWhatsapp {
+  return PlantillaWhatsapp.crear(
+    {
+      nombre: "Recordatorio de turno",
+      cuerpo: CUERPO_RECORDATORIO_POR_DEFECTO,
+      claveMeta: null,
+      idiomaMeta: "es_AR",
+      variablesMeta: ["paciente", "fecha", "hora", "profesional"],
+      predeterminada: true,
+      activa: true,
+      ...cambios,
+    },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
 }
 
 export function axiomaEjemplo(

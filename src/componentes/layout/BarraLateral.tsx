@@ -8,7 +8,7 @@ import {
   BookOpen,
   Library,
   BarChart3,
-  Mail,
+  BellRing,
   Plug,
   MessageSquare,
   Sparkles,
@@ -33,7 +33,7 @@ export function BarraLateral({ email }: { email: string }) {
     { href: "/dashboard/biblioteca", etiqueta: "Biblioteca", icono: Library },
     { href: "/dashboard/estadisticas", etiqueta: "Estadísticas", icono: BarChart3 },
     { href: "/dashboard/analisis-ia", etiqueta: "Análisis IA", icono: Sparkles },
-    { href: "/dashboard/plantillas", etiqueta: "Secretaría", icono: Mail },
+    { href: "/dashboard/recordatorios", etiqueta: "Recordatorios", icono: BellRing },
     { href: "/dashboard/integraciones", etiqueta: "Integraciones", icono: Plug },
     { href: "/dashboard/configuracion", etiqueta: "Configuración", icono: Settings },
   ];

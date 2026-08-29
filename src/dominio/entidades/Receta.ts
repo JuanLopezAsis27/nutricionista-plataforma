@@ -75,6 +75,11 @@ export interface PropiedadesReceta {
   carbohidratosG: number | null;
   grasasG: number | null;
   fotos: FotoReceta[];
+  /**
+   * Cuál de las fotos representa la receta. null = ninguna elegida, y ahí el
+   * getter cae en la primera disponible.
+   */
+  fotoPrincipalId: string | null;
   documentos: DocumentoReceta[];
   creadoEn: Date;
   actualizadoEn: Date;
@@ -136,6 +141,7 @@ export class Receta {
       carbohidratosG: macros.carbohidratosG,
       grasasG: macros.grasasG,
       fotos: [],
+      fotoPrincipalId: null,
       documentos: [],
       creadoEn: ahora,
       actualizadoEn: ahora,
@@ -153,8 +159,36 @@ export class Receta {
       ...actualizada.props,
       fotos: this.props.fotos.map((f) => ({ ...f })),
       documentos: this.props.documentos.map((d) => ({ ...d })),
+      fotoPrincipalId: this.props.fotoPrincipalId,
       creadoEn: this.props.creadoEn,
     });
+  }
+
+  /**
+   * Elige cuál de las fotos es la principal. `null` vuelve al automático (la
+   * primera disponible).
+   *
+   * Valida que la foto sea de ESTA receta: un id de otra receta dejaría la
+   * portada apuntando a algo que la vista nunca va a encontrar entre sus
+   * fotos, y el fallback lo taparía en silencio.
+   */
+  marcarFotoPrincipal(fotoId: string | null, ahora: Date = new Date()): Receta {
+    if (fotoId != null && !this.props.fotos.some((f) => f.id === fotoId)) {
+      throw new ErrorValidacion("Esa foto no pertenece a la receta.");
+    }
+    return new Receta({
+      ...this.props,
+      fotoPrincipalId: fotoId,
+      actualizadoEn: ahora,
+    });
+  }
+
+  /** ¿Este archivo está adjunto a la receta (foto o documento)? */
+  tieneArchivo(archivoId: string): boolean {
+    return (
+      this.props.fotos.some((f) => f.id === archivoId) ||
+      this.props.documentos.some((d) => d.id === archivoId)
+    );
   }
 
   get id(): string {
@@ -171,6 +205,21 @@ export class Receta {
   }
   get fotos(): ReadonlyArray<FotoReceta> {
     return this.props.fotos;
+  }
+
+  /**
+   * La foto que representa la receta.
+   *
+   * Cae en la primera disponible cuando no hay una elegida —o cuando la
+   * elegida ya no está entre las fotos, que pasa si se la borró—. Resolver el
+   * fallback acá y no en cada pantalla evita que la tarjeta del recetario y la
+   * vista de la receta muestren cosas distintas.
+   */
+  get fotoPrincipal(): FotoReceta | null {
+    const elegida = this.props.fotos.find(
+      (f) => f.id === this.props.fotoPrincipalId,
+    );
+    return elegida ?? this.props.fotos[0] ?? null;
   }
   get documentos(): ReadonlyArray<DocumentoReceta> {
     return this.props.documentos;

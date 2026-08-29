@@ -99,7 +99,6 @@ export default function PaginaTurnos() {
         <AccionesTurno
           turno={t}
           onReprogramar={setTurnoReprogramar}
-          telefonoPaciente={mapaPacientes.get(t.pacienteId)?.telefono ?? null}
         />
       ),
     },
@@ -231,7 +230,6 @@ export default function PaginaTurnos() {
                     <CobroTurno turno={turno} />
                     <AccionesTurno
                       turno={turno}
-                      telefonoPaciente={mapaPacientes.get(turno.pacienteId)?.telefono ?? null}
                       onReprogramar={(t) => {
                         setDiaSeleccionado(null);
                         setTurnoReprogramar(t);

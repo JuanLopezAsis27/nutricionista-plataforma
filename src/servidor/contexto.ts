@@ -27,6 +27,7 @@ import {
   servicioAutenticacion,
   servicioDeportivo,
   servicioWhatsapp,
+  servicioRecordatorios,
   busEventos,
 } from "@/infraestructura/contenedor/contenedor";
 import type { RolUsuario } from "@/dominio/entidades/Usuario";
@@ -101,6 +102,7 @@ export async function crearContexto() {
       autenticacion: servicioAutenticacion(),
       deportivo: servicioDeportivo(),
       whatsapp: servicioWhatsapp(),
+      recordatorios: servicioRecordatorios(),
     },
   };
 }

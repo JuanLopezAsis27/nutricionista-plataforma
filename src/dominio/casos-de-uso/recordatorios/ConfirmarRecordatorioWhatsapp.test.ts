@@ -8,7 +8,9 @@ import {
 } from "../_ayudas-test";
 
 describe("ConfirmarRecordatorioWhatsapp", () => {
-  it("marca como CONFIRMADO cuando el profesional dice que lo envió", async () => {
+  // Ojo con el vocabulario: acá "confirmar" es que el MENSAJE salió (estado
+  // ENVIADO). CONFIRMADO, en cambio, es que el PACIENTE dijo que viene.
+  it("marca como ENVIADO cuando el profesional dice que lo mandó", async () => {
     const repo = mockRecordatorioWhatsappRepositorio({
       obtenerPorId: vi.fn(async () => recordatorioWhatsappEjemplo()),
     });
@@ -16,7 +18,7 @@ describe("ConfirmarRecordatorioWhatsapp", () => {
 
     const resultado = await caso.ejecutar("rec-1", true);
 
-    expect(resultado.estado).toBe("CONFIRMADO");
+    expect(resultado.estado).toBe("ENVIADO");
     expect(resultado.aPrimitivos().confirmadoEn).not.toBeNull();
     expect(repo.actualizar).toHaveBeenCalledTimes(1);
   });
@@ -33,7 +35,7 @@ describe("ConfirmarRecordatorioWhatsapp", () => {
 
   it("no re-resuelve un recordatorio ya resuelto", async () => {
     const repo = mockRecordatorioWhatsappRepositorio({
-      obtenerPorId: vi.fn(async () => recordatorioWhatsappEjemplo().confirmar()),
+      obtenerPorId: vi.fn(async () => recordatorioWhatsappEjemplo().confirmarEnvio()),
     });
 
     await expect(new ConfirmarRecordatorioWhatsapp(repo).ejecutar("rec-1", true)).rejects.toThrow(

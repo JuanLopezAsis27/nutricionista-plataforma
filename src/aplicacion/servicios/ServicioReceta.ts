@@ -4,6 +4,8 @@ import type { ObtenerRecetasPaginado } from "@/dominio/casos-de-uso/recetas/Obte
 import type { ObtenerRecetaPorId } from "@/dominio/casos-de-uso/recetas/ObtenerRecetaPorId";
 import type { ActualizarReceta } from "@/dominio/casos-de-uso/recetas/ActualizarReceta";
 import type { EliminarReceta } from "@/dominio/casos-de-uso/recetas/EliminarReceta";
+import type { EliminarArchivoDeReceta } from "@/dominio/casos-de-uso/recetas/EliminarArchivoDeReceta";
+import type { MarcarFotoPrincipal } from "@/dominio/casos-de-uso/recetas/MarcarFotoPrincipal";
 import type { AsignarRecetaAPaciente } from "@/dominio/casos-de-uso/recetas/AsignarRecetaAPaciente";
 import type { DesasignarRecetaDePaciente } from "@/dominio/casos-de-uso/recetas/DesasignarRecetaDePaciente";
 import type { ObtenerRecetasDelPaciente } from "@/dominio/casos-de-uso/recetas/ObtenerRecetasDelPaciente";
@@ -31,6 +33,8 @@ export class ServicioReceta {
     private readonly obtenerPorIdUC: ObtenerRecetaPorId,
     private readonly actualizarUC: ActualizarReceta,
     private readonly eliminarUC: EliminarReceta,
+    private readonly eliminarArchivoUC: EliminarArchivoDeReceta,
+    private readonly marcarFotoPrincipalUC: MarcarFotoPrincipal,
     private readonly asignarUC: AsignarRecetaAPaciente,
     private readonly desasignarUC: DesasignarRecetaDePaciente,
     private readonly obtenerDelPacienteUC: ObtenerRecetasDelPaciente,
@@ -61,6 +65,26 @@ export class ServicioReceta {
   async actualizarReceta(datos: ActualizarRecetaDto): Promise<RecetaSalidaDto> {
     const receta = await this.actualizarUC.ejecutar(datos);
     return ServicioReceta.aSalida(receta);
+  }
+
+  /** Borra una foto o un documento adjunto y devuelve la receta ya sin él. */
+  async eliminarArchivoDeReceta(
+    recetaId: string,
+    archivoId: string,
+  ): Promise<RecetaSalidaDto> {
+    return ServicioReceta.aSalida(
+      await this.eliminarArchivoUC.ejecutar(recetaId, archivoId),
+    );
+  }
+
+  /** Elige la foto que representa la receta (null = la primera disponible). */
+  async marcarFotoPrincipal(
+    recetaId: string,
+    fotoId: string | null,
+  ): Promise<RecetaSalidaDto> {
+    return ServicioReceta.aSalida(
+      await this.marcarFotoPrincipalUC.ejecutar(recetaId, fotoId),
+    );
   }
 
   async eliminarReceta(id: string): Promise<void> {

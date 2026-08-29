@@ -22,6 +22,7 @@ import * as nucleo from "./nucleo";
 import { crearServicioPaciente } from "./modulos/pacientes";
 import { crearServicioTurno } from "./modulos/turnos";
 import { crearServicioWhatsapp } from "./modulos/whatsapp";
+import { crearServicioRecordatorios } from "./modulos/recordatorios";
 import { crearServicioArchivo } from "./modulos/archivos";
 import { crearServicioEvaluacion } from "./modulos/evaluacion";
 import { crearServicioDiario } from "./modulos/diario";
@@ -79,7 +80,6 @@ export const servicioPaciente = perezoso(() =>
 
 export const servicioWhatsapp = perezoso(() =>
   crearServicioWhatsapp({
-    turnos: nucleo.repositorioTurno(),
     pacientes: nucleo.repositorioPaciente(),
     configuracion: nucleo.repositorioConfiguracion(),
     recordatorios: nucleo.repositorioRecordatorioWhatsapp(),
@@ -90,12 +90,37 @@ export const servicioWhatsapp = perezoso(() =>
   }),
 );
 
+/**
+ * Recordatorios de turno: la política de los tres medios (WhatsApp, email y
+ * calendario), las plantillas propias y el envío —manual y automático— por
+ * WhatsApp.
+ */
+export const servicioRecordatorios = perezoso(() =>
+  crearServicioRecordatorios({
+    turnos: nucleo.repositorioTurno(),
+    pacientes: nucleo.repositorioPaciente(),
+    configuracion: nucleo.repositorioConfiguracion(),
+    plantillas: nucleo.repositorioPlantillaWhatsapp(),
+    configRecordatorios: nucleo.repositorioConfiguracionRecordatorios(),
+    recordatorios: nucleo.repositorioRecordatorioWhatsapp(),
+    mensajes: nucleo.repositorioMensajeWhatsapp(),
+    cuentas: nucleo.repositorioCuentaConectada(),
+    proveedor: nucleo.proveedorWhatsapp(),
+    reloj: nucleo.reloj(),
+    plantillasEmail: nucleo.repositorioPlantillaEmail(),
+    emailsEnviados: nucleo.repositorioEmailEnviado(),
+    servicioEmail: nucleo.servicioEmail(),
+    usuarios: nucleo.repositorioUsuario(),
+    bus: nucleo.busEventos(),
+    nombreProfesional: nucleo.NOMBRE_PROFESIONAL,
+  }),
+);
+
 export const servicioTurno = perezoso(() =>
   crearServicioTurno({
     turnos: nucleo.repositorioTurno(),
     pacientes: nucleo.repositorioPaciente(),
     sincronizador: nucleo.sincronizadorCalendario(),
-    recordatorios: nucleo.repositorioRecordatorioWhatsapp(),
   }),
 );
 
@@ -200,12 +225,8 @@ export const servicioSecretaria = perezoso(() =>
   crearServicioSecretaria({
     plantillas: nucleo.repositorioPlantillaEmail(),
     emails: nucleo.repositorioEmailEnviado(),
-    turnos: nucleo.repositorioTurno(),
-    pacientes: nucleo.repositorioPaciente(),
-    usuarios: nucleo.repositorioUsuario(),
     servicioEmail: nucleo.servicioEmail(),
     reloj: nucleo.reloj(),
-    bus: nucleo.busEventos(),
     nombreProfesional: nucleo.NOMBRE_PROFESIONAL,
   }),
 );

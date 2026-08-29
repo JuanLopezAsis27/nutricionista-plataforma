@@ -2,11 +2,12 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
 /** Encapsula las llamadas tRPC de objetivos y estrategias. */
 export function useObjetivos() {
   const utils = trpc.useUtils();
-  const invalidar = () => utils.objetivos.invalidate();
+  const invalidar = useInvalidar();
 
   const crear = trpc.objetivos.crear.useMutation({
     onSuccess: () => {

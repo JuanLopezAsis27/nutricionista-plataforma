@@ -2,6 +2,7 @@ import type { IMensajeWhatsappRepositorio } from "../../repositorios/IMensajeWha
 import type { IUsuarioRepositorio } from "../../repositorios/IUsuarioRepositorio";
 import type { IBusEventos } from "../../servicios/IBusEventos";
 import type { ResolverPacientePorTelefono } from "./ResolverPacientePorTelefono";
+import type { RegistrarRespuestaDeRecordatorio } from "../recordatorios/RegistrarRespuestaDeRecordatorio";
 import { MensajeWhatsapp } from "../../entidades/MensajeWhatsapp";
 
 /** Mensaje entrante tal como lo entrega el webhook de Meta, ya desarmado. */
@@ -17,7 +18,7 @@ export interface MensajeEntranteWhatsapp {
 
 /** Qué se hizo con el mensaje: sirve para el log del webhook. */
 export type ResultadoIngesta =
-  | { estado: "GUARDADO"; pacienteId: string }
+  | { estado: "GUARDADO"; pacienteId: string; recordatoriosMarcados: number }
   | { estado: "DESCARTADO"; motivo: "SIN_PACIENTE" | "DUPLICADO" };
 
 /**
@@ -38,6 +39,7 @@ export class ProcesarMensajeEntranteWhatsapp {
     private readonly resolverPaciente: ResolverPacientePorTelefono,
     private readonly usuarios: IUsuarioRepositorio,
     private readonly bus: IBusEventos,
+    private readonly registrarRespuesta: RegistrarRespuestaDeRecordatorio,
   ) {}
 
   async ejecutar(entrante: MensajeEntranteWhatsapp): Promise<ResultadoIngesta> {
@@ -65,6 +67,16 @@ export class ProcesarMensajeEntranteWhatsapp {
       ),
     );
 
+    // Que el paciente conteste es lo que cierra el círculo del recordatorio:
+    // el log deja de decir solo "salió" y pasa a decir "contestó" —y, cuando
+    // la respuesta es un sí inequívoco, "viene". Es la mitad de la pregunta
+    // que se hace el profesional al mirar la agenda de mañana.
+    const respuesta = await this.registrarRespuesta.ejecutar(
+      paciente.id,
+      entrante.cuerpo,
+      entrante.enviadoEn,
+    );
+
     // El webhook corre fuera de cualquier request de la UI: el bus (pg_notify)
     // es lo que cruza procesos para que el hilo abierto se entere sin polling.
     for (const nutri of await this.usuarios.listarPorRol("NUTRICIONISTA")) {
@@ -75,6 +87,10 @@ export class ProcesarMensajeEntranteWhatsapp {
       });
     }
 
-    return { estado: "GUARDADO", pacienteId: paciente.id };
+    return {
+      estado: "GUARDADO",
+      pacienteId: paciente.id,
+      recordatoriosMarcados: respuesta.marcados,
+    };
   }
 }

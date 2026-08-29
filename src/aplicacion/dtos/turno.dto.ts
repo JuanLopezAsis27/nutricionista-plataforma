@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { ESTADOS_TURNO } from "@/dominio/entidades/Turno";
-import { recordatorioSalidaDto } from "./whatsapp.dto";
 
 /** DTOs de Turno — esquemas Zod de entrada/salida. */
 
@@ -62,7 +61,5 @@ export const turnoSalidaDto = z.object({
   precio: z.number().nullable(),
   pagado: z.boolean(),
   creadoEn: z.date(),
-  /** Último recordatorio por WhatsApp de este turno (null si nunca se preparó). */
-  recordatorioWhatsapp: recordatorioSalidaDto.nullable(),
 });
 export type TurnoSalidaDto = z.infer<typeof turnoSalidaDto>;

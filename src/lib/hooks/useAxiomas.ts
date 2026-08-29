@@ -2,11 +2,12 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
 /** Encapsula las llamadas tRPC de la Base de conocimiento (axiomas). */
 export function useAxiomas() {
   const utils = trpc.useUtils();
-  const invalidar = () => utils.axiomas.invalidate();
+  const invalidar = useInvalidar();
 
   const crear = trpc.axiomas.crear.useMutation({
     onSuccess: () => {

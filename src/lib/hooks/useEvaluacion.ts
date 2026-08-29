@@ -2,6 +2,7 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
 /**
  * Encapsula todas las llamadas tRPC de la Evaluación Integral
@@ -12,7 +13,7 @@ import { trpc } from "@/lib/trpc";
  */
 export function useEvaluacion() {
   const utils = trpc.useUtils();
-  const invalidar = () => utils.evaluacion.invalidate();
+  const invalidar = useInvalidar();
 
   const conToasts = (mensaje: string) => ({
     onSuccess: () => {

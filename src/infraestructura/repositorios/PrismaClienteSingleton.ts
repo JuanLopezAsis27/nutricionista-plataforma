@@ -61,6 +61,8 @@ export const MODELOS_INQUILINO = new Set<string>([
   "AlimentoPropio",
   "RetroalimentacionInsight",
   "RecordatorioWhatsapp",
+  "PlantillaWhatsapp",
+  "ConfiguracionRecordatorios",
   "MensajeWhatsapp",
 
   // Hijas del agregado (migración 27). Antes quedaban fuera del filtro: se

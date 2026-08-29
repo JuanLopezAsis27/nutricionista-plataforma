@@ -29,7 +29,33 @@ function evento(evento: EventoCalendario): Record<string, unknown> {
     description: evento.descripcion,
     start: { dateTime: evento.inicio.toISOString() },
     end: { dateTime: evento.fin.toISOString() },
+    ...(evento.invitados?.length
+      ? { attendees: evento.invitados.map((email) => ({ email })) }
+      : {}),
+    // `useDefault: false` es lo que hace que manden los avisos configurados
+    // por el profesional y no los que cada invitado tenga en su cuenta.
+    ...(evento.recordatoriosMinutos
+      ? {
+          reminders: {
+            useDefault: false,
+            overrides: evento.recordatoriosMinutos.map((minutos) => ({
+              method: "popup",
+              minutes: minutos,
+            })),
+          },
+        }
+      : {}),
   };
+}
+
+/**
+ * `sendUpdates=all` es lo que hace que Google le mande la invitación al
+ * paciente en vez de sumarlo en silencio. Sin esto el evento queda creado con
+ * el invitado adentro y el paciente no se entera nunca, que es exactamente el
+ * modo en que un recordatorio deja de serlo.
+ */
+function conNotificaciones(url: string, hayInvitados: boolean): string {
+  return hayInvitados ? `${url}?sendUpdates=all` : url;
 }
 
 /** Implementación real del proveedor Google (APIs REST vía fetch). */
@@ -99,7 +125,7 @@ export class ProveedorGoogle implements IProveedorGoogle {
   }
 
   async crearEvento(accessToken: string, ev: EventoCalendario): Promise<string> {
-    const respuesta = await fetch(URL_CALENDAR, {
+    const respuesta = await fetch(conNotificaciones(URL_CALENDAR, Boolean(ev.invitados?.length)), {
       method: "POST",
       headers: this.headers(accessToken),
       body: JSON.stringify(evento(ev)),
@@ -110,19 +136,30 @@ export class ProveedorGoogle implements IProveedorGoogle {
   }
 
   async actualizarEvento(accessToken: string, eventoId: string, ev: EventoCalendario): Promise<void> {
-    const respuesta = await fetch(`${URL_CALENDAR}/${encodeURIComponent(eventoId)}`, {
+    const respuesta = await fetch(
+      conNotificaciones(
+        `${URL_CALENDAR}/${encodeURIComponent(eventoId)}`,
+        Boolean(ev.invitados?.length),
+      ),
+      {
       method: "PATCH",
       headers: this.headers(accessToken),
       body: JSON.stringify(evento(ev)),
-    });
+      },
+    );
     await verificar(respuesta, "actualizar evento");
   }
 
   async eliminarEvento(accessToken: string, eventoId: string): Promise<void> {
-    const respuesta = await fetch(`${URL_CALENDAR}/${encodeURIComponent(eventoId)}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    // Con invitados, borrar el evento tiene que avisarles: si no, al paciente
+    // le queda en el calendario un turno que ya no existe.
+    const respuesta = await fetch(
+      `${URL_CALENDAR}/${encodeURIComponent(eventoId)}?sendUpdates=all`,
+      {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
     // 404/410 = ya no existe: se considera OK (idempotente).
     if (respuesta.status === 404 || respuesta.status === 410) return;
     await verificar(respuesta, "eliminar evento");

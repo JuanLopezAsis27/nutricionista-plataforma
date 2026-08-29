@@ -1,5 +1,4 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
-import { MAX_LARGO_PLANTILLA_WHATSAPP } from "../casos-de-uso/whatsapp/plantilla";
 
 const PATRON_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -22,9 +21,10 @@ export interface DatosConfiguracion {
   pdfMostrarMacros: boolean;
   pdfMostrarEquivalencias: boolean;
   pdfMostrarRecomendaciones: boolean;
-  // Recordatorio de turno por WhatsApp.
-  /** Plantilla del mensaje; null usa PLANTILLA_WHATSAPP_POR_DEFECTO. */
-  whatsappPlantilla: string | null;
+  // Recordatorio de turno por WhatsApp. El TEXTO no vive acá: son plantillas
+  // propias (`PlantillaWhatsapp`), porque una de ellas tiene que corresponder
+  // con la que Meta aprobó y eso es más que un campo de texto. Lo que queda es
+  // lo que sí es del consultorio: cómo se canonizan los teléfonos.
   /** Prefijo internacional sin "+" para normalizar teléfonos locales, ej "54". */
   whatsappPrefijoPais: string | null;
 }
@@ -66,7 +66,6 @@ export class ConfiguracionConsultorio {
       pdfMostrarMacros: true,
       pdfMostrarEquivalencias: true,
       pdfMostrarRecomendaciones: true,
-      whatsappPlantilla: null,
       whatsappPrefijoPais: null,
       creadoEn: ahora,
       actualizadoEn: ahora,
@@ -107,7 +106,6 @@ export class ConfiguracionConsultorio {
         cambios.pdfMostrarRecomendaciones,
         this.props.pdfMostrarRecomendaciones,
       ),
-      whatsappPlantilla: fusionar(cambios.whatsappPlantilla, this.props.whatsappPlantilla),
       whatsappPrefijoPais: fusionar(cambios.whatsappPrefijoPais, this.props.whatsappPrefijoPais),
     };
     validar(datos);
@@ -116,9 +114,6 @@ export class ConfiguracionConsultorio {
 
   get id(): string {
     return this.props.id;
-  }
-  get whatsappPlantilla(): string | null {
-    return this.props.whatsappPlantilla;
   }
   get whatsappPrefijoPais(): string | null {
     return this.props.whatsappPrefijoPais;
@@ -151,11 +146,6 @@ function validar(d: DatosConfiguracion): void {
   }
   if (d.pdfColorPrimario != null && !/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(d.pdfColorPrimario)) {
     throw new ErrorValidacion("El color del PDF debe ser un hexadecimal, ej. #F4535E.");
-  }
-  if (d.whatsappPlantilla != null && d.whatsappPlantilla.length > MAX_LARGO_PLANTILLA_WHATSAPP) {
-    throw new ErrorValidacion(
-      `La plantilla de WhatsApp no puede superar los ${MAX_LARGO_PLANTILLA_WHATSAPP} caracteres.`,
-    );
   }
   if (d.whatsappPrefijoPais != null && !/^\d{1,4}$/.test(d.whatsappPrefijoPais)) {
     throw new ErrorValidacion('El prefijo de país debe ser solo dígitos, sin "+" (ej. 54).');

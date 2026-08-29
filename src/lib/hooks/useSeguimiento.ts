@@ -2,11 +2,12 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
 /** Encapsula las llamadas tRPC de seguimiento (suplementos, alertas, informes). */
 export function useSeguimiento() {
   const utils = trpc.useUtils();
-  const invalidar = () => utils.seguimiento.invalidate();
+  const invalidar = useInvalidar();
 
   const registrarSuplemento = trpc.seguimiento.registrarSuplemento.useMutation({
     onSuccess: () => {

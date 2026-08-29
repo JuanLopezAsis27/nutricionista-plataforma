@@ -2,6 +2,7 @@ import type { ICredencialesIntegracionRepositorio } from "@/dominio/repositorios
 import type {
   IProveedorWhatsapp,
   MensajeWhatsapp,
+  PlantillaWhatsappEnvio,
   ResultadoEnvioWhatsapp,
 } from "@/dominio/servicios/IProveedorWhatsapp";
 import { ProveedorWhatsappCloudApi } from "./ProveedorWhatsappCloudApi";
@@ -30,6 +31,11 @@ export class ResolvedorProveedorWhatsapp implements IProveedorWhatsapp {
   async preparar(mensaje: MensajeWhatsapp): Promise<ResultadoEnvioWhatsapp> {
     const proveedor = await this.resolver();
     return (proveedor ?? this.enlace).preparar(mensaje);
+  }
+
+  async enviarPlantilla(envio: PlantillaWhatsappEnvio): Promise<ResultadoEnvioWhatsapp> {
+    const proveedor = await this.resolver();
+    return (proveedor ?? this.enlace).enviarPlantilla(envio);
   }
 
   private async resolver(): Promise<ProveedorWhatsappCloudApi | null> {

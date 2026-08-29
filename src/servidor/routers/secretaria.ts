@@ -8,9 +8,11 @@ import {
 } from "@/aplicacion/dtos/secretaria.dto";
 
 /**
- * Router de Secretaría (presentación → aplicación): gestión de plantillas de
- * email, envío de recordatorios de turnos y de emails de prueba, y auditoría
- * de envíos. Todo del NUTRICIONISTA.
+ * Router de Secretaría (presentación → aplicación): plantillas de email,
+ * envío de emails de prueba y auditoría de envíos. Todo del NUTRICIONISTA.
+ *
+ * El disparo de los recordatorios NO está acá: es uno de los tres medios de
+ * una misma política y sale por `routerRecordatorios.enviarProgramados`.
  */
 export const routerSecretaria = crearRouter({
   // --- Plantillas ----------------------------------------------------------
@@ -49,11 +51,6 @@ export const routerSecretaria = crearRouter({
     .mutation(async ({ ctx, input }) => {
       return await ctx.servicios.secretaria.enviarEmailDePrueba(input);
     }),
-
-  // Disparo manual del barrido (además del cron diario del worker).
-  enviarRecordatorios: nutricionistaProcedimiento.mutation(async ({ ctx }) => {
-    return await ctx.servicios.secretaria.enviarRecordatorios();
-  }),
 
   emailsRecientes: nutricionistaProcedimiento
     .input(z.object({ limite: z.number().int().positive().max(100).optional() }))

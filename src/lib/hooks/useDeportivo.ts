@@ -2,11 +2,12 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
 /** Encapsula las llamadas tRPC del módulo deportivo (perfil + competencias). */
 export function useDeportivo() {
   const utils = trpc.useUtils();
-  const invalidar = () => utils.deportivo.invalidate();
+  const invalidar = useInvalidar();
 
   const guardarPerfil = trpc.deportivo.guardarPerfil.useMutation({
     onSuccess: () => {

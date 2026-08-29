@@ -34,6 +34,25 @@ export class PrismaRepositorioEmailEnviado implements IEmailEnviadoRepositorio {
     return fila != null;
   }
 
+  async ultimoEnviadoParaTurno(
+    plantillaClave: string,
+    turnoId: string,
+  ): Promise<Date | null> {
+    // `startsWith` cubre las tres formas de referencia del mismo turno:
+    // "<id>" (escalón de 1 día), "<id>:3" y "<id>:manual:<epoch>".
+    const fila = await this.prisma.emailEnviado.findFirst({
+      where: {
+        plantillaClave,
+        referenciaId: { startsWith: turnoId },
+        // Un envío que falló no cuenta como aviso dado.
+        error: null,
+      },
+      orderBy: { creadoEn: "desc" },
+      select: { creadoEn: true },
+    });
+    return fila?.creadoEn ?? null;
+  }
+
   async listarRecientes(limite = 30): Promise<EmailEnviado[]> {
     const filas = await this.prisma.emailEnviado.findMany({
       orderBy: { creadoEn: "desc" },

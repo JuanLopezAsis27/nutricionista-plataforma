@@ -1,11 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
 import { ProcesarMensajeEntranteWhatsapp } from "./ProcesarMensajeEntranteWhatsapp";
 import { ResolverPacientePorTelefono } from "./ResolverPacientePorTelefono";
+import { RegistrarRespuestaDeRecordatorio } from "../recordatorios/RegistrarRespuestaDeRecordatorio";
+import type { RecordatorioWhatsapp } from "../../entidades/RecordatorioWhatsapp";
 import { MensajeWhatsapp } from "../../entidades/MensajeWhatsapp";
 import {
   mockMensajeWhatsappRepositorio,
   mockPacienteRepositorio,
   mockConfiguracionRepositorio,
+  mockRecordatorioWhatsappRepositorio,
   mockUsuarioRepositorio,
   mockBusEventos,
   pacienteEjemplo,
@@ -19,9 +22,15 @@ const ENTRANTE = {
   enviadoEn: new Date("2026-08-24T14:00:00Z"),
 };
 
-function armar(pacientes = [pacienteEjemplo({ telefono: "011 15 5555-4444" })]) {
+function armar(
+  pacientes = [pacienteEjemplo({ telefono: "011 15 5555-4444" })],
+  recordatoriosPendientes: RecordatorioWhatsapp[] = [],
+) {
   const mensajes = mockMensajeWhatsappRepositorio();
   const bus = mockBusEventos();
+  const recordatorios = mockRecordatorioWhatsappRepositorio({
+    sinRespuestaDePaciente: vi.fn(async () => recordatoriosPendientes),
+  });
   const caso = new ProcesarMensajeEntranteWhatsapp(
     mensajes,
     new ResolverPacientePorTelefono(
@@ -40,8 +49,9 @@ function armar(pacientes = [pacienteEjemplo({ telefono: "011 15 5555-4444" })]) 
       listarPorRol: vi.fn(async () => [usuarioEjemplo({}, "usr-nutri")]),
     }),
     bus,
+    new RegistrarRespuestaDeRecordatorio(recordatorios),
   );
-  return { caso, mensajes, bus };
+  return { caso, mensajes, bus, recordatorios };
 }
 
 describe("ProcesarMensajeEntranteWhatsapp", () => {
@@ -50,7 +60,11 @@ describe("ProcesarMensajeEntranteWhatsapp", () => {
 
     const resultado = await caso.ejecutar(ENTRANTE);
 
-    expect(resultado).toEqual({ estado: "GUARDADO", pacienteId: "pac-1" });
+    expect(resultado).toEqual({
+      estado: "GUARDADO",
+      pacienteId: "pac-1",
+      recordatoriosMarcados: 0,
+    });
     expect(mensajes.crear).toHaveBeenCalledTimes(1);
     const [entidad] = vi.mocked(mensajes.crear).mock.calls[0]!;
     expect(entidad.aPrimitivos()).toMatchObject({

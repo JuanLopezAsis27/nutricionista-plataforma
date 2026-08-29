@@ -1,8 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
-import { EnviarRecordatoriosDeTurnos } from "./EnviarRecordatoriosDeTurnos";
+import { EnviarRecordatoriosPorEmail } from "./EnviarRecordatoriosPorEmail";
 import { ErrorPlantillaNoEncontrada } from "../../errores/ErrorPlantillaNoEncontrada";
 import {
   mockPlantillaEmailRepositorio,
+  mockConfiguracionRecordatoriosRepositorio,
   mockEmailEnviadoRepositorio,
   mockTurnoRepositorio,
   mockPacienteRepositorio,
@@ -26,7 +27,7 @@ function armar(overrides: {
   const enviar = vi.fn(async () => {});
   const registrar = vi.fn(async () => {});
 
-  const uc = new EnviarRecordatoriosDeTurnos(
+  const uc = new EnviarRecordatoriosPorEmail(
     mockPlantillaEmailRepositorio({ obtenerPorClave: vi.fn(async () => plantilla) }),
     mockEmailEnviadoRepositorio({
       yaEnviado: vi.fn(async () => overrides.yaEnviado ?? false),
@@ -40,12 +41,13 @@ function armar(overrides: {
     }),
     mockServicioEmail({ enviar }),
     mockReloj(),
+    mockConfiguracionRecordatoriosRepositorio(),
     PROFESIONAL,
   );
   return { uc, enviar, registrar };
 }
 
-describe("EnviarRecordatoriosDeTurnos", () => {
+describe("EnviarRecordatoriosPorEmail", () => {
   it("envía y registra el recordatorio de un turno confirmado de mañana", async () => {
     const turno = turnoEjemplo({ fecha: MANANA, hora: "10:00" });
     turno.cambiarEstado("CONFIRMADO");
@@ -100,7 +102,7 @@ describe("EnviarRecordatoriosDeTurnos", () => {
     const turno = turnoEjemplo({ fecha: MANANA });
     const plantilla = plantillaEmailEjemplo();
     const registrar = vi.fn(async () => {});
-    const uc = new EnviarRecordatoriosDeTurnos(
+    const uc = new EnviarRecordatoriosPorEmail(
       mockPlantillaEmailRepositorio({ obtenerPorClave: vi.fn(async () => plantilla) }),
       mockEmailEnviadoRepositorio({ registrar }),
       mockTurnoRepositorio({ obtenerEnFecha: vi.fn(async () => [turno]) }),
@@ -111,6 +113,7 @@ describe("EnviarRecordatoriosDeTurnos", () => {
         }),
       }),
       mockReloj(),
+      mockConfiguracionRecordatoriosRepositorio(),
       PROFESIONAL,
     );
 
@@ -121,13 +124,14 @@ describe("EnviarRecordatoriosDeTurnos", () => {
   });
 
   it("lanza ErrorPlantillaNoEncontrada si falta la plantilla del sistema", async () => {
-    const uc = new EnviarRecordatoriosDeTurnos(
+    const uc = new EnviarRecordatoriosPorEmail(
       mockPlantillaEmailRepositorio({ obtenerPorClave: vi.fn(async () => null) }),
       mockEmailEnviadoRepositorio(),
       mockTurnoRepositorio(),
       mockPacienteRepositorio(),
       mockServicioEmail(),
       mockReloj(),
+      mockConfiguracionRecordatoriosRepositorio(),
       PROFESIONAL,
     );
 
