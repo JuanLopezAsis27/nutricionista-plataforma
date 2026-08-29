@@ -63,6 +63,48 @@ export class PrismaRepositorioMensajeWhatsapp implements IMensajeWhatsappReposit
     return fila ? this.mapear(fila) : null;
   }
 
+  async ultimosPorPacientes(
+    pacienteIds: string[],
+  ): Promise<Map<string, MensajeWhatsapp>> {
+    return this.ultimosPor(pacienteIds, undefined);
+  }
+
+  async ultimosEntrantesPorPacientes(
+    pacienteIds: string[],
+  ): Promise<Map<string, MensajeWhatsapp>> {
+    return this.ultimosPor(pacienteIds, "ENTRANTE");
+  }
+
+  /**
+   * Último mensaje de cada paciente en UNA consulta.
+   *
+   * Se ordena descendente y se queda con el primero de cada paciente, en vez
+   * de hacer un `findFirst` por fila: la bandeja de seguimiento muestra
+   * decenas de conversaciones y esa diferencia es la que decide si la pantalla
+   * abre o se arrastra. El `take` acota lo que puede traer una conversación
+   * muy activa.
+   */
+  private async ultimosPor(
+    pacienteIds: string[],
+    direccion: "ENTRANTE" | "SALIENTE" | undefined,
+  ): Promise<Map<string, MensajeWhatsapp>> {
+    if (pacienteIds.length === 0) return new Map();
+
+    const filas = await this.prisma.mensajeWhatsapp.findMany({
+      where: { pacienteId: { in: pacienteIds }, ...(direccion ? { direccion } : {}) },
+      orderBy: { creadoEn: "desc" },
+      take: pacienteIds.length * 50,
+    });
+
+    const mapa = new Map<string, MensajeWhatsapp>();
+    for (const fila of filas) {
+      if (!mapa.has(fila.pacienteId)) {
+        mapa.set(fila.pacienteId, this.mapear(fila));
+      }
+    }
+    return mapa;
+  }
+
   private mapear(fila: MensajeFila): MensajeWhatsapp {
     return MensajeWhatsapp.reconstruir({
       id: fila.id,

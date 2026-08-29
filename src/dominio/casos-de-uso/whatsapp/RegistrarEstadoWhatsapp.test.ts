@@ -64,40 +64,69 @@ describe("RegistrarEstadoWhatsapp", () => {
     });
   });
 
-  // Lo que la Fase A no podía hacer: confirmar el envío sin preguntarle al nutri.
-  it("confirma el recordatorio cuando WhatsApp informa que salió", async () => {
+  // Lo que la Fase A no podía hacer: saber que salió sin preguntarle al nutri.
+  it("marca el recordatorio como ENVIADO cuando WhatsApp informa que salió", async () => {
     const recordatorios = mockRecordatorioWhatsappRepositorio({
-      obtenerPorIdExterno: vi.fn(async () => recordatorioWhatsappEjemplo({ idExterno: "wamid.ABC" })),
+      obtenerPorIdExterno: vi.fn(async () =>
+        recordatorioWhatsappEjemplo({ idExterno: "wamid.ABC" }),
+      ),
     });
     const caso = new RegistrarEstadoWhatsapp(mockMensajeWhatsappRepositorio(), recordatorios);
 
     await caso.ejecutar([{ idExterno: "wamid.ABC", estado: "ENVIADO" }]);
 
     const [resuelto] = vi.mocked(recordatorios.actualizar).mock.calls[0]!;
-    expect(resuelto.estado).toBe("CONFIRMADO");
+    expect(resuelto.estado).toBe("ENVIADO");
   });
 
-  it("descarta el recordatorio si el envío falló", async () => {
-    const recordatorios = mockRecordatorioWhatsappRepositorio({
-      obtenerPorIdExterno: vi.fn(async () => recordatorioWhatsappEjemplo({ idExterno: "wamid.ABC" })),
-    });
-    const caso = new RegistrarEstadoWhatsapp(mockMensajeWhatsappRepositorio(), recordatorios);
-
-    await caso.ejecutar([{ idExterno: "wamid.ABC", estado: "FALLIDO" }]);
-
-    const [resuelto] = vi.mocked(recordatorios.actualizar).mock.calls[0]!;
-    expect(resuelto.estado).toBe("DESCARTADO");
-  });
-
-  it("no vuelve a resolver un recordatorio ya confirmado a mano", async () => {
+  // El recordatorio comparte la escala del mensaje: que Meta lo haya aceptado
+  // no es lo mismo que el paciente lo haya abierto, y el profesional necesita
+  // poder distinguirlo antes de decidir si insiste.
+  it("sigue avanzando la escala de entrega hasta LEIDO", async () => {
     const recordatorios = mockRecordatorioWhatsappRepositorio({
       obtenerPorIdExterno: vi.fn(async () =>
-        recordatorioWhatsappEjemplo({ idExterno: "wamid.ABC" }).confirmar(),
+        recordatorioWhatsappEjemplo({ idExterno: "wamid.ABC" }).confirmarEnvio(),
       ),
     });
     const caso = new RegistrarEstadoWhatsapp(mockMensajeWhatsappRepositorio(), recordatorios);
 
     await caso.ejecutar([{ idExterno: "wamid.ABC", estado: "LEIDO" }]);
+
+    const [resuelto] = vi.mocked(recordatorios.actualizar).mock.calls[0]!;
+    expect(resuelto.estado).toBe("LEIDO");
+  });
+
+  // FALLIDO y no DESCARTADO: DESCARTADO es "el profesional decidió no
+  // mandarlo", y confundirlos borraría del historial que Meta lo rechazó.
+  it("marca el recordatorio como FALLIDO si el envío falló", async () => {
+    const recordatorios = mockRecordatorioWhatsappRepositorio({
+      obtenerPorIdExterno: vi.fn(async () =>
+        recordatorioWhatsappEjemplo({ idExterno: "wamid.ABC" }),
+      ),
+    });
+    const caso = new RegistrarEstadoWhatsapp(mockMensajeWhatsappRepositorio(), recordatorios);
+
+    await caso.ejecutar([
+      { idExterno: "wamid.ABC", estado: "FALLIDO", error: "Fuera de la ventana de 24 h" },
+    ]);
+
+    const [resuelto] = vi.mocked(recordatorios.actualizar).mock.calls[0]!;
+    expect(resuelto.aPrimitivos()).toMatchObject({
+      estado: "FALLIDO",
+      error: "Fuera de la ventana de 24 h",
+    });
+  });
+
+  // Los webhooks llegan desordenados también acá.
+  it("no retrocede el estado del recordatorio", async () => {
+    const recordatorios = mockRecordatorioWhatsappRepositorio({
+      obtenerPorIdExterno: vi.fn(async () =>
+        recordatorioWhatsappEjemplo({ idExterno: "wamid.ABC" }).registrarEstado("LEIDO"),
+      ),
+    });
+    const caso = new RegistrarEstadoWhatsapp(mockMensajeWhatsappRepositorio(), recordatorios);
+
+    await caso.ejecutar([{ idExterno: "wamid.ABC", estado: "ENTREGADO" }]);
 
     expect(recordatorios.actualizar).not.toHaveBeenCalled();
   });

@@ -22,6 +22,7 @@ import {
   FormMessage,
 } from "@/componentes/ui/form";
 import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
+import { AdjuntosGuardados } from "@/componentes/recetas/AdjuntosGuardados";
 
 const numeroOpcional = z
   .string()
@@ -413,16 +414,15 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
           )}
         />
 
-        {/* Fotos */}
+        {/* Adjuntos ya guardados: se borran y se elige la portada en el acto,
+            sin pasar por "Guardar". */}
+        {recetaInicial && <AdjuntosGuardados recetaId={recetaInicial.id} />}
+
+        {/* Fotos nuevas */}
         <div className="space-y-2">
           <p className="flex items-center gap-1.5 text-sm font-medium">
-            <ImagePlus className="h-4 w-4" /> Fotos
+            <ImagePlus className="h-4 w-4" /> Agregar fotos
           </p>
-          {(recetaInicial?.fotos.length ?? 0) > 0 && (
-            <p className="text-xs text-muted-foreground">
-              La receta ya tiene {recetaInicial!.fotos.length} foto(s). Las nuevas se agregan.
-            </p>
-          )}
           {fotosNuevas.length > 0 && (
             <ul className="space-y-1">
               {fotosNuevas.map((foto) => (
@@ -453,17 +453,11 @@ export function FormularioReceta({ recetaInicial, onTerminado }: PropsFormulario
           />
         </div>
 
-        {/* Documentos adjuntos (PDF/Word) */}
+        {/* Documentos nuevos (PDF/Word) */}
         <div className="space-y-2">
           <p className="flex items-center gap-1.5 text-sm font-medium">
-            <FileText className="h-4 w-4" /> Documentos adjuntos
+            <FileText className="h-4 w-4" /> Agregar documentos
           </p>
-          {(recetaInicial?.documentos.length ?? 0) > 0 && (
-            <p className="text-xs text-muted-foreground">
-              La receta ya tiene {recetaInicial!.documentos.length} documento(s). Los nuevos se
-              agregan.
-            </p>
-          )}
           {documentosNuevos.length > 0 && (
             <ul className="space-y-1">
               {documentosNuevos.map((doc) => (

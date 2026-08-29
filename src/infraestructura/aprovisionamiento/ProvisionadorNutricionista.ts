@@ -2,9 +2,18 @@ import type { IProvisionadorNutricionista } from "@/dominio/servicios/IProvision
 import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
 import type { IPlantillaEmailRepositorio } from "@/dominio/repositorios/IPlantillaEmailRepositorio";
 import type { IAxiomaRepositorio } from "@/dominio/repositorios/IAxiomaRepositorio";
+import type { IPlantillaWhatsappRepositorio } from "@/dominio/repositorios/IPlantillaWhatsappRepositorio";
+import type { IConfiguracionRecordatoriosRepositorio } from "@/dominio/repositorios/IConfiguracionRecordatoriosRepositorio";
 import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
 import { PlantillaEmail } from "@/dominio/entidades/PlantillaEmail";
 import { AxiomaNutricional } from "@/dominio/entidades/AxiomaNutricional";
+import {
+  PlantillaWhatsapp,
+  CUERPO_RECORDATORIO_POR_DEFECTO,
+  NOMBRE_PLANTILLA_POR_DEFECTO,
+  VARIABLES_RECORDATORIO,
+} from "@/dominio/entidades/PlantillaWhatsapp";
+import { ConfiguracionRecordatorios } from "@/dominio/entidades/ConfiguracionRecordatorios";
 import { ejecutarEnNutricionista } from "@/infraestructura/multitenancy/contextoTenant";
 
 /** Plantillas de sistema que arranca cada nutricionista nuevo. */
@@ -51,6 +60,8 @@ export class ProvisionadorNutricionista implements IProvisionadorNutricionista {
     private readonly configuracion: IConfiguracionRepositorio,
     private readonly plantillas: IPlantillaEmailRepositorio,
     private readonly axiomas: IAxiomaRepositorio,
+    private readonly plantillasWhatsapp: IPlantillaWhatsappRepositorio,
+    private readonly configRecordatorios: IConfiguracionRecordatoriosRepositorio,
   ) {}
 
   async aprovisionar(nutricionistaId: string): Promise<void> {
@@ -64,6 +75,28 @@ export class ProvisionadorNutricionista implements IProvisionadorNutricionista {
       for (const datos of AXIOMAS_EJEMPLO) {
         await this.axiomas.crear(AxiomaNutricional.crear(datos, crypto.randomUUID()));
       }
+
+      // Recordatorios: la política por defecto y UNA plantilla de WhatsApp
+      // marcada como predeterminada. Sin predeterminada el envío automático no
+      // manda nada, y eso se descubre el día en que los avisos no salieron.
+      // La plantilla arranca sin `claveMeta` porque aprobarla en Meta es un
+      // trámite del profesional: sirve igual para el enlace wa.me y para la
+      // vista previa, y la pantalla dice qué falta para que salga sola.
+      await this.configRecordatorios.guardar(ConfiguracionRecordatorios.porDefecto());
+      await this.plantillasWhatsapp.crear(
+        PlantillaWhatsapp.crear(
+          {
+            nombre: NOMBRE_PLANTILLA_POR_DEFECTO,
+            cuerpo: CUERPO_RECORDATORIO_POR_DEFECTO,
+            claveMeta: null,
+            idiomaMeta: "es_AR",
+            variablesMeta: [...VARIABLES_RECORDATORIO],
+            predeterminada: true,
+            activa: true,
+          },
+          crypto.randomUUID(),
+        ),
+      );
     });
   }
 }

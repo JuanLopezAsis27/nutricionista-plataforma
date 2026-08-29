@@ -2,46 +2,24 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
 /**
- * Encapsula las llamadas tRPC del recordatorio por WhatsApp.
+ * Encapsula las llamadas tRPC del CHAT de WhatsApp con un paciente.
  *
- * Invalida turnos porque el estado del recordatorio viaja embebido en el DTO
- * de turno (es lo que pinta el color del botón en la grilla).
+ * Los recordatorios de turno tienen su propio hook (`useRecordatorios`): son
+ * otra tarea, con otra pantalla y otro ciclo de vida.
  */
 export function useWhatsapp() {
-  const utils = trpc.useUtils();
-  const invalidar = () => {
-    utils.turnos.invalidate();
-  };
+  const invalidar = useInvalidar();
 
-  const preparar = trpc.whatsapp.prepararRecordatorio.useMutation({
+  const enviarMensaje = trpc.whatsapp.enviarMensaje.useMutation({
     onSuccess: () => invalidar(),
     onError: (error) => toast.error(error.message),
   });
 
-  const enviarMensaje = trpc.whatsapp.enviarMensaje.useMutation({
-    onSuccess: () => utils.whatsapp.hiloDe.invalidate(),
-    onError: (error) => toast.error(error.message),
-  });
-
-  const confirmar = trpc.whatsapp.confirmarRecordatorio.useMutation({
-    onSuccess: (recordatorio) => {
-      toast.success(
-        recordatorio.estado === "CONFIRMADO"
-          ? "Recordatorio marcado como enviado."
-          : "Recordatorio descartado.",
-      );
-      invalidar();
-    },
-    onError: (error) => toast.error(error.message),
-  });
-
   return {
-    vistaPrevia: trpc.whatsapp.vistaPreviaRecordatorio.useQuery,
     hiloDe: trpc.whatsapp.hiloDe.useQuery,
-    preparar,
-    confirmar,
     enviarMensaje,
   };
 }

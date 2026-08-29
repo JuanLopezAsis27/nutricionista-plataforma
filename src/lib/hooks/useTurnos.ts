@@ -2,6 +2,7 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
 /**
  * Encapsula todas las llamadas tRPC de turnos.
@@ -10,10 +11,7 @@ import { trpc } from "@/lib/trpc";
  */
 export function useTurnos() {
   const utils = trpc.useUtils();
-  const invalidar = () => {
-    utils.turnos.invalidate();
-    utils.pacientes.invalidate();
-  };
+  const invalidar = useInvalidar();
 
   const agendar = trpc.turnos.agendar.useMutation({
     onSuccess: () => {
@@ -34,6 +32,18 @@ export function useTurnos() {
   const cancelar = trpc.turnos.cancelar.useMutation({
     onSuccess: () => {
       toast.success("Turno cancelado.");
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  /**
+   * Borrado definitivo, distinto de cancelar: saca el turno de la agenda para
+   * siempre. Solo el dominio decide si corresponde (cancelado y sin cobro).
+   */
+  const eliminar = trpc.turnos.eliminar.useMutation({
+    onSuccess: () => {
+      toast.success("Turno borrado de la agenda.");
       invalidar();
     },
     onError: (error) => toast.error(error.message),
@@ -62,6 +72,7 @@ export function useTurnos() {
     agendar,
     actualizarEstado,
     cancelar,
+    eliminar,
     reprogramar,
     registrarCobro,
   };

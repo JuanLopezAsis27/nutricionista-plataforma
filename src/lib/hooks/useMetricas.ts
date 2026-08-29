@@ -2,15 +2,12 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
 /** Encapsula las llamadas tRPC de las métricas de dispositivo (wearables). */
 export function useMetricas() {
   const utils = trpc.useUtils();
-  const invalidar = () => {
-    utils.metricas.invalidate();
-    // El opt-in por día cambia la adherencia del tracking.
-    utils.tracking.invalidate();
-  };
+  const invalidar = useInvalidar();
 
   const importar = trpc.metricas.importar.useMutation({
     onSuccess: (r) => {

@@ -10,10 +10,15 @@ si la API oficial no está conectada, todo sigue funcionando por el enlace.
 | "¿Se envió?" | lo declara el profesional (ámbar → verde) | lo confirma el webhook de entrega |
 | Mensajes del paciente | no llegan a la app | aparecen en la ficha, pestaña WhatsApp |
 
+> Los recordatorios de turno —a quién, cuándo, con qué texto y por qué medios—
+> están documentados aparte, en [RECORDATORIOS.md](RECORDATORIOS.md). Acá va
+> solo lo que hace falta para que WhatsApp funcione como canal.
+
 ## Fase A: no hay nada que configurar
 
 El botón de recordatorio aparece en cada turno con el paciente que tenga teléfono
-cargado. El texto se edita en Configuración → WhatsApp.
+cargado. El texto sale de las plantillas de Dashboard → Recordatorios →
+Plantillas; el prefijo de país, de Configuración → WhatsApp.
 
 El teléfono se normaliza a E.164 antes de armar el enlace. **En Argentina los
 celulares necesitan el `9` después del `54` y no llevan el `15`**: sin eso,
@@ -40,7 +45,7 @@ que esto falla. `011 15 5555-4444` se convierte en `5491155554444`.
 3. Crear un **System User** con permiso sobre la cuenta de WhatsApp y generar un
    **access token permanente** (los tokens temporales duran 24 h).
 4. Copiar el **app secret** de la app (Configuración → Básica).
-5. En la app: **Configuración → WhatsApp → Conexión con la API oficial**, cargar
+5. En la app: **Integraciones → WhatsApp**, cargar
    phone number id, access token, app secret y un verify token inventado por
    vos. Los secretos se guardan cifrados (AES-256-GCM con `TOKENS_SECRET`) y no
    vuelven nunca al navegador.
@@ -84,4 +89,26 @@ Es el único endpoint de la app que recibe datos sin sesión.
 | Meta no valida el webhook (GET) | el verify token guardado no coincide con el que pusiste en Meta |
 | Entran webhooks pero no pasa nada | falta el app secret → la firma se rechaza (401) |
 | Llegan los mensajes de algunos pacientes y de otros no | el teléfono del paciente está mal cargado; se compara el E.164 normalizado |
-| "WhatsApp rechazó el envío" fuera de las 24 h | ventana cerrada: hace falta una plantilla aprobada |
+| "WhatsApp rechazó el envío" fuera de las 24 h | ventana cerrada: hace falta una plantilla aprobada (ver abajo) |
+| El envío automático no manda nada | falta la plantilla predeterminada, o no tiene cargado su nombre de Meta |
+
+## Plantillas aprobadas: lo que la ventana de 24 h obliga
+
+Un recordatorio de turno casi siempre se manda cuando el paciente no escribió
+en las últimas 24 h, y ahí Meta solo acepta **plantillas aprobadas**. El flujo
+completo es:
+
+1. Dar de alta la plantilla en Meta Business (Cuenta de WhatsApp → Plantillas de
+   mensaje), con el cuerpo en castellano y sus parámetros `{{1}}`, `{{2}}`…
+2. Esperar la aprobación (suele tardar minutos, a veces horas).
+3. En la app: **Recordatorios → Plantillas**, cargar el mismo texto y anotar el
+   **nombre en Meta**, el **idioma** y el **orden de los parámetros**.
+
+El orden importa y no hay forma de que la app lo adivine: Meta numera los
+parámetros en vez de nombrarlos, así que si el orden no coincide con el de la
+plantilla aprobada, al paciente le llega la fecha donde va el nombre. La app
+manda `parameters` en el orden exacto que se haya guardado.
+
+Sin nombre de Meta la plantilla sigue sirviendo (vista previa y enlace `wa.me`),
+pero el envío automático por API no va a salir. La pantalla lo dice antes de
+que Meta lo rechace.

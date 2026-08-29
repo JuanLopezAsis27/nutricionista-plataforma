@@ -3,17 +3,18 @@ import type { Instrumentation } from "next";
 /**
  * Se ejecuta una vez al arrancar el servidor. En el runtime Node engancha los
  * errores de proceso no capturados (promesas rechazadas y excepciones sueltas)
- * al monitor. No se llama `process.exit`: se deja que Next gestione el ciclo.
+ * al monitor.
+ *
+ * El enganche vive en `./instrumentacionNodo` y entra por `import()` dinámico:
+ * este archivo lo compila el bundler para los DOS runtimes, y `process.on` no
+ * existe en Edge. El `return` temprano lo hacía inalcanzable en ejecución, pero
+ * el análisis del bundler es estático —veía la llamada igual— y cada build
+ * terminaba con dos warnings de "Node.js API used in the Edge Runtime".
  */
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
-  const { monitorErrores } = await import("@/infraestructura/monitoreo/monitor");
-  process.on("unhandledRejection", (razon) => {
-    monitorErrores.capturar(razon, { origen: "unhandledRejection" });
-  });
-  process.on("uncaughtException", (error) => {
-    monitorErrores.capturar(error, { origen: "uncaughtException" });
-  });
+  const { engancharErroresDeProceso } = await import("./instrumentacionNodo");
+  engancharErroresDeProceso();
 }
 
 /**

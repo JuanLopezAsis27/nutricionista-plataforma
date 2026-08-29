@@ -5,8 +5,7 @@ import type { ActualizarEstadoTurno } from "@/dominio/casos-de-uso/turnos/Actual
 import type { CancelarTurno } from "@/dominio/casos-de-uso/turnos/CancelarTurno";
 import type { ReprogramarTurno } from "@/dominio/casos-de-uso/turnos/ReprogramarTurno";
 import type { RegistrarCobroTurno } from "@/dominio/casos-de-uso/turnos/RegistrarCobroTurno";
-import type { ObtenerRecordatoriosDeTurnos } from "@/dominio/casos-de-uso/whatsapp/ObtenerRecordatoriosDeTurnos";
-import type { RecordatorioWhatsapp } from "@/dominio/entidades/RecordatorioWhatsapp";
+import type { EliminarTurno } from "@/dominio/casos-de-uso/turnos/EliminarTurno";
 import type { ISincronizadorCalendario } from "@/dominio/servicios/ISincronizadorCalendario";
 import type { Turno } from "@/dominio/entidades/Turno";
 import type {
@@ -17,11 +16,14 @@ import type {
   RegistrarCobroTurnoDto,
   TurnoSalidaDto,
 } from "../dtos/turno.dto";
-import { ServicioWhatsapp } from "./ServicioWhatsapp";
 
 /**
  * Servicio de aplicación de Turnos.
  * Orquesta los casos de uso y devuelve DTOs de salida.
+ *
+ * El estado del recordatorio por WhatsApp ya NO viaja acá. Existía para pintar
+ * el botón de la grilla, que se fue a Recordatorios: seguir adjuntándolo
+ * costaba una consulta por cada listado de turnos para un dato que nadie lee.
  */
 export class ServicioTurno {
   constructor(
@@ -32,8 +34,8 @@ export class ServicioTurno {
     private readonly cancelarUC: CancelarTurno,
     private readonly reprogramarUC: ReprogramarTurno,
     private readonly registrarCobroUC: RegistrarCobroTurno,
+    private readonly eliminarUC: EliminarTurno,
     private readonly sincronizador: ISincronizadorCalendario,
-    private readonly recordatoriosUC: ObtenerRecordatoriosDeTurnos,
   ) {}
 
   async agendarTurno(datos: AgendarTurnoDto): Promise<TurnoSalidaDto> {
@@ -43,25 +45,26 @@ export class ServicioTurno {
   }
 
   async obtenerTurnos(datos: ListarTurnosDto): Promise<TurnoSalidaDto[]> {
-    return this.conRecordatorios(await this.obtenerTodosUC.ejecutar(datos));
+    return (await this.obtenerTodosUC.ejecutar(datos)).map(
+      ServicioTurno.aSalida,
+    );
   }
 
-  async obtenerTurnosPorPaciente(pacienteId: string): Promise<TurnoSalidaDto[]> {
-    return this.conRecordatorios(await this.obtenerPorPacienteUC.ejecutar(pacienteId));
+  async obtenerTurnosPorPaciente(
+    pacienteId: string,
+  ): Promise<TurnoSalidaDto[]> {
+    return (await this.obtenerPorPacienteUC.ejecutar(pacienteId)).map(
+      ServicioTurno.aSalida,
+    );
   }
 
-  /**
-   * Adjunta a cada turno su último recordatorio por WhatsApp. El read model lo
-   * arma el servidor (como ya pasa con los resúmenes de conversación) para que
-   * la grilla no tenga que pedir el estado en una segunda consulta.
-   */
-  private async conRecordatorios(turnos: Turno[]): Promise<TurnoSalidaDto[]> {
-    const recordatorios = await this.recordatoriosUC.ejecutar(turnos.map((t) => t.id));
-    return turnos.map((turno) => ServicioTurno.aSalida(turno, recordatorios.get(turno.id)));
-  }
-
-  async actualizarEstadoTurno(datos: ActualizarEstadoTurnoDto): Promise<TurnoSalidaDto> {
-    const turno = await this.actualizarEstadoUC.ejecutar(datos.id, datos.estado);
+  async actualizarEstadoTurno(
+    datos: ActualizarEstadoTurnoDto,
+  ): Promise<TurnoSalidaDto> {
+    const turno = await this.actualizarEstadoUC.ejecutar(
+      datos.id,
+      datos.estado,
+    );
     return ServicioTurno.aSalida(turno);
   }
 
@@ -77,16 +80,28 @@ export class ServicioTurno {
     return ServicioTurno.aSalida(turno);
   }
 
-  async registrarCobroTurno(datos: RegistrarCobroTurnoDto): Promise<TurnoSalidaDto> {
-    const turno = await this.registrarCobroUC.ejecutar(datos.id, datos.precio, datos.pagado);
+  /**
+   * Borra un turno cancelado de la agenda. El sincronizador de calendario ya
+   * lo maneja el caso de uso: acá no se repite, para que borrar y cancelar no
+   * puedan divergir en qué le pasa al evento externo.
+   */
+  async eliminarTurno(id: string): Promise<void> {
+    await this.eliminarUC.ejecutar(id);
+  }
+
+  async registrarCobroTurno(
+    datos: RegistrarCobroTurnoDto,
+  ): Promise<TurnoSalidaDto> {
+    const turno = await this.registrarCobroUC.ejecutar(
+      datos.id,
+      datos.precio,
+      datos.pagado,
+    );
     return ServicioTurno.aSalida(turno);
   }
 
-  private static aSalida(turno: Turno, recordatorio?: RecordatorioWhatsapp): TurnoSalidaDto {
-    return {
-      ...turno.aPrimitivos(),
-      recordatorioWhatsapp: recordatorio ? ServicioWhatsapp.aSalida(recordatorio) : null,
-    };
+  private static aSalida(turno: Turno): TurnoSalidaDto {
+    return turno.aPrimitivos();
   }
 
   /** Datos mínimos del turno para el sincronizador de calendario. */

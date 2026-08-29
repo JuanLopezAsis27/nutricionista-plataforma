@@ -33,13 +33,17 @@ export class RegistrarEstadoWhatsapp {
     return aplicados;
   }
 
-  private async aplicarAMensaje(informe: EstadoEntregaWhatsapp): Promise<boolean> {
+  private async aplicarAMensaje(
+    informe: EstadoEntregaWhatsapp,
+  ): Promise<boolean> {
     const mensaje = await this.mensajes.obtenerPorIdExterno(informe.idExterno);
     if (!mensaje) return false;
 
     const actualizado =
       informe.estado === "FALLIDO"
-        ? mensaje.registrarFallo(informe.error ?? "El proveedor rechazó el mensaje.")
+        ? mensaje.registrarFallo(
+            informe.error ?? "El proveedor rechazó el mensaje.",
+          )
         : mensaje.registrarEstado(informe.estado);
 
     // `registrarEstado` devuelve la misma instancia si el estado no avanza.
@@ -48,14 +52,30 @@ export class RegistrarEstadoWhatsapp {
     return true;
   }
 
-  private async aplicarARecordatorio(informe: EstadoEntregaWhatsapp): Promise<boolean> {
-    const recordatorio = await this.recordatorios.obtenerPorIdExterno(informe.idExterno);
-    if (!recordatorio || !recordatorio.pendiente) return false;
+  private async aplicarARecordatorio(
+    informe: EstadoEntregaWhatsapp,
+  ): Promise<boolean> {
+    const recordatorio = await this.recordatorios.obtenerPorIdExterno(
+      informe.idExterno,
+    );
+    if (!recordatorio) return false;
 
-    // Que Meta lo haya aceptado ya alcanza: el recordatorio salió.
-    const resuelto =
-      informe.estado === "FALLIDO" ? recordatorio.descartar() : recordatorio.confirmar();
-    await this.recordatorios.actualizar(resuelto);
+    // El recordatorio comparte la escala de entrega con el mensaje: ENVIADO →
+    // ENTREGADO → LEIDO. Antes se aplanaba todo a "confirmado", y el
+    // profesional no podía distinguir un aviso que Meta aceptó de uno que el
+    // paciente efectivamente abrió.
+    if (informe.estado === "PENDIENTE") return false;
+
+    const actualizado =
+      informe.estado === "FALLIDO"
+        ? recordatorio.registrarFallo(
+            informe.error ?? "El proveedor rechazó el mensaje.",
+          )
+        : recordatorio.registrarEstado(informe.estado);
+
+    // `registrarEstado` devuelve la misma instancia si el estado no avanza.
+    if (actualizado === recordatorio) return false;
+    await this.recordatorios.actualizar(actualizado);
     return true;
   }
 }

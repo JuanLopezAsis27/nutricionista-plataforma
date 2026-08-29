@@ -1,6 +1,7 @@
 import type {
   IProveedorWhatsapp,
   MensajeWhatsapp,
+  PlantillaWhatsappEnvio,
   ResultadoEnvioWhatsapp,
 } from "@/dominio/servicios/IProveedorWhatsapp";
 
@@ -32,6 +33,42 @@ export class ProveedorWhatsappCloudApi implements IProveedorWhatsapp {
   }
 
   async preparar(mensaje: MensajeWhatsapp): Promise<ResultadoEnvioWhatsapp> {
+    return this.enviar({
+      to: mensaje.telefono,
+      type: "text",
+      text: { preview_url: false, body: mensaje.texto },
+    });
+  }
+
+  /**
+   * Envío por plantilla aprobada, que es lo único que Meta acepta fuera de la
+   * ventana de 24 h. Los parámetros van en un componente `body` y POR
+   * POSICIÓN: la API no los nombra, los numera ({{1}}, {{2}}…), así que el
+   * orden del array ES el mapeo. Mandarlos en otro orden no falla: le llega al
+   * paciente la fecha donde iba el nombre.
+   */
+  async enviarPlantilla(envio: PlantillaWhatsappEnvio): Promise<ResultadoEnvioWhatsapp> {
+    return this.enviar({
+      to: envio.telefono,
+      type: "template",
+      template: {
+        name: envio.nombrePlantilla,
+        language: { code: envio.idioma },
+        ...(envio.parametros.length > 0
+          ? {
+              components: [
+                {
+                  type: "body",
+                  parameters: envio.parametros.map((texto) => ({ type: "text", text: texto })),
+                },
+              ],
+            }
+          : {}),
+      },
+    });
+  }
+
+  private async enviar(cuerpo: Record<string, unknown>): Promise<ResultadoEnvioWhatsapp> {
     const respuesta = await fetch(
       `https://graph.facebook.com/${VERSION_API}/${this.phoneNumberId}/messages`,
       {
@@ -43,9 +80,7 @@ export class ProveedorWhatsappCloudApi implements IProveedorWhatsapp {
         body: JSON.stringify({
           messaging_product: "whatsapp",
           recipient_type: "individual",
-          to: mensaje.telefono,
-          type: "text",
-          text: { preview_url: false, body: mensaje.texto },
+          ...cuerpo,
         }),
         signal: AbortSignal.timeout(TIEMPO_LIMITE_MS),
       },

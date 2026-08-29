@@ -19,6 +19,13 @@ const config: NextConfig = {
       { source: "/dashboard/dietas", destination: "/dashboard/planes", permanent: true },
       { source: "/dashboard/dietas/:id", destination: "/dashboard/planes", permanent: true },
       { source: "/mi-dieta", destination: "/mi-plan", permanent: true },
+      // Secretaría se fusionó con Recordatorios: era media tarea en otra
+      // pantalla, con su propio botón de envío y su propio texto.
+      {
+        source: "/dashboard/plantillas",
+        destination: "/dashboard/recordatorios",
+        permanent: true,
+      },
     ];
   },
 };

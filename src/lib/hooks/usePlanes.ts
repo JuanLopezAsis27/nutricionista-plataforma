@@ -2,14 +2,12 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
 /** Encapsula las llamadas tRPC de planes nutricionales. */
 export function usePlanes() {
   const utils = trpc.useUtils();
-  const invalidar = () => {
-    utils.planes.invalidate();
-    utils.pacientes.invalidate();
-  };
+  const invalidar = useInvalidar();
 
   const crear = trpc.planes.crear.useMutation({
     onSuccess: () => {

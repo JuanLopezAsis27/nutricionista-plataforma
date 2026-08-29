@@ -286,7 +286,7 @@ Consolas útiles en dev: MinIO `:9001`, Mailpit `:8025`.
 | `npm run cap:sync` / `cap:open:android` | Shell mobile (Capacitor) |
 
 Documentación adicional en [`docs/`](docs/): `DESPLIEGUE.md`, `MOBILE.md`,
-`WEARABLES.md`, `nginx.conf.ejemplo`.
+`WEARABLES.md`, `WHATSAPP.md`, `RECORDATORIOS.md`, `nginx.conf.ejemplo`.
 
 ---
 
@@ -328,7 +328,7 @@ src/
   lib/               # cliente tRPC + hooks + formato (frontend) · autenticación (backend)
   trabajos/          # worker de pg-boss (crons/jobs)
 prisma/              # schema + 25 migraciones + seed
-docs/                # despliegue, mobile, wearables
+docs/                # despliegue, mobile, wearables, whatsapp, recordatorios
 ml-servicio/         # microservicio ML (Python/FastAPI) — repo poliglota aparte
 nutricion-servicio/  # intermediario FatSecret (Go) — aparte
 android/             # proyecto Capacitor

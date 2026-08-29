@@ -84,10 +84,22 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
     return fila ? this.mapearATurno(fila) : null;
   }
 
+  async eliminar(id: string): Promise<void> {
+    await this.prisma.turno.delete({ where: { id } });
+  }
+
   async obtenerEnFecha(fecha: Date): Promise<Turno[]> {
     const filas = await this.prisma.turno.findMany({
       where: { fecha: this.soloFecha(fecha) },
       orderBy: [{ hora: "asc" }],
+    });
+    return filas.map((fila) => this.mapearATurno(fila));
+  }
+
+  async listarEntreFechas(desde: Date, hasta: Date): Promise<Turno[]> {
+    const filas = await this.prisma.turno.findMany({
+      where: { fecha: { gte: this.soloFecha(desde), lte: this.soloFecha(hasta) } },
+      orderBy: [{ fecha: "asc" }, { hora: "asc" }],
     });
     return filas.map((fila) => this.mapearATurno(fila));
   }

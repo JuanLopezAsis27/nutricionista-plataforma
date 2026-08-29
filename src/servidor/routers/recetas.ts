@@ -5,6 +5,8 @@ import {
   crearRecetaDto,
   actualizarRecetaDto,
   idRecetaDto,
+  archivoDeRecetaDto,
+  marcarFotoPrincipalDto,
   filtroRecetasDto,
   listarRecetasPaginadoDto,
   asignarRecetaDto,
@@ -47,6 +49,26 @@ export const routerRecetas = crearRouter({
     .input(actualizarRecetaDto)
     .mutation(async ({ ctx, input }) => {
       return await ctx.servicios.receta.actualizarReceta(input);
+    }),
+
+  /** Borra una foto o un documento adjunto de la receta. */
+  eliminarArchivo: nutricionistaProcedimiento
+    .input(archivoDeRecetaDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.receta.eliminarArchivoDeReceta(
+        input.recetaId,
+        input.archivoId,
+      );
+    }),
+
+  /** Elige cuál de las fotos representa la receta. */
+  marcarFotoPrincipal: nutricionistaProcedimiento
+    .input(marcarFotoPrincipalDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.receta.marcarFotoPrincipal(
+        input.recetaId,
+        input.fotoId,
+      );
     }),
 
   eliminar: nutricionistaProcedimiento

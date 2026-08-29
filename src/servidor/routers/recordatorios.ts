@@ -1,0 +1,129 @@
+import { crearRouter, nutricionistaProcedimiento } from "../trpc";
+import {
+  guardarConfiguracionRecordatoriosDto,
+  guardarPlantillaWhatsappDto,
+  actualizarPlantillaWhatsappDto,
+  idPlantillaWhatsappDto,
+  listarTurnosParaRecordarDto,
+  enviarRecordatoriosMasivosDto,
+  listarSeguimientoDto,
+  confirmarEnvioDto,
+  vistaPreviaRecordatorioDto,
+  enviarRecordatorioIndividualDto,
+} from "@/aplicacion/dtos/recordatorios.dto";
+
+/**
+ * Router de Recordatorios de turno (presentación → aplicación).
+ *
+ * Territorio exclusivo del NUTRICIONISTA: el portal del paciente no configura
+ * ni dispara recordatorios.
+ */
+export const routerRecordatorios = crearRouter({
+  // --- Configuración de medios y programación ------------------------------
+  configuracion: nutricionistaProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.recordatorios.obtenerConfiguracion();
+  }),
+
+  guardarConfiguracion: nutricionistaProcedimiento
+    .input(guardarConfiguracionRecordatoriosDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.recordatorios.guardarConfiguracion(input);
+    }),
+
+  // --- Plantillas ----------------------------------------------------------
+  listarPlantillas: nutricionistaProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.recordatorios.listarPlantillas();
+  }),
+
+  crearPlantilla: nutricionistaProcedimiento
+    .input(guardarPlantillaWhatsappDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.recordatorios.crearPlantilla(input);
+    }),
+
+  actualizarPlantilla: nutricionistaProcedimiento
+    .input(actualizarPlantillaWhatsappDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.recordatorios.actualizarPlantilla(input);
+    }),
+
+  eliminarPlantilla: nutricionistaProcedimiento
+    .input(idPlantillaWhatsappDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.recordatorios.eliminarPlantilla(input.id);
+      return { eliminada: true };
+    }),
+
+  // --- Consola de envío ----------------------------------------------------
+  turnosParaRecordar: nutricionistaProcedimiento
+    .input(listarTurnosParaRecordarDto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.recordatorios.listarTurnosParaRecordar(
+        input.dias,
+      );
+    }),
+
+  /** Texto ya armado de un turno. Es una LECTURA: no manda nada. */
+  vistaPrevia: nutricionistaProcedimiento
+    .input(vistaPreviaRecordatorioDto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.recordatorios.obtenerVistaPrevia(
+        input.turnoId,
+        input.plantillaId,
+      );
+    }),
+
+  /** Envío a un paciente con el texto retocado en el diálogo. */
+  enviarIndividual: nutricionistaProcedimiento
+    .input(enviarRecordatorioIndividualDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.recordatorios.enviarIndividual(
+        input,
+        ctx.usuario.id,
+      );
+    }),
+
+  enviarMasivo: nutricionistaProcedimiento
+    .input(enviarRecordatoriosMasivosDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.recordatorios.enviarMasivo(
+        input,
+        ctx.usuario.id,
+      );
+    }),
+
+  /**
+   * Disparo manual del barrido programado, además del cron del worker. Va con
+   * `ignorarHora`: acá la decisión de mandar ya la tomó el profesional al
+   * apretar, y hacerle esperar a la hora configurada no protegería de nada
+   * (del duplicado se ocupa el índice único, no el reloj).
+   */
+  enviarProgramados: nutricionistaProcedimiento.mutation(async ({ ctx }) => {
+    return await ctx.servicios.recordatorios.enviarProgramados(true);
+  }),
+
+  /**
+   * Recordatorios abiertos en WhatsApp que nadie confirmó todavía. Existen
+   * porque el enlace wa.me no le devuelve nada a la app: el envío lo declara
+   * el profesional, y esta es la bandeja donde lo hace.
+   */
+  pendientes: nutricionistaProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.recordatorios.listarPendientes();
+  }),
+
+  confirmarEnvio: nutricionistaProcedimiento
+    .input(confirmarEnvioDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.recordatorios.confirmarEnvio(
+        input.recordatorioId,
+        input.enviado,
+      );
+    }),
+
+  // --- Seguimiento ---------------------------------------------------------
+  seguimiento: nutricionistaProcedimiento
+    .input(listarSeguimientoDto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.recordatorios.listarSeguimiento(input.limite);
+    }),
+});

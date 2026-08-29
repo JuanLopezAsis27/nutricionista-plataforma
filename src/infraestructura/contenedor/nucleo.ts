@@ -45,6 +45,8 @@ import { PrismaRepositorioConfiguracion } from "@/infraestructura/repositorios/P
 import { PrismaRepositorioNutricionista } from "@/infraestructura/repositorios/PrismaRepositorioNutricionista";
 import { PrismaRepositorioRecordatorioWhatsapp } from "@/infraestructura/repositorios/PrismaRepositorioRecordatorioWhatsapp";
 import { PrismaRepositorioMensajeWhatsapp } from "@/infraestructura/repositorios/PrismaRepositorioMensajeWhatsapp";
+import { PrismaRepositorioPlantillaWhatsapp } from "@/infraestructura/repositorios/PrismaRepositorioPlantillaWhatsapp";
+import { PrismaRepositorioConfiguracionRecordatorios } from "@/infraestructura/repositorios/PrismaRepositorioConfiguracionRecordatorios";
 import { PrismaRepositorioAxioma } from "@/infraestructura/repositorios/PrismaRepositorioAxioma";
 import { PrismaRepositorioMetricaDispositivo } from "@/infraestructura/repositorios/PrismaRepositorioMetricaDispositivo";
 import { PrismaRepositorioAlimentoPropio } from "@/infraestructura/repositorios/PrismaRepositorioAlimentoPropio";
@@ -214,6 +216,12 @@ export const repositorioRecordatorioWhatsapp = perezoso(
 );
 export const repositorioMensajeWhatsapp = perezoso(
   () => new PrismaRepositorioMensajeWhatsapp(prisma()),
+);
+export const repositorioPlantillaWhatsapp = perezoso(
+  () => new PrismaRepositorioPlantillaWhatsapp(prisma()),
+);
+export const repositorioConfiguracionRecordatorios = perezoso(
+  () => new PrismaRepositorioConfiguracionRecordatorios(prisma()),
 );
 export const repositorioAxioma = perezoso(
   () => new PrismaRepositorioAxioma(prisma()),
@@ -389,6 +397,9 @@ export const sincronizadorCalendario = perezoso(
       new PrismaRepositorioSincronizacionTurno(prisma()),
       google,
       repositorioPaciente(),
+      // El sincronizador consulta la config para saber si el medio CALENDARIO
+      // está activo y si hay que invitar al paciente al evento.
+      repositorioConfiguracionRecordatorios(),
     );
   },
 );
@@ -426,5 +437,7 @@ export const provisionadorNutricionista = perezoso(
       repositorioConfiguracion(),
       repositorioPlantillaEmail(),
       repositorioAxioma(),
+      repositorioPlantillaWhatsapp(),
+      repositorioConfiguracionRecordatorios(),
     ),
 );

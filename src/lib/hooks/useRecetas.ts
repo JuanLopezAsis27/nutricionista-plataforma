@@ -2,11 +2,12 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
 /** Encapsula las llamadas tRPC del recetario. */
 export function useRecetas() {
   const utils = trpc.useUtils();
-  const invalidar = () => utils.recetas.invalidate();
+  const invalidar = useInvalidar();
 
   const crear = trpc.recetas.crear.useMutation({
     onSuccess: () => {
@@ -27,6 +28,22 @@ export function useRecetas() {
   const eliminar = trpc.recetas.eliminar.useMutation({
     onSuccess: () => {
       toast.success("Receta eliminada.");
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const eliminarArchivo = trpc.recetas.eliminarArchivo.useMutation({
+    onSuccess: () => {
+      toast.success("Archivo borrado.");
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const marcarFotoPrincipal = trpc.recetas.marcarFotoPrincipal.useMutation({
+    onSuccess: () => {
+      toast.success("Foto principal actualizada.");
       invalidar();
     },
     onError: (error) => toast.error(error.message),
@@ -59,6 +76,8 @@ export function useRecetas() {
     crear,
     actualizar,
     eliminar,
+    eliminarArchivo,
+    marcarFotoPrincipal,
     asignar,
     desasignar,
   };

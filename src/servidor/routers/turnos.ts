@@ -57,6 +57,17 @@ export const routerTurnos = crearRouter({
       return await ctx.servicios.turno.cancelarTurno(input.id);
     }),
 
+  /**
+   * Borra un turno cancelado. Distinto de `cancelar`, que es baja lógica: esto
+   * lo saca de la agenda para siempre y solo aplica a cancelados sin cobro.
+   */
+  eliminar: nutricionistaProcedimiento
+    .input(cancelarTurnoDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.turno.eliminarTurno(input.id);
+      return { eliminado: true };
+    }),
+
   reprogramar: nutricionistaProcedimiento
     .input(reprogramarTurnoDto)
     .mutation(async ({ ctx, input }) => {

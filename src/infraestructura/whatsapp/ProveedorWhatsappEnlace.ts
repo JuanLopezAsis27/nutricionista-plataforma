@@ -1,6 +1,7 @@
 import type {
   IProveedorWhatsapp,
   MensajeWhatsapp,
+  PlantillaWhatsappEnvio,
   ResultadoEnvioWhatsapp,
 } from "@/dominio/servicios/IProveedorWhatsapp";
 import { construirEnlaceWhatsapp } from "@/dominio/casos-de-uso/whatsapp/enlace";
@@ -21,6 +22,18 @@ export class ProveedorWhatsappEnlace implements IProveedorWhatsapp {
     return {
       modo: "ENLACE",
       enlace: construirEnlaceWhatsapp(mensaje.telefono, mensaje.texto),
+    };
+  }
+
+  /**
+   * Por enlace no hay plantillas que aprobar: la ventana de 24 h y las
+   * plantillas de Meta son restricciones de la API, y acá el mensaje lo manda
+   * una persona desde su teléfono. Se usa el texto ya renderizado.
+   */
+  async enviarPlantilla(envio: PlantillaWhatsappEnvio): Promise<ResultadoEnvioWhatsapp> {
+    return {
+      modo: "ENLACE",
+      enlace: construirEnlaceWhatsapp(envio.telefono, envio.textoEquivalente),
     };
   }
 }

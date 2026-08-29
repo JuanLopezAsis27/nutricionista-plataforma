@@ -107,7 +107,7 @@ export class ObtenerCentroDeNotificaciones {
       // Solo los correos que FALLARON son accionables (un mail que no llegó al
       // paciente). Los envíos exitosos son un registro automático (recordatorios,
       // bienvenidas): no van a la campana para no llenarla de ruido — quedan en
-      // el log de Secretaría.
+      // el historial de envíos de Recordatorios.
       if (e.error == null) continue;
       items.push({
         id: `correo:${e.id}`,
@@ -115,7 +115,7 @@ export class ObtenerCentroDeNotificaciones {
         titulo: "Falló un envío de correo",
         detalle: `${e.para}: ${e.error}`,
         fecha: e.creadoEn,
-        enlace: "/dashboard/plantillas",
+        enlace: "/dashboard/recordatorios",
         alertaId: null,
         pacienteId: e.pacienteId,
         noLeidos: null,

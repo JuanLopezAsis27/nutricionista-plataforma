@@ -7,13 +7,7 @@ import type {
   EnviarEmailDePrueba,
   ResultadoPrueba,
 } from "@/dominio/casos-de-uso/secretaria/EnviarEmailDePrueba";
-import type {
-  EnviarRecordatoriosDeTurnos,
-  ResultadoRecordatorios,
-} from "@/dominio/casos-de-uso/secretaria/EnviarRecordatoriosDeTurnos";
 import type { ListarEmailsEnviados } from "@/dominio/casos-de-uso/secretaria/ListarEmailsEnviados";
-import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
-import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
 import type { PlantillaEmail } from "@/dominio/entidades/PlantillaEmail";
 import type { EmailEnviado } from "@/dominio/entidades/EmailEnviado";
 import type {
@@ -25,8 +19,12 @@ import type {
 } from "../dtos/secretaria.dto";
 
 /**
- * Servicio de aplicación de Secretaría: plantillas de email, envío de
- * recordatorios de turnos y de emails de prueba, y auditoría de envíos.
+ * Servicio de aplicación de Secretaría: plantillas de email, envío de emails de
+ * prueba y auditoría de envíos.
+ *
+ * El envío de los recordatorios de turno NO está acá: es uno de los tres
+ * medios de una misma política y vive en `ServicioRecordatorios`. Lo que sí es
+ * de Secretaría es el TEXTO de la plantilla con la que salen.
  */
 export class ServicioSecretaria {
   constructor(
@@ -36,10 +34,7 @@ export class ServicioSecretaria {
     private readonly actualizarPlantillaUC: ActualizarPlantilla,
     private readonly eliminarPlantillaUC: EliminarPlantilla,
     private readonly enviarPruebaUC: EnviarEmailDePrueba,
-    private readonly enviarRecordatoriosUC: EnviarRecordatoriosDeTurnos,
     private readonly listarEmailsUC: ListarEmailsEnviados,
-    private readonly usuarios: IUsuarioRepositorio,
-    private readonly bus: IBusEventos,
   ) {}
 
   // --- Plantillas ----------------------------------------------------------
@@ -69,24 +64,6 @@ export class ServicioSecretaria {
 
   async enviarEmailDePrueba(datos: EnviarPruebaDto): Promise<ResultadoPrueba> {
     return this.enviarPruebaUC.ejecutar(datos.plantillaId, datos.para);
-  }
-
-  async enviarRecordatorios(): Promise<ResultadoRecordatorios> {
-    const resultado = await this.enviarRecordatoriosUC.ejecutar();
-    // Aviso de correo en tiempo real: si se envió al menos un recordatorio,
-    // se empuja a la campana de cada nutricionista (funciona también desde el
-    // worker: el bus publica por Postgres NOTIFY, que cruza procesos).
-    if (resultado.enviados > 0) {
-      const nutris = await this.usuarios.listarPorRol("NUTRICIONISTA");
-      for (const nutri of nutris) {
-        await this.bus.publicar({
-          tipo: "correo.enviado",
-          usuarioId: nutri.id,
-          datos: { enviados: resultado.enviados },
-        });
-      }
-    }
-    return resultado;
   }
 
   async listarEmailsRecientes(limite?: number): Promise<EmailEnviadoSalidaDto[]> {

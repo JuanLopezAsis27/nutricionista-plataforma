@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { TIPO_RECONEXION } from "@/dominio/servicios/IBusEventos";
+import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
 /**
  * Suscribe la sesión al flujo de eventos en tiempo real (SSE) y reacciona:
@@ -11,6 +12,7 @@ import { TIPO_RECONEXION } from "@/dominio/servicios/IBusEventos";
  */
 export function useTiempoReal() {
   const utils = trpc.useUtils();
+  const invalidarTodo = useInvalidar();
 
   trpc.tiempoReal.suscribirse.useSubscription(undefined, {
     onData: (evento) => {
@@ -21,7 +23,10 @@ export function useTiempoReal() {
           toast("Nuevo mensaje", { description: "Tenés un mensaje sin leer." });
           break;
         case "whatsapp.mensaje":
-          void utils.whatsapp.hiloDe.invalidate();
+          // No alcanza con el hilo: la respuesta del paciente también mueve el
+          // estado de sus recordatorios (RESPONDIDO, y CONFIRMADO si dijo que
+          // sí), que es lo que se mira en el seguimiento.
+          invalidarTodo();
           toast("Nuevo mensaje de WhatsApp", {
             description: "Un paciente te escribió por WhatsApp.",
           });

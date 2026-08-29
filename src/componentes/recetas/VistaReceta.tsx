@@ -57,7 +57,17 @@ export function VistaReceta({ receta }: { receta: RecetaSalidaDto }) {
 
       {receta.fotos.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {receta.fotos.map((foto) => (
+          {/* La principal primero: es la misma que se ve en el recetario, y
+              que acá apareciera en otro lugar haría dudar de cuál es. */}
+          {[...receta.fotos]
+            .sort((a, b) =>
+              a.id === receta.fotoPrincipalId
+                ? -1
+                : b.id === receta.fotoPrincipalId
+                  ? 1
+                  : 0,
+            )
+            .map((foto) => (
             <a
               key={foto.id}
               href={`/api/archivos/${foto.id}`}
@@ -72,7 +82,7 @@ export function VistaReceta({ receta }: { receta: RecetaSalidaDto }) {
                 className="h-28 w-28 rounded-lg border object-cover"
               />
             </a>
-          ))}
+            ))}
         </div>
       )}
 

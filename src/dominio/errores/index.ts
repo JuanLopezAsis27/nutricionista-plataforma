@@ -25,3 +25,4 @@ export { ErrorPlantillaNoEncontrada } from "./ErrorPlantillaNoEncontrada";
 export { ErrorConversacionNoEncontrada } from "./ErrorConversacionNoEncontrada";
 export { ErrorAxiomaNoEncontrado } from "./ErrorAxiomaNoEncontrado";
 export { ErrorRecordatorioNoEncontrado } from "./ErrorRecordatorioNoEncontrado";
+export { ErrorPlantillaWhatsappNoEncontrada } from "./ErrorPlantillaWhatsappNoEncontrada";
