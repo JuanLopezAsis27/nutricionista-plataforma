@@ -1103,3 +1103,104 @@ alcance del paso 3.
 
 **Siguiente en la hoja de ruta (§5): paso 4 — sumar `.tsx` al `include` de vitest
 y los primeros tests de formularios** (hallazgo #2).
+
+---
+
+## 9. Registro de ejecución — paso 4: tests de UI
+
+**Commit:** `8d0daf6`. **Cierra el hallazgo #2.** **786 → 806 tests.**
+
+### 9.1 El hallazgo #2 se confirmó de la peor manera: había dos bugs
+
+La auditoría decía (hallazgo #2): *«La validación está duplicada en el DTO y en
+el esquema del formulario; solo una de las dos está verificada.»* Era una
+advertencia teórica. Al escribir el primer test resultó ser un bug activo, por
+duplicado:
+
+| Archivo | Validaba | El servidor exige |
+| --- | --- | --- |
+| `FormularioPaciente.tsx:65` | `min(6, "Mínimo 6 caracteres")` | 12 caracteres + no obvias |
+| `FormularioRestablecer.tsx:35` | `min(6, "al menos 6 caracteres")` | 12 caracteres + no obvias |
+| `FormularioPaciente.tsx:182` (placeholder) | `"Mínimo 6 caracteres"` | idem |
+
+La auditoría de seguridad había unificado la política en `dtos/password.ts`, un
+archivo que dice explícitamente: *«Se usa en TODOS los puntos donde alguien elige
+una… Cualquier flujo nuevo debe importarlo en vez de escribir su propio
+`z.string().min(...)`»*. Los dos formularios se quedaron con la regla vieja.
+
+**El efecto para el usuario:** escribe una contraseña de 8 caracteres, el
+formulario la da por buena, la envía, y el servidor la rechaza con un mensaje
+que contradice lo que la pantalla acababa de decirle. En `FormularioRestablecer`
+es peor, porque ahí el usuario ya perdió el acceso a su cuenta.
+
+**Es exactamente el escenario que la auditoría de seguridad cerró del lado del
+servidor** —que el flujo de recuperación no pueda degradar la política— mientras
+la UI seguía prometiendo lo contrario.
+
+`FormularioLogin.tsx:33` quedó como estaba: su `min(1)` es **correcto**. En el
+login no se valida la política, solo que el campo no esté vacío; validar
+longitud ahí filtraría información sobre la política y rechazaría contraseñas
+antiguas legítimas.
+
+### 9.2 El arreglo: que la divergencia no pueda existir
+
+No alcanzaba con cambiar el `6` por un `12`: eso deja dos copias de la regla y la
+próxima vez que cambie vuelve a pasar. Los formularios ahora **importan**
+`passwordNuevaDto`, y el placeholder se deriva de `LARGO_MINIMO_PASSWORD`:
+
+```ts
+// antes: la regla, escrita de nuevo
+password: editando ? z.string().optional() : z.string().min(6, "Mínimo 6 caracteres"),
+
+// después: la regla, importada
+password: editando ? z.string().optional() : passwordNuevaDto,
+```
+
+Es DRY aplicado donde corresponde: una regla de negocio, una definición. No
+cambia la regla de capas —los componentes ya importaban DTOs— y
+`arquitectura.test.ts` sigue verde.
+
+### 9.3 La infraestructura de tests de UI
+
+- `vitest.config.ts` incluye `*.test.tsx`. Antes el patrón era solo `*.test.ts`,
+  así que los ~280 componentes **no podían** tener tests aunque alguien los
+  escribiera: el runner ni los levantaba.
+- **Entorno `node` por defecto, `jsdom` por archivo** con
+  `// @vitest-environment jsdom`. Medido: jsdom tarda ~24 s en levantar. Ponerlo
+  global castigaría a los ~170 archivos de dominio que no lo necesitan.
+- **Sin `@vitejs/plugin-react`**: su versión actual exige Vite 8 y el proyecto
+  tiene 5. No hace falta — esbuild ya transpila el JSX con el `jsx: "react-jsx"`
+  del tsconfig. El plugin sirve para Fast Refresh, que en tests no aplica.
+
+### 9.4 Los dos niveles de test, y por qué hacen falta los dos
+
+**`coherencia-formularios.test.ts`** compara el esquema del formulario contra el
+DTO del servidor, entrada por entrada. Fija la regla direccional: **el formulario
+puede ser MÁS estricto que el servidor** (confirmar la contraseña dos veces es
+una regla legítima de UI), **nunca menos** — menos estricto es prometer algo que
+el backend va a rechazar.
+
+**`FormularioPaciente.test.tsx`** verifica el comportamiento al usarlo: que el
+error se muestre y, sobre todo, **que la mutación NO se dispare**. Un esquema
+correcto mal cableado al resolver pasaría el primer test y fallaría el segundo.
+
+**Verificado por mutación**, igual que en el paso 3: al revertir el `min(6)`
+original, 4 tests fallan. Los tests atrapan el bug que motivó escribirlos.
+
+### 9.5 Deuda que este paso deja anotada
+
+Se corrigieron los dos formularios de contraseña, pero **quedan 11 formularios
+más con esquema Zod propio** (`FormularioPlan`, `FormularioReceta`,
+`FormularioTurno`, `FormularioObjetivo`, `FormularioMaterial`,
+`FormularioObjetivoComposicion`, `SeccionDeportiva`, `SeccionSuplementos`,
+`FormularioAsignacionPlan`, `FormularioReprogramar`, `FormularioPlantilla`) que
+**no** se compararon contra su DTO. La divergencia de contraseña apareció en el
+primer par que se miró; no hay motivo para suponer que es la única.
+
+**Recomendación:** extender `coherencia-formularios.test.ts` a esos once. Es
+trabajo mecánico y de alto rendimiento — el patrón ya está escrito y cada par
+nuevo son ~15 líneas.
+
+**Siguiente en la hoja de ruta (§5): paso 5 — tests de los 57 casos de uso sin
+cubrir**, empezando por `recordatorios/` y `whatsapp/`, que son los que envían
+mensajes reales a pacientes.
