@@ -39,7 +39,7 @@ export const routerEvaluacion = crearRouter({
   obtenerHistoria: nutricionistaProcedimiento
     .input(idPacienteEvaluacionDto)
     .query(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.obtenerHistoriaClinica(
+      return await ctx.servicios.evaluacion.historiaClinica.obtener(
         input.pacienteId,
       );
     }),
@@ -47,32 +47,34 @@ export const routerEvaluacion = crearRouter({
   guardarHistoria: nutricionistaProcedimiento
     .input(guardarHistoriaClinicaDto)
     .mutation(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.guardarHistoriaClinica(input);
+      return await ctx.servicios.evaluacion.historiaClinica.guardar(input);
     }),
 
   // --- Antropometría ----------------------------------------------------------
   obtenerEvolucion: nutricionistaProcedimiento
     .input(idPacienteEvaluacionDto)
     .query(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.obtenerEvolucion(input.pacienteId);
+      return await ctx.servicios.evaluacion.antropometria.obtenerEvolucion(
+        input.pacienteId,
+      );
     }),
 
   registrarAntropometria: nutricionistaProcedimiento
     .input(registrarAntropometriaDto)
     .mutation(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.registrarAntropometria(input);
+      return await ctx.servicios.evaluacion.antropometria.registrar(input);
     }),
 
   actualizarAntropometria: nutricionistaProcedimiento
     .input(actualizarAntropometriaDto)
     .mutation(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.actualizarAntropometria(input);
+      return await ctx.servicios.evaluacion.antropometria.actualizar(input);
     }),
 
   eliminarAntropometria: nutricionistaProcedimiento
     .input(idAntropometriaDto)
     .mutation(async ({ ctx, input }) => {
-      await ctx.servicios.evaluacion.eliminarAntropometria(input.id);
+      await ctx.servicios.evaluacion.antropometria.eliminar(input.id);
       return { eliminado: true };
     }),
 
@@ -80,7 +82,7 @@ export const routerEvaluacion = crearRouter({
   obtenerComposicion: nutricionistaProcedimiento
     .input(idPacienteEvaluacionDto)
     .query(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.obtenerComposicion(
+      return await ctx.servicios.evaluacion.antropometria.obtenerComposicion(
         input.pacienteId,
       );
     }),
@@ -88,13 +90,15 @@ export const routerEvaluacion = crearRouter({
   guardarObjetivoComposicion: nutricionistaProcedimiento
     .input(guardarObjetivoComposicionDto)
     .mutation(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.guardarObjetivoComposicion(input);
+      return await ctx.servicios.evaluacion.antropometria.guardarObjetivo(
+        input,
+      );
     }),
 
   eliminarObjetivoComposicion: nutricionistaProcedimiento
     .input(idObjetivoComposicionDto)
     .mutation(async ({ ctx, input }) => {
-      await ctx.servicios.evaluacion.eliminarObjetivoComposicion(input.id);
+      await ctx.servicios.evaluacion.antropometria.eliminarObjetivo(input.id);
       return { eliminado: true };
     }),
 
@@ -102,19 +106,21 @@ export const routerEvaluacion = crearRouter({
   // Son del consultorio, no de un paciente: definen qué campos pide el
   // formulario de medición.
   obtenerPlantillas: nutricionistaProcedimiento.query(async ({ ctx }) => {
-    return await ctx.servicios.evaluacion.obtenerPlantillas();
+    return await ctx.servicios.evaluacion.antropometria.obtenerPlantillas();
   }),
 
   guardarPlantilla: nutricionistaProcedimiento
     .input(guardarPlantillaAntropometricaDto)
     .mutation(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.guardarPlantilla(input);
+      return await ctx.servicios.evaluacion.antropometria.guardarPlantilla(
+        input,
+      );
     }),
 
   eliminarPlantilla: nutricionistaProcedimiento
     .input(idPlantillaAntropometricaDto)
     .mutation(async ({ ctx, input }) => {
-      await ctx.servicios.evaluacion.eliminarPlantilla(input.id);
+      await ctx.servicios.evaluacion.antropometria.eliminarPlantilla(input.id);
       return { eliminado: true };
     }),
 
@@ -122,7 +128,7 @@ export const routerEvaluacion = crearRouter({
   // El paciente sale de la sesión, no del input: no hay forma de pedir el de
   // otro. La escritura (mediciones y objetivos) sigue siendo del profesional.
   miComposicion: protegidoProcedimiento.query(async ({ ctx }) => {
-    return await ctx.servicios.evaluacion.obtenerComposicion(
+    return await ctx.servicios.evaluacion.antropometria.obtenerComposicion(
       pacienteDeSesion(ctx.usuario),
     );
   }),
@@ -131,25 +137,31 @@ export const routerEvaluacion = crearRouter({
   obtenerAlertas: nutricionistaProcedimiento
     .input(idPacienteEvaluacionDto)
     .query(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.obtenerAlertas(input.pacienteId);
+      return await ctx.servicios.evaluacion.alertasAlimentarias.obtener(
+        input.pacienteId,
+      );
     }),
 
   registrarAlerta: nutricionistaProcedimiento
     .input(registrarAlertaAlimentariaDto)
     .mutation(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.registrarAlerta(input);
+      return await ctx.servicios.evaluacion.alertasAlimentarias.registrar(
+        input,
+      );
     }),
 
   actualizarAlerta: nutricionistaProcedimiento
     .input(actualizarAlertaAlimentariaDto)
     .mutation(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.actualizarAlerta(input);
+      return await ctx.servicios.evaluacion.alertasAlimentarias.actualizar(
+        input,
+      );
     }),
 
   eliminarAlerta: nutricionistaProcedimiento
     .input(idDto)
     .mutation(async ({ ctx, input }) => {
-      await ctx.servicios.evaluacion.eliminarAlerta(input.id);
+      await ctx.servicios.evaluacion.alertasAlimentarias.eliminar(input.id);
       return { eliminado: true };
     }),
 
@@ -157,7 +169,7 @@ export const routerEvaluacion = crearRouter({
   obtenerLaboratorios: nutricionistaProcedimiento
     .input(idPacienteEvaluacionDto)
     .query(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.obtenerLaboratorios(
+      return await ctx.servicios.evaluacion.laboratorios.obtener(
         input.pacienteId,
       );
     }),
@@ -165,19 +177,19 @@ export const routerEvaluacion = crearRouter({
   registrarLaboratorio: nutricionistaProcedimiento
     .input(registrarLaboratorioDto)
     .mutation(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.registrarLaboratorio(input);
+      return await ctx.servicios.evaluacion.laboratorios.registrar(input);
     }),
 
   actualizarLaboratorio: nutricionistaProcedimiento
     .input(actualizarLaboratorioDto)
     .mutation(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.actualizarLaboratorio(input);
+      return await ctx.servicios.evaluacion.laboratorios.actualizar(input);
     }),
 
   eliminarLaboratorio: nutricionistaProcedimiento
     .input(idDto)
     .mutation(async ({ ctx, input }) => {
-      await ctx.servicios.evaluacion.eliminarLaboratorio(input.id);
+      await ctx.servicios.evaluacion.laboratorios.eliminar(input.id);
       return { eliminado: true };
     }),
 });

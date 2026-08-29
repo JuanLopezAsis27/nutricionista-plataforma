@@ -29,6 +29,10 @@ import { ObtenerVistaPreviaRecordatorio } from "@/dominio/casos-de-uso/recordato
 import { ConfirmarRecordatorioWhatsapp } from "@/dominio/casos-de-uso/recordatorios/ConfirmarRecordatorioWhatsapp";
 import { EnviarRecordatoriosPorEmail } from "@/dominio/casos-de-uso/recordatorios/EnviarRecordatoriosPorEmail";
 import { ServicioRecordatorios } from "@/aplicacion/servicios/ServicioRecordatorios";
+import { ServicioConfiguracionRecordatorios } from "@/aplicacion/servicios/recordatorios/ServicioConfiguracionRecordatorios";
+import { ServicioPlantillasWhatsapp } from "@/aplicacion/servicios/recordatorios/ServicioPlantillasWhatsapp";
+import { ServicioEnvioRecordatorios } from "@/aplicacion/servicios/recordatorios/ServicioEnvioRecordatorios";
+import { ServicioSeguimientoRecordatorios } from "@/aplicacion/servicios/recordatorios/ServicioSeguimientoRecordatorios";
 
 /** Dependencias del módulo de recordatorios. */
 export interface DepsRecordatorios {
@@ -84,65 +88,75 @@ export function crearServicioRecordatorios(
     deps.nombreProfesional,
   );
 
+  // Cada servicio recibe SOLO lo de su area. Antes era una lista plana de 17
+  // argumentos posicionales, con cuatro colaboradores sueltos al final.
   return new ServicioRecordatorios(
-    new ObtenerConfiguracionRecordatorios(deps.configRecordatorios),
-    new GuardarConfiguracionRecordatorios(deps.configRecordatorios),
-    new ListarPlantillasWhatsapp(deps.plantillas),
-    new CrearPlantillaWhatsapp(deps.plantillas),
-    new ActualizarPlantillaWhatsapp(deps.plantillas),
-    new EliminarPlantillaWhatsapp(deps.plantillas),
-    new ListarTurnosParaRecordar(
-      deps.turnos,
-      deps.pacientes,
-      deps.configuracion,
-      deps.recordatorios,
-      deps.reloj,
-    ),
-    new EnviarRecordatoriosMasivos(
-      deps.turnos,
-      deps.pacientes,
-      deps.configuracion,
-      deps.plantillas,
-      deps.configRecordatorios,
-      deps.recordatorios,
-      enviarUno,
-      enviarEmail,
-    ),
-    new EnviarRecordatoriosProgramados(
-      deps.turnos,
-      deps.pacientes,
-      deps.configuracion,
-      deps.plantillas,
-      deps.configRecordatorios,
-      deps.recordatorios,
-      enviarUno,
-      enviarEmail,
-      deps.reloj,
-    ),
-    new ListarSeguimientoRecordatorios(
-      deps.recordatorios,
-      deps.mensajes,
-      deps.pacientes,
-      deps.turnos,
+    new ServicioConfiguracionRecordatorios(
+      new ObtenerConfiguracionRecordatorios(deps.configRecordatorios),
+      new GuardarConfiguracionRecordatorios(deps.configRecordatorios),
       deps.proveedor,
-      deps.reloj,
+      deps.cuentas,
     ),
-    new ListarRecordatoriosPendientes(
-      deps.recordatorios,
-      deps.pacientes,
-      deps.turnos,
+    new ServicioPlantillasWhatsapp(
+      new ListarPlantillasWhatsapp(deps.plantillas),
+      new CrearPlantillaWhatsapp(deps.plantillas),
+      new ActualizarPlantillaWhatsapp(deps.plantillas),
+      new EliminarPlantillaWhatsapp(deps.plantillas),
     ),
-    new ObtenerVistaPreviaRecordatorio(
-      deps.turnos,
-      deps.pacientes,
-      deps.configuracion,
-      deps.plantillas,
-      deps.proveedor,
+    new ServicioEnvioRecordatorios(
+      new ListarTurnosParaRecordar(
+        deps.turnos,
+        deps.pacientes,
+        deps.configuracion,
+        deps.recordatorios,
+        deps.reloj,
+      ),
+      new EnviarRecordatoriosMasivos(
+        deps.turnos,
+        deps.pacientes,
+        deps.configuracion,
+        deps.plantillas,
+        deps.configRecordatorios,
+        deps.recordatorios,
+        enviarUno,
+        enviarEmail,
+      ),
+      new EnviarRecordatoriosProgramados(
+        deps.turnos,
+        deps.pacientes,
+        deps.configuracion,
+        deps.plantillas,
+        deps.configRecordatorios,
+        deps.recordatorios,
+        enviarUno,
+        enviarEmail,
+        deps.reloj,
+      ),
+      new ObtenerVistaPreviaRecordatorio(
+        deps.turnos,
+        deps.pacientes,
+        deps.configuracion,
+        deps.plantillas,
+        deps.proveedor,
+      ),
+      deps.usuarios,
+      deps.bus,
     ),
-    new ConfirmarRecordatorioWhatsapp(deps.recordatorios),
-    deps.proveedor,
-    deps.cuentas,
-    deps.usuarios,
-    deps.bus,
+    new ServicioSeguimientoRecordatorios(
+      new ListarSeguimientoRecordatorios(
+        deps.recordatorios,
+        deps.mensajes,
+        deps.pacientes,
+        deps.turnos,
+        deps.proveedor,
+        deps.reloj,
+      ),
+      new ListarRecordatoriosPendientes(
+        deps.recordatorios,
+        deps.pacientes,
+        deps.turnos,
+      ),
+      new ConfirmarRecordatorioWhatsapp(deps.recordatorios),
+    ),
   );
 }

@@ -34,7 +34,7 @@ export async function registrarEnviarRecordatorios(
     nombre: COLA_RECORDATORIOS,
     // Cada hora, a los 5 minutos (hora local del proceso; ver TZ en .env).
     cron: "5 * * * *",
-    ejecutar: () => servicioRecordatorios().enviarProgramados(),
+    ejecutar: () => servicioRecordatorios().envio.enviarProgramados(),
     describir: (r) =>
       r.corrio
         ? `WhatsApp: ${resumirMedio(r.whatsapp)} · Email: ${resumirMedio(r.email)}`
