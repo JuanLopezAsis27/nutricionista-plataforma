@@ -6,7 +6,12 @@ import { useSeguimiento } from "@/lib/hooks/useSeguimiento";
 import { formatearFecha } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 import { VistaPlan } from "@/componentes/planes/VistaPlan";
 
 /** Mi plan: plan nutricional activo + suplementación vigente, con PDF. */
@@ -25,9 +30,15 @@ export default function PaginaMiPlan() {
             Tu plan nutricional vigente, armado por tu nutricionista.
           </p>
         </div>
-        {consulta.data && (
+        {/* Solo para el plan cargado en la app: el plan que subió el
+            profesional se ve —y se abre— desde el visor de VistaPlan. */}
+        {consulta.data && consulta.data.modalidad === "APP" && (
           <Button asChild variant="outline">
-            <a href={`/api/planes/${consulta.data.id}/pdf`} target="_blank" rel="noreferrer">
+            <a
+              href={`/api/planes/${consulta.data.id}/pdf`}
+              target="_blank"
+              rel="noreferrer"
+            >
               <FileDown className="h-4 w-4" />
               Descargar PDF
             </a>
@@ -41,8 +52,8 @@ export default function PaginaMiPlan() {
         <VistaPlan plan={consulta.data} />
       ) : (
         <p className="text-sm text-muted-foreground">
-          Todavía no tenés un plan asignado. Tu nutricionista lo va a cargar en tu próxima
-          consulta.
+          Todavía no tenés un plan asignado. Tu nutricionista lo va a cargar en
+          tu próxima consulta.
         </p>
       )}
 
@@ -62,10 +73,13 @@ export default function PaginaMiPlan() {
                     {[suplemento.dosis, suplemento.frecuencia]
                       .filter(Boolean)
                       .join(" · ") || "Según indicación"}
-                    {suplemento.hasta && ` · hasta ${formatearFecha(suplemento.hasta)}`}
+                    {suplemento.hasta &&
+                      ` · hasta ${formatearFecha(suplemento.hasta)}`}
                   </p>
                   {suplemento.notas && (
-                    <p className="text-xs text-muted-foreground">{suplemento.notas}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {suplemento.notas}
+                    </p>
                   )}
                 </li>
               ))}

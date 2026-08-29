@@ -21,6 +21,7 @@ export class PrismaRepositorioArchivo implements IArchivoRepositorio {
         comidaConsumidaId: dueno?.comidaConsumidaId ?? null,
         recetaId: dueno?.recetaId ?? null,
         materialId: dueno?.materialId ?? null,
+        planId: dueno?.planId ?? null,
       },
     });
     return this.mapear(fila);
@@ -43,6 +44,7 @@ export class PrismaRepositorioArchivo implements IArchivoRepositorio {
         comidaConsumidaId: dueno.comidaConsumidaId,
         recetaId: dueno.recetaId,
         materialId: dueno.materialId,
+        planId: dueno.planId,
       },
       orderBy: { creadoEn: "desc" },
     });
@@ -58,6 +60,7 @@ export class PrismaRepositorioArchivo implements IArchivoRepositorio {
         comidaConsumidaId: dueno.comidaConsumidaId ?? null,
         recetaId: dueno.recetaId ?? null,
         materialId: dueno.materialId ?? null,
+        planId: dueno.planId ?? null,
       },
     });
   }
@@ -71,6 +74,7 @@ export class PrismaRepositorioArchivo implements IArchivoRepositorio {
         comidaConsumidaId: true,
         recetaId: true,
         materialId: true,
+        planId: true,
       },
     });
     if (!fila) return null;
@@ -80,11 +84,14 @@ export class PrismaRepositorioArchivo implements IArchivoRepositorio {
       comidaConsumidaId: fila.comidaConsumidaId ?? undefined,
       recetaId: fila.recetaId ?? undefined,
       materialId: fila.materialId ?? undefined,
+      planId: fila.planId ?? undefined,
     };
   }
 
   async listarClaves(): Promise<string[]> {
-    const filas = await this.prisma.archivo.findMany({ select: { clave: true } });
+    const filas = await this.prisma.archivo.findMany({
+      select: { clave: true },
+    });
     return filas.map((fila) => fila.clave);
   }
 

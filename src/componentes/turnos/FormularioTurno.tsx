@@ -4,10 +4,18 @@ import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { CalendarOff } from "lucide-react";
 import { useTurnos } from "@/lib/hooks/useTurnos";
 import { useConfiguracion } from "@/lib/hooks/useConfiguracion";
 import type { ConfiguracionSalidaDto } from "@/aplicacion/dtos/configuracion.dto";
 import { hoyArgentinaISO, horaArgentinaHHmm } from "@/lib/formato";
+import {
+  franjasDelDia,
+  esDiaDeAtencion,
+  proximoDiaDeAtencion,
+  diasDeAtencionEnTexto,
+  ETIQUETA_MOTIVO,
+} from "@/lib/agenda";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { Textarea } from "@/componentes/ui/textarea";
@@ -41,19 +49,20 @@ type DatosFormulario = z.infer<typeof esquema>;
 interface PropsFormularioTurno {
   onTerminado: () => void;
   pacienteIdInicial?: string;
+  /**
+   * El turno es SÍ o SÍ de ese paciente (se agenda desde su ficha): se oculta
+   * el selector en vez de dejar cambiarlo, que en esa pantalla no significa
+   * nada bueno.
+   */
+  pacienteFijo?: boolean;
   /** Fecha (YYYY-MM-DD) con la que abrir el formulario (ej. la casilla del calendario). */
   fechaInicial?: string;
 }
 
-function aMinutos(hora: string): number {
-  const [h, m] = hora.split(":").map(Number);
-  return (h ?? 0) * 60 + (m ?? 0);
-}
-
 /**
- * Formulario para agendar un turno. Los horarios (paso/rango) y la duración por
- * defecto salen de la Configuración del consultorio; se espera a que cargue para
- * inicializar los valores correctos.
+ * Formulario para agendar un turno. Los horarios (paso/rango), los días de
+ * atención y la duración por defecto salen de la Configuración del consultorio;
+ * se espera a que cargue para inicializar los valores correctos.
  */
 export function FormularioTurno(props: PropsFormularioTurno) {
   const { obtener } = useConfiguracion();
@@ -67,59 +76,75 @@ export function FormularioTurno(props: PropsFormularioTurno) {
 function FormularioTurnoInterno({
   onTerminado,
   pacienteIdInicial,
+  pacienteFijo,
   fechaInicial,
   config,
 }: PropsFormularioTurno & { config: ConfiguracionSalidaDto }) {
-  const { agendar } = useTurnos();
+  const { agendar, listar } = useTurnos();
 
   const hoy = hoyArgentinaISO();
-  const fechaResuelta = fechaInicial && fechaInicial >= hoy ? fechaInicial : hoy;
-
-  const horarios = useMemo(() => {
-    const paso = config.turnoPasoMinutos;
-    const desde = aMinutos(config.atencionHoraDesde ?? "08:00");
-    const hasta = aMinutos(config.atencionHoraHasta ?? "20:00");
-    const slots: string[] = [];
-    for (let minutos = desde; minutos <= hasta; minutos += paso) {
-      const h = String(Math.floor(minutos / 60)).padStart(2, "0");
-      const m = String(minutos % 60).padStart(2, "0");
-      slots.push(`${h}:${m}`);
-    }
-    return slots;
-  }, [config.turnoPasoMinutos, config.atencionHoraDesde, config.atencionHoraHasta]);
+  const pedida = fechaInicial && fechaInicial >= hoy ? fechaInicial : hoy;
+  // Si el día pedido no se atiende, se abre directamente en el próximo que sí:
+  // el formulario nunca arranca en un día donde nada se puede agendar.
+  const fechaResuelta = proximoDiaDeAtencion(config, pedida);
 
   const duraciones = useMemo(() => {
     const base = new Set([30, 45, 60, 90, config.turnoDuracionMinutos]);
     return [...base].sort((a, b) => a - b).map(String);
   }, [config.turnoDuracionMinutos]);
 
-  /** Un horario no está disponible si ya pasó (solo aplica cuando la fecha es hoy). */
-  const horarioNoDisponible = (fecha: string, hora: string): boolean =>
-    fecha === hoy && hora <= horaArgentinaHHmm();
-
-  const primerDisponible = (fecha: string): string =>
-    horarios.find((h) => !horarioNoDisponible(fecha, h)) ?? horarios[0] ?? "09:00";
-
   const form = useForm<DatosFormulario>({
     resolver: zodResolver(esquema),
     defaultValues: {
       pacienteId: pacienteIdInicial ?? "",
       fecha: fechaResuelta,
-      hora: primerDisponible(fechaResuelta),
+      hora: "",
       duracion: String(config.turnoDuracionMinutos),
       notas: "",
     },
   });
 
-  // Si cambia la fecha y la hora elegida ya no está disponible, la reubica.
   const fechaActual = form.watch("fecha");
   const horaActual = form.watch("hora");
+  const duracionActual = Number(form.watch("duracion"));
+
+  const diaHabil = esDiaDeAtencion(config, fechaActual);
+
+  // Turnos del día elegido: son los que ocupan las franjas. Solo se piden
+  // cuando el día se atiende (si no, no hay grilla que pintar).
+  const turnosDelDia = listar(
+    { fecha: fechaActual ? new Date(fechaActual) : undefined },
+    { enabled: Boolean(fechaActual) && diaHabil },
+  );
+
+  const franjas = useMemo(
+    () =>
+      franjasDelDia({
+        config,
+        fechaISO: fechaActual,
+        duracionMinutos: duracionActual || config.turnoDuracionMinutos,
+        ocupados: turnosDelDia.data ?? [],
+        hoyISO: hoy,
+        ahoraHHmm: horaArgentinaHHmm(),
+      }),
+    [config, fechaActual, duracionActual, turnosDelDia.data, hoy],
+  );
+
+  const cargandoFranjas = diaHabil && turnosDelDia.isLoading;
+  const primeraLibre = franjas.find((f) => f.disponible)?.hora ?? "";
+
+  // Reubica la hora cuando la elegida deja de estar disponible: cambió el día,
+  // cambió la duración, o entró un turno nuevo en esa franja mientras el
+  // diálogo estaba abierto. Sin esto el formulario se envía con una hora que
+  // el servidor va a rechazar.
   useEffect(() => {
-    if (fechaActual && horarioNoDisponible(fechaActual, horaActual)) {
-      form.setValue("hora", primerDisponible(fechaActual));
+    if (cargandoFranjas) return;
+    const elegida = franjas.find((f) => f.hora === horaActual);
+    if (!elegida?.disponible) {
+      form.setValue("hora", primeraLibre);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fechaActual]);
+  }, [franjas, cargandoFranjas]);
 
   function alEnviar(datos: DatosFormulario) {
     agendar.mutate(
@@ -134,22 +159,29 @@ function FormularioTurnoInterno({
     );
   }
 
+  const sinHorarios = !cargandoFranjas && primeraLibre === "";
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(alEnviar)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="pacienteId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Paciente</FormLabel>
-              <FormControl>
-                <SelectorPaciente valor={field.value || null} onCambiar={field.onChange} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {!pacienteFijo && (
+          <FormField
+            control={form.control}
+            name="pacienteId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Paciente</FormLabel>
+                <FormControl>
+                  <SelectorPaciente
+                    valor={field.value || null}
+                    onCambiar={field.onChange}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <FormField
@@ -171,20 +203,33 @@ function FormularioTurnoInterno({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Hora</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={!diaHabil || cargandoFranjas}
+                >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue
+                        placeholder={
+                          cargandoFranjas ? "Cargando…" : "Sin horarios"
+                        }
+                      />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {horarios.map((hora) => (
+                    {franjas.map((franja) => (
                       <SelectItem
-                        key={hora}
-                        value={hora}
-                        disabled={horarioNoDisponible(fechaActual, hora)}
+                        key={franja.hora}
+                        value={franja.hora}
+                        disabled={!franja.disponible}
                       >
-                        {hora}
+                        {franja.hora}
+                        {franja.motivo && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            ({ETIQUETA_MOTIVO[franja.motivo]})
+                          </span>
+                        )}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -194,6 +239,23 @@ function FormularioTurnoInterno({
             )}
           />
         </div>
+
+        {!diaHabil && (
+          <p className="flex items-start gap-2 rounded-md border border-yellow-300/60 bg-yellow-50 p-3 text-sm text-yellow-800 dark:border-yellow-500/30 dark:bg-yellow-500/10 dark:text-yellow-200">
+            <CalendarOff className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              Ese día el consultorio no atiende. Días de atención:{" "}
+              {diasDeAtencionEnTexto(config)}. Se cambian en Configuración.
+            </span>
+          </p>
+        )}
+
+        {diaHabil && sinHorarios && (
+          <p className="text-sm text-muted-foreground">
+            No queda ninguna franja libre ese día: están todas ocupadas o fuera
+            del horario de atención.
+          </p>
+        )}
 
         <FormField
           control={form.control}
@@ -235,10 +297,18 @@ function FormularioTurnoInterno({
         />
 
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onTerminado} disabled={agendar.isPending}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onTerminado}
+            disabled={agendar.isPending}
+          >
             Cancelar
           </Button>
-          <Button type="submit" disabled={agendar.isPending}>
+          <Button
+            type="submit"
+            disabled={agendar.isPending || !diaHabil || sinHorarios}
+          >
             {agendar.isPending ? "Agendando…" : "Agendar turno"}
           </Button>
         </div>

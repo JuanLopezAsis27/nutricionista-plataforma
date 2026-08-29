@@ -35,7 +35,9 @@ export function usePlanes() {
 
   const archivar = trpc.planes.archivar.useMutation({
     onSuccess: (resultado) => {
-      toast.success(resultado.archivado ? "Plan archivado." : "Plan restaurado.");
+      toast.success(
+        resultado.archivado ? "Plan archivado." : "Plan restaurado.",
+      );
       invalidar();
     },
     onError: (error) => toast.error(error.message),
@@ -57,6 +59,38 @@ export function usePlanes() {
     onError: (error) => toast.error(error.message),
   });
 
+  const mover = trpc.planes.moverAGrupo.useMutation({
+    onSuccess: () => {
+      toast.success("Plan movido.");
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const crearGrupo = trpc.planes.crearGrupo.useMutation({
+    onSuccess: () => {
+      toast.success("Carpeta creada.");
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const actualizarGrupo = trpc.planes.actualizarGrupo.useMutation({
+    onSuccess: () => {
+      toast.success("Carpeta actualizada.");
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const eliminarGrupo = trpc.planes.eliminarGrupo.useMutation({
+    onSuccess: () => {
+      toast.success("Carpeta eliminada. Sus planes quedaron sin carpeta.");
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
   const desasignar = trpc.planes.desasignarDePaciente.useMutation({
     onSuccess: () => {
       toast.success("Plan finalizado para el paciente.");
@@ -71,6 +105,9 @@ export function usePlanes() {
     listarPaginado: trpc.planes.listarPaginado.useQuery,
     obtenerPorId: trpc.planes.obtenerPorId.useQuery,
     delPaciente: trpc.planes.obtenerDelPaciente.useQuery,
+    pacientesDelPlan: trpc.planes.obtenerPacientesDePlan.useQuery,
+    historialDelPaciente: trpc.planes.obtenerHistorialDePaciente.useQuery,
+    grupos: trpc.planes.obtenerGrupos.useQuery,
     miPlan: trpc.planes.obtenerMiPlan.useQuery,
     crear,
     actualizar,
@@ -79,5 +116,9 @@ export function usePlanes() {
     crearDesdePlantilla,
     asignar,
     desasignar,
+    mover,
+    crearGrupo,
+    actualizarGrupo,
+    eliminarGrupo,
   };
 }

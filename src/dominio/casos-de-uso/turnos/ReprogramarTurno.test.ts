@@ -3,8 +3,15 @@ import { ReprogramarTurno } from "./ReprogramarTurno";
 import { ErrorTurnoNoEncontrado } from "../../errores/ErrorTurnoNoEncontrado";
 import { ErrorTurnoConflicto } from "../../errores/ErrorTurnoConflicto";
 import { ErrorValidacion } from "../../errores/ErrorValidacion";
-import { mockTurnoRepositorio, turnoEjemplo } from "../_ayudas-test";
+import { ErrorTurnoFueraDeAtencion } from "../../errores/ErrorTurnoFueraDeAtencion";
+import { ConfiguracionConsultorio } from "../../entidades/ConfiguracionConsultorio";
+import {
+  mockTurnoRepositorio,
+  mockConfiguracionRepositorio,
+  turnoEjemplo,
+} from "../_ayudas-test";
 
+// 2026-07-01 es miércoles, día de atención en la configuración por defecto.
 const fecha = new Date("2026-07-01");
 
 describe("ReprogramarTurno", () => {
@@ -13,7 +20,10 @@ describe("ReprogramarTurno", () => {
       obtenerPorId: vi.fn(async () => turnoEjemplo()),
       obtenerEnFecha: vi.fn(async () => []),
     });
-    const casoUso = new ReprogramarTurno(repositorio);
+    const casoUso = new ReprogramarTurno(
+      repositorio,
+      mockConfiguracionRepositorio(),
+    );
 
     const turno = await casoUso.ejecutar({ id: "tur-1", fecha, hora: "11:00" });
 
@@ -27,7 +37,10 @@ describe("ReprogramarTurno", () => {
       obtenerPorId: vi.fn(async () => turno),
       obtenerEnFecha: vi.fn(async () => [turno]),
     });
-    const casoUso = new ReprogramarTurno(repositorio);
+    const casoUso = new ReprogramarTurno(
+      repositorio,
+      mockConfiguracionRepositorio(),
+    );
 
     await expect(
       casoUso.ejecutar({ id: "tur-1", fecha, hora: "12:00" }),
@@ -36,7 +49,10 @@ describe("ReprogramarTurno", () => {
 
   it("lanza ErrorTurnoNoEncontrado si el turno no existe", async () => {
     const repositorio = mockTurnoRepositorio();
-    const casoUso = new ReprogramarTurno(repositorio);
+    const casoUso = new ReprogramarTurno(
+      repositorio,
+      mockConfiguracionRepositorio(),
+    );
 
     await expect(
       casoUso.ejecutar({ id: "x", fecha, hora: "11:00" }),
@@ -49,7 +65,10 @@ describe("ReprogramarTurno", () => {
       obtenerPorId: vi.fn(async () => turnoEjemplo()),
       obtenerEnFecha: vi.fn(async () => [otro]),
     });
-    const casoUso = new ReprogramarTurno(repositorio);
+    const casoUso = new ReprogramarTurno(
+      repositorio,
+      mockConfiguracionRepositorio(),
+    );
 
     await expect(
       casoUso.ejecutar({ id: "tur-1", fecha, hora: "11:15" }),
@@ -62,10 +81,32 @@ describe("ReprogramarTurno", () => {
     const repositorio = mockTurnoRepositorio({
       obtenerPorId: vi.fn(async () => cancelado),
     });
-    const casoUso = new ReprogramarTurno(repositorio);
+    const casoUso = new ReprogramarTurno(
+      repositorio,
+      mockConfiguracionRepositorio(),
+    );
 
     await expect(
       casoUso.ejecutar({ id: "tur-1", fecha, hora: "11:00" }),
     ).rejects.toBeInstanceOf(ErrorValidacion);
+  });
+
+  it("rechaza mover el turno a un día que el consultorio no atiende", async () => {
+    const repositorio = mockTurnoRepositorio({
+      obtenerPorId: vi.fn(async () => turnoEjemplo()),
+      obtenerEnFecha: vi.fn(async () => []),
+    });
+    const config = ConfiguracionConsultorio.porDefecto().actualizar({
+      diasAtencion: [1],
+    });
+    const casoUso = new ReprogramarTurno(
+      repositorio,
+      mockConfiguracionRepositorio({ obtener: vi.fn(async () => config) }),
+    );
+
+    await expect(
+      casoUso.ejecutar({ id: "tur-1", fecha, hora: "11:00" }),
+    ).rejects.toBeInstanceOf(ErrorTurnoFueraDeAtencion);
+    expect(repositorio.actualizar).not.toHaveBeenCalled();
   });
 });

@@ -26,3 +26,7 @@ export { ErrorConversacionNoEncontrada } from "./ErrorConversacionNoEncontrada";
 export { ErrorAxiomaNoEncontrado } from "./ErrorAxiomaNoEncontrado";
 export { ErrorRecordatorioNoEncontrado } from "./ErrorRecordatorioNoEncontrado";
 export { ErrorPlantillaWhatsappNoEncontrada } from "./ErrorPlantillaWhatsappNoEncontrada";
+export { ErrorTurnoFueraDeAtencion } from "./ErrorTurnoFueraDeAtencion";
+export { ErrorPlanDuplicado } from "./ErrorPlanDuplicado";
+export { ErrorGrupoPlanNoEncontrado } from "./ErrorGrupoPlanNoEncontrado";
+export { ErrorGrupoPlanDuplicado } from "./ErrorGrupoPlanDuplicado";

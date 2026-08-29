@@ -21,6 +21,11 @@ export interface DatosAsignarPlan {
  * Verifica que existan paciente y plan (y que el plan no sea una plantilla:
  * las plantillas se clonan primero), aplica la regla "un solo plan activo
  * por paciente" desactivando la asignación previa, y crea la nueva.
+ *
+ * La anterior se cierra con la fecha de INICIO de la nueva, no con "hoy": el
+ * plan viejo rigió hasta que empezó el que lo reemplaza. Si el profesional
+ * antedata la asignación —"esto arrancó el lunes pasado"—, el historial queda
+ * sin huecos ni superposiciones.
  */
 export class AsignarPlanAPaciente {
   constructor(
@@ -45,14 +50,21 @@ export class AsignarPlanAPaciente {
     }
 
     // Regla: un solo plan activo por paciente → desactivar el anterior.
-    await this.planes.desactivarAsignacionesDe(datos.pacienteId);
+    await this.planes.desactivarAsignacionesDe(
+      datos.pacienteId,
+      datos.fechaInicio,
+    );
 
     const asignacion: AsignacionPlan = {
       id: crypto.randomUUID(),
       planId: datos.planId,
+      // Foto del nombre: el historial tiene que seguir diciendo qué se asignó
+      // aunque después el plan se renombre o se borre.
+      nombrePlan: plan.nombre,
       pacienteId: datos.pacienteId,
       fechaInicio: datos.fechaInicio,
       fechaFin: datos.fechaFin ?? null,
+      finalizadaEn: null,
       activa: true,
     };
 

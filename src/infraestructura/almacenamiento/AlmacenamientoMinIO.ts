@@ -33,7 +33,11 @@ export class AlmacenamientoMinIO implements IAlmacenamientoArchivos {
     });
   }
 
-  async subir(clave: string, contenido: Uint8Array, mimeType: string): Promise<void> {
+  async subir(
+    clave: string,
+    contenido: Uint8Array,
+    mimeType: string,
+  ): Promise<void> {
     await this.asegurarBucket();
     await this.cliente.send(
       new PutObjectCommand({
@@ -45,12 +49,24 @@ export class AlmacenamientoMinIO implements IAlmacenamientoArchivos {
     );
   }
 
-  async generarUrlLectura(clave: string, expiraEnSegundos: number): Promise<string> {
+  async generarUrlLectura(
+    clave: string,
+    expiraEnSegundos: number,
+  ): Promise<string> {
     return getSignedUrl(
       this.cliente,
       new GetObjectCommand({ Bucket: this.bucket, Key: clave }),
       { expiresIn: expiraEnSegundos },
     );
+  }
+
+  async descargar(clave: string): Promise<Uint8Array> {
+    const respuesta = await this.cliente.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: clave }),
+    );
+    // `transformToByteArray` es del SDK v3: junta el stream en memoria. Los
+    // objetos que se sirven así son PDFs de plan (25 MB tope), no video.
+    return respuesta.Body!.transformToByteArray();
   }
 
   async eliminar(clave: string): Promise<void> {
@@ -75,7 +91,9 @@ export class AlmacenamientoMinIO implements IAlmacenamientoArchivos {
       for (const objeto of respuesta.Contents ?? []) {
         if (objeto.Key) claves.push(objeto.Key);
       }
-      token = respuesta.IsTruncated ? respuesta.NextContinuationToken : undefined;
+      token = respuesta.IsTruncated
+        ? respuesta.NextContinuationToken
+        : undefined;
     } while (token);
 
     return claves;

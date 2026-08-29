@@ -12,44 +12,75 @@ import {
   Archive,
   ArchiveRestore,
   FileDown,
+  FileUp,
+  FolderInput,
 } from "lucide-react";
 import type { PlanSalidaDto } from "@/aplicacion/dtos/plan.dto";
+import type { ModalidadPlan } from "@/dominio/entidades/PlanNutricional";
 import { usePlanes } from "@/lib/hooks/usePlanes";
 import { Button } from "@/componentes/ui/button";
 import { Badge } from "@/componentes/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/componentes/ui/tabs";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/componentes/ui/tabs";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/componentes/ui/dialog";
-import { TablaDatos, type ColumnaTabla } from "@/componentes/comunes/TablaDatos";
+import {
+  TablaDatos,
+  type ColumnaTabla,
+} from "@/componentes/comunes/TablaDatos";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { FormularioPlan } from "@/componentes/planes/FormularioPlan";
 import { FormularioAsignacionPlan } from "@/componentes/planes/FormularioAsignacionPlan";
+import { NavegadorCarpetas } from "@/componentes/planes/NavegadorCarpetas";
+import { MoverPlanACarpeta } from "@/componentes/planes/MoverPlanACarpeta";
 
 export default function PaginaPlanes() {
-  const { listarPaginado, eliminar, archivar, crearDesdePlantilla } = usePlanes();
+  const { listarPaginado, eliminar, archivar, crearDesdePlantilla } =
+    usePlanes();
   const [paginaPlanes, setPaginaPlanes] = useState(1);
   const [paginaPlantillas, setPaginaPlantillas] = useState(1);
+  /** Carpeta abierta. `null` es la raíz. */
+  const [carpetaId, setCarpetaId] = useState<string | null>(null);
+  const [planMover, setPlanMover] = useState<PlanSalidaDto | null>(null);
+
+  // La raíz lista los SUELTOS (grupoId: null), no todo: si mostrara todo, los
+  // planes de las carpetas aparecerían dos veces —arriba en la carpeta y abajo
+  // en la lista— y entrar a una carpeta no cambiaría nada.
+  const filtroCarpeta = carpetaId;
+
+  function abrirCarpeta(id: string | null) {
+    setCarpetaId(id);
+    setPaginaPlanes(1);
+    setPaginaPlantillas(1);
+  }
 
   // Server-side, 10/página, y por tab (planes vs plantillas) por separado.
   const consultaPlanes = listarPaginado({
     esPlantilla: false,
     incluirArchivados: true,
+    grupoId: filtroCarpeta,
     pagina: paginaPlanes,
     porPagina: 10,
   });
   const consultaPlantillas = listarPaginado({
     esPlantilla: true,
     incluirArchivados: true,
+    grupoId: filtroCarpeta,
     pagina: paginaPlantillas,
     porPagina: 10,
   });
 
   const [formAbierto, setFormAbierto] = useState(false);
   const [comoPlantilla, setComoPlantilla] = useState(false);
+  const [modalidadNueva, setModalidadNueva] = useState<ModalidadPlan>("APP");
   const [planEditar, setPlanEditar] = useState<PlanSalidaDto | null>(null);
   const [planEliminar, setPlanEliminar] = useState<PlanSalidaDto | null>(null);
   const [planAsignar, setPlanAsignar] = useState<PlanSalidaDto | null>(null);
@@ -57,13 +88,19 @@ export default function PaginaPlanes() {
   const planes = consultaPlanes.data?.planes ?? [];
   const plantillas = consultaPlantillas.data?.planes ?? [];
 
-  function abrirNuevo(plantilla: boolean) {
+  // La modalidad se elige ANTES de abrir el formulario, no adentro: son dos
+  // altas distintas —una pide franjas, la otra un archivo— y ofrecer las dos en
+  // el mismo formulario fue justamente lo que hubo que deshacer.
+  function abrirNuevo(plantilla: boolean, modalidad: ModalidadPlan = "APP") {
     setPlanEditar(null);
     setComoPlantilla(plantilla);
+    setModalidadNueva(modalidad);
     setFormAbierto(true);
   }
 
-  function columnas(esPestanaPlantillas: boolean): ColumnaTabla<PlanSalidaDto>[] {
+  function columnas(
+    esPestanaPlantillas: boolean,
+  ): ColumnaTabla<PlanSalidaDto>[] {
     return [
       {
         clave: "nombre",
@@ -71,6 +108,7 @@ export default function PaginaPlanes() {
         render: (plan) => (
           <span className="flex items-center gap-2">
             <span className="font-medium">{plan.nombre}</span>
+            {plan.modalidad === "PDF" && <Badge variant="secondary">PDF</Badge>}
             {plan.archivado && <Badge variant="outline">Archivado</Badge>}
           </span>
         ),
@@ -78,12 +116,16 @@ export default function PaginaPlanes() {
       {
         clave: "comidas",
         encabezado: "Comidas",
-        render: (plan) => `${plan.comidas.length}`,
+        // Un plan en PDF no tiene comidas cargadas y "0" se leería como que
+        // está vacío. El guion dice que la pregunta no aplica.
+        render: (plan) =>
+          plan.modalidad === "PDF" ? "—" : `${plan.comidas.length}`,
       },
       {
         clave: "calorias",
         encabezado: "Calorías meta",
-        render: (plan) => (plan.caloriasMeta != null ? `${plan.caloriasMeta} kcal` : "—"),
+        render: (plan) =>
+          plan.caloriasMeta != null ? `${plan.caloriasMeta} kcal` : "—",
       },
       {
         clave: "acciones",
@@ -96,18 +138,27 @@ export default function PaginaPlanes() {
                 <Eye className="h-4 w-4" />
               </Link>
             </Button>
-            <Button asChild variant="ghost" size="icon" title="Descargar PDF">
-              <a href={`/api/planes/${plan.id}/pdf`} target="_blank" rel="noreferrer">
-                <FileDown className="h-4 w-4" />
-              </a>
-            </Button>
+            {plan.modalidad === "APP" && (
+              <Button asChild variant="ghost" size="icon" title="Descargar PDF">
+                <a
+                  href={`/api/planes/${plan.id}/pdf`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <FileDown className="h-4 w-4" />
+                </a>
+              </Button>
+            )}
             {esPestanaPlantillas ? (
               <Button
                 variant="ghost"
                 size="icon"
                 title="Crear plan desde esta plantilla"
                 onClick={() =>
-                  crearDesdePlantilla.mutate({ planOrigenId: plan.id, esPlantilla: false })
+                  crearDesdePlantilla.mutate({
+                    planOrigenId: plan.id,
+                    esPlantilla: false,
+                  })
                 }
               >
                 <Copy className="h-4 w-4" />
@@ -125,6 +176,14 @@ export default function PaginaPlanes() {
             <Button
               variant="ghost"
               size="icon"
+              title="Mover a otra carpeta"
+              onClick={() => setPlanMover(plan)}
+            >
+              <FolderInput className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               title="Editar"
               onClick={() => {
                 setPlanEditar(plan);
@@ -137,7 +196,9 @@ export default function PaginaPlanes() {
               variant="ghost"
               size="icon"
               title={plan.archivado ? "Restaurar" : "Archivar"}
-              onClick={() => archivar.mutate({ id: plan.id, archivado: !plan.archivado })}
+              onClick={() =>
+                archivar.mutate({ id: plan.id, archivado: !plan.archivado })
+              }
             >
               {plan.archivado ? (
                 <ArchiveRestore className="h-4 w-4" />
@@ -162,47 +223,78 @@ export default function PaginaPlanes() {
   return (
     <div className="space-y-4">
       {consultaPlanes.isError || consultaPlantillas.isError ? (
-        <p className="text-sm text-destructive">No se pudieron cargar los planes.</p>
+        <p className="text-sm text-destructive">
+          No se pudieron cargar los planes.
+        </p>
       ) : (
         <Tabs defaultValue="planes">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <TabsList>
-              <TabsTrigger value="planes">Planes ({consultaPlanes.data?.total ?? 0})</TabsTrigger>
+              <TabsTrigger value="planes">
+                Planes ({consultaPlanes.data?.total ?? 0})
+              </TabsTrigger>
               <TabsTrigger value="plantillas">
                 Plantillas ({consultaPlantillas.data?.total ?? 0})
               </TabsTrigger>
             </TabsList>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" onClick={() => abrirNuevo(true)}>
                 <Plus className="h-4 w-4" />
                 Nueva plantilla
               </Button>
-              <Button onClick={() => abrirNuevo(false)}>
+              {/* Una plantilla no puede ser un plan en PDF: el archivo es de un
+                  solo plan y clonarlo no lo copia (ver PlanNutricional.clonar). */}
+              <Button
+                variant="outline"
+                onClick={() => abrirNuevo(false, "PDF")}
+              >
+                <FileUp className="h-4 w-4" />
+                Subir plan en PDF
+              </Button>
+              <Button onClick={() => abrirNuevo(false, "APP")}>
                 <Plus className="h-4 w-4" />
                 Nuevo plan
               </Button>
             </div>
           </div>
 
-          <TabsContent value="planes">
+          <TabsContent value="planes" className="space-y-4">
+            <NavegadorCarpetas
+              carpetaId={carpetaId}
+              onAbrir={abrirCarpeta}
+              esPlantilla={false}
+            />
             <TablaDatos
               columnas={columnas(false)}
               datos={planes}
               obtenerClave={(plan) => plan.id}
               cargando={consultaPlanes.isLoading}
-              mensajeVacio="Todavía no hay planes. Creá uno desde cero o desde una plantilla."
+              mensajeVacio={
+                carpetaId
+                  ? "Esta carpeta está vacía. Creá un plan acá adentro o mové uno existente."
+                  : "No hay planes sueltos. Los que estén en una carpeta se ven al abrirla."
+              }
               pagina={paginaPlanes}
               totalPaginas={consultaPlanes.data?.paginas ?? 1}
               onCambiarPagina={setPaginaPlanes}
             />
           </TabsContent>
-          <TabsContent value="plantillas">
+          <TabsContent value="plantillas" className="space-y-4">
+            <NavegadorCarpetas
+              carpetaId={carpetaId}
+              onAbrir={abrirCarpeta}
+              esPlantilla
+            />
             <TablaDatos
               columnas={columnas(true)}
               datos={plantillas}
               obtenerClave={(plan) => plan.id}
               cargando={consultaPlantillas.isLoading}
-              mensajeVacio="Todavía no hay plantillas."
+              mensajeVacio={
+                carpetaId
+                  ? "Esta carpeta no tiene plantillas."
+                  : "No hay plantillas sueltas."
+              }
               pagina={paginaPlantillas}
               totalPaginas={consultaPlantillas.data?.paginas ?? 1}
               onCambiarPagina={setPaginaPlantillas}
@@ -210,6 +302,8 @@ export default function PaginaPlanes() {
           </TabsContent>
         </Tabs>
       )}
+
+      <MoverPlanACarpeta plan={planMover} onCerrar={() => setPlanMover(null)} />
 
       {/* Alta / edición */}
       <Dialog open={formAbierto} onOpenChange={setFormAbierto}>
@@ -220,19 +314,29 @@ export default function PaginaPlanes() {
                 ? "Editar plan"
                 : comoPlantilla
                   ? "Nueva plantilla"
-                  : "Nuevo plan"}
+                  : modalidadNueva === "PDF"
+                    ? "Subir plan en PDF"
+                    : "Nuevo plan"}
             </DialogTitle>
           </DialogHeader>
+          {/* Crear estando dentro de una carpeta guarda ahí: es lo que se
+              espera de un directorio, y evita el paso de "crearlo y después
+              moverlo". */}
           <FormularioPlan
             planInicial={planEditar}
             comoPlantilla={comoPlantilla}
+            modalidad={modalidadNueva}
+            grupoIdInicial={carpetaId}
             onTerminado={() => setFormAbierto(false)}
           />
         </DialogContent>
       </Dialog>
 
       {/* Asignación */}
-      <Dialog open={Boolean(planAsignar)} onOpenChange={(abierto) => !abierto && setPlanAsignar(null)}>
+      <Dialog
+        open={Boolean(planAsignar)}
+        onOpenChange={(abierto) => !abierto && setPlanAsignar(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Asignar «{planAsignar?.nombre}»</DialogTitle>
@@ -255,7 +359,10 @@ export default function PaginaPlanes() {
         onCancelar={() => setPlanEliminar(null)}
         onConfirmar={() => {
           if (!planEliminar) return;
-          eliminar.mutate({ id: planEliminar.id }, { onSuccess: () => setPlanEliminar(null) });
+          eliminar.mutate(
+            { id: planEliminar.id },
+            { onSuccess: () => setPlanEliminar(null) },
+          );
         }}
       />
     </div>

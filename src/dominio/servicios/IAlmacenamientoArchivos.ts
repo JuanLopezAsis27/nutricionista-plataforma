@@ -10,6 +10,17 @@ export interface IAlmacenamientoArchivos {
   /** URL firmada de solo lectura, válida por el tiempo indicado. */
   generarUrlLectura(clave: string, expiraEnSegundos: number): Promise<string>;
 
+  /**
+   * Contenido del objeto, para servirlo desde la propia app.
+   *
+   * Existe además de `generarUrlLectura` porque un visor embebido no puede
+   * usar la URL firmada: apunta a otro origen (MinIO/S3) y queda a merced de
+   * sus cabeceras y de lo que el navegador —o el WebView de la app Android—
+   * permita mostrar en un iframe. Sirviéndolo desde acá el PDF es del mismo
+   * origen que la página, y la sesión ya se validó.
+   */
+  descargar(clave: string): Promise<Uint8Array>;
+
   /** Elimina el objeto. No falla si la clave no existe. */
   eliminar(clave: string): Promise<void>;
 

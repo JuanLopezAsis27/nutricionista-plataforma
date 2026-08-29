@@ -47,27 +47,27 @@ Verificación de referencia: `tsc` estricto limpio, **362 tests** (Vitest),
 
 ## Tecnologías
 
-| Área | Stack |
-|---|---|
-| **Framework** | Next.js 16 (App Router) · React 19 · TypeScript estricto |
-| **API** | tRPC v11 (type-safe de extremo a extremo) · React Query v5 |
-| **Validación** | Zod (en el borde de cada capa) |
-| **Base de datos** | PostgreSQL + Prisma ORM 6 |
-| **Autenticación** | Auth.js v5 (Credentials + bcrypt), sesión JWT |
-| **UI** | Tailwind CSS · shadcn/ui (Radix) · lucide-react · next-themes (claro/oscuro) |
-| **Gráficos** | Recharts (paleta accesible validada) |
-| **Tiempo real** | SSE vía tRPC subscriptions + Postgres `LISTEN/NOTIFY` (sin WebSocket) |
-| **Jobs en background** | pg-boss (usa el mismo Postgres) en un proceso *worker* aparte |
-| **Almacenamiento** | MinIO (API S3-compatible; intercambiable por S3/R2) |
-| **Email** | Nodemailer/SMTP (Mailpit en desarrollo) |
-| **PDF** | @react-pdf/renderer (planes nutricionales con membrete) |
-| **IA** | Anthropic SDK (Claude: chat + visión) detrás de puertos, con degradación a stub |
-| **ML** | Microservicio Python (FastAPI) detrás de puertos HTTP, con fallback |
-| **Datos nutricionales** | FatSecret / Open Food Facts / Excel propio del nutri (exceljs) |
-| **Mobile** | Capacitor (Android/iOS) + HealthKit/Health Connect (wearables) |
-| **Testing** | Vitest (casos de uso con repos mock) |
-| **Infra dev** | Docker Compose (Postgres + MinIO + Mailpit) |
-| **Deploy** | Docker (imagen `standalone`) detrás de nginx en un VPS |
+| Área                    | Stack                                                                           |
+| ----------------------- | ------------------------------------------------------------------------------- |
+| **Framework**           | Next.js 16 (App Router) · React 19 · TypeScript estricto                        |
+| **API**                 | tRPC v11 (type-safe de extremo a extremo) · React Query v5                      |
+| **Validación**          | Zod (en el borde de cada capa)                                                  |
+| **Base de datos**       | PostgreSQL + Prisma ORM 6                                                       |
+| **Autenticación**       | Auth.js v5 (Credentials + bcrypt), sesión JWT                                   |
+| **UI**                  | Tailwind CSS · shadcn/ui (Radix) · lucide-react · next-themes (claro/oscuro)    |
+| **Gráficos**            | Recharts (paleta accesible validada)                                            |
+| **Tiempo real**         | SSE vía tRPC subscriptions + Postgres `LISTEN/NOTIFY` (sin WebSocket)           |
+| **Jobs en background**  | pg-boss (usa el mismo Postgres) en un proceso _worker_ aparte                   |
+| **Almacenamiento**      | MinIO (API S3-compatible; intercambiable por S3/R2)                             |
+| **Email**               | Nodemailer/SMTP (Mailpit en desarrollo)                                         |
+| **PDF**                 | @react-pdf/renderer (planes nutricionales con membrete)                         |
+| **IA**                  | Anthropic SDK (Claude: chat + visión) detrás de puertos, con degradación a stub |
+| **ML**                  | Microservicio Python (FastAPI) detrás de puertos HTTP, con fallback             |
+| **Datos nutricionales** | FatSecret / Open Food Facts / Excel propio del nutri (exceljs)                  |
+| **Mobile**              | Capacitor (Android/iOS) + HealthKit/Health Connect (wearables)                  |
+| **Testing**             | Vitest (casos de uso con repos mock)                                            |
+| **Infra dev**           | Docker Compose (Postgres + MinIO + Mailpit)                                     |
+| **Deploy**              | Docker (imagen `standalone`) detrás de nginx en un VPS                          |
 
 ---
 
@@ -125,7 +125,7 @@ entidad → interfaz IXRepositorio → casos de uso (clase con ejecutar())
 
 ### Multi-inquilino (aislamiento por `nutricionistaId`)
 
-El *tenant* es el **nutricionista**. Una **extensión de Prisma + `AsyncLocalStorage`**
+El _tenant_ es el **nutricionista**. Una **extensión de Prisma + `AsyncLocalStorage`**
 ([`PrismaClienteSingleton`](src/infraestructura/repositorios/PrismaClienteSingleton.ts) +
 [`contextoTenant`](src/infraestructura/multitenancy/contextoTenant.ts)) filtra y
 asigna `nutricionistaId` en todas las tablas de inquilino de forma automática y
@@ -137,18 +137,18 @@ datos entre profesionales). Cada entry point HTTP envuelve su trabajo en
 
 ## La carpeta `lib` y el límite frontend/backend
 
-**`src/lib` no es una capa de Clean Architecture.** Es el *pegamento de
-framework* de la capa de **presentación**: no contiene lógica de negocio (esa
+**`src/lib` no es una capa de Clean Architecture.** Es el _pegamento de
+framework_ de la capa de **presentación**: no contiene lógica de negocio (esa
 vive en dominio/aplicación). Se divide en dos naturalezas:
 
-| Archivo(s) en `lib` | Naturaleza | Rol |
-|---|---|---|
-| `lib/trpc.ts` | **Frontend** (`"use client"`) | Cliente tRPC tipado desde `RouterApp` |
-| `lib/hooks/*` (useRecetas, usePlanes, useDeportivo…) | **Frontend** | Hooks React Query que envuelven las llamadas tRPC |
-| `lib/formato.ts`, `lib/utilidades.ts` (`cn`), `lib/plantillaPreview.ts` | **Frontend** (helpers de UI) | Formato de fechas/moneda, clases Tailwind, preview de plantillas |
-| `lib/autenticacion/auth.ts` | **Backend** (servidor) | Configuración de Auth.js: valida credenciales con bcrypt contra el **contenedor** |
-| `lib/autenticacion/auth.config.ts` | **Backend** (Edge) | Config base que usa el middleware (`proxy.ts`) para proteger rutas |
-| `lib/autenticacion/tipos.ts` | Compartido (tipos) | Augment de tipos de sesión/JWT |
+| Archivo(s) en `lib`                                                     | Naturaleza                    | Rol                                                                               |
+| ----------------------------------------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------- |
+| `lib/trpc.ts`                                                           | **Frontend** (`"use client"`) | Cliente tRPC tipado desde `RouterApp`                                             |
+| `lib/hooks/*` (useRecetas, usePlanes, useDeportivo…)                    | **Frontend**                  | Hooks React Query que envuelven las llamadas tRPC                                 |
+| `lib/formato.ts`, `lib/utilidades.ts` (`cn`), `lib/plantillaPreview.ts` | **Frontend** (helpers de UI)  | Formato de fechas/moneda, clases Tailwind, preview de plantillas                  |
+| `lib/autenticacion/auth.ts`                                             | **Backend** (servidor)        | Configuración de Auth.js: valida credenciales con bcrypt contra el **contenedor** |
+| `lib/autenticacion/auth.config.ts`                                      | **Backend** (Edge)            | Config base que usa el middleware (`proxy.ts`) para proteger rutas                |
+| `lib/autenticacion/tipos.ts`                                            | Compartido (tipos)            | Augment de tipos de sesión/JWT                                                    |
 
 Es decir: `lib` es **mayormente frontend** (cliente tRPC + hooks + formato), con
 una excepción **backend** que es `lib/autenticacion` (la integración de Auth.js
@@ -170,12 +170,14 @@ Componente React ──usa──▶ lib/hooks/useX ──usa──▶ lib/trpc (
 ### Delimitación frontend / backend
 
 **Frontend** (corre en el navegador — componentes `"use client"`):
+
 - `src/componentes/**` (UI, formularios, tablas, gráficos)
 - páginas cliente de `src/app/**/page.tsx`
 - `src/lib/trpc.ts`, `src/lib/hooks/**`, `src/lib/formato.ts`,
   `src/lib/utilidades.ts`, `src/lib/plantillaPreview.ts`
 
 **Backend** (corre en Node/servidor):
+
 - `src/dominio/**`, `src/aplicacion/**`, `src/infraestructura/**`
 - `src/servidor/**` (routers tRPC, contexto, `trpc.ts`)
 - `src/app/api/**` (route handlers: `/api/trpc`, `/api/archivos`, `/api/planes/[id]/pdf`, `/api/monitoreo`)
@@ -192,11 +194,11 @@ Componente React ──usa──▶ lib/hooks/useX ──usa──▶ lib/trpc (
 
 ### Roles
 
-| Rol | Entra a | Puede |
-|---|---|---|
-| **SUPERADMIN** | `/admin` | Alta/baja de cuentas de nutricionista (global) |
-| **NUTRICIONISTA** | `/dashboard` | Todo su consultorio (pacientes, turnos, planes, recetas, IA…) |
-| **PACIENTE** | `/mi-inicio` | Su portal: plan, recetas, diario, progreso, objetivos, mensajes, asistente |
+| Rol               | Entra a      | Puede                                                                      |
+| ----------------- | ------------ | -------------------------------------------------------------------------- |
+| **SUPERADMIN**    | `/admin`     | Alta/baja de cuentas de nutricionista (global)                             |
+| **NUTRICIONISTA** | `/dashboard` | Todo su consultorio (pacientes, turnos, planes, recetas, IA…)              |
+| **PACIENTE**      | `/mi-inicio` | Su portal: plan, recetas, diario, progreso, objetivos, mensajes, asistente |
 
 Auth por credenciales (email + password con bcrypt), sesión JWT. El middleware
 ([`src/proxy.ts`](src/proxy.ts)) protege `/dashboard`, `/admin`, `/mi-*` y `/mis-*`.
@@ -227,18 +229,18 @@ Auth por credenciales (email + password con bcrypt), sesión JWT. El middleware
 
 ## Integraciones externas
 
-| Integración | Para qué | Degradación si no está configurada |
-|---|---|---|
-| **MinIO / S3** | Fotos, laboratorios, documentos de recetas | Requerida para archivos |
-| **SMTP (Mailpit/real)** | Bienvenida, recordatorios, recuperación de contraseña | Sin envío de mails |
-| **Claude (Anthropic)** | Asistente del paciente + análisis de foto de comida | Cae al **stub** de demostración |
-| **Microservicio ML (Python)** | Insights predictivos (abandono, adherencia, peso) | Cae al **stub** |
-| **FatSecret** | Datos nutricionales de ingredientes | Cae a **Open Food Facts** |
-| **`nutricion-servicio` (Go)** | Traduce/filtra FatSecret ES↔EN | Cae al proveedor local |
-| **Excel de alimentos** | El nutri sube su propia base de macros | Usa FatSecret/OFF |
-| **Google Calendar + Gmail** | Sync de turnos y envío desde la casilla del profesional | SMTP + sin sync |
-| **Webhook de monitoreo** | Avisos de error (Slack/Discord) | Solo logs de consola |
-| **Capacitor + HealthKit/Health Connect** | Métricas de wearables (opt-in por día) | App web normal |
+| Integración                              | Para qué                                                | Degradación si no está configurada |
+| ---------------------------------------- | ------------------------------------------------------- | ---------------------------------- |
+| **MinIO / S3**                           | Fotos, laboratorios, documentos de recetas              | Requerida para archivos            |
+| **SMTP (Mailpit/real)**                  | Bienvenida, recordatorios, recuperación de contraseña   | Sin envío de mails                 |
+| **Claude (Anthropic)**                   | Asistente del paciente + análisis de foto de comida     | Cae al **stub** de demostración    |
+| **Microservicio ML (Python)**            | Insights predictivos (abandono, adherencia, peso)       | Cae al **stub**                    |
+| **FatSecret**                            | Datos nutricionales de ingredientes                     | Cae a **Open Food Facts**          |
+| **`nutricion-servicio` (Go)**            | Traduce/filtra FatSecret ES↔EN                          | Cae al proveedor local             |
+| **Excel de alimentos**                   | El nutri sube su propia base de macros                  | Usa FatSecret/OFF                  |
+| **Google Calendar + Gmail**              | Sync de turnos y envío desde la casilla del profesional | SMTP + sin sync                    |
+| **Webhook de monitoreo**                 | Avisos de error (Slack/Discord)                         | Solo logs de consola               |
+| **Capacitor + HealthKit/Health Connect** | Métricas de wearables (opt-in por día)                  | App web normal                     |
 
 Las claves de Claude/FatSecret se cargan **por profesional** desde la app
 (cifradas por inquilino) y se resuelven por request. Config general por
@@ -275,18 +277,19 @@ Consolas útiles en dev: MinIO `:9001`, Mailpit `:8025`.
 
 ## Scripts
 
-| Script | Qué hace |
-|---|---|
-| `npm run dev` | App Next.js en desarrollo |
-| `npm run worker` | Worker de pg-boss (crons/jobs), recarga en caliente |
-| `npm run build` / `npm start` | Build de producción (`standalone`) y arranque |
-| `npm test` | Suite Vitest (casos de uso con mocks) |
-| `npm run db:seed` | Siembra inicial (superadmin, nutri demo, plantillas, axiomas) |
-| `npm run prisma:studio` | Explorador de la base |
-| `npm run cap:sync` / `cap:open:android` | Shell mobile (Capacitor) |
+| Script                                  | Qué hace                                                      |
+| --------------------------------------- | ------------------------------------------------------------- |
+| `npm run dev`                           | App Next.js en desarrollo                                     |
+| `npm run worker`                        | Worker de pg-boss (crons/jobs), recarga en caliente           |
+| `npm run build` / `npm start`           | Build de producción (`standalone`) y arranque                 |
+| `npm test`                              | Suite Vitest (casos de uso con mocks)                         |
+| `npm run db:seed`                       | Siembra inicial (superadmin, nutri demo, plantillas, axiomas) |
+| `npm run prisma:studio`                 | Explorador de la base                                         |
+| `npm run cap:sync` / `cap:open:android` | Shell mobile (Capacitor)                                      |
 
 Documentación adicional en [`docs/`](docs/): `DESPLIEGUE.md`, `MOBILE.md`,
-`WEARABLES.md`, `WHATSAPP.md`, `RECORDATORIOS.md`, `nginx.conf.ejemplo`.
+`WEARABLES.md`, `WHATSAPP.md`, `RECORDATORIOS.md`, `AGENDA.md`, `PLANES.md`,
+`nginx.conf.ejemplo`.
 
 ---
 
@@ -327,8 +330,9 @@ src/
   componentes/       # UI React (frontend)
   lib/               # cliente tRPC + hooks + formato (frontend) · autenticación (backend)
   trabajos/          # worker de pg-boss (crons/jobs)
-prisma/              # schema + 25 migraciones + seed
-docs/                # despliegue, mobile, wearables, whatsapp, recordatorios
+prisma/              # schema + 39 migraciones + seed
+docs/                # despliegue, mobile, wearables, whatsapp, recordatorios,
+                     # agenda de turnos, planes nutricionales
 ml-servicio/         # microservicio ML (Python/FastAPI) — repo poliglota aparte
 nutricion-servicio/  # intermediario FatSecret (Go) — aparte
 android/             # proyecto Capacitor

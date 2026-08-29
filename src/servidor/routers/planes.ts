@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { crearRouter, nutricionistaProcedimiento, protegidoProcedimiento } from "../trpc";
+import {
+  crearRouter,
+  nutricionistaProcedimiento,
+  protegidoProcedimiento,
+} from "../trpc";
 import { pacienteDeSesion } from "@/dominio/servicios/politicaAcceso";
 import {
   crearPlanDto,
@@ -10,6 +14,10 @@ import {
   archivarPlanDto,
   crearDesdePlantillaDto,
   asignarPlanDto,
+  grupoPlanDto,
+  actualizarGrupoPlanDto,
+  idGrupoPlanDto,
+  moverPlanDto,
 } from "@/aplicacion/dtos/plan.dto";
 
 /**
@@ -91,8 +99,59 @@ export const routerPlanes = crearRouter({
       return await ctx.servicios.plan.obtenerPlanDelPaciente(input.pacienteId);
     }),
 
+  /** Pacientes que tienen o tuvieron este plan (con sus fechas). */
+  obtenerPacientesDePlan: nutricionistaProcedimiento
+    .input(idPlanDto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.plan.obtenerPacientesDePlan(input.id);
+    }),
+
+  /** Historial completo de planes de un paciente, incluido el vigente. */
+  obtenerHistorialDePaciente: nutricionistaProcedimiento
+    .input(z.object({ pacienteId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.plan.obtenerHistorialDePlanes(
+        input.pacienteId,
+      );
+    }),
+
+  /** Mueve un plan a una carpeta. Toca SOLO la carpeta, no el contenido. */
+  moverAGrupo: nutricionistaProcedimiento
+    .input(moverPlanDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.plan.moverPlanAGrupo(input);
+      return { movido: true };
+    }),
+
+  // --- Carpetas -------------------------------------------------------------
+
+  obtenerGrupos: nutricionistaProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.plan.obtenerGrupos();
+  }),
+
+  crearGrupo: nutricionistaProcedimiento
+    .input(grupoPlanDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.plan.crearGrupo(input);
+    }),
+
+  actualizarGrupo: nutricionistaProcedimiento
+    .input(actualizarGrupoPlanDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.plan.actualizarGrupo(input);
+    }),
+
+  eliminarGrupo: nutricionistaProcedimiento
+    .input(idGrupoPlanDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.plan.eliminarGrupo(input.id);
+      return { eliminado: true };
+    }),
+
   // Portal: el paciente ve su plan activo (pacienteId de la sesión).
   obtenerMiPlan: protegidoProcedimiento.query(async ({ ctx }) => {
-    return await ctx.servicios.plan.obtenerPlanDelPaciente(pacienteDeSesion(ctx.usuario));
+    return await ctx.servicios.plan.obtenerPlanDelPaciente(
+      pacienteDeSesion(ctx.usuario),
+    );
   }),
 });
