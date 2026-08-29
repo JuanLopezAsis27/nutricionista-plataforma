@@ -9,9 +9,10 @@ historial completo) + tamaño/complejidad + criticidad de negocio. Se ejecutó l
 suite de tests (`vitest run`) y el script de lint (`npm run lint`) contra el
 árbol de trabajo actual.
 
-> **Estado de ejecución — hallazgos #1 y #15: RESUELTOS** (commits `2cd3257`,
-> `24eedf3`). Ver §7 para el registro de lo que se hizo, lo que se calibró y en
-> qué se equivocó esta auditoría al estimarlo.
+> **Estado de ejecución — hallazgos #1, #15 y #3: RESUELTOS** (commits `2cd3257`,
+> `24eedf3`, `6bd6e9b`). Ver §7 (linter y formato) y §8 (mapeadores) para el
+> registro de lo que se hizo, lo que se calibró y en qué se equivocó esta
+> auditoría al estimarlo.
 
 ---
 
@@ -996,3 +997,109 @@ repositorio.** El paso 2 (gates de CI) quedó hecho junto con este: `npm run lin
 y `npm run formato` corren en el workflow después de `prisma generate`, porque
 las reglas type-aware necesitan el cliente generado. Falta solo la parte que no
 es código: activar branch protection en `main` exigiendo esos checks.
+
+---
+
+## 8. Registro de ejecución — paso 3: tests de los mapeadores
+
+**Commit:** `6bd6e9b`. **Cierra el hallazgo #3**, el de mayor riesgo que quedaba
+abierto. **722 → 786 tests.**
+
+### 8.1 Qué se hizo
+
+**Extracción (33 archivos, 34 funciones).** Cada `private mapearX()` pasó a ser
+`export function mapearX()` en el mismo módulo. No se movió a una carpeta
+`mapeadores/` como sugería §3.2: el patrón de función libre **ya existía** en
+`PrismaRepositorioObjetivoComposicion` y `PrismaRepositorioPlantillaAntropometrica`,
+así que generalizarlo salió más barato y con menos movimiento de imports que
+inventar una estructura nueva. El objetivo —que sean testeables sin instanciar el
+repositorio ni tocar la base— se cumple igual.
+
+33 de los 34 ya eran funciones puras. El único que dependía de `this` era
+`mapearCuentaConectada` (usaba `this.cifrador`): ahora recibe el cifrador por
+parámetro, con lo que también es pura y se testea con un cifrador de mentira.
+
+**Tests (64 nuevos, en 4 archivos por área.)**
+
+### 8.2 La técnica: un valor único por campo
+
+Es lo que separa un test que sirve de uno que solo está verde. Si todos los
+campos reciben el mismo valor de prueba (`10`, `"texto"`), un cruce entre dos de
+ellos **pasa el test igual**: justo el bug que había que cazar. Con un valor
+distinto por campo, el cruce falla y el mensaje nombra cuál se movió.
+
+```ts
+const medidas = {
+  pesoKg: 1, tallaCm: 2, tallaSentadoCm: 3, diamBiacromial: 4, /* …29 en total */
+} as const;
+
+for (const [clave, esperado] of Object.entries(medidas)) {
+  expect(datos[clave], `campo ${clave}`).toBe(esperado);
+}
+```
+
+**Se verificó que los tests detectan el bug**, en vez de asumirlo. Mutación
+deliberada sobre `PrismaRepositorioAntropometria`:
+
+```diff
+- circCinturaMaxima: aNumero(fila.circCinturaMaxima),
++ circCinturaMaxima: aNumero(fila.circCinturaMinima),
+```
+
+```
+AssertionError: campo circCinturaMaxima: expected 19 to be 20
+```
+
+Falla, y dice exactamente qué campo. La mutación se revirtió.
+
+### 8.3 Lo que apareció de paso: reglas de negocio escondidas en infraestructura
+
+Los mapeadores no solo copian campos. Varios aplican **reglas** que hasta ahora
+no verificaba nadie y que no están escritas en ningún otro lado:
+
+| Mapeador | Regla que aplica | Qué pasa si se rompe |
+| --- | --- | --- |
+| `mapearReceta` | Separa fotos de documentos por `mimeType.startsWith("image/")` | La galería de la receta muestra PDFs |
+| `mapearAlertaSeguimiento` | Compone `"${nombre} ${apellido}"`, string que no existe en la base | Sale invertido en cada alerta, sin fallar nada |
+| `mapearPlan` | Colapsa receta y grupo ausentes a `null`, no a un objeto vacío | La UI pinta una tarjeta de macros vacía |
+| `mapearPlantillaAntropometrica` | Descarta campos que el dominio ya no conoce | Una plantilla vieja tumba la pantalla en vez de degradarse |
+| `mapearCuentaConectada` | No descifra el refresh token si es `null` | Google no siempre lo devuelve: lanzaría y rompería Integraciones |
+| `mapearTurno` | `precio` null se mantiene null, no pasa a 0 | Turnos sin cobro figuran como cobrados en cero |
+
+Que estas reglas vivan en la capa de infraestructura es discutible —varias son
+de dominio— pero eso es una decisión de diseño aparte. Lo urgente era que
+**ninguna estaba verificada**, y ahora todas lo están.
+
+### 8.4 Un comportamiento implícito que ahora es contrato
+
+`ConfiguracionRecordatorios.reconstruir()` **no** normaliza las listas de
+programación (`whatsappDiasAntes`, `emailDiasAntes`, `calendarioMinutosAntes`):
+`normalizarLista` —deduplicar y ordenar de mayor a menor— corre solo en
+`actualizar`. Es el patrón correcto (la invariante se impone al escribir, la
+lectura confía en lo persistido) y el test lo fija como contrato explícito.
+
+**Corolario a tener presente:** una fila escrita por fuera de la entidad —un
+seed, una migración— sale sin normalizar. No es un bug activo; es una condición
+que conviene conocer antes de escribir el próximo seed.
+
+### 8.5 Corrección de método
+
+Cuatro de los primeros tests fallaron por suposiciones **mías** sobre la forma de
+las entidades, no por bugs del código: `Laboratorio` tiene `titulo`/`notas` y no
+`tipo`/`resultados`; `MetricaDispositivo` no tiene `pesoKg` y usa `incluir`;
+`ConfiguracionRecordatorios` guarda las programaciones como `Int[]` y no como
+`Int`; `pesoKg` no está en `CAMPOS_PLANTILLA` porque el peso se mide siempre.
+
+Se corrigieron los tests contra la forma real. Vale anotarlo porque es la
+tentación opuesta la peligrosa: ante un test rojo, cambiar el código de
+producción para que pase. Acá el código estaba bien y el test estaba mal.
+
+### 8.6 Qué NO cubre esto
+
+Estos tests verifican el **mapeo**, no la **consulta**. Un `where` mal armado, un
+`include` que falta o un `orderBy` invertido siguen sin cobertura: eso pide tests
+de integración con base real, que son otro orden de costo y no estaban en el
+alcance del paso 3.
+
+**Siguiente en la hoja de ruta (§5): paso 4 — sumar `.tsx` al `include` de vitest
+y los primeros tests de formularios** (hallazgo #2).
