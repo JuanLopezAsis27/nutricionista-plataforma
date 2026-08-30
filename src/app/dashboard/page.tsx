@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Users,
@@ -62,7 +62,10 @@ export default function PaginaDashboard() {
   const turnos = listarTurnos({});
   const planes = listarPlanes(undefined);
 
-  const hoy = aFechaISO(new Date());
+  // El día se fija al montar y no en cada render: leer el reloj en el cuerpo
+  // del componente es impuro, y con SSR el servidor y el cliente pueden caer a
+  // los dos lados de la medianoche y renderizar dashboards distintos.
+  const [hoy] = useState(() => aFechaISO(new Date()));
 
   const mapaPacientes = useMemo(() => {
     const mapa = new Map<string, string>();
@@ -74,7 +77,11 @@ export default function PaginaDashboard() {
 
   const { turnosHoy, cantidadSemana } = useMemo(() => {
     const lista = turnos.data ?? [];
-    const finSemana = aFechaISO(new Date(Date.now() + 7 * 86_400_000));
+    // Derivado de `hoy`, no de un segundo reloj: si se leyeran por separado,
+    // la ventana podría abarcar 6 u 8 días al cruzar la medianoche.
+    const finSemana = aFechaISO(
+      new Date(new Date(hoy).getTime() + 7 * 86_400_000),
+    );
     const turnosHoy = lista
       .filter((t) => aFechaISO(t.fecha) === hoy)
       .sort((a, b) => a.hora.localeCompare(b.hora));

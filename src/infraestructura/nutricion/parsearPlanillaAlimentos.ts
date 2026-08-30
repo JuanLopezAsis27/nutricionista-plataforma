@@ -103,7 +103,9 @@ function valorCelda(valor: unknown): string {
   if (typeof valor === "object") {
     const o = valor as Record<string, unknown>;
     if (typeof o.text === "string") return o.text; // hyperlink/richtext
-    if ("result" in o) return String(o.result ?? ""); // fórmula
+    // Fórmula. Su `result` puede ser un objeto de error ({ error: "#REF!" }),
+    // y ahí "[object Object]" entraría como el NOMBRE de un alimento.
+    if ("result" in o) return primitivoATexto(o.result);
     if (Array.isArray(o.richText)) {
       return (o.richText as Array<{ text?: string }>)
         .map((r) => r.text ?? "")
@@ -111,7 +113,24 @@ function valorCelda(valor: unknown): string {
     }
     return "";
   }
-  return String(valor);
+  return primitivoATexto(valor);
+}
+
+/** Texto de un primitivo; vacío para todo lo demás (incluidos los objetos). */
+function primitivoATexto(valor: unknown): string {
+  switch (typeof valor) {
+    case "string":
+      return valor;
+    case "number":
+    case "bigint":
+    case "boolean":
+      return valor.toString();
+    default:
+      // Incluye el objeto de error de una fórmula rota ({ error: "#REF!" }):
+      // mejor una celda vacía, que la fila descarta, que un alimento llamado
+      // "[object Object]".
+      return "";
+  }
 }
 
 function parsearCsv(contenido: Buffer): string[][] {

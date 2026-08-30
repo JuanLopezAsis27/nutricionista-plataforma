@@ -103,11 +103,12 @@ export default tseslint.config(
         },
       ],
 
-      // Deuda anotada, no bloqueante: 3 lugares donde un objeto puede terminar
-      // renderizado como "[object Object]" (TablaDatos con columnas sin
-      // `render`, y celdas de fórmula de exceljs). Son riesgos reales pero
-      // acotados, y arreglarlos pide una decisión de diseño, no un fix mecánico.
-      "@typescript-eslint/no-base-to-string": "warn",
+      // Los tres hallazgos se saldaron: `TablaDatos` y el parser de planillas
+      // descartan los objetos antes de imprimir, en vez de dejar salir un
+      // "[object Object]" a la pantalla o —peor— al NOMBRE de un alimento
+      // importado desde una celda con fórmula rota. Pasa a bloquear para que no
+      // vuelva a colarse.
+      "@typescript-eslint/no-base-to-string": "error",
     },
   },
 
@@ -134,20 +135,45 @@ export default tseslint.config(
       // profundidad por defecto (2) la regla lo daba por vacío.
       "jsx-a11y/label-has-associated-control": ["error", { depth: 3 }],
 
-      // --- Reglas del React Compiler: en `warn`, con fecha de vencimiento ----
+      // --- Reglas del React Compiler ----------------------------------------
       //
-      // Llegan con eslint-plugin-react-hooks 7 y señalan cosas REALES (crear
-      // componentes dentro del render en SidebarNav resetea su estado en cada
-      // pintado; `Date.now()` en render puede desincronizar la hidratación).
-      // Van en `warn` y no en `error` por una razón de proceso, no de mérito:
-      // son 33 hallazgos sobre patrones que hoy funcionan, y meterlos como
-      // bloqueante en el primer día del linter garantiza que alguien termine
-      // desactivando el gate entero. Están anotadas como deuda en la auditoría
-      // de calidad (§3) y corresponde subirlas a "error" una vez saldadas.
+      // Entraron en `warn` con 33 hallazgos y se fueron saldando; ahora cada
+      // una tiene el nivel que su contenido justifica.
+
+      // SALDADAS: pasan a bloquear.
+      //
+      // `static-components` señalaba un bug real: SidebarNav definía `Enlaces`
+      // y `Pie` dentro del render, así que React los trataba como componentes
+      // distintos en cada pintado y desmontaba el subárbol.
+      //
+      // `purity` marcaba `new Date()` en el cuerpo del dashboard: con SSR el
+      // servidor y el cliente pueden caer a los dos lados de la medianoche.
+      "react-hooks/static-components": "error",
+      "react-hooks/purity": "error",
+
+      // APAGADA: no es del código.
+      //
+      // Los 7 hallazgos eran el compilador avisando que no puede memoizar un
+      // componente que usa `form.watch()` de react-hook-form. Es una propiedad
+      // de la API de esa librería, no algo que este repo pueda arreglar, y
+      // dejarla en `warn` para siempre solo ensucia el reporte.
+      "react-hooks/incompatible-library": "off",
+
+      // EN `warn` A CONCIENCIA, no por deuda.
+      //
+      // Los 21 hallazgos son dos patrones legítimos:
+      //
+      //   1. El guard de hidratación (`useEffect(() => setMontado(true), [])`).
+      //      Es la forma canónica de evitar el desajuste cuando el valor real
+      //      solo se conoce en el cliente —el tema, localStorage—, y con
+      //      next-themes + SSR no hay alternativa mejor.
+      //   2. Sincronizar estado local con datos que llegan de una consulta
+      //      (`if (!config) return; setX(config.y)`).
+      //
+      // Se deja en `warn` para que un caso NUEVO se vea en la revisión, pero
+      // sin bloquear: subirla a error obligaría a 21 disables o a reescribir
+      // quince formularios sin arreglar ningún bug.
       "react-hooks/set-state-in-effect": "warn",
-      "react-hooks/static-components": "warn",
-      "react-hooks/purity": "warn",
-      "react-hooks/incompatible-library": "warn",
     },
   },
 

@@ -79,90 +79,6 @@ export function SidebarNav({
   const esActivo = (enlace: EnlaceNav): boolean =>
     enlace.exacto ? ruta === enlace.href : ruta.startsWith(enlace.href);
 
-  function Enlaces({ conEtiquetas }: { conEtiquetas: boolean }) {
-    return (
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-        {enlaces.map((enlace) => {
-          const Icono = enlace.icono;
-          const activo = esActivo(enlace);
-          const tieneBadge = Boolean(enlace.badge && enlace.badge > 0);
-          return (
-            <Link
-              key={enlace.href}
-              href={enlace.href}
-              title={enlace.etiqueta}
-              className={cn(
-                "relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                !conEtiquetas && "justify-center px-2",
-                activo
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-              )}
-            >
-              <Icono className="h-4 w-4 shrink-0" />
-              {conEtiquetas && (
-                <span className="flex-1 truncate">{enlace.etiqueta}</span>
-              )}
-              {tieneBadge &&
-                (conEtiquetas ? (
-                  <span
-                    className={cn(
-                      "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
-                      activo
-                        ? "bg-background text-foreground"
-                        : "bg-primary text-primary-foreground",
-                    )}
-                  >
-                    {enlace.badge! > 9 ? "9+" : enlace.badge}
-                  </span>
-                ) : (
-                  <span
-                    className={cn(
-                      "absolute right-1.5 top-1.5 h-2 w-2 rounded-full",
-                      activo ? "bg-background" : "bg-primary",
-                    )}
-                  />
-                ))}
-            </Link>
-          );
-        })}
-      </nav>
-    );
-  }
-
-  function Pie({ conEtiquetas }: { conEtiquetas: boolean }) {
-    return (
-      <div className={cn("space-y-2 border-t p-3", !conEtiquetas && "px-2")}>
-        {conEtiquetas && (
-          <p
-            className="truncate px-3 text-xs text-muted-foreground"
-            title={email}
-          >
-            {email}
-          </p>
-        )}
-        <div
-          className={cn(
-            "flex items-center gap-1",
-            conEtiquetas ? "justify-between" : "flex-col justify-center",
-          )}
-        >
-          {pie}
-          <Button
-            variant="ghost"
-            size={conEtiquetas ? "sm" : "icon"}
-            className="text-muted-foreground"
-            title="Cerrar sesión"
-            onClick={() => signOut({ callbackUrl: "/login" })}
-          >
-            <LogOut className="h-4 w-4" />
-            {conEtiquetas && "Salir"}
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       {/* ---- Móvil: barra superior con hamburguesa ---- */}
@@ -208,8 +124,8 @@ export function SidebarNav({
                 <X className="h-5 w-5" />
               </Button>
             </div>
-            <Enlaces conEtiquetas />
-            <Pie conEtiquetas />
+            <Enlaces conEtiquetas enlaces={enlaces} esActivo={esActivo} />
+            <Pie conEtiquetas email={email} pie={pie} />
           </aside>
         </div>
       )}
@@ -247,9 +163,123 @@ export function SidebarNav({
             )}
           </Button>
         </div>
-        <Enlaces conEtiquetas={!colapsada} />
-        <Pie conEtiquetas={!colapsada} />
+        <Enlaces
+          conEtiquetas={!colapsada}
+          enlaces={enlaces}
+          esActivo={esActivo}
+        />
+        <Pie conEtiquetas={!colapsada} email={email} pie={pie} />
       </aside>
     </>
+  );
+}
+
+/**
+ * La lista de enlaces.
+ *
+ * Vive FUERA de `SidebarNav` a propósito. Definida adentro era una función
+ * nueva en cada render, así que React la trataba como otro tipo de componente
+ * y desmontaba el subárbol entero: perdía el foco y reiniciaba cualquier
+ * animación en curso, y habría descartado el estado interno el día que alguien
+ * le agregara alguno.
+ */
+function Enlaces({
+  conEtiquetas,
+  enlaces,
+  esActivo,
+}: {
+  conEtiquetas: boolean;
+  enlaces: EnlaceNav[];
+  esActivo: (enlace: EnlaceNav) => boolean;
+}) {
+  return (
+    <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+      {enlaces.map((enlace) => {
+        const Icono = enlace.icono;
+        const activo = esActivo(enlace);
+        const tieneBadge = Boolean(enlace.badge && enlace.badge > 0);
+        return (
+          <Link
+            key={enlace.href}
+            href={enlace.href}
+            title={enlace.etiqueta}
+            className={cn(
+              "relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              !conEtiquetas && "justify-center px-2",
+              activo
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+            )}
+          >
+            <Icono className="h-4 w-4 shrink-0" />
+            {conEtiquetas && (
+              <span className="flex-1 truncate">{enlace.etiqueta}</span>
+            )}
+            {tieneBadge &&
+              (conEtiquetas ? (
+                <span
+                  className={cn(
+                    "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
+                    activo
+                      ? "bg-background text-foreground"
+                      : "bg-primary text-primary-foreground",
+                  )}
+                >
+                  {enlace.badge! > 9 ? "9+" : enlace.badge}
+                </span>
+              ) : (
+                <span
+                  className={cn(
+                    "absolute right-1.5 top-1.5 h-2 w-2 rounded-full",
+                    activo ? "bg-background" : "bg-primary",
+                  )}
+                />
+              ))}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+/** Pie del sidebar: email, acciones extra y cerrar sesión. */
+function Pie({
+  conEtiquetas,
+  email,
+  pie,
+}: {
+  conEtiquetas: boolean;
+  email: string;
+  pie?: ReactNode;
+}) {
+  return (
+    <div className={cn("space-y-2 border-t p-3", !conEtiquetas && "px-2")}>
+      {conEtiquetas && (
+        <p
+          className="truncate px-3 text-xs text-muted-foreground"
+          title={email}
+        >
+          {email}
+        </p>
+      )}
+      <div
+        className={cn(
+          "flex items-center gap-1",
+          conEtiquetas ? "justify-between" : "flex-col justify-center",
+        )}
+      >
+        {pie}
+        <Button
+          variant="ghost"
+          size={conEtiquetas ? "sm" : "icon"}
+          className="text-muted-foreground"
+          title="Cerrar sesión"
+          onClick={() => signOut({ callbackUrl: "/login" })}
+        >
+          <LogOut className="h-4 w-4" />
+          {conEtiquetas && "Salir"}
+        </Button>
+      </div>
+    </div>
   );
 }
