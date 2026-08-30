@@ -9,11 +9,11 @@ historial completo) + tamaño/complejidad + criticidad de negocio. Se ejecutó l
 suite de tests (`vitest run`) y el script de lint (`npm run lint`) contra el
 árbol de trabajo actual.
 
-> **Estado de ejecución — hallazgos #1, #2, #3, #5, #7, #8, #9, #11, #12, #14,
-> #15 y #17: RESUELTOS.** Pasos 1 a 9 completos; queda el 10. Los casos de uso
-> se movieron a la capa de aplicación (§14), los cuatro componentes sobre 650
-> líneas se partieron (§15, §16) y la cobertura de casos de uso pasó de 76 % a
-> 97 % (§18). **722 → 993 tests.** Ver §7 (linter y formato), §8 (mapeadores), §9 y
+> **Estado de ejecución — HOJA DE RUTA COMPLETA.** Los 10 pasos ejecutados, mas
+> el movimiento de los casos de uso a la capa de aplicación. Los casos de uso
+> **722 → 993 tests, 0 errores de lint, cobertura de casos de uso del 97 %.**
+> Ocho bugs reales aparecieron en el camino y están listados en §21.2; en qué se
+> equivocó esta auditoría, en §21.3. Ver §7 a §20 para el registro paso a paso. Ver §7 (linter y formato), §8 (mapeadores), §9 y
 > §10 (coherencia formulario↔DTO), §11 y §12 (casos de uso), §13 (partición de
 > los servicios), §14 (movimiento de capa) y §15 (FormularioPlan) para el
 > registro de lo que se hizo, lo que se calibró, los ocho bugs que aparecieron y
@@ -1901,3 +1901,144 @@ presentación. Moverlas a `componentes/` habría invertido esa dependencia.
 4. **Subir a `error`** las reglas del React Compiler cuando se salden los 36
    avisos de §7.6.
 5. **Branch protection** en GitHub — configuración de la web, no código.
+
+---
+
+## 20. Registro de ejecución — paso 10: separar `IPlanRepositorio`
+
+**Commit:** `619580f`. **Cierra el hallazgo #6 y la hoja de ruta.** Sin cambios
+de comportamiento: 993/993 tests en verde.
+
+| Puerto | Métodos |
+| --- | --- |
+| `IPlanRepositorio` (antes) | **17** |
+| `IPlanRepositorio` (ahora) | 9 |
+| `IAsignacionPlanRepositorio` | 8 |
+
+### 20.1 La medición que lo justifica
+
+Antes de tocar nada se midió qué métodos usa cada consumidor. De los **19**
+consumidores del puerto original:
+
+| | Consumidores |
+| --- | --- |
+| Solo métodos de **plan** | 8 |
+| Solo métodos de **asignación** | 7 |
+| **Ambos** | 4 |
+
+**15 de 19 necesitaban un solo grupo.** Y cuatro de los que solo usaban
+asignaciones ni siquiera son del módulo de planes —viven en `archivos`, `ia`,
+`seguimiento` y `tracking`— y dependían de los 17 métodos para usar uno.
+
+Eso es ISP en su forma más literal: la mayoría de los clientes estaba obligada a
+conocer una interfaz que no usa.
+
+### 20.2 Por qué son dos agregados, no una preferencia de estilo
+
+Tienen **ciclos de vida distintos**:
+
+- Un **plan** es una plantilla que el consultorio edita, archiva y borra.
+- Una **asignación** es un tramo del historial de UN paciente. No se borra —se
+  desactiva— y **sobrevive al borrado del plan**. Por eso `planId` es nullable y
+  `nombrePlan` guarda una foto del nombre al momento de asignar.
+
+El comentario del puerto original ya lo decía (*"las asignaciones son el
+HISTORIAL del paciente… información del paciente, no un detalle del plan"*) y
+acto seguido las metía en el mismo contrato.
+
+### 20.3 Una implementación, dos puertos
+
+`PrismaRepositorioPlan` declara `implements IPlanRepositorio,
+IAsignacionPlanRepositorio`. Una tabla puede servir dos contratos, y separar la
+clase no habría aportado nada: las asignaciones viven en la misma base y varias
+consultas las cruzan.
+
+El cableado inyecta la misma instancia donde hace falta, y los módulos DI
+declaran la intersección `IPlanRepositorio & IAsignacionPlanRepositorio` — el
+cableado es el único lugar del sistema que necesita saber que son la misma cosa.
+
+Los tipos `AsignacionPlan` y `AsignacionConPaciente` se mudaron al puerto nuevo
+pero **se reexportan** desde `IPlanRepositorio`: son parte del mismo vocabulario
+y varios módulos los importan de ahí.
+
+El mock también se partió: un test de asignaciones ya no construye los nueve
+métodos del plan para ejercitar uno del historial.
+
+---
+
+## 21. Cierre: la hoja de ruta, completa
+
+| Paso | Estado |
+| --- | --- |
+| 1. ESLint + Prettier | ✅ |
+| 2. Gates de CI | ✅ |
+| 3. Tests de mapeadores | ✅ |
+| 4. `.tsx` en vitest + tests de formularios | ✅ |
+| 5. Casos de uso sin cubrir | ✅ 181/186 (97 %) |
+| 6. Partir los servicios gigantes | ✅ |
+| 7. Partir `FormularioPlan` | ✅ |
+| 8. Base genérica de repositorios | ✅ |
+| 9. Partir `_ayudas-test` y `composicionCorporal` | ✅ |
+| 10. Separar `IPlanRepositorio` | ✅ |
+| — | Mover casos de uso a `aplicacion/` ✅ |
+| — | Los cuatro componentes sobre 650 líneas ✅ |
+
+### 21.1 El recorrido en números
+
+| | Antes | Después |
+| --- | --- | --- |
+| Tests | 722 | **993** |
+| Errores de ESLint | *(no había linter)* | **0** |
+| Cobertura de casos de uso | ~76 % | **97 %** |
+| Máx. dependencias de constructor | 20 | 10 |
+| `FormularioPlan.tsx` | 913 ln | 283 ln |
+| `_ayudas-test.ts` | 1.355 ln | 14 ln + 3 módulos |
+| Copias de `soloFecha` | 8 | 1 |
+| Métodos en el puerto de planes | 17 | 9 + 8 |
+
+### 21.2 Los ocho bugs que aparecieron
+
+Ninguno se buscó: todos salieron al escribir el test o al correr la herramienta.
+
+1. `npm run lint` roto desde la subida a Next 16 — **el proyecto no tenía
+   análisis estático** y nadie lo sabía.
+2. `FormularioPaciente`: contraseña `min(6)` contra una política de 12.
+3. `FormularioRestablecer`: ídem, en el flujo donde el usuario ya perdió acceso.
+4. `FormularioReceta`: enlaces sin validar como URL — pegar `google.com` pasaba
+   la pantalla y moría en el servidor.
+5. `FormularioReceta`: etiquetas sin límite por elemento.
+6. `SeccionDeportiva`: `pesoCategoriaKg` sin rango, el único campo del sistema
+   con **piso** distinto de cero.
+7. `FormularioTurno`: duración sin techo y notas sin límite.
+8. `FormularioPlan`: metas de macros sin techo.
+
+### 21.3 En qué se equivocó esta auditoría
+
+Vale dejarlo junto, porque es lo que un lector futuro necesita para calibrar
+cuánto confiar en el resto:
+
+- **§3.1** predijo que el diff de Prettier sería "mínimo". Fueron **460
+  archivos** (§7.5).
+- **§1 #3** dijo que los casts de enum de los mapeadores no los verifica el
+  compilador. Resultaron **innecesarios**: quitarlos hizo que `tsc` sí
+  verificara ese borde (§7.3).
+- **§2.2** proponía cuatro servicios para Evaluación mirando los comentarios de
+  sección; las llamadas internas decían cuatro, pero por otra razón —tres de las
+  seis secciones se llaman entre sí— (§13.1).
+- **§1 #14** sugería separar tipos, tablas y algoritmos de
+  `composicionCorporal`. Separar los tipos **crea un ciclo**: son una sola pieza
+  con las tablas (§19.2).
+- **§4.4** anticipó el principio de cuándo no heredar de la base de
+  repositorios, pero no la forma concreta que tomó: los agregados que se traen
+  con `include` (§17.2).
+
+### 21.4 Lo que queda
+
+1. **3 casos de uso** sin cubrir, todos de lectura.
+2. **`DashboardComposicion`**, en 536 líneas: su JSX son ~430 líneas de tarjetas
+   sin secciones marcadas y partirlas pide entender qué muestra cada una.
+3. **Subir a `error`** las reglas del React Compiler cuando se salden los 36
+   avisos de §7.6 — entre ellos `SidebarNav` creando componentes dentro del
+   render, que es un bug de estado real.
+4. **Branch protection** en `main` exigiendo los checks del CI. Es configuración
+   de GitHub, no código: hay que hacerlo desde la web.
