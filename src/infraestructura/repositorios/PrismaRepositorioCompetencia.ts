@@ -5,13 +5,20 @@ import type {
 import type { ICompetenciaRepositorio } from "@/dominio/repositorios/ICompetenciaRepositorio";
 import { Competencia } from "@/dominio/entidades/Competencia";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
+import { soloFecha } from "./base/fechas";
 
 /**
  * Implementación con Prisma del repositorio de competencias.
  * El aislamiento por inquilino lo aplica la extensión de Prisma.
  */
-export class PrismaRepositorioCompetencia implements ICompetenciaRepositorio {
-  constructor(private readonly prisma: PrismaClient) {}
+export class PrismaRepositorioCompetencia
+  extends RepositorioPrismaBase<CompetenciaFila, Competencia>
+  implements ICompetenciaRepositorio
+{
+  constructor(private readonly prisma: PrismaClient) {
+    super(prisma.competencia);
+  }
 
   async crear(competencia: Competencia): Promise<Competencia> {
     const d = competencia.aPrimitivos();
@@ -21,7 +28,7 @@ export class PrismaRepositorioCompetencia implements ICompetenciaRepositorio {
         id: d.id,
         pacienteId: d.pacienteId,
         nombre: d.nombre,
-        fecha: this.soloFecha(d.fecha),
+        fecha: soloFecha(d.fecha),
         lugar: d.lugar,
         objetivo: d.objetivo,
         resultado: d.resultado,
@@ -39,7 +46,7 @@ export class PrismaRepositorioCompetencia implements ICompetenciaRepositorio {
       where: { id: d.id },
       data: {
         nombre: d.nombre,
-        fecha: this.soloFecha(d.fecha),
+        fecha: soloFecha(d.fecha),
         lugar: d.lugar,
         objetivo: d.objetivo,
         resultado: d.resultado,
@@ -50,27 +57,16 @@ export class PrismaRepositorioCompetencia implements ICompetenciaRepositorio {
     return mapearCompetencia(fila);
   }
 
-  async eliminar(id: string): Promise<void> {
-    await this.prisma.competencia.delete({ where: { id } });
-  }
-
-  async obtenerPorId(id: string): Promise<Competencia | null> {
-    const fila = await this.prisma.competencia.findUnique({ where: { id } });
-    return fila ? mapearCompetencia(fila) : null;
-  }
-
   async listarPorPaciente(pacienteId: string): Promise<Competencia[]> {
     const filas = await this.prisma.competencia.findMany({
       where: { pacienteId },
       orderBy: { fecha: "asc" },
     });
-    return filas.map((fila) => mapearCompetencia(fila));
+    return this.mapearTodas(filas);
   }
 
-  private soloFecha(fecha: Date): Date {
-    return new Date(
-      Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
-    );
+  protected override mapear(fila: CompetenciaFila): Competencia {
+    return mapearCompetencia(fila);
   }
 }
 

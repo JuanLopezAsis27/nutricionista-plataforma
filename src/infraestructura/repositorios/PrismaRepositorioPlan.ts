@@ -11,6 +11,7 @@ import type {
 } from "@/dominio/repositorios/IPlanRepositorio";
 import { PlanNutricional } from "@/dominio/entidades/PlanNutricional";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { soloFecha } from "./base/fechas";
 
 /** Include estándar: franjas ordenadas con opciones (y nombre de receta), extras. */
 const INCLUIR_HIJOS = {
@@ -358,12 +359,10 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
         planId: asignacion.planId,
         nombrePlan: asignacion.nombrePlan,
         pacienteId: asignacion.pacienteId,
-        fechaInicio: this.soloFecha(asignacion.fechaInicio),
-        fechaFin: asignacion.fechaFin
-          ? this.soloFecha(asignacion.fechaFin)
-          : null,
+        fechaInicio: soloFecha(asignacion.fechaInicio),
+        fechaFin: asignacion.fechaFin ? soloFecha(asignacion.fechaFin) : null,
         finalizadaEn: asignacion.finalizadaEn
-          ? this.soloFecha(asignacion.finalizadaEn)
+          ? soloFecha(asignacion.finalizadaEn)
           : null,
         activa: asignacion.activa,
       },
@@ -377,7 +376,7 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
   ): Promise<void> {
     await this.prisma.asignacionPlan.updateMany({
       where: { pacienteId, activa: true },
-      data: { activa: false, finalizadaEn: this.soloFecha(finalizadaEn) },
+      data: { activa: false, finalizadaEn: soloFecha(finalizadaEn) },
     });
   }
 
@@ -435,16 +434,10 @@ export class PrismaRepositorioPlan implements IPlanRepositorio {
     const filas = await this.prisma.asignacionPlan.findMany({
       where: {
         activa: true,
-        fechaFin: { not: null, lt: this.soloFecha(fechaLimite) },
+        fechaFin: { not: null, lt: soloFecha(fechaLimite) },
       },
     });
     return filas.map((fila) => mapearAsignacionPlan(fila));
-  }
-
-  private soloFecha(fecha: Date): Date {
-    return new Date(
-      Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
-    );
   }
 }
 

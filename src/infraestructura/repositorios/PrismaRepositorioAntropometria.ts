@@ -5,14 +5,21 @@ import type {
 import type { IAntropometriaRepositorio } from "@/dominio/repositorios/IAntropometriaRepositorio";
 import { Antropometria } from "@/dominio/entidades/Antropometria";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
+import { soloFecha } from "./base/fechas";
 
 /**
  * Implementación con Prisma del repositorio de Antropometría.
  * IMPORTANTE: los Decimal de Prisma se convierten a number en el mapeo;
  * nunca salen de infraestructura (superjson no los serializa).
  */
-export class PrismaRepositorioAntropometria implements IAntropometriaRepositorio {
-  constructor(private readonly prisma: PrismaClient) {}
+export class PrismaRepositorioAntropometria
+  extends RepositorioPrismaBase<AntropometriaFila, Antropometria>
+  implements IAntropometriaRepositorio
+{
+  constructor(private readonly prisma: PrismaClient) {
+    super(prisma.antropometria);
+  }
 
   async crear(medicion: Antropometria): Promise<Antropometria> {
     const datos = medicion.aPrimitivos();
@@ -20,7 +27,7 @@ export class PrismaRepositorioAntropometria implements IAntropometriaRepositorio
       data: {
         ...datos,
         nutricionistaId: inquilinoActual(),
-        fecha: this.soloFecha(datos.fecha),
+        fecha: soloFecha(datos.fecha),
       },
     });
     return mapearAntropometria(fila);
@@ -35,18 +42,9 @@ export class PrismaRepositorioAntropometria implements IAntropometriaRepositorio
     } = medicion.aPrimitivos();
     const fila = await this.prisma.antropometria.update({
       where: { id },
-      data: { ...datos, fecha: this.soloFecha(datos.fecha) },
+      data: { ...datos, fecha: soloFecha(datos.fecha) },
     });
     return mapearAntropometria(fila);
-  }
-
-  async eliminar(id: string): Promise<void> {
-    await this.prisma.antropometria.delete({ where: { id } });
-  }
-
-  async obtenerPorId(id: string): Promise<Antropometria | null> {
-    const fila = await this.prisma.antropometria.findUnique({ where: { id } });
-    return fila ? mapearAntropometria(fila) : null;
   }
 
   async listarPorPaciente(pacienteId: string): Promise<Antropometria[]> {
@@ -54,7 +52,7 @@ export class PrismaRepositorioAntropometria implements IAntropometriaRepositorio
       where: { pacienteId },
       orderBy: { fecha: "asc" },
     });
-    return filas.map((fila) => mapearAntropometria(fila));
+    return this.mapearTodas(filas);
   }
 
   async existeEnFecha(
@@ -65,17 +63,15 @@ export class PrismaRepositorioAntropometria implements IAntropometriaRepositorio
     const cantidad = await this.prisma.antropometria.count({
       where: {
         pacienteId,
-        fecha: this.soloFecha(fecha),
+        fecha: soloFecha(fecha),
         ...(excluirId ? { id: { not: excluirId } } : {}),
       },
     });
     return cantidad > 0;
   }
 
-  private soloFecha(fecha: Date): Date {
-    return new Date(
-      Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
-    );
+  protected override mapear(fila: AntropometriaFila): Antropometria {
+    return mapearAntropometria(fila);
   }
 }
 

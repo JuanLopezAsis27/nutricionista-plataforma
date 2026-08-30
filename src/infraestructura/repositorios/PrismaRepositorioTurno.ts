@@ -9,6 +9,7 @@ import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Nombre del EXCLUDE que impide dos turnos superpuestos (migración 27). */
 const RESTRICCION_SOLAPAMIENTO = "turnos_sin_solapamiento";
+import { soloFecha } from "./base/fechas";
 
 /**
  * Traduce la violación del EXCLUDE de Postgres al error del dominio.
@@ -41,7 +42,7 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
           nutricionistaId: inquilinoActual(),
           id: datos.id,
           pacienteId: datos.pacienteId,
-          fecha: this.soloFecha(datos.fecha),
+          fecha: soloFecha(datos.fecha),
           hora: datos.hora,
           duracionMinutos: datos.duracionMinutos,
           estado: datos.estado,
@@ -64,7 +65,7 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
         where: { id: datos.id },
         data: {
           pacienteId: datos.pacienteId,
-          fecha: this.soloFecha(datos.fecha),
+          fecha: soloFecha(datos.fecha),
           hora: datos.hora,
           duracionMinutos: datos.duracionMinutos,
           estado: datos.estado,
@@ -90,7 +91,7 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
 
   async obtenerEnFecha(fecha: Date): Promise<Turno[]> {
     const filas = await this.prisma.turno.findMany({
-      where: { fecha: this.soloFecha(fecha) },
+      where: { fecha: soloFecha(fecha) },
       orderBy: [{ hora: "asc" }],
     });
     return filas.map((fila) => mapearTurno(fila));
@@ -99,7 +100,7 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
   async listarEntreFechas(desde: Date, hasta: Date): Promise<Turno[]> {
     const filas = await this.prisma.turno.findMany({
       where: {
-        fecha: { gte: this.soloFecha(desde), lte: this.soloFecha(hasta) },
+        fecha: { gte: soloFecha(desde), lte: soloFecha(hasta) },
       },
       orderBy: [{ fecha: "asc" }, { hora: "asc" }],
     });
@@ -116,7 +117,7 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
 
   async listar(filtro: FiltroTurnos = {}): Promise<Turno[]> {
     const where: Prisma.TurnoWhereInput = {};
-    if (filtro.fecha) where.fecha = this.soloFecha(filtro.fecha);
+    if (filtro.fecha) where.fecha = soloFecha(filtro.fecha);
     if (filtro.estado) where.estado = filtro.estado;
     if (filtro.pacienteId) where.pacienteId = filtro.pacienteId;
 
@@ -125,13 +126,6 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
       orderBy: [{ fecha: "asc" }, { hora: "asc" }],
     });
     return filas.map((fila) => mapearTurno(fila));
-  }
-
-  /** Normaliza una fecha a medianoche UTC (coherente con la columna @db.Date). */
-  private soloFecha(fecha: Date): Date {
-    return new Date(
-      Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
-    );
   }
 }
 

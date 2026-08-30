@@ -9,6 +9,7 @@ import {
   type EventoObjetivo,
 } from "@/dominio/entidades/Objetivo";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { soloFecha } from "./base/fechas";
 
 /** Include estándar: estrategias más recientes primero. */
 const INCLUIR_ESTRATEGIAS = {
@@ -43,9 +44,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
           descripcion: d.descripcion,
           prioridad: d.prioridad,
           estado: d.estado,
-          fechaObjetivo: d.fechaObjetivo
-            ? this.soloFecha(d.fechaObjetivo)
-            : null,
+          fechaObjetivo: d.fechaObjetivo ? soloFecha(d.fechaObjetivo) : null,
           creadoEn: d.creadoEn,
           actualizadoEn: d.actualizadoEn,
         },
@@ -73,9 +72,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
           descripcion: d.descripcion,
           prioridad: d.prioridad,
           estado: d.estado,
-          fechaObjetivo: d.fechaObjetivo
-            ? this.soloFecha(d.fechaObjetivo)
-            : null,
+          fechaObjetivo: d.fechaObjetivo ? soloFecha(d.fechaObjetivo) : null,
         },
       });
       await this.registrarEvento(tx, d.id, evento);
@@ -187,12 +184,6 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
         motivo: evento.motivo ?? null,
       },
     });
-  }
-
-  private soloFecha(fecha: Date): Date {
-    return new Date(
-      Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
-    );
   }
 }
 

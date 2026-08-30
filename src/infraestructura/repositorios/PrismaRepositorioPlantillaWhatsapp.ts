@@ -8,6 +8,7 @@ import {
   type VariableRecordatorio,
 } from "@/dominio/entidades/PlantillaWhatsapp";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
 
 /**
  * Implementación con Prisma de las plantillas de recordatorio por WhatsApp.
@@ -15,22 +16,20 @@ import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
  * No filtra por `nutricionistaId`: eso lo inyecta la extensión multi-inquilino
  * del cliente, igual que en el resto de los repositorios.
  */
-export class PrismaRepositorioPlantillaWhatsapp implements IPlantillaWhatsappRepositorio {
-  constructor(private readonly prisma: PrismaClient) {}
+export class PrismaRepositorioPlantillaWhatsapp
+  extends RepositorioPrismaBase<PlantillaFila, PlantillaWhatsapp>
+  implements IPlantillaWhatsappRepositorio
+{
+  constructor(private readonly prisma: PrismaClient) {
+    super(prisma.plantillaWhatsapp);
+  }
 
   async listar(): Promise<PlantillaWhatsapp[]> {
     const filas = await this.prisma.plantillaWhatsapp.findMany({
       // La predeterminada primero: es la que el profesional busca al entrar.
       orderBy: [{ predeterminada: "desc" }, { nombre: "asc" }],
     });
-    return filas.map((fila) => mapearPlantillaWhatsapp(fila));
-  }
-
-  async obtenerPorId(id: string): Promise<PlantillaWhatsapp | null> {
-    const fila = await this.prisma.plantillaWhatsapp.findUnique({
-      where: { id },
-    });
-    return fila ? mapearPlantillaWhatsapp(fila) : null;
+    return this.mapearTodas(filas);
   }
 
   async obtenerPredeterminada(): Promise<PlantillaWhatsapp | null> {
@@ -76,8 +75,8 @@ export class PrismaRepositorioPlantillaWhatsapp implements IPlantillaWhatsappRep
     return mapearPlantillaWhatsapp(fila);
   }
 
-  async eliminar(id: string): Promise<void> {
-    await this.prisma.plantillaWhatsapp.delete({ where: { id } });
+  protected override mapear(fila: PlantillaFila): PlantillaWhatsapp {
+    return mapearPlantillaWhatsapp(fila);
   }
 }
 

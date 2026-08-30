@@ -5,10 +5,16 @@ import type {
 } from "@/dominio/repositorios/IGrupoPlanRepositorio";
 import { GrupoPlan } from "@/dominio/entidades/GrupoPlan";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
 
 /** Implementación con Prisma del repositorio de carpetas de planes. */
-export class PrismaRepositorioGrupoPlan implements IGrupoPlanRepositorio {
-  constructor(private readonly prisma: PrismaClient) {}
+export class PrismaRepositorioGrupoPlan
+  extends RepositorioPrismaBase<GrupoFila, GrupoPlan>
+  implements IGrupoPlanRepositorio
+{
+  constructor(private readonly prisma: PrismaClient) {
+    super(prisma.grupoPlan);
+  }
 
   async crear(grupo: GrupoPlan): Promise<GrupoPlan> {
     const d = grupo.aPrimitivos();
@@ -25,16 +31,6 @@ export class PrismaRepositorioGrupoPlan implements IGrupoPlanRepositorio {
       data: { nombre: d.nombre, descripcion: d.descripcion },
     });
     return mapearGrupoPlan(fila);
-  }
-
-  async eliminar(id: string): Promise<void> {
-    // Los planes de la carpeta quedan sueltos: la FK es SET NULL.
-    await this.prisma.grupoPlan.delete({ where: { id } });
-  }
-
-  async obtenerPorId(id: string): Promise<GrupoPlan | null> {
-    const fila = await this.prisma.grupoPlan.findUnique({ where: { id } });
-    return fila ? mapearGrupoPlan(fila) : null;
   }
 
   async listar(): Promise<GrupoPlanConTotal[]> {
@@ -72,6 +68,10 @@ export class PrismaRepositorioGrupoPlan implements IGrupoPlanRepositorio {
       },
     });
     return cantidad > 0;
+  }
+
+  protected override mapear(fila: GrupoFila): GrupoPlan {
+    return mapearGrupoPlan(fila);
   }
 }
 

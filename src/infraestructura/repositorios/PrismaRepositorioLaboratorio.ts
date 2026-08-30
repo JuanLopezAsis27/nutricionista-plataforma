@@ -2,6 +2,7 @@ import type { PrismaClient, Prisma } from "@prisma/client";
 import type { ILaboratorioRepositorio } from "@/dominio/repositorios/ILaboratorioRepositorio";
 import { Laboratorio } from "@/dominio/entidades/Laboratorio";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { soloFecha } from "./base/fechas";
 
 /** Fila de laboratorio con sus archivos incluidos. */
 type LaboratorioConArchivos = Prisma.LaboratorioGetPayload<{
@@ -27,7 +28,7 @@ export class PrismaRepositorioLaboratorio implements ILaboratorioRepositorio {
           nutricionistaId: inquilinoActual(),
           id: datos.id,
           pacienteId: datos.pacienteId,
-          fecha: this.soloFecha(datos.fecha),
+          fecha: soloFecha(datos.fecha),
           titulo: datos.titulo,
           notas: datos.notas,
           creadoEn: datos.creadoEn,
@@ -56,7 +57,7 @@ export class PrismaRepositorioLaboratorio implements ILaboratorioRepositorio {
       await tx.laboratorio.update({
         where: { id: datos.id },
         data: {
-          fecha: this.soloFecha(datos.fecha),
+          fecha: soloFecha(datos.fecha),
           titulo: datos.titulo,
           notas: datos.notas,
         },
@@ -96,12 +97,6 @@ export class PrismaRepositorioLaboratorio implements ILaboratorioRepositorio {
       orderBy: { fecha: "desc" },
     });
     return filas.map((fila) => mapearLaboratorio(fila));
-  }
-
-  private soloFecha(fecha: Date): Date {
-    return new Date(
-      Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
-    );
   }
 }
 

@@ -249,6 +249,62 @@ describe("Arquitectura — dependencias hacia adentro", () => {
   });
 });
 
+describe("Arquitectura — base de repositorios", () => {
+  it("la base de Prisma no se filtra fuera de la infraestructura", () => {
+    // `RepositorioPrismaBase` es un detalle de implementación compartido, no un
+    // contrato. Si el dominio o la aplicación lo importaran, los puertos
+    // pasarían a describir LA BASE DE DATOS en vez de lo que el negocio
+    // necesita —que es exactamente lo que la arquitectura hexagonal de este
+    // proyecto evita hoy con éxito—.
+    const encontradas: string[] = [];
+    for (const capa of [
+      "dominio",
+      "aplicacion",
+      "servidor",
+      "app",
+      "componentes",
+      "lib",
+    ]) {
+      for (const archivo of archivosFuente(join(RAIZ, capa))) {
+        for (const especificador of importesDe(readFileSync(archivo, "utf8"))) {
+          if (especificador.includes("repositorios/base")) {
+            encontradas.push(`${ruta(archivo)} → "${especificador}"`);
+          }
+        }
+      }
+    }
+
+    expect(
+      encontradas,
+      mensaje(
+        "La base de Prisma es un detalle de infraestructura, no un contrato",
+        encontradas,
+      ),
+    ).toEqual([]);
+  });
+
+  it("ningún repositorio define su propio `soloFecha`", () => {
+    // Estaba copiado carácter por carácter en ocho repositorios. Es una regla
+    // de negocio —"una medición pertenece a un día, no a un instante"— y vive
+    // en `base/fechas.ts`. El test existe para que no vuelva a duplicarse: la
+    // próxima copia se ve acá y no dentro de un noveno archivo.
+    const propios: string[] = [];
+    for (const archivo of archivosFuente(
+      join(RAIZ, "infraestructura", "repositorios"),
+    )) {
+      if (archivo.includes(`${sep}base${sep}`)) continue;
+      if (/private soloFecha\(/.test(readFileSync(archivo, "utf8"))) {
+        propios.push(ruta(archivo));
+      }
+    }
+
+    expect(
+      propios,
+      mensaje("`soloFecha` vive en base/fechas.ts, una sola vez", propios),
+    ).toEqual([]);
+  });
+});
+
 describe("Arquitectura — contención de Prisma", () => {
   it("Prisma solo se importa dentro de la infraestructura", () => {
     const fuera: string[] = [];

@@ -5,10 +5,16 @@ import type {
 } from "@/dominio/repositorios/IArchivoRepositorio";
 import { Archivo } from "@/dominio/entidades/Archivo";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
 
 /** Implementación con Prisma del repositorio de metadatos de Archivo. */
-export class PrismaRepositorioArchivo implements IArchivoRepositorio {
-  constructor(private readonly prisma: PrismaClient) {}
+export class PrismaRepositorioArchivo
+  extends RepositorioPrismaBase<ArchivoFila, Archivo>
+  implements IArchivoRepositorio
+{
+  constructor(private readonly prisma: PrismaClient) {
+    super(prisma.archivo);
+  }
 
   async crear(archivo: Archivo, dueno?: DuenoArchivo): Promise<Archivo> {
     const datos = archivo.aPrimitivos();
@@ -27,15 +33,6 @@ export class PrismaRepositorioArchivo implements IArchivoRepositorio {
     return mapearArchivo(fila);
   }
 
-  async obtenerPorId(id: string): Promise<Archivo | null> {
-    const fila = await this.prisma.archivo.findUnique({ where: { id } });
-    return fila ? mapearArchivo(fila) : null;
-  }
-
-  async eliminar(id: string): Promise<void> {
-    await this.prisma.archivo.delete({ where: { id } });
-  }
-
   async listarPorDueno(dueno: DuenoArchivo): Promise<Archivo[]> {
     const filas = await this.prisma.archivo.findMany({
       where: {
@@ -48,7 +45,7 @@ export class PrismaRepositorioArchivo implements IArchivoRepositorio {
       },
       orderBy: { creadoEn: "desc" },
     });
-    return filas.map((fila) => mapearArchivo(fila));
+    return this.mapearTodas(filas);
   }
 
   async vincularDueno(id: string, dueno: DuenoArchivo): Promise<void> {
@@ -93,6 +90,10 @@ export class PrismaRepositorioArchivo implements IArchivoRepositorio {
       select: { clave: true },
     });
     return filas.map((fila) => fila.clave);
+  }
+
+  protected override mapear(fila: ArchivoFila): Archivo {
+    return mapearArchivo(fila);
   }
 }
 

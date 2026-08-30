@@ -5,10 +5,16 @@ import type {
 import type { IAxiomaRepositorio } from "@/dominio/repositorios/IAxiomaRepositorio";
 import { AxiomaNutricional } from "@/dominio/entidades/AxiomaNutricional";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
 
 /** Implementación con Prisma del repositorio de axiomas (base de conocimiento). */
-export class PrismaRepositorioAxioma implements IAxiomaRepositorio {
-  constructor(private readonly prisma: PrismaClient) {}
+export class PrismaRepositorioAxioma
+  extends RepositorioPrismaBase<AxiomaFila, AxiomaNutricional>
+  implements IAxiomaRepositorio
+{
+  constructor(private readonly prisma: PrismaClient) {
+    super(prisma.axiomaNutricional);
+  }
 
   async crear(axioma: AxiomaNutricional): Promise<AxiomaNutricional> {
     const d = axioma.aPrimitivos();
@@ -50,22 +56,11 @@ export class PrismaRepositorioAxioma implements IAxiomaRepositorio {
     return mapearAxioma(fila);
   }
 
-  async eliminar(id: string): Promise<void> {
-    await this.prisma.axiomaNutricional.delete({ where: { id } });
-  }
-
-  async obtenerPorId(id: string): Promise<AxiomaNutricional | null> {
-    const fila = await this.prisma.axiomaNutricional.findUnique({
-      where: { id },
-    });
-    return fila ? mapearAxioma(fila) : null;
-  }
-
   async listar(): Promise<AxiomaNutricional[]> {
     const filas = await this.prisma.axiomaNutricional.findMany({
       orderBy: [{ prioridad: "desc" }, { creadoEn: "asc" }],
     });
-    return filas.map((fila) => mapearAxioma(fila));
+    return this.mapearTodas(filas);
   }
 
   async listarActivos(): Promise<AxiomaNutricional[]> {
@@ -73,7 +68,11 @@ export class PrismaRepositorioAxioma implements IAxiomaRepositorio {
       where: { activo: true },
       orderBy: [{ prioridad: "desc" }, { creadoEn: "asc" }],
     });
-    return filas.map((fila) => mapearAxioma(fila));
+    return this.mapearTodas(filas);
+  }
+
+  protected override mapear(fila: AxiomaFila): AxiomaNutricional {
+    return mapearAxioma(fila);
   }
 }
 

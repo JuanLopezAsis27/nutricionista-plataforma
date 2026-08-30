@@ -5,10 +5,16 @@ import type {
 import type { IAlertaAlimentariaRepositorio } from "@/dominio/repositorios/IAlertaAlimentariaRepositorio";
 import { AlertaAlimentaria } from "@/dominio/entidades/AlertaAlimentaria";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
 
 /** Implementación con Prisma del repositorio de Alertas Alimentarias. */
-export class PrismaRepositorioAlertaAlimentaria implements IAlertaAlimentariaRepositorio {
-  constructor(private readonly prisma: PrismaClient) {}
+export class PrismaRepositorioAlertaAlimentaria
+  extends RepositorioPrismaBase<AlertaFila, AlertaAlimentaria>
+  implements IAlertaAlimentariaRepositorio
+{
+  constructor(private readonly prisma: PrismaClient) {
+    super(prisma.alertaAlimentaria);
+  }
 
   async crear(alerta: AlertaAlimentaria): Promise<AlertaAlimentaria> {
     const fila = await this.prisma.alertaAlimentaria.create({
@@ -31,23 +37,16 @@ export class PrismaRepositorioAlertaAlimentaria implements IAlertaAlimentariaRep
     return mapearAlertaAlimentaria(fila);
   }
 
-  async eliminar(id: string): Promise<void> {
-    await this.prisma.alertaAlimentaria.delete({ where: { id } });
-  }
-
-  async obtenerPorId(id: string): Promise<AlertaAlimentaria | null> {
-    const fila = await this.prisma.alertaAlimentaria.findUnique({
-      where: { id },
-    });
-    return fila ? mapearAlertaAlimentaria(fila) : null;
-  }
-
   async listarPorPaciente(pacienteId: string): Promise<AlertaAlimentaria[]> {
     const filas = await this.prisma.alertaAlimentaria.findMany({
       where: { pacienteId },
       orderBy: [{ severidad: "desc" }, { creadoEn: "asc" }],
     });
-    return filas.map((fila) => mapearAlertaAlimentaria(fila));
+    return this.mapearTodas(filas);
+  }
+
+  protected override mapear(fila: AlertaFila): AlertaAlimentaria {
+    return mapearAlertaAlimentaria(fila);
   }
 }
 

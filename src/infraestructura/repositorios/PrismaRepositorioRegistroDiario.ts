@@ -10,6 +10,7 @@ import {
   type ActividadFisica,
 } from "@/dominio/entidades/RegistroDiario";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { soloFecha } from "./base/fechas";
 
 /** Fila del registro con hijos incluidos (foto solo como id). */
 type RegistroConHijos = Prisma.RegistroDiarioGetPayload<{
@@ -41,7 +42,7 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
         nutricionistaId: inquilinoActual(),
         id: datos.id,
         pacienteId: datos.pacienteId,
-        fecha: this.soloFecha(datos.fecha),
+        fecha: soloFecha(datos.fecha),
         pesoKg: datos.pesoKg,
         aguaMl: datos.aguaMl,
         horasSueno: datos.horasSueno,
@@ -76,7 +77,7 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
   ): Promise<RegistroDiario | null> {
     const fila = await this.prisma.registroDiario.findUnique({
       where: {
-        pacienteId_fecha: { pacienteId, fecha: this.soloFecha(fecha) },
+        pacienteId_fecha: { pacienteId, fecha: soloFecha(fecha) },
       },
       include: INCLUIR_HIJOS,
     });
@@ -91,7 +92,7 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
     const filas = await this.prisma.registroDiario.findMany({
       where: {
         pacienteId,
-        fecha: { gte: this.soloFecha(desde), lte: this.soloFecha(hasta) },
+        fecha: { gte: soloFecha(desde), lte: soloFecha(hasta) },
       },
       include: INCLUIR_HIJOS,
       orderBy: { fecha: "asc" },
@@ -111,7 +112,7 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
     desde: Date,
     hasta: Date,
   ): Promise<Map<string, ResumenDiario>> {
-    const rango = { gte: this.soloFecha(desde), lte: this.soloFecha(hasta) };
+    const rango = { gte: soloFecha(desde), lte: soloFecha(hasta) };
 
     const [totales, conPeso, conActividad] = await Promise.all([
       // Cuántos registros tiene cada paciente en toda su historia.
@@ -225,12 +226,6 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
           pacienteId: fila.registro.pacienteId,
         }
       : null;
-  }
-
-  private soloFecha(fecha: Date): Date {
-    return new Date(
-      Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
-    );
   }
 }
 

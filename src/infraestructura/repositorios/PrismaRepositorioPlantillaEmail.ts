@@ -5,10 +5,16 @@ import type {
 import type { IPlantillaEmailRepositorio } from "@/dominio/repositorios/IPlantillaEmailRepositorio";
 import { PlantillaEmail } from "@/dominio/entidades/PlantillaEmail";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
 
 /** Implementación con Prisma del repositorio de plantillas de email. */
-export class PrismaRepositorioPlantillaEmail implements IPlantillaEmailRepositorio {
-  constructor(private readonly prisma: PrismaClient) {}
+export class PrismaRepositorioPlantillaEmail
+  extends RepositorioPrismaBase<PlantillaFila, PlantillaEmail>
+  implements IPlantillaEmailRepositorio
+{
+  constructor(private readonly prisma: PrismaClient) {
+    super(prisma.plantillaEmail);
+  }
 
   async crear(plantilla: PlantillaEmail): Promise<PlantillaEmail> {
     const d = plantilla.aPrimitivos();
@@ -44,15 +50,6 @@ export class PrismaRepositorioPlantillaEmail implements IPlantillaEmailRepositor
     return mapearPlantillaEmail(fila);
   }
 
-  async eliminar(id: string): Promise<void> {
-    await this.prisma.plantillaEmail.delete({ where: { id } });
-  }
-
-  async obtenerPorId(id: string): Promise<PlantillaEmail | null> {
-    const fila = await this.prisma.plantillaEmail.findUnique({ where: { id } });
-    return fila ? mapearPlantillaEmail(fila) : null;
-  }
-
   async obtenerPorClave(clave: string): Promise<PlantillaEmail | null> {
     // `clave` es única POR nutricionista (@@unique([nutricionistaId, clave])); la
     // extensión multi-inquilino acota el findFirst al nutricionista de la request.
@@ -66,7 +63,11 @@ export class PrismaRepositorioPlantillaEmail implements IPlantillaEmailRepositor
     const filas = await this.prisma.plantillaEmail.findMany({
       orderBy: { nombre: "asc" },
     });
-    return filas.map((fila) => mapearPlantillaEmail(fila));
+    return this.mapearTodas(filas);
+  }
+
+  protected override mapear(fila: PlantillaFila): PlantillaEmail {
+    return mapearPlantillaEmail(fila);
   }
 }
 
