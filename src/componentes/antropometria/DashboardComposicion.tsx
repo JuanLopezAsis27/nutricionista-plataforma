@@ -1,19 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Activity,
-  Flame,
-  Ruler,
-  Scale,
-  TriangleAlert,
-  Waves,
-} from "lucide-react";
+import { Activity, Flame, Ruler, Scale, Waves } from "lucide-react";
 import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
-import type {
-  BloqueFaltante,
-  RiesgoCinturaCadera,
-} from "@/dominio/servicios/composicionCorporal";
+import type { RiesgoCinturaCadera } from "@/dominio/servicios/composicionCorporal";
 import { formatearFecha, formatearNumero } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import {
@@ -37,24 +27,18 @@ import {
   EvolucionScoreZ,
   EvolucionGrasa,
 } from "./EvolucionMasas";
-import { PanelGrasaPliegues, AvisoDosModelos } from "./PanelGrasaPliegues";
 import { PerfilPhantom } from "./PerfilPhantom";
 import { Somatocarta, type PuntoSomatocarta } from "./Somatocarta";
 import { useTemaComposicion } from "./useTemaComposicion";
-import type { TemaComposicion } from "./paleta";
+import { Indicador, Fila, signo } from "./dashboard/piezas";
+import { AvisoFaltantes } from "./dashboard/AvisoFaltantes";
+import { TarjetaGrasa } from "./dashboard/TarjetaGrasa";
 
 const ETIQUETAS_RIESGO: Record<RiesgoCinturaCadera, string> = {
   BAJO: "Riesgo bajo",
   MODERADO: "Riesgo moderado",
   ALTO: "Riesgo alto",
   MUY_ALTO: "Riesgo muy alto",
-};
-
-const ETIQUETAS_BLOQUE: Record<BloqueFaltante["bloque"], string> = {
-  FRACCIONAMIENTO: "Fraccionamiento en 5 masas",
-  SOMATOTIPO: "Somatotipo",
-  ENERGIA: "Metabolismo y peso ideal",
-  INDICES: "Índices",
 };
 
 /**
@@ -548,163 +532,5 @@ export function DashboardComposicion({
         </Card>
       </div>
     </div>
-  );
-}
-
-/** Qué medidas hacen falta para completar los bloques que no se calcularon. */
-function AvisoFaltantes({ faltantes }: { faltantes: BloqueFaltante[] }) {
-  const conFaltas = faltantes.filter((f) => f.campos.length > 0);
-  if (conFaltas.length === 0) return null;
-
-  return (
-    <div className="flex gap-3 rounded-md border border-dashed p-3 text-sm">
-      <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-      <div className="min-w-0 space-y-1">
-        <p className="font-medium">Esta medición no alcanza para todo</p>
-        {conFaltas.map((bloque) => (
-          <p key={bloque.bloque} className="text-xs text-muted-foreground">
-            <span className="font-medium">
-              {ETIQUETAS_BLOQUE[bloque.bloque]}:
-            </span>{" "}
-            falta {bloque.campos.join(", ").toLowerCase()}.
-          </p>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Indicador({
-  icono: Icono,
-  titulo,
-  valor,
-  unidad,
-  detalle,
-  color,
-}: {
-  icono: typeof Scale;
-  titulo: string;
-  valor: string;
-  unidad: string;
-  detalle?: string;
-  color?: string;
-}) {
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          <Icono
-            className="h-3.5 w-3.5"
-            style={color ? { color } : undefined}
-          />
-          {titulo}
-        </p>
-        <p className="mt-1 text-2xl font-bold tabular-nums">
-          {valor}
-          <span className="ml-1 text-sm font-normal text-muted-foreground">
-            {unidad}
-          </span>
-        </p>
-        {detalle && (
-          <p className="mt-0.5 text-xs text-muted-foreground">{detalle}</p>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function Fila({
-  etiqueta,
-  valor,
-  unidad,
-  nota,
-  destacado,
-}: {
-  etiqueta: string;
-  valor: number | null;
-  unidad?: string;
-  nota?: string;
-  destacado?: boolean;
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-3 py-1.5">
-      <dt className="min-w-0">
-        <span className={cn(destacado && "font-semibold")}>{etiqueta}</span>
-        {nota && (
-          <span className="block text-xs text-muted-foreground">{nota}</span>
-        )}
-      </dt>
-      <dd
-        className={cn(
-          "shrink-0 tabular-nums",
-          destacado ? "text-base font-bold" : "font-medium",
-        )}
-      >
-        {formatearNumero(valor)}
-        {unidad && valor != null && (
-          <span className="ml-1 text-xs font-normal text-muted-foreground">
-            {unidad}
-          </span>
-        )}
-      </dd>
-    </div>
-  );
-}
-
-function signo(valor: number): string {
-  return `${valor > 0 ? "+" : ""}${formatearNumero(valor)}`;
-}
-
-/**
- * Modelo de 2 componentes de la medición seleccionada.
- *
- * Cuando la medición también resuelve el fraccionamiento de Kerr, agrega el
- * aviso que compara los dos números: la brecha entre ellos es esperable y no
- * un error de carga, pero hay que decirlo o se lee como contradicción.
- */
-function TarjetaGrasa({
-  actual,
-  anterior,
-  grasaDestacada,
-  tema,
-}: {
-  actual: MedicionComposicionDto;
-  anterior: MedicionComposicionDto | null;
-  grasaDestacada:
-    | MedicionComposicionDto["resultado"]["grasaPorPliegues"]["resultados"][number]
-    | undefined;
-  tema: TemaComposicion;
-}) {
-  const fraccionamiento = actual.resultado.fraccionamiento;
-
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold">
-          Grasa corporal por pliegues{" "}
-          <span className="font-normal text-muted-foreground">
-            (modelo de 2 componentes)
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <PanelGrasaPliegues
-          grasa={actual.resultado.grasaPorPliegues}
-          metodoDestacado={actual.metodoGrasa}
-          anterior={anterior?.resultado.grasaPorPliegues ?? null}
-          pesoKg={actual.medidas.pesoKg}
-          tema={tema}
-        />
-        {fraccionamiento != null && grasaDestacada != null && (
-          <AvisoDosModelos
-            masaAdiposaKg={fraccionamiento.adiposa.kg}
-            porcentajeAdiposa={fraccionamiento.adiposa.porcentaje}
-            masaGrasaKg={grasaDestacada.masaGrasaKg}
-            porcentajeGrasa={grasaDestacada.porcentajeGrasa}
-            etiquetaMetodo={grasaDestacada.etiqueta}
-          />
-        )}
-      </CardContent>
-    </Card>
   );
 }

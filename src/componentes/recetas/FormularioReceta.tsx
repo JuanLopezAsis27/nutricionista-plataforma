@@ -1,24 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useForm, useFieldArray, type UseFormReturn } from "react-hook-form";
+import { useState } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import {
-  ImagePlus,
-  FileText,
-  LinkIcon,
-  X,
-  Plus,
-  Trash2,
-  Search,
-  Loader2,
-} from "lucide-react";
+import { ImagePlus, FileText, LinkIcon, X, Plus } from "lucide-react";
 import type { RecetaSalidaDto } from "@/aplicacion/dtos/receta.dto";
 import type { AlimentoNutricionalSalidaDto } from "@/aplicacion/dtos/nutricion.dto";
 import type { ArchivoSalidaDto } from "@/aplicacion/dtos/archivo.dto";
 import { useRecetas } from "@/lib/hooks/useRecetas";
-import { useNutricion } from "@/lib/hooks/useNutricion";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { Textarea } from "@/componentes/ui/textarea";
@@ -32,155 +21,25 @@ import {
 } from "@/componentes/ui/form";
 import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
 import { AdjuntosGuardados } from "@/componentes/recetas/AdjuntosGuardados";
+import { partirEtiquetas, partirEnlaces } from "@/lib/validacionListas";
 import {
-  partirEtiquetas,
-  partirEnlaces,
-  etiquetasEnTexto,
-  enlacesEnTexto,
-  numeroEnRango,
-} from "@/lib/validacionListas";
+  esquema,
+  INGREDIENTE_VACIO,
+  type DatosFormulario,
+} from "./formulario/esquema";
+import {
+  aNumero,
+  calcularTotales,
+  porPorcion,
+  hayMacros,
+} from "./formulario/macros";
+import { TotalItem } from "./formulario/TotalItem";
+import { FilaIngrediente } from "./formulario/FilaIngrediente";
+import { BuscadorAlimento } from "./formulario/BuscadorAlimento";
 
-const numeroOpcional = z
-  .string()
-  .refine(
-    (v) => v === "" || Number(v.replace(",", ".")) >= 0,
-    "Debe ser un número positivo",
-  );
-
-const ingredienteEsquema = z.object({
-  nombre: z.string().min(1, "Nombre").max(200),
-  cantidadGramos: numeroOpcional,
-  caloriasPor100: numeroOpcional,
-  proteinasPor100: numeroOpcional,
-  carbohidratosPor100: numeroOpcional,
-  grasasPor100: numeroOpcional,
-  fuente: z.string(),
-  referenciaExterna: z.string(),
-});
-
-/**
- * Esquema del formulario de receta. Exportado para verificar en un test que no
- * diverge de `crearRecetaDto`.
- *
- * Los límites por elemento de `etiquetas` y `enlaces` no estaban: el formulario
- * solo miraba el largo total del textarea y el servidor validaba cada ítem. El
- * caso que se colaba todos los días era pegar `google.com` sin protocolo —el
- * formulario lo aceptaba y la mutación lo rechazaba con "Debe ser una URL
- * válida"—.
- */
-export const esquema = z.object({
-  nombre: z.string().min(1, "El nombre es obligatorio").max(160),
-  descripcion: z.string().max(1000),
-  // El DTO acepta enteros de 1 a 100: "0 porciones" no es una receta.
-  porciones: numeroOpcional.refine((v) => {
-    if (v === "") return true;
-    const n = Number(v.replace(",", "."));
-    return Number.isFinite(n) && n >= 1 && n <= 100;
-  }, "Entre 1 y 100 porciones"),
-  ingredientes: z.array(ingredienteEsquema).max(100),
-  preparacion: z.string().max(5000),
-  etiquetas: etiquetasEnTexto(500),
-  enlaces: enlacesEnTexto(5000),
-  calorias: numeroEnRango(0, 100_000),
-  proteinasG: numeroEnRango(0, 10_000),
-  carbohidratosG: numeroEnRango(0, 10_000),
-  grasasG: numeroEnRango(0, 10_000),
-});
-type DatosFormulario = z.infer<typeof esquema>;
-type IngredienteFormulario = DatosFormulario["ingredientes"][number];
-
-function aNumero(valor: string | null | undefined): number | null {
-  if (valor == null) return null;
-  const texto = String(valor).trim();
-  if (texto === "") return null;
-  const numero = Number(texto.replace(",", "."));
-  return Number.isFinite(numero) && numero >= 0 ? numero : null;
-}
-
-function redondear1(valor: number): number {
-  return Math.round(valor * 10) / 10;
-}
-
-interface Macros {
-  calorias: number | null;
-  proteinasG: number | null;
-  carbohidratosG: number | null;
-  grasasG: number | null;
-}
-
-/** Suma los macros de los ingredientes con cantidad y datos (espejo del dominio). */
-function calcularTotales(ingredientes: IngredienteFormulario[]): Macros {
-  let cal = 0;
-  let prot = 0;
-  let carb = 0;
-  let gras = 0;
-  let hayCal = false;
-  let hayProt = false;
-  let hayCarb = false;
-  let hayGras = false;
-  for (const ing of ingredientes) {
-    const gramos = aNumero(ing.cantidadGramos);
-    if (gramos == null || gramos <= 0) continue;
-    const factor = gramos / 100;
-    const c = aNumero(ing.caloriasPor100);
-    const p = aNumero(ing.proteinasPor100);
-    const h = aNumero(ing.carbohidratosPor100);
-    const g = aNumero(ing.grasasPor100);
-    if (c != null) {
-      cal += c * factor;
-      hayCal = true;
-    }
-    if (p != null) {
-      prot += p * factor;
-      hayProt = true;
-    }
-    if (h != null) {
-      carb += h * factor;
-      hayCarb = true;
-    }
-    if (g != null) {
-      gras += g * factor;
-      hayGras = true;
-    }
-  }
-  return {
-    calorias: hayCal ? Math.round(cal) : null,
-    proteinasG: hayProt ? redondear1(prot) : null,
-    carbohidratosG: hayCarb ? redondear1(carb) : null,
-    grasasG: hayGras ? redondear1(gras) : null,
-  };
-}
-
-function porPorcion(m: Macros, porciones: number | null): Macros {
-  const p = porciones != null && porciones > 0 ? porciones : 1;
-  return {
-    calorias: m.calorias != null ? Math.round(m.calorias / p) : null,
-    proteinasG: m.proteinasG != null ? redondear1(m.proteinasG / p) : null,
-    carbohidratosG:
-      m.carbohidratosG != null ? redondear1(m.carbohidratosG / p) : null,
-    grasasG: m.grasasG != null ? redondear1(m.grasasG / p) : null,
-  };
-}
-
-function hayMacros(m: Macros): boolean {
-  return (
-    m.calorias != null ||
-    m.proteinasG != null ||
-    m.carbohidratosG != null ||
-    m.grasasG != null
-  );
-}
-
-const INGREDIENTE_VACIO: IngredienteFormulario = {
-  nombre: "",
-  cantidadGramos: "",
-  caloriasPor100: "",
-  proteinasPor100: "",
-  carbohidratosPor100: "",
-  grasasPor100: "",
-  fuente: "MANUAL",
-  referenciaExterna: "",
-};
+// El esquema se reexporta porque `coherencia-formularios-2.test.ts` lo importa
+// desde acá, que sigue siendo el punto de entrada del formulario.
+export { esquema } from "./formulario/esquema";
 
 interface PropsFormularioReceta {
   recetaInicial?: RecetaSalidaDto | null;
@@ -601,198 +460,3 @@ export function FormularioReceta({
 }
 
 /** Muestra un grupo de macros como texto compacto. */
-function TotalItem({ etiqueta, macros }: { etiqueta: string; macros: Macros }) {
-  const partes = [
-    macros.calorias != null && `${macros.calorias} kcal`,
-    macros.proteinasG != null && `${macros.proteinasG} g P`,
-    macros.carbohidratosG != null && `${macros.carbohidratosG} g C`,
-    macros.grasasG != null && `${macros.grasasG} g G`,
-  ].filter(Boolean);
-  return (
-    <span>
-      <span className="text-muted-foreground">{etiqueta}:</span>{" "}
-      {partes.join(" · ")}
-    </span>
-  );
-}
-
-/** Una fila editable de ingrediente (nombre + gramos + macros por 100 g). */
-function FilaIngrediente({
-  form,
-  indice,
-  onQuitar,
-}: {
-  form: UseFormReturn<DatosFormulario>;
-  indice: number;
-  onQuitar: () => void;
-}) {
-  return (
-    <div className="rounded-md border border-dashed p-3">
-      <div className="flex items-start gap-2">
-        <FormField
-          control={form.control}
-          name={`ingredientes.${indice}.nombre`}
-          render={({ field }) => (
-            <FormItem className="min-w-0 flex-1">
-              <FormControl>
-                <Input placeholder="Ingrediente" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="w-24 shrink-0">
-          <FormField
-            control={form.control}
-            name={`ingredientes.${indice}.cantidadGramos`}
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <Input
-                    inputMode="decimal"
-                    placeholder="g"
-                    aria-label="Gramos"
-                    {...field}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label="Quitar ingrediente"
-          className="shrink-0"
-          onClick={onQuitar}
-        >
-          <Trash2 className="h-4 w-4 text-destructive" />
-        </Button>
-      </div>
-      <div className="mt-2 grid grid-cols-4 gap-2 pr-10">
-        {(
-          [
-            ["caloriasPor100", "kcal/100g"],
-            ["proteinasPor100", "P/100g"],
-            ["carbohidratosPor100", "C/100g"],
-            ["grasasPor100", "G/100g"],
-          ] as const
-        ).map(([nombre, etiqueta]) => (
-          <FormField
-            key={nombre}
-            control={form.control}
-            name={`ingredientes.${indice}.${nombre}`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-[0.65rem] text-muted-foreground">
-                  {etiqueta}
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    inputMode="decimal"
-                    placeholder="—"
-                    className="h-8"
-                    {...field}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/** Buscador de alimentos contra Open Food Facts; agrega el elegido como ingrediente. */
-function BuscadorAlimento({
-  onElegir,
-}: {
-  onElegir: (alimento: AlimentoNutricionalSalidaDto) => void;
-}) {
-  const { buscarAlimento } = useNutricion();
-  const [termino, setTermino] = useState("");
-  const [debounced, setDebounced] = useState("");
-  const [abierto, setAbierto] = useState(false);
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(termino.trim()), 400);
-    return () => clearTimeout(t);
-  }, [termino]);
-
-  const habilitado = debounced.length >= 2;
-  const consulta = buscarAlimento(
-    { termino: debounced, limite: 8 },
-    { enabled: habilitado, staleTime: 60_000 },
-  );
-  const resultados = consulta.data ?? [];
-
-  return (
-    <div className="relative">
-      <div className="flex items-center gap-2 rounded-md border px-2">
-        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <Input
-          value={termino}
-          onChange={(e) => {
-            setTermino(e.target.value);
-            setAbierto(true);
-          }}
-          onFocus={() => setAbierto(true)}
-          placeholder="Buscar alimento (ej. arroz, pollo, yogur)…"
-          className="border-0 px-1 shadow-none focus-visible:ring-0"
-        />
-        {consulta.isFetching && habilitado && (
-          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
-        )}
-      </div>
-
-      {abierto && habilitado && (
-        <div className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-md border bg-popover p-1 shadow-md">
-          {resultados.length === 0 && !consulta.isFetching && (
-            <p className="px-2 py-3 text-sm text-muted-foreground">
-              Sin resultados. Cargá el ingrediente a mano.
-            </p>
-          )}
-          {resultados.map((alimento, i) => (
-            <button
-              key={`${alimento.referenciaExterna ?? alimento.nombre}-${i}`}
-              type="button"
-              className="flex w-full flex-col items-start gap-0.5 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
-              onClick={() => {
-                onElegir(alimento);
-                setTermino("");
-                setDebounced("");
-                setAbierto(false);
-              }}
-            >
-              <span className="font-medium">
-                {alimento.nombre}
-                {alimento.marca ? (
-                  <span className="text-muted-foreground">
-                    {" "}
-                    · {alimento.marca}
-                  </span>
-                ) : null}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {[
-                  alimento.caloriasPor100 != null &&
-                    `${alimento.caloriasPor100} kcal`,
-                  alimento.proteinasPor100 != null &&
-                    `${alimento.proteinasPor100} P`,
-                  alimento.carbohidratosPor100 != null &&
-                    `${alimento.carbohidratosPor100} C`,
-                  alimento.grasasPor100 != null && `${alimento.grasasPor100} G`,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}{" "}
-                (por 100 g)
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
