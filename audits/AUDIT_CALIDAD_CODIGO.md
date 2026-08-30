@@ -9,11 +9,13 @@ historial completo) + tamaño/complejidad + criticidad de negocio. Se ejecutó l
 suite de tests (`vitest run`) y el script de lint (`npm run lint`) contra el
 árbol de trabajo actual.
 
-> **Estado de ejecución — hallazgos #1, #2, #3, #5 y #15: RESUELTOS.** Pasos 1 a
-> 4 y 6 completos; el 5, arrancado. Ver §7 (linter y formato), §8 (mapeadores), §9 y
-> §10 (coherencia formulario↔DTO), §11 y §12 (casos de uso) y §13 (partición de
-> los servicios) para el registro de lo que se hizo, lo que se calibró, los ocho
-> bugs que aparecieron y en qué se equivocó esta auditoría al estimarlo.
+> **Estado de ejecución — hallazgos #1, #2, #3, #5, #7 y #15: RESUELTOS.** Pasos
+> 1 a 4, 6 y 7 completos; el 5, al 75 %. Los casos de uso se movieron a la capa
+> de aplicación (§14). Ver §7 (linter y formato), §8 (mapeadores), §9 y
+> §10 (coherencia formulario↔DTO), §11 y §12 (casos de uso), §13 (partición de
+> los servicios), §14 (movimiento de capa) y §15 (FormularioPlan) para el
+> registro de lo que se hizo, lo que se calibró, los ocho bugs que aparecieron y
+> en qué se equivocó esta auditoría al estimarlo.
 
 ---
 
@@ -1468,3 +1470,152 @@ cumple; el nombre de la carpeta es lo que no sigue la convención.**
 Este paso deja el terreno mejor preparado para ese movimiento, si se decide
 hacerlo: la capa de aplicación ya no es un puñado de fachadas de 20 dependencias
 sino ocho servicios cohesivos, que es donde los casos de uso encajarían.
+
+---
+
+## 14. Registro de ejecución — mover los casos de uso a `aplicacion/`
+
+**Commit:** `15cf813`. **892 → 893 tests.** La decisión que quedó pendiente en
+§13.4.
+
+### 14.1 Lo que la medición previa confirmó
+
+Antes de mover nada, la reescritura de imports dejó el dato exacto: los **909
+imports** que salían de `casos-de-uso/` apuntaban **exclusivamente** al dominio.
+
+| Destino | Imports |
+| --- | --- |
+| `dominio/repositorios` | 328 |
+| `dominio/errores` | 279 |
+| `dominio/entidades` | 231 |
+| `dominio/servicios` | 70 |
+| `dominio/plantillas` | 1 |
+| `aplicacion/*` o cualquier capa externa | **0** |
+
+**La regla de dependencia ya se cumplía; lo que estaba mal era el nombre de la
+carpeta.** El movimiento es nominal y no toca comportamiento.
+
+### 14.2 El orden importa (y me equivoqué primero)
+
+El primer intento reescribió los imports **después** de mover, resolviendo cada
+ruta relativa contra la ubicación nueva. Eso convierte `../../repositorios` en
+`aplicacion/repositorios`, que no existe. Se revirtió con `git reset --hard` y
+se rehízo en el orden correcto:
+
+1. **Antes de mover:** reescribir los relativos que *salen* de `casos-de-uso` a
+   alias `@/dominio/*`, resolviendo contra la ubicación real que todavía tienen.
+   Verificado con `tsc` **antes** del movimiento.
+2. `git mv` (conserva el historial: `git log --follow` sigue llegando al commit
+   original).
+3. **Después:** reapuntar `@/dominio/casos-de-uso` → `@/aplicacion/casos-de-uso`
+   en los 64 archivos que los consumen.
+
+Hacerlo por patrón de texto no funciona: conviven dos profundidades
+(`casos-de-uso/modulo/X.ts` y `casos-de-uso/_ayudas-test.ts`) y cualquier regla
+fija se equivoca en una de las dos.
+
+**Un caso quedó fuera del script:** un `await import()` dinámico en
+`ActualizarPaciente.test.ts`, que no matchea el patrón `from "…"`. Lo encontró
+`tsc`. Vale como recordatorio de que un grep de imports no ve los dinámicos.
+
+### 14.3 La garantía que el movimiento se llevó puesta
+
+Esto es lo más importante del paso, y no es obvio:
+
+**Mientras los casos de uso vivieron en `dominio/`, la regla de "dominio puro"
+les impedía *gratis* importar un DTO de la capa de aplicación.** En
+`aplicacion/` esa protección desaparece — el test de arquitectura ya no tiene
+motivo para mirarlos.
+
+Importa por dos razones concretas:
+
+1. Un caso de uso que recibe un DTO queda atado a la forma que la UI necesita
+   hoy, y deja de poder invocarse desde el worker o desde otro caso de uso sin
+   arrastrar esa forma.
+2. Es lo que permite testearlos con un objeto plano y un mock de repositorio,
+   sin levantar Zod ni la capa de servicios.
+
+Se repuso como **regla explícita** del test de arquitectura: *"los casos de uso
+no dependen de los DTOs ni de los servicios de aplicación"*. Hoy cada caso de
+uso define su propio tipo de entrada (`DatosNuevoPacienteConAcceso`, por
+ejemplo) y el servicio de aplicación traduce del DTO a ese tipo; el test congela
+ese reparto.
+
+**Verificado por mutación:** al hacer que `CrearPaciente` importe un DTO, el
+test falla nombrando el archivo.
+
+> **Lección general:** un refactor que "solo mueve archivos" puede desactivar una
+> garantía sin que nada falle. Conviene preguntarse siempre qué reglas dependían
+> de la ubicación anterior.
+
+---
+
+## 15. Registro de ejecución — paso 7: partir `FormularioPlan`
+
+**Commit:** `b309f02`. **Cierra el hallazgo #7.** **893 → 898 tests.**
+
+| | Antes | Después |
+| --- | --- | --- |
+| `FormularioPlan.tsx` | 914 ln | **283 ln** (orquestador) |
+| JSX del `return` | **451 ln** | ~70 ln |
+| Archivos | 1 | 1 + 7 en `formulario/` |
+
+```
+formulario/esquema.ts                 el Zod, los tipos, los sentinelas
+formulario/SeccionDatosGenerales.tsx  nombre, descripción, carpeta
+formulario/SeccionMetasMacros.tsx     las cuatro metas
+formulario/SeccionArchivos.tsx        el PDF que ES el plan + los adjuntos
+formulario/SeccionComidas.tsx         franjas y opciones (absorbe OpcionesDeComida)
+formulario/SeccionListas.tsx          equivalencias y recomendaciones
+formulario/FilaArchivo.tsx            la fila + aFichaArchivo
+```
+
+### 15.1 Las dos excepciones al "solo el control"
+
+La regla es que cada sección reciba el `control` del formulario y nada más. Dos
+reciben el `form` entero, y está justificado en el código:
+
+- **`SeccionComidas`** necesita `formState.errors`: el error *"agregá al menos
+  una comida"* viene del `superRefine` del esquema entero y no cuelga de ningún
+  campo, así que no llega por `control`.
+- **`SeccionArchivoPrincipal`** necesita `setValue`: la ficha del archivo vive en
+  estado del componente (para mostrar nombre y tamaño) mientras que lo que se
+  valida es el id, que vive en el formulario. Los dos tienen que moverse juntos.
+
+Equivalencias y recomendaciones quedaron en **un solo archivo** a propósito:
+comparten la forma exacta —encabezado con botón, filas de dos campos, botón de
+quitar— y separarlas en dos módulos de 60 líneas casi idénticas invitaría a que
+se desincronizaran.
+
+### 15.2 Lo que el refactor habilita (era el argumento de la auditoría)
+
+§2.3 sostenía que partir el formulario *"habilita el test que hoy no existe"*.
+Quedó demostrado: **`secciones.test.tsx` no podía existir antes.** Montar la
+sección de metas exigía montar el formulario entero, con sus dos hooks de tRPC,
+el subidor de archivos y los tres arrays anidados. Ahora el envoltorio completo
+es un `useForm` con el esquema real y nada más.
+
+Uno de esos tests verifica que los cuatro macros estén cableados cada uno a su
+propio `name`. Son cuatro inputs consecutivos, idénticos en aspecto y tipo:
+cruzar dos en el JSX no rompe nada visible, solo deja el plan con las proteínas
+cargadas en grasas.
+
+### 15.3 Estado de la hoja de ruta
+
+| Paso | Estado |
+| --- | --- |
+| 1. ESLint + Prettier | ✅ |
+| 2. Gates de CI | ✅ (falta activar branch protection en GitHub) |
+| 3. Tests de mapeadores | ✅ |
+| 4. `.tsx` en vitest + tests de formularios | ✅ |
+| 5. Casos de uso sin cubrir | 🟡 **140/186 (75 %)** |
+| 6. Partir los servicios gigantes | ✅ |
+| 7. Partir `FormularioPlan` | ✅ |
+| 8. Base genérica de repositorios | ⬜ |
+| 9. Partir `_ayudas-test.ts` y `composicionCorporal.ts` | ⬜ |
+| 10. Separar `IPlanRepositorio` | ⬜ |
+| — | Mover casos de uso a `aplicacion/` ✅ (fuera de la hoja original) |
+
+**Quedan tres componentes por encima de 650 líneas**, con el mismo patrón que
+`FormularioPlan` y el mismo tratamiento disponible: `DashboardComposicion.tsx`
+(711), `FormularioReceta.tsx` (701) y `SeccionDeportiva.tsx` (673).
