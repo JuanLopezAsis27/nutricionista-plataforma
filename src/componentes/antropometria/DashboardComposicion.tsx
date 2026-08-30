@@ -1,45 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { Activity, Flame, Ruler, Scale, Waves } from "lucide-react";
 import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
-import type { RiesgoCinturaCadera } from "@/dominio/servicios/composicionCorporal";
-import { formatearFecha, formatearNumero } from "@/lib/formato";
-import { cn } from "@/lib/utilidades";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/componentes/ui/card";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/componentes/ui/select";
 import type { MetodoGrasa } from "@/dominio/servicios/grasaPorPliegues";
-import { DEFINICIONES_METODO } from "@/dominio/servicios/grasaPorPliegues";
-import { DonutMasas } from "./DonutMasas";
-import {
-  EvolucionMasas,
-  EvolucionScoreZ,
-  EvolucionGrasa,
-} from "./EvolucionMasas";
 import { PerfilPhantom } from "./PerfilPhantom";
 import { Somatocarta, type PuntoSomatocarta } from "./Somatocarta";
 import { useTemaComposicion } from "./useTemaComposicion";
-import { Indicador, Fila, signo } from "./dashboard/piezas";
 import { AvisoFaltantes } from "./dashboard/AvisoFaltantes";
+import { CabeceraMedicion } from "./dashboard/CabeceraMedicion";
+import { IndicadoresCabecera } from "./dashboard/IndicadoresCabecera";
 import { TarjetaGrasa } from "./dashboard/TarjetaGrasa";
-
-const ETIQUETAS_RIESGO: Record<RiesgoCinturaCadera, string> = {
-  BAJO: "Riesgo bajo",
-  MODERADO: "Riesgo moderado",
-  ALTO: "Riesgo alto",
-  MUY_ALTO: "Riesgo muy alto",
-};
+import { TarjetaFraccionamiento } from "./dashboard/TarjetaFraccionamiento";
+import { TarjetasEvolucion } from "./dashboard/TarjetasEvolucion";
+import { TarjetaIndices } from "./dashboard/TarjetaIndices";
+import { TarjetaEnergia } from "./dashboard/TarjetaEnergia";
 
 /**
  * Dashboard de composición corporal.
@@ -48,6 +28,10 @@ const ETIQUETAS_RIESGO: Record<RiesgoCinturaCadera, string> = {
  * el componente solo elige QUÉ medición mirar y cómo dibujarla. La medición
  * seleccionada por defecto es la última, y la comparación es siempre contra
  * la inmediatamente anterior.
+ *
+ * Lo que queda en este archivo es esa elección: cuál es la medición actual,
+ * cuál la anterior, qué ecuación de grasa manda y en qué orden van las
+ * tarjetas. El dibujo de cada una vive en `dashboard/`.
  */
 export function DashboardComposicion({
   mediciones,
@@ -105,283 +89,57 @@ export function DashboardComposicion({
   const metodoDeSerie =
     metodoSerie ?? grasaDestacada?.metodo ?? metodosDisponibles[0] ?? null;
 
+  // El protocolo decide qué modelo va primero: con DOS_COMPONENTES la grasa
+  // por pliegues es lo que se midió, y el fraccionamiento de Kerr pasa a ser
+  // el complemento. Con el resto, al revés.
   const dosComponentesPrimero = actual.protocolo === "DOS_COMPONENTES";
+  const tarjetaGrasa = (
+    <TarjetaGrasa
+      actual={actual}
+      anterior={anterior}
+      grasaDestacada={grasaDestacada}
+      tema={tema}
+    />
+  );
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h3 className="font-semibold">
-            Medición del {formatearFecha(actual.fecha)}
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            {actual.edadAnios != null &&
-              `${formatearNumero(actual.edadAnios)} años · `}
-            {anterior
-              ? `Comparada con la del ${formatearFecha(anterior.fecha)}`
-              : "Primera medición del paciente"}
-          </p>
-        </div>
-        {mediciones.length > 1 && (
-          <Select
-            value={actual.id}
-            onValueChange={(valor) => setSeleccionadaId(valor)}
-          >
-            <SelectTrigger className="w-auto min-w-[12rem]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[...mediciones].reverse().map((m, indice) => (
-                <SelectItem key={m.id} value={m.id}>
-                  {formatearFecha(m.fecha)}
-                  {indice === 0 && " (última)"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
+      <CabeceraMedicion
+        actual={actual}
+        anterior={anterior}
+        mediciones={mediciones}
+        alSeleccionar={setSeleccionadaId}
+      />
 
       <AvisoFaltantes faltantes={resultado.faltantes} />
 
-      {/* Indicadores de cabecera: lo que se mira primero. */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Indicador
-          icono={Scale}
-          titulo="Peso"
-          valor={formatearNumero(actual.medidas.pesoKg)}
-          unidad="kg"
-          detalle={
-            anterior
-              ? `${signo(actual.medidas.pesoKg - anterior.medidas.pesoKg)} kg vs. anterior`
-              : resultado.indices.imc != null
-                ? `IMC ${formatearNumero(resultado.indices.imc)}`
-                : undefined
-          }
-        />
-        {dosComponentesPrimero ? (
-          <>
-            <Indicador
-              icono={Waves}
-              titulo="Grasa corporal"
-              valor={
-                grasaDestacada
-                  ? formatearNumero(grasaDestacada.porcentajeGrasa)
-                  : "—"
-              }
-              unidad="%"
-              color={tema.masas.adiposa}
-              detalle={
-                grasaDestacada
-                  ? `${formatearNumero(grasaDestacada.masaGrasaKg)} kg · ${grasaDestacada.etiqueta}`
-                  : "Faltan pliegues o el sexo del paciente"
-              }
-            />
-            <Indicador
-              icono={Activity}
-              titulo="Masa libre de grasa"
-              valor={
-                grasaDestacada
-                  ? formatearNumero(grasaDestacada.masaLibreGrasaKg)
-                  : "—"
-              }
-              unidad="kg"
-              color={tema.masas.muscular}
-              detalle={
-                grasaDestacada
-                  ? `${formatearNumero(100 - grasaDestacada.porcentajeGrasa)} % del peso`
-                  : "Faltan medidas"
-              }
-            />
-          </>
-        ) : (
-          <>
-            <Indicador
-              icono={Waves}
-              titulo="Masa adiposa"
-              valor={
-                resultado.fraccionamiento
-                  ? formatearNumero(resultado.fraccionamiento.adiposa.kg)
-                  : "—"
-              }
-              unidad="kg"
-              color={tema.masas.adiposa}
-              detalle={
-                resultado.fraccionamiento
-                  ? `${formatearNumero(resultado.fraccionamiento.adiposa.porcentaje)} % del peso`
-                  : "Faltan medidas"
-              }
-            />
-            <Indicador
-              icono={Activity}
-              titulo="Masa muscular"
-              valor={
-                resultado.fraccionamiento
-                  ? formatearNumero(resultado.fraccionamiento.muscular.kg)
-                  : "—"
-              }
-              unidad="kg"
-              color={tema.masas.muscular}
-              detalle={
-                resultado.fraccionamiento
-                  ? `${formatearNumero(resultado.fraccionamiento.muscular.porcentaje)} % del peso`
-                  : "Faltan medidas"
-              }
-            />
-          </>
-        )}
-        <Indicador
-          icono={Flame}
-          titulo={
-            resultado.energia?.gastoEnergeticoTotalKcal != null
-              ? "Gasto total"
-              : "Metabolismo basal"
-          }
-          valor={
-            resultado.energia
-              ? formatearNumero(
-                  resultado.energia.gastoEnergeticoTotalKcal ??
-                    resultado.energia.metabolismoBasalKcal,
-                )
-              : "—"
-          }
-          unidad="kcal"
-          detalle={
-            resultado.energia == null
-              ? "Falta sexo o fecha de nacimiento"
-              : resultado.energia.gastoEnergeticoTotalKcal != null
-                ? `MB ${formatearNumero(resultado.energia.metabolismoBasalKcal)} × ${formatearNumero(resultado.energia.factorActividad)}`
-                : "Cargá el nivel de actividad para el gasto total"
-          }
-        />
-      </div>
+      <IndicadoresCabecera
+        actual={actual}
+        anterior={anterior}
+        grasaDestacada={grasaDestacada}
+        dosComponentesPrimero={dosComponentesPrimero}
+        tema={tema}
+      />
 
-      {dosComponentesPrimero && (
-        <TarjetaGrasa
-          actual={actual}
-          anterior={anterior}
-          grasaDestacada={grasaDestacada}
-          tema={tema}
-        />
-      )}
+      {dosComponentesPrimero && tarjetaGrasa}
 
       {resultado.fraccionamiento && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">
-              Fraccionamiento en 5 masas{" "}
-              <span className="font-normal text-muted-foreground">
-                (Kerr, 1988)
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <DonutMasas
-              fraccionamiento={resultado.fraccionamiento}
-              anterior={anterior?.resultado.fraccionamiento ?? null}
-              tema={tema}
-            />
-            <p className="border-t pt-3 text-xs text-muted-foreground">
-              Peso estructurado{" "}
-              {formatearNumero(resultado.fraccionamiento.pesoEstructuradoKg)} kg
-              · diferencia con la balanza{" "}
-              <span
-                className={cn(
-                  "font-medium tabular-nums",
-                  Math.abs(resultado.fraccionamiento.diferenciaPorcentaje) >
-                    0.02 && "text-destructive",
-                )}
-              >
-                {formatearNumero(
-                  resultado.fraccionamiento.diferenciaPorcentaje * 100,
-                )}{" "}
-                %
-              </span>
-              . Por encima del 2 % conviene revisar la toma de medidas.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {!dosComponentesPrimero && (
-        <TarjetaGrasa
-          actual={actual}
-          anterior={anterior}
-          grasaDestacada={grasaDestacada}
+        <TarjetaFraccionamiento
+          fraccionamiento={resultado.fraccionamiento}
+          anterior={anterior?.resultado.fraccionamiento ?? null}
           tema={tema}
         />
       )}
 
-      {mediciones.length > 1 && metodoDeSerie != null && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-sm font-semibold">
-              <span>Evolución del porcentaje graso</span>
-              {metodosDisponibles.length > 1 && (
-                <Select
-                  value={metodoDeSerie}
-                  onValueChange={(valor) =>
-                    setMetodoSerie(valor as MetodoGrasa)
-                  }
-                >
-                  <SelectTrigger className="h-8 w-auto min-w-[14rem] text-xs font-normal">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {metodosDisponibles.map((metodo) => (
-                      <SelectItem key={metodo} value={metodo}>
-                        {DEFINICIONES_METODO[metodo].etiqueta}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pl-0 pr-3">
-            <EvolucionGrasa
-              mediciones={mediciones}
-              metodo={metodoDeSerie}
-              tema={tema}
-            />
-            <p className="px-4 pt-2 text-xs text-muted-foreground">
-              Toda la serie usa la misma ecuación. Cambiar de método a mitad de
-              seguimiento mueve el número sin que el paciente haya cambiado.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {!dosComponentesPrimero && tarjetaGrasa}
 
-      {mediciones.length > 1 && (
-        <div className="grid gap-4 xl:grid-cols-2">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">
-                Evolución de las masas
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pl-0 pr-3">
-              <div className="px-4">
-                <EvolucionMasas mediciones={mediciones} tema={tema} />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">
-                Score-Z de las masas
-                <span className="ml-1 font-normal text-muted-foreground">
-                  (contra el Phantom)
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pl-0 pr-3">
-              <EvolucionScoreZ mediciones={mediciones} tema={tema} />
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <TarjetasEvolucion
+        mediciones={mediciones}
+        metodo={metodoDeSerie}
+        metodosDisponibles={metodosDisponibles}
+        alCambiarMetodo={setMetodoSerie}
+        tema={tema}
+      />
 
       <div className="grid gap-4 xl:grid-cols-2">
         {resultado.somatotipo && (
@@ -417,119 +175,8 @@ export function DashboardComposicion({
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-1.5 text-sm font-semibold">
-              <Ruler className="h-4 w-4 text-muted-foreground" /> Índices
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <dl className="divide-y text-sm">
-              <Fila
-                etiqueta="IMC"
-                valor={resultado.indices.imc}
-                unidad="kg/m²"
-              />
-              <Fila
-                etiqueta="Índice cintura/cadera"
-                valor={resultado.indices.indiceCinturaCadera}
-                nota={
-                  resultado.indices.riesgoCinturaCadera
-                    ? ETIQUETAS_RIESGO[resultado.indices.riesgoCinturaCadera]
-                    : undefined
-                }
-              />
-              <Fila
-                etiqueta="Σ 6 pliegues"
-                valor={resultado.indices.sumatoria6Pliegues}
-                unidad="mm"
-              />
-              <Fila
-                etiqueta="Índice músculo/óseo"
-                valor={resultado.indices.indiceMusculoOseo}
-              />
-              <Fila
-                etiqueta="Índice adiposo/muscular"
-                valor={resultado.indices.indiceAdiposoMuscular}
-              />
-              <Fila
-                etiqueta="Índice córmico"
-                valor={resultado.indices.indiceCormico}
-                unidad="%"
-                nota="Talla sentado / talla"
-              />
-              <Fila
-                etiqueta="Superficie corporal"
-                valor={resultado.indices.superficieCorporalM2}
-                unidad="m²"
-                nota="Du Bois, 1916"
-              />
-              <Fila
-                etiqueta="Índice muscular/lastre"
-                valor={resultado.indices.indiceMuscularLastre}
-              />
-            </dl>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-1.5 text-sm font-semibold">
-              <Flame className="h-4 w-4 text-muted-foreground" /> Energía y peso
-              de referencia
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {resultado.energia == null ? (
-              <p className="text-sm text-muted-foreground">
-                Para estimar el metabolismo hacen falta la talla, el sexo
-                biológico y la fecha de nacimiento del paciente.
-              </p>
-            ) : (
-              <dl className="divide-y text-sm">
-                <Fila
-                  etiqueta="Peso ideal (OMS)"
-                  valor={resultado.energia.pesoIdealKg}
-                  unidad="kg"
-                  nota={`Rango ${formatearNumero(resultado.energia.pesoIdealMinKg)}–${formatearNumero(resultado.energia.pesoIdealMaxKg)} kg`}
-                />
-                <Fila
-                  etiqueta="Masa libre de grasa"
-                  valor={resultado.energia.masaLibreGrasaKg}
-                  unidad="kg"
-                />
-                <Fila
-                  etiqueta="Metabolismo basal"
-                  valor={resultado.energia.metabolismoBasalKcal}
-                  unidad="kcal"
-                  nota="Harris & Benedict, 1919"
-                />
-                <Fila
-                  etiqueta="MB (Cunningham)"
-                  valor={resultado.energia.metabolismoCunninghamKcal}
-                  unidad="kcal"
-                  nota="Sobre masa libre de grasa"
-                />
-                <Fila
-                  etiqueta="MB (Kleiber)"
-                  valor={resultado.energia.metabolismoKleiberKcal}
-                  unidad="kcal"
-                />
-                <Fila
-                  etiqueta="Gasto energético total"
-                  valor={resultado.energia.gastoEnergeticoTotalKcal}
-                  unidad="kcal"
-                  nota={
-                    resultado.energia.factorActividad != null
-                      ? `Factor ${formatearNumero(resultado.energia.factorActividad)} (OMS, 1985)`
-                      : "Cargá el nivel de actividad de la medición"
-                  }
-                  destacado
-                />
-              </dl>
-            )}
-          </CardContent>
-        </Card>
+        <TarjetaIndices indices={resultado.indices} />
+        <TarjetaEnergia energia={resultado.energia} />
       </div>
     </div>
   );
