@@ -9,10 +9,11 @@ historial completo) + tamaño/complejidad + criticidad de negocio. Se ejecutó l
 suite de tests (`vitest run`) y el script de lint (`npm run lint`) contra el
 árbol de trabajo actual.
 
-> **Estado de ejecución — hallazgos #1, #2, #3, #5, #7, #9, #15 y #17:
-> RESUELTOS.** Pasos 1 a 4 y 6 a 8 completos; el 5, al 78 %. Los casos de uso se
-> movieron a la capa de aplicación (§14) y los cuatro componentes sobre 650
-> líneas se partieron (§15, §16). Ver §7 (linter y formato), §8 (mapeadores), §9 y
+> **Estado de ejecución — hallazgos #1, #2, #3, #5, #7, #8, #9, #11, #12, #14,
+> #15 y #17: RESUELTOS.** Pasos 1 a 9 completos; queda el 10. Los casos de uso
+> se movieron a la capa de aplicación (§14), los cuatro componentes sobre 650
+> líneas se partieron (§15, §16) y la cobertura de casos de uso pasó de 76 % a
+> 97 % (§18). **722 → 993 tests.** Ver §7 (linter y formato), §8 (mapeadores), §9 y
 > §10 (coherencia formulario↔DTO), §11 y §12 (casos de uso), §13 (partición de
 > los servicios), §14 (movimiento de capa) y §15 (FormularioPlan) para el
 > registro de lo que se hizo, lo que se calibró, los ocho bugs que aparecieron y
@@ -1767,3 +1768,136 @@ medio y sin que el compilador avisara.
 4. **`DashboardComposicion`**, que quedó en 536 líneas.
 5. **Subir a `error`** las reglas del React Compiler cuando se salden los 36
    avisos anotados en §7.6.
+
+---
+
+## 18. Registro de ejecución — paso 5 completo
+
+**Commit:** `bda3c16`. **916 → 993 tests.**
+
+| | |
+| --- | --- |
+| Cobertura de casos de uso | 142/186 (76 %) → **181/186 (97 %)** |
+
+Los 5 que el medidor marca sin cubrir son **3 reales**
+(`ListarSeguimientoRecordatorios`, `ObtenerDetalleEstadistica`,
+`ObtenerInsightsPredictivos`) más dos falsos negativos: `plantilla` reexporta y
+`predeterminada` sí está cubierto, pero el medidor busca `export function` y no
+los ve.
+
+### 18.1 Lo que quedó fijado, más allá del conteo
+
+**Plantillas de WhatsApp — la invariante de UNA sola predeterminada.** Sin
+ninguna, el barrido automático no manda nada; con dos, elige cualquiera. Los dos
+escenarios se descubren al día siguiente. Quedaron cubiertas las tres piezas que
+la sostienen: la primera plantilla queda predeterminada aunque no lo pidan,
+marcar una nueva desmarca la anterior, y la predeterminada no se puede borrar.
+
+**Mensajería — la conversación puede no existir todavía**, y las tres
+operaciones deciden distinto a propósito: contar devuelve 0, marcar leídos no
+hace nada, abrir el hilo la crea. También que el contador del portal se acota al
+paciente: sin eso, la campanita de un paciente mostraría los no leídos de los
+demás.
+
+**WhatsApp — la ventana de 24 h de Meta**, que la app calcula para avisar *antes*
+de que el envío falle. Y que enviar sin API conectada se **rechaza** en vez de
+fingir que salió.
+
+**El guard de pertenencia.** Varios lectores piden el paciente antes de devolver
+sus datos aunque no lo usen para nada más. No es redundante: es lo que hace que
+un id de otro consultorio devuelva "no encontrado" en vez del dato.
+
+### 18.2 Dos hallazgos sobre el dominio
+
+- **`PlantillaAntropometrica` rechaza una plantilla que no alcance para calcular
+  nada.** El piso es Faulkner: cuatro pliegues. La fábrica de ejemplo que
+  escribí no lo cumplía, y por eso los primeros tests fallaron.
+- **`ObtenerMetricasDelPaciente` recibe `(pacienteId, desde, hasta)` por
+  posición.** Invertir las dos fechas devuelve lista vacía sin fallar, y el
+  gráfico del paciente aparece en blanco sin que nada indique por qué.
+
+Se agregó `mockPlantillaAntropometricaRepositorio` y su fábrica a las ayudas,
+que no existían.
+
+---
+
+## 19. Registro de ejecución — paso 9: los dos archivos más grandes
+
+**Commit:** `8861025`. Cierra los hallazgos **#8** y **#14**.
+
+### 19.1 `_ayudas-test.ts`: 1.355 → 14 líneas
+
+```
+_ayudas/repositorios.ts   612 ln · 37 mocks de puertos de persistencia
+_ayudas/servicios.ts      174 ln · 12 mocks de reloj/email/cola/WhatsApp/IA
+_ayudas/entidades.ts      643 ln · 30 fábricas *Ejemplo
+_ayudas-test.ts            14 ln · fachada que reexporta las tres
+```
+
+**El motivo no era el tamaño sino los conflictos de merge.** Era el segundo
+archivo más modificado del repositorio (11 commits, empatado con
+`schema.prisma`) y cada feature nueva lo tocaba en el mismo lugar.
+
+Dos decisiones que valen la pena:
+
+- **Los bloques se clasificaron por nombre, no por rango de líneas.** Los mocks
+  de servicio estaban intercalados entre los de repositorio, así que cualquier
+  corte por posición habría mezclado las dos familias.
+- **Cero cambios en los 144 archivos de test** que lo importan: la fachada
+  reexporta y los 993 tests siguen en verde sin tocar un solo import.
+
+### 19.2 `composicionCorporal.ts`: 984 → 744 líneas
+
+```
+composicion/referenciasPhantom.ts   233 ln · las tablas de Ross & Wilson
+composicion/etiquetasMedida.ts       41 ln · los rótulos de pantalla
+```
+
+**Fue el segundo intento, y el primero vale la pena anotarlo.** La versión
+inicial separaba también los **tipos**, siguiendo la estructura que sugería §1
+hallazgo #14. Eso creaba un **ciclo**: `VariablePhantom` se define junto a las
+tablas pero `PuntoPhantom` lo usa, y `GrupoPhantom` al revés.
+
+Los tipos del modelo Phantom y sus tablas son **una sola pieza**; separarlos
+pedía romper una relación que es real y no un accidente del archivo. Se revirtió
+con `git checkout` y se extrajeron solo los dos bloques que son inequívocamente
+**datos**.
+
+Las etiquetas se quedan **dentro del dominio** —aunque §1 las señalara como
+"etiquetas de UI en el dominio"— porque las usan los mensajes de error de las
+entidades (*"falta pliegue supraespinal"*), que no pueden depender de la capa de
+presentación. Moverlas a `componentes/` habría invertido esa dependencia.
+
+> **Corrección a §1 hallazgo #14:** decía que el archivo "mezcla tipos, tablas y
+> algoritmos" y sugería separar los tres. Separar los tipos no es posible sin
+> romper el modelo; el hallazgo era correcto sobre las tablas y las etiquetas, y
+> optimista sobre los tipos.
+
+### 19.3 Estado de la hoja de ruta
+
+| Paso | Estado |
+| --- | --- |
+| 1. ESLint + Prettier | ✅ |
+| 2. Gates de CI | ✅ (falta branch protection en GitHub) |
+| 3. Tests de mapeadores | ✅ |
+| 4. `.tsx` en vitest + tests de formularios | ✅ |
+| 5. Casos de uso sin cubrir | ✅ **181/186 (97 %)** |
+| 6. Partir los servicios gigantes | ✅ |
+| 7. Partir `FormularioPlan` | ✅ |
+| 8. Base genérica de repositorios | ✅ |
+| 9. Partir `_ayudas-test` y `composicionCorporal` | ✅ |
+| 10. Separar `IPlanRepositorio` | ⬜ |
+| — | Mover casos de uso a `aplicacion/` ✅ |
+| — | Los cuatro componentes sobre 650 ln ✅ (Dashboard parcial) |
+
+**Total: 722 → 993 tests** desde el inicio de la auditoría.
+
+**Lo que queda:**
+
+1. **Paso 10**: separar `IPlanRepositorio` (17 métodos, dos agregados) en dos
+   puertos.
+2. **3 casos de uso** sin cubrir, todos de lectura.
+3. **`DashboardComposicion`**, que quedó en 536 líneas.
+4. **Subir a `error`** las reglas del React Compiler cuando se salden los 36
+   avisos de §7.6.
+5. **Branch protection** en GitHub — configuración de la web, no código.
