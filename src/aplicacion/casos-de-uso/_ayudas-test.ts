@@ -8,6 +8,7 @@ import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoReposit
 import type { IHistoriaClinicaRepositorio } from "@/dominio/repositorios/IHistoriaClinicaRepositorio";
 import type { IAntropometriaRepositorio } from "@/dominio/repositorios/IAntropometriaRepositorio";
 import type { IObjetivoComposicionRepositorio } from "@/dominio/repositorios/IObjetivoComposicionRepositorio";
+import type { IPlantillaAntropometricaRepositorio } from "@/dominio/repositorios/IPlantillaAntropometricaRepositorio";
 import type { IAlertaAlimentariaRepositorio } from "@/dominio/repositorios/IAlertaAlimentariaRepositorio";
 import type { ILaboratorioRepositorio } from "@/dominio/repositorios/ILaboratorioRepositorio";
 import type { IRegistroDiarioRepositorio } from "@/dominio/repositorios/IRegistroDiarioRepositorio";
@@ -34,6 +35,10 @@ import type { IRecordatorioWhatsappRepositorio } from "@/dominio/repositorios/IR
 import type { IProveedorWhatsapp } from "@/dominio/servicios/IProveedorWhatsapp";
 import type { IMensajeWhatsappRepositorio } from "@/dominio/repositorios/IMensajeWhatsappRepositorio";
 import { MensajeWhatsapp } from "@/dominio/entidades/MensajeWhatsapp";
+import {
+  PlantillaAntropometrica,
+  type DatosPlantillaAntropometrica,
+} from "@/dominio/entidades/PlantillaAntropometrica";
 import { RecordatorioWhatsapp } from "@/dominio/entidades/RecordatorioWhatsapp";
 import type { IAxiomaRepositorio } from "@/dominio/repositorios/IAxiomaRepositorio";
 import type { IAlimentoPropioRepositorio } from "@/dominio/repositorios/IAlimentoPropioRepositorio";
@@ -286,6 +291,47 @@ export function mockObjetivoComposicionRepositorio(
     listarPorPaciente: vi.fn(async () => []),
     ...parcial,
   };
+}
+
+export function mockPlantillaAntropometricaRepositorio(
+  parcial: Partial<IPlantillaAntropometricaRepositorio> = {},
+): IPlantillaAntropometricaRepositorio {
+  return {
+    guardar: vi.fn(async (p: PlantillaAntropometrica) => p),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    listar: vi.fn(async () => []),
+    ...parcial,
+  };
+}
+
+/**
+ * Plantilla de carga con los cuatro pliegues de Faulkner.
+ *
+ * No es un capricho del ejemplo: la entidad RECHAZA una plantilla que no
+ * alcance para calcular nada, y Faulkner es el piso -tricipital,
+ * subescapular, supraespinal y abdominal-.
+ */
+export function plantillaAntropometricaEjemplo(
+  cambios: Partial<DatosPlantillaAntropometrica> = {},
+  id = "plant-antro-1",
+): PlantillaAntropometrica {
+  return PlantillaAntropometrica.crear(
+    {
+      nombre: "ISAK reducido",
+      descripcion: null,
+      campos: [
+        "tallaCm",
+        "pliegueTricipital",
+        "pliegueSubescapular",
+        "pliegueSupraespinal",
+        "pliegueAbdominal",
+      ],
+      ...cambios,
+    },
+    id,
+    new Date("2026-01-01T00:00:00.000Z"),
+  );
 }
 
 export function mockAlertaAlimentariaRepositorio(
