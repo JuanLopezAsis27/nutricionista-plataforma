@@ -9,9 +9,10 @@ historial completo) + tamaño/complejidad + criticidad de negocio. Se ejecutó l
 suite de tests (`vitest run`) y el script de lint (`npm run lint`) contra el
 árbol de trabajo actual.
 
-> **Estado de ejecución — hallazgos #1, #2, #3, #5, #7 y #15: RESUELTOS.** Pasos
-> 1 a 4, 6 y 7 completos; el 5, al 75 %. Los casos de uso se movieron a la capa
-> de aplicación (§14). Ver §7 (linter y formato), §8 (mapeadores), §9 y
+> **Estado de ejecución — hallazgos #1, #2, #3, #5, #7, #9, #15 y #17:
+> RESUELTOS.** Pasos 1 a 4 y 6 a 8 completos; el 5, al 78 %. Los casos de uso se
+> movieron a la capa de aplicación (§14) y los cuatro componentes sobre 650
+> líneas se partieron (§15, §16). Ver §7 (linter y formato), §8 (mapeadores), §9 y
 > §10 (coherencia formulario↔DTO), §11 y §12 (casos de uso), §13 (partición de
 > los servicios), §14 (movimiento de capa) y §15 (FormularioPlan) para el
 > registro de lo que se hizo, lo que se calibró, los ocho bugs que aparecieron y
@@ -1619,3 +1620,150 @@ cargadas en grasas.
 **Quedan tres componentes por encima de 650 líneas**, con el mismo patrón que
 `FormularioPlan` y el mismo tratamiento disponible: `DashboardComposicion.tsx`
 (711), `FormularioReceta.tsx` (701) y `SeccionDeportiva.tsx` (673).
+
+---
+
+## 16. Registro de ejecución — los tres componentes sobre 650 líneas
+
+**Commit:** `15e7198`. **898 → 914 tests.**
+
+| Componente | Antes | Después | |
+| --- | --- | --- | --- |
+| `SeccionDeportiva` | 673 | **254** | −62 % |
+| `FormularioReceta` | 701 | **462** | −34 % |
+| `DashboardComposicion` | 711 | **536** | −25 % |
+
+### 16.1 `SeccionDeportiva` — el caso limpio
+
+Ya eran **tres componentes conviviendo en un archivo** (perfil, competencia y
+la vista). Pasan a `seccion/`, con las etiquetas de enum y los esquemas en
+módulos propios porque los usaban los tres. Las etiquetas estaban duplicadas de
+hecho entre los formularios y la vista de solo lectura.
+
+### 16.2 `FormularioReceta` — lo valioso no fue el tamaño
+
+Fue aislar el **cálculo de macros** en `formulario/macros.ts`. Es un espejo del
+cálculo del dominio —la pantalla lo necesita para mostrar totales sin ir al
+servidor por cada tecla— y no tenía un solo test, pese a ser el número que el
+profesional mira antes de decidir si la receta le sirve.
+
+Ahora tiene 16. El más importante fija la distinción que atraviesa todo el
+módulo: **`null` es "no se puede saber" y `0` es "hay cero".** Si un ingrediente
+no trae proteínas cargadas, el total de proteínas no es 0 — es desconocido, y
+mostrar 0 sería afirmar algo que nadie midió.
+
+### 16.3 `DashboardComposicion` — no llegó al objetivo
+
+Se extrajeron las piezas de presentación (`Indicador` aparece 7 veces, `Fila`
+14), `AvisoFaltantes` y `TarjetaGrasa`. **Queda en 536 líneas.**
+
+No se partió más y conviene decir por qué: su JSX son ~430 líneas de tarjetas
+**sin secciones marcadas**, y partirlas bien pide entender qué muestra cada una.
+Es trabajo de otra pasada; forzarlo ahora sobre un dashboard clínico sería
+arriesgar por prolijidad.
+
+### 16.4 Nota de método
+
+El script que limpia imports huérfanos a partir del reporte de ESLint **cortaba
+dentro de una palabra** por una regex sin `\b` en una de sus ramas: convirtió
+`useTemaComposicion` en `use`. Lo agarró `tsc` y se restauró a mano.
+
+Vale como recordatorio: un reemplazo por nombre necesita límites de palabra en
+**todas** sus ramas, no solo en la primera que uno escribe.
+
+---
+
+## 17. Registro de ejecución — paso 8: la base genérica de repositorios
+
+**Commit:** `4b22654`. **914 → 916 tests.** Responde la pregunta que originó la
+auditoría: *«¿conviene un repositorio genérico del que hereden los demás?»*
+
+```
+base/DelegadoPrisma.ts         la forma mínima del delegate, tipada
+base/RepositorioPrismaBase.ts  obtenerPorId, eliminar, mapearTodas
+base/fechas.ts                 soloFecha (estaba copiado 8 veces)
+```
+
+**9 repositorios heredan.** 45 líneas netas menos y, sobre todo, **cero copias
+de `soloFecha`**: era una regla de negocio —"una medición pertenece a un día, no
+a un instante"— replicada ocho veces en infraestructura.
+
+### 17.1 Lo que se sostuvo del diseño
+
+- **Sin `any`.** La base declara a mano la forma mínima del delegate, así el
+  tipado de `Fila` se conserva de punta a punta. Era el riesgo #1 de §4.2 y el
+  motivo por el que la versión ambiciosa no valía la pena.
+- **`crear` y `actualizar` NO están en la base.** Generalizarlos pedía renunciar
+  al tipado de Prisma, que es la principal defensa del proyecto contra los bugs
+  de persistencia. §4.1 lo había medido: de las 97 líneas de un repositorio
+  típico, lo genérico son 8.
+
+### 17.2 Una restricción que la auditoría no había previsto en su forma concreta
+
+**Tres repositorios no entraron: `Laboratorio`, `Material` y `Objetivo`.** Los
+tres mapean desde una fila **con relaciones incluidas** (sus adjuntos, su
+archivo, sus estrategias). El `findUnique` de la base devuelve la fila pelada,
+así que su `obtenerPorId` necesita su propio `include` y no puede heredarse.
+
+§4.4 había anticipado el principio general —*"si tuvieras que sobrescribir un
+método de la base para contradecirlo, ese repositorio no pertenece a la
+jerarquía"*— pero la forma concreta que tomó, el `include`, no estaba prevista.
+**Lo detectó `tsc` al intentarlo, no una revisión previa.** Quedó documentada
+como criterio en la propia base:
+
+> No es una limitación a resolver: es la señal de que un agregado con hijos
+> necesita decidir en cada consulta qué trae, y esa decisión no se puede
+> generalizar sin volver la base más complicada que los ocho métodos que ahorra.
+
+`Plan` y `Paciente` tampoco heredan, por el motivo que **sí** estaba previsto:
+su flujo real es archivar, no borrar.
+
+### 17.3 Las dos reglas que congelan la decisión
+
+Fase 5 del plan de §4.5, en `arquitectura.test.ts`:
+
+1. **La base no se filtra fuera de infraestructura.** Si el dominio la importara,
+   los puertos pasarían a describir *la base de datos* en vez de lo que el
+   negocio necesita.
+2. **Ningún repositorio vuelve a definir su propio `soloFecha`.** Se verificó
+   fallando: detectó los cinco que quedaban —los que no heredan— y después se
+   migraron.
+
+### 17.4 Veredicto, ahora con el trabajo hecho
+
+La recomendación de §4.6 era *"hacelo, en la versión acotada"*, y se sostiene.
+El ahorro en líneas es modesto (45) y ya estaba anticipado; **el valor real
+estuvo en otro lado**: eliminar la octuplicación de una regla de negocio y dejar
+por escrito, con un test, dónde termina lo que se puede generalizar.
+
+La versión ambiciosa —una base que absorbiera el CRUD completo— habría
+tropezado con los mismos tres repositorios de `include`, pero con `any` de por
+medio y sin que el compilador avisara.
+
+### 17.5 Estado de la hoja de ruta
+
+| Paso | Estado |
+| --- | --- |
+| 1. ESLint + Prettier | ✅ |
+| 2. Gates de CI | ✅ (falta branch protection en GitHub) |
+| 3. Tests de mapeadores | ✅ |
+| 4. `.tsx` en vitest + tests de formularios | ✅ |
+| 5. Casos de uso sin cubrir | 🟡 **~145/186** |
+| 6. Partir los servicios gigantes | ✅ |
+| 7. Partir `FormularioPlan` | ✅ |
+| 8. Base genérica de repositorios | ✅ |
+| 9. Partir `_ayudas-test.ts` y `composicionCorporal.ts` | ⬜ |
+| 10. Separar `IPlanRepositorio` | ⬜ |
+| — | Mover casos de uso a `aplicacion/` ✅ |
+| — | Los tres componentes sobre 650 ln ✅ (parcial en Dashboard) |
+
+**Lo que queda, por orden de valor:**
+
+1. **Terminar el paso 5** (~41 casos de uso, mayormente lectura).
+2. **Paso 9**: `_ayudas-test.ts` (1.294 ln, el 2.º archivo más modificado del
+   repo) y `composicionCorporal.ts` (984 ln, mezcla tablas de referencia con
+   algoritmos).
+3. **Paso 10**: separar `IPlanRepositorio` en dos puertos.
+4. **`DashboardComposicion`**, que quedó en 536 líneas.
+5. **Subir a `error`** las reglas del React Compiler cuando se salden los 36
+   avisos anotados en §7.6.
