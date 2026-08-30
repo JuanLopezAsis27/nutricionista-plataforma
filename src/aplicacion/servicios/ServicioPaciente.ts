@@ -1,11 +1,11 @@
-import type { CrearPaciente } from "@/dominio/casos-de-uso/pacientes/CrearPaciente";
-import type { ObtenerPacientes } from "@/dominio/casos-de-uso/pacientes/ObtenerPacientes";
-import type { ObtenerPacientePorId } from "@/dominio/casos-de-uso/pacientes/ObtenerPacientePorId";
-import type { ActualizarPaciente } from "@/dominio/casos-de-uso/pacientes/ActualizarPaciente";
-import type { EliminarPaciente } from "@/dominio/casos-de-uso/pacientes/EliminarPaciente";
-import type { EnviarEmailDeBienvenida } from "@/dominio/casos-de-uso/pacientes/EnviarEmailDeBienvenida";
-import type { ArchivarPaciente } from "@/dominio/casos-de-uso/pacientes/ArchivarPaciente";
-import type { ReactivarPaciente } from "@/dominio/casos-de-uso/pacientes/ReactivarPaciente";
+import type { CrearPaciente } from "@/aplicacion/casos-de-uso/pacientes/CrearPaciente";
+import type { ObtenerPacientes } from "@/aplicacion/casos-de-uso/pacientes/ObtenerPacientes";
+import type { ObtenerPacientePorId } from "@/aplicacion/casos-de-uso/pacientes/ObtenerPacientePorId";
+import type { ActualizarPaciente } from "@/aplicacion/casos-de-uso/pacientes/ActualizarPaciente";
+import type { EliminarPaciente } from "@/aplicacion/casos-de-uso/pacientes/EliminarPaciente";
+import type { EnviarEmailDeBienvenida } from "@/aplicacion/casos-de-uso/pacientes/EnviarEmailDeBienvenida";
+import type { ArchivarPaciente } from "@/aplicacion/casos-de-uso/pacientes/ArchivarPaciente";
+import type { ReactivarPaciente } from "@/aplicacion/casos-de-uso/pacientes/ReactivarPaciente";
 import type { Paciente } from "@/dominio/entidades/Paciente";
 import type {
   CrearPacienteConAccesoDto,

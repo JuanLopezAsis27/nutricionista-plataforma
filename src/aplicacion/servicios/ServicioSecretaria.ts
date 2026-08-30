@@ -1,13 +1,13 @@
-import type { ListarPlantillas } from "@/dominio/casos-de-uso/secretaria/ListarPlantillas";
-import type { ObtenerPlantilla } from "@/dominio/casos-de-uso/secretaria/ObtenerPlantilla";
-import type { CrearPlantilla } from "@/dominio/casos-de-uso/secretaria/CrearPlantilla";
-import type { ActualizarPlantilla } from "@/dominio/casos-de-uso/secretaria/ActualizarPlantilla";
-import type { EliminarPlantilla } from "@/dominio/casos-de-uso/secretaria/EliminarPlantilla";
+import type { ListarPlantillas } from "@/aplicacion/casos-de-uso/secretaria/ListarPlantillas";
+import type { ObtenerPlantilla } from "@/aplicacion/casos-de-uso/secretaria/ObtenerPlantilla";
+import type { CrearPlantilla } from "@/aplicacion/casos-de-uso/secretaria/CrearPlantilla";
+import type { ActualizarPlantilla } from "@/aplicacion/casos-de-uso/secretaria/ActualizarPlantilla";
+import type { EliminarPlantilla } from "@/aplicacion/casos-de-uso/secretaria/EliminarPlantilla";
 import type {
   EnviarEmailDePrueba,
   ResultadoPrueba,
-} from "@/dominio/casos-de-uso/secretaria/EnviarEmailDePrueba";
-import type { ListarEmailsEnviados } from "@/dominio/casos-de-uso/secretaria/ListarEmailsEnviados";
+} from "@/aplicacion/casos-de-uso/secretaria/EnviarEmailDePrueba";
+import type { ListarEmailsEnviados } from "@/aplicacion/casos-de-uso/secretaria/ListarEmailsEnviados";
 import type { PlantillaEmail } from "@/dominio/entidades/PlantillaEmail";
 import type {
   CrearPlantillaDto,

@@ -1,7 +1,7 @@
-import type { RegistrarAlertaAlimentaria } from "@/dominio/casos-de-uso/evaluacion/RegistrarAlertaAlimentaria";
-import type { ActualizarAlertaAlimentaria } from "@/dominio/casos-de-uso/evaluacion/ActualizarAlertaAlimentaria";
-import type { EliminarAlertaAlimentaria } from "@/dominio/casos-de-uso/evaluacion/EliminarAlertaAlimentaria";
-import type { ObtenerAlertasAlimentarias } from "@/dominio/casos-de-uso/evaluacion/ObtenerAlertasAlimentarias";
+import type { RegistrarAlertaAlimentaria } from "@/aplicacion/casos-de-uso/evaluacion/RegistrarAlertaAlimentaria";
+import type { ActualizarAlertaAlimentaria } from "@/aplicacion/casos-de-uso/evaluacion/ActualizarAlertaAlimentaria";
+import type { EliminarAlertaAlimentaria } from "@/aplicacion/casos-de-uso/evaluacion/EliminarAlertaAlimentaria";
+import type { ObtenerAlertasAlimentarias } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerAlertasAlimentarias";
 import type {
   RegistrarAlertaAlimentariaDto,
   ActualizarAlertaAlimentariaDto,

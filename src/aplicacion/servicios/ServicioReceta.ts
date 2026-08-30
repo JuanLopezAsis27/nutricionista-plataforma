@@ -1,15 +1,15 @@
-import type { CrearReceta } from "@/dominio/casos-de-uso/recetas/CrearReceta";
-import type { ObtenerRecetas } from "@/dominio/casos-de-uso/recetas/ObtenerRecetas";
-import type { ObtenerRecetasPaginado } from "@/dominio/casos-de-uso/recetas/ObtenerRecetasPaginado";
-import type { ObtenerRecetaPorId } from "@/dominio/casos-de-uso/recetas/ObtenerRecetaPorId";
-import type { ActualizarReceta } from "@/dominio/casos-de-uso/recetas/ActualizarReceta";
-import type { EliminarReceta } from "@/dominio/casos-de-uso/recetas/EliminarReceta";
-import type { EliminarArchivoDeReceta } from "@/dominio/casos-de-uso/recetas/EliminarArchivoDeReceta";
-import type { MarcarFotoPrincipal } from "@/dominio/casos-de-uso/recetas/MarcarFotoPrincipal";
-import type { AsignarRecetaAPaciente } from "@/dominio/casos-de-uso/recetas/AsignarRecetaAPaciente";
-import type { DesasignarRecetaDePaciente } from "@/dominio/casos-de-uso/recetas/DesasignarRecetaDePaciente";
-import type { ObtenerRecetasDelPaciente } from "@/dominio/casos-de-uso/recetas/ObtenerRecetasDelPaciente";
-import type { ObtenerPacientesDeReceta } from "@/dominio/casos-de-uso/recetas/ObtenerPacientesDeReceta";
+import type { CrearReceta } from "@/aplicacion/casos-de-uso/recetas/CrearReceta";
+import type { ObtenerRecetas } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetas";
+import type { ObtenerRecetasPaginado } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetasPaginado";
+import type { ObtenerRecetaPorId } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetaPorId";
+import type { ActualizarReceta } from "@/aplicacion/casos-de-uso/recetas/ActualizarReceta";
+import type { EliminarReceta } from "@/aplicacion/casos-de-uso/recetas/EliminarReceta";
+import type { EliminarArchivoDeReceta } from "@/aplicacion/casos-de-uso/recetas/EliminarArchivoDeReceta";
+import type { MarcarFotoPrincipal } from "@/aplicacion/casos-de-uso/recetas/MarcarFotoPrincipal";
+import type { AsignarRecetaAPaciente } from "@/aplicacion/casos-de-uso/recetas/AsignarRecetaAPaciente";
+import type { DesasignarRecetaDePaciente } from "@/aplicacion/casos-de-uso/recetas/DesasignarRecetaDePaciente";
+import type { ObtenerRecetasDelPaciente } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetasDelPaciente";
+import type { ObtenerPacientesDeReceta } from "@/aplicacion/casos-de-uso/recetas/ObtenerPacientesDeReceta";
 import type { Receta } from "@/dominio/entidades/Receta";
 import type {
   CrearRecetaDto,

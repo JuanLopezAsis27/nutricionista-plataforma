@@ -1,9 +1,9 @@
-import type { PreguntarAlAsistente } from "@/dominio/casos-de-uso/ia/PreguntarAlAsistente";
-import type { AnalizarFotoDeComida } from "@/dominio/casos-de-uso/ia/AnalizarFotoDeComida";
-import type { ListarConsultasIA } from "@/dominio/casos-de-uso/ia/ListarConsultasIA";
-import type { ObtenerInsightsPredictivos } from "@/dominio/casos-de-uso/ia/ObtenerInsightsPredictivos";
-import type { AnalizarConAsistente } from "@/dominio/casos-de-uso/ia/AnalizarConAsistente";
-import type { RegistrarRetroalimentacionInsight } from "@/dominio/casos-de-uso/ia/RegistrarRetroalimentacionInsight";
+import type { PreguntarAlAsistente } from "@/aplicacion/casos-de-uso/ia/PreguntarAlAsistente";
+import type { AnalizarFotoDeComida } from "@/aplicacion/casos-de-uso/ia/AnalizarFotoDeComida";
+import type { ListarConsultasIA } from "@/aplicacion/casos-de-uso/ia/ListarConsultasIA";
+import type { ObtenerInsightsPredictivos } from "@/aplicacion/casos-de-uso/ia/ObtenerInsightsPredictivos";
+import type { AnalizarConAsistente } from "@/aplicacion/casos-de-uso/ia/AnalizarConAsistente";
+import type { RegistrarRetroalimentacionInsight } from "@/aplicacion/casos-de-uso/ia/RegistrarRetroalimentacionInsight";
 import type {
   RespuestaAsistenteDto,
   ConsultaIASalidaDto,

@@ -1,7 +1,7 @@
 import type { IAlertaSeguimientoRepositorio } from "@/dominio/repositorios/IAlertaSeguimientoRepositorio";
 import type { IMensajeriaRepositorio } from "@/dominio/repositorios/IMensajeriaRepositorio";
 import type { IEmailEnviadoRepositorio } from "@/dominio/repositorios/IEmailEnviadoRepositorio";
-import { ObtenerCentroDeNotificaciones } from "@/dominio/casos-de-uso/notificaciones/ObtenerCentroDeNotificaciones";
+import { ObtenerCentroDeNotificaciones } from "@/aplicacion/casos-de-uso/notificaciones/ObtenerCentroDeNotificaciones";
 import { ServicioNotificaciones } from "@/aplicacion/servicios/ServicioNotificaciones";
 
 /**

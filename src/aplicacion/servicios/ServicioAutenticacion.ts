@@ -1,5 +1,5 @@
-import type { SolicitarRecuperacionPassword } from "@/dominio/casos-de-uso/autenticacion/SolicitarRecuperacionPassword";
-import type { RestablecerPassword } from "@/dominio/casos-de-uso/autenticacion/RestablecerPassword";
+import type { SolicitarRecuperacionPassword } from "@/aplicacion/casos-de-uso/autenticacion/SolicitarRecuperacionPassword";
+import type { RestablecerPassword } from "@/aplicacion/casos-de-uso/autenticacion/RestablecerPassword";
 import type {
   SolicitarRecuperacionDto,
   RestablecerPasswordDto,

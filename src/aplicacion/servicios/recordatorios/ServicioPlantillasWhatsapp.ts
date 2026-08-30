@@ -1,7 +1,7 @@
-import type { ListarPlantillasWhatsapp } from "@/dominio/casos-de-uso/recordatorios/ListarPlantillasWhatsapp";
-import type { CrearPlantillaWhatsapp } from "@/dominio/casos-de-uso/recordatorios/CrearPlantillaWhatsapp";
-import type { ActualizarPlantillaWhatsapp } from "@/dominio/casos-de-uso/recordatorios/ActualizarPlantillaWhatsapp";
-import type { EliminarPlantillaWhatsapp } from "@/dominio/casos-de-uso/recordatorios/EliminarPlantillaWhatsapp";
+import type { ListarPlantillasWhatsapp } from "@/aplicacion/casos-de-uso/recordatorios/ListarPlantillasWhatsapp";
+import type { CrearPlantillaWhatsapp } from "@/aplicacion/casos-de-uso/recordatorios/CrearPlantillaWhatsapp";
+import type { ActualizarPlantillaWhatsapp } from "@/aplicacion/casos-de-uso/recordatorios/ActualizarPlantillaWhatsapp";
+import type { EliminarPlantillaWhatsapp } from "@/aplicacion/casos-de-uso/recordatorios/EliminarPlantillaWhatsapp";
 import type { PlantillaWhatsapp } from "@/dominio/entidades/PlantillaWhatsapp";
 import type {
   ActualizarPlantillaWhatsappDto,

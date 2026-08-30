@@ -1,13 +1,13 @@
-import type { RegistrarAntropometria } from "@/dominio/casos-de-uso/evaluacion/RegistrarAntropometria";
-import type { ActualizarAntropometria } from "@/dominio/casos-de-uso/evaluacion/ActualizarAntropometria";
-import type { EliminarAntropometria } from "@/dominio/casos-de-uso/evaluacion/EliminarAntropometria";
-import type { ObtenerEvolucionAntropometrica } from "@/dominio/casos-de-uso/evaluacion/ObtenerEvolucionAntropometrica";
-import type { ObtenerComposicionCorporal } from "@/dominio/casos-de-uso/evaluacion/ObtenerComposicionCorporal";
-import type { GuardarObjetivoComposicion } from "@/dominio/casos-de-uso/evaluacion/GuardarObjetivoComposicion";
-import type { EliminarObjetivoComposicion } from "@/dominio/casos-de-uso/evaluacion/EliminarObjetivoComposicion";
-import type { GuardarPlantillaAntropometrica } from "@/dominio/casos-de-uso/evaluacion/GuardarPlantillaAntropometrica";
-import type { EliminarPlantillaAntropometrica } from "@/dominio/casos-de-uso/evaluacion/EliminarPlantillaAntropometrica";
-import type { ObtenerPlantillasAntropometricas } from "@/dominio/casos-de-uso/evaluacion/ObtenerPlantillasAntropometricas";
+import type { RegistrarAntropometria } from "@/aplicacion/casos-de-uso/evaluacion/RegistrarAntropometria";
+import type { ActualizarAntropometria } from "@/aplicacion/casos-de-uso/evaluacion/ActualizarAntropometria";
+import type { EliminarAntropometria } from "@/aplicacion/casos-de-uso/evaluacion/EliminarAntropometria";
+import type { ObtenerEvolucionAntropometrica } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerEvolucionAntropometrica";
+import type { ObtenerComposicionCorporal } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerComposicionCorporal";
+import type { GuardarObjetivoComposicion } from "@/aplicacion/casos-de-uso/evaluacion/GuardarObjetivoComposicion";
+import type { EliminarObjetivoComposicion } from "@/aplicacion/casos-de-uso/evaluacion/EliminarObjetivoComposicion";
+import type { GuardarPlantillaAntropometrica } from "@/aplicacion/casos-de-uso/evaluacion/GuardarPlantillaAntropometrica";
+import type { EliminarPlantillaAntropometrica } from "@/aplicacion/casos-de-uso/evaluacion/EliminarPlantillaAntropometrica";
+import type { ObtenerPlantillasAntropometricas } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerPlantillasAntropometricas";
 import type { PlantillaAntropometrica } from "@/dominio/entidades/PlantillaAntropometrica";
 import type {
   RegistrarAntropometriaDto,

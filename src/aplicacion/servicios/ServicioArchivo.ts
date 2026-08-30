@@ -1,19 +1,19 @@
 import type {
   SubirArchivo,
   DatosSubirArchivo,
-} from "@/dominio/casos-de-uso/archivos/SubirArchivo";
-import type { ObtenerUrlArchivo } from "@/dominio/casos-de-uso/archivos/ObtenerUrlArchivo";
-import type { ObtenerContenidoArchivo } from "@/dominio/casos-de-uso/archivos/ObtenerContenidoArchivo";
-import type { EliminarArchivo } from "@/dominio/casos-de-uso/archivos/EliminarArchivo";
+} from "@/aplicacion/casos-de-uso/archivos/SubirArchivo";
+import type { ObtenerUrlArchivo } from "@/aplicacion/casos-de-uso/archivos/ObtenerUrlArchivo";
+import type { ObtenerContenidoArchivo } from "@/aplicacion/casos-de-uso/archivos/ObtenerContenidoArchivo";
+import type { EliminarArchivo } from "@/aplicacion/casos-de-uso/archivos/EliminarArchivo";
 import type {
   LimpiarArchivosHuerfanos,
   ResultadoLimpieza,
-} from "@/dominio/casos-de-uso/archivos/LimpiarArchivosHuerfanos";
-import type { ObtenerArchivosDeDueno } from "@/dominio/casos-de-uso/archivos/ObtenerArchivosDeDueno";
+} from "@/aplicacion/casos-de-uso/archivos/LimpiarArchivosHuerfanos";
+import type { ObtenerArchivosDeDueno } from "@/aplicacion/casos-de-uso/archivos/ObtenerArchivosDeDueno";
 import type {
   PuedeVerArchivoPaciente,
   SolicitanteArchivo,
-} from "@/dominio/casos-de-uso/archivos/PuedeVerArchivoPaciente";
+} from "@/aplicacion/casos-de-uso/archivos/PuedeVerArchivoPaciente";
 import type { Archivo } from "@/dominio/entidades/Archivo";
 import type { ArchivoSalidaDto } from "../dtos/archivo.dto";
 

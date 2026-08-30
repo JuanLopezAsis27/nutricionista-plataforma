@@ -1,6 +1,6 @@
-import type { CrearCuentaNutricionista } from "@/dominio/casos-de-uso/superadmin/CrearCuentaNutricionista";
-import type { ListarNutricionistas } from "@/dominio/casos-de-uso/superadmin/ListarNutricionistas";
-import type { CambiarEstadoNutricionista } from "@/dominio/casos-de-uso/superadmin/CambiarEstadoNutricionista";
+import type { CrearCuentaNutricionista } from "@/aplicacion/casos-de-uso/superadmin/CrearCuentaNutricionista";
+import type { ListarNutricionistas } from "@/aplicacion/casos-de-uso/superadmin/ListarNutricionistas";
+import type { CambiarEstadoNutricionista } from "@/aplicacion/casos-de-uso/superadmin/CambiarEstadoNutricionista";
 import type { Usuario } from "@/dominio/entidades/Usuario";
 import type {
   CrearCuentaNutricionistaDto,

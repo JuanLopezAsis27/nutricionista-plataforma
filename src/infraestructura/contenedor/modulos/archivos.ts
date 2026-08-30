@@ -3,13 +3,13 @@ import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositor
 import type { IMaterialRepositorio } from "@/dominio/repositorios/IMaterialRepositorio";
 import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
 import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamientoArchivos";
-import { SubirArchivo } from "@/dominio/casos-de-uso/archivos/SubirArchivo";
-import { ObtenerUrlArchivo } from "@/dominio/casos-de-uso/archivos/ObtenerUrlArchivo";
-import { ObtenerContenidoArchivo } from "@/dominio/casos-de-uso/archivos/ObtenerContenidoArchivo";
-import { EliminarArchivo } from "@/dominio/casos-de-uso/archivos/EliminarArchivo";
-import { LimpiarArchivosHuerfanos } from "@/dominio/casos-de-uso/archivos/LimpiarArchivosHuerfanos";
-import { ObtenerArchivosDeDueno } from "@/dominio/casos-de-uso/archivos/ObtenerArchivosDeDueno";
-import { PuedeVerArchivoPaciente } from "@/dominio/casos-de-uso/archivos/PuedeVerArchivoPaciente";
+import { SubirArchivo } from "@/aplicacion/casos-de-uso/archivos/SubirArchivo";
+import { ObtenerUrlArchivo } from "@/aplicacion/casos-de-uso/archivos/ObtenerUrlArchivo";
+import { ObtenerContenidoArchivo } from "@/aplicacion/casos-de-uso/archivos/ObtenerContenidoArchivo";
+import { EliminarArchivo } from "@/aplicacion/casos-de-uso/archivos/EliminarArchivo";
+import { LimpiarArchivosHuerfanos } from "@/aplicacion/casos-de-uso/archivos/LimpiarArchivosHuerfanos";
+import { ObtenerArchivosDeDueno } from "@/aplicacion/casos-de-uso/archivos/ObtenerArchivosDeDueno";
+import { PuedeVerArchivoPaciente } from "@/aplicacion/casos-de-uso/archivos/PuedeVerArchivoPaciente";
 import { ServicioArchivo } from "@/aplicacion/servicios/ServicioArchivo";
 
 /** Arma el servicio de Archivos con sus casos de uso. */

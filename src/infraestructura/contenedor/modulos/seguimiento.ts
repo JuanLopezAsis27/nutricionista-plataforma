@@ -8,16 +8,16 @@ import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
-import { RegistrarSuplemento } from "@/dominio/casos-de-uso/seguimiento/RegistrarSuplemento";
-import { ActualizarSuplemento } from "@/dominio/casos-de-uso/seguimiento/ActualizarSuplemento";
-import { EliminarSuplemento } from "@/dominio/casos-de-uso/seguimiento/EliminarSuplemento";
-import { ObtenerSuplementosDelPaciente } from "@/dominio/casos-de-uso/seguimiento/ObtenerSuplementosDelPaciente";
-import { GenerarAlertasDeSeguimiento } from "@/dominio/casos-de-uso/seguimiento/GenerarAlertasDeSeguimiento";
-import { ObtenerAlertasPendientes } from "@/dominio/casos-de-uso/seguimiento/ObtenerAlertasPendientes";
-import { ContarAlertasPendientes } from "@/dominio/casos-de-uso/seguimiento/ContarAlertasPendientes";
-import { ResolverAlerta } from "@/dominio/casos-de-uso/seguimiento/ResolverAlerta";
-import { ObtenerInformeProgreso } from "@/dominio/casos-de-uso/seguimiento/ObtenerInformeProgreso";
-import { ObtenerInformeHabitos } from "@/dominio/casos-de-uso/seguimiento/ObtenerInformeHabitos";
+import { RegistrarSuplemento } from "@/aplicacion/casos-de-uso/seguimiento/RegistrarSuplemento";
+import { ActualizarSuplemento } from "@/aplicacion/casos-de-uso/seguimiento/ActualizarSuplemento";
+import { EliminarSuplemento } from "@/aplicacion/casos-de-uso/seguimiento/EliminarSuplemento";
+import { ObtenerSuplementosDelPaciente } from "@/aplicacion/casos-de-uso/seguimiento/ObtenerSuplementosDelPaciente";
+import { GenerarAlertasDeSeguimiento } from "@/aplicacion/casos-de-uso/seguimiento/GenerarAlertasDeSeguimiento";
+import { ObtenerAlertasPendientes } from "@/aplicacion/casos-de-uso/seguimiento/ObtenerAlertasPendientes";
+import { ContarAlertasPendientes } from "@/aplicacion/casos-de-uso/seguimiento/ContarAlertasPendientes";
+import { ResolverAlerta } from "@/aplicacion/casos-de-uso/seguimiento/ResolverAlerta";
+import { ObtenerInformeProgreso } from "@/aplicacion/casos-de-uso/seguimiento/ObtenerInformeProgreso";
+import { ObtenerInformeHabitos } from "@/aplicacion/casos-de-uso/seguimiento/ObtenerInformeHabitos";
 import { ServicioSeguimiento } from "@/aplicacion/servicios/ServicioSeguimiento";
 
 /** Arma el servicio de Seguimiento (suplementos + alertas + informes). */

@@ -1,12 +1,12 @@
-import type { CrearMaterial } from "@/dominio/casos-de-uso/biblioteca/CrearMaterial";
-import type { ActualizarMaterial } from "@/dominio/casos-de-uso/biblioteca/ActualizarMaterial";
-import type { EliminarMaterial } from "@/dominio/casos-de-uso/biblioteca/EliminarMaterial";
-import type { ObtenerMateriales } from "@/dominio/casos-de-uso/biblioteca/ObtenerMateriales";
-import type { ObtenerMaterialesPaginado } from "@/dominio/casos-de-uso/biblioteca/ObtenerMaterialesPaginado";
-import type { AsignarMaterialAPaciente } from "@/dominio/casos-de-uso/biblioteca/AsignarMaterialAPaciente";
-import type { DesasignarMaterialDePaciente } from "@/dominio/casos-de-uso/biblioteca/DesasignarMaterialDePaciente";
-import type { ObtenerMaterialesDelPaciente } from "@/dominio/casos-de-uso/biblioteca/ObtenerMaterialesDelPaciente";
-import type { ObtenerPacientesDeMaterial } from "@/dominio/casos-de-uso/biblioteca/ObtenerPacientesDeMaterial";
+import type { CrearMaterial } from "@/aplicacion/casos-de-uso/biblioteca/CrearMaterial";
+import type { ActualizarMaterial } from "@/aplicacion/casos-de-uso/biblioteca/ActualizarMaterial";
+import type { EliminarMaterial } from "@/aplicacion/casos-de-uso/biblioteca/EliminarMaterial";
+import type { ObtenerMateriales } from "@/aplicacion/casos-de-uso/biblioteca/ObtenerMateriales";
+import type { ObtenerMaterialesPaginado } from "@/aplicacion/casos-de-uso/biblioteca/ObtenerMaterialesPaginado";
+import type { AsignarMaterialAPaciente } from "@/aplicacion/casos-de-uso/biblioteca/AsignarMaterialAPaciente";
+import type { DesasignarMaterialDePaciente } from "@/aplicacion/casos-de-uso/biblioteca/DesasignarMaterialDePaciente";
+import type { ObtenerMaterialesDelPaciente } from "@/aplicacion/casos-de-uso/biblioteca/ObtenerMaterialesDelPaciente";
+import type { ObtenerPacientesDeMaterial } from "@/aplicacion/casos-de-uso/biblioteca/ObtenerPacientesDeMaterial";
 import type { MaterialBiblioteca } from "@/dominio/entidades/MaterialBiblioteca";
 import type {
   CrearMaterialDto,

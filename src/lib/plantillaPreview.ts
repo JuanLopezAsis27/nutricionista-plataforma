@@ -1,4 +1,4 @@
-import { formatearFechaCorta } from "@/dominio/casos-de-uso/secretaria/variables";
+import { formatearFechaCorta } from "@/aplicacion/casos-de-uso/secretaria/variables";
 import { escaparHtml } from "@/dominio/plantillas/renderizar";
 
 /**

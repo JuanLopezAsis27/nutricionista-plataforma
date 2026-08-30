@@ -12,14 +12,30 @@ import { join, relative, sep } from "node:path";
  *
  *   Presentación (app, componentes, servidor)
  *       ↓
- *   Aplicación (servicios, DTOs)
+ *   Aplicación (casos de uso, servicios, DTOs)
  *       ↓
- *   Dominio (entidades, casos de uso, interfaces)   ← no depende de NADIE
+ *   Dominio (entidades, interfaces, servicios de dominio)  ← no depende de NADIE
  *       ↑
  *   Infraestructura (Prisma, adaptadores)  → implementa las interfaces
  *
  * Al momento de escribirlo, las tres capas internas tenían CERO violaciones.
  * El test existe para que siga siendo así, no para reportar deuda existente.
+ *
+ * ## Sobre los casos de uso
+ *
+ * Vivían en `dominio/casos-de-uso/` y se movieron a `aplicacion/casos-de-uso/`,
+ * que es donde los ubica la convención: Clean Architecture los llama
+ * "Application Business Rules" y DDD, *application services*. La regla de
+ * dependencia se cumplía igual antes del movimiento —importaban solo del
+ * dominio— pero el nombre de la carpeta decía otra cosa.
+ *
+ * El movimiento tiene una contrapartida que hay que reponer a mano: mientras
+ * estuvieron en `dominio/`, la regla de "dominio puro" les impedía **gratis**
+ * importar un DTO de la capa de aplicación. En `aplicacion/` esa protección se
+ * pierde, y con ella la propiedad que hace testeables a los casos de uso sin
+ * levantar medio sistema. Por eso existe el test "los casos de uso no dependen
+ * de los DTOs ni de los servicios de aplicación": es la garantía que el
+ * movimiento se llevó puesta, vuelta a poner de forma explícita.
  */
 
 const RAIZ = join(__dirname);
@@ -164,6 +180,42 @@ describe("Arquitectura — dependencias hacia adentro", () => {
     expect(
       encontradas,
       mensaje("La aplicación solo puede orquestar el dominio", encontradas),
+    ).toEqual([]);
+  });
+
+  it("los casos de uso no dependen de los DTOs ni de los servicios de aplicación", () => {
+    // Esta es la garantía que se perdió al mover los casos de uso de `dominio/`
+    // a `aplicacion/`: allá la regla de "dominio puro" se la daba gratis.
+    //
+    // Importa por dos motivos concretos. Uno: un caso de uso que recibe un DTO
+    // queda atado a la forma que la UI necesita hoy, y deja de poder invocarse
+    // desde el worker o desde otro caso de uso sin arrastrar esa forma. Dos: es
+    // lo que permite testearlos con un objeto plano y un mock de repositorio,
+    // sin levantar Zod ni la capa de servicios.
+    //
+    // Hoy CADA caso de uso define su propio tipo de entrada (por ejemplo
+    // `DatosNuevoPacienteConAcceso`), y el servicio de aplicación es quien
+    // traduce del DTO a ese tipo. Este test congela ese reparto.
+    const encontradas: string[] = [];
+    const casosDeUso = join(RAIZ, "aplicacion", "casos-de-uso");
+
+    for (const archivo of archivosFuente(casosDeUso)) {
+      for (const especificador of importesDe(readFileSync(archivo, "utf8"))) {
+        if (
+          apuntaA(especificador, "aplicacion/dtos") ||
+          apuntaA(especificador, "aplicacion/servicios")
+        ) {
+          encontradas.push(`${ruta(archivo)} → "${especificador}"`);
+        }
+      }
+    }
+
+    expect(
+      encontradas,
+      mensaje(
+        "Un caso de uso define su propia entrada; el servicio traduce el DTO",
+        encontradas,
+      ),
     ).toEqual([]);
   });
 

@@ -1,5 +1,5 @@
 import type { PgBoss } from "pg-boss";
-import type { ResultadoMedio } from "@/dominio/casos-de-uso/recordatorios/EnviarRecordatoriosProgramados";
+import type { ResultadoMedio } from "@/aplicacion/casos-de-uso/recordatorios/EnviarRecordatoriosProgramados";
 import { servicioRecordatorios } from "@/infraestructura/contenedor/contenedor";
 import { registrarTrabajoPorInquilino, colaDeInquilino } from "../porInquilino";
 

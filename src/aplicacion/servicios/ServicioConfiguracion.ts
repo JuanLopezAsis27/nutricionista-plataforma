@@ -1,5 +1,5 @@
-import type { ObtenerConfiguracion } from "@/dominio/casos-de-uso/configuracion/ObtenerConfiguracion";
-import type { GuardarConfiguracion } from "@/dominio/casos-de-uso/configuracion/GuardarConfiguracion";
+import type { ObtenerConfiguracion } from "@/aplicacion/casos-de-uso/configuracion/ObtenerConfiguracion";
+import type { GuardarConfiguracion } from "@/aplicacion/casos-de-uso/configuracion/GuardarConfiguracion";
 import type { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
 import type {
   GuardarConfiguracionDto,

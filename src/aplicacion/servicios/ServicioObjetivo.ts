@@ -1,12 +1,12 @@
-import type { CrearObjetivo } from "@/dominio/casos-de-uso/objetivos/CrearObjetivo";
-import type { ActualizarObjetivo } from "@/dominio/casos-de-uso/objetivos/ActualizarObjetivo";
-import type { CambiarEstadoObjetivo } from "@/dominio/casos-de-uso/objetivos/CambiarEstadoObjetivo";
-import type { EliminarObjetivo } from "@/dominio/casos-de-uso/objetivos/EliminarObjetivo";
-import type { ObtenerObjetivosDePaciente } from "@/dominio/casos-de-uso/objetivos/ObtenerObjetivosDePaciente";
-import type { AgregarEstrategia } from "@/dominio/casos-de-uso/objetivos/AgregarEstrategia";
-import type { CambiarEstadoEstrategia } from "@/dominio/casos-de-uso/objetivos/CambiarEstadoEstrategia";
-import type { EliminarEstrategia } from "@/dominio/casos-de-uso/objetivos/EliminarEstrategia";
-import type { ObtenerHistorialObjetivo } from "@/dominio/casos-de-uso/objetivos/ObtenerHistorialObjetivo";
+import type { CrearObjetivo } from "@/aplicacion/casos-de-uso/objetivos/CrearObjetivo";
+import type { ActualizarObjetivo } from "@/aplicacion/casos-de-uso/objetivos/ActualizarObjetivo";
+import type { CambiarEstadoObjetivo } from "@/aplicacion/casos-de-uso/objetivos/CambiarEstadoObjetivo";
+import type { EliminarObjetivo } from "@/aplicacion/casos-de-uso/objetivos/EliminarObjetivo";
+import type { ObtenerObjetivosDePaciente } from "@/aplicacion/casos-de-uso/objetivos/ObtenerObjetivosDePaciente";
+import type { AgregarEstrategia } from "@/aplicacion/casos-de-uso/objetivos/AgregarEstrategia";
+import type { CambiarEstadoEstrategia } from "@/aplicacion/casos-de-uso/objetivos/CambiarEstadoEstrategia";
+import type { EliminarEstrategia } from "@/aplicacion/casos-de-uso/objetivos/EliminarEstrategia";
+import type { ObtenerHistorialObjetivo } from "@/aplicacion/casos-de-uso/objetivos/ObtenerHistorialObjetivo";
 import type { Objetivo } from "@/dominio/entidades/Objetivo";
 import type {
   CrearObjetivoDto,

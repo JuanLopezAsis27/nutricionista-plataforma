@@ -1,11 +1,11 @@
-import type { AgendarTurno } from "@/dominio/casos-de-uso/turnos/AgendarTurno";
-import type { ObtenerTurnos } from "@/dominio/casos-de-uso/turnos/ObtenerTurnos";
-import type { ObtenerTurnosPorPaciente } from "@/dominio/casos-de-uso/turnos/ObtenerTurnosPorPaciente";
-import type { ActualizarEstadoTurno } from "@/dominio/casos-de-uso/turnos/ActualizarEstadoTurno";
-import type { CancelarTurno } from "@/dominio/casos-de-uso/turnos/CancelarTurno";
-import type { ReprogramarTurno } from "@/dominio/casos-de-uso/turnos/ReprogramarTurno";
-import type { RegistrarCobroTurno } from "@/dominio/casos-de-uso/turnos/RegistrarCobroTurno";
-import type { EliminarTurno } from "@/dominio/casos-de-uso/turnos/EliminarTurno";
+import type { AgendarTurno } from "@/aplicacion/casos-de-uso/turnos/AgendarTurno";
+import type { ObtenerTurnos } from "@/aplicacion/casos-de-uso/turnos/ObtenerTurnos";
+import type { ObtenerTurnosPorPaciente } from "@/aplicacion/casos-de-uso/turnos/ObtenerTurnosPorPaciente";
+import type { ActualizarEstadoTurno } from "@/aplicacion/casos-de-uso/turnos/ActualizarEstadoTurno";
+import type { CancelarTurno } from "@/aplicacion/casos-de-uso/turnos/CancelarTurno";
+import type { ReprogramarTurno } from "@/aplicacion/casos-de-uso/turnos/ReprogramarTurno";
+import type { RegistrarCobroTurno } from "@/aplicacion/casos-de-uso/turnos/RegistrarCobroTurno";
+import type { EliminarTurno } from "@/aplicacion/casos-de-uso/turnos/EliminarTurno";
 import type { ISincronizadorCalendario } from "@/dominio/servicios/ISincronizadorCalendario";
 import type { Turno } from "@/dominio/entidades/Turno";
 import type {

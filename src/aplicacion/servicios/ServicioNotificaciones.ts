@@ -1,4 +1,4 @@
-import type { ObtenerCentroDeNotificaciones } from "@/dominio/casos-de-uso/notificaciones/ObtenerCentroDeNotificaciones";
+import type { ObtenerCentroDeNotificaciones } from "@/aplicacion/casos-de-uso/notificaciones/ObtenerCentroDeNotificaciones";
 import type { CentroNotificacionesDto } from "../dtos/notificaciones.dto";
 
 /**

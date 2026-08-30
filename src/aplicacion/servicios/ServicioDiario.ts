@@ -1,12 +1,12 @@
-import type { GuardarDia } from "@/dominio/casos-de-uso/diario/GuardarDia";
-import type { ObtenerDia } from "@/dominio/casos-de-uso/diario/ObtenerDia";
-import type { ObtenerCalendarioDiario } from "@/dominio/casos-de-uso/diario/ObtenerCalendarioDiario";
-import type { ObtenerRegistrosEnRango } from "@/dominio/casos-de-uso/diario/ObtenerRegistrosEnRango";
-import type { AgregarComidaDiario } from "@/dominio/casos-de-uso/diario/AgregarComidaDiario";
-import type { EliminarComidaDiario } from "@/dominio/casos-de-uso/diario/EliminarComidaDiario";
-import type { AgregarActividadDiario } from "@/dominio/casos-de-uso/diario/AgregarActividadDiario";
-import type { EliminarActividadDiario } from "@/dominio/casos-de-uso/diario/EliminarActividadDiario";
-import type { AgregarFotoComida } from "@/dominio/casos-de-uso/diario/AgregarFotoComida";
+import type { GuardarDia } from "@/aplicacion/casos-de-uso/diario/GuardarDia";
+import type { ObtenerDia } from "@/aplicacion/casos-de-uso/diario/ObtenerDia";
+import type { ObtenerCalendarioDiario } from "@/aplicacion/casos-de-uso/diario/ObtenerCalendarioDiario";
+import type { ObtenerRegistrosEnRango } from "@/aplicacion/casos-de-uso/diario/ObtenerRegistrosEnRango";
+import type { AgregarComidaDiario } from "@/aplicacion/casos-de-uso/diario/AgregarComidaDiario";
+import type { EliminarComidaDiario } from "@/aplicacion/casos-de-uso/diario/EliminarComidaDiario";
+import type { AgregarActividadDiario } from "@/aplicacion/casos-de-uso/diario/AgregarActividadDiario";
+import type { EliminarActividadDiario } from "@/aplicacion/casos-de-uso/diario/EliminarActividadDiario";
+import type { AgregarFotoComida } from "@/aplicacion/casos-de-uso/diario/AgregarFotoComida";
 import type { RegistroDiario } from "@/dominio/entidades/RegistroDiario";
 import type {
   GuardarDiaDto,

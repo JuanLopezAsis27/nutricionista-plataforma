@@ -1,7 +1,7 @@
 import type {
   ObtenerTrackingDePaciente,
   TrackingPaciente,
-} from "@/dominio/casos-de-uso/tracking/ObtenerTrackingDePaciente";
+} from "@/aplicacion/casos-de-uso/tracking/ObtenerTrackingDePaciente";
 
 /**
  * Servicio de aplicación del Tracking del paciente: expone el read-model de

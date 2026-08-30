@@ -1,5 +1,5 @@
-import type { GuardarHistoriaClinica } from "@/dominio/casos-de-uso/evaluacion/GuardarHistoriaClinica";
-import type { ObtenerHistoriaClinica } from "@/dominio/casos-de-uso/evaluacion/ObtenerHistoriaClinica";
+import type { GuardarHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/GuardarHistoriaClinica";
+import type { ObtenerHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerHistoriaClinica";
 import type {
   GuardarHistoriaClinicaDto,
   HistoriaClinicaSalidaDto,

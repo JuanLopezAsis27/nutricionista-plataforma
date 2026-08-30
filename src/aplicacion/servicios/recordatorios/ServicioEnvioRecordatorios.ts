@@ -1,7 +1,7 @@
-import type { ListarTurnosParaRecordar } from "@/dominio/casos-de-uso/recordatorios/ListarTurnosParaRecordar";
-import type { EnviarRecordatoriosMasivos } from "@/dominio/casos-de-uso/recordatorios/EnviarRecordatoriosMasivos";
-import type { EnviarRecordatoriosProgramados } from "@/dominio/casos-de-uso/recordatorios/EnviarRecordatoriosProgramados";
-import type { ObtenerVistaPreviaRecordatorio } from "@/dominio/casos-de-uso/recordatorios/ObtenerVistaPreviaRecordatorio";
+import type { ListarTurnosParaRecordar } from "@/aplicacion/casos-de-uso/recordatorios/ListarTurnosParaRecordar";
+import type { EnviarRecordatoriosMasivos } from "@/aplicacion/casos-de-uso/recordatorios/EnviarRecordatoriosMasivos";
+import type { EnviarRecordatoriosProgramados } from "@/aplicacion/casos-de-uso/recordatorios/EnviarRecordatoriosProgramados";
+import type { ObtenerVistaPreviaRecordatorio } from "@/aplicacion/casos-de-uso/recordatorios/ObtenerVistaPreviaRecordatorio";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
 import type {

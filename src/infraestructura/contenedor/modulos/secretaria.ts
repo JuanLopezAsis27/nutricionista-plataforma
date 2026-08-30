@@ -2,13 +2,13 @@ import type { IPlantillaEmailRepositorio } from "@/dominio/repositorios/IPlantil
 import type { IEmailEnviadoRepositorio } from "@/dominio/repositorios/IEmailEnviadoRepositorio";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
-import { ListarPlantillas } from "@/dominio/casos-de-uso/secretaria/ListarPlantillas";
-import { ObtenerPlantilla } from "@/dominio/casos-de-uso/secretaria/ObtenerPlantilla";
-import { CrearPlantilla } from "@/dominio/casos-de-uso/secretaria/CrearPlantilla";
-import { ActualizarPlantilla } from "@/dominio/casos-de-uso/secretaria/ActualizarPlantilla";
-import { EliminarPlantilla } from "@/dominio/casos-de-uso/secretaria/EliminarPlantilla";
-import { EnviarEmailDePrueba } from "@/dominio/casos-de-uso/secretaria/EnviarEmailDePrueba";
-import { ListarEmailsEnviados } from "@/dominio/casos-de-uso/secretaria/ListarEmailsEnviados";
+import { ListarPlantillas } from "@/aplicacion/casos-de-uso/secretaria/ListarPlantillas";
+import { ObtenerPlantilla } from "@/aplicacion/casos-de-uso/secretaria/ObtenerPlantilla";
+import { CrearPlantilla } from "@/aplicacion/casos-de-uso/secretaria/CrearPlantilla";
+import { ActualizarPlantilla } from "@/aplicacion/casos-de-uso/secretaria/ActualizarPlantilla";
+import { EliminarPlantilla } from "@/aplicacion/casos-de-uso/secretaria/EliminarPlantilla";
+import { EnviarEmailDePrueba } from "@/aplicacion/casos-de-uso/secretaria/EnviarEmailDePrueba";
+import { ListarEmailsEnviados } from "@/aplicacion/casos-de-uso/secretaria/ListarEmailsEnviados";
 import { ServicioSecretaria } from "@/aplicacion/servicios/ServicioSecretaria";
 
 /** Arma el servicio de Secretaría (plantillas de email + envíos de prueba). */

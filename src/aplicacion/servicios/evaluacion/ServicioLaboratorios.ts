@@ -1,7 +1,7 @@
-import type { RegistrarLaboratorio } from "@/dominio/casos-de-uso/evaluacion/RegistrarLaboratorio";
-import type { ActualizarLaboratorio } from "@/dominio/casos-de-uso/evaluacion/ActualizarLaboratorio";
-import type { EliminarLaboratorio } from "@/dominio/casos-de-uso/evaluacion/EliminarLaboratorio";
-import type { ObtenerLaboratorios } from "@/dominio/casos-de-uso/evaluacion/ObtenerLaboratorios";
+import type { RegistrarLaboratorio } from "@/aplicacion/casos-de-uso/evaluacion/RegistrarLaboratorio";
+import type { ActualizarLaboratorio } from "@/aplicacion/casos-de-uso/evaluacion/ActualizarLaboratorio";
+import type { EliminarLaboratorio } from "@/aplicacion/casos-de-uso/evaluacion/EliminarLaboratorio";
+import type { ObtenerLaboratorios } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerLaboratorios";
 import type {
   RegistrarLaboratorioDto,
   ActualizarLaboratorioDto,

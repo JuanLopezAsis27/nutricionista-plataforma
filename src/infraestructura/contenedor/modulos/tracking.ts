@@ -4,7 +4,7 @@ import type { IAxiomaRepositorio } from "@/dominio/repositorios/IAxiomaRepositor
 import type { IAntropometriaRepositorio } from "@/dominio/repositorios/IAntropometriaRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IMetricaDispositivoRepositorio } from "@/dominio/repositorios/IMetricaDispositivoRepositorio";
-import { ObtenerTrackingDePaciente } from "@/dominio/casos-de-uso/tracking/ObtenerTrackingDePaciente";
+import { ObtenerTrackingDePaciente } from "@/aplicacion/casos-de-uso/tracking/ObtenerTrackingDePaciente";
 import { ServicioTracking } from "@/aplicacion/servicios/ServicioTracking";
 
 /** Arma el servicio de Tracking del paciente (read-model compuesto). */

@@ -1,8 +1,8 @@
-import type { CrearAxioma } from "@/dominio/casos-de-uso/axiomas/CrearAxioma";
-import type { ActualizarAxioma } from "@/dominio/casos-de-uso/axiomas/ActualizarAxioma";
-import type { EliminarAxioma } from "@/dominio/casos-de-uso/axiomas/EliminarAxioma";
-import type { ListarAxiomas } from "@/dominio/casos-de-uso/axiomas/ListarAxiomas";
-import type { ListarAxiomasActivos } from "@/dominio/casos-de-uso/axiomas/ListarAxiomasActivos";
+import type { CrearAxioma } from "@/aplicacion/casos-de-uso/axiomas/CrearAxioma";
+import type { ActualizarAxioma } from "@/aplicacion/casos-de-uso/axiomas/ActualizarAxioma";
+import type { EliminarAxioma } from "@/aplicacion/casos-de-uso/axiomas/EliminarAxioma";
+import type { ListarAxiomas } from "@/aplicacion/casos-de-uso/axiomas/ListarAxiomas";
+import type { ListarAxiomasActivos } from "@/aplicacion/casos-de-uso/axiomas/ListarAxiomasActivos";
 import type { AxiomaNutricional } from "@/dominio/entidades/AxiomaNutricional";
 import type {
   CrearAxiomaDto,

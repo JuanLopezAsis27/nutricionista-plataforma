@@ -1,13 +1,13 @@
-import type { ObtenerHiloWhatsapp } from "@/dominio/casos-de-uso/whatsapp/ObtenerHiloWhatsapp";
-import type { EnviarMensajeWhatsapp } from "@/dominio/casos-de-uso/whatsapp/EnviarMensajeWhatsapp";
+import type { ObtenerHiloWhatsapp } from "@/aplicacion/casos-de-uso/whatsapp/ObtenerHiloWhatsapp";
+import type { EnviarMensajeWhatsapp } from "@/aplicacion/casos-de-uso/whatsapp/EnviarMensajeWhatsapp";
 import type {
   ProcesarMensajeEntranteWhatsapp,
   MensajeEntranteWhatsapp,
-} from "@/dominio/casos-de-uso/whatsapp/ProcesarMensajeEntranteWhatsapp";
+} from "@/aplicacion/casos-de-uso/whatsapp/ProcesarMensajeEntranteWhatsapp";
 import type {
   RegistrarEstadoWhatsapp,
   EstadoEntregaWhatsapp,
-} from "@/dominio/casos-de-uso/whatsapp/RegistrarEstadoWhatsapp";
+} from "@/aplicacion/casos-de-uso/whatsapp/RegistrarEstadoWhatsapp";
 import type { MensajeWhatsapp } from "@/dominio/entidades/MensajeWhatsapp";
 import type {
   HiloWhatsappSalidaDto,

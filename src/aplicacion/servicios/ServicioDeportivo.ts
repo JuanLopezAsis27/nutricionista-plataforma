@@ -1,9 +1,9 @@
-import type { ObtenerPerfilDeportivo } from "@/dominio/casos-de-uso/deportivo/ObtenerPerfilDeportivo";
-import type { GuardarPerfilDeportivo } from "@/dominio/casos-de-uso/deportivo/GuardarPerfilDeportivo";
-import type { ListarCompetencias } from "@/dominio/casos-de-uso/deportivo/ListarCompetencias";
-import type { CrearCompetencia } from "@/dominio/casos-de-uso/deportivo/CrearCompetencia";
-import type { ActualizarCompetencia } from "@/dominio/casos-de-uso/deportivo/ActualizarCompetencia";
-import type { EliminarCompetencia } from "@/dominio/casos-de-uso/deportivo/EliminarCompetencia";
+import type { ObtenerPerfilDeportivo } from "@/aplicacion/casos-de-uso/deportivo/ObtenerPerfilDeportivo";
+import type { GuardarPerfilDeportivo } from "@/aplicacion/casos-de-uso/deportivo/GuardarPerfilDeportivo";
+import type { ListarCompetencias } from "@/aplicacion/casos-de-uso/deportivo/ListarCompetencias";
+import type { CrearCompetencia } from "@/aplicacion/casos-de-uso/deportivo/CrearCompetencia";
+import type { ActualizarCompetencia } from "@/aplicacion/casos-de-uso/deportivo/ActualizarCompetencia";
+import type { EliminarCompetencia } from "@/aplicacion/casos-de-uso/deportivo/EliminarCompetencia";
 import type { PerfilDeportivo } from "@/dominio/entidades/PerfilDeportivo";
 import type { Competencia } from "@/dominio/entidades/Competencia";
 import type {

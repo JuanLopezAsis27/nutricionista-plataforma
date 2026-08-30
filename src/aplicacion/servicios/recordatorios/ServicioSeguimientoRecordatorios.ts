@@ -1,6 +1,6 @@
-import type { ListarSeguimientoRecordatorios } from "@/dominio/casos-de-uso/recordatorios/ListarSeguimientoRecordatorios";
-import type { ListarRecordatoriosPendientes } from "@/dominio/casos-de-uso/recordatorios/ListarRecordatoriosPendientes";
-import type { ConfirmarRecordatorioWhatsapp } from "@/dominio/casos-de-uso/recordatorios/ConfirmarRecordatorioWhatsapp";
+import type { ListarSeguimientoRecordatorios } from "@/aplicacion/casos-de-uso/recordatorios/ListarSeguimientoRecordatorios";
+import type { ListarRecordatoriosPendientes } from "@/aplicacion/casos-de-uso/recordatorios/ListarRecordatoriosPendientes";
+import type { ConfirmarRecordatorioWhatsapp } from "@/aplicacion/casos-de-uso/recordatorios/ConfirmarRecordatorioWhatsapp";
 import type {
   RecordatorioPendienteSalidaDto,
   RecordatorioSalidaDto,

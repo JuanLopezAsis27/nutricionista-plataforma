@@ -15,8 +15,8 @@ import {
   MAX_HORAS_ENTRE_AVISOS,
 } from "@/dominio/entidades/ConfiguracionRecordatorios";
 import { ESTADOS_TURNO } from "@/dominio/entidades/Turno";
-import { MAX_TURNOS_POR_LOTE } from "@/dominio/casos-de-uso/recordatorios/EnviarRecordatoriosMasivos";
-import { MAX_DIAS_VENTANA } from "@/dominio/casos-de-uso/recordatorios/ListarTurnosParaRecordar";
+import { MAX_TURNOS_POR_LOTE } from "@/aplicacion/casos-de-uso/recordatorios/EnviarRecordatoriosMasivos";
+import { MAX_DIAS_VENTANA } from "@/aplicacion/casos-de-uso/recordatorios/ListarTurnosParaRecordar";
 
 /** ---- Configuración de medios y programación ---- */
 

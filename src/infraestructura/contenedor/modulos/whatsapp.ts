@@ -5,12 +5,12 @@ import type { IMensajeWhatsappRepositorio } from "@/dominio/repositorios/IMensaj
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { IProveedorWhatsapp } from "@/dominio/servicios/IProveedorWhatsapp";
 import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
-import { ObtenerHiloWhatsapp } from "@/dominio/casos-de-uso/whatsapp/ObtenerHiloWhatsapp";
-import { EnviarMensajeWhatsapp } from "@/dominio/casos-de-uso/whatsapp/EnviarMensajeWhatsapp";
-import { ProcesarMensajeEntranteWhatsapp } from "@/dominio/casos-de-uso/whatsapp/ProcesarMensajeEntranteWhatsapp";
-import { RegistrarEstadoWhatsapp } from "@/dominio/casos-de-uso/whatsapp/RegistrarEstadoWhatsapp";
-import { ResolverPacientePorTelefono } from "@/dominio/casos-de-uso/whatsapp/ResolverPacientePorTelefono";
-import { RegistrarRespuestaDeRecordatorio } from "@/dominio/casos-de-uso/recordatorios/RegistrarRespuestaDeRecordatorio";
+import { ObtenerHiloWhatsapp } from "@/aplicacion/casos-de-uso/whatsapp/ObtenerHiloWhatsapp";
+import { EnviarMensajeWhatsapp } from "@/aplicacion/casos-de-uso/whatsapp/EnviarMensajeWhatsapp";
+import { ProcesarMensajeEntranteWhatsapp } from "@/aplicacion/casos-de-uso/whatsapp/ProcesarMensajeEntranteWhatsapp";
+import { RegistrarEstadoWhatsapp } from "@/aplicacion/casos-de-uso/whatsapp/RegistrarEstadoWhatsapp";
+import { ResolverPacientePorTelefono } from "@/aplicacion/casos-de-uso/whatsapp/ResolverPacientePorTelefono";
+import { RegistrarRespuestaDeRecordatorio } from "@/aplicacion/casos-de-uso/recordatorios/RegistrarRespuestaDeRecordatorio";
 import { ServicioWhatsapp } from "@/aplicacion/servicios/ServicioWhatsapp";
 
 /**

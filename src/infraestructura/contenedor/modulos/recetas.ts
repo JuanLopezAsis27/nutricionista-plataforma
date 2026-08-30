@@ -2,18 +2,18 @@ import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositor
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
 import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamientoArchivos";
-import { CrearReceta } from "@/dominio/casos-de-uso/recetas/CrearReceta";
-import { ObtenerRecetas } from "@/dominio/casos-de-uso/recetas/ObtenerRecetas";
-import { ObtenerRecetasPaginado } from "@/dominio/casos-de-uso/recetas/ObtenerRecetasPaginado";
-import { ObtenerRecetaPorId } from "@/dominio/casos-de-uso/recetas/ObtenerRecetaPorId";
-import { ActualizarReceta } from "@/dominio/casos-de-uso/recetas/ActualizarReceta";
-import { EliminarReceta } from "@/dominio/casos-de-uso/recetas/EliminarReceta";
-import { EliminarArchivoDeReceta } from "@/dominio/casos-de-uso/recetas/EliminarArchivoDeReceta";
-import { MarcarFotoPrincipal } from "@/dominio/casos-de-uso/recetas/MarcarFotoPrincipal";
-import { AsignarRecetaAPaciente } from "@/dominio/casos-de-uso/recetas/AsignarRecetaAPaciente";
-import { DesasignarRecetaDePaciente } from "@/dominio/casos-de-uso/recetas/DesasignarRecetaDePaciente";
-import { ObtenerRecetasDelPaciente } from "@/dominio/casos-de-uso/recetas/ObtenerRecetasDelPaciente";
-import { ObtenerPacientesDeReceta } from "@/dominio/casos-de-uso/recetas/ObtenerPacientesDeReceta";
+import { CrearReceta } from "@/aplicacion/casos-de-uso/recetas/CrearReceta";
+import { ObtenerRecetas } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetas";
+import { ObtenerRecetasPaginado } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetasPaginado";
+import { ObtenerRecetaPorId } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetaPorId";
+import { ActualizarReceta } from "@/aplicacion/casos-de-uso/recetas/ActualizarReceta";
+import { EliminarReceta } from "@/aplicacion/casos-de-uso/recetas/EliminarReceta";
+import { EliminarArchivoDeReceta } from "@/aplicacion/casos-de-uso/recetas/EliminarArchivoDeReceta";
+import { MarcarFotoPrincipal } from "@/aplicacion/casos-de-uso/recetas/MarcarFotoPrincipal";
+import { AsignarRecetaAPaciente } from "@/aplicacion/casos-de-uso/recetas/AsignarRecetaAPaciente";
+import { DesasignarRecetaDePaciente } from "@/aplicacion/casos-de-uso/recetas/DesasignarRecetaDePaciente";
+import { ObtenerRecetasDelPaciente } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetasDelPaciente";
+import { ObtenerPacientesDeReceta } from "@/aplicacion/casos-de-uso/recetas/ObtenerPacientesDeReceta";
 import { ServicioReceta } from "@/aplicacion/servicios/ServicioReceta";
 
 /** Arma el servicio del Recetario con sus casos de uso. */

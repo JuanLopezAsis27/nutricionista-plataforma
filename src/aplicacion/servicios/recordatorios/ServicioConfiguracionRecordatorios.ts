@@ -1,5 +1,5 @@
-import type { ObtenerConfiguracionRecordatorios } from "@/dominio/casos-de-uso/recordatorios/ObtenerConfiguracionRecordatorios";
-import type { GuardarConfiguracionRecordatorios } from "@/dominio/casos-de-uso/recordatorios/GuardarConfiguracionRecordatorios";
+import type { ObtenerConfiguracionRecordatorios } from "@/aplicacion/casos-de-uso/recordatorios/ObtenerConfiguracionRecordatorios";
+import type { GuardarConfiguracionRecordatorios } from "@/aplicacion/casos-de-uso/recordatorios/GuardarConfiguracionRecordatorios";
 import type { IProveedorWhatsapp } from "@/dominio/servicios/IProveedorWhatsapp";
 import type { ICuentaConectadaRepositorio } from "@/dominio/repositorios/ICuentaConectadaRepositorio";
 import type {

@@ -4,8 +4,8 @@ import type { IGeneradorTokens } from "@/dominio/servicios/IGeneradorTokens";
 import type { IHasheadorContrasena } from "@/dominio/servicios/IHasheadorContrasena";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
-import { SolicitarRecuperacionPassword } from "@/dominio/casos-de-uso/autenticacion/SolicitarRecuperacionPassword";
-import { RestablecerPassword } from "@/dominio/casos-de-uso/autenticacion/RestablecerPassword";
+import { SolicitarRecuperacionPassword } from "@/aplicacion/casos-de-uso/autenticacion/SolicitarRecuperacionPassword";
+import { RestablecerPassword } from "@/aplicacion/casos-de-uso/autenticacion/RestablecerPassword";
 import { ServicioAutenticacion } from "@/aplicacion/servicios/ServicioAutenticacion";
 
 /** Arma el servicio de autenticación (recuperación de contraseña). */

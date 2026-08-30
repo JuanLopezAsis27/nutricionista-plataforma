@@ -1,5 +1,5 @@
-import type { MensajeEntranteWhatsapp } from "@/dominio/casos-de-uso/whatsapp/ProcesarMensajeEntranteWhatsapp";
-import type { EstadoEntregaWhatsapp } from "@/dominio/casos-de-uso/whatsapp/RegistrarEstadoWhatsapp";
+import type { MensajeEntranteWhatsapp } from "@/aplicacion/casos-de-uso/whatsapp/ProcesarMensajeEntranteWhatsapp";
+import type { EstadoEntregaWhatsapp } from "@/aplicacion/casos-de-uso/whatsapp/RegistrarEstadoWhatsapp";
 import type { EstadoMensajeWhatsapp } from "@/dominio/entidades/MensajeWhatsapp";
 
 /** Lo que interesa de un webhook de WhatsApp, ya desarmado. */

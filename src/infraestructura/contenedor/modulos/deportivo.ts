@@ -1,12 +1,12 @@
 import type { IPerfilDeportivoRepositorio } from "@/dominio/repositorios/IPerfilDeportivoRepositorio";
 import type { ICompetenciaRepositorio } from "@/dominio/repositorios/ICompetenciaRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
-import { ObtenerPerfilDeportivo } from "@/dominio/casos-de-uso/deportivo/ObtenerPerfilDeportivo";
-import { GuardarPerfilDeportivo } from "@/dominio/casos-de-uso/deportivo/GuardarPerfilDeportivo";
-import { ListarCompetencias } from "@/dominio/casos-de-uso/deportivo/ListarCompetencias";
-import { CrearCompetencia } from "@/dominio/casos-de-uso/deportivo/CrearCompetencia";
-import { ActualizarCompetencia } from "@/dominio/casos-de-uso/deportivo/ActualizarCompetencia";
-import { EliminarCompetencia } from "@/dominio/casos-de-uso/deportivo/EliminarCompetencia";
+import { ObtenerPerfilDeportivo } from "@/aplicacion/casos-de-uso/deportivo/ObtenerPerfilDeportivo";
+import { GuardarPerfilDeportivo } from "@/aplicacion/casos-de-uso/deportivo/GuardarPerfilDeportivo";
+import { ListarCompetencias } from "@/aplicacion/casos-de-uso/deportivo/ListarCompetencias";
+import { CrearCompetencia } from "@/aplicacion/casos-de-uso/deportivo/CrearCompetencia";
+import { ActualizarCompetencia } from "@/aplicacion/casos-de-uso/deportivo/ActualizarCompetencia";
+import { EliminarCompetencia } from "@/aplicacion/casos-de-uso/deportivo/EliminarCompetencia";
 import { ServicioDeportivo } from "@/aplicacion/servicios/ServicioDeportivo";
 
 /** Arma el servicio del módulo deportivo con sus casos de uso. */

@@ -4,14 +4,14 @@ import type { IPlantillaEmailRepositorio } from "@/dominio/repositorios/IPlantil
 import type { IHasheadorContrasena } from "@/dominio/servicios/IHasheadorContrasena";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
-import { CrearPaciente } from "@/dominio/casos-de-uso/pacientes/CrearPaciente";
-import { ObtenerPacientes } from "@/dominio/casos-de-uso/pacientes/ObtenerPacientes";
-import { ObtenerPacientePorId } from "@/dominio/casos-de-uso/pacientes/ObtenerPacientePorId";
-import { ActualizarPaciente } from "@/dominio/casos-de-uso/pacientes/ActualizarPaciente";
-import { EliminarPaciente } from "@/dominio/casos-de-uso/pacientes/EliminarPaciente";
-import { EnviarEmailDeBienvenida } from "@/dominio/casos-de-uso/pacientes/EnviarEmailDeBienvenida";
-import { ArchivarPaciente } from "@/dominio/casos-de-uso/pacientes/ArchivarPaciente";
-import { ReactivarPaciente } from "@/dominio/casos-de-uso/pacientes/ReactivarPaciente";
+import { CrearPaciente } from "@/aplicacion/casos-de-uso/pacientes/CrearPaciente";
+import { ObtenerPacientes } from "@/aplicacion/casos-de-uso/pacientes/ObtenerPacientes";
+import { ObtenerPacientePorId } from "@/aplicacion/casos-de-uso/pacientes/ObtenerPacientePorId";
+import { ActualizarPaciente } from "@/aplicacion/casos-de-uso/pacientes/ActualizarPaciente";
+import { EliminarPaciente } from "@/aplicacion/casos-de-uso/pacientes/EliminarPaciente";
+import { EnviarEmailDeBienvenida } from "@/aplicacion/casos-de-uso/pacientes/EnviarEmailDeBienvenida";
+import { ArchivarPaciente } from "@/aplicacion/casos-de-uso/pacientes/ArchivarPaciente";
+import { ReactivarPaciente } from "@/aplicacion/casos-de-uso/pacientes/ReactivarPaciente";
 import { ServicioPaciente } from "@/aplicacion/servicios/ServicioPaciente";
 
 /** Arma el servicio de Pacientes con sus casos de uso. */

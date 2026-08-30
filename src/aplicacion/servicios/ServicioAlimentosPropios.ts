@@ -1,6 +1,6 @@
-import type { ImportarAlimentos } from "@/dominio/casos-de-uso/nutricion/ImportarAlimentos";
-import type { ObtenerEstadoAlimentosPropios } from "@/dominio/casos-de-uso/nutricion/ObtenerEstadoAlimentosPropios";
-import type { VaciarAlimentosPropios } from "@/dominio/casos-de-uso/nutricion/VaciarAlimentosPropios";
+import type { ImportarAlimentos } from "@/aplicacion/casos-de-uso/nutricion/ImportarAlimentos";
+import type { ObtenerEstadoAlimentosPropios } from "@/aplicacion/casos-de-uso/nutricion/ObtenerEstadoAlimentosPropios";
+import type { VaciarAlimentosPropios } from "@/aplicacion/casos-de-uso/nutricion/VaciarAlimentosPropios";
 import type {
   EstadoAlimentosPropiosDto,
   ImportarAlimentosDto,

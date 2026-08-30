@@ -1,6 +1,6 @@
-import type { ObtenerCuentaGoogle } from "@/dominio/casos-de-uso/integraciones/ObtenerCuentaGoogle";
-import type { GuardarConexionGoogle } from "@/dominio/casos-de-uso/integraciones/GuardarConexionGoogle";
-import type { DesconectarGoogle } from "@/dominio/casos-de-uso/integraciones/DesconectarGoogle";
+import type { ObtenerCuentaGoogle } from "@/aplicacion/casos-de-uso/integraciones/ObtenerCuentaGoogle";
+import type { GuardarConexionGoogle } from "@/aplicacion/casos-de-uso/integraciones/GuardarConexionGoogle";
+import type { DesconectarGoogle } from "@/aplicacion/casos-de-uso/integraciones/DesconectarGoogle";
 import type { TokensGoogle } from "@/dominio/servicios/IProveedorGoogle";
 import type { EstadoIntegracionesDto } from "../dtos/integraciones.dto";
 

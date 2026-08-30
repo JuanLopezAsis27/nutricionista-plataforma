@@ -4,7 +4,7 @@ import type {
   PlantillaWhatsappEnvio,
   ResultadoEnvioWhatsapp,
 } from "@/dominio/servicios/IProveedorWhatsapp";
-import { construirEnlaceWhatsapp } from "@/dominio/casos-de-uso/whatsapp/enlace";
+import { construirEnlaceWhatsapp } from "@/aplicacion/casos-de-uso/whatsapp/enlace";
 
 /**
  * Proveedor por enlace: no envía nada, arma el wa.me para que el profesional

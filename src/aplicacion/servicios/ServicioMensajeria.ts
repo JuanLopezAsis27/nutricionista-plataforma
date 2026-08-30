@@ -1,9 +1,9 @@
-import type { EnviarMensaje } from "@/dominio/casos-de-uso/mensajeria/EnviarMensaje";
-import type { ObtenerConversacionDePaciente } from "@/dominio/casos-de-uso/mensajeria/ObtenerConversacionDePaciente";
-import type { ListarMensajes } from "@/dominio/casos-de-uso/mensajeria/ListarMensajes";
-import type { ListarConversaciones } from "@/dominio/casos-de-uso/mensajeria/ListarConversaciones";
-import type { MarcarLeidos } from "@/dominio/casos-de-uso/mensajeria/MarcarLeidos";
-import type { ContarNoLeidos } from "@/dominio/casos-de-uso/mensajeria/ContarNoLeidos";
+import type { EnviarMensaje } from "@/aplicacion/casos-de-uso/mensajeria/EnviarMensaje";
+import type { ObtenerConversacionDePaciente } from "@/aplicacion/casos-de-uso/mensajeria/ObtenerConversacionDePaciente";
+import type { ListarMensajes } from "@/aplicacion/casos-de-uso/mensajeria/ListarMensajes";
+import type { ListarConversaciones } from "@/aplicacion/casos-de-uso/mensajeria/ListarConversaciones";
+import type { MarcarLeidos } from "@/aplicacion/casos-de-uso/mensajeria/MarcarLeidos";
+import type { ContarNoLeidos } from "@/aplicacion/casos-de-uso/mensajeria/ContarNoLeidos";
 import type { Mensaje } from "@/dominio/entidades/Mensaje";
 import type {
   MensajeSalidaDto,

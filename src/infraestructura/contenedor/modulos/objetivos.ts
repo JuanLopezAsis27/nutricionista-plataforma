@@ -1,14 +1,14 @@
 import type { IObjetivoRepositorio } from "@/dominio/repositorios/IObjetivoRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
-import { CrearObjetivo } from "@/dominio/casos-de-uso/objetivos/CrearObjetivo";
-import { ActualizarObjetivo } from "@/dominio/casos-de-uso/objetivos/ActualizarObjetivo";
-import { CambiarEstadoObjetivo } from "@/dominio/casos-de-uso/objetivos/CambiarEstadoObjetivo";
-import { EliminarObjetivo } from "@/dominio/casos-de-uso/objetivos/EliminarObjetivo";
-import { ObtenerObjetivosDePaciente } from "@/dominio/casos-de-uso/objetivos/ObtenerObjetivosDePaciente";
-import { AgregarEstrategia } from "@/dominio/casos-de-uso/objetivos/AgregarEstrategia";
-import { CambiarEstadoEstrategia } from "@/dominio/casos-de-uso/objetivos/CambiarEstadoEstrategia";
-import { EliminarEstrategia } from "@/dominio/casos-de-uso/objetivos/EliminarEstrategia";
-import { ObtenerHistorialObjetivo } from "@/dominio/casos-de-uso/objetivos/ObtenerHistorialObjetivo";
+import { CrearObjetivo } from "@/aplicacion/casos-de-uso/objetivos/CrearObjetivo";
+import { ActualizarObjetivo } from "@/aplicacion/casos-de-uso/objetivos/ActualizarObjetivo";
+import { CambiarEstadoObjetivo } from "@/aplicacion/casos-de-uso/objetivos/CambiarEstadoObjetivo";
+import { EliminarObjetivo } from "@/aplicacion/casos-de-uso/objetivos/EliminarObjetivo";
+import { ObtenerObjetivosDePaciente } from "@/aplicacion/casos-de-uso/objetivos/ObtenerObjetivosDePaciente";
+import { AgregarEstrategia } from "@/aplicacion/casos-de-uso/objetivos/AgregarEstrategia";
+import { CambiarEstadoEstrategia } from "@/aplicacion/casos-de-uso/objetivos/CambiarEstadoEstrategia";
+import { EliminarEstrategia } from "@/aplicacion/casos-de-uso/objetivos/EliminarEstrategia";
+import { ObtenerHistorialObjetivo } from "@/aplicacion/casos-de-uso/objetivos/ObtenerHistorialObjetivo";
 import { ServicioObjetivo } from "@/aplicacion/servicios/ServicioObjetivo";
 
 /** Arma el servicio de Objetivos con sus casos de uso. */

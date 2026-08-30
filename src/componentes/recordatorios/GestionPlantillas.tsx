@@ -17,8 +17,8 @@ import {
   CUERPO_RECORDATORIO_POR_DEFECTO,
   type VariableRecordatorio,
 } from "@/dominio/entidades/PlantillaWhatsapp";
-import { renderizarPlantilla } from "@/dominio/casos-de-uso/whatsapp/plantilla";
-import { variablesEjemplo } from "@/dominio/casos-de-uso/secretaria/variables";
+import { renderizarPlantilla } from "@/aplicacion/casos-de-uso/whatsapp/plantilla";
+import { variablesEjemplo } from "@/aplicacion/casos-de-uso/secretaria/variables";
 import { Button } from "@/componentes/ui/button";
 import { Badge } from "@/componentes/ui/badge";
 import { Input } from "@/componentes/ui/input";

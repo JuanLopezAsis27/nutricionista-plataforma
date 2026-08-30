@@ -47,14 +47,14 @@ import { crearServicioNutricion } from "./modulos/nutricion";
 import { crearServicioCredenciales } from "./modulos/credenciales";
 
 import { ServicioIntegraciones } from "@/aplicacion/servicios/ServicioIntegraciones";
-import { ObtenerCuentaGoogle } from "@/dominio/casos-de-uso/integraciones/ObtenerCuentaGoogle";
-import { GuardarConexionGoogle } from "@/dominio/casos-de-uso/integraciones/GuardarConexionGoogle";
-import { DesconectarGoogle } from "@/dominio/casos-de-uso/integraciones/DesconectarGoogle";
+import { ObtenerCuentaGoogle } from "@/aplicacion/casos-de-uso/integraciones/ObtenerCuentaGoogle";
+import { GuardarConexionGoogle } from "@/aplicacion/casos-de-uso/integraciones/GuardarConexionGoogle";
+import { DesconectarGoogle } from "@/aplicacion/casos-de-uso/integraciones/DesconectarGoogle";
 
 import { ServicioAlimentosPropios } from "@/aplicacion/servicios/ServicioAlimentosPropios";
-import { ImportarAlimentos } from "@/dominio/casos-de-uso/nutricion/ImportarAlimentos";
-import { ObtenerEstadoAlimentosPropios } from "@/dominio/casos-de-uso/nutricion/ObtenerEstadoAlimentosPropios";
-import { VaciarAlimentosPropios } from "@/dominio/casos-de-uso/nutricion/VaciarAlimentosPropios";
+import { ImportarAlimentos } from "@/aplicacion/casos-de-uso/nutricion/ImportarAlimentos";
+import { ObtenerEstadoAlimentosPropios } from "@/aplicacion/casos-de-uso/nutricion/ObtenerEstadoAlimentosPropios";
+import { VaciarAlimentosPropios } from "@/aplicacion/casos-de-uso/nutricion/VaciarAlimentosPropios";
 
 // --- Reexportes del núcleo que consume la presentación --------------------------
 export { busEventos, proveedorGoogle, directorioWhatsapp } from "./nucleo";

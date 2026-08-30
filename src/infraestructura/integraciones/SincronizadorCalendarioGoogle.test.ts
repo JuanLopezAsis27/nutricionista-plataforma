@@ -9,7 +9,7 @@ import {
   mockConfiguracionRecordatoriosRepositorio,
   cuentaConectadaEjemplo,
   pacienteEjemplo,
-} from "@/dominio/casos-de-uso/_ayudas-test";
+} from "@/aplicacion/casos-de-uso/_ayudas-test";
 
 function proveedorMock(
   parcial: Partial<IProveedorGoogle> = {},

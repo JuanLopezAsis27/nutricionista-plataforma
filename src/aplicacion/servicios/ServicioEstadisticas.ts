@@ -1,5 +1,5 @@
-import type { ObtenerEstadisticas } from "@/dominio/casos-de-uso/estadisticas/ObtenerEstadisticas";
-import type { ObtenerDetalleEstadistica } from "@/dominio/casos-de-uso/estadisticas/ObtenerDetalleEstadistica";
+import type { ObtenerEstadisticas } from "@/aplicacion/casos-de-uso/estadisticas/ObtenerEstadisticas";
+import type { ObtenerDetalleEstadistica } from "@/aplicacion/casos-de-uso/estadisticas/ObtenerDetalleEstadistica";
 import type {
   RangoEstadisticasDto,
   EstadisticasSalidaDto,
