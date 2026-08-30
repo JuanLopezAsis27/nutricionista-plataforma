@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { DesasignarPlanDePaciente } from "./DesasignarPlanDePaciente";
-import { mockPlanRepositorio } from "../_ayudas-test";
+import { mockAsignacionPlanRepositorio } from "../_ayudas-test";
 
 describe("DesasignarPlanDePaciente", () => {
   it("cierra las asignaciones activas dejando la fecha de fin", async () => {
-    const planes = mockPlanRepositorio();
+    const planes = mockAsignacionPlanRepositorio();
     const casoUso = new DesasignarPlanDePaciente(planes);
     const hoy = new Date("2026-08-29");
 

@@ -1,6 +1,6 @@
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IObjetivoRepositorio } from "@/dominio/repositorios/IObjetivoRepositorio";
-import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
+import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositorio";
 import type { IAlertaAlimentariaRepositorio } from "@/dominio/repositorios/IAlertaAlimentariaRepositorio";
 import type { IAxiomaRepositorio } from "@/dominio/repositorios/IAxiomaRepositorio";
@@ -39,7 +39,7 @@ export class PreguntarAlAsistente {
   constructor(
     private readonly pacientes: IPacienteRepositorio,
     private readonly objetivos: IObjetivoRepositorio,
-    private readonly planes: IPlanRepositorio,
+    private readonly planes: IAsignacionPlanRepositorio,
     private readonly recetas: IRecetaRepositorio,
     private readonly alertas: IAlertaAlimentariaRepositorio,
     private readonly axiomas: IAxiomaRepositorio,

@@ -1,7 +1,7 @@
 import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
 import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositorio";
 import type { IMaterialRepositorio } from "@/dominio/repositorios/IMaterialRepositorio";
-import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
+import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 
 /** Identidad del paciente que intenta leer el archivo. */
 export interface SolicitanteArchivo {
@@ -29,7 +29,7 @@ export class PuedeVerArchivoPaciente {
     private readonly archivos: IArchivoRepositorio,
     private readonly recetas: IRecetaRepositorio,
     private readonly materiales: IMaterialRepositorio,
-    private readonly planes: IPlanRepositorio,
+    private readonly planes: IAsignacionPlanRepositorio,
   ) {}
 
   async ejecutar(

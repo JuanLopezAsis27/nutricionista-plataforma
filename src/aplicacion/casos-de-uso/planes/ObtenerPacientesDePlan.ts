@@ -1,3 +1,4 @@
+import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type {
   IPlanRepositorio,
   AsignacionConPaciente,
@@ -12,13 +13,16 @@ import { ErrorPlanNoEncontrado } from "@/dominio/errores/ErrorPlanNoEncontrado";
  * ya lo dejaron. Devolver solo los activos escondería que el plan se usó.
  */
 export class ObtenerPacientesDePlan {
-  constructor(private readonly planes: IPlanRepositorio) {}
+  constructor(
+    private readonly planes: IPlanRepositorio,
+    private readonly asignaciones: IAsignacionPlanRepositorio,
+  ) {}
 
   async ejecutar(planId: string): Promise<AsignacionConPaciente[]> {
     const plan = await this.planes.obtenerPorId(planId);
     if (!plan) {
       throw new ErrorPlanNoEncontrado(planId);
     }
-    return this.planes.listarAsignacionesDePlan(planId);
+    return this.asignaciones.listarAsignacionesDePlan(planId);
   }
 }

@@ -1,5 +1,5 @@
 import type { IRegistroDiarioRepositorio } from "@/dominio/repositorios/IRegistroDiarioRepositorio";
-import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
+import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type { IAxiomaRepositorio } from "@/dominio/repositorios/IAxiomaRepositorio";
 import type { IAntropometriaRepositorio } from "@/dominio/repositorios/IAntropometriaRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
@@ -93,7 +93,7 @@ export class ObtenerTrackingDePaciente {
   constructor(
     private readonly pacientes: IPacienteRepositorio,
     private readonly registros: IRegistroDiarioRepositorio,
-    private readonly planes: IPlanRepositorio,
+    private readonly planes: IAsignacionPlanRepositorio,
     private readonly axiomas: IAxiomaRepositorio,
     private readonly antropometrias: IAntropometriaRepositorio,
     private readonly metricas: IMetricaDispositivoRepositorio,

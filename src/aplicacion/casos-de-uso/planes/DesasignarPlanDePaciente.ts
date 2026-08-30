@@ -1,4 +1,4 @@
-import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
+import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 
 /**
  * Caso de uso: finalizar el plan activo de un paciente (queda sin plan).
@@ -8,7 +8,7 @@ import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
  * información clínica, y desaparece solo si se borra al paciente.
  */
 export class DesasignarPlanDePaciente {
-  constructor(private readonly planes: IPlanRepositorio) {}
+  constructor(private readonly planes: IAsignacionPlanRepositorio) {}
 
   async ejecutar(pacienteId: string, ahora: Date = new Date()): Promise<void> {
     await this.planes.desactivarAsignacionesDe(pacienteId, ahora);

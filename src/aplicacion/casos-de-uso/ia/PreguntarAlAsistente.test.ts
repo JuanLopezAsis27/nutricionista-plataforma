@@ -4,7 +4,7 @@ import { ErrorPacienteNoEncontrado } from "@/dominio/errores/ErrorPacienteNoEnco
 import {
   mockPacienteRepositorio,
   mockObjetivoRepositorio,
-  mockPlanRepositorio,
+  mockAsignacionPlanRepositorio,
   mockRecetaRepositorio,
   mockAlertaAlimentariaRepositorio,
   mockAxiomaRepositorio,
@@ -24,7 +24,7 @@ describe("PreguntarAlAsistente", () => {
         obtenerPorId: vi.fn(async () => pacienteEjemplo()),
       }),
       mockObjetivoRepositorio({ listarPorPaciente: vi.fn(async () => []) }),
-      mockPlanRepositorio({
+      mockAsignacionPlanRepositorio({
         obtenerPlanActivoDePaciente: vi.fn(async () => null),
       }),
       mockRecetaRepositorio({ listarPorPaciente: vi.fn(async () => []) }),
@@ -61,7 +61,7 @@ describe("PreguntarAlAsistente", () => {
     const uc = new PreguntarAlAsistente(
       mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => null) }),
       mockObjetivoRepositorio(),
-      mockPlanRepositorio(),
+      mockAsignacionPlanRepositorio(),
       mockRecetaRepositorio(),
       mockAlertaAlimentariaRepositorio(),
       mockAxiomaRepositorio(),

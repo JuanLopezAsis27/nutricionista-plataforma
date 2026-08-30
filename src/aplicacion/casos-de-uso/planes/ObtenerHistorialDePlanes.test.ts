@@ -2,14 +2,14 @@ import { describe, it, expect, vi } from "vitest";
 import { ObtenerHistorialDePlanes } from "./ObtenerHistorialDePlanes";
 import { ErrorPacienteNoEncontrado } from "@/dominio/errores/ErrorPacienteNoEncontrado";
 import {
-  mockPlanRepositorio,
+  mockAsignacionPlanRepositorio,
   mockPacienteRepositorio,
   pacienteEjemplo,
 } from "../_ayudas-test";
 
 describe("ObtenerHistorialDePlanes", () => {
   it("devuelve el historial, incluidas las entradas cuyo plan se borró", async () => {
-    const planes = mockPlanRepositorio({
+    const planes = mockAsignacionPlanRepositorio({
       listarAsignacionesDePaciente: vi.fn(async () => [
         {
           id: "asig-2",
@@ -49,7 +49,7 @@ describe("ObtenerHistorialDePlanes", () => {
   });
 
   it("lanza ErrorPacienteNoEncontrado si el paciente no existe", async () => {
-    const planes = mockPlanRepositorio();
+    const planes = mockAsignacionPlanRepositorio();
     const casoUso = new ObtenerHistorialDePlanes(
       planes,
       mockPacienteRepositorio(),

@@ -1,3 +1,4 @@
+import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type {
   IPlanRepositorio,
   AsignacionPlan,
@@ -30,6 +31,7 @@ export interface DatosAsignarPlan {
 export class AsignarPlanAPaciente {
   constructor(
     private readonly planes: IPlanRepositorio,
+    private readonly asignaciones: IAsignacionPlanRepositorio,
     private readonly pacientes: IPacienteRepositorio,
   ) {}
 
@@ -50,7 +52,7 @@ export class AsignarPlanAPaciente {
     }
 
     // Regla: un solo plan activo por paciente → desactivar el anterior.
-    await this.planes.desactivarAsignacionesDe(
+    await this.asignaciones.desactivarAsignacionesDe(
       datos.pacienteId,
       datos.fechaInicio,
     );
@@ -68,6 +70,6 @@ export class AsignarPlanAPaciente {
       activa: true,
     };
 
-    return this.planes.asignarAPaciente(asignacion);
+    return this.asignaciones.asignarAPaciente(asignacion);
   }
 }

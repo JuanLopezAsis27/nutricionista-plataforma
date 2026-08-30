@@ -6,7 +6,7 @@ import {
   mockAlertaSeguimientoRepositorio,
   mockPacienteRepositorio,
   mockRegistroDiarioRepositorio,
-  mockPlanRepositorio,
+  mockAsignacionPlanRepositorio,
   mockTurnoRepositorio,
   mockReloj,
   pacienteEjemplo,
@@ -52,7 +52,7 @@ describe("GenerarAlertasDeSeguimiento", () => {
       alertas,
       pacientes,
       registros,
-      mockPlanRepositorio(),
+      mockAsignacionPlanRepositorio(),
       mockTurnoRepositorio(),
       mockReloj(),
     );
@@ -79,7 +79,7 @@ describe("GenerarAlertasDeSeguimiento", () => {
       alertas,
       pacientes,
       registros,
-      mockPlanRepositorio(),
+      mockAsignacionPlanRepositorio(),
       mockTurnoRepositorio(),
       mockReloj(),
     );
@@ -106,7 +106,7 @@ describe("GenerarAlertasDeSeguimiento", () => {
       alertas,
       pacientes,
       registros,
-      mockPlanRepositorio(),
+      mockAsignacionPlanRepositorio(),
       mockTurnoRepositorio(),
       mockReloj(),
     );
@@ -121,7 +121,7 @@ describe("GenerarAlertasDeSeguimiento", () => {
     const pacientes = mockPacienteRepositorio({
       listar: vi.fn(async () => [pacienteEjemplo()]),
     });
-    const planes = mockPlanRepositorio({
+    const planes = mockAsignacionPlanRepositorio({
       listarAsignacionesActivasVencidas: vi.fn(async () => [
         {
           id: "asig-1",
@@ -163,7 +163,7 @@ describe("GenerarAlertasDeSeguimiento", () => {
       alertas,
       pacientes,
       mockRegistroDiarioRepositorio(),
-      mockPlanRepositorio(),
+      mockAsignacionPlanRepositorio(),
       turnos,
       mockReloj(),
     );
@@ -195,7 +195,7 @@ describe("GenerarAlertasDeSeguimiento", () => {
       alertas,
       pacientes,
       registros,
-      mockPlanRepositorio(),
+      mockAsignacionPlanRepositorio(),
       mockTurnoRepositorio(),
       mockReloj(),
     );

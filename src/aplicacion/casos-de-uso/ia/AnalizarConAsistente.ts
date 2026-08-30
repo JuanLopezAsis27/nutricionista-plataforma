@@ -1,5 +1,6 @@
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
+import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositorio";
 import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio";
 import type { IObjetivoRepositorio } from "@/dominio/repositorios/IObjetivoRepositorio";
@@ -38,6 +39,7 @@ export class AnalizarConAsistente {
   constructor(
     private readonly pacientes: IPacienteRepositorio,
     private readonly planes: IPlanRepositorio,
+    private readonly asignaciones: IAsignacionPlanRepositorio,
     private readonly recetas: IRecetaRepositorio,
     private readonly turnos: ITurnoRepositorio,
     private readonly objetivos: IObjetivoRepositorio,
@@ -88,7 +90,7 @@ export class AnalizarConAsistente {
           const paciente = await this.pacientes.obtenerPorId(pacienteId);
           if (!paciente) return "No existe un paciente con ese id.";
           const [plan, objetivos, alertas] = await Promise.all([
-            this.planes.obtenerPlanActivoDePaciente(pacienteId),
+            this.asignaciones.obtenerPlanActivoDePaciente(pacienteId),
             this.objetivos.listarPorPaciente(pacienteId),
             this.alertas.listarPorPaciente(pacienteId),
           ]);

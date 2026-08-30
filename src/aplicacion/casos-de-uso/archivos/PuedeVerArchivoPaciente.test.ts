@@ -5,7 +5,7 @@ import {
   mockArchivoRepositorio,
   mockRecetaRepositorio,
   mockMaterialRepositorio,
-  mockPlanRepositorio,
+  mockAsignacionPlanRepositorio,
   archivoEjemplo,
 } from "../_ayudas-test";
 
@@ -33,7 +33,7 @@ describe("PuedeVerArchivoPaciente", () => {
       archivos,
       mockRecetaRepositorio(),
       mockMaterialRepositorio(),
-      mockPlanRepositorio(),
+      mockAsignacionPlanRepositorio(),
     );
 
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(true);
@@ -51,7 +51,7 @@ describe("PuedeVerArchivoPaciente", () => {
       archivos,
       recetas,
       mockMaterialRepositorio(),
-      mockPlanRepositorio(),
+      mockAsignacionPlanRepositorio(),
     );
 
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(true);
@@ -69,7 +69,7 @@ describe("PuedeVerArchivoPaciente", () => {
       archivos,
       recetas,
       mockMaterialRepositorio(),
-      mockPlanRepositorio(),
+      mockAsignacionPlanRepositorio(),
     );
 
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(false);
@@ -87,7 +87,7 @@ describe("PuedeVerArchivoPaciente", () => {
       archivos,
       mockRecetaRepositorio(),
       materiales,
-      mockPlanRepositorio(),
+      mockAsignacionPlanRepositorio(),
     );
 
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(true);
@@ -102,7 +102,7 @@ describe("PuedeVerArchivoPaciente", () => {
       archivos,
       mockRecetaRepositorio(),
       mockMaterialRepositorio(),
-      mockPlanRepositorio(),
+      mockAsignacionPlanRepositorio(),
     );
 
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(false);
@@ -113,7 +113,7 @@ describe("PuedeVerArchivoPaciente", () => {
       obtenerPorId: vi.fn(async () => archivoSubidoPor("usu-nutri")),
       obtenerDueno: vi.fn(async () => ({ planId: "plan-1" })),
     });
-    const planes = mockPlanRepositorio({
+    const planes = mockAsignacionPlanRepositorio({
       obtenerAsignacionActiva: vi.fn(async () => ({
         id: "asig-1",
         planId: "plan-1",
@@ -140,7 +140,7 @@ describe("PuedeVerArchivoPaciente", () => {
       obtenerPorId: vi.fn(async () => archivoSubidoPor("usu-nutri")),
       obtenerDueno: vi.fn(async () => ({ planId: "plan-viejo" })),
     });
-    const planes = mockPlanRepositorio({
+    const planes = mockAsignacionPlanRepositorio({
       obtenerAsignacionActiva: vi.fn(async () => ({
         id: "asig-2",
         planId: "plan-nuevo",
@@ -171,7 +171,7 @@ describe("PuedeVerArchivoPaciente", () => {
       archivos,
       mockRecetaRepositorio(),
       mockMaterialRepositorio(),
-      mockPlanRepositorio(),
+      mockAsignacionPlanRepositorio(),
     );
 
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(false);

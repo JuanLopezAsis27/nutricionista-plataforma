@@ -1,7 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { ObtenerPacientesDePlan } from "./ObtenerPacientesDePlan";
 import { ErrorPlanNoEncontrado } from "@/dominio/errores/ErrorPlanNoEncontrado";
-import { mockPlanRepositorio, planEjemplo } from "../_ayudas-test";
+import {
+  mockPlanRepositorio,
+  mockAsignacionPlanRepositorio,
+  planEjemplo,
+} from "../_ayudas-test";
 
 const asignacion = {
   id: "asig-1",
@@ -20,6 +24,8 @@ describe("ObtenerPacientesDePlan", () => {
   it("devuelve las asignaciones del plan, activas e históricas", async () => {
     const planes = mockPlanRepositorio({
       obtenerPorId: vi.fn(async () => planEjemplo()),
+    });
+    const asignaciones = mockAsignacionPlanRepositorio({
       listarAsignacionesDePlan: vi.fn(async () => [
         asignacion,
         {
@@ -30,7 +36,7 @@ describe("ObtenerPacientesDePlan", () => {
         },
       ]),
     });
-    const casoUso = new ObtenerPacientesDePlan(planes);
+    const casoUso = new ObtenerPacientesDePlan(planes, asignaciones);
 
     const resultado = await casoUso.ejecutar("pla-1");
 
@@ -41,11 +47,12 @@ describe("ObtenerPacientesDePlan", () => {
 
   it("lanza ErrorPlanNoEncontrado si el plan no existe", async () => {
     const planes = mockPlanRepositorio();
-    const casoUso = new ObtenerPacientesDePlan(planes);
+    const asignaciones = mockAsignacionPlanRepositorio();
+    const casoUso = new ObtenerPacientesDePlan(planes, asignaciones);
 
     await expect(casoUso.ejecutar("pla-x")).rejects.toBeInstanceOf(
       ErrorPlanNoEncontrado,
     );
-    expect(planes.listarAsignacionesDePlan).not.toHaveBeenCalled();
+    expect(asignaciones.listarAsignacionesDePlan).not.toHaveBeenCalled();
   });
 });

@@ -13,6 +13,7 @@ import type { ILaboratorioRepositorio } from "@/dominio/repositorios/ILaboratori
 import type { IRegistroDiarioRepositorio } from "@/dominio/repositorios/IRegistroDiarioRepositorio";
 import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositorio";
 import type { IMetricaDispositivoRepositorio } from "@/dominio/repositorios/IMetricaDispositivoRepositorio";
+import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
 import type { IGrupoPlanRepositorio } from "@/dominio/repositorios/IGrupoPlanRepositorio";
 import type { IObjetivoRepositorio } from "@/dominio/repositorios/IObjetivoRepositorio";
@@ -311,15 +312,30 @@ export function mockPlanRepositorio(
     contar: vi.fn(async () => 0),
     marcarArchivado: vi.fn(async () => {}),
     moverAGrupo: vi.fn(async () => {}),
-    contarAsignacionesActivasDePlan: vi.fn(async () => 0),
     existeNombre: vi.fn(async () => false),
-    listarAsignacionesDePlan: vi.fn(async () => []),
-    listarAsignacionesDePaciente: vi.fn(async () => []),
+    ...parcial,
+  };
+}
+
+/**
+ * Mock del puerto de asignaciones plan⇄paciente.
+ *
+ * Separado de `mockPlanRepositorio` desde que el puerto se partió en dos: un
+ * test de asignaciones ya no tiene que construir los nueve métodos del plan
+ * para ejercitar uno del historial.
+ */
+export function mockAsignacionPlanRepositorio(
+  parcial: Partial<IAsignacionPlanRepositorio> = {},
+): IAsignacionPlanRepositorio {
+  return {
     asignarAPaciente: vi.fn(async (a) => a),
     desactivarAsignacionesDe: vi.fn(async () => {}),
     obtenerAsignacionActiva: vi.fn(async () => null),
+    listarAsignacionesDePlan: vi.fn(async () => []),
+    listarAsignacionesDePaciente: vi.fn(async () => []),
     obtenerPlanActivoDePaciente: vi.fn(async () => null),
     listarAsignacionesActivasVencidas: vi.fn(async () => []),
+    contarAsignacionesActivasDePlan: vi.fn(async () => 0),
     ...parcial,
   };
 }

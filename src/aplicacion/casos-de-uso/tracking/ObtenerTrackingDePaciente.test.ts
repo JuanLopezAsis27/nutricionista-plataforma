@@ -7,7 +7,7 @@ import {
 import {
   mockPacienteRepositorio,
   mockRegistroDiarioRepositorio,
-  mockPlanRepositorio,
+  mockAsignacionPlanRepositorio,
   mockAxiomaRepositorio,
   mockAntropometriaRepositorio,
   mockMetricaDispositivoRepositorio,
@@ -55,7 +55,7 @@ function tracking(deps: {
     mockRegistroDiarioRepositorio({
       listarPorRango: vi.fn(async () => deps.registros ?? []),
     }),
-    mockPlanRepositorio({
+    mockAsignacionPlanRepositorio({
       obtenerPlanActivoDePaciente: vi.fn(async () => deps.plan ?? null),
     }),
     mockAxiomaRepositorio({

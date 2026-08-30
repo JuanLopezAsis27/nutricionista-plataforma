@@ -4,6 +4,7 @@ import type { HerramientaAsistente } from "@/dominio/servicios/IAsistenteNutrici
 import {
   mockPacienteRepositorio,
   mockPlanRepositorio,
+  mockAsignacionPlanRepositorio,
   mockRecetaRepositorio,
   mockTurnoRepositorio,
   mockObjetivoRepositorio,
@@ -22,6 +23,7 @@ function crear(
   const uc = new AnalizarConAsistente(
     mockPacienteRepositorio(overrides.pacientes),
     mockPlanRepositorio(),
+    mockAsignacionPlanRepositorio(),
     mockRecetaRepositorio(),
     mockTurnoRepositorio(),
     mockObjetivoRepositorio(),

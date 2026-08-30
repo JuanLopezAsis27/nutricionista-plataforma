@@ -1,4 +1,5 @@
 import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
+import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IGrupoPlanRepositorio } from "@/dominio/repositorios/IGrupoPlanRepositorio";
 import { CrearPlan } from "@/aplicacion/casos-de-uso/planes/CrearPlan";
@@ -23,7 +24,9 @@ import { ServicioPlan } from "@/aplicacion/servicios/ServicioPlan";
 
 /** Arma el servicio de Planes Nutricionales con sus casos de uso. */
 export function crearServicioPlan(deps: {
-  planes: IPlanRepositorio;
+  // La implementación de Prisma sirve los dos puertos; el cableado es el
+  // único lugar que necesita saberlo.
+  planes: IPlanRepositorio & IAsignacionPlanRepositorio;
   pacientes: IPacienteRepositorio;
   grupos: IGrupoPlanRepositorio;
 }): ServicioPlan {
@@ -33,13 +36,13 @@ export function crearServicioPlan(deps: {
     new ObtenerPlanesPaginado(deps.planes),
     new ObtenerPlanPorId(deps.planes),
     new ActualizarPlan(deps.planes),
-    new EliminarPlan(deps.planes),
+    new EliminarPlan(deps.planes, deps.planes),
     new ArchivarPlan(deps.planes),
     new CrearPlanDesdePlantilla(deps.planes),
-    new AsignarPlanAPaciente(deps.planes, deps.pacientes),
+    new AsignarPlanAPaciente(deps.planes, deps.planes, deps.pacientes),
     new DesasignarPlanDePaciente(deps.planes),
     new ObtenerPlanDelPaciente(deps.planes),
-    new ObtenerPacientesDePlan(deps.planes),
+    new ObtenerPacientesDePlan(deps.planes, deps.planes),
     new ObtenerHistorialDePlanes(deps.planes, deps.pacientes),
     new MoverPlanAGrupo(deps.planes, deps.grupos),
     new CrearGrupoPlan(deps.grupos),

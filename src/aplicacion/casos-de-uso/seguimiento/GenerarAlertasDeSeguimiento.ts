@@ -1,7 +1,7 @@
 import type { IAlertaSeguimientoRepositorio } from "@/dominio/repositorios/IAlertaSeguimientoRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IRegistroDiarioRepositorio } from "@/dominio/repositorios/IRegistroDiarioRepositorio";
-import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
+import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import {
@@ -35,7 +35,7 @@ export class GenerarAlertasDeSeguimiento {
     private readonly alertas: IAlertaSeguimientoRepositorio,
     private readonly pacientes: IPacienteRepositorio,
     private readonly registros: IRegistroDiarioRepositorio,
-    private readonly planes: IPlanRepositorio,
+    private readonly planes: IAsignacionPlanRepositorio,
     private readonly turnos: ITurnoRepositorio,
     private readonly reloj: IRelojFecha,
   ) {}

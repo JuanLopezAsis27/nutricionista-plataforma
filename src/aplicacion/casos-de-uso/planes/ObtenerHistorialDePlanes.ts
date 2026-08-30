@@ -1,7 +1,7 @@
 import type {
-  IPlanRepositorio,
+  IAsignacionPlanRepositorio,
   AsignacionPlan,
-} from "@/dominio/repositorios/IPlanRepositorio";
+} from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import { ErrorPacienteNoEncontrado } from "@/dominio/errores/ErrorPacienteNoEncontrado";
 
@@ -18,7 +18,7 @@ import { ErrorPacienteNoEncontrado } from "@/dominio/errores/ErrorPacienteNoEnco
  */
 export class ObtenerHistorialDePlanes {
   constructor(
-    private readonly planes: IPlanRepositorio,
+    private readonly planes: IAsignacionPlanRepositorio,
     private readonly pacientes: IPacienteRepositorio,
   ) {}
 

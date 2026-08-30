@@ -1,6 +1,7 @@
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IObjetivoRepositorio } from "@/dominio/repositorios/IObjetivoRepositorio";
 import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
+import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositorio";
 import type { IAlertaAlimentariaRepositorio } from "@/dominio/repositorios/IAlertaAlimentariaRepositorio";
 import type { IAxiomaRepositorio } from "@/dominio/repositorios/IAxiomaRepositorio";
@@ -28,7 +29,9 @@ import {
 export function crearServicioIA(deps: {
   pacientes: IPacienteRepositorio;
   objetivos: IObjetivoRepositorio;
-  planes: IPlanRepositorio;
+  // La implementación de Prisma sirve los dos puertos; el cableado es el
+  // único lugar que necesita saberlo.
+  planes: IPlanRepositorio & IAsignacionPlanRepositorio;
   recetas: IRecetaRepositorio;
   turnos: ITurnoRepositorio;
   alertas: IAlertaAlimentariaRepositorio;
@@ -61,6 +64,7 @@ export function crearServicioIA(deps: {
     new ObtenerInsightsPredictivos(deps.analisisPredictivo),
     new AnalizarConAsistente(
       deps.pacientes,
+      deps.planes,
       deps.planes,
       deps.recetas,
       deps.turnos,

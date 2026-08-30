@@ -1,4 +1,5 @@
 import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
+import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import { ErrorPlanNoEncontrado } from "@/dominio/errores/ErrorPlanNoEncontrado";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 
@@ -8,7 +9,10 @@ import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
  * conviene archivarlo, no borrarlo).
  */
 export class EliminarPlan {
-  constructor(private readonly planes: IPlanRepositorio) {}
+  constructor(
+    private readonly planes: IPlanRepositorio,
+    private readonly asignaciones: IAsignacionPlanRepositorio,
+  ) {}
 
   async ejecutar(id: string): Promise<void> {
     const existente = await this.planes.obtenerPorId(id);
@@ -17,7 +21,7 @@ export class EliminarPlan {
     }
 
     const asignacionesActivas =
-      await this.planes.contarAsignacionesActivasDePlan(id);
+      await this.asignaciones.contarAsignacionesActivasDePlan(id);
     if (asignacionesActivas > 0) {
       throw new ErrorValidacion(
         "No se puede eliminar un plan asignado a pacientes. Archivalo, o desasignalo primero.",

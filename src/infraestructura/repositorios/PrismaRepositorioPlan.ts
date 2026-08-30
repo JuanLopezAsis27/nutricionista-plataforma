@@ -3,6 +3,7 @@ import type {
   Prisma,
   AsignacionPlan as AsignacionFila,
 } from "@prisma/client";
+import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type {
   IPlanRepositorio,
   AsignacionPlan,
@@ -66,7 +67,9 @@ function aNumero(valor: Prisma.Decimal | null): number | null {
  * Persiste el agregado completo de forma atómica ($transaction); `actualizar`
  * reemplaza los hijos. Convierte Decimal↔number y gestiona las asignaciones.
  */
-export class PrismaRepositorioPlan implements IPlanRepositorio {
+export class PrismaRepositorioPlan
+  implements IPlanRepositorio, IAsignacionPlanRepositorio
+{
   constructor(private readonly prisma: PrismaClient) {}
 
   async crear(
