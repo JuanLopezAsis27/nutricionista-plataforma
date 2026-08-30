@@ -2032,13 +2032,210 @@ cuánto confiar en el resto:
   repositorios, pero no la forma concreta que tomó: los agregados que se traen
   con `include` (§17.2).
 
-### 21.4 Lo que queda
+### 21.4 Lo que quedaba
 
-1. **3 casos de uso** sin cubrir, todos de lectura.
-2. **`DashboardComposicion`**, en 536 líneas: su JSX son ~430 líneas de tarjetas
-   sin secciones marcadas y partirlas pide entender qué muestra cada una.
-3. **Subir a `error`** las reglas del React Compiler cuando se salden los 36
-   avisos de §7.6 — entre ellos `SidebarNav` creando componentes dentro del
-   render, que es un bug de estado real.
+Los cuatro puntos que esta sección listaba al escribirse. Los tres primeros están
+hechos y se documentan en §22; el cuarto no es código y se explica en §23.
+
+1. ~~**3 casos de uso** sin cubrir, todos de lectura.~~ → §22.2
+2. ~~**`DashboardComposicion`**, en 536 líneas.~~ → §22.3
+3. ~~**Subir a `error`** las reglas del React Compiler.~~ → §22.1, donde además
+   resultó que no eran 36 casos del mismo tipo sino cinco reglas distintas.
 4. **Branch protection** en `main` exigiendo los checks del CI. Es configuración
-   de GitHub, no código: hay que hacerlo desde la web.
+   de GitHub, no código: **hay que hacerlo desde la web** → §23.
+
+---
+
+## 22. Registro de ejecución — el cierre de §21.4
+
+Los tres puntos de código de §21.4 quedaron hechos. El cuarto no es código y se
+explica en §23.
+
+| | Commit |
+| --- | --- |
+| Reglas del React Compiler a `error` | `2d9de7e` |
+| Los tres casos de uso sin cubrir | `5b1c2b9` |
+| `DashboardComposicion` | `6a1e82f` |
+
+### 22.1 Los avisos del linter: 36 → 21, y dos bugs más
+
+El punto 3 de §21.4 decía "subir a `error` cuando se salden los 36 avisos". Al
+mirarlos uno por uno resultó que **no eran 36 casos del mismo tipo**: eran cinco
+reglas distintas, y solo dos contenían deuda de verdad.
+
+**`static-components` (4 avisos) — bug real.** `SidebarNav` definía `Enlaces` y
+`Pie` **dentro** de su render. En cada pintado eran funciones nuevas, así que
+React las trataba como componentes distintos y **desmontaba el subárbol entero**:
+perdía el foco y reiniciaba cualquier animación en curso. Hoy ninguno de los dos
+tiene estado propio —por eso nadie lo notó—, pero habría descartado el estado el
+día que alguien les agregara uno. Salieron del componente y reciben por props lo
+que tomaban del closure.
+
+**`purity` (1 aviso) — bug real.** El dashboard leía `new Date()` en el cuerpo
+del componente. Con SSR el servidor y el cliente pueden caer a los dos lados de
+la medianoche y renderizar dashboards distintos. Ahora el día se fija al montar
+—`useState(() => aFechaISO(new Date()))`— y la ventana de la semana **se deriva
+de él** en vez de leer un segundo reloj: si se leyeran por separado, podría
+abarcar 6 u 8 días al cruzar la medianoche.
+
+**`no-base-to-string` (3, de la otra tanda) — bug real.** `TablaDatos` podía
+imprimir `[object Object]` en una columna sin `render`, y el parser de planillas
+podía meterlo como **nombre de un alimento** importado desde una celda con
+fórmula rota.
+
+Los tres se resolvieron y las cuatro reglas pasaron a `error`.
+
+**`incompatible-library` (7) → `off`.** Eran el compilador avisando que no puede
+memoizar un componente que usa `form.watch()` de react-hook-form. Es una
+propiedad de esa API, no algo que este repo pueda arreglar. En `warn` para
+siempre solo ensucia el reporte.
+
+**`set-state-in-effect` (21) → se queda en `warn`, y el config dice por qué.**
+Son dos patrones legítimos: el *guard* de hidratación
+(`useEffect(() => setMontado(true), [])`, la forma canónica con next-themes y
+SSR) y sincronizar estado local con datos que llegan de una consulta. Subirla a
+`error` obligaría a 21 `disable` o a reescribir quince formularios **sin arreglar
+un solo bug**. En `warn`, un caso nuevo igual se ve en la revisión.
+
+Ese es el punto que vale la pena dejar escrito: **el nivel de una regla es una
+decisión de ingeniería, no un objetivo de limpieza.** Tres reglas subieron porque
+lo que marcaban eran bugs; una se apagó porque no era del código; una se quedó en
+`warn` porque su contenido es correcto y aun así conviene mirarlo.
+
+#### El `eslint-disable` que no sobrevive al formateador
+
+Dos veces en este trabajo pasó lo mismo: se agregó un
+`// eslint-disable-next-line`, Prettier reacomodó el bloque y **la directiva
+quedó separada de la línea que apuntaba**, sin efecto y sin que nada avisara. La
+primera vez con `card.tsx` y `SelectorPaciente.tsx`; la segunda con los dos
+helpers de `no-base-to-string`.
+
+Las dos salidas quedaron adoptadas, y las dos son mejores que el `disable`:
+
+- **Excepciones estables → al config**, acotadas por archivo (§7.6). Ahí no las
+  toca el formateador y, además, quedan explicadas en un lugar donde se leen
+  todas juntas.
+- **Casos puntuales → *narrowing* explícito.** `aTexto` y `primitivoATexto` hoy
+  hacen `switch (typeof valor)` y devuelven `"—"` / `""` en el `default`. No
+  necesitan supresión **porque el tipo ya está estrechado**: el compilador
+  verifica lo mismo que la regla pedía.
+
+### 22.2 Los tres casos de uso que faltaban
+
+Con estos, **los 182 casos de uso del sistema tienen test**. Eran de lectura
+—por eso habían quedado para el final—, pero dos de ellos deciden cosas.
+
+**`ListarSeguimientoRecordatorios` (16 tests).** El único con lógica de verdad, y
+el test que más importa es el de `respondio`: la bandeja compara la fecha del
+último mensaje entrante contra la del aviso, **no** el estado. Un mensaje que
+entró *antes* del recordatorio no es una respuesta a ese recordatorio, y contarlo
+como tal haría que el profesional diera por confirmado un turno que nadie
+confirmó. También quedan fijados: que un aviso `PREPARADO`/`FALLIDO`/`DESCARTADO`
+no entra —no le llegó a nadie—; que se agrupa por paciente y no por recordatorio,
+porque el chat es uno solo; que un **turno** borrado no oculta la fila pero un
+**paciente** borrado sí; que se piden `limite * 3` porque después se agrupa; y
+que la ventana de 24 h de Meta la reabre solo un mensaje **entrante**, no el
+propio recordatorio, que es saliente.
+
+**`ObtenerDetalleEstadistica` (4).** No calcula: traduce. Todo su valor está en
+los parámetros que arma, así que eso es lo que miran los tests. El corte de
+abandono se mide 60 días antes del **fin** del rango y no del inicio —contra
+`desde` la lista traería gente que sí volvió— y el umbral es el mismo para las
+tres categorías, porque el *drill-down* tiene que dar la misma gente que la
+tarjeta que se clickeó.
+
+**`ObtenerInsightsPredictivos` (3).** Es una línea, y ese es el punto: existe
+para que la UI dependa del **puerto** y no del stub de demostración que hoy lo
+implementa. Se fija que siga siendo una línea, que la lista vacía no se rellene
+con una tarjeta informativa —el vacío tiene que ser distinguible de un hallazgo—
+y que un fallo del análisis se propague: tragárselo mostraría un panel vacío, que
+se lee como *"no hay pacientes en riesgo"* cuando en realidad nadie los buscó.
+
+**Verificados por mutación, 5 de 5 mueren:** `respondio` sin comparar fechas (1
+test), sin filtrar por `salio` (1), la ventana medida sobre el último mensaje en
+vez del entrante (2), `limite` sin multiplicar (1) y el corte de abandono contra
+`desde` (2).
+
+### 22.3 `DashboardComposicion`: 536 → 183
+
+Era el más difícil de los cuatro componentes grandes, y por eso quedó último: sus
+~430 líneas de JSX eran tarjetas seguidas **sin secciones marcadas**, así que el
+corte había que deducirlo de lo que muestra cada una.
+
+Las seis piezas nuevas van a `dashboard/`, junto a las tres que ya estaban:
+
+| Pieza | Líneas |
+| --- | --- |
+| `CabeceraMedicion` | 60 |
+| `IndicadoresCabecera` | 147 |
+| `TarjetaFraccionamiento` | 72 |
+| `TarjetasEvolucion` | 119 |
+| `TarjetaIndices` | 81 |
+| `TarjetaEnergia` | 87 |
+
+Lo que queda en el archivo principal es la única decisión que el componente toma
+de verdad: cuál es la medición actual, cuál la anterior, qué ecuación de grasa
+manda y en qué orden van las tarjetas.
+
+Cada pieza se llevó el comentario que explica **por qué** se muestra así, y donde
+no había, se escribió. Cuatro que valía la pena dejar asentados:
+
+- El desvío del peso estructurado contra la balanza va **en rojo** arriba del 2 %
+  porque casi siempre es un pliegue mal tomado, no un dato del paciente.
+- Los indicadores del medio **cambian según el protocolo**: mostrar los dos
+  modelos juntos daría dos cifras de grasa distintas de la misma persona.
+- El selector de método manda sobre **toda** la serie: mezclar ecuaciones dibuja
+  un salto que el paciente no vivió.
+- Las tres estimaciones de metabolismo basal se muestran juntas **a propósito**;
+  cuál conviene depende del paciente, y esa decisión es del profesional.
+
+Sin cambios de comportamiento: el JSX se movió tal cual. Los dos únicos retoques
+son `tarjetaGrasa` extraída a una variable —se usaba idéntica en las dos ramas
+del protocolo, que son excluyentes— y `TarjetasEvolucion` devolviendo un
+*Fragment*, que no crea nodo y deja las tarjetas como hijas directas del
+contenedor `space-y-6`, con el mismo espaciado.
+
+---
+
+## 23. Lo único que queda, y no es código
+
+**Habilitar branch protection en `main`.** Es configuración de GitHub y **hay que
+hacerla desde la web**: `Settings → Branches → Add rule`, sobre `main`.
+
+Sin eso, los gates de CI del paso 2 corren e informan, pero **nada impide
+mergear con el CI en rojo** — que es exactamente lo que dejó `npm run lint` roto
+durante toda la subida a Next 16 sin que nadie se enterara.
+
+Lo que conviene exigir:
+
+| Opción | Por qué |
+| --- | --- |
+| *Require status checks to pass* → `typecheck`, `lint`, `test`, `format` | Es el punto del ejercicio: que el rojo bloquee. |
+| *Require branches to be up to date before merging* | Dos ramas verdes por separado pueden romper juntas. |
+| *Require a pull request before merging* | Cierra el push directo, que saltea todo lo anterior. |
+| *Include administrators* | Si el dueño del repo puede saltearlo, en un repo de un solo desarrollador la regla no existe. |
+
+El último es el que más se omite y el que más importa acá.
+
+---
+
+## 24. Cierre del recorrido
+
+| | Antes | Después |
+| --- | --- | --- |
+| Tests | 722 | **1.016** |
+| Errores de ESLint | *(no había linter)* | **0** |
+| Avisos del linter | *(no había linter)* | 21, todos justificados en el config |
+| Casos de uso con test | ~76 % | **182/182** |
+| Máx. dependencias de constructor | 20 | 10 |
+| Archivos de `src/` sobre 650 líneas | 8 | **0** |
+| `FormularioPlan.tsx` | 913 ln | 283 ln |
+| `DashboardComposicion.tsx` | 536 ln | 183 ln |
+| `_ayudas-test.ts` | 1.355 ln | 14 ln + 3 módulos |
+| Copias de `soloFecha` | 8 | 1 |
+| Métodos en el puerto de planes | 17 | 9 + 8 |
+
+**Diez bugs reales**, ninguno buscado: los ocho de §21.2 más los dos de §22.1
+(`SidebarNav` desmontando su subárbol y el reloj impuro del dashboard). El
+patrón se repite: aparecieron **al escribir el test o al correr la herramienta**,
+no al leer el código.
