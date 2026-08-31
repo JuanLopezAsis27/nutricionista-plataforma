@@ -48,6 +48,9 @@ export const CAMPOS_PLANTILLA = [
   "plieguePantorrilla",
   "pliegueBicipital",
   "pliegueCrestaIliaca",
+  "plieguePectoral",
+  "pliegueAxilarMedio",
+  "pliegueLumbar",
 ] as const satisfies readonly (keyof MedidasAntropometricas)[];
 
 export type CampoPlantilla = (typeof CAMPOS_PLANTILLA)[number];
@@ -179,6 +182,50 @@ export const REQUISITOS_RESULTADO: readonly RequisitoResultado[] = [
       "pliegueTricipital",
       "pliegueSubescapular",
       "pliegueCrestaIliaca",
+    ],
+  },
+  // Las tres que salen del perfil ISAK: piden sitios que el ISAK no tiene
+  // (pectoral, axilar medio, lumbar), así que solo las habilita una plantilla
+  // que los incluya explícitamente.
+  {
+    clave: "JACKSON_POLLOCK_7",
+    etiqueta: DEFINICIONES_METODO.JACKSON_POLLOCK_7.etiqueta,
+    sexo: "AMBOS",
+    campos: [
+      "plieguePectoral",
+      "pliegueAxilarMedio",
+      "pliegueTricipital",
+      "pliegueSubescapular",
+      "pliegueAbdominal",
+      "pliegueCrestaIliaca",
+      "pliegueMuslo",
+    ],
+  },
+  {
+    clave: "JACKSON_POLLOCK_4",
+    etiqueta: DEFINICIONES_METODO.JACKSON_POLLOCK_4.etiqueta,
+    sexo: "AMBOS",
+    campos: [
+      "pliegueTricipital",
+      "pliegueAbdominal",
+      "pliegueCrestaIliaca",
+      "pliegueMuslo",
+    ],
+  },
+  {
+    clave: "PARRILLO",
+    etiqueta: DEFINICIONES_METODO.PARRILLO.etiqueta,
+    sexo: "AMBOS",
+    campos: [
+      "plieguePectoral",
+      "pliegueBicipital",
+      "pliegueTricipital",
+      "pliegueSubescapular",
+      "pliegueAbdominal",
+      "pliegueCrestaIliaca",
+      "pliegueMuslo",
+      "pliegueLumbar",
+      "plieguePantorrilla",
     ],
   },
   {

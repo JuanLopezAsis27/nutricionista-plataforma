@@ -104,7 +104,7 @@ export function DiarioPacienteVista({ pacienteId }: { pacienteId: string }) {
                       {comida.descripcion}
                       {comida.fotoArchivoId && (
                         <a
-                          href={`/api/archivos/${comida.fotoArchivoId}`}
+                          href={`/api/archivos/${comida.fotoArchivoId}/ver`}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-0.5 text-xs text-primary hover:underline"

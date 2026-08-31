@@ -5,7 +5,7 @@ import type {
   GrupoPhantom,
   PuntoPhantom,
 } from "@/dominio/servicios/composicionCorporal";
-import { formatearNumero } from "@/lib/formato";
+import { formatearMedida } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import { Button } from "@/componentes/ui/button";
 import type { TemaComposicion } from "./paleta";
@@ -165,10 +165,10 @@ function FilaPhantom({
         )}
       >
         {punto.scoreZ > 0 ? "+" : ""}
-        {formatearNumero(punto.scoreZ)}
+        {formatearMedida(punto.scoreZ)}
       </span>
       <span className="hidden w-24 shrink-0 text-right text-[11px] text-muted-foreground tabular-nums sm:inline">
-        {formatearNumero(punto.valor)}
+        {formatearMedida(punto.valor)}
       </span>
     </li>
   );

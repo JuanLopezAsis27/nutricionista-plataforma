@@ -27,9 +27,9 @@ export function TarjetaReceta({ receta, onVer, acciones }: PropsTarjetaReceta) {
         aria-label={`Ver la receta ${receta.nombre}`}
       >
         {fotoId ? (
-          // eslint-disable-next-line @next/next/no-img-element -- URL firmada temporal, no optimizable
+          // eslint-disable-next-line @next/next/no-img-element -- ruta dinámica autorizada, no optimizable
           <img
-            src={`/api/archivos/${fotoId}`}
+            src={`/api/archivos/${fotoId}/ver`}
             alt={`Foto de ${receta.nombre}`}
             className="h-36 w-full object-cover"
           />

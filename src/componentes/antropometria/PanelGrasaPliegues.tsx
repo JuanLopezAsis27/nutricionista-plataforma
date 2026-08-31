@@ -3,7 +3,7 @@
 import { Info } from "lucide-react";
 import type { GrasaPorPliegues } from "@/dominio/servicios/grasaPorPliegues";
 import type { MetodoGrasa } from "@/dominio/servicios/grasaPorPliegues";
-import { formatearNumero } from "@/lib/formato";
+import { formatearMedida } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import type { TemaComposicion } from "./paleta";
 
@@ -72,14 +72,14 @@ export function PanelGrasaPliegues({
             {destacado.etiqueta}
           </p>
           <p className="mt-0.5 text-4xl font-bold tabular-nums">
-            {formatearNumero(destacado.porcentajeGrasa)}
+            {formatearMedida(destacado.porcentajeGrasa)}
             <span className="ml-1 text-lg font-normal text-muted-foreground">
               %
             </span>
           </p>
           <p className="text-sm text-muted-foreground">
-            {formatearNumero(destacado.masaGrasaKg)} kg de grasa ·{" "}
-            {formatearNumero(destacado.masaLibreGrasaKg)} kg de masa magra
+            {formatearMedida(destacado.masaGrasaKg)} kg de grasa ·{" "}
+            {formatearMedida(destacado.masaLibreGrasaKg)} kg de masa magra
           </p>
           {diferencia != null && (
             <p
@@ -87,7 +87,7 @@ export function PanelGrasaPliegues({
               style={{ color: diferencia <= 0 ? tema.bien : tema.atencion }}
             >
               {diferencia > 0 ? "+" : ""}
-              {formatearNumero(diferencia)} puntos vs. la medición anterior
+              {formatearMedida(diferencia)} puntos vs. la medición anterior
             </p>
           )}
         </div>
@@ -103,19 +103,19 @@ export function PanelGrasaPliegues({
               }}
             >
               {destacado.porcentajeGrasa >= 12 &&
-                `${formatearNumero(destacado.porcentajeGrasa)} %`}
+                `${formatearMedida(destacado.porcentajeGrasa)} %`}
             </span>
             <span
               className="flex flex-1 items-center justify-center text-[10px] font-semibold text-white"
               style={{ backgroundColor: tema.masas.muscular }}
             >
-              {formatearNumero(100 - destacado.porcentajeGrasa)} %
+              {formatearMedida(100 - destacado.porcentajeGrasa)} %
             </span>
           </div>
           <p className="flex justify-between text-[11px] text-muted-foreground">
             <span>Masa grasa</span>
             <span>
-              Masa libre de grasa · {formatearNumero(pesoKg)} kg totales
+              Masa libre de grasa · {formatearMedida(pesoKg)} kg totales
             </span>
           </p>
         </div>
@@ -123,11 +123,20 @@ export function PanelGrasaPliegues({
 
       <p className="text-xs text-muted-foreground">
         <span className="font-medium">{destacado.autor}.</span> Validada en:{" "}
-        {destacado.poblacion}. Σ pliegues del método:{" "}
-        {formatearNumero(destacado.sumatoriaPliegues)} mm
+        {destacado.poblacion}.
         {destacado.densidadCorporal != null &&
-          ` · densidad ${formatearNumero(destacado.densidadCorporal)} g/ml`}
-        .
+          ` Densidad corporal ${formatearMedida(destacado.densidadCorporal)} g/ml.`}
+      </p>
+
+      {/* Qué sumó esta ecuación. Cada una usa un juego distinto de sitios, y
+          sin decirlo la carga de un pliegue que solo entra en una de ellas
+          parece no servir para nada. */}
+      <p className="text-xs text-muted-foreground">
+        Σ de {destacado.sitios.length} sitios ={" "}
+        <span className="font-medium tabular-nums">
+          {formatearMedida(destacado.sumatoriaPliegues)} mm
+        </span>
+        : {destacado.sitios.map(nombreCorto).join(", ")}.
       </p>
 
       {otros.length > 0 && (
@@ -146,11 +155,15 @@ export function PanelGrasaPliegues({
                   <span className="block text-[11px] text-muted-foreground">
                     {resultado.poblacion}
                   </span>
+                  <span className="block text-[11px] text-muted-foreground">
+                    Σ {formatearMedida(resultado.sumatoriaPliegues)} mm:{" "}
+                    {resultado.sitios.map(nombreCorto).join(", ")}
+                  </span>
                 </span>
                 <span className="shrink-0 font-medium tabular-nums">
-                  {formatearNumero(resultado.porcentajeGrasa)} %
+                  {formatearMedida(resultado.porcentajeGrasa)} %
                   <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                    {formatearNumero(resultado.masaGrasaKg)} kg
+                    {formatearMedida(resultado.masaGrasaKg)} kg
                   </span>
                 </span>
               </li>
@@ -176,6 +189,15 @@ export function PanelGrasaPliegues({
       )}
     </div>
   );
+}
+
+/**
+ * "Pliegue tricipital" → "tricipital". Las etiquetas del dominio son
+ * autoexplicativas sueltas; en una enumeración de siete, repetir "pliegue" en
+ * cada una convierte la línea en ruido.
+ */
+function nombreCorto(etiqueta: string): string {
+  return etiqueta.replace(/^Pliegue (de la |de el |del |de )?/i, "");
 }
 
 /** Comparación honesta entre los dos modelos, cuando conviven. */
@@ -204,20 +226,20 @@ export function AvisoDosModelos({
         <p>
           Esta medición resuelve los dos modelos:{" "}
           <span className="font-medium tabular-nums">
-            {formatearNumero(masaAdiposaKg)} kg (
-            {formatearNumero(porcentajeAdiposa)} %)
+            {formatearMedida(masaAdiposaKg)} kg (
+            {formatearMedida(porcentajeAdiposa)} %)
           </span>{" "}
           de masa adiposa por Kerr, y{" "}
           <span className="font-medium tabular-nums">
-            {formatearNumero(masaGrasaKg)} kg (
-            {formatearNumero(porcentajeGrasa)} %)
+            {formatearMedida(masaGrasaKg)} kg (
+            {formatearMedida(porcentajeGrasa)} %)
           </span>{" "}
           de masa grasa por {etiquetaMetodo}.
         </p>
         <p className="text-muted-foreground">
           Los{" "}
           <span className={cn("font-medium")}>
-            {formatearNumero(brecha)} kg
+            {formatearMedida(brecha)} kg
           </span>{" "}
           de diferencia no son un error: Kerr es un modelo anatómico y mide
           grasa subcutánea; las ecuaciones de pliegues estiman grasa total por

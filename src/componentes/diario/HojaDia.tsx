@@ -309,7 +309,7 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
                       aria-label="Ver foto"
                     >
                       <a
-                        href={`/api/archivos/${comida.fotoArchivoId}`}
+                        href={`/api/archivos/${comida.fotoArchivoId}/ver`}
                         target="_blank"
                         rel="noreferrer"
                       >

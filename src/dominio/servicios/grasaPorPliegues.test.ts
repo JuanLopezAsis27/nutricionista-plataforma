@@ -40,6 +40,9 @@ function medidas(
     plieguePantorrilla: 9,
     pliegueBicipital: null,
     pliegueCrestaIliaca: null,
+    plieguePectoral: null,
+    pliegueAxilarMedio: null,
+    pliegueLumbar: null,
     ...cambios,
   };
 }
@@ -238,6 +241,110 @@ describe("degradación", () => {
   });
 });
 
+describe("Jackson & Pollock", () => {
+  /** Los 7 sitios completos: a los 6 de la planilla, pectoral y axilar medio. */
+  const siete = medidas({
+    plieguePectoral: 7,
+    pliegueAxilarMedio: 6,
+    pliegueCrestaIliaca: 11,
+  });
+
+  it("la de 7 sitios suma pectoral y axilar medio, y deja fuera la pantorrilla", () => {
+    const r = porMetodo(
+      calcularGrasaPorPliegues(siete, { sexo: "MASCULINO", edadAnios: 30 }),
+    ).get("JACKSON_POLLOCK_7")!;
+    // 7 (pectoral) + 6 (axilar) + 10 (tríceps) + 12 (subescapular)
+    // + 15 (abdominal) + 11 (cresta ilíaca) + 14 (muslo) = 75.
+    expect(r.sumatoriaPliegues).toBe(75);
+  });
+
+  it("la de 7 sitios pasa por densidad cuadrática y convierte con Siri", () => {
+    const r = porMetodo(
+      calcularGrasaPorPliegues(siete, { sexo: "MASCULINO", edadAnios: 30 }),
+    ).get("JACKSON_POLLOCK_7")!;
+    const esperada =
+      1.112 - 0.00043499 * 75 + 0.00000055 * 75 ** 2 - 0.00028826 * 30;
+    expect(r.densidadCorporal).toBeCloseTo(esperada, 5);
+    expect(r.porcentajeGrasa).toBeCloseTo(495 / esperada - 450, 2);
+  });
+
+  it("la de 4 sitios devuelve el porcentaje DIRECTO, sin densidad", () => {
+    const r = porMetodo(
+      calcularGrasaPorPliegues(siete, { sexo: "FEMENINO", edadAnios: 40 }),
+    ).get("JACKSON_POLLOCK_4")!;
+    // 10 (tríceps) + 15 (abdominal) + 11 (cresta ilíaca) + 14 (muslo) = 50.
+    expect(r.sumatoriaPliegues).toBe(50);
+    expect(r.densidadCorporal).toBeNull();
+    const esperado = 0.29669 * 50 - 0.00043 * 50 ** 2 + 0.02963 * 40 + 1.4072;
+    expect(r.porcentajeGrasa).toBeCloseTo(esperado, 2);
+  });
+
+  it("las dos necesitan la edad", () => {
+    const resultado = calcularGrasaPorPliegues(siete, {
+      sexo: "MASCULINO",
+      edadAnios: null,
+    });
+    const sinEdad = resultado.faltantes.filter((f) =>
+      f.campos.includes("Fecha de nacimiento del paciente"),
+    );
+    expect(sinEdad.map((f) => f.metodo)).toEqual(
+      expect.arrayContaining(["JACKSON_POLLOCK_7", "JACKSON_POLLOCK_4"]),
+    );
+  });
+
+  it("sin pectoral, la de 7 queda como faltante y la de 4 se calcula igual", () => {
+    const porMet = porMetodo(
+      calcularGrasaPorPliegues(medidas({ pliegueCrestaIliaca: 11 }), {
+        sexo: "MASCULINO",
+        edadAnios: 30,
+      }),
+    );
+    expect(porMet.get("JACKSON_POLLOCK_7")).toBeUndefined();
+    expect(porMet.get("JACKSON_POLLOCK_4")).toBeDefined();
+  });
+});
+
+describe("Parrillo", () => {
+  const nueve = medidas({
+    plieguePectoral: 7,
+    pliegueLumbar: 8,
+    pliegueBicipital: 5,
+    pliegueCrestaIliaca: 11,
+  });
+
+  it("suma los 9 sitios y divide por el peso en libras", () => {
+    const r = porMetodo(
+      calcularGrasaPorPliegues(nueve, { sexo: "MASCULINO", edadAnios: 30 }),
+    ).get("PARRILLO")!;
+    // 7 + 5 + 10 + 12 + 15 + 11 + 14 + 8 + 9 = 91 mm.
+    expect(r.sumatoriaPliegues).toBe(91);
+    const libras = 80 / 0.45359237;
+    expect(r.porcentajeGrasa).toBeCloseTo((27 * 91) / libras, 2);
+  });
+
+  it("es la única que depende del peso: a igual Σ, más peso es menos %", () => {
+    const liviano = porMetodo(
+      calcularGrasaPorPliegues(nueve, { sexo: "MASCULINO", edadAnios: 30 }),
+    ).get("PARRILLO")!;
+    const pesado = porMetodo(
+      calcularGrasaPorPliegues(
+        { ...nueve, pesoKg: 100 },
+        { sexo: "MASCULINO", edadAnios: 30 },
+      ),
+    ).get("PARRILLO")!;
+
+    expect(pesado.sumatoriaPliegues).toBe(liviano.sumatoriaPliegues);
+    expect(pesado.porcentajeGrasa).toBeLessThan(liviano.porcentajeGrasa);
+  });
+
+  it("no necesita edad", () => {
+    const r = porMetodo(
+      calcularGrasaPorPliegues(nueve, { sexo: "MASCULINO", edadAnios: null }),
+    ).get("PARRILLO")!;
+    expect(r.porcentajeGrasa).toBeGreaterThan(0);
+  });
+});
+
 describe("catálogo de métodos", () => {
   it("cada método declara su población de validación", () => {
     for (const metodo of METODOS_GRASA) {
@@ -248,10 +355,20 @@ describe("catálogo de métodos", () => {
     }
   });
 
-  it("solo Withers y Durnin & Womersley pasan por densidad corporal", () => {
+  it("declara cuáles pasan por densidad corporal antes de convertir con Siri", () => {
     const porDensidad = METODOS_GRASA.filter(
       (m) => DEFINICIONES_METODO[m].porDensidad,
     );
-    expect(porDensidad).toEqual(["WITHERS", "DURNIN_WOMERSLEY"]);
+    expect(porDensidad).toEqual([
+      "WITHERS",
+      "DURNIN_WOMERSLEY",
+      "JACKSON_POLLOCK_7",
+    ]);
+  });
+
+  it("Jackson & Pollock de 4 pliegues NO pasa por densidad", () => {
+    // Es el error clásico al transcribirla: la de 7 sitios devuelve densidad
+    // y la de 4, el porcentaje directo. Aplicarle Siri encima da disparates.
+    expect(DEFINICIONES_METODO.JACKSON_POLLOCK_4.porDensidad).toBe(false);
   });
 });

@@ -113,6 +113,34 @@ export function formatearNumero(valor: number | null | undefined): string {
   return valor == null ? "—" : formateadorNumero.format(valor);
 }
 
+const formateadorMedida = new Intl.NumberFormat("es-AR", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/**
+ * Medida antropométrica con SIEMPRE dos decimales (es-AR); "—" si es null.
+ *
+ * Es el formato de toda la sección de composición corporal, y son dos
+ * decimales por dos motivos distintos:
+ *
+ *   - **No perder precisión que el cálculo sí tiene.** El dominio redondea el
+ *     porcentaje graso, el IMC y los porcentajes de las masas a dos decimales;
+ *     con `formatearNumero` la pantalla los recortaba a uno y un 18,75 % se
+ *     leía 18,8 %. Entre dos consultas, ese redondeo se come diferencias
+ *     reales.
+ *   - **Que las columnas se lean.** Los números van con `tabular-nums` en
+ *     tablas y tarjetas comparativas; con la cantidad de decimales variable,
+ *     las comas no se alinean y la comparación visual entre filas se pierde.
+ *
+ * Por eso el mínimo también es 2: rellenar con el cero es deliberado, no un
+ * descuido. La EDAD no usa este formato —"30,00 años" no es una medida—, y
+ * fuera de antropometría sigue rigiendo `formatearNumero`.
+ */
+export function formatearMedida(valor: number | null | undefined): string {
+  return valor == null ? "—" : formateadorMedida.format(valor);
+}
+
 const formateadorMoneda = new Intl.NumberFormat("es-AR", {
   style: "currency",
   currency: "ARS",

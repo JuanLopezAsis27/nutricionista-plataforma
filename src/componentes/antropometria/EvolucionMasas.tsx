@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
 import type { MetodoGrasa } from "@/dominio/servicios/grasaPorPliegues";
-import { formatearFecha, formatearNumero } from "@/lib/formato";
+import { formatearFecha, formatearMedida } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import {
   MASAS,
@@ -143,7 +143,7 @@ export function EvolucionMasas({
             cursor={{ fill: tema.grilla, fillOpacity: 0.35 }}
             contentStyle={estiloTooltip(tema)}
             formatter={(valor, nombre) => [
-              `${formatearNumero(valor as number)} kg`,
+              `${formatearMedida(valor as number)} kg`,
               ETIQUETAS_MASA[nombre as ClaveMasa] ?? String(nombre),
             ]}
           />
@@ -241,7 +241,7 @@ export function EvolucionScoreZ({
           cursor={{ fill: tema.grilla, fillOpacity: 0.35 }}
           contentStyle={estiloTooltip(tema)}
           formatter={(valor, nombre) => [
-            `${formatearNumero(valor as number)} DE`,
+            `${formatearMedida(valor as number)} DE`,
             ETIQUETAS_MASA[nombre as ClaveMasa] ?? String(nombre),
           ]}
         />
@@ -326,7 +326,7 @@ export function EvolucionGrasa({
           cursor={{ fill: tema.grilla, fillOpacity: 0.35 }}
           contentStyle={estiloTooltip(tema)}
           formatter={(valor, _nombre, item) => [
-            `${formatearNumero(valor as number)} % · ${formatearNumero(
+            `${formatearMedida(valor as number)} % · ${formatearMedida(
               (item?.payload as { masaGrasa: number } | undefined)?.masaGrasa,
             )} kg de grasa`,
             "Porcentaje graso",

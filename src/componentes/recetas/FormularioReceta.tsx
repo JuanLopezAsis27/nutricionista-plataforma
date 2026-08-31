@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ImagePlus, FileText, LinkIcon, X, Plus } from "lucide-react";
+import { ImagePlus, FileText, LinkIcon, X, Plus, Star } from "lucide-react";
 import type { RecetaSalidaDto } from "@/aplicacion/dtos/receta.dto";
 import type { AlimentoNutricionalSalidaDto } from "@/aplicacion/dtos/nutricion.dto";
 import type { ArchivoSalidaDto } from "@/aplicacion/dtos/archivo.dto";
@@ -22,6 +22,7 @@ import {
 import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
 import { AdjuntosGuardados } from "@/componentes/recetas/AdjuntosGuardados";
 import { partirEtiquetas, partirEnlaces } from "@/lib/validacionListas";
+import { cn } from "@/lib/utilidades";
 import {
   esquema,
   INGREDIENTE_VACIO,
@@ -59,6 +60,13 @@ export function FormularioReceta({
   const enviando = crear.isPending || actualizar.isPending;
 
   const [fotosNuevas, setFotosNuevas] = useState<ArchivoSalidaDto[]>([]);
+  /**
+   * Portada elegida entre las fotos recién subidas, que todavía no existen
+   * para el servidor: viaja con el guardado. La portada entre las fotos YA
+   * guardadas se cambia en el acto desde `AdjuntosGuardados`, que es otra
+   * cosa —ahí la foto existe y la mutación es inmediata—.
+   */
+  const [portadaNuevaId, setPortadaNuevaId] = useState<string | null>(null);
   const [documentosNuevos, setDocumentosNuevos] = useState<ArchivoSalidaDto[]>(
     [],
   );
@@ -150,6 +158,9 @@ export function FormularioReceta({
     };
     const fotoIds = fotosNuevas.map((foto) => foto.id);
     const documentoIds = documentosNuevos.map((doc) => doc.id);
+    // `undefined` y no `null`: no elegir portada deja la que hubiera, y en una
+    // receta nueva deja el automático (la primera foto).
+    const fotoPrincipalId = portadaNuevaId ?? undefined;
 
     if (recetaInicial) {
       actualizar.mutate(
@@ -158,12 +169,13 @@ export function FormularioReceta({
           ...cuerpo,
           fotoIdsNuevos: fotoIds,
           documentoIdsNuevos: documentoIds,
+          fotoPrincipalId,
         },
         { onSuccess: onTerminado },
       );
     } else {
       crear.mutate(
-        { ...cuerpo, fotoIds, documentoIds },
+        { ...cuerpo, fotoIds, documentoIds, fotoPrincipalId },
         { onSuccess: onTerminado },
       );
     }
@@ -343,33 +355,84 @@ export function FormularioReceta({
             <ImagePlus className="h-4 w-4" /> Agregar fotos
           </p>
           {fotosNuevas.length > 0 && (
-            <ul className="space-y-1">
-              {fotosNuevas.map((foto) => (
-                <li
-                  key={foto.id}
-                  className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm"
-                >
-                  <span className="truncate">{foto.nombreOriginal}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Quitar foto"
-                    onClick={() =>
-                      setFotosNuevas((previas) =>
-                        previas.filter((f) => f.id !== foto.id),
-                      )
-                    }
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {fotosNuevas.map((foto) => {
+                  const esPortada = portadaNuevaId === foto.id;
+                  return (
+                    <li
+                      key={foto.id}
+                      className={cn(
+                        "overflow-hidden rounded-md border",
+                        esPortada && "ring-2 ring-primary",
+                      )}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element -- ruta dinámica autorizada, no optimizable */}
+                      <img
+                        src={`/api/archivos/${foto.id}/ver`}
+                        alt={foto.nombreOriginal}
+                        className="h-24 w-full object-cover"
+                      />
+                      <div className="flex items-center justify-between gap-1 p-1.5">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          aria-pressed={esPortada}
+                          title={
+                            esPortada
+                              ? "Es la portada elegida"
+                              : "Usar como portada"
+                          }
+                          onClick={() =>
+                            setPortadaNuevaId(esPortada ? null : foto.id)
+                          }
+                        >
+                          <Star
+                            className={cn(
+                              "h-3.5 w-3.5",
+                              esPortada && "fill-current",
+                            )}
+                          />
+                          {esPortada ? "Portada" : "Usar"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          aria-label={`Quitar ${foto.nombreOriginal}`}
+                          onClick={() => {
+                            setFotosNuevas((previas) =>
+                              previas.filter((f) => f.id !== foto.id),
+                            );
+                            // Si se quita la elegida, la portada vuelve al
+                            // automático: mandar el id de una foto que ya no se
+                            // vincula hace fallar el guardado entero.
+                            setPortadaNuevaId((actual) =>
+                              actual === foto.id ? null : actual,
+                            );
+                          }}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="text-xs text-muted-foreground">
+                La marcada con la estrella se guarda como portada del recetario.
+              </p>
+            </>
           )}
           <SubidorArchivo
             contexto="receta"
             accept="image/*"
+            // La lista de arriba ya muestra cada foto subida; con la vista
+            // previa del subidor aparecía dos veces.
+            sinVistaPrevia
             onSubido={(archivo) =>
               setFotosNuevas((previas) => [...previas, archivo])
             }
@@ -409,6 +472,7 @@ export function FormularioReceta({
           <SubidorArchivo
             contexto="receta"
             accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            sinVistaPrevia
             onSubido={(archivo) =>
               setDocumentosNuevos((previos) => [...previos, archivo])
             }

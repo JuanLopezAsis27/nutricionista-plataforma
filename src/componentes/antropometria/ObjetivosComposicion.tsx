@@ -21,7 +21,7 @@ import type {
 } from "@/aplicacion/dtos/evaluacion.dto";
 import type { EstadoProyeccion } from "@/dominio/servicios/proyeccionComposicion";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
-import { formatearFecha, formatearNumero } from "@/lib/formato";
+import { formatearFecha, formatearMedida } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import { Button } from "@/componentes/ui/button";
 import {
@@ -192,7 +192,13 @@ export function ObjetivosComposicion({
           <FormularioObjetivoComposicion
             pacienteId={pacienteId}
             objetivoInicial={editando}
-            variablesOcupadas={objetivos.map((o) => o.variable)}
+            // Ocupada es la COMBINACIÓN, no la variable: el % graso por
+            // Yuhasz y el % graso por Durnin & Womersley son dos metas
+            // distintas porque son dos formas de medir distintas.
+            combinacionesOcupadas={objetivos.map((o) => ({
+              variable: o.variable,
+              metodoGrasa: o.metodoGrasa,
+            }))}
             valoresActuales={valoresActuales}
             onTerminado={() => setAbierto(false)}
           />
@@ -246,7 +252,7 @@ function TarjetaObjetivo({
               {objetivo.descripcion}
             </p>
             <p className="text-xs text-muted-foreground">
-              Meta: {formatearNumero(p.valorObjetivo)}
+              Meta: {formatearMedida(p.valorObjetivo)}
               {unidad}
               {p.fechaObjetivo &&
                 ` · para el ${formatearFecha(p.fechaObjetivo)}`}
@@ -276,15 +282,15 @@ function TarjetaObjetivo({
         <div className="space-y-1.5">
           <div className="flex items-baseline justify-between text-xs text-muted-foreground">
             <span className="tabular-nums">
-              Inicio {formatearNumero(p.valorInicial)}
+              Inicio {formatearMedida(p.valorInicial)}
               {unidad}
             </span>
             <span className="text-base font-bold tabular-nums text-foreground">
-              {formatearNumero(p.valorActual)}
+              {formatearMedida(p.valorActual)}
               {unidad}
             </span>
             <span className="tabular-nums">
-              Meta {formatearNumero(p.valorObjetivo)}
+              Meta {formatearMedida(p.valorObjetivo)}
               {unidad}
             </span>
           </div>
@@ -299,14 +305,14 @@ function TarjetaObjetivo({
           </div>
           <p className="text-xs" style={{ color: tema.tinta }}>
             <span className="font-semibold tabular-nums">
-              {formatearNumero(p.progresoPorcentaje)} %
+              {formatearMedida(p.progresoPorcentaje)} %
             </span>{" "}
             del camino recorrido
             {p.brecha != null && p.brecha !== 0 && (
               <>
                 {" · faltan "}
                 <span className="font-semibold tabular-nums">
-                  {formatearNumero(Math.abs(p.brecha))}
+                  {formatearMedida(Math.abs(p.brecha))}
                   {unidad}
                 </span>{" "}
                 {hayQueBajar ? "por bajar" : "por subir"}
@@ -385,7 +391,7 @@ function Explicacion({
         Ritmo actual:{" "}
         <span className={cn("font-medium tabular-nums")}>
           {p.ritmoSemanal > 0 ? "+" : ""}
-          {formatearNumero(p.ritmoSemanal)}
+          {formatearMedida(p.ritmoSemanal)}
           {unidad}/semana
         </span>
       </p>
@@ -394,7 +400,7 @@ function Explicacion({
           Para llegar en fecha hace falta{" "}
           <span className="font-medium tabular-nums">
             {p.ritmoSemanalNecesario > 0 ? "+" : ""}
-            {formatearNumero(p.ritmoSemanalNecesario)}
+            {formatearMedida(p.ritmoSemanalNecesario)}
             {unidad}/semana
           </span>
           .
@@ -419,7 +425,7 @@ function Explicacion({
         <p>
           Proyección a la fecha meta:{" "}
           <span className="font-medium tabular-nums">
-            {formatearNumero(p.valorProyectadoAFecha)}
+            {formatearMedida(p.valorProyectadoAFecha)}
             {unidad}
           </span>
           .

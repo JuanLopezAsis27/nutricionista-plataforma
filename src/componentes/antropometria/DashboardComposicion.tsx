@@ -20,6 +20,7 @@ import { TarjetaFraccionamiento } from "./dashboard/TarjetaFraccionamiento";
 import { TarjetasEvolucion } from "./dashboard/TarjetasEvolucion";
 import { TarjetaIndices } from "./dashboard/TarjetaIndices";
 import { TarjetaEnergia } from "./dashboard/TarjetaEnergia";
+import { TarjetaDistribucion } from "./dashboard/TarjetaDistribucion";
 
 /**
  * Dashboard de composición corporal.
@@ -133,6 +134,11 @@ export function DashboardComposicion({
 
       {!dosComponentesPrimero && tarjetaGrasa}
 
+      {/* Va después de los dos modelos y antes de la evolución: primero
+          cuánto hay —que es lo que se compara con la consulta anterior— y
+          recién después dónde está. */}
+      <TarjetaDistribucion distribucion={resultado.distribucion} tema={tema} />
+
       <TarjetasEvolucion
         mediciones={mediciones}
         metodo={metodoDeSerie}
@@ -141,22 +147,32 @@ export function DashboardComposicion({
         tema={tema}
       />
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        {resultado.somatotipo && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">
-                Somatotipo{" "}
-                <span className="font-normal text-muted-foreground">
-                  (Heath &amp; Carter, 1990)
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Somatocarta puntos={puntosSomatocarta} tema={tema} />
-            </CardContent>
-          </Card>
-        )}
+      {/* El Phantom crece con la cantidad de medidas cargadas y con el perfil
+          ISAK completo se vuelve la pieza más alta de la pantalla. Va SOLO en
+          su columna, con las tres tarjetas cortas apiladas al lado: cuando
+          compartía fila solo con la somatocarta, esa quedaba con media pantalla
+          de blanco debajo. `items-start` es lo que impide que la columna corta
+          se estire hasta igualar a la larga. */}
+      <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
+        <div className="space-y-4">
+          {resultado.somatotipo && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold">
+                  Somatotipo{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (Heath &amp; Carter, 1990)
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Somatocarta puntos={puntosSomatocarta} tema={tema} />
+              </CardContent>
+            </Card>
+          )}
+          <TarjetaIndices indices={resultado.indices} />
+          <TarjetaEnergia energia={resultado.energia} />
+        </div>
 
         <Card>
           <CardHeader className="pb-2">
@@ -172,11 +188,6 @@ export function DashboardComposicion({
             />
           </CardContent>
         </Card>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-2">
-        <TarjetaIndices indices={resultado.indices} />
-        <TarjetaEnergia energia={resultado.energia} />
       </div>
     </div>
   );

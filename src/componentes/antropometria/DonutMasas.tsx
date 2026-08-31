@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import type { Fraccionamiento } from "@/dominio/servicios/composicionCorporal";
-import { formatearNumero } from "@/lib/formato";
+import { formatearMedida } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import {
   MASAS,
@@ -122,14 +122,14 @@ export function DonutMasas({ fraccionamiento, anterior, tema }: PropsDonut) {
                 {destacado.nombre}
               </span>
               <span className="text-3xl font-bold tabular-nums">
-                {formatearNumero(destacado.kg)}
+                {formatearMedida(destacado.kg)}
                 <span className="ml-0.5 text-base font-normal">kg</span>
               </span>
               <span
                 className="text-sm tabular-nums"
                 style={{ color: tema.tinta }}
               >
-                {formatearNumero(destacado.porcentaje)} % del peso
+                {formatearMedida(destacado.porcentaje)} % del peso
               </span>
               <span
                 className="mt-1 max-w-[9rem] text-[11px] leading-tight"
@@ -147,7 +147,7 @@ export function DonutMasas({ fraccionamiento, anterior, tema }: PropsDonut) {
                 Peso total
               </span>
               <span className="text-3xl font-bold tabular-nums">
-                {formatearNumero(total)}
+                {formatearMedida(total)}
                 <span className="ml-0.5 text-base font-normal">kg</span>
               </span>
               <span className="text-[11px]" style={{ color: tema.tintaSuave }}>
@@ -177,13 +177,13 @@ export function DonutMasas({ fraccionamiento, anterior, tema }: PropsDonut) {
             />
             <span className="min-w-0 flex-1 truncate">{gajo.nombre}</span>
             <span className="shrink-0 font-semibold tabular-nums">
-              {formatearNumero(gajo.kg)} kg
+              {formatearMedida(gajo.kg)} kg
             </span>
             <span
               className="w-12 shrink-0 text-right text-xs tabular-nums"
               style={{ color: tema.tinta }}
             >
-              {formatearNumero(gajo.porcentaje)} %
+              {formatearMedida(gajo.porcentaje)} %
             </span>
           </li>
         ))}
@@ -199,7 +199,7 @@ export function DonutMasas({ fraccionamiento, anterior, tema }: PropsDonut) {
               )
               .map(
                 (gajo) =>
-                  `${gajo.nombre} ${gajo.diferencia! > 0 ? "+" : ""}${formatearNumero(
+                  `${gajo.nombre} ${gajo.diferencia! > 0 ? "+" : ""}${formatearMedida(
                     gajo.diferencia,
                   )} kg`,
               )

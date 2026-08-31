@@ -38,4 +38,7 @@ export const ETIQUETAS_MEDIDA: Record<keyof MedidasComposicion, string> = {
   plieguePantorrilla: "Pliegue de pantorrilla",
   pliegueBicipital: "Pliegue bicipital",
   pliegueCrestaIliaca: "Pliegue de cresta ilíaca",
+  plieguePectoral: "Pliegue pectoral",
+  pliegueAxilarMedio: "Pliegue axilar medio",
+  pliegueLumbar: "Pliegue lumbar",
 };

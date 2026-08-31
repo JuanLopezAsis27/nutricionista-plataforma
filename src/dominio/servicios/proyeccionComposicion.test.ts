@@ -496,6 +496,9 @@ const MEDIDAS: MedidasComposicion = {
   plieguePantorrilla: 9,
   pliegueBicipital: 6,
   pliegueCrestaIliaca: 11,
+  plieguePectoral: null,
+  pliegueAxilarMedio: null,
+  pliegueLumbar: null,
 };
 
 const CONTEXTO: ContextoComposicion = {

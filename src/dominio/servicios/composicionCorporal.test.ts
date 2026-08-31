@@ -40,6 +40,9 @@ const MEDIDAS_PLANILLA: MedidasComposicion = {
   // La planilla del profesional no los toma; el modelo de 2 componentes sí.
   pliegueBicipital: null,
   pliegueCrestaIliaca: null,
+  plieguePectoral: null,
+  pliegueAxilarMedio: null,
+  pliegueLumbar: null,
 };
 
 const CONTEXTO_PLANILLA: ContextoComposicion = {

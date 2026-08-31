@@ -49,7 +49,7 @@ export function aMinutos(hora: string): number {
 }
 
 /** minutos desde medianoche → "HH:mm". */
-function aHora(minutos: number): string {
+export function aHora(minutos: number): string {
   const h = String(Math.floor(minutos / 60)).padStart(2, "0");
   const m = String(minutos % 60).padStart(2, "0");
   return `${h}:${m}`;

@@ -1,10 +1,13 @@
 import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositorio";
 import { Receta, type DatosNuevaReceta } from "@/dominio/entidades/Receta";
+import { marcarPortada } from "./marcarPortada";
 
 /** Datos de entrada: la receta + ids de fotos y documentos ya subidos al bucket. */
 export interface DatosCrearReceta extends DatosNuevaReceta {
   fotoIds?: string[];
   documentoIds?: string[];
+  /** Portada elegida entre `fotoIds`. Sin esto rige el automático (la primera). */
+  fotoPrincipalId?: string;
 }
 
 /**
@@ -21,6 +24,7 @@ export class CrearReceta {
       ...(datos.fotoIds ?? []),
       ...(datos.documentoIds ?? []),
     ];
-    return this.recetas.crear(receta, archivoIds);
+    const creada = await this.recetas.crear(receta, archivoIds);
+    return marcarPortada(this.recetas, creada, datos.fotoPrincipalId);
   }
 }

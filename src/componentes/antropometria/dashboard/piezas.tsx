@@ -1,6 +1,6 @@
 import { Scale } from "lucide-react";
 import { cn } from "@/lib/utilidades";
-import { formatearNumero } from "@/lib/formato";
+import { formatearMedida } from "@/lib/formato";
 import { Card, CardContent } from "@/componentes/ui/card";
 
 /**
@@ -77,7 +77,7 @@ export function Fila({
           destacado ? "text-base font-bold" : "font-medium",
         )}
       >
-        {formatearNumero(valor)}
+        {formatearMedida(valor)}
         {unidad && valor != null && (
           <span className="ml-1 text-xs font-normal text-muted-foreground">
             {unidad}
@@ -90,5 +90,5 @@ export function Fila({
 
 /** Antepone el signo al delta: "+1,2" se lee distinto de "1,2". */
 export function signo(valor: number): string {
-  return `${valor > 0 ? "+" : ""}${formatearNumero(valor)}`;
+  return `${valor > 0 ? "+" : ""}${formatearMedida(valor)}`;
 }

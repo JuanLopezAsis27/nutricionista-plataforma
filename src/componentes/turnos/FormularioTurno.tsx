@@ -75,6 +75,14 @@ interface PropsFormularioTurno {
   pacienteFijo?: boolean;
   /** Fecha (YYYY-MM-DD) con la que abrir el formulario (ej. la casilla del calendario). */
   fechaInicial?: string;
+  /**
+   * Hora "HH:mm" con la que abrir el formulario (el hueco clickeado en la
+   * grilla del calendario). Es una PREFERENCIA, no una imposición: si para
+   * cuando el diálogo termina de cargar esa franja ya no está libre, el
+   * formulario la reubica en la primera disponible, igual que si la hubiera
+   * elegido a mano.
+   */
+  horaInicial?: string;
 }
 
 /**
@@ -96,6 +104,7 @@ function FormularioTurnoInterno({
   pacienteIdInicial,
   pacienteFijo,
   fechaInicial,
+  horaInicial,
   config,
 }: PropsFormularioTurno & { config: ConfiguracionSalidaDto }) {
   const { agendar, listar } = useTurnos();
@@ -116,7 +125,9 @@ function FormularioTurnoInterno({
     defaultValues: {
       pacienteId: pacienteIdInicial ?? "",
       fecha: fechaResuelta,
-      hora: "",
+      // Solo se respeta si el día no se movió: con otra fecha, la hora pedida
+      // ya no significa nada.
+      hora: fechaResuelta === fechaInicial ? (horaInicial ?? "") : "",
       duracion: String(config.turnoDuracionMinutos),
       notas: "",
     },

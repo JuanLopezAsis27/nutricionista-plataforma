@@ -163,6 +163,9 @@ enum MetodoGrasa {
   FAULKNER_KERR
   WITHERS
   DURNIN_WOMERSLEY
+  JACKSON_POLLOCK_7
+  JACKSON_POLLOCK_4
+  PARRILLO
 }
 
 /// Variable de composición corporal sobre la que se plantea un objetivo.
@@ -172,6 +175,13 @@ enum VariableComposicion {
   MASA_ADIPOSA_PORCENTAJE
   MASA_MUSCULAR_KG
   MASA_MUSCULAR_PORCENTAJE
+  /// Las tres masas restantes del fraccionamiento de Kerr. Ver migración 40.
+  MASA_OSEA_KG
+  MASA_OSEA_PORCENTAJE
+  MASA_RESIDUAL_KG
+  MASA_RESIDUAL_PORCENTAJE
+  MASA_PIEL_KG
+  MASA_PIEL_PORCENTAJE
   SUMATORIA_6_PLIEGUES
   IMC
   INDICE_CINTURA_CADERA
@@ -1027,6 +1037,11 @@ model Antropometria {
   plieguePantorrilla  Decimal? @db.Decimal(4, 1)
   pliegueBicipital    Decimal? @db.Decimal(4, 1)
   pliegueCrestaIliaca Decimal? @db.Decimal(4, 1)
+  // Fuera del perfil ISAK: los piden Jackson & Pollock (pectoral, axilar
+  // medio) y Parrillo (pectoral, lumbar). Ver migración 39.
+  plieguePectoral     Decimal? @db.Decimal(4, 1)
+  pliegueAxilarMedio  Decimal? @db.Decimal(4, 1)
+  pliegueLumbar       Decimal? @db.Decimal(4, 1)
 
   // Circunferencias (cm)
   circTorax          Decimal? @db.Decimal(5, 1)
@@ -1080,7 +1095,12 @@ model ObjetivoComposicion {
   /// Plan cualitativo asociado, si alguien lo vinculó.
   objetivo      Objetivo?
 
-  @@unique([pacienteId, variable])
+  /// La meta es única por paciente, variable Y ECUACIÓN: seguir el % graso
+  /// por Yuhasz y por Durnin & Womersley a la vez son dos metas distintas,
+  /// no una contradicción. Ojo: en Postgres los NULL no colisionan, así que
+  /// las variables sin ecuación (peso, IMC, las masas de Kerr) las cubre un
+  /// índice parcial aparte —ver migración 40—.
+  @@unique([pacienteId, variable, metodoGrasa])
   @@index([nutricionistaId, pacienteId, estado])
   @@map("objetivos_composicion")
 }

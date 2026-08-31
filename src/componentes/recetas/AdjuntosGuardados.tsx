@@ -57,7 +57,7 @@ export function AdjuntosGuardados({ recetaId }: { recetaId: string }) {
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={`/api/archivos/${foto.id}`}
+                    src={`/api/archivos/${foto.id}/ver`}
                     alt={foto.nombreOriginal}
                     className="h-28 w-full object-cover"
                   />
@@ -117,7 +117,7 @@ export function AdjuntosGuardados({ recetaId }: { recetaId: string }) {
                 className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm"
               >
                 <a
-                  href={`/api/archivos/${doc.id}`}
+                  href={`/api/archivos/${doc.id}/ver`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex min-w-0 items-center gap-2 hover:underline"

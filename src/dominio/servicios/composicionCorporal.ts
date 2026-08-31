@@ -23,6 +23,10 @@ import {
   calcularGrasaPorPliegues,
   type GrasaPorPliegues,
 } from "./grasaPorPliegues";
+import {
+  calcularDistribucion,
+  type DistribucionCorporal,
+} from "./composicion/distribucion";
 
 /** Sexo biológico: define las constantes de piel, peso ideal y metabolismo. */
 export const SEXOS_BIOLOGICOS = ["MASCULINO", "FEMENINO"] as const;
@@ -84,6 +88,15 @@ export interface MedidasComposicion {
    */
   pliegueBicipital: number | null;
   pliegueCrestaIliaca: number | null;
+  /**
+   * Sitios que NO son del perfil ISAK: los piden las ecuaciones de Jackson &
+   * Pollock (pectoral y axilar medio) y de Parrillo (pectoral y lumbar).
+   * No participan del fraccionamiento de Kerr ni del Phantom, que están
+   * definidos sobre el ISAK.
+   */
+  plieguePectoral: number | null;
+  pliegueAxilarMedio: number | null;
+  pliegueLumbar: number | null;
 }
 
 /** Datos del paciente que el cálculo necesita y no vienen de la medición. */
@@ -170,6 +183,14 @@ export interface IndicesComposicion {
   indiceCinturaCadera: number | null;
   riesgoCinturaCadera: RiesgoCinturaCadera | null;
   sumatoria6Pliegues: number | null;
+  /**
+   * Σ de los 8 pliegues del perfil ISAK: los 6 habituales más el bicipital y
+   * la cresta ilíaca. Existe además de la Σ6 porque esos dos sitios, cuando se
+   * miden, no aparecían en ningún número de la pantalla —los usan Withers y
+   * Durnin & Womersley por dentro, pero eso no se veía— y parecía que la carga
+   * no servía para nada.
+   */
+  sumatoria8Pliegues: number | null;
   indiceMusculoOseo: number | null;
   indiceAdiposoMuscular: number | null;
   /** Talla sentado / talla × 100: proporción tronco-piernas. */
@@ -228,6 +249,11 @@ export interface ResultadoComposicion {
    * masas, pero NO se mezcla con él: miden cosas distintas.
    */
   grasaPorPliegues: GrasaPorPliegues;
+  /**
+   * Dónde está la adiposidad y dónde el músculo, que es otra pregunta que la
+   * de cuánto hay. `null` en cada mitad cuando no hay sitios suficientes.
+   */
+  distribucion: DistribucionCorporal;
   faltantes: BloqueFaltante[];
 }
 
@@ -262,6 +288,7 @@ const FACTOR_ACTIVIDAD: Record<
 // módulo sigue siendo el punto de entrada: lo importan 20+ archivos.
 export * from "./composicion/referenciasPhantom";
 export * from "./composicion/etiquetasMedida";
+export * from "./composicion/distribucion";
 
 import {
   VARIABLES_PHANTOM,
@@ -379,6 +406,7 @@ export function calcularComposicion(
     indices,
     energia,
     grasaPorPliegues,
+    distribucion: calcularDistribucion(medidas),
     faltantes,
   };
 }
@@ -618,6 +646,15 @@ function calcularIndices(
     ? pliegues6.reduce((total: number, p) => total + p, 0)
     : null;
 
+  const pliegues8 = [
+    ...pliegues6,
+    positivo(m.pliegueBicipital),
+    positivo(m.pliegueCrestaIliaca),
+  ];
+  const suma8 = pliegues8.every((p) => p != null)
+    ? pliegues8.reduce((total: number, p) => total + p, 0)
+    : null;
+
   const muscular = fraccionamiento?.muscular.kg ?? null;
   const noMuscular = muscular != null ? m.pesoKg - muscular : null;
 
@@ -629,6 +666,7 @@ function calcularIndices(
         ? clasificarRiesgoIcc(icc, contexto.sexo, contexto.edadAnios)
         : null,
     sumatoria6Pliegues: suma6 != null ? redondear(suma6, 1) : null,
+    sumatoria8Pliegues: suma8 != null ? redondear(suma8, 1) : null,
     indiceMusculoOseo:
       fraccionamiento != null
         ? redondear(fraccionamiento.muscular.kg / fraccionamiento.osea.kg, 3)

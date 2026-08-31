@@ -4,7 +4,8 @@ import { Badge } from "@/componentes/ui/badge";
 
 /**
  * Vista de solo lectura de una receta (detalle del recetario y portal).
- * Las fotos se sirven vía /api/archivos/[id] (302 a URL firmada).
+ * Las fotos y los documentos se sirven vía /api/archivos/[id]/ver, que los
+ * devuelve EN LÍNEA desde la app: la ruta hermana los ofrece para bajar.
  */
 export function VistaReceta({ receta }: { receta: RecetaSalidaDto }) {
   const macros = [
@@ -77,14 +78,14 @@ export function VistaReceta({ receta }: { receta: RecetaSalidaDto }) {
             .map((foto) => (
               <a
                 key={foto.id}
-                href={`/api/archivos/${foto.id}`}
+                href={`/api/archivos/${foto.id}/ver`}
                 target="_blank"
                 rel="noreferrer"
                 title={foto.nombreOriginal}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element -- URL firmada temporal, no optimizable */}
+                {/* eslint-disable-next-line @next/next/no-img-element -- ruta dinámica autorizada, no optimizable */}
                 <img
-                  src={`/api/archivos/${foto.id}`}
+                  src={`/api/archivos/${foto.id}/ver`}
                   alt={`Foto de ${receta.nombre}`}
                   className="h-28 w-28 rounded-lg border object-cover"
                 />
@@ -126,7 +127,7 @@ export function VistaReceta({ receta }: { receta: RecetaSalidaDto }) {
             {receta.documentos.map((doc) => (
               <li key={doc.id}>
                 <a
-                  href={`/api/archivos/${doc.id}`}
+                  href={`/api/archivos/${doc.id}/ver`}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 text-sm text-primary underline-offset-4 hover:underline"

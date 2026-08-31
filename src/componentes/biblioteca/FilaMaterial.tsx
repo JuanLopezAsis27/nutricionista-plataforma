@@ -14,13 +14,14 @@ interface Props {
 
 /**
  * Fila de un material: ícono por tipo, título, categoría/etiquetas y botón
- * de apertura (enlace externo o archivo vía URL firmada).
+ * de apertura (enlace externo, o archivo servido en línea por
+ * /api/archivos/[id]/ver).
  */
 export function FilaMaterial({ material, acciones }: Props) {
   const esEnlace = material.tipo === "ENLACE";
   const href = esEnlace
     ? (material.url ?? "#")
-    : `/api/archivos/${material.archivo?.id}`;
+    : `/api/archivos/${material.archivo?.id}/ver`;
   const Icono = esEnlace ? Link2 : FileText;
 
   return (

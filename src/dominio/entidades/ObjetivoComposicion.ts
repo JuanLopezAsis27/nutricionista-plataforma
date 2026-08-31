@@ -16,6 +16,12 @@ export const VARIABLES_COMPOSICION = [
   "MASA_ADIPOSA_PORCENTAJE",
   "MASA_MUSCULAR_KG",
   "MASA_MUSCULAR_PORCENTAJE",
+  "MASA_OSEA_KG",
+  "MASA_OSEA_PORCENTAJE",
+  "MASA_RESIDUAL_KG",
+  "MASA_RESIDUAL_PORCENTAJE",
+  "MASA_PIEL_KG",
+  "MASA_PIEL_PORCENTAJE",
   "SUMATORIA_6_PLIEGUES",
   "IMC",
   "INDICE_CINTURA_CADERA",
@@ -49,6 +55,32 @@ const RANGOS_VARIABLE: Record<
     min: 10,
     max: 80,
     etiqueta: "Masa muscular (%)",
+  },
+  MASA_OSEA_KG: { unidad: "kg", min: 2, max: 30, etiqueta: "Masa ósea" },
+  MASA_OSEA_PORCENTAJE: {
+    unidad: "%",
+    min: 3,
+    max: 30,
+    etiqueta: "Masa ósea (%)",
+  },
+  MASA_RESIDUAL_KG: {
+    unidad: "kg",
+    min: 2,
+    max: 40,
+    etiqueta: "Masa residual",
+  },
+  MASA_RESIDUAL_PORCENTAJE: {
+    unidad: "%",
+    min: 3,
+    max: 35,
+    etiqueta: "Masa residual (%)",
+  },
+  MASA_PIEL_KG: { unidad: "kg", min: 1, max: 15, etiqueta: "Masa de la piel" },
+  MASA_PIEL_PORCENTAJE: {
+    unidad: "%",
+    min: 1,
+    max: 15,
+    etiqueta: "Masa de la piel (%)",
   },
   SUMATORIA_6_PLIEGUES: {
     unidad: "mm",
@@ -94,6 +126,71 @@ export function exigeMetodoGrasa(variable: VariableComposicion): boolean {
   return (VARIABLES_DE_GRASA as readonly VariableComposicion[]).includes(
     variable,
   );
+}
+
+/**
+ * Los tres orígenes de una variable objetivable, que son las tres formas de
+ * medir que conviven en el módulo.
+ *
+ * La distinción no es cosmética: es la que le dice al profesional SOBRE QUÉ
+ * está fijando la meta. Un "12 kg de masa adiposa" (Kerr, anatómico) y un
+ * "12 kg de masa grasa" (regresión contra densitometría) son números de
+ * modelos distintos que no se comparan entre sí, y en una lista plana de
+ * diecisiete variables se eligen a ciegas.
+ */
+export const ORIGENES_VARIABLE = [
+  "FRACCIONAMIENTO",
+  "PLIEGUES",
+  "BASICOS",
+] as const;
+export type OrigenVariable = (typeof ORIGENES_VARIABLE)[number];
+
+export const ETIQUETAS_ORIGEN: Record<
+  OrigenVariable,
+  { titulo: string; detalle: string }
+> = {
+  FRACCIONAMIENTO: {
+    titulo: "Fraccionamiento en 5 masas (Kerr)",
+    detalle:
+      "Modelo anatómico. Exige el perfil ISAK completo y reparte el peso entre las cinco masas.",
+  },
+  PLIEGUES: {
+    titulo: "Grasa por pliegues (2 componentes)",
+    detalle:
+      "Regresión contra densitometría. La meta se ata a UNA ecuación, que se elige abajo.",
+  },
+  BASICOS: {
+    titulo: "Básicos e índices",
+    detalle:
+      "Salen de la medida cruda o de un índice; no dependen de un modelo.",
+  },
+};
+
+const ORIGEN_DE_VARIABLE: Record<VariableComposicion, OrigenVariable> = {
+  PESO: "BASICOS",
+  IMC: "BASICOS",
+  INDICE_CINTURA_CADERA: "BASICOS",
+  PERIMETRO_CINTURA: "BASICOS",
+  SUMATORIA_6_PLIEGUES: "BASICOS",
+  MASA_ADIPOSA_KG: "FRACCIONAMIENTO",
+  MASA_ADIPOSA_PORCENTAJE: "FRACCIONAMIENTO",
+  MASA_MUSCULAR_KG: "FRACCIONAMIENTO",
+  MASA_MUSCULAR_PORCENTAJE: "FRACCIONAMIENTO",
+  MASA_OSEA_KG: "FRACCIONAMIENTO",
+  MASA_OSEA_PORCENTAJE: "FRACCIONAMIENTO",
+  MASA_RESIDUAL_KG: "FRACCIONAMIENTO",
+  MASA_RESIDUAL_PORCENTAJE: "FRACCIONAMIENTO",
+  MASA_PIEL_KG: "FRACCIONAMIENTO",
+  MASA_PIEL_PORCENTAJE: "FRACCIONAMIENTO",
+  PORCENTAJE_GRASA: "PLIEGUES",
+  MASA_GRASA_KG: "PLIEGUES",
+};
+
+/** Sobre qué forma de medir se plantea la meta de esta variable. */
+export function origenDeVariable(
+  variable: VariableComposicion,
+): OrigenVariable {
+  return ORIGEN_DE_VARIABLE[variable];
 }
 
 /** Unidad, etiqueta y rango válido de una variable de composición. */

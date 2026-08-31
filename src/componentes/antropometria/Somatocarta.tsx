@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Somatotipo } from "@/dominio/servicios/composicionCorporal";
-import { formatearFecha, formatearNumero } from "@/lib/formato";
+import { formatearFecha, formatearMedida } from "@/lib/formato";
 import type { TemaComposicion } from "./paleta";
 
 /** Un somatotipo ubicado en el tiempo. */
@@ -208,8 +208,8 @@ export function Somatocarta({
           color={tema.masas.osea}
         />
         <p className="pt-1 text-xs text-muted-foreground">
-          HWR {formatearNumero(s.hwr)} · Σ pliegues corregida{" "}
-          {formatearNumero(s.sumatoriaPliegues)}
+          HWR {formatearMedida(s.hwr)} · Σ pliegues corregida{" "}
+          {formatearMedida(s.sumatoriaPliegues)}
         </p>
       </dl>
     </div>
@@ -238,7 +238,7 @@ function ValorSomatotipo({
         <dt className="text-sm font-medium leading-tight">
           {etiqueta}{" "}
           <span className="font-bold tabular-nums">
-            {formatearNumero(valor)}
+            {formatearMedida(valor)}
           </span>
         </dt>
         <dd className="text-xs text-muted-foreground">{detalle}</dd>

@@ -30,6 +30,9 @@ export const METODOS_GRASA = [
   "FAULKNER_KERR",
   "WITHERS",
   "DURNIN_WOMERSLEY",
+  "JACKSON_POLLOCK_7",
+  "JACKSON_POLLOCK_4",
+  "PARRILLO",
 ] as const;
 export type MetodoGrasa = (typeof METODOS_GRASA)[number];
 
@@ -71,6 +74,55 @@ const PLIEGUES_4_DURNIN = [
   "pliegueTricipital",
   "pliegueSubescapular",
   "pliegueCrestaIliaca",
+] as const satisfies readonly (keyof MedidasComposicion)[];
+
+/**
+ * El sitio "suprailíaco" de Jackson & Pollock y de Parrillo se toma acá como
+ * la CRESTA ILÍACA del protocolo ISAK.
+ *
+ * Es una equivalencia declarada, no una obviedad. Las dos familias describen
+ * un pliegue tomado por encima de la cresta ilíaca; el ISAK distingue ahí dos
+ * sitios cercanos —cresta ilíaca (línea axilar media) y supraespinal (línea
+ * ilioespinal)— y ninguna de las dos ecuaciones se escribió pensando en esa
+ * distinción. Se elige la cresta ilíaca por coherencia con Durnin & Womersley,
+ * que ya usa ese sitio para su propio suprailíaco: si dos ecuaciones tomaran
+ * sitios distintos bajo el mismo nombre, un cambio de ecuación en la serie
+ * histórica de un paciente movería el número por dos motivos a la vez.
+ *
+ * La constante existe para que cambiarlo sea una línea y no una búsqueda.
+ */
+const PLIEGUE_SUPRAILIACO = "pliegueCrestaIliaca" as const;
+
+/** Los 7 sitios de Jackson & Pollock. */
+const PLIEGUES_7_JP = [
+  "plieguePectoral",
+  "pliegueAxilarMedio",
+  "pliegueTricipital",
+  "pliegueSubescapular",
+  "pliegueAbdominal",
+  PLIEGUE_SUPRAILIACO,
+  "pliegueMuslo",
+] as const satisfies readonly (keyof MedidasComposicion)[];
+
+/** Los 4 sitios de Jackson & Pollock (versión abreviada). */
+const PLIEGUES_4_JP = [
+  "pliegueTricipital",
+  "pliegueAbdominal",
+  PLIEGUE_SUPRAILIACO,
+  "pliegueMuslo",
+] as const satisfies readonly (keyof MedidasComposicion)[];
+
+/** Los 9 sitios de Parrillo. */
+const PLIEGUES_9_PARRILLO = [
+  "plieguePectoral",
+  "pliegueBicipital",
+  "pliegueTricipital",
+  "pliegueSubescapular",
+  "pliegueAbdominal",
+  PLIEGUE_SUPRAILIACO,
+  "pliegueMuslo",
+  "pliegueLumbar",
+  "plieguePantorrilla",
 ] as const satisfies readonly (keyof MedidasComposicion)[];
 
 /** Ficha de un método: para quién sirve y qué necesita. */
@@ -137,6 +189,31 @@ export const DEFINICIONES_METODO: Record<MetodoGrasa, DefinicionMetodo> = {
     porDensidad: true,
     necesitaEdad: true,
   },
+  JACKSON_POLLOCK_7: {
+    etiqueta: "Jackson & Pollock (7 pliegues)",
+    autor: "Jackson & Pollock (1978) / Jackson, Pollock & Ward (1980) + Siri",
+    poblacion: "Población general adulta, 18 a 61 años",
+    pliegues: () => PLIEGUES_7_JP,
+    porDensidad: true,
+    necesitaEdad: true,
+  },
+  JACKSON_POLLOCK_4: {
+    etiqueta: "Jackson & Pollock (4 pliegues)",
+    autor: "Jackson, Pollock & Ward (1980)",
+    poblacion: "Población general adulta; versión abreviada de la de 7",
+    pliegues: () => PLIEGUES_4_JP,
+    // Da el porcentaje directo, sin pasar por densidad corporal.
+    porDensidad: false,
+    necesitaEdad: true,
+  },
+  PARRILLO: {
+    etiqueta: "Parrillo (9 pliegues)",
+    autor: "Parrillo (1993)",
+    poblacion: "Fisicoculturismo y deportes de fuerza",
+    pliegues: () => PLIEGUES_9_PARRILLO,
+    porDensidad: false,
+    necesitaEdad: false,
+  },
 };
 
 /** Resultado de un método que sí pudo calcularse. */
@@ -147,6 +224,16 @@ export interface ResultadoGrasa {
   poblacion: string;
   /** Σ de los pliegues que usa este método (mm). */
   sumatoriaPliegues: number;
+  /**
+   * Los sitios que entraron en esa Σ, con su nombre.
+   *
+   * Está en el resultado y no se rearma en la pantalla porque cada ecuación
+   * usa un juego distinto —y Withers, uno distinto por sexo—: sin esto, la
+   * única forma de saber qué se sumó era leer el código. Es lo que hace
+   * visible que el bicipital y la cresta ilíaca, cuando se miden, sí entran
+   * en algún cálculo.
+   */
+  sitios: string[];
   porcentajeGrasa: number;
   masaGrasaKg: number;
   masaLibreGrasaKg: number;
@@ -205,6 +292,64 @@ const YUHASZ_COEF: Record<SexoBiologico, { a: number; b: number }> = {
 };
 
 /**
+ * Jackson & Pollock de 7 sitios: densidad corporal cuadrática sobre la Σ7,
+ * con un término lineal de edad. Se convierte a porcentaje con Siri.
+ */
+const JP7_COEF: Record<
+  SexoBiologico,
+  { base: number; lineal: number; cuadratico: number; edad: number }
+> = {
+  MASCULINO: {
+    base: 1.112,
+    lineal: 0.00043499,
+    cuadratico: 0.00000055,
+    edad: 0.00028826,
+  },
+  FEMENINO: {
+    base: 1.097,
+    lineal: 0.00046971,
+    cuadratico: 0.00000056,
+    edad: 0.00012828,
+  },
+};
+
+/**
+ * Jackson & Pollock de 4 sitios: devuelve el PORCENTAJE GRASO directo, no la
+ * densidad. Es un error frecuente al transcribirla —el mismo autor tiene
+ * ecuaciones de densidad para otros juegos de pliegues—, y aplicarle Siri
+ * encima da números sin sentido.
+ */
+const JP4_COEF: Record<
+  SexoBiologico,
+  { lineal: number; cuadratico: number; edad: number; constante: number }
+> = {
+  MASCULINO: {
+    lineal: 0.29288,
+    cuadratico: 0.0005,
+    edad: 0.15845,
+    constante: -5.76377,
+  },
+  FEMENINO: {
+    lineal: 0.29669,
+    cuadratico: 0.00043,
+    edad: 0.02963,
+    constante: 1.4072,
+  },
+};
+
+/**
+ * Parrillo: %grasa = 27 · Σ9 (mm) / peso en LIBRAS.
+ *
+ * Es la única ecuación del módulo que depende del peso, y la única cuyo
+ * coeficiente vive en unidades imperiales. Se convierte el peso en vez de
+ * reexpresar la constante para que el 27 siga siendo reconocible contra la
+ * fuente: una constante "traducida" a kilos no se puede verificar de un
+ * vistazo contra la publicación.
+ */
+const PARRILLO_FACTOR = 27;
+const KG_POR_LIBRA = 0.45359237;
+
+/**
  * Corrección de Kerr para población no entrenada. Las ecuaciones de Faulkner
  * y Yuhasz/Carter se derivaron en deportistas y subestiman la grasa de quien
  * no entrena; estos factores la reescalan.
@@ -250,7 +395,11 @@ export function calcularGrasaPorPliegues(
       (total, campo) => total + medidas[campo]!,
       0,
     );
-    const calculado = porcentajeDe(metodo, suma, sexo, edadAnios);
+    const calculado = porcentajeDe(metodo, suma, {
+      sexo,
+      edadAnios,
+      pesoKg: medidas.pesoKg,
+    });
     if (calculado == null) {
       faltantes.push({ metodo, etiqueta: definicion.etiqueta, campos: faltan });
       continue;
@@ -264,6 +413,7 @@ export function calcularGrasaPorPliegues(
       autor: definicion.autor,
       poblacion: definicion.poblacion,
       sumatoriaPliegues: redondear(suma, 1),
+      sitios: requeridos.map((campo) => ETIQUETAS_MEDIDA[campo]),
       porcentajeGrasa: redondear(porcentaje, 2),
       masaGrasaKg: redondear(masaGrasa, 2),
       masaLibreGrasaKg: redondear(medidas.pesoKg - masaGrasa, 2),
@@ -278,9 +428,9 @@ export function calcularGrasaPorPliegues(
 function porcentajeDe(
   metodo: MetodoGrasa,
   suma: number,
-  sexo: SexoBiologico,
-  edadAnios: number | null,
+  datos: { sexo: SexoBiologico; edadAnios: number | null; pesoKg: number },
 ): { porcentaje: number; densidad: number | null } | null {
+  const { sexo, edadAnios, pesoKg } = datos;
   switch (metodo) {
     case "FAULKNER": {
       const { a, b } = FAULKNER_COEF[sexo];
@@ -316,6 +466,34 @@ function porcentajeDe(
       const [, c, m] = fila;
       const densidad = c - m * Math.log10(suma);
       return { porcentaje: siri(densidad), densidad };
+    }
+    case "JACKSON_POLLOCK_7": {
+      if (edadAnios == null) return null;
+      const c = JP7_COEF[sexo];
+      const densidad =
+        c.base -
+        c.lineal * suma +
+        c.cuadratico * suma ** 2 -
+        c.edad * edadAnios;
+      return { porcentaje: siri(densidad), densidad };
+    }
+    case "JACKSON_POLLOCK_4": {
+      if (edadAnios == null) return null;
+      const c = JP4_COEF[sexo];
+      const porcentaje =
+        c.lineal * suma -
+        c.cuadratico * suma ** 2 +
+        c.edad * edadAnios +
+        c.constante;
+      return { porcentaje, densidad: null };
+    }
+    case "PARRILLO": {
+      const pesoLibras = pesoKg / KG_POR_LIBRA;
+      if (pesoLibras <= 0) return null;
+      return {
+        porcentaje: (PARRILLO_FACTOR * suma) / pesoLibras,
+        densidad: null,
+      };
     }
   }
 }

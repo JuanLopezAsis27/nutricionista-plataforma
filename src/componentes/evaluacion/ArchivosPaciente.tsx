@@ -64,7 +64,7 @@ export function ArchivosPaciente({ pacienteId }: { pacienteId: string }) {
               )}
               <div className="min-w-0 flex-1">
                 <a
-                  href={`/api/archivos/${archivo.id}`}
+                  href={`/api/archivos/${archivo.id}/ver`}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex max-w-full items-center gap-1 truncate font-medium hover:text-primary"

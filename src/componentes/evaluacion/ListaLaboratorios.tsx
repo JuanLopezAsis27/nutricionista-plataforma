@@ -141,7 +141,7 @@ export function ListaLaboratorios({ pacienteId }: { pacienteId: string }) {
                   {laboratorio.adjuntos.map((adjunto) => (
                     <li key={adjunto.id}>
                       <a
-                        href={`/api/archivos/${adjunto.id}`}
+                        href={`/api/archivos/${adjunto.id}/ver`}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs hover:bg-accent hover:text-accent-foreground"

@@ -15,9 +15,11 @@ export interface DatosGuardarObjetivoComposicion extends DatosObjetivoComposicio
 /**
  * Caso de uso: plantear (o replantear) la meta de una variable de composición.
  *
- * Hay una sola meta vigente por paciente y variable: si ya existía, se
- * actualiza en lugar de crear una segunda. Así el dashboard nunca tiene que
- * elegir entre dos objetivos contradictorios para la misma variable.
+ * Hay una sola meta vigente por paciente, variable Y ECUACIÓN: si ya existía
+ * esa combinación, se actualiza en lugar de crear una segunda. Así el
+ * dashboard nunca tiene que elegir entre dos metas contradictorias para lo
+ * mismo, y a la vez el profesional puede seguir el % graso por dos ecuaciones
+ * distintas —que son dos formas de medir, no dos versiones de un número—.
  */
 export class GuardarObjetivoComposicion {
   constructor(
@@ -36,6 +38,7 @@ export class GuardarObjetivoComposicion {
     const existente = await this.objetivos.obtenerPorVariable(
       datos.pacienteId,
       datos.variable,
+      datos.metodoGrasa ?? null,
     );
 
     const objetivo = existente

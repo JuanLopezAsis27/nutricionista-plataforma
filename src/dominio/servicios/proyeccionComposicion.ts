@@ -371,6 +371,18 @@ export function valorDeVariable(
       return f?.muscular.kg ?? null;
     case "MASA_MUSCULAR_PORCENTAJE":
       return f?.muscular.porcentaje ?? null;
+    case "MASA_OSEA_KG":
+      return f?.osea.kg ?? null;
+    case "MASA_OSEA_PORCENTAJE":
+      return f?.osea.porcentaje ?? null;
+    case "MASA_RESIDUAL_KG":
+      return f?.residual.kg ?? null;
+    case "MASA_RESIDUAL_PORCENTAJE":
+      return f?.residual.porcentaje ?? null;
+    case "MASA_PIEL_KG":
+      return f?.piel.kg ?? null;
+    case "MASA_PIEL_PORCENTAJE":
+      return f?.piel.porcentaje ?? null;
     case "SUMATORIA_6_PLIEGUES":
       return resultado.indices.sumatoria6Pliegues;
     case "IMC":

@@ -20,7 +20,7 @@ import {
 } from "@/dominio/entidades/Antropometria";
 import type { CampoPlantilla } from "@/dominio/entidades/PlantillaAntropometrica";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
-import { aFechaISO, hoyISO, formatearNumero } from "@/lib/formato";
+import { aFechaISO, hoyISO, formatearMedida } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
@@ -72,6 +72,16 @@ const GRUPOS = [
         etiqueta: "Cresta ilíaca",
         paraMasas: false,
       },
+      // Fuera del perfil ISAK: los piden Jackson & Pollock (pectoral, axilar
+      // medio) y Parrillo (pectoral, lumbar). Van al final del grupo para no
+      // alterar el orden en que se carga la planilla de papel.
+      { nombre: "plieguePectoral", etiqueta: "Pectoral", paraMasas: false },
+      {
+        nombre: "pliegueAxilarMedio",
+        etiqueta: "Axilar medio",
+        paraMasas: false,
+      },
+      { nombre: "pliegueLumbar", etiqueta: "Lumbar", paraMasas: false },
     ],
   },
   {
@@ -542,7 +552,7 @@ function CampoMedida({
       >
         {scoreZ == null
           ? "·"
-          : `Z ${scoreZ > 0 ? "+" : ""}${formatearNumero(scoreZ)}${
+          : `Z ${scoreZ > 0 ? "+" : ""}${formatearMedida(scoreZ)}${
               Math.abs(scoreZ) >= 2 ? " ⚑" : ""
             }`}
       </p>

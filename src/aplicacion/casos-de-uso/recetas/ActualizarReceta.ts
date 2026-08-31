@@ -1,12 +1,15 @@
 import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositorio";
 import type { Receta, DatosNuevaReceta } from "@/dominio/entidades/Receta";
 import { ErrorRecetaNoEncontrada } from "@/dominio/errores/ErrorRecetaNoEncontrada";
+import { marcarPortada } from "./marcarPortada";
 
 /** Datos de entrada: id + datos de la receta + fotos/documentos nuevos ya subidos. */
 export interface DatosActualizarReceta extends DatosNuevaReceta {
   id: string;
   fotoIdsNuevos?: string[];
   documentoIdsNuevos?: string[];
+  /** Portada elegida; `undefined` deja la que ya tenía. */
+  fotoPrincipalId?: string;
 }
 
 /**
@@ -26,6 +29,7 @@ export class ActualizarReceta {
       ...(datos.fotoIdsNuevos ?? []),
       ...(datos.documentoIdsNuevos ?? []),
     ];
-    return this.recetas.actualizar(actualizada, archivoIds);
+    const guardada = await this.recetas.actualizar(actualizada, archivoIds);
+    return marcarPortada(this.recetas, guardada, datos.fotoPrincipalId);
   }
 }

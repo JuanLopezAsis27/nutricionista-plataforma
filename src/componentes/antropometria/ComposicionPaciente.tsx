@@ -15,7 +15,7 @@ import {
 import type { ObjetivoComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
 import type { EstadoProyeccion } from "@/dominio/servicios/proyeccionComposicion";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
-import { formatearFecha, formatearNumero } from "@/lib/formato";
+import { formatearFecha, formatearMedida } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import {
   Card,
@@ -137,7 +137,7 @@ export function ComposicionPaciente() {
         <Indicador
           icono={Scale}
           titulo="Peso"
-          valor={formatearNumero(actual.medidas.pesoKg)}
+          valor={formatearMedida(actual.medidas.pesoKg)}
           unidad="kg"
           detalle={
             anterior
@@ -150,15 +150,15 @@ export function ComposicionPaciente() {
             <Indicador
               icono={Waves}
               titulo="Grasa corporal"
-              valor={formatearNumero(grasa.porcentajeGrasa)}
+              valor={formatearMedida(grasa.porcentajeGrasa)}
               unidad="%"
               color={tema.masas.adiposa}
-              detalle={`${formatearNumero(grasa.masaGrasaKg)} kg`}
+              detalle={`${formatearMedida(grasa.masaGrasaKg)} kg`}
             />
             <Indicador
               icono={Activity}
               titulo="Masa libre de grasa"
-              valor={formatearNumero(grasa.masaLibreGrasaKg)}
+              valor={formatearMedida(grasa.masaLibreGrasaKg)}
               unidad="kg"
               color={tema.masas.muscular}
               detalle="Músculo, hueso, órganos y agua"
@@ -169,18 +169,18 @@ export function ComposicionPaciente() {
             <Indicador
               icono={Waves}
               titulo="Masa adiposa"
-              valor={formatearNumero(resultado.fraccionamiento.adiposa.kg)}
+              valor={formatearMedida(resultado.fraccionamiento.adiposa.kg)}
               unidad="kg"
               color={tema.masas.adiposa}
-              detalle={`${formatearNumero(resultado.fraccionamiento.adiposa.porcentaje)} % de tu peso`}
+              detalle={`${formatearMedida(resultado.fraccionamiento.adiposa.porcentaje)} % de tu peso`}
             />
             <Indicador
               icono={Activity}
               titulo="Masa muscular"
-              valor={formatearNumero(resultado.fraccionamiento.muscular.kg)}
+              valor={formatearMedida(resultado.fraccionamiento.muscular.kg)}
               unidad="kg"
               color={tema.masas.muscular}
-              detalle={`${formatearNumero(resultado.fraccionamiento.muscular.porcentaje)} % de tu peso`}
+              detalle={`${formatearMedida(resultado.fraccionamiento.muscular.porcentaje)} % de tu peso`}
             />
           </>
         ) : null}
@@ -289,7 +289,7 @@ function TarjetaObjetivoPaciente({
         <div>
           <p className="text-sm font-semibold">{p.etiqueta}</p>
           <p className="text-xs text-muted-foreground">
-            Meta: {formatearNumero(p.valorObjetivo)}
+            Meta: {formatearMedida(p.valorObjetivo)}
             {unidad}
             {p.fechaObjetivo && ` · para el ${formatearFecha(p.fechaObjetivo)}`}
           </p>
@@ -300,7 +300,7 @@ function TarjetaObjetivoPaciente({
           <p className="text-sm">
             Te{" "}
             <span className="text-lg font-bold tabular-nums" style={{ color }}>
-              {formatearNumero(falta)}
+              {formatearMedida(falta)}
               {unidad}
             </span>{" "}
             {hayQueBajar ? "por bajar" : "por subir"} para llegar.
@@ -314,13 +314,13 @@ function TarjetaObjetivoPaciente({
         <div className="space-y-1.5">
           <div className="flex items-baseline justify-between text-xs text-muted-foreground">
             <span className="tabular-nums">
-              Empezaste en {formatearNumero(p.valorInicial)}
+              Empezaste en {formatearMedida(p.valorInicial)}
               {unidad}
             </span>
             <span className="tabular-nums">
               Ahora{" "}
               <strong className="text-foreground">
-                {formatearNumero(p.valorActual)}
+                {formatearMedida(p.valorActual)}
                 {unidad}
               </strong>
             </span>
@@ -337,7 +337,7 @@ function TarjetaObjetivoPaciente({
           <p className="text-xs text-muted-foreground">
             Llevás{" "}
             <span className="font-semibold tabular-nums">
-              {formatearNumero(p.progresoPorcentaje)} %
+              {formatearMedida(p.progresoPorcentaje)} %
             </span>{" "}
             del camino.
           </p>
@@ -409,5 +409,5 @@ function Indicador({
 }
 
 function diferencia(valor: number): string {
-  return `${valor > 0 ? "+" : ""}${formatearNumero(valor)}`;
+  return `${valor > 0 ? "+" : ""}${formatearMedida(valor)}`;
 }

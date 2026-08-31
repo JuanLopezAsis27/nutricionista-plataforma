@@ -35,9 +35,20 @@ const recetaBase = z.object({
   ...macros,
 });
 
+/**
+ * Portada elegida en el mismo guardado.
+ *
+ * Está en el alta y en la edición porque hasta que existió no había forma de
+ * elegir portada entre las fotos que se acababan de subir: `marcarFotoPrincipal`
+ * exige una foto YA vinculada, y las fotos nuevas se vinculan recién al
+ * guardar. El profesional tenía que guardar, reabrir y recién ahí elegir.
+ */
+const fotoPrincipalElegida = z.string().min(1).optional();
+
 export const crearRecetaDto = recetaBase.extend({
   fotoIds: z.array(z.string().min(1)).max(10).optional(),
   documentoIds: z.array(z.string().min(1)).max(10).optional(),
+  fotoPrincipalId: fotoPrincipalElegida,
 });
 export type CrearRecetaDto = z.infer<typeof crearRecetaDto>;
 
@@ -45,6 +56,7 @@ export const actualizarRecetaDto = recetaBase.extend({
   id: z.string().min(1),
   fotoIdsNuevos: z.array(z.string().min(1)).max(10).optional(),
   documentoIdsNuevos: z.array(z.string().min(1)).max(10).optional(),
+  fotoPrincipalId: fotoPrincipalElegida,
 });
 export type ActualizarRecetaDto = z.infer<typeof actualizarRecetaDto>;
 

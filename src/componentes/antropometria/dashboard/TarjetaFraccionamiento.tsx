@@ -1,6 +1,6 @@
 import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
 import type { TemaComposicion } from "../paleta";
-import { formatearNumero } from "@/lib/formato";
+import { formatearMedida } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import {
   Card,
@@ -53,7 +53,7 @@ export function TarjetaFraccionamiento({
         />
         <p className="border-t pt-3 text-xs text-muted-foreground">
           Peso estructurado{" "}
-          {formatearNumero(fraccionamiento.pesoEstructuradoKg)} kg · diferencia
+          {formatearMedida(fraccionamiento.pesoEstructuradoKg)} kg · diferencia
           con la balanza{" "}
           <span
             className={cn(
@@ -62,7 +62,7 @@ export function TarjetaFraccionamiento({
                 DESVIO_ACEPTABLE && "text-destructive",
             )}
           >
-            {formatearNumero(fraccionamiento.diferenciaPorcentaje * 100)} %
+            {formatearMedida(fraccionamiento.diferenciaPorcentaje * 100)} %
           </span>
           . Por encima del 2 % conviene revisar la toma de medidas.
         </p>

@@ -1,34 +1,41 @@
-"use client";
-
-import { Fragment } from "react";
-import { Pencil, Trash2 } from "lucide-react";
 import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
 import {
   DEFINICIONES_METODO,
   METODOS_GRASA,
 } from "@/dominio/servicios/grasaPorPliegues";
-import { formatearFecha, formatearNumero } from "@/lib/formato";
-import { cn } from "@/lib/utilidades";
-import { Button } from "@/componentes/ui/button";
 
-interface Fila {
+/**
+ * La planilla antropométrica como datos: qué filas tiene y de dónde sale el
+ * valor de cada una.
+ *
+ * Vive aparte de la pantalla porque es la ÚNICA definición de la planilla y la
+ * leen dos vistas con formas distintas —la tarjeta resumida de cada medición y
+ * su ficha completa—. Mientras estuvo adentro del componente de la tabla, el
+ * orden y las etiquetas eran un detalle de ESA tabla; si la ficha las hubiera
+ * repetido, agregar una medida al formulario habría dejado a una de las dos
+ * vistas sin mostrarla, en silencio.
+ */
+
+export interface Fila {
   etiqueta: string;
   valor: (m: MedicionComposicionDto) => number | null;
   /** Derivada = la calcula el dominio, no se carga a mano. */
   derivada?: boolean;
 }
 
-interface Grupo {
+export interface Grupo {
   titulo: string;
   filas: Fila[];
 }
 
 /**
- * La planilla completa: una fila por medida, una columna por consulta.
- * Es también la vista de tabla que exige la paleta en tema claro — los
- * números están siempre disponibles, no solo el color de los gráficos.
+ * La planilla completa, en el orden en que se toma y se lee: básicos,
+ * diámetros, perímetros, pliegues y lo que el dominio deriva de todo eso.
+ *
+ * Son los números crudos, y por eso existe además de los gráficos: la paleta
+ * en tema claro exige que el dato esté disponible sin depender del color.
  */
-const GRUPOS: Grupo[] = [
+export const GRUPOS: Grupo[] = [
   {
     titulo: "Básicos",
     filas: [
@@ -103,9 +110,17 @@ const GRUPOS: Grupo[] = [
         etiqueta: "Cresta ilíaca",
         valor: (m) => m.medidas.pliegueCrestaIliaca,
       },
+      { etiqueta: "Pectoral", valor: (m) => m.medidas.plieguePectoral },
+      { etiqueta: "Axilar medio", valor: (m) => m.medidas.pliegueAxilarMedio },
+      { etiqueta: "Lumbar", valor: (m) => m.medidas.pliegueLumbar },
       {
         etiqueta: "Σ 6 pliegues",
         valor: (m) => m.resultado.indices.sumatoria6Pliegues,
+        derivada: true,
+      },
+      {
+        etiqueta: "Σ 8 pliegues (ISAK)",
+        valor: (m) => m.resultado.indices.sumatoria8Pliegues,
         derivada: true,
       },
     ],
@@ -189,115 +204,3 @@ const GRUPOS: Grupo[] = [
     })),
   },
 ];
-
-export function TablaMediciones({
-  mediciones,
-  onEditar,
-  onEliminar,
-}: {
-  mediciones: MedicionComposicionDto[];
-  onEditar: (medicion: MedicionComposicionDto) => void;
-  onEliminar: (medicion: MedicionComposicionDto) => void;
-}) {
-  if (mediciones.length === 0) {
-    return (
-      <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-        Sin mediciones registradas. Cargá la primera consulta para empezar.
-      </p>
-    );
-  }
-
-  // Solo se muestran las medidas que alguna consulta tenga cargadas; las
-  // derivadas siempre, para que se vea cuándo faltan datos para calcularlas.
-  const grupos = GRUPOS.map((grupo) => ({
-    ...grupo,
-    filas: grupo.filas.filter(
-      (fila) => fila.derivada || mediciones.some((m) => fila.valor(m) != null),
-    ),
-  })).filter((grupo) => grupo.filas.length > 0);
-
-  return (
-    <div className="overflow-x-auto rounded-md border">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b bg-muted/50">
-            <th className="sticky left-0 z-10 bg-muted p-2 text-left font-semibold">
-              Medida
-            </th>
-            {mediciones.map((medicion) => (
-              <th
-                key={medicion.id}
-                className="min-w-28 p-2 text-center font-semibold"
-              >
-                <div className="flex flex-col items-center gap-1">
-                  <span>{formatearFecha(medicion.fecha)}</span>
-                  <span className="flex gap-0.5">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      aria-label={`Editar medición del ${formatearFecha(medicion.fecha)}`}
-                      onClick={() => onEditar(medicion)}
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      aria-label={`Eliminar medición del ${formatearFecha(medicion.fecha)}`}
-                      onClick={() => onEliminar(medicion)}
-                    >
-                      <Trash2 className="h-3 w-3 text-destructive" />
-                    </Button>
-                  </span>
-                </div>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {grupos.map((grupo) => (
-            <Fragment key={grupo.titulo}>
-              <tr className="border-b bg-muted/30">
-                <td
-                  className="sticky left-0 z-10 bg-muted/60 p-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-                  colSpan={1}
-                >
-                  {grupo.titulo}
-                </td>
-                <td colSpan={mediciones.length} />
-              </tr>
-              {grupo.filas.map((fila) => (
-                <tr
-                  key={`${grupo.titulo}-${fila.etiqueta}`}
-                  className={cn(
-                    "border-b last:border-0",
-                    fila.derivada && "bg-accent/40",
-                  )}
-                >
-                  <td
-                    className={cn(
-                      "sticky left-0 z-10 bg-card p-2 font-medium",
-                      fila.derivada && "text-accent-foreground",
-                    )}
-                  >
-                    {fila.etiqueta}
-                  </td>
-                  {mediciones.map((medicion) => (
-                    <td
-                      key={medicion.id}
-                      className="p-2 text-center tabular-nums"
-                    >
-                      {formatearNumero(fila.valor(medicion))}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </Fragment>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}

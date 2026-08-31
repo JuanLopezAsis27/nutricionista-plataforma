@@ -69,6 +69,23 @@ export const PLANTILLAS_BASE: PlantillaBase[] = [
     ],
   },
   {
+    clave: "JACKSON_POLLOCK_PARRILLO",
+    nombre: "Jackson & Pollock + Parrillo (11 pliegues)",
+    descripcion:
+      "Los 8 del perfil ISAK más pectoral, axilar medio y lumbar, que son " +
+      "los sitios que el ISAK no tiene. Habilita todas las ecuaciones de " +
+      "2 componentes, incluidas Jackson & Pollock y Parrillo.",
+    campos: [
+      "tallaCm",
+      ...SEIS_PLIEGUES,
+      "pliegueBicipital",
+      "pliegueCrestaIliaca",
+      "plieguePectoral",
+      "pliegueAxilarMedio",
+      "pliegueLumbar",
+    ],
+  },
+  {
     clave: "ISAK_COMPLETO",
     nombre: "Perfil ISAK completo",
     descripcion:

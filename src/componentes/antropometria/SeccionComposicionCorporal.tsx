@@ -33,7 +33,7 @@ import { DashboardComposicion } from "./DashboardComposicion";
 import { FormularioMedicion } from "./FormularioMedicion";
 import { GestorPlantillas } from "./GestorPlantillas";
 import { ObjetivosComposicion } from "./ObjetivosComposicion";
-import { TablaMediciones } from "./TablaMediciones";
+import { TarjetasMediciones } from "./TarjetasMediciones";
 
 /** Valor del selector cuando no se filtra por plantilla. */
 const PERFIL_COMPLETO = "COMPLETO";
@@ -42,8 +42,9 @@ const PERFIL_COMPLETO = "COMPLETO";
  * Pestaña de Antropometría del paciente: la única sección donde se cargan y
  * se leen medidas corporales.
  *
- * Tres vistas del mismo dato: el dashboard (qué dicen las medidas), la
- * planilla (qué se midió) y los objetivos (a dónde va). La evolución del peso
+ * Tres vistas del mismo dato: el dashboard (qué dicen las medidas), las
+ * mediciones —una tarjeta por consulta, con su planilla adentro— y los
+ * objetivos (a dónde va). La evolución del peso
  * en el diario del paciente vive en «Progreso», que es otra fuente: ahí es el
  * paciente el que se pesa en casa, acá es el profesional en consulta.
  */
@@ -139,7 +140,7 @@ export function SeccionComposicionCorporal({
         </TabsContent>
 
         <TabsContent value="mediciones" className="mt-4">
-          <TablaMediciones
+          <TarjetasMediciones
             mediciones={mediciones}
             onEditar={(medicion) => {
               setEditando(medicion);

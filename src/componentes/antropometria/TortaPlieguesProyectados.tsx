@@ -4,7 +4,7 @@ import { useId, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { TriangleAlert } from "lucide-react";
 import type { ProyeccionPliegues } from "@/dominio/servicios/grasaPorPliegues";
-import { formatearNumero } from "@/lib/formato";
+import { formatearMedida } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import type { TemaComposicion } from "./paleta";
 
@@ -121,7 +121,7 @@ export function TortaPlieguesProyectados({
               {gajo.etiqueta}
             </span>
             <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-              {formatearNumero(gajo.actualMm)}
+              {formatearMedida(gajo.actualMm)}
             </span>
             <span
               aria-hidden
@@ -130,7 +130,7 @@ export function TortaPlieguesProyectados({
               →
             </span>
             <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums">
-              {formatearNumero(gajo.objetivoMm)}
+              {formatearMedida(gajo.objetivoMm)}
             </span>
             <span
               className="w-14 shrink-0 text-right text-xs tabular-nums"
@@ -139,7 +139,7 @@ export function TortaPlieguesProyectados({
               }}
             >
               {gajo.diferenciaMm > 0 ? "+" : ""}
-              {formatearNumero(gajo.diferenciaMm)} mm
+              {formatearMedida(gajo.diferenciaMm)} mm
             </span>
           </li>
         ))}
@@ -166,7 +166,7 @@ export function TortaPlieguesProyectados({
           />
           {baja ? "A bajar" : "A subir"}:{" "}
           <span className="font-medium tabular-nums">
-            {formatearNumero(totalMargen)} mm
+            {formatearMedida(totalMargen)} mm
           </span>{" "}
           en total
         </span>
@@ -302,7 +302,7 @@ function Torta({
                 {señalado.etiqueta}
               </span>
               <span className="text-xl font-bold tabular-nums">
-                {formatearNumero(
+                {formatearMedida(
                   conMargen ? señalado.objetivoMm : señalado.actualMm,
                 )}
                 <span className="ml-0.5 text-xs font-normal">mm</span>
@@ -319,7 +319,7 @@ function Torta({
                   destacado && "text-primary",
                 )}
               >
-                {formatearNumero(suma)}
+                {formatearMedida(suma)}
                 <span className="ml-0.5 text-xs font-normal">mm</span>
               </span>
             </>

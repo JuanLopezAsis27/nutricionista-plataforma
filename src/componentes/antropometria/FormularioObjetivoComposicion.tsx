@@ -10,17 +10,21 @@ import type {
   ValorActualVariableDto,
 } from "@/aplicacion/dtos/evaluacion.dto";
 import {
+  ETIQUETAS_ORIGEN,
+  ORIGENES_VARIABLE,
   VARIABLES_COMPOSICION,
   definicionVariable,
   exigeMetodoGrasa,
+  origenDeVariable,
   type VariableComposicion,
 } from "@/dominio/entidades/ObjetivoComposicion";
 import {
   DEFINICIONES_METODO,
   METODOS_GRASA,
+  type MetodoGrasa,
 } from "@/dominio/servicios/grasaPorPliegues";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
-import { aFechaISO, formatearNumero } from "@/lib/formato";
+import { aFechaISO, formatearMedida } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { Slider } from "@/componentes/ui/slider";
@@ -39,6 +43,8 @@ import {
   SelectValue,
   SelectContent,
   SelectItem,
+  SelectGroup,
+  SelectLabel,
 } from "@/componentes/ui/select";
 
 export const esquema = z.object({
@@ -50,11 +56,21 @@ export const esquema = z.object({
 });
 type DatosFormulario = z.infer<typeof esquema>;
 
+/** Una meta ya planteada: variable más la ecuación con la que se sigue. */
+export interface CombinacionObjetivo {
+  variable: VariableComposicion;
+  metodoGrasa: MetodoGrasa | null;
+}
+
 interface Props {
   pacienteId: string;
   objetivoInicial?: ObjetivoComposicionDto | null;
-  /** Variables que ya tienen objetivo: hay una sola meta vigente por variable. */
-  variablesOcupadas: VariableComposicion[];
+  /**
+   * Combinaciones que ya tienen meta. Hay una sola vigente por variable Y
+   * ecuación: una variable de grasa sigue disponible mientras quede alguna
+   * ecuación sin usar.
+   */
+  combinacionesOcupadas: CombinacionObjetivo[];
   /** Valores de la última medición: el punto de partida de la meta. */
   valoresActuales: ValorActualVariableDto[];
   onTerminado: () => void;
@@ -64,18 +80,45 @@ interface Props {
 export function FormularioObjetivoComposicion({
   pacienteId,
   objetivoInicial,
-  variablesOcupadas,
+  combinacionesOcupadas,
   valoresActuales,
   onTerminado,
 }: Props) {
   const { guardarObjetivoComposicion } = useEvaluacion();
   const editando = Boolean(objetivoInicial);
 
-  const disponibles = VARIABLES_COMPOSICION.filter(
-    (variable) =>
-      variable === objetivoInicial?.variable ||
-      !variablesOcupadas.includes(variable),
+  /** ¿Esta combinación ya tiene meta (y no es la que se está editando)? */
+  const ocupada = (
+    variable: VariableComposicion,
+    metodoGrasa: MetodoGrasa | null,
+  ): boolean => {
+    if (
+      editando &&
+      objetivoInicial!.variable === variable &&
+      objetivoInicial!.metodoGrasa === metodoGrasa
+    ) {
+      return false;
+    }
+    return combinacionesOcupadas.some(
+      (c) => c.variable === variable && c.metodoGrasa === metodoGrasa,
+    );
+  };
+
+  /**
+   * Una variable de grasa se agota recién cuando TODAS sus ecuaciones tienen
+   * meta; las demás, con una sola. Es la diferencia entre "esta variable ya
+   * está" y "esta forma de medir ya está".
+   */
+  const disponibles = VARIABLES_COMPOSICION.filter((variable) =>
+    exigeMetodoGrasa(variable)
+      ? METODOS_GRASA.some((metodo) => !ocupada(variable, metodo))
+      : !ocupada(variable, null),
   );
+
+  const porOrigen = ORIGENES_VARIABLE.map((origen) => ({
+    origen,
+    variables: disponibles.filter((v) => origenDeVariable(v) === origen),
+  })).filter((grupo) => grupo.variables.length > 0);
 
   const form = useForm<DatosFormulario>({
     resolver: zodResolver(esquema),
@@ -173,13 +216,27 @@ export function FormularioObjetivoComposicion({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {disponibles.map((opcion) => (
-                    <SelectItem key={opcion} value={opcion}>
-                      {definicionVariable(opcion).etiqueta}
-                    </SelectItem>
+                  {/* Agrupadas por forma de medir: en una lista plana de
+                      diecisiete, "masa adiposa" (Kerr) y "masa grasa"
+                      (pliegues) se eligen a ciegas, y son de modelos
+                      distintos que no se comparan entre sí. */}
+                  {porOrigen.map(({ origen, variables }) => (
+                    <SelectGroup key={origen}>
+                      <SelectLabel>
+                        {ETIQUETAS_ORIGEN[origen].titulo}
+                      </SelectLabel>
+                      {variables.map((opcion) => (
+                        <SelectItem key={opcion} value={opcion}>
+                          {definicionVariable(opcion).etiqueta}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                {ETIQUETAS_ORIGEN[origenDeVariable(variable)].detalle}
+              </p>
               {editando && (
                 <p className="text-xs text-muted-foreground">
                   La variable no se cambia: creá otro objetivo si querés seguir
@@ -209,11 +266,23 @@ export function FormularioObjetivoComposicion({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {METODOS_GRASA.map((metodo) => (
-                      <SelectItem key={metodo} value={metodo}>
-                        {DEFINICIONES_METODO[metodo].etiqueta}
-                      </SelectItem>
-                    ))}
+                    {METODOS_GRASA.map((metodo) => {
+                      const yaTiene = ocupada(variable, metodo);
+                      return (
+                        <SelectItem
+                          key={metodo}
+                          value={metodo}
+                          disabled={yaTiene}
+                        >
+                          {DEFINICIONES_METODO[metodo].etiqueta}
+                          {yaTiene && (
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              (ya tiene meta)
+                            </span>
+                          )}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
@@ -241,7 +310,7 @@ export function FormularioObjetivoComposicion({
                     <span className="text-sm text-muted-foreground">
                       Hoy{" "}
                       <span className="font-semibold tabular-nums text-foreground">
-                        {formatearNumero(actual)}
+                        {formatearMedida(actual)}
                         {unidad}
                       </span>
                     </span>
@@ -284,13 +353,13 @@ export function FormularioObjetivoComposicion({
 
                 <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
                   <span className="tabular-nums">
-                    {formatearNumero(rango.min)}
+                    {formatearMedida(rango.min)}
                   </span>
                   {brecha != null && Math.abs(brecha) > 1e-9 ? (
                     <span className="font-medium text-foreground">
                       {brecha > 0 ? "Subir" : "Bajar"}{" "}
                       <span className="tabular-nums">
-                        {formatearNumero(Math.abs(brecha))}
+                        {formatearMedida(Math.abs(brecha))}
                         {unidad}
                       </span>
                     </span>
@@ -298,7 +367,7 @@ export function FormularioObjetivoComposicion({
                     <span>Arrastrá o escribí el valor</span>
                   )}
                   <span className="tabular-nums">
-                    {formatearNumero(rango.max)}
+                    {formatearMedida(rango.max)}
                   </span>
                 </div>
               </div>

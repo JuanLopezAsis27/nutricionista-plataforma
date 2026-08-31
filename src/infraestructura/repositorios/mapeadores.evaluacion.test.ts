@@ -23,7 +23,7 @@ import { mapearPlantillaAntropometrica } from "./PrismaRepositorioPlantillaAntro
 const decimal = (n: number): Prisma.Decimal => new Prisma.Decimal(n);
 
 describe("mapearAntropometria", () => {
-  // 35 medidas, todas `number | null`, con nombres a un carácter de distancia
+  // 38 medidas, todas `number | null`, con nombres a un carácter de distancia
   // entre sí (circCinturaMinima/circCinturaMaxima, pliegueSubescapular/
   // pliegueSupraespinal). Es el mapeador con más riesgo de cruce del sistema.
   const medidas = {
@@ -44,6 +44,9 @@ describe("mapearAntropometria", () => {
     plieguePantorrilla: 15,
     pliegueBicipital: 16,
     pliegueCrestaIliaca: 17,
+    plieguePectoral: 30,
+    pliegueAxilarMedio: 31,
+    pliegueLumbar: 32,
     circTorax: 18,
     circCinturaMinima: 19,
     circCinturaMaxima: 20,

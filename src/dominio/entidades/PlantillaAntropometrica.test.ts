@@ -75,6 +75,9 @@ describe("alcanceDe", () => {
       ...SEIS_PLIEGUES,
       "pliegueBicipital",
       "pliegueCrestaIliaca",
+      "plieguePectoral",
+      "pliegueAxilarMedio",
+      "pliegueLumbar",
     ]);
     expect(metodos(conCresta)).toContain("DURNIN_WOMERSLEY");
   });
@@ -97,7 +100,26 @@ describe("alcanceDe", () => {
 
     expect(alcance.cincoMasas).toBe(true);
     expect(alcance.somatotipo).toBe(true);
-    expect(soloAmbos(alcance)).toHaveLength(6);
+    expect(soloAmbos(alcance)).toHaveLength(7);
+  });
+
+  it("ni el ISAK completo alcanza para Jackson & Pollock de 7 ni para Parrillo", () => {
+    // Piden pectoral, axilar medio y lumbar, que NO son sitios del perfil
+    // ISAK. Es el motivo por el que existe la plantilla que los suma.
+    const isak = PLANTILLAS_BASE.find((p) => p.clave === "ISAK_COMPLETO")!;
+    const conISAK = alcanceDe(isak.campos).metodosGrasa.map((m) => m.metodo);
+    expect(conISAK).toContain("JACKSON_POLLOCK_4");
+    expect(conISAK).not.toContain("JACKSON_POLLOCK_7");
+    expect(conISAK).not.toContain("PARRILLO");
+
+    const completa = PLANTILLAS_BASE.find(
+      (p) => p.clave === "JACKSON_POLLOCK_PARRILLO",
+    )!;
+    const conTodos = alcanceDe(completa.campos).metodosGrasa.map(
+      (m) => m.metodo,
+    );
+    expect(conTodos).toContain("JACKSON_POLLOCK_7");
+    expect(conTodos).toContain("PARRILLO");
   });
 });
 
@@ -136,6 +158,9 @@ describe("alcanceDe — coherencia con el cálculo real", () => {
       plieguePantorrilla: valor("plieguePantorrilla"),
       pliegueBicipital: valor("pliegueBicipital"),
       pliegueCrestaIliaca: valor("pliegueCrestaIliaca"),
+      plieguePectoral: valor("plieguePectoral"),
+      pliegueAxilarMedio: valor("pliegueAxilarMedio"),
+      pliegueLumbar: valor("pliegueLumbar"),
     };
   }
 

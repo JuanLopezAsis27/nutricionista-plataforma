@@ -1,6 +1,6 @@
 import { Flame } from "lucide-react";
 import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
-import { formatearNumero } from "@/lib/formato";
+import { formatearMedida } from "@/lib/formato";
 import {
   Card,
   CardContent,
@@ -44,7 +44,7 @@ export function TarjetaEnergia({
               etiqueta="Peso ideal (OMS)"
               valor={energia.pesoIdealKg}
               unidad="kg"
-              nota={`Rango ${formatearNumero(energia.pesoIdealMinKg)}–${formatearNumero(energia.pesoIdealMaxKg)} kg`}
+              nota={`Rango ${formatearMedida(energia.pesoIdealMinKg)}–${formatearMedida(energia.pesoIdealMaxKg)} kg`}
             />
             <Fila
               etiqueta="Masa libre de grasa"
@@ -74,7 +74,7 @@ export function TarjetaEnergia({
               unidad="kcal"
               nota={
                 energia.factorActividad != null
-                  ? `Factor ${formatearNumero(energia.factorActividad)} (OMS, 1985)`
+                  ? `Factor ${formatearMedida(energia.factorActividad)} (OMS, 1985)`
                   : "Cargá el nivel de actividad de la medición"
               }
               destacado

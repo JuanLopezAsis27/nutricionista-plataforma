@@ -1,7 +1,7 @@
 import { Activity, Flame, Scale, Waves } from "lucide-react";
 import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
 import type { TemaComposicion } from "../paleta";
-import { formatearNumero } from "@/lib/formato";
+import { formatearMedida } from "@/lib/formato";
 import { Indicador, signo } from "./piezas";
 
 type ResultadoGrasa =
@@ -37,13 +37,13 @@ export function IndicadoresCabecera({
       <Indicador
         icono={Scale}
         titulo="Peso"
-        valor={formatearNumero(actual.medidas.pesoKg)}
+        valor={formatearMedida(actual.medidas.pesoKg)}
         unidad="kg"
         detalle={
           anterior
             ? `${signo(actual.medidas.pesoKg - anterior.medidas.pesoKg)} kg vs. anterior`
             : resultado.indices.imc != null
-              ? `IMC ${formatearNumero(resultado.indices.imc)}`
+              ? `IMC ${formatearMedida(resultado.indices.imc)}`
               : undefined
         }
       />
@@ -54,14 +54,14 @@ export function IndicadoresCabecera({
             titulo="Grasa corporal"
             valor={
               grasaDestacada
-                ? formatearNumero(grasaDestacada.porcentajeGrasa)
+                ? formatearMedida(grasaDestacada.porcentajeGrasa)
                 : "—"
             }
             unidad="%"
             color={tema.masas.adiposa}
             detalle={
               grasaDestacada
-                ? `${formatearNumero(grasaDestacada.masaGrasaKg)} kg · ${grasaDestacada.etiqueta}`
+                ? `${formatearMedida(grasaDestacada.masaGrasaKg)} kg · ${grasaDestacada.etiqueta}`
                 : "Faltan pliegues o el sexo del paciente"
             }
           />
@@ -70,14 +70,14 @@ export function IndicadoresCabecera({
             titulo="Masa libre de grasa"
             valor={
               grasaDestacada
-                ? formatearNumero(grasaDestacada.masaLibreGrasaKg)
+                ? formatearMedida(grasaDestacada.masaLibreGrasaKg)
                 : "—"
             }
             unidad="kg"
             color={tema.masas.muscular}
             detalle={
               grasaDestacada
-                ? `${formatearNumero(100 - grasaDestacada.porcentajeGrasa)} % del peso`
+                ? `${formatearMedida(100 - grasaDestacada.porcentajeGrasa)} % del peso`
                 : "Faltan medidas"
             }
           />
@@ -89,14 +89,14 @@ export function IndicadoresCabecera({
             titulo="Masa adiposa"
             valor={
               resultado.fraccionamiento
-                ? formatearNumero(resultado.fraccionamiento.adiposa.kg)
+                ? formatearMedida(resultado.fraccionamiento.adiposa.kg)
                 : "—"
             }
             unidad="kg"
             color={tema.masas.adiposa}
             detalle={
               resultado.fraccionamiento
-                ? `${formatearNumero(resultado.fraccionamiento.adiposa.porcentaje)} % del peso`
+                ? `${formatearMedida(resultado.fraccionamiento.adiposa.porcentaje)} % del peso`
                 : "Faltan medidas"
             }
           />
@@ -105,14 +105,14 @@ export function IndicadoresCabecera({
             titulo="Masa muscular"
             valor={
               resultado.fraccionamiento
-                ? formatearNumero(resultado.fraccionamiento.muscular.kg)
+                ? formatearMedida(resultado.fraccionamiento.muscular.kg)
                 : "—"
             }
             unidad="kg"
             color={tema.masas.muscular}
             detalle={
               resultado.fraccionamiento
-                ? `${formatearNumero(resultado.fraccionamiento.muscular.porcentaje)} % del peso`
+                ? `${formatearMedida(resultado.fraccionamiento.muscular.porcentaje)} % del peso`
                 : "Faltan medidas"
             }
           />
@@ -127,7 +127,7 @@ export function IndicadoresCabecera({
         }
         valor={
           resultado.energia
-            ? formatearNumero(
+            ? formatearMedida(
                 resultado.energia.gastoEnergeticoTotalKcal ??
                   resultado.energia.metabolismoBasalKcal,
               )
@@ -138,7 +138,7 @@ export function IndicadoresCabecera({
           resultado.energia == null
             ? "Falta sexo o fecha de nacimiento"
             : resultado.energia.gastoEnergeticoTotalKcal != null
-              ? `MB ${formatearNumero(resultado.energia.metabolismoBasalKcal)} × ${formatearNumero(resultado.energia.factorActividad)}`
+              ? `MB ${formatearMedida(resultado.energia.metabolismoBasalKcal)} × ${formatearMedida(resultado.energia.factorActividad)}`
               : "Cargá el nivel de actividad para el gasto total"
         }
       />

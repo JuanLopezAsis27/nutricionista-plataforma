@@ -8,7 +8,7 @@ import type {
   MedicionComposicionDto,
 } from "@/aplicacion/dtos/evaluacion.dto";
 import type { VariableComposicion } from "@/dominio/entidades/ObjetivoComposicion";
-import { formatearNumero } from "@/lib/formato";
+import { formatearMedida } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import {
   MASAS,
@@ -18,8 +18,10 @@ import {
 } from "./paleta";
 
 /**
- * Qué masa mira cada variable de objetivo. Las metas que no apuntan a una de
- * las cinco (peso, IMC, cintura) no se dibujan acá: no tienen gajo.
+ * Qué masa mira cada variable de objetivo: las cinco del fraccionamiento, en
+ * kg y en porcentaje. Las metas que no apuntan a una de las cinco (peso, IMC,
+ * cintura, las del modelo de 2 componentes) no se dibujan acá: no tienen gajo,
+ * y se leen en su propia tarjeta.
  */
 const MASA_DE_VARIABLE: Partial<
   Record<VariableComposicion, { masa: ClaveMasa; enPorcentaje: boolean }>
@@ -28,6 +30,12 @@ const MASA_DE_VARIABLE: Partial<
   MASA_ADIPOSA_PORCENTAJE: { masa: "adiposa", enPorcentaje: true },
   MASA_MUSCULAR_KG: { masa: "muscular", enPorcentaje: false },
   MASA_MUSCULAR_PORCENTAJE: { masa: "muscular", enPorcentaje: true },
+  MASA_OSEA_KG: { masa: "osea", enPorcentaje: false },
+  MASA_OSEA_PORCENTAJE: { masa: "osea", enPorcentaje: true },
+  MASA_RESIDUAL_KG: { masa: "residual", enPorcentaje: false },
+  MASA_RESIDUAL_PORCENTAJE: { masa: "residual", enPorcentaje: true },
+  MASA_PIEL_KG: { masa: "piel", enPorcentaje: false },
+  MASA_PIEL_PORCENTAJE: { masa: "piel", enPorcentaje: true },
 };
 
 interface GajoMasa {
@@ -198,7 +206,7 @@ export function TortaMasasConObjetivos({
                 {señalado.etiqueta}
               </span>
               <span className="text-2xl font-bold tabular-nums">
-                {formatearNumero(señalado.actualPorcentaje)}
+                {formatearMedida(señalado.actualPorcentaje)}
                 <span className="ml-0.5 text-sm font-normal">%</span>
               </span>
               {señalado.objetivoPorcentaje != null ? (
@@ -206,7 +214,7 @@ export function TortaMasasConObjetivos({
                   className="text-sm font-semibold tabular-nums"
                   style={{ color: tema.tinta }}
                 >
-                  → {formatearNumero(señalado.objetivoPorcentaje)} %
+                  → {formatearMedida(señalado.objetivoPorcentaje)} %
                 </span>
               ) : (
                 <span
@@ -223,7 +231,7 @@ export function TortaMasasConObjetivos({
                 Reparto actual
               </span>
               <span className="text-2xl font-bold tabular-nums">
-                {formatearNumero(medicion.medidas.pesoKg)}
+                {formatearMedida(medicion.medidas.pesoKg)}
                 <span className="ml-0.5 text-sm font-normal">kg</span>
               </span>
               <span className="text-[11px]" style={{ color: tema.tintaSuave }}>
@@ -259,7 +267,7 @@ export function TortaMasasConObjetivos({
                   {gajo.etiqueta}
                 </span>
                 <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                  {formatearNumero(gajo.actualPorcentaje)} %
+                  {formatearMedida(gajo.actualPorcentaje)} %
                 </span>
                 {gajo.objetivoPorcentaje != null ? (
                   <>
@@ -270,7 +278,7 @@ export function TortaMasasConObjetivos({
                       →
                     </span>
                     <span className="w-12 shrink-0 text-right text-xs font-semibold tabular-nums">
-                      {formatearNumero(gajo.objetivoPorcentaje)} %
+                      {formatearMedida(gajo.objetivoPorcentaje)} %
                     </span>
                     <span
                       className="w-14 shrink-0 text-right text-xs tabular-nums"
@@ -280,7 +288,7 @@ export function TortaMasasConObjetivos({
                       }}
                     >
                       {(diferencia ?? 0) > 0 ? "+" : ""}
-                      {formatearNumero(diferencia)} kg
+                      {formatearMedida(diferencia)} kg
                     </span>
                   </>
                 ) : (

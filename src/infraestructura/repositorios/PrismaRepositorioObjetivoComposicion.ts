@@ -7,12 +7,19 @@ import {
   ObjetivoComposicion,
   type VariableComposicion,
 } from "@/dominio/entidades/ObjetivoComposicion";
+import type { MetodoGrasa } from "@/dominio/servicios/grasaPorPliegues";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /**
  * Implementación con Prisma del repositorio de objetivos de composición.
- * `guardar` es un upsert por (paciente, variable): replantear la meta de una
- * variable pisa la anterior, nunca agrega una segunda.
+ *
+ * `guardar` es un upsert POR ID, no por la clave de negocio. Quién decide si
+ * una meta se replantea o se crea es el caso de uso, que primero busca la
+ * combinación (paciente, variable, ecuación) y reutiliza el id si la
+ * encuentra. Acá no se puede hacer por clave de negocio porque `metodoGrasa`
+ * es nullable y Prisma no admite null en una clave compuesta única —en
+ * Postgres los NULL no colisionan—. La unicidad la sostienen igual los dos
+ * índices de la migración 40, que es donde tiene que estar.
  */
 export class PrismaRepositorioObjetivoComposicion implements IObjetivoComposicionRepositorio {
   constructor(private readonly prisma: PrismaClient) {}
@@ -20,12 +27,7 @@ export class PrismaRepositorioObjetivoComposicion implements IObjetivoComposicio
   async guardar(objetivo: ObjetivoComposicion): Promise<ObjetivoComposicion> {
     const datos = objetivo.aPrimitivos();
     const fila = await this.prisma.objetivoComposicion.upsert({
-      where: {
-        pacienteId_variable: {
-          pacienteId: datos.pacienteId,
-          variable: datos.variable,
-        },
-      },
+      where: { id: datos.id },
       create: {
         id: datos.id,
         nutricionistaId: inquilinoActual(),
@@ -62,9 +64,14 @@ export class PrismaRepositorioObjetivoComposicion implements IObjetivoComposicio
   async obtenerPorVariable(
     pacienteId: string,
     variable: VariableComposicion,
+    metodoGrasa: MetodoGrasa | null,
   ): Promise<ObjetivoComposicion | null> {
-    const fila = await this.prisma.objetivoComposicion.findUnique({
-      where: { pacienteId_variable: { pacienteId, variable } },
+    // `findFirst` y no `findUnique`: la clave única incluye `metodoGrasa`, y
+    // Prisma no admite null en la clave compuesta de un findUnique porque en
+    // Postgres los NULL no colisionan entre sí. La unicidad del caso NULL la
+    // sostiene el índice parcial de la migración 40; acá alcanza con buscar.
+    const fila = await this.prisma.objetivoComposicion.findFirst({
+      where: { pacienteId, variable, metodoGrasa },
     });
     return fila ? mapearObjetivoComposicion(fila) : null;
   }

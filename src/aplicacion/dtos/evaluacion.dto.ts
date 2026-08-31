@@ -88,6 +88,9 @@ export const medidasAntropometricasDto = z.object({
   plieguePantorrilla: pliegue,
   pliegueBicipital: pliegue,
   pliegueCrestaIliaca: pliegue,
+  plieguePectoral: pliegue,
+  pliegueAxilarMedio: pliegue,
+  pliegueLumbar: pliegue,
   circTorax: circunferencia,
   circCinturaMinima: circunferencia,
   circCinturaMaxima: circunferencia,
@@ -148,6 +151,9 @@ export interface MedicionEvolucionDto {
   plieguePantorrilla: number | null;
   pliegueBicipital: number | null;
   pliegueCrestaIliaca: number | null;
+  plieguePectoral: number | null;
+  pliegueAxilarMedio: number | null;
+  pliegueLumbar: number | null;
   circTorax: number | null;
   circCinturaMinima: number | null;
   circCinturaMaxima: number | null;
