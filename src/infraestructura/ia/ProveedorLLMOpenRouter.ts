@@ -34,14 +34,22 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
   ) {}
 
   async completar(opts: OpcionesLLM): Promise<string> {
-    const contenido = opts.usuario.map((b) =>
-      b.tipo === "texto"
-        ? { type: "text", text: b.texto }
-        : {
-            type: "image_url",
-            image_url: { url: `data:${b.mimeType};base64,${b.base64}` },
+    const contenido = opts.usuario.map((b) => {
+      if (b.tipo === "texto") return { type: "text", text: b.texto };
+      if (b.tipo === "documento") {
+        return {
+          type: "file",
+          file: {
+            filename: "documento.pdf",
+            file_data: `data:${b.mimeType};base64,${b.base64}`,
           },
-    );
+        };
+      }
+      return {
+        type: "image_url",
+        image_url: { url: `data:${b.mimeType};base64,${b.base64}` },
+      };
+    });
 
     // OpenRouter no soporta `response_format: json_object` en varios modelos
     // (los de Anthropic lo rechazan con error) → NO lo mandamos. Reforzamos el

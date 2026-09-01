@@ -7,8 +7,10 @@ import type { ILaboratorioRepositorio } from "@/dominio/repositorios/ILaboratori
 import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamientoArchivos";
+import type { IInterpretadorHistoriaClinica } from "@/dominio/servicios/IInterpretadorHistoriaClinica";
 import { GuardarHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/GuardarHistoriaClinica";
 import { ObtenerHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerHistoriaClinica";
+import { InterpretarHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/InterpretarHistoriaClinica";
 import { RegistrarAntropometria } from "@/aplicacion/casos-de-uso/evaluacion/RegistrarAntropometria";
 import { ActualizarAntropometria } from "@/aplicacion/casos-de-uso/evaluacion/ActualizarAntropometria";
 import { EliminarAntropometria } from "@/aplicacion/casos-de-uso/evaluacion/EliminarAntropometria";
@@ -44,6 +46,7 @@ export function crearServicioEvaluacion(deps: {
   archivos: IArchivoRepositorio;
   pacientes: IPacienteRepositorio;
   almacenamiento: IAlmacenamientoArchivos;
+  interpretadorHistoriaClinica: IInterpretadorHistoriaClinica;
 }): ServicioEvaluacion {
   // Cada servicio recibe SOLO los casos de uso de su subdominio. Antes esto
   // era una sola lista de 20 argumentos posicionales, donde invertir dos del
@@ -52,6 +55,11 @@ export function crearServicioEvaluacion(deps: {
     new ServicioHistoriaClinica(
       new GuardarHistoriaClinica(deps.historias, deps.pacientes),
       new ObtenerHistoriaClinica(deps.historias, deps.pacientes),
+      new InterpretarHistoriaClinica(
+        deps.interpretadorHistoriaClinica,
+        deps.archivos,
+        deps.pacientes,
+      ),
     ),
     new ServicioAntropometria(
       new RegistrarAntropometria(deps.antropometrias, deps.pacientes),

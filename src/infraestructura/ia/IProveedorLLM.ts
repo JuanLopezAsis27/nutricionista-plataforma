@@ -5,10 +5,11 @@
  * visión de comida, traducción) hablan con este puerto, no con un SDK concreto.
  */
 
-/** Un bloque del turno del usuario: texto o imagen (base64). */
+/** Un bloque del turno del usuario: texto, imagen o documento PDF (base64). */
 export type BloqueUsuario =
   | { tipo: "texto"; texto: string }
-  | { tipo: "imagen"; base64: string; mimeType: string };
+  | { tipo: "imagen"; base64: string; mimeType: string }
+  | { tipo: "documento"; base64: string; mimeType: "application/pdf" };
 
 export interface OpcionesLLM {
   system: string;

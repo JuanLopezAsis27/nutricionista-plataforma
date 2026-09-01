@@ -61,6 +61,27 @@ export const historiaClinicaSalidaDto = z.object({
 });
 export type HistoriaClinicaSalidaDto = z.infer<typeof historiaClinicaSalidaDto>;
 
+export const interpretarHistoriaClinicaDto = z.object({
+  pacienteId: z.string().min(1),
+  archivoId: z.string().min(1),
+});
+export type InterpretarHistoriaClinicaDto = z.infer<
+  typeof interpretarHistoriaClinicaDto
+>;
+
+export const historiaClinicaSugeridaDto = z.object({
+  motivoConsulta: z.string().nullable(),
+  diagnosticos: z.string().nullable(),
+  medicacion: z.string().nullable(),
+  antecedentesPersonales: z.string().nullable(),
+  antecedentesFamiliares: z.string().nullable(),
+  habitos: z.string().nullable(),
+  contexto: z.string().nullable(),
+});
+export type HistoriaClinicaSugeridaDto = z.infer<
+  typeof historiaClinicaSugeridaDto
+>;
+
 // --- Antropometría ------------------------------------------------------------
 
 const pliegue = z.number().min(1).max(80).optional().nullable();

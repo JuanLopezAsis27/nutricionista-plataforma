@@ -30,6 +30,12 @@ export function useEvaluacion() {
     guardarHistoria: trpc.evaluacion.guardarHistoria.useMutation(
       conToasts("Historia clínica guardada."),
     ),
+    // Sin conToasts: no persiste nada, así que ni invalida caché ni tira un
+    // toast de éxito genérico. El propio formulario avisa al precargar.
+    interpretarHistoriaDesdeArchivo:
+      trpc.evaluacion.interpretarHistoriaDesdeArchivo.useMutation({
+        onError: (error) => toast.error(error.message),
+      }),
     // Antropometría
     obtenerEvolucion: trpc.evaluacion.obtenerEvolucion.useQuery,
     registrarAntropometria: trpc.evaluacion.registrarAntropometria.useMutation(

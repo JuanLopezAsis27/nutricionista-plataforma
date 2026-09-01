@@ -9,6 +9,7 @@ import {
   UserPlus,
   CircleOff,
   CalendarPlus,
+  Mic,
   Repeat,
 } from "lucide-react";
 import Link from "next/link";
@@ -43,6 +44,7 @@ import { VistaPlan } from "@/componentes/planes/VistaPlan";
 import { FormularioAsignacionPlan } from "@/componentes/planes/FormularioAsignacionPlan";
 import { HistorialDePlanes } from "@/componentes/planes/HistorialDePlanes";
 import { FormularioTurno } from "@/componentes/turnos/FormularioTurno";
+import { GrabacionesConsulta } from "@/componentes/turnos/GrabacionesConsulta";
 import {
   BadgesAlertas,
   GestionAlertas,
@@ -76,6 +78,7 @@ export default function PaginaDetallePaciente() {
   // buscarlo ahí.
   const [agendarAbierto, setAgendarAbierto] = useState(false);
   const [asignarAbierto, setAsignarAbierto] = useState(false);
+  const [turnoGrabar, setTurnoGrabar] = useState<string | null>(null);
 
   const paciente = obtenerPorId({ id });
   const turnos = porPaciente({ pacienteId: id });
@@ -225,7 +228,19 @@ export default function PaginaDetallePaciente() {
                     {formatearFecha(turno.fecha)} · {turno.hora} (
                     {turno.duracionMinutos} min)
                   </span>
-                  <EstadoBadge estado={turno.estado} />
+                  <div className="flex items-center gap-2">
+                    <EstadoBadge estado={turno.estado} />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      title="Grabación y resumen de la consulta"
+                      aria-label="Grabación y resumen de la consulta"
+                      onClick={() => setTurnoGrabar(turno.id)}
+                    >
+                      <Mic className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -306,6 +321,20 @@ export default function PaginaDetallePaciente() {
           )
         }
       />
+
+      <Dialog
+        open={Boolean(turnoGrabar)}
+        onOpenChange={(abierto) => !abierto && setTurnoGrabar(null)}
+      >
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Grabación de la consulta</DialogTitle>
+          </DialogHeader>
+          {turnoGrabar && (
+            <GrabacionesConsulta key={turnoGrabar} turnoId={turnoGrabar} />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={agendarAbierto} onOpenChange={setAgendarAbierto}>
         <DialogContent>

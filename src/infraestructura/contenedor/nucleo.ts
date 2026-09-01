@@ -75,6 +75,7 @@ import { AsistenteNutricionalClaude } from "@/infraestructura/ia/AsistenteNutric
 import { AsistenteAnaliticoClaude } from "@/infraestructura/ia/AsistenteAnaliticoClaude";
 import { AsistenteAnaliticoStub } from "@/infraestructura/ia/AsistenteAnaliticoStub";
 import { AnalisisComidaIAClaude } from "@/infraestructura/ia/AnalisisComidaIAClaude";
+import { InterpretadorHistoriaClinicaLLM } from "@/infraestructura/ia/InterpretadorHistoriaClinicaLLM";
 import { ResolvedorConfigIA } from "@/infraestructura/ia/ResolvedorConfigIA";
 import { ResolvedorTranscripcion } from "@/infraestructura/ia/ResolvedorTranscripcion";
 import { ResumidorConsultaLLM } from "@/infraestructura/ia/ResumidorConsultaLLM";
@@ -356,6 +357,11 @@ export const analisisComidaIA = perezoso(() => {
     : new AnalisisComidaIAStub();
   return new AnalisisComidaIAClaude(resolvedorIA(), almacenamiento(), respaldo);
 });
+
+/** Sugiere los campos de la historia clínica a partir de una foto del documento. */
+export const interpretadorHistoriaClinica = perezoso(
+  () => new InterpretadorHistoriaClinicaLLM(resolvedorIA(), almacenamiento()),
+);
 
 /** El análisis predictivo del nutricionista lo sirve el ML. */
 export const analisisPredictivo = perezoso(() => {

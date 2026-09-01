@@ -24,17 +24,27 @@ export class ProveedorLLMAnthropic implements IProveedorLLM {
 
   async completar(opts: OpcionesLLM): Promise<string> {
     const contenido: Anthropic.Messages.ContentBlockParam[] = opts.usuario.map(
-      (b) =>
-        b.tipo === "texto"
-          ? { type: "text", text: b.texto }
-          : {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: normalizarMime(b.mimeType),
-                data: b.base64,
-              },
+      (b) => {
+        if (b.tipo === "texto") return { type: "text", text: b.texto };
+        if (b.tipo === "documento") {
+          return {
+            type: "document",
+            source: {
+              type: "base64",
+              media_type: "application/pdf",
+              data: b.base64,
             },
+          };
+        }
+        return {
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: normalizarMime(b.mimeType),
+            data: b.base64,
+          },
+        };
+      },
     );
 
     const respuesta = await this.cliente.messages.create({

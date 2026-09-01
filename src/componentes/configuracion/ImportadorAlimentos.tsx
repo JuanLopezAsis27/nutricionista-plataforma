@@ -2,7 +2,13 @@
 
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { FileSpreadsheet, CheckCircle2, Upload, Trash2 } from "lucide-react";
+import {
+  FileSpreadsheet,
+  CheckCircle2,
+  Upload,
+  Trash2,
+  FileDown,
+} from "lucide-react";
 import { useAlimentosPropios } from "@/lib/hooks/useAlimentosPropios";
 import {
   Card,
@@ -72,6 +78,13 @@ export function ImportadorAlimentos() {
           <code>Carbohidratos</code>, <code>Grasas</code>. Los valores se toman
           por 100 g.
         </p>
+
+        <Button variant="outline" size="sm" asChild>
+          <a href="/api/alimentos/plantilla" download>
+            <FileDown className="mr-1.5 h-4 w-4" />
+            Descargar modelo de Excel
+          </a>
+        </Button>
 
         {consulta.isLoading ? (
           <Skeleton className="h-10 w-full" />

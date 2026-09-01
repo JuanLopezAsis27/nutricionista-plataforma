@@ -6,6 +6,7 @@ import {
 import { pacienteDeSesion } from "@/dominio/servicios/politicaAcceso";
 import {
   guardarHistoriaClinicaDto,
+  interpretarHistoriaClinicaDto,
   registrarAntropometriaDto,
   actualizarAntropometriaDto,
   idAntropometriaDto,
@@ -48,6 +49,14 @@ export const routerEvaluacion = crearRouter({
     .input(guardarHistoriaClinicaDto)
     .mutation(async ({ ctx, input }) => {
       return await ctx.servicios.evaluacion.historiaClinica.guardar(input);
+    }),
+
+  interpretarHistoriaDesdeArchivo: nutricionistaProcedimiento
+    .input(interpretarHistoriaClinicaDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.evaluacion.historiaClinica.interpretarDesdeArchivo(
+        input,
+      );
     }),
 
   // --- Antropometría ----------------------------------------------------------
