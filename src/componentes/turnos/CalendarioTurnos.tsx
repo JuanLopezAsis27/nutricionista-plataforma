@@ -35,6 +35,7 @@ interface PropsCalendario {
   /** Click en un hueco libre: abrir el alta con ese día y esa hora. */
   onAgendar: (fechaISO: string, hora: string) => void;
   onReprogramar: (turno: TurnoSalidaDto) => void;
+  onGrabar: (turno: TurnoSalidaDto) => void;
 }
 
 /**
@@ -61,6 +62,7 @@ export function CalendarioTurnos({
   mapaPacientes,
   onAgendar,
   onReprogramar,
+  onGrabar,
 }: PropsCalendario) {
   const { obtener } = useConfiguracion();
   const configuracion = obtener();
@@ -174,6 +176,7 @@ export function CalendarioTurnos({
           ahoraHHmm={ahoraHHmm}
           onAgendar={onAgendar}
           onReprogramar={onReprogramar}
+          onGrabar={onGrabar}
           turnoAbiertoId={turnoAbiertoId}
           onAbrirTurno={setTurnoAbiertoId}
         />

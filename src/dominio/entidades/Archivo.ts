@@ -13,6 +13,22 @@ const MIMES_DOCUMENTO = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ] as const;
 
+/**
+ * Audio de las grabaciones de consulta.
+ *
+ * `audio/webm` es lo que produce `MediaRecorder` en Chrome y Firefox;
+ * `audio/mp4` es lo que produce Safari, y los dos restantes cubren un archivo
+ * que alguien decida subir a mano. El navegador manda además el códec en el
+ * MIME (`audio/webm;codecs=opus`): el cliente lo recorta antes de subir, porque
+ * la lista blanca compara el string completo.
+ */
+const MIMES_AUDIO = [
+  "audio/webm",
+  "audio/mp4",
+  "audio/mpeg",
+  "audio/ogg",
+] as const;
+
 const MB = 1024 * 1024;
 
 /**
@@ -54,6 +70,20 @@ export const CONTEXTOS_ARCHIVO = {
   plan: {
     prefijo: "planes",
     mimes: ["application/pdf"],
+    maxBytes: 25 * MB,
+  },
+  /**
+   * Audio de una consulta grabada.
+   *
+   * El tope de 25 MB no es una precaución: es el límite de subida de la API de
+   * transcripción de OpenAI, y un audio más grande se subiría bien para fallar
+   * después, en el worker, cuando el profesional ya se fue. Con Opus a la tasa
+   * que usa el navegador son ~100 minutos, y una consulta más larga que eso se
+   * parte en varias grabaciones, que es algo que la función ya hace.
+   */
+  grabacion: {
+    prefijo: "grabaciones",
+    mimes: [...MIMES_AUDIO],
     maxBytes: 25 * MB,
   },
 } as const;

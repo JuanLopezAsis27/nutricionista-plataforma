@@ -92,7 +92,11 @@ describe("AsistenteNutricionalClaude", () => {
       return `Según tu plan tenés ${datos}.`;
     });
     const resolver: IResolvedorConfigIA = {
-      obtenerLLM: async () => ({ completar: vi.fn(), conversar }),
+      obtenerLLM: async () => ({
+        modelo: "claude-opus-5",
+        completar: vi.fn(),
+        conversar,
+      }),
     };
     const asistente = new AsistenteNutricionalClaude(
       resolver,

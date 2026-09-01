@@ -65,9 +65,42 @@ export function useRecetas() {
     onError: (error) => toast.error(error.message),
   });
 
+  const mover = trpc.recetas.moverAGrupo.useMutation({
+    onSuccess: () => {
+      toast.success("Receta movida.");
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const crearGrupo = trpc.recetas.crearGrupo.useMutation({
+    onSuccess: () => {
+      toast.success("Carpeta creada.");
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const actualizarGrupo = trpc.recetas.actualizarGrupo.useMutation({
+    onSuccess: () => {
+      toast.success("Carpeta actualizada.");
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const eliminarGrupo = trpc.recetas.eliminarGrupo.useMutation({
+    onSuccess: () => {
+      toast.success("Carpeta eliminada. Sus recetas quedaron sin carpeta.");
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
   return {
     utils,
     listar: trpc.recetas.obtenerTodas.useQuery,
+    grupos: trpc.recetas.obtenerGrupos.useQuery,
     listarPaginado: trpc.recetas.listarPaginado.useQuery,
     obtenerPorId: trpc.recetas.obtenerPorId.useQuery,
     pacientesAsignados: trpc.recetas.pacientesAsignados.useQuery,
@@ -80,5 +113,9 @@ export function useRecetas() {
     marcarFotoPrincipal,
     asignar,
     desasignar,
+    mover,
+    crearGrupo,
+    actualizarGrupo,
+    eliminarGrupo,
   };
 }

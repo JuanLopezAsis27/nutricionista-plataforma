@@ -73,61 +73,95 @@ ecuaciones dan **totales**; dos personas con el mismo total pueden tener toda
 la grasa en el tronco o repartida en las extremidades, y eso cambia tanto el
 riesgo cardiometabólico como la lectura del entrenamiento.
 
-**Adiposa**: cada pliegue medido con lo que aporta a la Σ, etiquetado como
-tronco o extremidades. Los tres sitios de fuera del ISAK también entran: la
-región es anatómica, no depende de qué protocolo nombre el sitio.
+Son **tres zonas adiposas y tres segmentos musculares**, que es la partición de
+la planilla del profesional.
 
-**Muscular**: perímetros con el pliegue del mismo segmento descontado
+### Adiposa: superior, central, inferior
+
+Los pliegues se agrupan por altura anatómica y cada zona vale lo que su Σ
+aporta a la Σ total de los pliegues medidos.
+
+| Zona     | Sitios ISAK                | Sitios de fuera del ISAK   |
+| -------- | -------------------------- | -------------------------- |
+| Superior | tricipital, subescapular   | bicipital, pectoral, axilar medio |
+| Central  | supraespinal, abdominal    | cresta ilíaca, lumbar      |
+| Inferior | muslo, pantorrilla         | —                          |
+
+Con el perfil ISAK de 6 pliegues las tres zonas caen en tres pares, que es lo
+que hace la lectura comparable entre consultas aunque el perfil crezca.
+
+**El subescapular es SUPERIOR, no central.** La zona central es la *cintura*
+—lo que se mira por riesgo cardiometabólico—; el tronco alto se mueve con el
+tren superior. Meterlo en central movería las dos zonas a la vez y dejaría la
+única que se lee clínicamente contaminada con espalda.
+
+Los tres sitios de fuera del ISAK entran igual: la zona es anatómica, no
+depende de qué protocolo nombre el sitio.
+
+Con **una sola zona medida no hay distribución**: el reparto daría 100 % y eso
+no es un reparto, es el único pliegue que se tomó.
+
+### Muscular: brazo, muslo, pierna
+
+Cada segmento es un perímetro con el pliegue del mismo segmento descontado
 (`perímetro − 3,141 · pliegue / 10`), que es exactamente la corrección del
 fraccionamiento de Kerr — si acá se corrigiera distinto, dos partes de la misma
-pantalla dirían cosas distintas sobre el mismo brazo. El antebrazo va sin
-corregir porque el protocolo no tiene un pliegue de antebrazo; Kerr hace lo
-mismo. Un segmento con perímetro pero **sin** su pliegue no entra a medias:
-llevaría el tejido adiposo adentro y abultaría su parte del reparto.
+pantalla dirían cosas distintas sobre el mismo brazo. Un segmento con perímetro
+pero **sin** su pliegue no entra a medias: llevaría el tejido adiposo adentro y
+abultaría su parte del reparto.
 
-### Por qué el reparto crudo no alcanza
+El muslo va por el perímetro **máximo** y no por el medial, aunque el pliegue se
+tome a media altura: la referencia Phantom del muslo corregido está definida
+sobre el máximo. Calcular el valor del paciente sobre un sitio para compararlo
+contra otro daría un Score-Z que mide la diferencia entre dos protocolos.
 
-El pliegue abdominal es más grueso que el tricipital en casi todo el mundo, así
-que «el abdomen aporta más» no dice nada por sí solo. Lo que se interpreta es
-la razón tronco/extremidades del paciente contra **la misma razón en el humano
-de referencia Phantom, calculada sobre los mismos sitios que se midieron**. Así
-un perfil de 4 pliegues y uno de 8 se leen cada uno contra su propia
-referencia, en vez de contra una constante que solo valdría para el perfil
-completo.
+### El Score-Z del segmento
 
-Un sitio **sin** media Phantom —bicipital, cresta ilíaca y los tres de fuera
-del ISAK no la tienen— entra en el reparto pero se excluye de las dos sumas de
-la razón. Dejarlo solo en el numerador del paciente compararía contra una
-referencia que no lo incluye, que es peor que no comparar: medir un sitio más
-cambiaría el patrón sin que la persona haya cambiado.
+El porcentaje dice cómo se reparte el músculo entre los tres segmentos; **no**
+dice si el segmento es grande o chico. Tres segmentos flacos por igual dan el
+mismo reparto que tres grandes por igual. Por eso cada uno lleva además su
+Score-Z contra el Phantom, con la medida escalada a 170,18 cm como el resto del
+perfil de proporcionalidad. Sin talla no hay Z —un Z sin escalar mediría el
+tamaño de la persona, no su proporción—, pero el reparto se muestra igual.
 
-El margen para «equilibrado» es del **15 %**, deliberadamente ancho: el error
-técnico de medición de un pliegue es del orden del 5 % y la razón combina
-varios; un umbral estrecho haría cambiar de patrón entre dos consultas por
-ruido de medición.
+La **media** de la referencia no se escribe a mano: se deriva aplicándole al
+Phantom la misma corrección que al paciente, y da exactamente los valores
+publicados (brazo 22,05; muslo 47,34; pierna 30,22). Derivarla es lo que
+garantiza que las dos puntas de la resta usen la misma constante para siempre,
+y hay un test que lo fija: un sujeto con las medidas medias del Phantom tiene
+que dar Z = 0 en los tres segmentos.
 
-### La figura del cuerpo
+El **desvío** sí es un dato publicado (Ross & Marfell-Jones: 1,91 / 3,59 / 1,97)
+y no se puede derivar: el perímetro y el pliegue del mismo segmento están
+correlacionados, y propagarlos como independientes lo sobreestimaría — los
+corregidos dispersan *menos* que sus perímetros crudos, no más.
 
-Junto a las barras va una silueta con cada sitio medido marcado encima. Dicen
-lo mismo y no se reemplazan: las barras dan el número, la figura contesta
-«dónde» sin obligar a traducir «subescapular» o «cresta ilíaca» a un lugar del
-cuerpo. También hace de control de carga —un sitio no medido no tiene punto, y
-deja de parecerse a uno medido que da poco—.
+Las bandas del color son por **valor absoluto** (< 1 DE, 1–2 DE, ≥ 2 DE): un Z
+de −2,5 se aparta de la referencia tanto como uno de +2,5, y en
+proporcionalidad eso es lo que se mira. El color nunca va solo: el número está
+escrito adentro de la pastilla y el `title` dice la banda.
 
-El **área** del punto (no el radio) es proporcional al aporte del sitio al
-total: el ojo compara áreas, y escalar el radio exagera las diferencias al
-cuadrado. El color es la región, el mismo de la leyenda.
+### Cómo se dibuja
 
-Se dibujan **dos vistas** cuando hacen falta: el subescapular y el lumbar son
-de espalda, el pectoral y el abdominal de frente, y el tricipital y el
-bicipital están en caras opuestas del mismo brazo. Con una sola vista, la mitad
-de los puntos se amontonaría contra un borde sin decir de qué lado está. La
-distribución muscular, cuyos segmentos son todos de frente, dibuja una sola: la
-segunda silueta ocuparía la mitad del ancho para no decir nada.
+Tres piezas que dicen cosas distintas y no se reemplazan:
 
-Las coordenadas (`PUNTOS_CUERPO`) son **aproximadas a propósito**: ubican el
-sitio en la cara y a la altura correctas, no en el punto exacto del protocolo.
-Es un mapa para leer un reparto, no una guía de palpación.
+- **Las barras** comparan cada perímetro con su corregido en una escala única
+  que arranca en cero. Lo que se lee es la *caída* entre los dos —el tejido
+  adiposo que envuelve el segmento—, y esa caída es la única parte del cuadro
+  que se ve como una diferencia y no como un número. Con un eje por segmento, o
+  empezando en el mínimo, se vería del mismo tamaño en un brazo y en un muslo.
+- **La figura** es una silueta partida al medio, adiposo a la izquierda y
+  muscular a la derecha, con los porcentajes de cada tejido de su lado. Hace de
+  leyenda: evita traducir «superior» o «pierna» a un lugar del cuerpo. No lleva
+  marcas por sitio —las zonas son regiones, no puntos, y un punto prometería una
+  precisión de palpación que este reparto no tiene—.
+- **Las tablas** dan el número exacto. La adiposa lista de qué pliegues está
+  hecha cada zona: sin eso, «Central 35,87 %» no se puede auditar contra la
+  planilla.
+
+Los colores de los dos tejidos son los del resto del dashboard
+(`TEMAS_COMPOSICION.masas`), no una paleta propia de esta tarjeta: la masa
+adiposa no puede ser de un color en el donut y de otro tres tarjetas más abajo.
 
 ## Objetivos: uno por FORMA DE MEDIR
 

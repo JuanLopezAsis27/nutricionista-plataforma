@@ -27,6 +27,7 @@ import { crearServicioArchivo } from "./modulos/archivos";
 import { crearServicioEvaluacion } from "./modulos/evaluacion";
 import { crearServicioDiario } from "./modulos/diario";
 import { crearServicioReceta } from "./modulos/recetas";
+import { crearServicioGrabaciones } from "./modulos/grabaciones";
 import { crearServicioPlan } from "./modulos/planes";
 import { crearServicioObjetivo } from "./modulos/objetivos";
 import { crearServicioBiblioteca } from "./modulos/biblioteca";
@@ -161,9 +162,23 @@ export const servicioDiario = perezoso(() =>
 export const servicioReceta = perezoso(() =>
   crearServicioReceta({
     recetas: nucleo.repositorioReceta(),
+    gruposReceta: nucleo.repositorioGrupoReceta(),
     pacientes: nucleo.repositorioPaciente(),
     archivos: nucleo.repositorioArchivo(),
     almacenamiento: nucleo.almacenamiento(),
+  }),
+);
+
+export const servicioGrabaciones = perezoso(() =>
+  crearServicioGrabaciones({
+    grabaciones: nucleo.repositorioGrabacion(),
+    turnos: nucleo.repositorioTurno(),
+    pacientes: nucleo.repositorioPaciente(),
+    archivos: nucleo.repositorioArchivo(),
+    almacenamiento: nucleo.almacenamiento(),
+    cola: nucleo.colaTrabajos(),
+    transcriptor: nucleo.transcriptorAudio(),
+    resumidor: nucleo.resumidorConsulta(),
   }),
 );
 

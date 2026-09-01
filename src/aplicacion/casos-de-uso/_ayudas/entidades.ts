@@ -75,6 +75,11 @@ import { Conversacion } from "@/dominio/entidades/Conversacion";
 import { Mensaje, type DatosNuevoMensaje } from "@/dominio/entidades/Mensaje";
 import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
 import { GrupoPlan } from "@/dominio/entidades/GrupoPlan";
+import { GrupoReceta } from "@/dominio/entidades/GrupoReceta";
+import {
+  GrabacionConsulta,
+  type DatosNuevaGrabacion,
+} from "@/dominio/entidades/GrabacionConsulta";
 import { ConfiguracionRecordatorios } from "@/dominio/entidades/ConfiguracionRecordatorios";
 import {
   PlantillaWhatsapp,
@@ -140,6 +145,28 @@ export function grupoPlanEjemplo(
 ): GrupoPlan {
   return GrupoPlan.crear(
     { nombre: "Julia Pérez", descripcion: null, ...cambios },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function grupoRecetaEjemplo(
+  cambios: Partial<{ nombre: string; descripcion: string | null }> = {},
+  id = "grec-1",
+): GrupoReceta {
+  return GrupoReceta.crear(
+    { nombre: "Desayunos", descripcion: null, ...cambios },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function grabacionEjemplo(
+  cambios: Partial<DatosNuevaGrabacion> = {},
+  id = "gra-1",
+): GrabacionConsulta {
+  return GrabacionConsulta.crear(
+    { turnoId: "tur-1", orden: 1, duracionSegundos: 600, ...cambios },
     id,
     new Date("2026-07-14T12:00:00Z"),
   );

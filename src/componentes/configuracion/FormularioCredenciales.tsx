@@ -6,6 +6,7 @@ import {
   Utensils,
   CheckCircle2,
   Circle,
+  Mic,
   SlidersHorizontal,
 } from "lucide-react";
 import { useCredenciales } from "@/lib/hooks/useCredenciales";
@@ -19,6 +20,7 @@ import { Input } from "@/componentes/ui/input";
 import { Button } from "@/componentes/ui/button";
 import { Label } from "@/componentes/ui/label";
 import { Skeleton } from "@/componentes/ui/skeleton";
+import { EliminarCredenciales } from "./EliminarCredenciales";
 import {
   Select,
   SelectTrigger,
@@ -28,6 +30,7 @@ import {
 } from "@/componentes/ui/select";
 
 type ProveedorIA = "ANTHROPIC" | "OPENROUTER";
+type ProveedorTranscripcion = "OPENAI" | "OPENROUTER";
 
 /**
  * Carga de credenciales de integraciones del profesional: la clave de Claude
@@ -45,6 +48,12 @@ export function FormularioCredenciales() {
   const [fatId, setFatId] = useState("");
   const [fatSecret, setFatSecret] = useState("");
 
+  // Voz a texto de las grabaciones de consulta.
+  const [proveedorVoz, setProveedorVoz] =
+    useState<ProveedorTranscripcion>("OPENAI");
+  const [vozKey, setVozKey] = useState("");
+  const [vozModelo, setVozModelo] = useState("");
+
   // Criterios de ingredientes.
   const [excluirMarcas, setExcluirMarcas] = useState(false);
   const [requiereMacros, setRequiereMacros] = useState(false);
@@ -58,6 +67,12 @@ export function FormularioCredenciales() {
   useEffect(() => {
     if (e?.anthropicModelo) setModelo(e.anthropicModelo);
   }, [e?.anthropicModelo]);
+  useEffect(() => {
+    if (e?.proveedorTranscripcion) setProveedorVoz(e.proveedorTranscripcion);
+  }, [e?.proveedorTranscripcion]);
+  useEffect(() => {
+    if (e?.transcripcionModelo) setVozModelo(e.transcripcionModelo);
+  }, [e?.transcripcionModelo]);
   useEffect(() => {
     const c = e?.criterios;
     if (!c) return;
@@ -92,6 +107,15 @@ export function FormularioCredenciales() {
     });
     setFatId("");
     setFatSecret("");
+  }
+
+  function guardarVoz() {
+    guardar.mutate({
+      proveedorTranscripcion: proveedorVoz,
+      transcripcionApiKey: vozKey.trim() || undefined, // vacío = no cambiar
+      transcripcionModelo: vozModelo.trim() || undefined,
+    });
+    setVozKey("");
   }
 
   function guardarCriterios() {
@@ -181,16 +205,12 @@ export function FormularioCredenciales() {
             />
           </div>
           <div className="flex justify-end gap-2">
-            {e.anthropicConfigurado && (
-              <Button
-                type="button"
-                variant="outline"
-                disabled={guardar.isPending}
-                onClick={() => guardar.mutate({ anthropicApiKey: "" })}
-              >
-                Quitar clave
-              </Button>
-            )}
+            <EliminarCredenciales
+              integracion="IA"
+              nombre="la IA"
+              consecuencia="El chat del paciente y el análisis de foto de comida vuelven al modo demostración."
+              configurada={e.anthropicConfigurado}
+            />
             <Button
               type="button"
               disabled={guardar.isPending}
@@ -248,25 +268,112 @@ export function FormularioCredenciales() {
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            {e.fatsecretConfigurado && (
-              <Button
-                type="button"
-                variant="outline"
-                disabled={guardar.isPending}
-                onClick={() =>
-                  guardar.mutate({
-                    fatsecretClientId: "",
-                    fatsecretClientSecret: "",
-                  })
-                }
-              >
-                Quitar
-              </Button>
-            )}
+            <EliminarCredenciales
+              integracion="FATSECRET"
+              nombre="FatSecret"
+              consecuencia="La búsqueda de ingredientes vuelve a Open Food Facts."
+              configurada={e.fatsecretConfigurado}
+            />
             <Button
               type="button"
               disabled={guardar.isPending || !fatId.trim() || !fatSecret.trim()}
               onClick={guardarFatSecret}
+            >
+              Guardar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Voz a texto */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center justify-between gap-2 text-base">
+            <span className="flex items-center gap-2">
+              <Mic className="h-5 w-5 text-primary" /> Voz a texto (grabaciones)
+            </span>
+            <Estado activo={e.transcripcionConfigurada} />
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Transcribe el audio de las consultas que grabás desde el turno. Es
+            una clave <strong>aparte</strong> de la de arriba porque Anthropic
+            no transcribe audio: acá va OpenAI (Whisper) o OpenRouter. El
+            resumen de la consulta lo sigue haciendo la IA configurada arriba.
+            Sin clave, el audio se guarda igual y podés transcribirlo después.
+          </p>
+          <div className="space-y-1.5">
+            <Label>Proveedor</Label>
+            <Select
+              value={proveedorVoz}
+              onValueChange={(v) =>
+                setProveedorVoz(v as ProveedorTranscripcion)
+              }
+            >
+              <SelectTrigger
+                aria-label="Proveedor de voz a texto"
+                className="w-full sm:w-64"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="OPENAI">OpenAI (recomendado)</SelectItem>
+                <SelectItem value="OPENROUTER">OpenRouter</SelectItem>
+              </SelectContent>
+            </Select>
+            {proveedorVoz === "OPENROUTER" && (
+              <p className="text-xs text-muted-foreground">
+                OpenRouter no tiene un servicio de transcripción: el audio se le
+                manda a un modelo de chat que escucha. No acepta el formato que
+                graba Chrome (WebM) y puede resumir de más en consultas largas.
+              </p>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="vozKey">
+              API key{" "}
+              {proveedorVoz === "OPENROUTER" ? "de OpenRouter" : "de OpenAI"}
+            </Label>
+            <Input
+              id="vozKey"
+              type="password"
+              autoComplete="off"
+              placeholder={
+                e.transcripcionConfigurada
+                  ? "•••• configurada — dejá vacío para no cambiarla"
+                  : proveedorVoz === "OPENROUTER"
+                    ? "sk-or-…"
+                    : "sk-…"
+              }
+              value={vozKey}
+              onChange={(ev) => setVozKey(ev.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="vozModelo">Modelo (opcional)</Label>
+            <Input
+              id="vozModelo"
+              placeholder={
+                proveedorVoz === "OPENROUTER"
+                  ? "google/gemini-2.5-flash (por defecto)"
+                  : "gpt-4o-transcribe (por defecto). Ej: whisper-1"
+              }
+              value={vozModelo}
+              onChange={(ev) => setVozModelo(ev.target.value)}
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <EliminarCredenciales
+              integracion="TRANSCRIPCION"
+              nombre="voz a texto"
+              consecuencia="Las grabaciones nuevas dejan de transcribirse; el audio ya guardado no se toca."
+              configurada={e.transcripcionConfigurada}
+            />
+            <Button
+              type="button"
+              disabled={guardar.isPending}
+              onClick={guardarVoz}
             >
               Guardar
             </Button>

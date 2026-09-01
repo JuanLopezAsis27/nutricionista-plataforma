@@ -44,6 +44,12 @@ export { esquema } from "./formulario/esquema";
 
 interface PropsFormularioReceta {
   recetaInicial?: RecetaSalidaDto | null;
+  /**
+   * Carpeta en la que se está creando (la abierta en la pantalla). Solo aplica
+   * al alta: en edición manda la de la receta, y no mandar el campo la deja
+   * donde está.
+   */
+  grupoIdInicial?: string | null;
   onTerminado: () => void;
 }
 
@@ -54,6 +60,7 @@ interface PropsFormularioReceta {
  */
 export function FormularioReceta({
   recetaInicial,
+  grupoIdInicial,
   onTerminado,
 }: PropsFormularioReceta) {
   const { crear, actualizar } = useRecetas();
@@ -175,7 +182,16 @@ export function FormularioReceta({
       );
     } else {
       crear.mutate(
-        { ...cuerpo, fotoIds, documentoIds, fotoPrincipalId },
+        {
+          ...cuerpo,
+          fotoIds,
+          documentoIds,
+          fotoPrincipalId,
+          // La receta nueva nace en la carpeta abierta: crear algo "adentro"
+          // de una carpeta y que aparezca afuera es el error obvio de este
+          // flujo.
+          grupoId: grupoIdInicial ?? null,
+        },
         { onSuccess: onTerminado },
       );
     }

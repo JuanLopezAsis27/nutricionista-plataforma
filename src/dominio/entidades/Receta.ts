@@ -52,6 +52,8 @@ export interface DatosNuevaReceta {
   etiquetas?: string[];
   /** Enlaces de referencia (videos, blogs, fuentes). URLs http/https. */
   enlaces?: string[];
+  /** Carpeta en la que se guarda (null = suelta). Ver GrupoReceta. */
+  grupoId?: string | null;
   /** Macros por porción cargados a mano (fallback si no hay datos de ingredientes). */
   calorias?: number | null;
   proteinasG?: number | null;
@@ -81,6 +83,13 @@ export interface PropiedadesReceta {
    */
   fotoPrincipalId: string | null;
   documentos: DocumentoReceta[];
+  /** Carpeta en la que está guardada (null = suelta). */
+  grupoId: string | null;
+  /**
+   * Nombre de la carpeta, para mostrarlo sin una consulta aparte. Lo llena el
+   * repositorio al leer; en una receta recién creada viene null.
+   */
+  grupoNombre: string | null;
   creadoEn: Date;
   actualizadoEn: Date;
 }
@@ -152,6 +161,10 @@ export class Receta {
       fotos: [],
       fotoPrincipalId: null,
       documentos: [],
+      grupoId: datos.grupoId ?? null,
+      // El nombre de la carpeta lo llena el repositorio al leer: la entidad no
+      // tiene con qué resolverlo y guardarlo acá sería un cache que se vence.
+      grupoNombre: null,
       creadoEn: ahora,
       actualizadoEn: ahora,
     });
@@ -169,6 +182,13 @@ export class Receta {
       fotos: this.props.fotos.map((f) => ({ ...f })),
       documentos: this.props.documentos.map((d) => ({ ...d })),
       fotoPrincipalId: this.props.fotoPrincipalId,
+      // Sin `grupoId` en los datos la receta se queda donde está: editar el
+      // nombre no puede sacarla de su carpeta en silencio.
+      grupoId:
+        datos.grupoId === undefined
+          ? this.props.grupoId
+          : (datos.grupoId ?? null),
+      grupoNombre: this.props.grupoNombre,
       creadoEn: this.props.creadoEn,
     });
   }
@@ -205,6 +225,9 @@ export class Receta {
   }
   get nombre(): string {
     return this.props.nombre;
+  }
+  get grupoId(): string | null {
+    return this.props.grupoId;
   }
   get etiquetas(): ReadonlyArray<string> {
     return this.props.etiquetas;

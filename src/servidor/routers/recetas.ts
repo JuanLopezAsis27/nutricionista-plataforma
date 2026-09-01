@@ -14,6 +14,10 @@ import {
   filtroRecetasDto,
   listarRecetasPaginadoDto,
   asignarRecetaDto,
+  moverRecetaDto,
+  grupoRecetaDto,
+  actualizarGrupoRecetaDto,
+  idGrupoRecetaDto,
 } from "@/aplicacion/dtos/receta.dto";
 
 /**
@@ -111,6 +115,39 @@ export const routerRecetas = crearRouter({
       return await ctx.servicios.receta.obtenerRecetasDelPaciente(
         input.pacienteId,
       );
+    }),
+
+  // --- Carpetas del recetario ---
+
+  /** Mueve una receta a una carpeta, o la saca (grupoId null). */
+  moverAGrupo: nutricionistaProcedimiento
+    .input(moverRecetaDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.receta.moverRecetaAGrupo(input);
+      return { movida: true };
+    }),
+
+  obtenerGrupos: nutricionistaProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.receta.obtenerGrupos();
+  }),
+
+  crearGrupo: nutricionistaProcedimiento
+    .input(grupoRecetaDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.receta.crearGrupo(input);
+    }),
+
+  actualizarGrupo: nutricionistaProcedimiento
+    .input(actualizarGrupoRecetaDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.receta.actualizarGrupo(input);
+    }),
+
+  eliminarGrupo: nutricionistaProcedimiento
+    .input(idGrupoRecetaDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.receta.eliminarGrupo(input.id);
+      return { eliminado: true };
     }),
 
   // Portal: el paciente ve sus recetas (pacienteId de la sesión).

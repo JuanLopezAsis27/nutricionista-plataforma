@@ -28,6 +28,30 @@ export function formatearFecha(
   return formateadorFecha.format(new Date(fecha));
 }
 
+/**
+ * Fecha y hora de un INSTANTE (`creadoEn`, `generadoEn`), en la zona horaria de
+ * quien mira.
+ *
+ * Va sin `timeZone: "UTC"`, al revés que `formatearFecha`: aquella formatea
+ * columnas `DATE` —que llegan como medianoche UTC y se correrían un día al
+ * pasarlas a hora local—, y esto formatea un momento real, donde lo que se
+ * quiere ver es la hora del reloj de la pared.
+ */
+const formateadorFechaHora = new Intl.DateTimeFormat("es-AR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+export function formatearFechaHora(
+  fecha: Date | string | null | undefined,
+): string {
+  if (!fecha) return "—";
+  return formateadorFechaHora.format(new Date(fecha));
+}
+
 export function formatearFechaLarga(
   fecha: Date | string | null | undefined,
 ): string {

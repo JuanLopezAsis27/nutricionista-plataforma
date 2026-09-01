@@ -1,5 +1,8 @@
 import { crearRouter, nutricionistaProcedimiento } from "../trpc";
-import { guardarCredencialesDto } from "@/aplicacion/dtos/credenciales.dto";
+import {
+  eliminarCredencialesDto,
+  guardarCredencialesDto,
+} from "@/aplicacion/dtos/credenciales.dto";
 
 /**
  * Router de credenciales de integración (solo NUTRICIONISTA). Deja cargar la
@@ -14,6 +17,13 @@ export const routerCredenciales = crearRouter({
     .input(guardarCredencialesDto)
     .mutation(async ({ ctx, input }) => {
       await ctx.servicios.credenciales.guardar(input);
+      return { ok: true };
+    }),
+
+  eliminar: nutricionistaProcedimiento
+    .input(eliminarCredencialesDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.credenciales.eliminar(input.integracion);
       return { ok: true };
     }),
 });

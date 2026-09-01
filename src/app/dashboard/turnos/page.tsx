@@ -30,6 +30,7 @@ import {
 import { EstadoBadge } from "@/componentes/comunes/EstadoBadge";
 import { FormularioTurno } from "@/componentes/turnos/FormularioTurno";
 import { FormularioReprogramar } from "@/componentes/turnos/FormularioReprogramar";
+import { GrabacionesConsulta } from "@/componentes/turnos/GrabacionesConsulta";
 import { CalendarioTurnos } from "@/componentes/turnos/CalendarioTurnos";
 import { AccionesTurno } from "@/componentes/turnos/AccionesTurno";
 import { CobroTurno } from "@/componentes/turnos/CobroTurno";
@@ -55,6 +56,7 @@ export default function PaginaTurnos() {
   const [hueco, setHueco] = useState<HuecoElegido | null>(null);
   const [turnoReprogramar, setTurnoReprogramar] =
     useState<TurnoSalidaDto | null>(null);
+  const [turnoGrabar, setTurnoGrabar] = useState<TurnoSalidaDto | null>(null);
 
   const pacientes = listarPacientes({ pagina: 1, porPagina: 100 });
   // Nombre + teléfono: el teléfono habilita el recordatorio por WhatsApp.
@@ -127,7 +129,11 @@ export default function PaginaTurnos() {
       encabezado: "Acciones",
       className: "text-right",
       render: (t) => (
-        <AccionesTurno turno={t} onReprogramar={setTurnoReprogramar} />
+        <AccionesTurno
+          turno={t}
+          onReprogramar={setTurnoReprogramar}
+          onGrabar={setTurnoGrabar}
+        />
       ),
     },
   ];
@@ -208,6 +214,7 @@ export default function PaginaTurnos() {
           mapaPacientes={mapaNombres}
           onAgendar={abrirAlta}
           onReprogramar={setTurnoReprogramar}
+          onGrabar={setTurnoGrabar}
         />
       )}
 
@@ -226,6 +233,32 @@ export default function PaginaTurnos() {
             horaInicial={hueco?.hora}
             onTerminado={() => setAgendarAbierto(false)}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Grabación de la consulta */}
+      <Dialog
+        open={Boolean(turnoGrabar)}
+        onOpenChange={(abierto) => !abierto && setTurnoGrabar(null)}
+      >
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Grabación de la consulta
+              {turnoGrabar
+                ? ` · ${mapaNombres.get(turnoGrabar.pacienteId) ?? ""}`
+                : ""}
+            </DialogTitle>
+          </DialogHeader>
+          {/* La clave monta un panel nuevo por turno: sin esto, abrirlo para
+              otro turno reusaría el que quedó montado, con su grabador a medio
+              camino. */}
+          {turnoGrabar && (
+            <GrabacionesConsulta
+              key={turnoGrabar.id}
+              turnoId={turnoGrabar.id}
+            />
+          )}
         </DialogContent>
       </Dialog>
 

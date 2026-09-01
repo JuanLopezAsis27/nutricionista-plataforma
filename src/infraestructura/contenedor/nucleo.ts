@@ -31,6 +31,8 @@ import { PrismaRepositorioRegistroDiario } from "@/infraestructura/repositorios/
 import { PrismaRepositorioReceta } from "@/infraestructura/repositorios/PrismaRepositorioReceta";
 import { PrismaRepositorioPlan } from "@/infraestructura/repositorios/PrismaRepositorioPlan";
 import { PrismaRepositorioGrupoPlan } from "@/infraestructura/repositorios/PrismaRepositorioGrupoPlan";
+import { PrismaRepositorioGrupoReceta } from "@/infraestructura/repositorios/PrismaRepositorioGrupoReceta";
+import { PrismaRepositorioGrabacionConsulta } from "@/infraestructura/repositorios/PrismaRepositorioGrabacionConsulta";
 import { PrismaRepositorioObjetivo } from "@/infraestructura/repositorios/PrismaRepositorioObjetivo";
 import { PrismaRepositorioPerfilDeportivo } from "@/infraestructura/repositorios/PrismaRepositorioPerfilDeportivo";
 import { PrismaRepositorioCompetencia } from "@/infraestructura/repositorios/PrismaRepositorioCompetencia";
@@ -63,6 +65,7 @@ import { AlmacenamientoMinIO } from "@/infraestructura/almacenamiento/Almacenami
 import { RelojSistema } from "@/infraestructura/fecha/RelojSistema";
 import { NodemailerServicioEmail } from "@/infraestructura/email/NodemailerServicioEmail";
 import { BusEventosPostgres } from "@/infraestructura/tiempo-real/BusEventosPostgres";
+import { PgBossColaTrabajos } from "@/infraestructura/cola/PgBossColaTrabajos";
 
 // IA (Claude + ML).
 import { AsistenteNutricionalStub } from "@/infraestructura/ia/AsistenteNutricionalStub";
@@ -73,6 +76,8 @@ import { AsistenteAnaliticoClaude } from "@/infraestructura/ia/AsistenteAnalitic
 import { AsistenteAnaliticoStub } from "@/infraestructura/ia/AsistenteAnaliticoStub";
 import { AnalisisComidaIAClaude } from "@/infraestructura/ia/AnalisisComidaIAClaude";
 import { ResolvedorConfigIA } from "@/infraestructura/ia/ResolvedorConfigIA";
+import { ResolvedorTranscripcion } from "@/infraestructura/ia/ResolvedorTranscripcion";
+import { ResumidorConsultaLLM } from "@/infraestructura/ia/ResumidorConsultaLLM";
 import { TraductorIngredientesIA } from "@/infraestructura/ia/TraductorIngredientesIA";
 import { obtenerConfigML } from "@/infraestructura/ml/configML";
 import { ClienteML } from "@/infraestructura/ml/clienteML";
@@ -171,6 +176,12 @@ export const repositorioPlan = perezoso(
 );
 export const repositorioGrupoPlan = perezoso(
   () => new PrismaRepositorioGrupoPlan(prisma()),
+);
+export const repositorioGrupoReceta = perezoso(
+  () => new PrismaRepositorioGrupoReceta(prisma()),
+);
+export const repositorioGrabacion = perezoso(
+  () => new PrismaRepositorioGrabacionConsulta(prisma()),
 );
 export const repositorioObjetivo = perezoso(
   () => new PrismaRepositorioObjetivo(prisma()),
@@ -276,6 +287,32 @@ const resolvedorIA = perezoso(
 
 /** ¿Hay alguna clave de IA disponible (del profesional o del entorno)? */
 export const tieneIA = (): Promise<boolean> => resolvedorIA().tieneIA();
+
+/**
+ * Voz a texto de las grabaciones de consulta.
+ *
+ * Es un resolvedor aparte del de IA y no una capacidad más de aquel: son dos
+ * proveedores distintos —Anthropic no transcribe audio— y se configuran por
+ * separado. El propio resolvedor implementa el puerto y cae al stub si no hay
+ * clave, así que el consumidor no vuelve a preguntar.
+ */
+export const transcriptorAudio = perezoso(
+  () => new ResolvedorTranscripcion(repositorioCredenciales()),
+);
+
+/** Resume la consulta con el MISMO proveedor de LLM que el resto de la app. */
+export const resumidorConsulta = perezoso(
+  () => new ResumidorConsultaLLM(resolvedorIA()),
+);
+
+/**
+ * Cola de trabajos (solo emisor: el consumo vive en el proceso worker).
+ *
+ * Perezosa como todo lo demás, y eso importa acá más que en otros lados: abrir
+ * el pool de pg-boss al importar el módulo haría que el build de Next
+ * necesitara una base.
+ */
+export const colaTrabajos = perezoso(() => new PgBossColaTrabajos());
 
 // --- ML (microservicio opcional) --------------------------------------------------
 

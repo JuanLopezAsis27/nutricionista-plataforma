@@ -62,6 +62,7 @@ interface PropsGrillaSemanal {
   /** Click en una franja libre: abre el alta con ese día y esa hora. */
   onAgendar: (fechaISO: string, hora: string) => void;
   onReprogramar: (turno: TurnoSalidaDto) => void;
+  onGrabar: (turno: TurnoSalidaDto) => void;
   /** Turno cuyo globo está abierto (lo gobierna la pantalla, no la grilla). */
   turnoAbiertoId: string | null;
   onAbrirTurno: (turnoId: string | null) => void;
@@ -90,6 +91,7 @@ export function GrillaSemanal({
   ahoraHHmm,
   onAgendar,
   onReprogramar,
+  onGrabar,
   turnoAbiertoId,
   onAbrirTurno,
 }: PropsGrillaSemanal) {
@@ -191,6 +193,7 @@ export function GrillaSemanal({
               minutosAhora={minutosAhora}
               onAgendar={onAgendar}
               onReprogramar={onReprogramar}
+              onGrabar={onGrabar}
               turnoAbiertoId={turnoAbiertoId}
               onAbrirTurno={onAbrirTurno}
             />
@@ -216,6 +219,7 @@ interface PropsColumnaDia {
   minutosAhora: number | null;
   onAgendar: (fechaISO: string, hora: string) => void;
   onReprogramar: (turno: TurnoSalidaDto) => void;
+  onGrabar: (turno: TurnoSalidaDto) => void;
   turnoAbiertoId: string | null;
   onAbrirTurno: (turnoId: string | null) => void;
 }
@@ -236,6 +240,7 @@ function ColumnaDia({
   minutosAhora,
   onAgendar,
   onReprogramar,
+  onGrabar,
   turnoAbiertoId,
   onAbrirTurno,
 }: PropsColumnaDia) {
@@ -378,6 +383,10 @@ function ColumnaDia({
                 onReprogramar={(turno) => {
                   onAbrirTurno(null);
                   onReprogramar(turno);
+                }}
+                onGrabar={(turno) => {
+                  onAbrirTurno(null);
+                  onGrabar(turno);
                 }}
                 onCerrar={() => onAbrirTurno(null)}
               />

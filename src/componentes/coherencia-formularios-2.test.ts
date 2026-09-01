@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { esquema as esquemaReceta } from "./recetas/FormularioReceta";
 import { esquema as esquemaPlan } from "./planes/FormularioPlan";
-import { esquema as esquemaCarpeta } from "./planes/NavegadorCarpetas";
+import { esquema as esquemaCarpeta } from "./comunes/NavegadorCarpetas";
 import { esquema as esquemaAsignacion } from "./planes/FormularioAsignacionPlan";
 import { esquema as esquemaTurno } from "./turnos/FormularioTurno";
 import { esquema as esquemaReprogramar } from "./turnos/FormularioReprogramar";
@@ -15,7 +15,7 @@ import {
 } from "./deportivo/SeccionDeportiva";
 import { partirEtiquetas, partirEnlaces } from "@/lib/validacionListas";
 
-import { crearRecetaDto } from "@/aplicacion/dtos/receta.dto";
+import { crearRecetaDto, grupoRecetaDto } from "@/aplicacion/dtos/receta.dto";
 import { crearPlanDto, grupoPlanDto } from "@/aplicacion/dtos/plan.dto";
 import {
   agendarTurnoDto,
@@ -396,16 +396,27 @@ describe("Formularios que ya coincidían con su DTO", () => {
   // Estos no tenían divergencias. El test los fija igual: son el punto de
   // referencia que avisa si alguien cambia un límite de un solo lado.
 
-  it("NavegadorCarpetas coincide con grupoPlanDto", () => {
+  it("NavegadorCarpetas coincide con grupoPlanDto y con grupoRecetaDto", () => {
+    // Es UN formulario para los dos módulos (planes y recetario): si los DTOs
+    // se separaran, el navegador compartido pasaría a validar distinto de uno
+    // de los dos sin que nada lo avise.
     expect(
       esquemaCarpeta.safeParse({ nombre: "", descripcion: "" }).success,
     ).toBe(false);
     expect(grupoPlanDto.safeParse({ nombre: "" }).success).toBe(false);
+    expect(grupoRecetaDto.safeParse({ nombre: "" }).success).toBe(false);
 
     expect(
       esquemaCarpeta.safeParse({ nombre: "a".repeat(81), descripcion: "" })
         .success,
     ).toBe(false);
+    expect(grupoPlanDto.safeParse({ nombre: "a".repeat(81) }).success).toBe(
+      false,
+    );
+    expect(grupoRecetaDto.safeParse({ nombre: "a".repeat(81) }).success).toBe(
+      false,
+    );
+
     expect(
       esquemaCarpeta.safeParse({ nombre: "Descenso", descripcion: "" }).success,
     ).toBe(true);

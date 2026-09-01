@@ -254,6 +254,20 @@ enum ProveedorIntegracion {
   OPENROUTER
   FATSECRET
   WHATSAPP
+  /// Voz a texto de las grabaciones de consulta (Whisper / gpt-4o-transcribe).
+  OPENAI
+}
+
+/// Estado del procesamiento de una grabación de consulta.
+///
+/// Solo describe la TRANSCRIPCIÓN. El resumen es del turno entero y vive en
+/// `resumenes_consulta`: mezclarlos haría que una grabación quedara "a medias"
+/// porque el resumen de otra falló.
+enum EstadoGrabacion {
+  PENDIENTE
+  TRANSCRIBIENDO
+  LISTA
+  FALLIDA
 }
 
 // ---------------------------------------------------------------------------
@@ -299,6 +313,9 @@ model Nutricionista {
   recetas                   Receta[]
   planesNutricionales       PlanNutricional[]
   gruposPlan                GrupoPlan[]
+  gruposReceta              GrupoReceta[]
+  grabacionesConsulta       GrabacionConsulta[]
+  resumenesConsulta         ResumenConsulta[]
   objetivos                 Objetivo[]
   materialesBiblioteca      MaterialBiblioteca[]
   plantillasEmail           PlantillaEmail[]
@@ -516,6 +533,8 @@ model Turno {
   actualizadoEn   DateTime                @updatedAt
 
   recordatoriosWhatsapp RecordatorioWhatsapp[]
+  grabaciones           GrabacionConsulta[]
+  resumen               ResumenConsulta?
   paciente              Paciente               @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
 
   // La regla de no solapamiento se valida en el caso de uso (ignorando los
@@ -527,6 +546,74 @@ model Turno {
   @@index([nutricionistaId, fecha])
   @@index([nutricionistaId, estado, fecha])
   @@map("turnos")
+}
+
+/// Audio de una consulta, grabado desde la ficha del turno.
+///
+/// Hay MUCHAS por turno a propósito: una consulta se interrumpe —entra alguien,
+/// suena el teléfono, se corta para pesar— y obligar a una sola grabación
+/// significaba perder lo grabado o dejar corriendo el micrófono en el medio.
+/// `orden` las devuelve en la secuencia en que ocurrieron, que es la que le da
+/// sentido a la transcripción concatenada.
+///
+/// El audio ES un `Archivo` (bucket + MIME + tamaño + borrado compensado), como
+/// el resto de los adjuntos del sistema: acá va solo lo que la grabación agrega.
+model GrabacionConsulta {
+  id               String          @id @default(uuid(4))
+  nutricionistaId  String
+  turnoId          String
+  /// Posición dentro del turno (1, 2, 3…). Ver el comentario del modelo.
+  orden            Int
+  duracionSegundos Int?
+  estado           EstadoGrabacion @default(PENDIENTE)
+  /// Texto crudo devuelto por el proveedor de voz a texto. Es la FUENTE del
+  /// resumen y se guarda entero: un resumen sin su transcripción no se puede
+  /// auditar, y lo que se discute en una consulta es información clínica.
+  transcripcion    String?
+  /// Por qué falló el último intento. Se muestra y habilita el reintento.
+  error            String?
+  intentos         Int             @default(0)
+  transcritoEn     DateTime?
+  creadoEn         DateTime        @default(now())
+  actualizadoEn    DateTime        @updatedAt
+
+  archivo       Archivo?      @relation("ArchivoDeGrabacion")
+  turno         Turno         @relation(fields: [turnoId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@unique([turnoId, orden])
+  @@index([nutricionistaId, turnoId])
+  /// El barrido del worker busca las que quedaron a medio procesar.
+  @@index([estado])
+  @@map("grabaciones_consulta")
+}
+
+/// Resumen de la consulta generado por IA sobre las transcripciones del turno.
+///
+/// Es UNO por turno y no uno por grabación: lo que se resume es la CONSULTA, y
+/// las grabaciones son los pedazos en que quedó partida. Un resumen por pedazo
+/// obligaría al profesional a leer tres textos y reconstruir la consulta él.
+///
+/// `grabacionesIncluidas` es cuántas transcripciones había cuando se generó:
+/// si después aparece otra, la pantalla sabe que el resumen quedó viejo sin
+/// tener que compararlo con nada.
+model ResumenConsulta {
+  id                   String   @id @default(uuid(4))
+  nutricionistaId      String
+  turnoId              String   @unique
+  texto                String
+  /// Modelo que lo generó, para poder leer un resumen viejo sabiendo con qué
+  /// se hizo. Null en los resúmenes de demostración (sin clave configurada).
+  modelo               String?
+  grabacionesIncluidas Int
+  generadoEn           DateTime @default(now())
+  actualizadoEn        DateTime @updatedAt
+
+  turno         Turno         @relation(fields: [turnoId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@index([nutricionistaId, turnoId])
+  @@map("resumenes_consulta")
 }
 
 /// Log de recordatorios de turno abiertos por WhatsApp. Es una tabla de
@@ -719,6 +806,8 @@ model Archivo {
   /// en modalidad PDF y/o los anexos de cualquier plan. Cuál es el principal
   /// lo decide `planes_nutricionales.archivoPrincipalId` (ver migración 37).
   planId            String?
+  /// Audio de una grabación de consulta (1 a 1). Ver GrabacionConsulta.
+  grabacionId       String? @unique
 
   paciente          Paciente?                  @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
   laboratorio       Laboratorio?               @relation(fields: [laboratorioId], references: [id], onDelete: Cascade)
@@ -734,6 +823,7 @@ model Archivo {
   /// archivo como su PDF principal. Es una relación aparte de `plan` porque son
   /// dos cosas: estar adjunto al plan y SER el plan.
   planPrincipalDe   PlanNutricional[]          @relation("ArchivoPrincipalPlan")
+  grabacion         GrabacionConsulta?         @relation("ArchivoDeGrabacion", fields: [grabacionId], references: [id], onDelete: Cascade)
   configuraciones   ConfiguracionConsultorio[]
   nutricionista     Nutricionista              @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
@@ -839,17 +929,22 @@ model CredencialProveedor {
 /// de IA usar y con qué criterios filtrar los ingredientes de la búsqueda.
 /// Vivían mezcladas con los tokens cifrados en la misma fila.
 model PreferenciasIntegracion {
-  nutricionistaId   String   @id
+  nutricionistaId        String   @id
   /// "ANTHROPIC" (defecto) | "OPENROUTER"
-  proveedorIA       String?
-  modeloIA          String?
+  proveedorIA            String?
+  modeloIA               String?
+  /// Voz a texto de las grabaciones: "OPENAI" (defecto) | "OPENROUTER".
+  /// Es una elección aparte de `proveedorIA` porque son dos capacidades
+  /// distintas: Anthropic no transcribe audio.
+  proveedorTranscripcion String?
+  modeloTranscripcion    String?
   /// Criterios de ingredientes: filtran los alimentos que trae la búsqueda.
-  excluirMarcas     Boolean  @default(false) // solo genéricos (sin marca)
-  requiereMacros    Boolean  @default(false) // descartar sin macros completos
-  maxCaloriasPor100 Float? // tope opcional de kcal/100 g
-  excluirTexto      String[] @default([]) // descartar si el nombre contiene
-  creadoEn          DateTime @default(now())
-  actualizadoEn     DateTime @updatedAt
+  excluirMarcas          Boolean  @default(false) // solo genéricos (sin marca)
+  requiereMacros         Boolean  @default(false) // descartar sin macros completos
+  maxCaloriasPor100      Float? // tope opcional de kcal/100 g
+  excluirTexto           String[] @default([]) // descartar si el nombre contiene
+  creadoEn               DateTime @default(now())
+  actualizadoEn          DateTime @updatedAt
 
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
@@ -1197,6 +1292,8 @@ model Receta {
   /// era la que Postgres devolviera primero, que cambia sin aviso.
   /// SET NULL al borrar el archivo: la receta se queda sin portada, no rota.
   fotoPrincipalId String?
+  /// Carpeta en la que está guardada (opcional). Ver GrupoReceta.
+  grupoId         String?
   creadoEn        DateTime @default(now())
   actualizadoEn   DateTime @updatedAt
 
@@ -1206,11 +1303,37 @@ model Receta {
   asignaciones  AsignacionReceta[]
   ingredientes  IngredienteReceta[]
   nutricionista Nutricionista       @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  /// Borrar la carpeta NO borra las recetas: quedan sueltas (ver migración 41).
+  grupo         GrupoReceta?        @relation(fields: [grupoId], references: [id], onDelete: SetNull)
 
   @@unique([nutricionistaId, id])
   @@index([nutricionistaId, nombre])
+  @@index([nutricionistaId, grupoId])
   @@index([etiquetas], type: Gin)
   @@map("recetas")
+}
+
+/// Carpeta de recetas. Es la misma idea que `GrupoPlan` y por los mismos
+/// motivos: el recetario deja de ser una sola bolsa cuando pasa de veinte, y el
+/// criterio de agrupación lo pone quien trabaja —"Desayunos", "Sin TACC",
+/// "Julia Pérez"—, no el sistema.
+///
+/// No reemplaza a las etiquetas y no compite con ellas: una receta tiene MUCHAS
+/// etiquetas (es a la vez "vegetariana" y "rápida") y está en UNA carpeta. La
+/// etiqueta describe la receta; la carpeta dice dónde la guardó el profesional.
+model GrupoReceta {
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
+  nombre          String
+  descripcion     String?
+  creadoEn        DateTime @default(now())
+  actualizadoEn   DateTime @updatedAt
+
+  recetas       Receta[]
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@unique([nutricionistaId, nombre])
+  @@map("grupos_receta")
 }
 
 /// Ingrediente estructurado de una receta: cantidad en gramos + macros por 100 g

@@ -1,4 +1,7 @@
-import type { ICredencialesIntegracionRepositorio } from "@/dominio/repositorios/ICredencialesIntegracionRepositorio";
+import type {
+  ICredencialesIntegracionRepositorio,
+  IntegracionCredenciales,
+} from "@/dominio/repositorios/ICredencialesIntegracionRepositorio";
 import type {
   EstadoCredencialesDto,
   GuardarCredencialesDto,
@@ -31,6 +34,9 @@ export class ServicioCredenciales {
       whatsappWebhookListo: Boolean(
         c?.whatsappVerifyToken && c?.whatsappAppSecret,
       ),
+      proveedorTranscripcion: c?.proveedorTranscripcion ?? "OPENAI",
+      transcripcionConfigurada: Boolean(c?.transcripcionApiKey),
+      transcripcionModelo: c?.transcripcionModelo ?? null,
       criterios: c?.criterios ?? {
         excluirMarcas: false,
         requiereMacros: false,
@@ -42,5 +48,10 @@ export class ServicioCredenciales {
 
   guardar(datos: GuardarCredencialesDto): Promise<void> {
     return this.credenciales.guardar(datos);
+  }
+
+  /** Da de baja una integración entera: todas sus claves de una sola vez. */
+  eliminar(integracion: IntegracionCredenciales): Promise<void> {
+    return this.credenciales.eliminar(integracion);
   }
 }

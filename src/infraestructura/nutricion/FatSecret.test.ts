@@ -127,6 +127,9 @@ describe("ProveedorNutricionApp", () => {
         whatsappVerifyToken: null,
         whatsappAppSecret: null,
         fatsecretClientSecret: clientId ? "sec" : null,
+        proveedorTranscripcion: null,
+        transcripcionApiKey: null,
+        transcripcionModelo: null,
         criterios: {
           excluirMarcas: false,
           requiereMacros: false,
@@ -135,6 +138,7 @@ describe("ProveedorNutricionApp", () => {
         },
       }),
       guardar: async () => {},
+      eliminar: async () => {},
     };
   }
 

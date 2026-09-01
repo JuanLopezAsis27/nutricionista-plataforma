@@ -56,9 +56,16 @@ server {
     # ssl_certificate     /etc/letsencrypt/live/tudominio.com/fullchain.pem;
     # ssl_certificate_key /etc/letsencrypt/live/tudominio.com/privkey.pem;
 
-    # Subida de archivos: el módulo Archivos limita a 10 MB; damos margen.
-    # (nginx por defecto corta en 1 MB → sin esto fallan las subidas.)
-    client_max_body_size 16m;
+    # Subida de archivos.
+    #
+    # El tope REAL lo pone el módulo Archivos, por contexto (`CONTEXTOS_ARCHIVO`),
+    # y el más alto es 25 MB: el PDF de un plan y el audio de una consulta
+    # grabada. Acá va por encima de ese máximo a propósito —el multipart suma
+    # cabeceras y separadores al tamaño del archivo— para que el rechazo lo dé la
+    # app, con un mensaje que explica qué pasó, y no nginx con un 413 opaco.
+    #
+    # (nginx por defecto corta en 1 MB → sin esto fallan todas las subidas.)
+    client_max_body_size 26m;
 
     # Seguridad básica.
     #

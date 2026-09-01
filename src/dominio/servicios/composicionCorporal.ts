@@ -406,7 +406,7 @@ export function calcularComposicion(
     indices,
     energia,
     grasaPorPliegues,
-    distribucion: calcularDistribucion(medidas),
+    distribucion: calcularDistribucion(medidas, k),
     faltantes,
   };
 }

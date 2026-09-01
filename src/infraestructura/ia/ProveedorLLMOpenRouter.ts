@@ -30,7 +30,7 @@ interface RespuestaOpenRouter {
 export class ProveedorLLMOpenRouter implements IProveedorLLM {
   constructor(
     private readonly apiKey: string,
-    private readonly modelo: string,
+    readonly modelo: string,
   ) {}
 
   async completar(opts: OpcionesLLM): Promise<string> {

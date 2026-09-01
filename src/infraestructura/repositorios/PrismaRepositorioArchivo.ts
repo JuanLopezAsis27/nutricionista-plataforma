@@ -28,6 +28,7 @@ export class PrismaRepositorioArchivo
         recetaId: dueno?.recetaId ?? null,
         materialId: dueno?.materialId ?? null,
         planId: dueno?.planId ?? null,
+        grabacionId: dueno?.grabacionId ?? null,
       },
     });
     return mapearArchivo(fila);
@@ -42,6 +43,7 @@ export class PrismaRepositorioArchivo
         recetaId: dueno.recetaId,
         materialId: dueno.materialId,
         planId: dueno.planId,
+        grabacionId: dueno.grabacionId,
       },
       orderBy: { creadoEn: "desc" },
     });
@@ -58,6 +60,7 @@ export class PrismaRepositorioArchivo
         recetaId: dueno.recetaId ?? null,
         materialId: dueno.materialId ?? null,
         planId: dueno.planId ?? null,
+        grabacionId: dueno.grabacionId ?? null,
       },
     });
   }
@@ -72,6 +75,7 @@ export class PrismaRepositorioArchivo
         recetaId: true,
         materialId: true,
         planId: true,
+        grabacionId: true,
       },
     });
     if (!fila) return null;
@@ -82,6 +86,7 @@ export class PrismaRepositorioArchivo
       recetaId: fila.recetaId ?? undefined,
       materialId: fila.materialId ?? undefined,
       planId: fila.planId ?? undefined,
+      grabacionId: fila.grabacionId ?? undefined,
     };
   }
 

@@ -69,6 +69,25 @@ const FIRMAS: Record<string, readonly Firma[]> = {
     },
   ],
   "application/pdf": [{ desde: 0, bytes: [0x25, 0x50, 0x44, 0x46] }], // "%PDF"
+  // WebM es un contenedor Matroska/EBML. Es lo que graba MediaRecorder en
+  // Chrome y Firefox; el códec (Opus) va adentro y no cambia la firma.
+  "audio/webm": [{ desde: 0, bytes: [0x1a, 0x45, 0xdf, 0xa3] }],
+  // MP4/M4A es ISO-BMFF: 4 bytes de tamaño y luego "ftyp". Es lo que graba
+  // Safari.
+  "audio/mp4": [{ desde: 4, bytes: [0x66, 0x74, 0x79, 0x70] }], // "ftyp"
+  // OGG: "OggS".
+  "audio/ogg": [{ desde: 0, bytes: [0x4f, 0x67, 0x67, 0x53] }],
+  // MP3: con etiqueta ID3 al principio, o directo el sync de un frame MPEG
+  // (0xFF y los cuatro bits altos del siguiente byte en 1). La firma no sabe
+  // expresar máscaras de bits, así que van las variantes que se ven en la
+  // práctica: MPEG-1 capa 3 (0xFB/0xFA) y MPEG-2 capa 3 (0xF3/0xF2).
+  "audio/mpeg": [
+    { desde: 0, bytes: [0x49, 0x44, 0x33] }, // "ID3"
+    { desde: 0, bytes: [0xff, 0xfb] },
+    { desde: 0, bytes: [0xff, 0xfa] },
+    { desde: 0, bytes: [0xff, 0xf3] },
+    { desde: 0, bytes: [0xff, 0xf2] },
+  ],
   // .doc es un contenedor OLE2 (Compound File Binary Format).
   "application/msword": [
     { desde: 0, bytes: [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1] },

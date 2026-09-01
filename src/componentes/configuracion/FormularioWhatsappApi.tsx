@@ -13,6 +13,7 @@ import { Input } from "@/componentes/ui/input";
 import { Label } from "@/componentes/ui/label";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
+import { EliminarCredenciales } from "./EliminarCredenciales";
 
 /**
  * Conexión con la Cloud API oficial de Meta. Con esto cargado, el recordatorio
@@ -154,7 +155,13 @@ export function FormularioWhatsappApi() {
           </p>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <EliminarCredenciales
+            integracion="WHATSAPP"
+            nombre="WhatsApp Cloud API"
+            consecuencia="Los recordatorios vuelven a salir por enlace wa.me y la app deja de recibir los mensajes del paciente."
+            configurada={e.whatsappConfigurado || e.whatsappWebhookListo}
+          />
           <Button
             type="button"
             disabled={guardar.isPending}

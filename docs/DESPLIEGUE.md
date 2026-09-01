@@ -46,7 +46,9 @@ Sólo hay **dos ajustes que NO podés omitir** (ya están en
    por defecto, lo que rompe el stream. Hay que poner `proxy_buffering off;` y un
    `proxy_read_timeout` largo en `location /api/trpc`.
 2. **Tamaño de subida.** El default de nginx corta en **1 MB**; las subidas
-   (recetas, labs, Excel de alimentos) necesitan `client_max_body_size 16m;`.
+   (recetas, labs, Excel de alimentos, PDF de plan, audio de consulta) necesitan
+   `client_max_body_size 26m;` — por encima del tope más alto del módulo
+   Archivos (25 MB), para que el rechazo lo dé la app y no un 413 de nginx.
 
 **Discos** (según tu VPS):
 
@@ -261,7 +263,7 @@ persisten (volúmenes/bind-mount). Recomendado: probá primero en `staging`.
 - [ ] Firewall: solo 22 (SSH), 80 y 443 abiertos. La app publica su puerto
       **solo en `127.0.0.1`** (lo alcanza nginx del host, no desde afuera); la DB,
       MinIO y el worker **no publican puertos**.
-- [ ] nginx: `proxy_buffering off` en `/api/trpc` (SSE) y `client_max_body_size 16m`.
+- [ ] nginx: `proxy_buffering off` en `/api/trpc` (SSE) y `client_max_body_size 26m`.
 - [ ] Certificado TLS emitido con certbot y **renovación automática** activa
       (`systemctl list-timers | grep certbot`).
 - [ ] DNS de `tudominio.com` y `staging.tudominio.com` apuntando al VPS.

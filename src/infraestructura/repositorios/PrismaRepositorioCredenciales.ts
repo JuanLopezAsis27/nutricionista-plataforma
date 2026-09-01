@@ -3,7 +3,9 @@ import type {
   ICredencialesIntegracionRepositorio,
   CredencialesIntegracion,
   DatosCredenciales,
+  IntegracionCredenciales,
   ProveedorIA,
+  ProveedorTranscripcion,
 } from "@/dominio/repositorios/ICredencialesIntegracionRepositorio";
 import type { CifradorTokens } from "@/infraestructura/seguridad/CifradorTokens";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
@@ -32,6 +34,16 @@ export const WHATSAPP_VERIFY_TOKEN: RefCredencial = {
 };
 
 /**
+ * Clave del transcriptor.
+ *
+ * Va bajo una CLAVE PROPIA y no bajo `API_KEY` porque el proveedor puede ser el
+ * mismo que el de la IA (OpenRouter) y la unicidad es (inquilino, proveedor,
+ * clave): con el mismo nombre, cargar la clave de transcripción pisaría la del
+ * asistente sin que nada lo avise.
+ */
+const CLAVE_TRANSCRIPCION = "TRANSCRIPCION_API_KEY";
+
+/**
  * Claves que se guardan EN CLARO.
  *
  * Es una lista corta y deliberada: el `phone_number_id` es lo único que la app
@@ -45,6 +57,36 @@ const EN_CLARO = new Set<string>([
 function esSecreto(ref: RefCredencial): boolean {
   return !EN_CLARO.has(`${ref.proveedor}/${ref.clave}`);
 }
+
+/**
+ * Qué filas borra la baja de cada integración.
+ *
+ * La IA borra la clave de LOS DOS proveedores, no la del que esté
+ * seleccionado: son dos proveedores de una sola integración, y borrar solo el
+ * activo dejaba la clave del otro guardada sin ninguna pantalla desde la cual
+ * llegar a ella. Ver `IntegracionCredenciales`.
+ */
+const CLAVES_DE_INTEGRACION: Record<IntegracionCredenciales, RefCredencial[]> =
+  {
+    IA: [
+      { proveedor: "ANTHROPIC", clave: "API_KEY" },
+      { proveedor: "OPENROUTER", clave: "API_KEY" },
+    ],
+    TRANSCRIPCION: [
+      { proveedor: "OPENAI", clave: CLAVE_TRANSCRIPCION },
+      { proveedor: "OPENROUTER", clave: CLAVE_TRANSCRIPCION },
+    ],
+    FATSECRET: [
+      { proveedor: "FATSECRET", clave: "CLIENT_ID" },
+      { proveedor: "FATSECRET", clave: "CLIENT_SECRET" },
+    ],
+    WHATSAPP: [
+      { proveedor: "WHATSAPP", clave: "TOKEN" },
+      WHATSAPP_PHONE_NUMBER_ID,
+      WHATSAPP_VERIFY_TOKEN,
+      WHATSAPP_APP_SECRET,
+    ],
+  };
 
 /**
  * Repositorio de credenciales de integración por inquilino.
@@ -82,6 +124,10 @@ export class PrismaRepositorioCredenciales implements ICredencialesIntegracionRe
 
     const proveedorIA: ProveedorIA =
       preferencias?.proveedorIA === "OPENROUTER" ? "OPENROUTER" : "ANTHROPIC";
+    const proveedorTranscripcion: ProveedorTranscripcion =
+      preferencias?.proveedorTranscripcion === "OPENROUTER"
+        ? "OPENROUTER"
+        : "OPENAI";
 
     return {
       proveedorIA,
@@ -94,6 +140,10 @@ export class PrismaRepositorioCredenciales implements ICredencialesIntegracionRe
       whatsappPhoneNumberId: leer("WHATSAPP", "PHONE_NUMBER_ID"),
       whatsappVerifyToken: leer("WHATSAPP", "VERIFY_TOKEN"),
       whatsappAppSecret: leer("WHATSAPP", "APP_SECRET"),
+      proveedorTranscripcion,
+      // Igual que la de IA: la clave se guarda bajo el proveedor elegido.
+      transcripcionApiKey: leer(proveedorTranscripcion, CLAVE_TRANSCRIPCION),
+      transcripcionModelo: preferencias?.modeloTranscripcion ?? null,
       criterios: {
         excluirMarcas: preferencias?.excluirMarcas ?? false,
         requiereMacros: preferencias?.requiereMacros ?? false,
@@ -115,6 +165,11 @@ export class PrismaRepositorioCredenciales implements ICredencialesIntegracionRe
     const proveedorIA: ProveedorIA =
       datos.proveedorIA ?? (await this.obtener())?.proveedorIA ?? "ANTHROPIC";
 
+    const proveedorTranscripcion: ProveedorTranscripcion =
+      datos.proveedorTranscripcion ??
+      (await this.obtener())?.proveedorTranscripcion ??
+      "OPENAI";
+
     const cambios: [RefCredencial, string | null | undefined][] = [
       [{ proveedor: proveedorIA, clave: "API_KEY" }, datos.anthropicApiKey],
       [{ proveedor: "FATSECRET", clave: "CLIENT_ID" }, datos.fatsecretClientId],
@@ -126,6 +181,10 @@ export class PrismaRepositorioCredenciales implements ICredencialesIntegracionRe
       [WHATSAPP_PHONE_NUMBER_ID, datos.whatsappPhoneNumberId],
       [WHATSAPP_VERIFY_TOKEN, datos.whatsappVerifyToken],
       [WHATSAPP_APP_SECRET, datos.whatsappAppSecret],
+      [
+        { proveedor: proveedorTranscripcion, clave: CLAVE_TRANSCRIPCION },
+        datos.transcripcionApiKey,
+      ],
     ];
 
     for (const [ref, valor] of cambios) {
@@ -135,12 +194,16 @@ export class PrismaRepositorioCredenciales implements ICredencialesIntegracionRe
     const tienePreferencias =
       datos.proveedorIA !== undefined ||
       datos.anthropicModelo !== undefined ||
+      datos.proveedorTranscripcion !== undefined ||
+      datos.transcripcionModelo !== undefined ||
       datos.criterios !== undefined;
     if (!tienePreferencias) return;
 
     const preferencias = {
       proveedorIA: datos.proveedorIA,
       modeloIA: this.limpiar(datos.anthropicModelo),
+      proveedorTranscripcion: datos.proveedorTranscripcion,
+      modeloTranscripcion: this.limpiar(datos.transcripcionModelo),
       excluirMarcas: datos.criterios?.excluirMarcas,
       requiereMacros: datos.criterios?.requiereMacros,
       maxCaloriasPor100:
@@ -154,6 +217,35 @@ export class PrismaRepositorioCredenciales implements ICredencialesIntegracionRe
       create: { nutricionistaId: inquilino, ...preferencias },
       update: preferencias,
     });
+  }
+
+  async eliminar(integracion: IntegracionCredenciales): Promise<void> {
+    const inquilino = inquilinoActual();
+    // La extensión multi-inquilino ya acota el `deleteMany`, pero el filtro va
+    // escrito igual: es un borrado, y no quiero que la única cosa que separa
+    // los consultorios acá sea implícita.
+    await this.prisma.credencialProveedor.deleteMany({
+      where: {
+        nutricionistaId: inquilino,
+        OR: CLAVES_DE_INTEGRACION[integracion],
+      },
+    });
+
+    // El modelo de IA no es un secreto pero tampoco significa nada sin la
+    // clave: dejarlo haría que volver a conectar la integración arrastrara en
+    // silencio el modelo del proveedor anterior.
+    if (integracion === "IA") {
+      await this.prisma.preferenciasIntegracion.updateMany({
+        where: { nutricionistaId: inquilino },
+        data: { modeloIA: null },
+      });
+    }
+    if (integracion === "TRANSCRIPCION") {
+      await this.prisma.preferenciasIntegracion.updateMany({
+        where: { nutricionistaId: inquilino },
+        data: { modeloTranscripcion: null },
+      });
+    }
   }
 
   /**

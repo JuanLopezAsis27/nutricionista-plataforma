@@ -45,6 +45,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/RECORDATORIOS.md`      | Los tres medios de aviso y su política única          |
 | `docs/PLANES.md`             | Modalidades, archivos, carpetas e historial           |
 | `docs/ANTROPOMETRIA.md`      | Ecuaciones de grasa, distribución y sitios de pliegue |
+| `docs/GRABACIONES.md`        | Grabar la consulta, transcribirla y resumirla con IA  |
 | `docs/ARCHIVOS.md`           | Cómo llega al navegador un archivo del bucket         |
 | `docs/WHATSAPP.md`           | Cloud API, plantillas de Meta, webhook                |
 | `docs/WEARABLES.md`          | Importación de métricas de dispositivos               |
@@ -230,6 +231,26 @@ un turno con precio ya entró en las estadísticas de ingresos.
 
 Ver `docs/AGENDA.md` y `docs/CALENDARIO-TURNOS.md`.
 
+### Grabaciones de consulta
+
+El profesional graba el audio de la consulta desde el turno; el worker lo
+transcribe y una IA arma **un resumen del TURNO**, no uno por grabación (lo que
+se resume es la consulta; las grabaciones son los pedazos en que quedó partida).
+Hay **muchas por turno** a propósito: una consulta se interrumpe.
+
+Dos cosas que se rompen fácil si no se saben:
+
+- **Transcribir y resumir son proveedores distintos.** Anthropic no transcribe
+  audio, así que `ITranscriptorAudio` (OpenAI / OpenRouter) se configura aparte
+  de la IA de la app, que es la que resume.
+- **Los stubs de esta función LANZAN**, al revés que el resto de los stubs de
+  IA. Una transcripción de demostración guardada en la ficha de un paciente es
+  un registro clínico inventado. Sin clave, el audio queda guardado y la
+  grabación FALLIDA, lista para reintentar.
+
+Es material del PROFESIONAL: no hay procedimiento de paciente en su router.
+Ver `docs/GRABACIONES.md`.
+
 ### Recordatorios de turno
 
 Tres medios para el mismo aviso —WhatsApp, email y calendario— gobernados por UNA
@@ -258,6 +279,16 @@ MIME al mapear. `fotoPrincipalId` es la portada elegida, y el fallback —si no 
 elegida, o si la elegida ya no está— lo resuelve el getter `Receta.fotoPrincipal`,
 no cada pantalla: repetirlo en la UI hacía que la tarjeta y la vista mostraran
 fotos distintas de la misma receta.
+
+El recetario tiene **carpetas** (`GrupoReceta`, migración 41), las mismas que los
+planes y con la misma mecánica: un nivel, borrar la carpeta deja las recetas
+sueltas (FK SET NULL) y mover es un caso de uso aparte de editar. **No compiten
+con las etiquetas**: una receta tiene MUCHAS etiquetas y está en UNA carpeta —la
+etiqueta describe la receta, la carpeta dice dónde la guardó el profesional—.
+
+El navegador de carpetas es UNO solo (`componentes/comunes/NavegadorCarpetas`),
+compartido por planes y recetario: los dos módulos tienen que navegarse igual, y
+con dos copias eso dura hasta el primer arreglo que se aplique en una sola.
 
 ### Plan Nutricional
 
@@ -415,12 +446,17 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
 - Nunca agregar un campo al plan tocando solo el `update` del repositorio: hay que
   escribirlo también en el `create`. La modalidad se perdió así, y no falló nada:
   el default de la base le ganó a un valor que nunca se mandó
-- Nunca sumar un filtro al listado de planes tocando solo el DTO y el repositorio:
-  `ObtenerPlanesPaginado` enumera los campos a mano y lo que no esté ahí se
-  descarta en silencio
+- Nunca sumar un filtro a un listado paginado tocando solo el DTO y el
+  repositorio: `ObtenerPlanesPaginado` y `ObtenerRecetasPaginado` enumeran los
+  campos a mano y lo que no esté ahí se descarta en silencio
 - Nunca borrar una asignación de plan para "limpiar": son el historial clínico
 - Nunca embeber un archivo del bucket por su URL firmada: es otro origen, no es
   alcanzable en producción y la CSP lo bloquea. Va `/api/archivos/<id>/ver`
+- Nunca hacer que `TranscribirGrabacion` lance ante un fallo del proveedor: la
+  política de reintentos vive en la entidad (`intentos`), y lanzar sumaría la de
+  pg-boss en paralelo dejando al profesional sin ver el motivo
+- Nunca guardar una transcripción o un resumen de demostración: los stubs de
+  grabaciones lanzan a propósito
 - Nunca agregar un CHECK que exija "exactamente un dueño" sobre `archivos`: el
   invariante correcto es `<= 1` (migración 34; la 27 puso `= 1` y rompió todos
   los adjuntos hasta que alguien lo reportó)
@@ -431,3 +467,13 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
 - Nunca usar `any`
 - Nunca guardar passwords en texto plano
 - Nunca poner secretos en el código, siempre variables de entorno
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

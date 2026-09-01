@@ -10,6 +10,8 @@ import {
 export interface FiltroRecetasPaginado extends ParametrosPagina {
   texto?: string;
   etiqueta?: string;
+  /** null lista las SUELTAS; ausente no filtra por carpeta. */
+  grupoId?: string | null;
 }
 
 /**
@@ -20,7 +22,14 @@ export class ObtenerRecetasPaginado {
   constructor(private readonly recetas: IRecetaRepositorio) {}
 
   async ejecutar(filtro: FiltroRecetasPaginado): Promise<Pagina<Receta>> {
-    const base = { texto: filtro.texto, etiqueta: filtro.etiqueta };
+    // Los campos se enumeran a mano: lo que no esté acá se descarta EN
+    // SILENCIO, sin error ni aviso. Es el mismo lugar donde el listado de
+    // planes perdió un filtro que ya estaba en el DTO y en el repositorio.
+    const base = {
+      texto: filtro.texto,
+      etiqueta: filtro.etiqueta,
+      grupoId: filtro.grupoId,
+    };
     const [items, total] = await Promise.all([
       this.recetas.listar({
         ...base,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, X, Trash2 } from "lucide-react";
+import { Mic, Pencil, X, Trash2 } from "lucide-react";
 import type { TurnoSalidaDto } from "@/aplicacion/dtos/turno.dto";
 import { useTurnos } from "@/lib/hooks/useTurnos";
 import { Button } from "@/componentes/ui/button";
@@ -11,6 +11,8 @@ import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 interface PropsAccionesTurno {
   turno: TurnoSalidaDto;
   onReprogramar: (turno: TurnoSalidaDto) => void;
+  /** Abre la grabación de la consulta (el diálogo vive en la pantalla). */
+  onGrabar: (turno: TurnoSalidaDto) => void;
 }
 
 /**
@@ -31,7 +33,11 @@ interface PropsAccionesTurno {
  * le sigue: la confirmación de que el mensaje efectivamente se mandó. Vive en
  * Recordatorios, junto al resto de esa tarea.
  */
-export function AccionesTurno({ turno, onReprogramar }: PropsAccionesTurno) {
+export function AccionesTurno({
+  turno,
+  onReprogramar,
+  onGrabar,
+}: PropsAccionesTurno) {
   const { actualizarEstado, cancelar, eliminar } = useTurnos();
   const [confirmando, setConfirmando] = useState(false);
 
@@ -51,6 +57,14 @@ export function AccionesTurno({ turno, onReprogramar }: PropsAccionesTurno) {
           actualizarEstado.mutate({ id: turno.id, estado })
         }
       />
+      <Button
+        variant="ghost"
+        size="icon"
+        title="Grabar la consulta"
+        onClick={() => onGrabar(turno)}
+      >
+        <Mic className="h-4 w-4" />
+      </Button>
       {modificable && (
         <Button
           variant="ghost"

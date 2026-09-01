@@ -11,6 +11,8 @@ export interface DuenoArchivo {
   recetaId?: string;
   materialId?: string;
   planId?: string;
+  /** Audio de una grabación de consulta. */
+  grabacionId?: string;
 }
 
 /**

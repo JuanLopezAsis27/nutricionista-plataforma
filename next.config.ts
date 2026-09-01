@@ -50,8 +50,33 @@ function politicaCsp(): string {
  * Configuración de Next.js 16 (App Router).
  * Se mantiene mínima: la lógica vive en las capas internas, no en la presentación.
  */
+/**
+ * Orígenes desde los que el servidor de DESARROLLO acepta pedidos.
+ *
+ * `next dev` solo atiende a localhost: desde un túnel (ngrok, Cloudflare) o
+ * desde otra máquina de la red, los recursos internos de Next quedan
+ * bloqueados. Se configura por entorno y no en el código porque el host del
+ * túnel cambia en cada sesión.
+ *
+ *   DEV_ORIGINS_PERMITIDOS="*.ngrok-free.app,192.168.1.50"
+ *
+ * NO aplica en producción: ahí el que decide qué hosts se atienden es el
+ * reverse proxy, y esta lista sería una puerta de más.
+ */
+function origenesDeDesarrollo(): string[] | undefined {
+  if (esProduccion) return undefined;
+  const crudo = process.env.DEV_ORIGINS_PERMITIDOS?.trim();
+  if (!crudo) return undefined;
+  const origenes = crudo
+    .split(",")
+    .map((origen) => origen.trim())
+    .filter(Boolean);
+  return origenes.length > 0 ? origenes : undefined;
+}
+
 const config: NextConfig = {
   reactStrictMode: true,
+  allowedDevOrigins: origenesDeDesarrollo(),
   // Genera un servidor autónomo mínimo (.next/standalone) para empaquetar la
   // app en una imagen Docker liviana. Ver Dockerfile (stage runner).
   output: "standalone",
@@ -81,9 +106,23 @@ const config: NextConfig = {
           // SAMEORIGIN y no DENY: ver el comentario de `frame-ancestors`.
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           {
+            /**
+             * Permissions-Policy: todo apagado salvo el micrófono.
+             *
+             * `microphone=(self)` habilita la grabación de consultas
+             * (`useGrabadorAudio`). Mientras estuvo en `microphone=()`, el
+             * navegador rechazaba `getUserMedia` con `NotAllowedError` AUNQUE
+             * el usuario ya hubiera concedido el permiso, y sin ninguna pista
+             * en la interfaz: la política de la página gana sobre el permiso
+             * de la persona, así que "dar permiso" no cambiaba nada.
+             *
+             * `(self)` y no `*`: lo habilita para este origen y NO para lo que
+             * se embeba dentro. La cámara sigue apagada —no se graba video— y
+             * también el resto.
+             */
             key: "Permissions-Policy",
             value:
-              "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+              "camera=(), microphone=(self), geolocation=(), payment=(), usb=()",
           },
           // HSTS solo en producción: en desarrollo se sirve por http y esta
           // cabecera dejaría el dominio local clavado en https en el navegador.

@@ -1,4 +1,5 @@
 import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositorio";
+import type { IGrupoRecetaRepositorio } from "@/dominio/repositorios/IGrupoRecetaRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
 import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamientoArchivos";
@@ -14,11 +15,17 @@ import { AsignarRecetaAPaciente } from "@/aplicacion/casos-de-uso/recetas/Asigna
 import { DesasignarRecetaDePaciente } from "@/aplicacion/casos-de-uso/recetas/DesasignarRecetaDePaciente";
 import { ObtenerRecetasDelPaciente } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetasDelPaciente";
 import { ObtenerPacientesDeReceta } from "@/aplicacion/casos-de-uso/recetas/ObtenerPacientesDeReceta";
+import { MoverRecetaAGrupo } from "@/aplicacion/casos-de-uso/recetas/MoverRecetaAGrupo";
+import { CrearGrupoReceta } from "@/aplicacion/casos-de-uso/grupos-receta/CrearGrupoReceta";
+import { ActualizarGrupoReceta } from "@/aplicacion/casos-de-uso/grupos-receta/ActualizarGrupoReceta";
+import { EliminarGrupoReceta } from "@/aplicacion/casos-de-uso/grupos-receta/EliminarGrupoReceta";
+import { ObtenerGruposReceta } from "@/aplicacion/casos-de-uso/grupos-receta/ObtenerGruposReceta";
 import { ServicioReceta } from "@/aplicacion/servicios/ServicioReceta";
 
 /** Arma el servicio del Recetario con sus casos de uso. */
 export function crearServicioReceta(deps: {
   recetas: IRecetaRepositorio;
+  gruposReceta: IGrupoRecetaRepositorio;
   pacientes: IPacienteRepositorio;
   archivos: IArchivoRepositorio;
   almacenamiento: IAlmacenamientoArchivos;
@@ -40,5 +47,10 @@ export function crearServicioReceta(deps: {
     new DesasignarRecetaDePaciente(deps.recetas),
     new ObtenerRecetasDelPaciente(deps.recetas),
     new ObtenerPacientesDeReceta(deps.recetas),
+    new MoverRecetaAGrupo(deps.recetas, deps.gruposReceta),
+    new CrearGrupoReceta(deps.gruposReceta),
+    new ActualizarGrupoReceta(deps.gruposReceta),
+    new EliminarGrupoReceta(deps.gruposReceta),
+    new ObtenerGruposReceta(deps.gruposReceta),
   );
 }

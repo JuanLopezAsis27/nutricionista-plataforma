@@ -10,6 +10,11 @@ import type { AsignarRecetaAPaciente } from "@/aplicacion/casos-de-uso/recetas/A
 import type { DesasignarRecetaDePaciente } from "@/aplicacion/casos-de-uso/recetas/DesasignarRecetaDePaciente";
 import type { ObtenerRecetasDelPaciente } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetasDelPaciente";
 import type { ObtenerPacientesDeReceta } from "@/aplicacion/casos-de-uso/recetas/ObtenerPacientesDeReceta";
+import type { MoverRecetaAGrupo } from "@/aplicacion/casos-de-uso/recetas/MoverRecetaAGrupo";
+import type { CrearGrupoReceta } from "@/aplicacion/casos-de-uso/grupos-receta/CrearGrupoReceta";
+import type { ActualizarGrupoReceta } from "@/aplicacion/casos-de-uso/grupos-receta/ActualizarGrupoReceta";
+import type { EliminarGrupoReceta } from "@/aplicacion/casos-de-uso/grupos-receta/EliminarGrupoReceta";
+import type { ObtenerGruposReceta } from "@/aplicacion/casos-de-uso/grupos-receta/ObtenerGruposReceta";
 import type { Receta } from "@/dominio/entidades/Receta";
 import type {
   CrearRecetaDto,
@@ -19,6 +24,10 @@ import type {
   RecetasPaginadas,
   AsignarRecetaDto,
   RecetaSalidaDto,
+  MoverRecetaDto,
+  GrupoRecetaDto,
+  ActualizarGrupoRecetaDto,
+  GrupoRecetaSalidaDto,
 } from "../dtos/receta.dto";
 
 /**
@@ -39,6 +48,11 @@ export class ServicioReceta {
     private readonly desasignarUC: DesasignarRecetaDePaciente,
     private readonly obtenerDelPacienteUC: ObtenerRecetasDelPaciente,
     private readonly obtenerPacientesUC: ObtenerPacientesDeReceta,
+    private readonly moverAGrupoUC: MoverRecetaAGrupo,
+    private readonly crearGrupoUC: CrearGrupoReceta,
+    private readonly actualizarGrupoUC: ActualizarGrupoReceta,
+    private readonly eliminarGrupoUC: EliminarGrupoReceta,
+    private readonly obtenerGruposUC: ObtenerGruposReceta,
   ) {}
 
   async crearReceta(datos: CrearRecetaDto): Promise<RecetaSalidaDto> {
@@ -111,6 +125,39 @@ export class ServicioReceta {
 
   async obtenerPacientesDeReceta(recetaId: string): Promise<string[]> {
     return this.obtenerPacientesUC.ejecutar(recetaId);
+  }
+
+  // --- Carpetas del recetario ---
+
+  /** Mueve una receta a una carpeta, o la saca (grupoId null). */
+  async moverRecetaAGrupo(datos: MoverRecetaDto): Promise<void> {
+    await this.moverAGrupoUC.ejecutar(datos);
+  }
+
+  async obtenerGrupos(): Promise<GrupoRecetaSalidaDto[]> {
+    const grupos = await this.obtenerGruposUC.ejecutar();
+    return grupos.map(({ grupo, cantidadRecetas }) => ({
+      ...grupo.aPrimitivos(),
+      cantidadRecetas,
+    }));
+  }
+
+  async crearGrupo(datos: GrupoRecetaDto): Promise<GrupoRecetaSalidaDto> {
+    const grupo = await this.crearGrupoUC.ejecutar(datos);
+    // Recién creada: vacía por definición, no hace falta ir a contarla.
+    return { ...grupo.aPrimitivos(), cantidadRecetas: 0 };
+  }
+
+  async actualizarGrupo(
+    datos: ActualizarGrupoRecetaDto,
+  ): Promise<GrupoRecetaSalidaDto> {
+    const grupo = await this.actualizarGrupoUC.ejecutar(datos);
+    // El total lo repone el listado, que se invalida junto con la mutación.
+    return { ...grupo.aPrimitivos(), cantidadRecetas: 0 };
+  }
+
+  async eliminarGrupo(id: string): Promise<void> {
+    await this.eliminarGrupoUC.ejecutar(id);
   }
 
   private static aSalida(receta: Receta): RecetaSalidaDto {

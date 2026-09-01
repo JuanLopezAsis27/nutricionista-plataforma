@@ -19,7 +19,7 @@ const MIMES: ReadonlyArray<string> = [
 export class ProveedorLLMAnthropic implements IProveedorLLM {
   constructor(
     private readonly cliente: Anthropic,
-    private readonly modelo: string,
+    readonly modelo: string,
   ) {}
 
   async completar(opts: OpcionesLLM): Promise<string> {

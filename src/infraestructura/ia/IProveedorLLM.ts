@@ -42,6 +42,14 @@ export interface OpcionesConversacion {
 }
 
 export interface IProveedorLLM {
+  /**
+   * Modelo en uso, tal como lo nombra el proveedor.
+   *
+   * Se expone porque hay salidas que se GUARDAN —el resumen de una consulta— y
+   * un texto generado por un modelo que no se sabe cuál era no se puede
+   * releer con criterio dos años después.
+   */
+  readonly modelo: string;
   /** Devuelve el texto (o JSON) de la respuesta. Lanza ante error o rechazo. */
   completar(opts: OpcionesLLM): Promise<string>;
   /**

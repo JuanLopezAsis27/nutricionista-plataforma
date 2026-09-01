@@ -16,8 +16,17 @@ export function useCredenciales() {
     onError: (error) => toast.error(error.message),
   });
 
+  const eliminar = trpc.credenciales.eliminar.useMutation({
+    onSuccess: () => {
+      toast.success("Credenciales eliminadas.");
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
   return {
     estado: trpc.credenciales.estado.useQuery,
     guardar,
+    eliminar,
   };
 }

@@ -16,6 +16,8 @@ import type { IMetricaDispositivoRepositorio } from "@/dominio/repositorios/IMet
 import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
 import type { IGrupoPlanRepositorio } from "@/dominio/repositorios/IGrupoPlanRepositorio";
+import type { IGrupoRecetaRepositorio } from "@/dominio/repositorios/IGrupoRecetaRepositorio";
+import type { IGrabacionConsultaRepositorio } from "@/dominio/repositorios/IGrabacionConsultaRepositorio";
 import type { IObjetivoRepositorio } from "@/dominio/repositorios/IObjetivoRepositorio";
 import type { IPerfilDeportivoRepositorio } from "@/dominio/repositorios/IPerfilDeportivoRepositorio";
 import type { ICompetenciaRepositorio } from "@/dominio/repositorios/ICompetenciaRepositorio";
@@ -64,6 +66,9 @@ import { Conversacion } from "@/dominio/entidades/Conversacion";
 import { Mensaje } from "@/dominio/entidades/Mensaje";
 import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
 import { GrupoPlan } from "@/dominio/entidades/GrupoPlan";
+import { GrupoReceta } from "@/dominio/entidades/GrupoReceta";
+import type { GrabacionConsulta } from "@/dominio/entidades/GrabacionConsulta";
+import type { ResumenConsulta } from "@/dominio/entidades/ResumenConsulta";
 import { ConfiguracionRecordatorios } from "@/dominio/entidades/ConfiguracionRecordatorios";
 import { PlantillaWhatsapp } from "@/dominio/entidades/PlantillaWhatsapp";
 import { AxiomaNutricional } from "@/dominio/entidades/AxiomaNutricional";
@@ -271,6 +276,7 @@ export function mockRecetaRepositorio(
     desasignarDePaciente: vi.fn(async () => {}),
     listarPorPaciente: vi.fn(async () => []),
     listarPacientesAsignados: vi.fn(async () => []),
+    moverAGrupo: vi.fn(async () => {}),
     ...parcial,
   };
 }
@@ -296,6 +302,38 @@ export function mockGrupoPlanRepositorio(
     obtenerPorId: vi.fn(async () => null),
     listar: vi.fn(async () => []),
     existeNombre: vi.fn(async () => false),
+    ...parcial,
+  };
+}
+
+export function mockGrupoRecetaRepositorio(
+  parcial: Partial<IGrupoRecetaRepositorio> = {},
+): IGrupoRecetaRepositorio {
+  return {
+    crear: vi.fn(async (g: GrupoReceta) => g),
+    actualizar: vi.fn(async (g: GrupoReceta) => g),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    listar: vi.fn(async () => []),
+    existeNombre: vi.fn(async () => false),
+    ...parcial,
+  };
+}
+
+export function mockGrabacionRepositorio(
+  parcial: Partial<IGrabacionConsultaRepositorio> = {},
+): IGrabacionConsultaRepositorio {
+  return {
+    crear: vi.fn(async (g: GrabacionConsulta) => g),
+    guardar: vi.fn(async (g: GrabacionConsulta) => g),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    listarPorTurno: vi.fn(async () => []),
+    siguienteOrden: vi.fn(async () => 1),
+    obtenerInquilinoGlobal: vi.fn(async () => null),
+    listarPendientesGlobal: vi.fn(async () => []),
+    obtenerResumen: vi.fn(async () => null),
+    guardarResumen: vi.fn(async (r: ResumenConsulta) => r),
     ...parcial,
   };
 }

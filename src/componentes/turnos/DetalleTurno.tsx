@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   Clock,
   DollarSign,
+  Mic,
   Pencil,
   StickyNote,
   Trash2,
@@ -37,6 +38,8 @@ interface PropsDetalleTurno {
   nombrePaciente: string;
   /** Abre el formulario de reprogramación (vive fuera del popup). */
   onReprogramar: (turno: TurnoSalidaDto) => void;
+  /** Abre la grabación de la consulta (también fuera del popup). */
+  onGrabar: (turno: TurnoSalidaDto) => void;
   onCerrar: () => void;
 }
 
@@ -53,11 +56,15 @@ interface PropsDetalleTurno {
  *
  * Reprogramar sí sale del globo: necesita la grilla de franjas libres del día
  * completo y no entra. El globo se cierra y el diálogo lo abre la pantalla.
+ * Grabar la consulta sale por lo mismo: el grabador, las transcripciones y el
+ * resumen no entran en 320 px, y encima es una pantalla que queda abierta un
+ * buen rato mientras el globo se cerraría al primer click afuera.
  */
 export function DetalleTurno({
   turno,
   nombrePaciente,
   onReprogramar,
+  onGrabar,
   onCerrar,
 }: PropsDetalleTurno) {
   const { actualizarEstado, cancelar, eliminar, registrarCobro } = useTurnos();
@@ -109,6 +116,16 @@ export function DetalleTurno({
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            title="Grabar la consulta"
+            aria-label="Grabar la consulta"
+            onClick={() => onGrabar(turno)}
+          >
+            <Mic className="h-3.5 w-3.5" />
+          </Button>
           {modificable && (
             <Button
               variant="ghost"

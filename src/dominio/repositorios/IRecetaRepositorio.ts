@@ -4,6 +4,13 @@ import type { Receta } from "../entidades/Receta";
 export interface FiltroRecetas {
   texto?: string; // busca en nombre/descripción
   etiqueta?: string;
+  /**
+   * Carpeta en la que buscar. `null` filtra las SUELTAS (las que no están en
+   * ninguna); ausente no filtra por carpeta. Es la misma distinción de tres
+   * estados que usa el listado de planes, y por eso se compara contra
+   * `undefined` y no con un `if (filtro?.grupoId)`.
+   */
+  grupoId?: string | null;
   /** Paginación server-side: cuántas traer y desde qué offset. */
   limite?: number;
   desplazamiento?: number;
@@ -25,6 +32,8 @@ export interface IRecetaRepositorio {
   listar(filtro?: FiltroRecetas): Promise<Receta[]>;
   /** Cuenta las recetas que matchean el filtro (ignora la paginación). */
   contar(filtro?: FiltroRecetas): Promise<number>;
+  /** Mueve la receta a una carpeta, o la saca (null). Solo toca `grupoId`. */
+  moverAGrupo(id: string, grupoId: string | null): Promise<void>;
 
   // --- Asignaciones a pacientes ---
   asignarAPaciente(

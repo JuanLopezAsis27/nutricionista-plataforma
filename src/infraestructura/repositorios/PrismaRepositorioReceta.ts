@@ -8,12 +8,19 @@ import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Fila de receta con sus fotos e ingredientes incluidos. */
 type RecetaConDetalle = Prisma.RecetaGetPayload<{
-  include: { fotos: true; ingredientes: true };
+  include: {
+    fotos: true;
+    ingredientes: true;
+    grupo: { select: { nombre: true } };
+  };
 }>;
 
 const INCLUIR = {
   fotos: true,
   ingredientes: { orderBy: { orden: "asc" } },
+  // El nombre de la carpeta viaja con la receta: la tarjeta lo muestra y sin
+  // esto haría una consulta por receta para pintar un rótulo.
+  grupo: { select: { nombre: true } },
 } satisfies Prisma.RecetaInclude;
 
 /** Decimal (o null) → number (o null). El Decimal nunca cruza a capas altas. */
@@ -65,6 +72,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
           proteinasG: d.proteinasG,
           carbohidratosG: d.carbohidratosG,
           grasasG: d.grasasG,
+          grupoId: d.grupoId,
           creadoEn: d.creadoEn,
           actualizadoEn: d.actualizadoEn,
           ingredientes: { create: d.ingredientes.map(datosIngrediente) },
@@ -98,6 +106,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
           proteinasG: d.proteinasG,
           carbohidratosG: d.carbohidratosG,
           grasasG: d.grasasG,
+          grupoId: d.grupoId,
           fotoPrincipalId: d.fotoPrincipalId,
           // Reemplaza la lista completa de ingredientes (agregado).
           ingredientes: {
@@ -144,6 +153,10 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
     return this.prisma.receta.count({ where: this.construirWhere(filtro) });
   }
 
+  async moverAGrupo(id: string, grupoId: string | null): Promise<void> {
+    await this.prisma.receta.update({ where: { id }, data: { grupoId } });
+  }
+
   private construirWhere(filtro?: FiltroRecetas): Prisma.RecetaWhereInput {
     const where: Prisma.RecetaWhereInput = {};
     if (filtro?.texto) {
@@ -154,6 +167,11 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
     }
     if (filtro?.etiqueta) {
       where.etiquetas = { has: filtro.etiqueta };
+    }
+    // `null` es un filtro válido —las recetas SUELTAS— y distinto de "sin
+    // filtrar". Por eso se compara contra undefined y no con un `if (grupoId)`.
+    if (filtro?.grupoId !== undefined) {
+      where.grupoId = filtro.grupoId;
     }
     return where;
   }
@@ -251,6 +269,8 @@ export function mapearReceta(fila: RecetaConDetalle): Receta {
         nombreOriginal: doc.nombreOriginal,
         mimeType: doc.mimeType,
       })),
+    grupoId: fila.grupoId,
+    grupoNombre: fila.grupo?.nombre ?? null,
     creadoEn: fila.creadoEn,
     actualizadoEn: fila.actualizadoEn,
   });
