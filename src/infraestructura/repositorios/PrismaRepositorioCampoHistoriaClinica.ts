@@ -5,26 +5,25 @@ import type {
 import type { ICampoHistoriaClinicaRepositorio } from "@/dominio/repositorios/ICampoHistoriaClinicaRepositorio";
 import { CampoHistoriaClinica } from "@/dominio/entidades/CampoHistoriaClinica";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
 
 /**
  * Implementación con Prisma de los campos personalizados de historia clínica
  * definidos por el consultorio.
  */
-export class PrismaRepositorioCampoHistoriaClinica implements ICampoHistoriaClinicaRepositorio {
-  constructor(private readonly prisma: PrismaClient) {}
+export class PrismaRepositorioCampoHistoriaClinica
+  extends RepositorioPrismaBase<CampoFila, CampoHistoriaClinica>
+  implements ICampoHistoriaClinicaRepositorio
+{
+  constructor(private readonly prisma: PrismaClient) {
+    super(prisma.campoHistoriaClinica);
+  }
 
   async obtenerTodos(): Promise<CampoHistoriaClinica[]> {
     const filas = await this.prisma.campoHistoriaClinica.findMany({
       orderBy: [{ orden: "asc" }, { nombre: "asc" }],
     });
     return filas.map(mapearCampoHistoriaClinica);
-  }
-
-  async obtenerPorId(id: string): Promise<CampoHistoriaClinica | null> {
-    const fila = await this.prisma.campoHistoriaClinica.findUnique({
-      where: { id },
-    });
-    return fila ? mapearCampoHistoriaClinica(fila) : null;
   }
 
   async obtenerPorNombre(nombre: string): Promise<CampoHistoriaClinica | null> {
@@ -64,8 +63,8 @@ export class PrismaRepositorioCampoHistoriaClinica implements ICampoHistoriaClin
     return mapearCampoHistoriaClinica(fila);
   }
 
-  async eliminar(id: string): Promise<void> {
-    await this.prisma.campoHistoriaClinica.delete({ where: { id } });
+  protected override mapear(fila: CampoFila): CampoHistoriaClinica {
+    return mapearCampoHistoriaClinica(fila);
   }
 }
 

@@ -9,10 +9,16 @@ import {
   type CampoPlantilla,
 } from "@/dominio/entidades/PlantillaAntropometrica";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
 
 /** Implementación con Prisma del repositorio de plantillas de medición. */
-export class PrismaRepositorioPlantillaAntropometrica implements IPlantillaAntropometricaRepositorio {
-  constructor(private readonly prisma: PrismaClient) {}
+export class PrismaRepositorioPlantillaAntropometrica
+  extends RepositorioPrismaBase<PlantillaFila, PlantillaAntropometrica>
+  implements IPlantillaAntropometricaRepositorio
+{
+  constructor(private readonly prisma: PrismaClient) {
+    super(prisma.plantillaAntropometrica);
+  }
 
   async guardar(
     plantilla: PlantillaAntropometrica,
@@ -36,22 +42,15 @@ export class PrismaRepositorioPlantillaAntropometrica implements IPlantillaAntro
     return mapearPlantillaAntropometrica(fila);
   }
 
-  async eliminar(id: string): Promise<void> {
-    await this.prisma.plantillaAntropometrica.delete({ where: { id } });
-  }
-
-  async obtenerPorId(id: string): Promise<PlantillaAntropometrica | null> {
-    const fila = await this.prisma.plantillaAntropometrica.findUnique({
-      where: { id },
-    });
-    return fila ? mapearPlantillaAntropometrica(fila) : null;
-  }
-
   async listar(): Promise<PlantillaAntropometrica[]> {
     const filas = await this.prisma.plantillaAntropometrica.findMany({
       orderBy: { nombre: "asc" },
     });
     return filas.map(mapearPlantillaAntropometrica);
+  }
+
+  protected override mapear(fila: PlantillaFila): PlantillaAntropometrica {
+    return mapearPlantillaAntropometrica(fila);
   }
 }
 

@@ -9,6 +9,7 @@ import {
 } from "@/dominio/entidades/ObjetivoComposicion";
 import type { MetodoGrasa } from "@/dominio/servicios/grasaPorPliegues";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
 
 /**
  * Implementación con Prisma del repositorio de objetivos de composición.
@@ -21,8 +22,13 @@ import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
  * Postgres los NULL no colisionan—. La unicidad la sostienen igual los dos
  * índices de la migración 40, que es donde tiene que estar.
  */
-export class PrismaRepositorioObjetivoComposicion implements IObjetivoComposicionRepositorio {
-  constructor(private readonly prisma: PrismaClient) {}
+export class PrismaRepositorioObjetivoComposicion
+  extends RepositorioPrismaBase<ObjetivoComposicionFila, ObjetivoComposicion>
+  implements IObjetivoComposicionRepositorio
+{
+  constructor(private readonly prisma: PrismaClient) {
+    super(prisma.objetivoComposicion);
+  }
 
   async guardar(objetivo: ObjetivoComposicion): Promise<ObjetivoComposicion> {
     const datos = objetivo.aPrimitivos();
@@ -50,17 +56,6 @@ export class PrismaRepositorioObjetivoComposicion implements IObjetivoComposicio
     return mapearObjetivoComposicion(fila);
   }
 
-  async eliminar(id: string): Promise<void> {
-    await this.prisma.objetivoComposicion.delete({ where: { id } });
-  }
-
-  async obtenerPorId(id: string): Promise<ObjetivoComposicion | null> {
-    const fila = await this.prisma.objetivoComposicion.findUnique({
-      where: { id },
-    });
-    return fila ? mapearObjetivoComposicion(fila) : null;
-  }
-
   async obtenerPorVariable(
     pacienteId: string,
     variable: VariableComposicion,
@@ -82,6 +77,12 @@ export class PrismaRepositorioObjetivoComposicion implements IObjetivoComposicio
       orderBy: { creadoEn: "asc" },
     });
     return filas.map(mapearObjetivoComposicion);
+  }
+
+  protected override mapear(
+    fila: ObjetivoComposicionFila,
+  ): ObjetivoComposicion {
+    return mapearObjetivoComposicion(fila);
   }
 }
 
