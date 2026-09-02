@@ -336,6 +336,7 @@ function DashboardComposicionPdf({
   const conSomatotipo = hastaActual.filter((m) => m.resultado.somatotipo);
 
   // --- Series de evolución (peso, %grasa, masas) ---------------------------
+  const fechasEvolucion = hastaActual.map((m) => m.fecha);
   const seriePeso = hastaActual.map((m) => m.medidas.pesoKg);
   const serieGrasa = hastaActual.map(
     (m) =>
@@ -730,12 +731,9 @@ function DashboardComposicionPdf({
               <Text style={estilos.tituloGrafico}>Peso (kg)</Text>
               <GraficoLineas
                 ancho={ANCHO_CONTENIDO}
-                alto={80}
+                alto={100}
                 series={[{ color, valores: seriePeso }]}
-              />
-              <RangoSerie
-                fechas={hastaActual.map((m) => m.fecha)}
-                valores={seriePeso}
+                fechas={fechasEvolucion}
                 unidad="kg"
               />
             </View>
@@ -745,12 +743,9 @@ function DashboardComposicionPdf({
                 <Text style={estilos.tituloGrafico}>% graso</Text>
                 <GraficoLineas
                   ancho={ANCHO_CONTENIDO}
-                  alto={80}
+                  alto={100}
                   series={[{ color: COLOR_ADIPOSA, valores: serieGrasa }]}
-                />
-                <RangoSerie
-                  fechas={hastaActual.map((m) => m.fecha)}
-                  valores={serieGrasa}
+                  fechas={fechasEvolucion}
                   unidad="%"
                 />
               </View>
@@ -763,11 +758,13 @@ function DashboardComposicionPdf({
                 </Text>
                 <GraficoLineas
                   ancho={ANCHO_CONTENIDO}
-                  alto={80}
+                  alto={100}
                   series={[
                     { color: COLOR_ADIPOSA, valores: serieAdiposaKg },
                     { color: COLOR_MUSCULAR, valores: serieMuscularKg },
                   ]}
+                  fechas={fechasEvolucion}
+                  unidad="kg"
                 />
                 <View style={estilos.leyenda}>
                   <View style={estilos.leyendaItem}>
@@ -839,8 +836,8 @@ function DashboardComposicionPdf({
             </Text>
             <View wrap={false}>
               <GraficoSomatocarta
-                ancho={260}
-                alto={230}
+                ancho={300}
+                alto={260}
                 puntos={conSomatotipo.map((m) => ({
                   x: m.resultado.somatotipo!.x,
                   y: m.resultado.somatotipo!.y,
@@ -1203,50 +1200,129 @@ interface Pintor {
   fillColor(color: string): Pintor;
   stroke(): Pintor;
   fill(): Pintor;
+  font(nombre: string): Pintor;
+  fontSize(tamano: number): Pintor;
+  text(
+    texto: string,
+    x: number,
+    y: number,
+    opciones?: { width?: number; align?: "left" | "center" | "right" },
+  ): Pintor;
+  dash(largo: number, opciones?: { space?: number }): Pintor;
 }
 
-/** Gráfico de líneas: una o más series contra el mismo eje X (por índice). */
+/** Fecha corta (sin año) para las etiquetas del eje X: el año ya está en la fecha de la medición del encabezado y en la tabla de abajo. */
+const formateadorFechaCorta = new Intl.DateTimeFormat("es-AR", {
+  day: "2-digit",
+  month: "2-digit",
+  timeZone: "UTC",
+});
+function formatearFechaCorta(fecha: Date | string): string {
+  return formateadorFechaCorta.format(new Date(fecha));
+}
+
+/**
+ * Gráfico de líneas con sus dos ejes dibujados: el Y con tres marcas de valor
+ * (máximo, medio, mínimo) y el X con la fecha bajo cada punto — más el valor
+ * de cada serie escrito arriba (o abajo, la segunda serie) de su punto. Con
+ * pocos puntos entran todas las etiquetas; con muchos, se saltean a un paso
+ * fijo para que no se superpongan, sin dejar nunca afuera al primero ni al
+ * último.
+ */
 function GraficoLineas({
   ancho,
   alto,
   series,
+  fechas,
+  unidad,
 }: {
   ancho: number;
   alto: number;
   series: { color: string; valores: (number | null)[] }[];
+  fechas: Date[];
+  unidad?: string;
 }) {
-  const relleno = 6;
-  const n = Math.max(2, ...series.map((s) => s.valores.length));
+  const margenIzq = 40;
+  const margenDer = 6;
+  const margenSup = 14;
+  const margenInf = 14;
+  const anchoUtil = ancho - margenIzq - margenDer;
+  const altoUtil = alto - margenSup - margenInf;
+
+  const n = Math.max(2, fechas.length, ...series.map((s) => s.valores.length));
   const todos = series.flatMap((s) =>
     s.valores.filter((v): v is number => v != null),
   );
   const minY = Math.min(...todos);
   const maxY = Math.max(...todos);
+  const medioY = (minY + maxY) / 2;
   const rango = maxY - minY || 1;
+
+  const xDe = (i: number) =>
+    n <= 1 ? margenIzq + anchoUtil / 2 : margenIzq + (i / (n - 1)) * anchoUtil;
+  const yDe = (v: number) =>
+    margenSup + altoUtil - ((v - minY) / rango) * altoUtil;
+
+  // Índices con etiqueta (fecha + valor): el primero y el último siempre;
+  // los del medio, a un paso que deje ~40 pt por etiqueta.
+  const maxEtiquetas = Math.max(2, Math.floor(anchoUtil / 40));
+  const paso = Math.max(1, Math.ceil(n / maxEtiquetas));
+  const llevaEtiqueta = (i: number) => i % paso === 0 || i === n - 1;
 
   return (
     <Canvas
-      style={{ width: ancho, height: alto, backgroundColor: FONDO_SUAVE }}
+      style={{ width: ancho, height: alto }}
       paint={(p: Pintor) => {
-        p.moveTo(relleno, alto - relleno)
-          .lineTo(ancho - relleno, alto - relleno)
+        // Ejes.
+        p.moveTo(margenIzq, margenSup)
+          .lineTo(margenIzq, margenSup + altoUtil)
+          .lineWidth(0.5)
+          .strokeColor(BORDE)
+          .stroke();
+        p.moveTo(margenIzq, margenSup + altoUtil)
+          .lineTo(margenIzq + anchoUtil, margenSup + altoUtil)
           .lineWidth(0.5)
           .strokeColor(BORDE)
           .stroke();
 
-        for (const serie of series) {
+        // Eje Y: valor arriba, en el medio y abajo (sin repetir si la serie
+        // es plana, un único valor en toda la medición).
+        const marcasY = maxY === minY ? [maxY] : [maxY, medioY, minY];
+        p.font("Helvetica").fontSize(6).fillColor(GRIS_SUAVE);
+        marcasY.forEach((valor) => {
+          const y = yDe(valor);
+          p.text(
+            `${formatearMedida(valor)}${unidad ? ` ${unidad}` : ""}`,
+            0,
+            Math.max(0, y - 3),
+            { width: margenIzq - 4, align: "right" },
+          );
+          p.moveTo(margenIzq - 2, y)
+            .lineTo(margenIzq, y)
+            .lineWidth(0.5)
+            .strokeColor(BORDE)
+            .stroke();
+        });
+
+        // Eje X: fecha bajo cada punto (con el salteo de `llevaEtiqueta`).
+        p.font("Helvetica").fontSize(6).fillColor(GRIS_SUAVE);
+        fechas.forEach((fecha, i) => {
+          if (!llevaEtiqueta(i)) return;
+          const x = xDe(i);
+          p.text(formatearFechaCorta(fecha), x - 16, margenSup + altoUtil + 3, {
+            width: 32,
+            align: "center",
+          });
+        });
+
+        // Series: línea, puntos y el valor sobre (o bajo) cada punto con
+        // etiqueta. La segunda serie en adelante escribe el valor ABAJO del
+        // punto: dos series que se cruzan no pueden escribir las dos arriba
+        // sin superponerse.
+        series.forEach((serie, indiceSerie) => {
           const puntos = serie.valores
             .map((v, i): [number, number] | null =>
-              v == null
-                ? null
-                : [
-                    n <= 1
-                      ? ancho / 2
-                      : relleno + (i / (n - 1)) * (ancho - 2 * relleno),
-                    alto -
-                      relleno -
-                      ((v - minY) / rango) * (alto - 2 * relleno),
-                  ],
+              v == null ? null : [xDe(i), yDe(v)],
             )
             .filter((pt): pt is [number, number] => pt != null);
 
@@ -1258,7 +1334,19 @@ function GraficoLineas({
           for (const [x, y] of puntos) {
             p.circle(x, y, 2).fillColor(serie.color).fill();
           }
-        }
+
+          p.font("Helvetica-Bold").fontSize(6.5).fillColor(serie.color);
+          serie.valores.forEach((v, i) => {
+            if (v == null || !llevaEtiqueta(i)) return;
+            const x = xDe(i);
+            const y = yDe(v);
+            const yTexto = indiceSerie === 0 ? y - 10 : y + 4;
+            p.text(formatearMedida(v), x - 16, yTexto, {
+              width: 32,
+              align: "center",
+            });
+          });
+        });
 
         return null;
       }}
@@ -1266,34 +1354,13 @@ function GraficoLineas({
   );
 }
 
-/** Rango de fechas y de valores de una serie, como texto (reemplaza al eje). */
-function RangoSerie({
-  fechas,
-  valores,
-  unidad,
-}: {
-  fechas: Date[];
-  valores: (number | null)[];
-  unidad: string;
-}) {
-  const numeros = valores.filter((v): v is number => v != null);
-  if (numeros.length === 0 || fechas.length === 0) return null;
-  const min = Math.min(...numeros);
-  const max = Math.max(...numeros);
-  return (
-    <Text style={estilos.notaPie}>
-      {formatearFecha(fechas[0])} a {formatearFecha(fechas[fechas.length - 1])}{" "}
-      · mín {formatearMedida(min)} {unidad} · máx {formatearMedida(max)}{" "}
-      {unidad}
-    </Text>
-  );
-}
-
 /**
- * Somatocarta: recorrido de los puntos (x, y) del somatotipo en el tiempo.
- * Mismo rango fijo que la versión en pantalla (`Somatocarta.tsx`: X
- * [−9, 9], Y [−10, 16]) — fijo y no autoescalado, para que el mismo Z
- * signifique el mismo lugar en la carta entre dos consultas o dos pacientes.
+ * Somatocarta: recorrido de los puntos (x, y) del somatotipo en el tiempo,
+ * sobre el triángulo de referencia de Heath & Carter (endo abajo-izquierda,
+ * meso arriba, ecto abajo-derecha) — igual que `Somatocarta.tsx` en pantalla,
+ * mismos vértices y mismo rango fijo (X [−9, 9], Y [−10, 16]: fijo y no
+ * autoescalado, para que el mismo punto signifique el mismo lugar en la carta
+ * entre dos consultas o dos pacientes).
  */
 function GraficoSomatocarta({
   ancho,
@@ -1306,7 +1373,7 @@ function GraficoSomatocarta({
   puntos: { x: number; y: number }[];
   colorDestacado: string;
 }) {
-  const relleno = 12;
+  const relleno = 16;
   const rangoX: [number, number] = [-9, 9];
   const rangoY: [number, number] = [-10, 16];
   const aX = (x: number) =>
@@ -1346,6 +1413,29 @@ function GraficoSomatocarta({
           p.circle(aX(punto.x), aY(punto.y), esUltimo ? 3.5 : 2)
             .fillColor(esUltimo ? colorDestacado : GRIS_SUAVE)
             .fill();
+        });
+
+        // Triángulo de referencia (los tres tipos extremos) y sus vértices,
+        // por encima de todo lo demás — así no hace falta "desactivar" el
+        // punteado para las líneas sólidas que ya se dibujaron.
+        p.moveTo(aX(0), aY(14))
+          .lineTo(aX(-7), aY(-7))
+          .lineTo(aX(7), aY(-7))
+          .lineTo(aX(0), aY(14))
+          .lineWidth(1)
+          .strokeColor(GRIS_SUAVE)
+          .dash(4, { space: 3 })
+          .stroke();
+
+        p.font("Helvetica-Bold").fontSize(6.5).fillColor(GRIS_TEXTO);
+        p.text("MESOMORFIA", aX(-9), Math.max(0, aY(15.6)), {
+          width: aX(9) - aX(-9),
+          align: "center",
+        });
+        p.text("ENDOMORFIA", aX(-9), aY(-8.6), { width: 60, align: "left" });
+        p.text("ECTOMORFIA", aX(9) - 60, aY(-8.6), {
+          width: 60,
+          align: "right",
         });
 
         return null;
