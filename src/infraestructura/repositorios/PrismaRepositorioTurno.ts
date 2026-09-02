@@ -10,6 +10,7 @@ import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 /** Nombre del EXCLUDE que impide dos turnos superpuestos (migración 27). */
 const RESTRICCION_SOLAPAMIENTO = "turnos_sin_solapamiento";
 import { soloFecha } from "./base/fechas";
+import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
 
 /**
  * Traduce la violación del EXCLUDE de Postgres al error del dominio.
@@ -31,8 +32,13 @@ function comoConflicto(error: unknown, fecha: Date, hora: string): never {
  * Implementación con Prisma del repositorio de Turno.
  * Intercambiable con cualquier otra implementación (LSP).
  */
-export class PrismaRepositorioTurno implements ITurnoRepositorio {
-  constructor(private readonly prisma: PrismaClient) {}
+export class PrismaRepositorioTurno
+  extends RepositorioPrismaBase<TurnoFila, Turno>
+  implements ITurnoRepositorio
+{
+  constructor(private readonly prisma: PrismaClient) {
+    super(prisma.turno);
+  }
 
   async crear(turno: Turno): Promise<Turno> {
     const datos = turno.aPrimitivos();
@@ -80,15 +86,6 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
     }
   }
 
-  async obtenerPorId(id: string): Promise<Turno | null> {
-    const fila = await this.prisma.turno.findUnique({ where: { id } });
-    return fila ? mapearTurno(fila) : null;
-  }
-
-  async eliminar(id: string): Promise<void> {
-    await this.prisma.turno.delete({ where: { id } });
-  }
-
   async obtenerEnFecha(fecha: Date): Promise<Turno[]> {
     const filas = await this.prisma.turno.findMany({
       where: { fecha: soloFecha(fecha) },
@@ -126,6 +123,10 @@ export class PrismaRepositorioTurno implements ITurnoRepositorio {
       orderBy: [{ fecha: "asc" }, { hora: "asc" }],
     });
     return filas.map((fila) => mapearTurno(fila));
+  }
+
+  protected override mapear(fila: TurnoFila): Turno {
+    return mapearTurno(fila);
   }
 }
 
