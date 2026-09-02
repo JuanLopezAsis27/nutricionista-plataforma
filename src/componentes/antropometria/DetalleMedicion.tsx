@@ -11,10 +11,10 @@ import {
 } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import { Button } from "@/componentes/ui/button";
-import { GRUPOS } from "./filasMedicion";
+import { GRUPOS } from "@/aplicacion/servicios/evaluacion/filasMedicion";
 import { AvisoFaltantes } from "./dashboard/AvisoFaltantes";
 import { signo } from "./dashboard/piezas";
-import { ETIQUETAS_PROTOCOLO } from "./resumenMedicion";
+import { ETIQUETAS_PROTOCOLO } from "@/aplicacion/servicios/evaluacion/resumenMedicion";
 
 interface PropsDetalleMedicion {
   medicion: MedicionComposicionDto;

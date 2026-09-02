@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { FileDown } from "lucide-react";
 import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
 import {
   Card,
@@ -8,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/componentes/ui/card";
+import { Button } from "@/componentes/ui/button";
 import type { MetodoGrasa } from "@/dominio/servicios/grasaPorPliegues";
 import { PerfilPhantom } from "./PerfilPhantom";
 import { Somatocarta, type PuntoSomatocarta } from "./Somatocarta";
@@ -35,8 +37,10 @@ import { TarjetaDistribucion } from "./dashboard/TarjetaDistribucion";
  * tarjetas. El dibujo de cada una vive en `dashboard/`.
  */
 export function DashboardComposicion({
+  pacienteId,
   mediciones,
 }: {
+  pacienteId: string;
   mediciones: MedicionComposicionDto[];
 }) {
   const { tema, montado } = useTemaComposicion();
@@ -105,6 +109,19 @@ export function DashboardComposicion({
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <Button asChild variant="outline" size="sm">
+          <a
+            href={`/api/pacientes/${pacienteId}/dashboard-antropometria-pdf?medicion=${actual.id}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <FileDown className="h-4 w-4" />
+            PDF del dashboard
+          </a>
+        </Button>
+      </div>
+
       <CabeceraMedicion
         actual={actual}
         anterior={anterior}

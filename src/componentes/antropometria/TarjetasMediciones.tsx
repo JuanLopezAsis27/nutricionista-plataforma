@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { FileDown, Pencil, Trash2 } from "lucide-react";
 import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
 import {
   formatearFecha,
@@ -19,9 +19,13 @@ import {
 } from "@/componentes/ui/dialog";
 import { DetalleMedicion } from "./DetalleMedicion";
 import { signo } from "./dashboard/piezas";
-import { ETIQUETAS_PROTOCOLO, grasaDestacada } from "./resumenMedicion";
+import {
+  ETIQUETAS_PROTOCOLO,
+  grasaDestacada,
+} from "@/aplicacion/servicios/evaluacion/resumenMedicion";
 
 interface PropsTarjetasMediciones {
+  pacienteId: string;
   /** Mediciones en orden cronológico ascendente (la última, al final). */
   mediciones: MedicionComposicionDto[];
   onEditar: (medicion: MedicionComposicionDto) => void;
@@ -44,6 +48,7 @@ interface PropsTarjetasMediciones {
  * planilla vive en la ficha, con la diferencia contra la consulta anterior.
  */
 export function TarjetasMediciones({
+  pacienteId,
   mediciones,
   onEditar,
   onEliminar,
@@ -72,6 +77,7 @@ export function TarjetasMediciones({
         {enOrden.map((medicion, indice) => (
           <TarjetaMedicion
             key={medicion.id}
+            pacienteId={pacienteId}
             medicion={medicion}
             // `enOrden` va al revés, así que la consulta anterior está DESPUÉS.
             anterior={enOrden[indice + 1] ?? null}
@@ -114,6 +120,7 @@ export function TarjetasMediciones({
 }
 
 interface PropsTarjeta {
+  pacienteId: string;
   medicion: MedicionComposicionDto;
   anterior: MedicionComposicionDto | null;
   esUltima: boolean;
@@ -123,6 +130,7 @@ interface PropsTarjeta {
 }
 
 function TarjetaMedicion({
+  pacienteId,
   medicion,
   anterior,
   esUltima,
@@ -136,10 +144,27 @@ function TarjetaMedicion({
 
   return (
     <Card className={cn("relative", esUltima && "border-primary/60")}>
-      {/* Editar y eliminar van FUERA del botón que abre la ficha: un botón
-          adentro de otro no es HTML válido y el click del de adentro burbujea
-          igual, así que el tacho terminaba abriendo también el detalle. */}
+      {/* Editar, eliminar y PDF van FUERA del botón que abre la ficha: un
+          botón adentro de otro no es HTML válido y el click del de adentro
+          burbujea igual, así que el tacho terminaba abriendo también el
+          detalle. */}
       <div className="absolute right-1.5 top-1.5 z-10 flex gap-0.5">
+        <Button
+          asChild
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          title={`Descargar PDF de la medición del ${formatearFecha(medicion.fecha)}`}
+        >
+          <a
+            href={`/api/antropometria/${medicion.id}/pdf?paciente=${pacienteId}`}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={`Descargar PDF de la medición del ${formatearFecha(medicion.fecha)}`}
+          >
+            <FileDown className="h-3.5 w-3.5" />
+          </a>
+        </Button>
         <Button
           variant="ghost"
           size="icon"

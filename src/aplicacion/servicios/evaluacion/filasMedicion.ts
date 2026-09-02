@@ -9,11 +9,16 @@ import {
  * valor de cada una.
  *
  * Vive aparte de la pantalla porque es la ÚNICA definición de la planilla y la
- * leen dos vistas con formas distintas —la tarjeta resumida de cada medición y
- * su ficha completa—. Mientras estuvo adentro del componente de la tabla, el
- * orden y las etiquetas eran un detalle de ESA tabla; si la ficha las hubiera
- * repetido, agregar una medida al formulario habría dejado a una de las dos
- * vistas sin mostrarla, en silencio.
+ * leen tres vistas con formas distintas —la tarjeta resumida de cada medición,
+ * su ficha completa y el PDF que se descarga—. Mientras estuvo adentro del
+ * componente de la tabla, el orden y las etiquetas eran un detalle de ESA
+ * tabla; si otra vista las hubiera repetido, agregar una medida al formulario
+ * habría dejado a alguna sin mostrarla, en silencio.
+ *
+ * Vive en `aplicacion` y no en `componentes` porque el PDF (infraestructura)
+ * también la necesita, y la infraestructura no puede importar de la
+ * presentación (ver `arquitectura.test.ts`). Es TypeScript puro sobre un DTO,
+ * sin JSX: no pierde nada al mudarse fuera de la capa de UI.
  */
 
 export interface Fila {

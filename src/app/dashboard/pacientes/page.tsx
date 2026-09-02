@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Plus, Eye, Pencil, Trash2, Search, FileUp } from "lucide-react";
+import {
+  Plus,
+  Eye,
+  Pencil,
+  Trash2,
+  Search,
+  FileUp,
+  FileDown,
+} from "lucide-react";
 import type { PacienteSalidaDto } from "@/aplicacion/dtos/paciente.dto";
 import { usePacientes } from "@/lib/hooks/usePacientes";
 import { useDebounce } from "@/lib/hooks/useDebounce";
@@ -124,6 +132,18 @@ export default function PaginaPacientes() {
           />
         </div>
         <div className="flex gap-2">
+          <Button asChild variant="outline">
+            <a
+              href={`/api/pacientes/excel${
+                busquedaDebounced
+                  ? `?busqueda=${encodeURIComponent(busquedaDebounced)}`
+                  : ""
+              }`}
+            >
+              <FileDown className="h-4 w-4" />
+              Excel
+            </a>
+          </Button>
           <Button variant="outline" onClick={() => setDocumentoAbierto(true)}>
             <FileUp className="h-4 w-4" />
             Desde documento

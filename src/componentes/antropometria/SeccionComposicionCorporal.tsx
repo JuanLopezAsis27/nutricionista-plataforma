@@ -136,11 +136,15 @@ export function SeccionComposicionCorporal({
         </div>
 
         <TabsContent value="dashboard" className="mt-4">
-          <DashboardComposicion mediciones={mediciones} />
+          <DashboardComposicion
+            pacienteId={pacienteId}
+            mediciones={mediciones}
+          />
         </TabsContent>
 
         <TabsContent value="mediciones" className="mt-4">
           <TarjetasMediciones
+            pacienteId={pacienteId}
             mediciones={mediciones}
             onEditar={(medicion) => {
               setEditando(medicion);
