@@ -5,6 +5,7 @@ import {
   CalendarX,
   CheckCircle2,
   CircleAlert,
+  FileDown,
   HelpCircle,
   Scale,
   Target,
@@ -24,6 +25,7 @@ import {
   CardTitle,
 } from "@/componentes/ui/card";
 import { Skeleton } from "@/componentes/ui/skeleton";
+import { Button } from "@/componentes/ui/button";
 import { DonutMasas } from "./DonutMasas";
 import { EvolucionMasas, EvolucionGrasa } from "./EvolucionMasas";
 import { TortaPlieguesProyectados } from "./TortaPlieguesProyectados";
@@ -128,10 +130,22 @@ export function ComposicionPaciente() {
 
   return (
     <div className="space-y-6">
-      <p className="text-sm text-muted-foreground">
-        Última medición: <strong>{formatearFecha(actual.fecha)}</strong>
-        {anterior && ` · anterior: ${formatearFecha(anterior.fecha)}`}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">
+          Última medición: <strong>{formatearFecha(actual.fecha)}</strong>
+          {anterior && ` · anterior: ${formatearFecha(anterior.fecha)}`}
+        </p>
+        <Button asChild variant="outline" size="sm">
+          <a
+            href={`/api/antropometria/${actual.id}/pdf`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <FileDown className="h-4 w-4" />
+            Descargar PDF
+          </a>
+        </Button>
+      </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <Indicador

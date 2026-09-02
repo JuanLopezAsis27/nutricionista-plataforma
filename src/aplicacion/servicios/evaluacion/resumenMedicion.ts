@@ -2,6 +2,12 @@ import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
 import type { ProtocoloComposicion } from "@/dominio/entidades/Antropometria";
 import type { ResultadoGrasa } from "@/dominio/servicios/grasaPorPliegues";
 
+/**
+ * Vive en `aplicacion` (no en `componentes`) por la misma razón que
+ * `filasMedicion.ts`: lo lee también el PDF de la medición, en
+ * infraestructura, que no puede importar de la presentación.
+ */
+
 /** Nombre corto del protocolo, para las cabeceras de la pestaña. */
 export const ETIQUETAS_PROTOCOLO: Record<ProtocoloComposicion, string> = {
   DOS_COMPONENTES: "2 componentes",

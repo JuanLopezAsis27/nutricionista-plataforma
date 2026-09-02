@@ -192,6 +192,18 @@ export default function PaginaDetallePaciente() {
             antropometría tiene su propia pestaña desde que pasó a calcular
             composición corporal. */}
         <TabsContent value="evaluacion" className="space-y-8">
+          <div className="flex justify-end">
+            <Button asChild variant="outline" size="sm">
+              <a
+                href={`/api/pacientes/${id}/evaluacion-pdf`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FileDown className="h-4 w-4" />
+                PDF de la evaluación
+              </a>
+            </Button>
+          </div>
           <GestionAlertas pacienteId={id} />
           <FormularioHistoriaClinica pacienteId={id} />
           <ListaLaboratorios pacienteId={id} />

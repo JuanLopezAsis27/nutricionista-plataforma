@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, List, CalendarDays } from "lucide-react";
+import { Plus, List, CalendarDays, FileDown } from "lucide-react";
 import type { TurnoSalidaDto } from "@/aplicacion/dtos/turno.dto";
 import { ESTADOS_TURNO, type EstadoTurno } from "@/dominio/entidades/Turno";
 import { useTurnos } from "@/lib/hooks/useTurnos";
@@ -84,6 +84,12 @@ export default function PaginaTurnos() {
     estado: filtroEstado === "TODOS" ? undefined : filtroEstado,
     fecha: vista === "lista" && filtroFecha ? new Date(filtroFecha) : undefined,
   });
+
+  // Mismos filtros que la consulta de arriba: el Excel exporta lo que se ve.
+  const parametrosExcel = new URLSearchParams();
+  if (filtroEstado !== "TODOS") parametrosExcel.set("estado", filtroEstado);
+  if (vista === "lista" && filtroFecha)
+    parametrosExcel.set("fecha", filtroFecha);
 
   function abrirAlta(fecha?: string, hora?: string) {
     setHueco(fecha ? { fecha, hora } : null);
@@ -186,6 +192,13 @@ export default function PaginaTurnos() {
               onChange={(e) => setFiltroFecha(e.target.value)}
             />
           )}
+
+          <Button asChild variant="outline">
+            <a href={`/api/turnos/excel?${parametrosExcel.toString()}`}>
+              <FileDown className="h-4 w-4" />
+              Excel
+            </a>
+          </Button>
 
           <Button onClick={() => abrirAlta()}>
             <Plus className="h-4 w-4" />
