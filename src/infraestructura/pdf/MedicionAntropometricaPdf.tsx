@@ -54,6 +54,17 @@ function formatearNumero(valor: number | null | undefined): string {
   return valor == null ? "—" : formateadorNumero.format(valor);
 }
 
+/**
+ * `GRUPOS` trae etiquetas pensadas para pantalla ("Σ 6 pliegues"), donde el
+ * navegador tiene una fuente Unicode completa. La fuente Helvetica estándar
+ * de PDFKit no tiene glifo para la sigma griega y la imprime como "£"; acá se
+ * cambia SOLO al mostrarla, sin tocar `filasMedicion.ts` — esa etiqueta la
+ * lee también la pantalla, y ahí sí se ve bien.
+ */
+function textoPdf(texto: string): string {
+  return texto.replace(/Σ/g, "Suma");
+}
+
 const estilos = StyleSheet.create({
   pagina: {
     padding: 48,
@@ -219,7 +230,7 @@ function MedicionAntropometricaPdf({
 
         {grupos.map((grupo) => (
           <View key={grupo.titulo} style={estilos.grupo} wrap={false}>
-            <Text style={estilos.grupoTitulo}>{grupo.titulo}</Text>
+            <Text style={estilos.grupoTitulo}>{textoPdf(grupo.titulo)}</Text>
             {grupo.filas.map((fila) => {
               const valor = fila.valor(medicion);
               const previo = anterior ? fila.valor(anterior) : null;
@@ -235,7 +246,9 @@ function MedicionAntropometricaPdf({
                       : estilos.fila
                   }
                 >
-                  <Text style={estilos.celdaEtiqueta}>{fila.etiqueta}</Text>
+                  <Text style={estilos.celdaEtiqueta}>
+                    {textoPdf(fila.etiqueta)}
+                  </Text>
                   <Text style={estilos.celdaValor}>
                     {formatearMedida(valor)}
                   </Text>
