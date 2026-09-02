@@ -93,6 +93,8 @@ export function FormularioPlan({
   const modalidad: ModalidadPlan =
     planInicial?.modalidad ?? modalidadProp ?? "APP";
   const esApp = modalidad === "APP";
+  // Vale para el alta (comoPlantilla) y para la edición (lo que ya es el plan).
+  const esPlantilla = planInicial?.esPlantilla ?? comoPlantilla ?? false;
   const { listar: listarRecetas } = useRecetas();
   const recetas = listarRecetas(undefined);
   const enviando = crear.isPending || actualizar.isPending;
@@ -143,7 +145,9 @@ export function FormularioPlan({
           equivalencias: [],
           recomendaciones: [],
           modalidad,
-          grupoId: grupoIdInicial ?? SIN_CARPETA,
+          // Crear estando dentro de una carpeta guarda ahí, salvo que sea una
+          // plantilla: esas no van a ninguna carpeta.
+          grupoId: (comoPlantilla ? null : grupoIdInicial) ?? SIN_CARPETA,
           archivoPrincipalId: null,
         },
   });
@@ -182,7 +186,8 @@ export function FormularioPlan({
       equivalencias: datos.equivalencias,
       recomendaciones: datos.recomendaciones,
       modalidad: datos.modalidad,
-      grupoId: datos.grupoId === SIN_CARPETA ? null : datos.grupoId,
+      grupoId:
+        esPlantilla || datos.grupoId === SIN_CARPETA ? null : datos.grupoId,
       archivoPrincipalId: datos.archivoPrincipalId,
       // El principal también va en la lista: ser el plan no lo exime de estar
       // vinculado a él. Lo que no esté acá el servidor lo desvincula.
@@ -211,6 +216,7 @@ export function FormularioPlan({
         <SeccionDatosGenerales
           control={form.control}
           grupos={grupos.data ?? []}
+          conCarpeta={!esPlantilla}
         />
 
         <SeccionMetasMacros control={form.control} />

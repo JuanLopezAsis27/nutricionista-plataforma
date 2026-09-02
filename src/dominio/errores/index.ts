@@ -18,6 +18,7 @@ export { ErrorPlanNoEncontrado } from "./ErrorPlanNoEncontrado";
 export { ErrorObjetivoNoEncontrado } from "./ErrorObjetivoNoEncontrado";
 export { ErrorObjetivoComposicionNoEncontrado } from "./ErrorObjetivoComposicionNoEncontrado";
 export { ErrorPlantillaAntropometricaNoEncontrada } from "./ErrorPlantillaAntropometricaNoEncontrada";
+export { ErrorCampoHistoriaClinicaNoEncontrado } from "./ErrorCampoHistoriaClinicaNoEncontrado";
 export { ErrorMaterialNoEncontrado } from "./ErrorMaterialNoEncontrado";
 export { ErrorSuplementoNoEncontrado } from "./ErrorSuplementoNoEncontrado";
 export { ErrorAlertaSeguimientoNoEncontrada } from "./ErrorAlertaSeguimientoNoEncontrada";

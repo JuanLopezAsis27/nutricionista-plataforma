@@ -17,6 +17,17 @@ export function useIA() {
   });
 
   const analizar = trpc.ia.analizar.useMutation({
+    // La conversación quedó guardada: la lista lateral tiene que reflejarlo
+    // (título nuevo, o la existente subiendo al tope por su actualizadoEn).
+    onSuccess: () => void utils.ia.conversaciones.invalidate(),
+    onError: (error) => toast.error(error.message),
+  });
+
+  const eliminarConversacion = trpc.ia.eliminarConversacion.useMutation({
+    onSuccess: () => {
+      toast.success("Conversación eliminada.");
+      void utils.ia.conversaciones.invalidate();
+    },
     onError: (error) => toast.error(error.message),
   });
 
@@ -29,9 +40,12 @@ export function useIA() {
     misConsultas: trpc.ia.misConsultas.useQuery,
     insights: trpc.ia.insights.useQuery,
     estado: trpc.ia.estado.useQuery,
+    conversaciones: trpc.ia.conversaciones.useQuery,
+    conversacion: trpc.ia.conversacion.useQuery,
     preguntar,
     analizarFoto,
     analizar,
+    eliminarConversacion,
     feedbackInsight,
   };
 }

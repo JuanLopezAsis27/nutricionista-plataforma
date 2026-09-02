@@ -1,11 +1,17 @@
 import type { GuardarHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/GuardarHistoriaClinica";
 import type { ObtenerHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerHistoriaClinica";
 import type { InterpretarHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/InterpretarHistoriaClinica";
+import type { ObtenerCamposHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerCamposHistoriaClinica";
+import type { GuardarCampoHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/GuardarCampoHistoriaClinica";
+import type { EliminarCampoHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/EliminarCampoHistoriaClinica";
+import type { CampoHistoriaClinica } from "@/dominio/entidades/CampoHistoriaClinica";
 import type {
   GuardarHistoriaClinicaDto,
   HistoriaClinicaSalidaDto,
   InterpretarHistoriaClinicaDto,
   HistoriaClinicaSugeridaDto,
+  GuardarCampoHistoriaClinicaDto,
+  CampoHistoriaClinicaSalidaDto,
 } from "../../dtos/evaluacion.dto";
 
 /**
@@ -19,6 +25,9 @@ export class ServicioHistoriaClinica {
     private readonly guardarUC: GuardarHistoriaClinica,
     private readonly obtenerUC: ObtenerHistoriaClinica,
     private readonly interpretarUC: InterpretarHistoriaClinica,
+    private readonly obtenerCamposUC: ObtenerCamposHistoriaClinica,
+    private readonly guardarCampoUC: GuardarCampoHistoriaClinica,
+    private readonly eliminarCampoUC: EliminarCampoHistoriaClinica,
   ) {}
 
   async guardar(
@@ -46,5 +55,30 @@ export class ServicioHistoriaClinica {
       habitos: sugerido.habitos ?? null,
       contexto: sugerido.contexto ?? null,
     };
+  }
+
+  // --- Campos personalizados definidos por el consultorio ---------------------
+
+  async obtenerCampos(): Promise<CampoHistoriaClinicaSalidaDto[]> {
+    const campos = await this.obtenerCamposUC.ejecutar();
+    return campos.map(ServicioHistoriaClinica.aSalidaCampo);
+  }
+
+  async guardarCampo(
+    datos: GuardarCampoHistoriaClinicaDto,
+  ): Promise<CampoHistoriaClinicaSalidaDto> {
+    const campo = await this.guardarCampoUC.ejecutar(datos);
+    return ServicioHistoriaClinica.aSalidaCampo(campo);
+  }
+
+  async eliminarCampo(id: string): Promise<void> {
+    await this.eliminarCampoUC.ejecutar(id);
+  }
+
+  private static aSalidaCampo(
+    campo: CampoHistoriaClinica,
+  ): CampoHistoriaClinicaSalidaDto {
+    const { id, clave, nombre, descripcion, orden } = campo.aPrimitivos();
+    return { id, clave, nombre, descripcion, orden };
   }
 }

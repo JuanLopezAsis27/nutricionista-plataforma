@@ -72,10 +72,60 @@ que Meta factura por conversación— es una decisión suya, no un default nuest
 `3 días antes` y `1 día antes` marcados son **dos** avisos. La cantidad de
 recordatorios es la cantidad de opciones tildadas, hasta cinco por medio.
 
-El barrido de WhatsApp corre **cada hora** y cada consultorio se apaga solo
-cuando no es la hora que configuró. Es más simple que un cron por inquilino
-—que además habría que rearmar cada vez que alguien cambia el horario— y más
-robusto ante un worker que arrancó tarde.
+El barrido corre **cada hora** y cada consultorio se apaga solo **hasta que
+llega la hora que configuró**; a partir de ahí corre en todas las pasadas del
+día. Es más simple que un cron por inquilino —que además habría que rearmar cada
+vez que alguien cambia el horario—.
+
+**La comparación es `>=`, no `==`, y eso no es un detalle.** Mientras exigía la
+hora exacta, el barrido solo salía si el worker estaba vivo justo en esa pasada:
+un worker levantado 10:30 se perdía la de las 10:05, la de las 11:05 contestaba
+«no es la hora» y ese consultorio se quedaba sin recordatorios **todo el día**,
+sin ningún error a la vista. Correr de más no manda nada dos veces —los dos
+medios son idempotentes por escalón, ver abajo—, que es lo mismo que ya permitía
+a pg-boss reintentar un inquilino fallido.
+
+Se comparan hora Y minuto: con `horaEnvio` 10:30, la pasada de las 10:05 no
+corresponde todavía y el envío sale en la de las 11:05.
+
+**Los crons se programan con `tz` explícita** (`src/trabajos/zonaHoraria.ts`,
+leída de `TZ`). pg-boss interpreta toda expresión cron en UTC salvo que se le
+pase la zona, y `TZ` en el `.env` no alcanza: afecta a `Date` dentro del
+proceso, no al planificador, que calcula la próxima corrida en la base. Sin eso
+un cron escrito como «las 7 de la mañana» corría a las 4 hora local.
+
+## Dónde terminan los emails (la trampa de desarrollo)
+
+El `docker-compose` de desarrollo levanta **Mailpit** y `SMTP_HOST` apunta ahí
+(`localhost:1025`). Los recordatorios se envían de verdad, se registran en
+`emails_enviados` y el barrido informa `enviados: 1` — pero **no salen a
+Internet**. Se leen en <http://localhost:8025>.
+
+Es la falla más difícil de diagnosticar de todo el módulo, porque no falla
+nada: no hay error, no hay reintento, el log dice que salió. La única señal es
+que nadie recibe nada. Por eso el worker **imprime al arrancar a dónde manda los
+emails** (`describirDestinoEmail`), y lo dice explícito cuando el destino parece
+Mailpit.
+
+Para que salgan de verdad hay que apuntar `SMTP_HOST` / `SMTP_PORT` /
+`SMTP_USER` / `SMTP_PASS` a un SMTP real.
+
+## Para verlo correr
+
+El barrido no se dispara al arrancar el worker: lo despacha el cron **a los 5
+minutos de cada hora**. En el log son DOS líneas y la que importa es la segunda:
+
+```
+[worker] recordatorios-turnos: despachados 1 inquilino(s).      ← solo encoló
+[worker] recordatorios-turnos-inquilino [<id>]: WhatsApp: … · Email: …   ← el resultado
+```
+
+La segunda tarda un par de segundos (pg-boss sondea la cola). Cortar el worker
+entre una y otra deja el trabajo del inquilino en estado `created`: no se
+pierde —se procesa al arrancar de nuevo— pero esa corrida no mandó nada todavía.
+
+Para forzarlo sin esperar está el botón **«Enviar los de hoy ahora»** de
+Programación, que corre el mismo barrido ignorando la hora.
 
 ## Que no se mande dos veces
 

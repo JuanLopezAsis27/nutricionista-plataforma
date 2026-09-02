@@ -7,6 +7,12 @@ export const preguntarDto = z.object({
 });
 export type PreguntarDto = z.infer<typeof preguntarDto>;
 
+/** Consulta analítica: sin conversacionId abre un chat nuevo. */
+export const analizarDto = preguntarDto.extend({
+  conversacionId: z.string().min(1).optional().nullable(),
+});
+export type AnalizarDto = z.infer<typeof analizarDto>;
+
 export const analizarComidaDto = z.object({
   archivoId: z.string().optional().nullable(),
   descripcion: z.string().max(500).optional().nullable(),
@@ -18,6 +24,38 @@ export const respuestaAsistenteDto = z.object({
   respuesta: z.string(),
 });
 export type RespuestaAsistenteDto = z.infer<typeof respuestaAsistenteDto>;
+
+export const respuestaAnalisisDto = z.object({
+  conversacionId: z.string(),
+  pregunta: z.string(),
+  respuesta: z.string(),
+});
+export type RespuestaAnalisisDto = z.infer<typeof respuestaAnalisisDto>;
+
+export const idConversacionIADto = z.object({ id: z.string().min(1) });
+
+export const resumenConversacionIADto = z.object({
+  id: z.string(),
+  titulo: z.string(),
+  cantidadMensajes: z.number(),
+  actualizadoEn: z.date(),
+});
+export type ResumenConversacionIADto = z.infer<typeof resumenConversacionIADto>;
+
+export const mensajeIASalidaDto = z.object({
+  id: z.string(),
+  rol: z.enum(["USUARIO", "ASISTENTE"]),
+  contenido: z.string(),
+  creadoEn: z.date(),
+});
+
+export const conversacionIASalidaDto = z.object({
+  id: z.string(),
+  titulo: z.string(),
+  mensajes: z.array(mensajeIASalidaDto),
+  actualizadoEn: z.date(),
+});
+export type ConversacionIASalidaDto = z.infer<typeof conversacionIASalidaDto>;
 
 export const consultaIASalidaDto = z.object({
   id: z.string(),

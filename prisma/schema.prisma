@@ -60,13 +60,11 @@ enum OrigenRecordatorio {
   AUTOMATICO
 }
 
-/// Sentido del mensaje de WhatsApp respecto del consultorio.
 enum DireccionWhatsapp {
   ENTRANTE
   SALIENTE
 }
 
-/// Estado de entrega que informa la Cloud API por webhook.
 enum EstadoMensajeWhatsapp {
   PENDIENTE
   ENVIADO
@@ -104,10 +102,6 @@ enum TipoRecomendacionPlan {
   SALUD
 }
 
-/// Cómo está hecho el plan, que son dos maneras de trabajar distintas y no dos
-/// variantes de la misma (ver migración 37).
-///   APP → se carga franja por franja en la app; los archivos son ANEXOS.
-///   PDF → el plan ES el archivo, armado afuera; es lo que ve el paciente.
 enum ModalidadPlan {
   APP
   PDF
@@ -125,8 +119,6 @@ enum EstadoObjetivo {
   ABANDONADO
 }
 
-/// Sexo biológico del paciente. Lo exige la antropometría: las constantes de
-/// masa de la piel, el peso ideal y el metabolismo basal difieren por sexo.
 enum SexoBiologico {
   MASCULINO
   FEMENINO
@@ -248,13 +240,11 @@ enum ProveedorCuenta {
   GOOGLE
 }
 
-/// Servicio externo al que pertenece una credencial guardada.
 enum ProveedorIntegracion {
   ANTHROPIC
   OPENROUTER
   FATSECRET
   WHATSAPP
-  /// Voz a texto de las grabaciones de consulta (Whisper / gpt-4o-transcribe).
   OPENAI
 }
 
@@ -304,6 +294,9 @@ model Nutricionista {
   retroalimentaciones       RetroalimentacionInsight[]
   alimentosPropios          AlimentoPropio[]
   historiasClinicas         HistoriaClinica[]
+  camposHistoriaClinica     CampoHistoriaClinica[]
+  conversacionesIA          ConversacionIA[]
+  mensajesIA                MensajeIA[]
   alertasAlimentarias       AlertaAlimentaria[]
   laboratorios              Laboratorio[]
   antropometrias            Antropometria[]
@@ -1043,12 +1036,42 @@ model HistoriaClinica {
   antecedentesFamiliares String?
   habitos                String?
   contexto               String?
+  /// Valores de los campos personalizados de ESTE paciente, como
+  /// [{ clave, etiqueta, valor }]. Guarda la etiqueta junto al valor para que
+  /// la historia se siga leyendo aunque después se borre la definición del
+  /// campo, y para admitir campos sueltos que nunca tuvieron definición.
+  camposPersonalizados   Json     @default("[]")
   actualizadoEn          DateTime @updatedAt
 
   paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@map("historias_clinicas")
+}
+
+/// Campo extra que el consultorio agrega a la historia clínica de TODOS sus
+/// pacientes (los 7 campos fijos son el mínimo común; cada profesional sigue
+/// además lo suyo). Mismo modelo que PlantillaAntropometrica: una lista por
+/// inquilino que configura qué se pide al cargar.
+///
+/// `clave` es el identificador con el que se guarda el valor en
+/// historias_clinicas.camposPersonalizados y NO cambia al renombrar el campo.
+model CampoHistoriaClinica {
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
+  clave           String
+  nombre          String
+  descripcion     String?
+  orden           Int      @default(0)
+  creadoEn        DateTime @default(now())
+  actualizadoEn   DateTime @updatedAt
+
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@unique([nutricionistaId, nombre])
+  @@unique([nutricionistaId, clave])
+  @@index([nutricionistaId])
+  @@map("campos_historia_clinica")
 }
 
 /// Alergia, intolerancia o restricción alimentaria del paciente.
@@ -1839,6 +1862,49 @@ model ConsultaIA {
 
   @@index([nutricionistaId, pacienteId, creadoEn])
   @@map("consultas_ia")
+}
+
+/// Un chat del PROFESIONAL con el asistente analítico, con todos sus turnos.
+///
+/// Es del consultorio y no de un paciente (una consulta puede cruzar varios):
+/// el historial por paciente del portal es `consultas_ia`.
+///
+/// Guardar los turnos cumple dos funciones a la vez: son el registro que el
+/// profesional puede releer y el contexto que se le manda al modelo en la
+/// pregunta siguiente.
+model ConversacionIA {
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
+  titulo          String
+  creadoEn        DateTime @default(now())
+  actualizadoEn   DateTime @updatedAt
+
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  mensajes      MensajeIA[]
+
+  @@index([nutricionistaId, actualizadoEn])
+  @@map("conversaciones_ia")
+}
+
+/// Un turno de una conversación con el asistente analítico.
+model MensajeIA {
+  id              String       @id @default(uuid(4))
+  nutricionistaId String
+  conversacionId  String
+  rol             RolMensajeIA
+  contenido       String
+  creadoEn        DateTime     @default(now())
+
+  conversacion  ConversacionIA @relation(fields: [conversacionId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista  @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@index([conversacionId, creadoEn])
+  @@map("mensajes_ia")
+}
+
+enum RolMensajeIA {
+  USUARIO
+  ASISTENTE
 }
 
 /// Análisis de una foto de comida (porción, calorías, macros estimados).

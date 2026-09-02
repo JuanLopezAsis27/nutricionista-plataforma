@@ -13,6 +13,7 @@
  */
 import { PgBoss } from "pg-boss";
 import { registrarTrabajos } from "./registrarTrabajos";
+import { describirDestinoEmail } from "@/infraestructura/email/destinoEmail";
 
 async function principal(): Promise<void> {
   const url = process.env.DATABASE_URL;
@@ -28,6 +29,10 @@ async function principal(): Promise<void> {
   await boss.start();
   await registrarTrabajos(boss);
   console.log("[worker] iniciado; esperando trabajos.");
+  // Dónde terminan los recordatorios. Con Mailpit se envían igual y quedan
+  // registrados como enviados, pero no llegan a ninguna casilla real: sin este
+  // aviso, la única señal es que el paciente dice que no le llegó nada.
+  console.log(`[worker] ${describirDestinoEmail()}`);
 
   const detener = async (senal: string): Promise<void> => {
     console.log(`[worker] ${senal} recibida, deteniendo…`);

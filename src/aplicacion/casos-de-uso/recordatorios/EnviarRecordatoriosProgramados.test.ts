@@ -229,7 +229,7 @@ describe("EnviarRecordatoriosProgramados", () => {
     expect(resultado.email.fallidos).toBe(1);
   });
 
-  it("no corre fuera de la hora configurada", async () => {
+  it("no corre antes de la hora configurada", async () => {
     const { caso, recordatorios } = armar({
       config: configuracionRecordatoriosEjemplo({
         whatsappAutomatico: true,
@@ -242,6 +242,40 @@ describe("EnviarRecordatoriosProgramados", () => {
 
     expect(resultado.corrio).toBe(false);
     expect(recordatorios.registrar).not.toHaveBeenCalled();
+  });
+
+  it("corre en una pasada POSTERIOR a la hora configurada", async () => {
+    // El reloj del test son las 09:30 y la hora de envío las 08:00. Con la
+    // comparación por igualdad que había antes, un worker que no estuviera
+    // vivo justo a las 08 dejaba al consultorio sin recordatorios todo el día,
+    // y sin ningún error a la vista. Correr de más no duplica: los dos medios
+    // son idempotentes por escalón.
+    const { caso } = armar({
+      config: configuracionRecordatoriosEjemplo({
+        whatsappAutomatico: true,
+        whatsappDiasAntes: [1],
+        horaEnvio: "08:00",
+      }),
+      turnos: [turnoEjemplo({ fecha: enDias(1) }, "tur-1")],
+    });
+
+    const resultado = await caso.ejecutar();
+
+    expect(resultado.corrio).toBe(true);
+    expect(resultado.whatsapp.enviados).toBe(1);
+  });
+
+  it("respeta los minutos de la hora configurada", async () => {
+    // 09:30 en el reloj contra 09:45 configuradas: todavía no.
+    const { caso } = armar({
+      config: configuracionRecordatoriosEjemplo({
+        whatsappAutomatico: true,
+        horaEnvio: "09:45",
+      }),
+      turnos: [turnoEjemplo({ fecha: enDias(1) }, "tur-1")],
+    });
+
+    expect((await caso.ejecutar()).corrio).toBe(false);
   });
 
   it("el disparo manual ignora la hora", async () => {

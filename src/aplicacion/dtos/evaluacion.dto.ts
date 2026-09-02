@@ -6,6 +6,7 @@ import {
 import { NIVELES_ACTIVIDAD } from "@/dominio/servicios/composicionCorporal";
 import { PROTOCOLOS_COMPOSICION } from "@/dominio/entidades/Antropometria";
 import { CAMPOS_PLANTILLA } from "@/dominio/entidades/PlantillaAntropometrica";
+import { MAXIMO_CAMPOS_EN_HISTORIA } from "@/dominio/entidades/HistoriaClinica";
 import type {
   AlcancePlantilla,
   CampoPlantilla,
@@ -33,6 +34,20 @@ import type { ProyeccionObjetivo } from "@/dominio/servicios/proyeccionComposici
 
 const campoTextoLargo = z.string().max(5000).optional().nullable();
 
+/**
+ * Valor de un campo personalizado dentro de la historia de UN paciente.
+ * Viaja con su etiqueta, no solo con la clave: así la historia se sigue
+ * leyendo aunque después se borre la definición del campo.
+ */
+export const campoPersonalizadoHistoriaDto = z.object({
+  clave: z.string().min(1).max(60),
+  etiqueta: z.string().min(1).max(80),
+  valor: z.string().max(5000),
+});
+export type CampoPersonalizadoHistoriaDto = z.infer<
+  typeof campoPersonalizadoHistoriaDto
+>;
+
 export const guardarHistoriaClinicaDto = z.object({
   pacienteId: z.string().min(1),
   motivoConsulta: campoTextoLargo,
@@ -42,6 +57,10 @@ export const guardarHistoriaClinicaDto = z.object({
   antecedentesFamiliares: campoTextoLargo,
   habitos: campoTextoLargo,
   contexto: campoTextoLargo,
+  camposPersonalizados: z
+    .array(campoPersonalizadoHistoriaDto)
+    .max(MAXIMO_CAMPOS_EN_HISTORIA)
+    .optional(),
 });
 export type GuardarHistoriaClinicaDto = z.infer<
   typeof guardarHistoriaClinicaDto
@@ -57,6 +76,7 @@ export const historiaClinicaSalidaDto = z.object({
   antecedentesFamiliares: z.string().nullable(),
   habitos: z.string().nullable(),
   contexto: z.string().nullable(),
+  camposPersonalizados: z.array(campoPersonalizadoHistoriaDto),
   actualizadoEn: z.date(),
 });
 export type HistoriaClinicaSalidaDto = z.infer<typeof historiaClinicaSalidaDto>;
@@ -80,6 +100,32 @@ export const historiaClinicaSugeridaDto = z.object({
 });
 export type HistoriaClinicaSugeridaDto = z.infer<
   typeof historiaClinicaSugeridaDto
+>;
+
+// --- Campos personalizados de la historia clínica (definidos por consultorio) --
+
+export const guardarCampoHistoriaClinicaDto = z.object({
+  /** Sin id se crea; con id se renombra el existente (la clave no cambia). */
+  id: z.string().min(1).optional(),
+  nombre: z.string().min(1, "El nombre es obligatorio").max(80),
+  descripcion: z.string().max(300).optional().nullable(),
+  orden: z.number().int().min(0).max(999).optional(),
+});
+export type GuardarCampoHistoriaClinicaDto = z.infer<
+  typeof guardarCampoHistoriaClinicaDto
+>;
+
+export const idCampoHistoriaClinicaDto = z.object({ id: z.string().min(1) });
+
+export const campoHistoriaClinicaSalidaDto = z.object({
+  id: z.string(),
+  clave: z.string(),
+  nombre: z.string(),
+  descripcion: z.string().nullable(),
+  orden: z.number(),
+});
+export type CampoHistoriaClinicaSalidaDto = z.infer<
+  typeof campoHistoriaClinicaSalidaDto
 >;
 
 // --- Antropometría ------------------------------------------------------------

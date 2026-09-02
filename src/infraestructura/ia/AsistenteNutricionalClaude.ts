@@ -22,6 +22,7 @@ export class AsistenteNutricionalClaude implements IAsistenteNutricional {
     pregunta: string,
     contexto: ContextoAsistente,
     herramientas: HerramientaAsistente[] = [],
+    previos: { rol: "usuario" | "asistente"; texto: string }[] = [],
   ): Promise<string> {
     const llm = await this.resolver.obtenerLLM();
     if (!llm) return this.respaldo.responder(pregunta, contexto, herramientas);
@@ -30,7 +31,10 @@ export class AsistenteNutricionalClaude implements IAsistenteNutricional {
       const porNombre = new Map(herramientas.map((h) => [h.nombre, h]));
       const texto = await llm.conversar({
         system: construirPrompt(contexto),
-        pregunta: pregunta.trim(),
+        mensajes: [
+          ...previos,
+          { rol: "usuario" as const, texto: pregunta.trim() },
+        ],
         maxTokens: 2048,
         herramientas: herramientas.map((h) => ({
           nombre: h.nombre,

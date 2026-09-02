@@ -45,6 +45,8 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/RECORDATORIOS.md`      | Los tres medios de aviso y su política única          |
 | `docs/PLANES.md`             | Modalidades, archivos, carpetas e historial           |
 | `docs/ANTROPOMETRIA.md`      | Ecuaciones de grasa, distribución y sitios de pliegue |
+| `docs/HISTORIA-CLINICA.md`   | Campos personalizados y el alta leyendo un documento  |
+| `docs/ASISTENTE-IA.md`       | El chat analítico: herramientas, contexto e historial |
 | `docs/GRABACIONES.md`        | Grabar la consulta, transcribirla y resumirla con IA  |
 | `docs/ARCHIVOS.md`           | Cómo llega al navegador un archivo del bucket         |
 | `docs/WHATSAPP.md`           | Cloud API, plantillas de Meta, webhook                |
@@ -462,6 +464,39 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   los adjuntos hasta que alguien lo reportó)
 - Nunca renombrar ni reordenar los valores del enum `MetodoGrasa`: una serie
   histórica de composición corporal no puede cambiar de ecuación
+- Nunca tocar la `clave` de un `CampoHistoriaClinica` al editarlo: es lo que ata
+  el campo a los valores ya cargados, y moverla vacía ese campo en todas las
+  fichas del consultorio. El repositorio la deja fuera del `update` a propósito
+- Nunca guardar el valor de un campo personalizado sin su etiqueta: un campo
+  cuya definición se borre después quedaría como un texto colgado de una clave
+  que ya no resuelve contra nada
+- Nunca programar un cron de pg-boss sin `tz`: sin eso lo interpreta en UTC, y
+  `TZ` en el `.env` no lo arregla (afecta a `Date` en el proceso, no al
+  planificador, que calcula la próxima corrida en la base). Va `ZONA_HORARIA`
+- Nunca dar por rota la entrega de emails sin mirar `SMTP_HOST`: en desarrollo
+  apunta a Mailpit (`localhost:1025`), que los captura y no los manda a
+  Internet. Se envían, se registran y el log dice que salieron; solo que nadie
+  los recibe. Se leen en http://localhost:8025
+- Nunca comparar la hora del barrido de recordatorios por igualdad: es `>=`
+  ("ya pasó la hora de hoy"). Con `==`, un worker que arrancó 10:30 dejaba al
+  consultorio de las 10:00 sin recordatorios TODO el día y sin ningún error.
+  Correr de más es seguro: los dos medios son idempotentes por escalón
+- Nunca guardar una plantilla de plan en una carpeta: las carpetas son de los
+  planes. Una plantilla es un molde transversal a todos los pacientes, y
+  meterla en la carpeta de uno la vuelve inhallable desde los demás
+- Nunca pedirle JSON a `ProveedorLLMOpenRouter` sin mandarle el esquema COMPLETO:
+  ahí el formato se pide por prompt (no hay `response_format`), y con solo las
+  claves de primer nivel el modelo inventa los nombres anidados y el
+  normalizador los descarta en silencio
+- Nunca comparar la fecha de un `Turno` contra una medianoche LOCAL: es un DATE
+  a medianoche UTC, y al oeste de Greenwich los turnos de hoy quedan "antes de
+  hoy". Va `IRelojFecha.hoy()`
+- Nunca asumir que el modelo sabe qué día es: la fecha de hoy va en el prompt
+- Nunca tragarse con un `catch` vacío el fallo de una llamada de IA y devolver
+  el stub: el error llega a la pantalla disfrazado de respuesta
+- Nunca hacer que un interpretador de IA persista lo que leyó de un documento:
+  precarga el formulario y el profesional confirma. Y nunca degradarlo a un stub
+  sin clave: un dato de demostración en una ficha es un registro clínico inventado
 - Nunca importar el contenedor desde un componente de UI (arrastra Prisma al
   bundle del navegador)
 - Nunca usar `any`

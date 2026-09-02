@@ -11,12 +11,24 @@ export type BloqueUsuario =
   | { tipo: "imagen"; base64: string; mimeType: string }
   | { tipo: "documento"; base64: string; mimeType: "application/pdf" };
 
+/**
+ * Cuánto esfuerzo pone el modelo. Es el primer botón de calidad contra costo.
+ *
+ * El default de la app es `bajo`, que alcanza para lo que es conversacional o
+ * de una sola pasada. Lo que EXTRAE datos de un documento clínico pide `alto`:
+ * ahí la respuesta se copia a la ficha de un paciente y un campo que el modelo
+ * no se tomó el trabajo de encontrar es un dato que el profesional carga a mano.
+ */
+export type EsfuerzoLLM = "bajo" | "medio" | "alto";
+
 export interface OpcionesLLM {
   system: string;
   usuario: BloqueUsuario[];
   maxTokens: number;
   /** Si se pasa, se pide salida JSON con ese esquema. */
   esquemaJson?: { nombre: string; esquema: Record<string, unknown> };
+  /** Defecto: "bajo" (lo que usaba toda la app antes de que esto existiera). */
+  esfuerzo?: EsfuerzoLLM;
 }
 
 /** Definición de una herramienta que el modelo puede invocar (sin el ejecutor). */
@@ -27,10 +39,24 @@ export interface DefinicionHerramienta {
   esquema: Record<string, unknown>;
 }
 
+/** Un turno ya dicho en la conversación. */
+export interface TurnoConversacion {
+  rol: "usuario" | "asistente";
+  texto: string;
+}
+
 /** Opciones de una conversación con herramientas (tool-calling agéntico). */
 export interface OpcionesConversacion {
   system: string;
-  pregunta: string;
+  /**
+   * La conversación COMPLETA, del turno más viejo al más nuevo, terminando en
+   * la pregunta nueva del usuario.
+   *
+   * Antes era un único `pregunta: string`, y por eso el asistente no recordaba
+   * nada: cada mensaje viajaba solo, sin lo anterior. Preguntarle "¿y de ese
+   * paciente qué más?" no tenía a qué referirse.
+   */
+  mensajes: TurnoConversacion[];
   maxTokens: number;
   herramientas: DefinicionHerramienta[];
   /**
@@ -40,6 +66,8 @@ export interface OpcionesConversacion {
   ejecutar: (nombre: string, args: Record<string, unknown>) => Promise<string>;
   /** Tope de vueltas del loop de herramientas (defecto 4). */
   maxIteraciones?: number;
+  /** Defecto: "bajo". */
+  esfuerzo?: EsfuerzoLLM;
 }
 
 export interface IProveedorLLM {

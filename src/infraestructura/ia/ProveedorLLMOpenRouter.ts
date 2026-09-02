@@ -2,6 +2,7 @@ import type {
   IProveedorLLM,
   OpcionesLLM,
   OpcionesConversacion,
+  EsfuerzoLLM,
 } from "./IProveedorLLM";
 import { ejecutarHerramientaSegura, parsearArgumentos } from "./herramientas";
 
@@ -25,7 +26,8 @@ interface RespuestaOpenRouter {
 /**
  * Proveedor LLM con OpenRouter (API compatible con OpenAI). Sirve muchos
  * modelos (`anthropic/claude-*`, `openai/gpt-*`, etc.) con una sola key. Usa el
- * formato de chat de OpenAI (sin thinking/effort; esos son de Anthropic).
+ * formato de chat de OpenAI: el `thinking` de Anthropic no existe acá, y el
+ * esfuerzo se pide con el parámetro unificado `reasoning`.
  */
 export class ProveedorLLMOpenRouter implements IProveedorLLM {
   constructor(
@@ -52,10 +54,25 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
     });
 
     // OpenRouter no soporta `response_format: json_object` en varios modelos
-    // (los de Anthropic lo rechazan con error) → NO lo mandamos. Reforzamos el
-    // formato por prompt y parseamos defensivamente la respuesta.
+    // (los de Anthropic lo rechazan con error) → NO lo mandamos. El formato se
+    // refuerza por prompt y la respuesta se parsea defensivamente.
+    //
+    // Va el esquema ENTERO, serializado. Antes iba solo la lista de claves de
+    // PRIMER NIVEL, y eso rompía toda extracción anidada: al modelo se le
+    // pedían "paciente, antropometria, alertas" sin decirle NUNCA qué campos
+    // van adentro de cada una, así que inventaba los nombres internos y el
+    // normalizador —que lee claves exactas— los descartaba en silencio. La
+    // ficha de un paciente volvía medio vacía sin ningún error a la vista.
     const system = opts.esquemaJson
-      ? `${opts.system}\nRespondé SOLO con un objeto JSON válido con exactamente estas claves: ${clavesDe(opts.esquemaJson.esquema).join(", ")}. Sin explicaciones ni markdown.`
+      ? [
+          opts.system,
+          "",
+          "Respondé SOLO con un objeto JSON válido que cumpla EXACTAMENTE este JSON Schema.",
+          "Usá los nombres de campo tal cual figuran acá, incluidos los de los objetos anidados.",
+          "Incluí todas las claves requeridas, con null cuando no haya dato. Sin explicaciones ni markdown.",
+          "",
+          JSON.stringify(opts.esquemaJson.esquema),
+        ].join("\n")
       : opts.system;
 
     const body: Record<string, unknown> = {
@@ -65,6 +82,7 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
         { role: "system", content: system },
         { role: "user", content: contenido },
       ],
+      ...razonamiento(opts.esfuerzo),
     };
 
     const respuesta = await fetch(URL, {
@@ -102,7 +120,10 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
     }));
     const messages: Array<Record<string, unknown>> = [
       { role: "system", content: opts.system },
-      { role: "user", content: opts.pregunta },
+      ...opts.mensajes.map((turno) => ({
+        role: turno.rol === "usuario" ? "user" : "assistant",
+        content: turno.texto,
+      })),
     ];
     const maxIteraciones = opts.maxIteraciones ?? 4;
 
@@ -113,6 +134,7 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
         messages,
         tools,
         tool_choice: "auto",
+        ...razonamiento(opts.esfuerzo),
       });
       const llamadas = msg.tool_calls ?? [];
       if (llamadas.length === 0) {
@@ -170,9 +192,18 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
   }
 }
 
-function clavesDe(esquema: Record<string, unknown>): string[] {
-  const props = esquema.properties;
-  return props && typeof props === "object" ? Object.keys(props) : [];
+/**
+ * Esfuerzo de razonamiento, con el parámetro unificado de OpenRouter.
+ *
+ * Es el equivalente de `output_config.effort` de Anthropic. Los modelos que no
+ * razonan lo ignoran, así que mandarlo siempre es seguro; se omite en el nivel
+ * bajo para no cambiarle el comportamiento a lo que ya andaba.
+ */
+function razonamiento(
+  esfuerzo: EsfuerzoLLM | undefined,
+): Record<string, unknown> {
+  if (!esfuerzo || esfuerzo === "bajo") return {};
+  return { reasoning: { effort: esfuerzo === "alto" ? "high" : "medium" } };
 }
 
 /** Limpia la respuesta del modelo para quedarse solo con el objeto JSON. */

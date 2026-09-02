@@ -87,9 +87,9 @@ export class EnviarRecordatoriosProgramados {
 
     if (
       !opciones.ignorarHora &&
-      !preferencias.correspondeALaHora(this.reloj.ahora())
+      !preferencias.yaEsHoraDeEnviar(this.reloj.ahora())
     ) {
-      const motivo = "No es la hora configurada para el envío.";
+      const motivo = "Todavía no es la hora configurada para el envío.";
       return {
         corrio: false,
         motivo,

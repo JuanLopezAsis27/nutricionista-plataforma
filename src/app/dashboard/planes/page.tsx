@@ -59,7 +59,6 @@ export default function PaginaPlanes() {
   function abrirCarpeta(id: string | null) {
     setCarpetaId(id);
     setPaginaPlanes(1);
-    setPaginaPlantillas(1);
   }
 
   // Server-side, 10/página, y por tab (planes vs plantillas) por separado.
@@ -70,10 +69,14 @@ export default function PaginaPlanes() {
     pagina: paginaPlanes,
     porPagina: 10,
   });
+  // Las plantillas NO se filtran por carpeta: las carpetas son de los planes.
+  // Una plantilla es un molde del que se saca un plan, y esconderla dentro de
+  // la carpeta de un paciente la vuelve imposible de encontrar desde otro.
+  // `undefined` es "todas"; `null` sería "las que no están en ninguna carpeta".
   const consultaPlantillas = listarPaginado({
     esPlantilla: true,
     incluirArchivados: true,
-    grupoId: filtroCarpeta,
+    grupoId: undefined,
     pagina: paginaPlantillas,
     porPagina: 10,
   });
@@ -173,14 +176,16 @@ export default function PaginaPlanes() {
                 <UserPlus className="h-4 w-4" />
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              title="Mover a otra carpeta"
-              onClick={() => setPlanMover(plan)}
-            >
-              <FolderInput className="h-4 w-4" />
-            </Button>
+            {!esPestanaPlantillas && (
+              <Button
+                variant="ghost"
+                size="icon"
+                title="Mover a otra carpeta"
+                onClick={() => setPlanMover(plan)}
+              >
+                <FolderInput className="h-4 w-4" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -259,11 +264,7 @@ export default function PaginaPlanes() {
           </div>
 
           <TabsContent value="planes" className="space-y-4">
-            <NavegadorCarpetas
-              carpetaId={carpetaId}
-              onAbrir={abrirCarpeta}
-              esPlantilla={false}
-            />
+            <NavegadorCarpetas carpetaId={carpetaId} onAbrir={abrirCarpeta} />
             <TablaDatos
               columnas={columnas(false)}
               datos={planes}
@@ -280,21 +281,12 @@ export default function PaginaPlanes() {
             />
           </TabsContent>
           <TabsContent value="plantillas" className="space-y-4">
-            <NavegadorCarpetas
-              carpetaId={carpetaId}
-              onAbrir={abrirCarpeta}
-              esPlantilla
-            />
             <TablaDatos
               columnas={columnas(true)}
               datos={plantillas}
               obtenerClave={(plan) => plan.id}
               cargando={consultaPlantillas.isLoading}
-              mensajeVacio={
-                carpetaId
-                  ? "Esta carpeta no tiene plantillas."
-                  : "No hay plantillas sueltas."
-              }
+              mensajeVacio="Todavía no hay plantillas. Guardá un plan como plantilla para reutilizarlo."
               pagina={paginaPlantillas}
               totalPaginas={consultaPlantillas.data?.paginas ?? 1}
               onCambiarPagina={setPaginaPlantillas}

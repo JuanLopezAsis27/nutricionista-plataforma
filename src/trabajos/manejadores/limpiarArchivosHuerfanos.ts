@@ -1,6 +1,7 @@
 import type { PgBoss } from "pg-boss";
 import { servicioArchivo } from "@/infraestructura/contenedor/contenedor";
 import { ejecutarGlobal } from "@/infraestructura/multitenancy/contextoTenant";
+import { ZONA_HORARIA } from "../zonaHoraria";
 
 export const COLA_LIMPIAR_ARCHIVOS = "limpiar-archivos-huerfanos";
 
@@ -25,5 +26,7 @@ export async function registrarLimpiarArchivosHuerfanos(
   });
 
   // Domingos 04:00 (hora local del proceso; ver TZ en .env).
-  await boss.schedule(COLA_LIMPIAR_ARCHIVOS, "0 4 * * 0");
+  await boss.schedule(COLA_LIMPIAR_ARCHIVOS, "0 4 * * 0", undefined, {
+    tz: ZONA_HORARIA,
+  });
 }

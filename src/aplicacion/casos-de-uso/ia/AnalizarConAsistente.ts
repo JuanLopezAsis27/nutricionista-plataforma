@@ -6,13 +6,28 @@ import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio
 import type { IObjetivoRepositorio } from "@/dominio/repositorios/IObjetivoRepositorio";
 import type { IAlertaAlimentariaRepositorio } from "@/dominio/repositorios/IAlertaAlimentariaRepositorio";
 import type { IAsistenteAnalitico } from "@/dominio/servicios/IAsistenteAnalitico";
+import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
+import type { IConversacionIARepositorio } from "@/dominio/repositorios/IConversacionIARepositorio";
+import { ConversacionIA } from "@/dominio/entidades/ConversacionIA";
+import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 import type { HerramientaAsistente } from "@/dominio/servicios/IAsistenteNutricional";
 
 /** Resultado de una consulta analítica del nutricionista. */
 export interface RespuestaAnalisis {
+  /** La conversación donde quedó registrada (nueva o la que se continuaba). */
+  conversacionId: string;
   pregunta: string;
   respuesta: string;
 }
+
+/**
+ * Turnos que se le mandan al modelo como contexto.
+ *
+ * Se recorta porque la conversación entera viaja en CADA pregunta y se paga
+ * por token cada vez. Doce turnos son seis idas y vueltas, que es más de lo
+ * que dura una consulta analítica típica.
+ */
+const TURNOS_DE_CONTEXTO = 12;
 
 const SIN_ARGUMENTOS = {
   type: "object",
@@ -45,14 +60,72 @@ export class AnalizarConAsistente {
     private readonly objetivos: IObjetivoRepositorio,
     private readonly alertas: IAlertaAlimentariaRepositorio,
     private readonly asistente: IAsistenteAnalitico,
+    private readonly reloj: IRelojFecha,
+    private readonly conversaciones: IConversacionIARepositorio,
   ) {}
 
-  async ejecutar(pregunta: string): Promise<RespuestaAnalisis> {
-    const respuesta = await this.asistente.responder(
+  /**
+   * Responde una pregunta dentro de una conversación.
+   *
+   * Sin `conversacionId` abre una nueva; con él continúa la existente y le
+   * manda al modelo los turnos anteriores. La pregunta se guarda ANTES de
+   * llamar al modelo y la respuesta después: si el modelo falla, lo que el
+   * profesional escribió no se pierde.
+   */
+  async ejecutar(datos: {
+    pregunta: string;
+    conversacionId?: string | null;
+  }): Promise<RespuestaAnalisis> {
+    const pregunta = datos.pregunta?.trim() ?? "";
+    if (pregunta.length === 0) {
+      throw new ErrorValidacion("La consulta no puede estar vacía.");
+    }
+    const ahora = this.reloj.ahora();
+
+    let conversacion = datos.conversacionId
+      ? await this.conversaciones.obtenerPorId(datos.conversacionId)
+      : null;
+    if (!conversacion) {
+      conversacion = ConversacionIA.iniciar(
+        pregunta,
+        crypto.randomUUID(),
+        ahora,
+      );
+      await this.conversaciones.crear(conversacion);
+    }
+
+    const previos = conversacion.ultimosTurnos(TURNOS_DE_CONTEXTO);
+
+    conversacion = conversacion.agregar(
+      "USUARIO",
       pregunta,
-      this.construirHerramientas(),
+      crypto.randomUUID(),
+      ahora,
     );
-    return { pregunta, respuesta };
+    const mensajeUsuario = conversacion.mensajes.at(-1)!;
+    await this.conversaciones.agregarMensaje(conversacion.id, mensajeUsuario);
+
+    const respuesta = await this.asistente.responder(
+      [
+        ...previos.map((m) => ({
+          rol:
+            m.rol === "USUARIO" ? ("usuario" as const) : ("asistente" as const),
+          texto: m.contenido,
+        })),
+        { rol: "usuario" as const, texto: pregunta },
+      ],
+      this.construirHerramientas(),
+      this.reloj.ahora(),
+    );
+
+    await this.conversaciones.agregarMensaje(conversacion.id, {
+      id: crypto.randomUUID(),
+      rol: "ASISTENTE",
+      contenido: respuesta,
+      creadoEn: this.reloj.ahora(),
+    });
+
+    return { conversacionId: conversacion.id, pregunta, respuesta };
   }
 
   private construirHerramientas(): HerramientaAsistente[] {
@@ -96,13 +169,7 @@ export class AnalizarConAsistente {
           ]);
           return JSON.stringify({
             paciente: paciente.nombreCompleto,
-            planActivo: plan
-              ? {
-                  nombre: plan.aPrimitivos().nombre,
-                  caloriasMeta: plan.aPrimitivos().caloriasMeta,
-                  comidas: plan.aPrimitivos().comidas.map((c) => c.nombre),
-                }
-              : null,
+            planActivo: plan ? detallePlan(plan.aPrimitivos()) : null,
             objetivos: objetivos.map((o) => {
               const d = o.aPrimitivos();
               return {
@@ -133,11 +200,39 @@ export class AnalizarConAsistente {
                 id: d.id,
                 nombre: d.nombre,
                 esPlantilla: d.esPlantilla,
+                modalidad: d.modalidad,
                 caloriasMeta: d.caloriasMeta,
                 proteinasMetaG: d.proteinasMetaG,
+                carbohidratosMetaG: d.carbohidratosMetaG,
+                grasasMetaG: d.grasasMetaG,
+                // El detalle de las comidas se pide con `detalle_de_plan`:
+                // mandar todas las franjas de 200 planes desborda el contexto.
+                cantidadComidas: d.comidas.length,
               };
             }),
           );
+        },
+      },
+      {
+        nombre: "detalle_de_plan",
+        descripcion:
+          "Devuelve UN plan o plantilla completo: sus franjas horarias con TODAS las opciones de " +
+          "comida, las metas de macros y las recomendaciones. Usalo siempre que pregunten qué " +
+          "come alguien, qué tiene un plan o para comparar el contenido de dos planes. " +
+          "Requiere el id (obtenelo con listar_planes).",
+        esquema: {
+          type: "object",
+          properties: {
+            planId: { type: "string", description: "id del plan o plantilla" },
+          },
+          required: ["planId"],
+          additionalProperties: false,
+        },
+        ejecutar: async (args) => {
+          const planId = typeof args.planId === "string" ? args.planId : "";
+          const plan = await this.planes.obtenerPorId(planId);
+          if (!plan) return "No existe un plan con ese id.";
+          return JSON.stringify(detallePlan(plan.aPrimitivos()));
         },
       },
       {
@@ -176,8 +271,12 @@ export class AnalizarConAsistente {
           const nombrePorId = new Map(
             pacientes.map((p) => [p.aPrimitivos().id, p.nombreCompleto]),
           );
-          const inicioHoy = new Date();
-          inicioHoy.setHours(0, 0, 0, 0);
+          // `Turno.fecha` es un DATE que llega como MEDIANOCHE UTC. Comparar
+          // contra la medianoche LOCAL dejaba afuera los turnos de hoy: en
+          // Argentina (UTC-3) la medianoche local de hoy son las 03:00 UTC, y
+          // el turno de hoy (00:00 UTC) quedaba "antes de hoy". Por eso el
+          // asistente decía que no había turnos hoy cuando sí los había.
+          const inicioHoy = this.reloj.hoy();
 
           const proximos = [...pendientes, ...confirmados]
             .map((t) => t.aPrimitivos())
@@ -199,4 +298,42 @@ export class AnalizarConAsistente {
       },
     ];
   }
+}
+
+/** Plan con sus franjas y opciones, que es lo que se pregunta de un plan. */
+function detallePlan(d: {
+  nombre: string;
+  descripcion: string | null;
+  caloriasMeta: number | null;
+  proteinasMetaG: number | null;
+  carbohidratosMetaG: number | null;
+  grasasMetaG: number | null;
+  comidas: {
+    nombre: string;
+    horaDesde: string | null;
+    horaHasta: string | null;
+    opciones: { contenido: string }[];
+  }[];
+  recomendaciones: { texto: string }[];
+}) {
+  return {
+    nombre: d.nombre,
+    descripcion: d.descripcion,
+    metas: {
+      caloriasMeta: d.caloriasMeta,
+      proteinasMetaG: d.proteinasMetaG,
+      carbohidratosMetaG: d.carbohidratosMetaG,
+      grasasMetaG: d.grasasMetaG,
+    },
+    // Las OPCIONES de cada franja son el contenido real del plan. Antes acá
+    // iba solo `c.nombre` —"Desayuno", "Almuerzo"—, así que el asistente no
+    // podía decir qué come el paciente por más que se lo preguntaran.
+    comidas: d.comidas.map((c) => ({
+      franja: c.nombre,
+      desde: c.horaDesde,
+      hasta: c.horaHasta,
+      opciones: c.opciones.map((o) => o.contenido),
+    })),
+    recomendaciones: d.recomendaciones.map((r) => r.texto),
+  };
 }

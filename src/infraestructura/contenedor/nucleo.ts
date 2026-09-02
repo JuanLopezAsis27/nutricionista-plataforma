@@ -22,6 +22,8 @@ import { PrismaRepositorioUsuario } from "@/infraestructura/repositorios/PrismaR
 import { PrismaRepositorioTokenRecuperacion } from "@/infraestructura/repositorios/PrismaRepositorioTokenRecuperacion";
 import { PrismaRepositorioArchivo } from "@/infraestructura/repositorios/PrismaRepositorioArchivo";
 import { PrismaRepositorioHistoriaClinica } from "@/infraestructura/repositorios/PrismaRepositorioHistoriaClinica";
+import { PrismaRepositorioCampoHistoriaClinica } from "@/infraestructura/repositorios/PrismaRepositorioCampoHistoriaClinica";
+import { PrismaRepositorioConversacionIA } from "@/infraestructura/repositorios/PrismaRepositorioConversacionIA";
 import { PrismaRepositorioAntropometria } from "@/infraestructura/repositorios/PrismaRepositorioAntropometria";
 import { PrismaRepositorioObjetivoComposicion } from "@/infraestructura/repositorios/PrismaRepositorioObjetivoComposicion";
 import { PrismaRepositorioPlantillaAntropometrica } from "@/infraestructura/repositorios/PrismaRepositorioPlantillaAntropometrica";
@@ -76,6 +78,7 @@ import { AsistenteAnaliticoClaude } from "@/infraestructura/ia/AsistenteAnalitic
 import { AsistenteAnaliticoStub } from "@/infraestructura/ia/AsistenteAnaliticoStub";
 import { AnalisisComidaIAClaude } from "@/infraestructura/ia/AnalisisComidaIAClaude";
 import { InterpretadorHistoriaClinicaLLM } from "@/infraestructura/ia/InterpretadorHistoriaClinicaLLM";
+import { InterpretadorFichaPacienteLLM } from "@/infraestructura/ia/InterpretadorFichaPacienteLLM";
 import { ResolvedorConfigIA } from "@/infraestructura/ia/ResolvedorConfigIA";
 import { ResolvedorTranscripcion } from "@/infraestructura/ia/ResolvedorTranscripcion";
 import { ResumidorConsultaLLM } from "@/infraestructura/ia/ResumidorConsultaLLM";
@@ -150,6 +153,12 @@ export const repositorioArchivo = perezoso(
 );
 export const repositorioHistoriaClinica = perezoso(
   () => new PrismaRepositorioHistoriaClinica(prisma()),
+);
+export const repositorioCampoHistoriaClinica = perezoso(
+  () => new PrismaRepositorioCampoHistoriaClinica(prisma()),
+);
+export const repositorioConversacionIA = perezoso(
+  () => new PrismaRepositorioConversacionIA(prisma()),
 );
 export const repositorioAntropometria = perezoso(
   () => new PrismaRepositorioAntropometria(prisma()),
@@ -358,9 +367,14 @@ export const analisisComidaIA = perezoso(() => {
   return new AnalisisComidaIAClaude(resolvedorIA(), almacenamiento(), respaldo);
 });
 
-/** Sugiere los campos de la historia clínica a partir de una foto del documento. */
+/** Sugiere los campos de la historia clínica a partir del documento subido. */
 export const interpretadorHistoriaClinica = perezoso(
   () => new InterpretadorHistoriaClinicaLLM(resolvedorIA(), almacenamiento()),
+);
+
+/** Lee la ficha de un paciente nuevo (PDF, Word o foto) para precargar el alta. */
+export const interpretadorFichaPaciente = perezoso(
+  () => new InterpretadorFichaPacienteLLM(resolvedorIA(), almacenamiento()),
 );
 
 /** El análisis predictivo del nutricionista lo sirve el ML. */

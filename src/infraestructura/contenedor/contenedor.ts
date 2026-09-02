@@ -76,6 +76,13 @@ export const servicioPaciente = perezoso(() =>
     // del paciente a E.164 al darlo de alta o editarlo.
     configuracion: nucleo.repositorioConfiguracion(),
     nombreProfesional: nucleo.NOMBRE_PROFESIONAL,
+    historias: nucleo.repositorioHistoriaClinica(),
+    camposHistoria: nucleo.repositorioCampoHistoriaClinica(),
+    alertas: nucleo.repositorioAlertaAlimentaria(),
+    antropometrias: nucleo.repositorioAntropometria(),
+    laboratorios: nucleo.repositorioLaboratorio(),
+    archivos: nucleo.repositorioArchivo(),
+    interpretadorFicha: nucleo.interpretadorFichaPaciente(),
   }),
 );
 
@@ -148,6 +155,7 @@ export const servicioEvaluacion = perezoso(() =>
     pacientes: nucleo.repositorioPaciente(),
     almacenamiento: nucleo.almacenamiento(),
     interpretadorHistoriaClinica: nucleo.interpretadorHistoriaClinica(),
+    camposHistoria: nucleo.repositorioCampoHistoriaClinica(),
   }),
 );
 
@@ -356,6 +364,8 @@ export const servicioIA = perezoso(() =>
     analisisComida: nucleo.analisisComidaIA(),
     analisisPredictivo: nucleo.analisisPredictivo(),
     retroalimentacion: nucleo.repositorioRetroalimentacion(),
+    conversaciones: nucleo.repositorioConversacionIA(),
+    reloj: nucleo.reloj(),
     estado: {
       asistenteActivo: () => nucleo.tieneIA(),
       insightsActivo: nucleo.hayML(),

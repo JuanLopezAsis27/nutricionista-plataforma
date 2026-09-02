@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useCallback, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Pencil,
@@ -66,12 +66,36 @@ export default function PaginaDetallePaciente() {
   // La pestaña de antropometría manda acá con ?editar=1 cuando falta el sexo
   // biológico del paciente: abrir la ficha ya editando ahorra un clic ciego.
   const buscar = useSearchParams();
+  const router = useRouter();
 
   const { obtenerPorId } = usePacientes();
   const { porPaciente } = useTurnos();
   const { delPaciente, desasignar } = usePlanes();
 
-  const [editar, setEditar] = useState(buscar.get("editar") === "1");
+  /**
+   * El diálogo de edición se lee de la URL, NO de un `useState` inicializado
+   * con ella.
+   *
+   * "Completar ficha" (pestaña Antropometría) es un Link a ESTA MISMA ruta con
+   * ?editar=1. Next no remonta la página al cambiar solo la query, así que el
+   * inicializador de `useState` no vuelve a correr nunca: el botón cambiaba la
+   * URL y no abría nada. Derivándolo de `useSearchParams` —que sí re-renderiza
+   * al cambiar la query— el enlace funciona, y de paso el diálogo abierto queda
+   * en el historial.
+   */
+  const editar = buscar.get("editar") === "1";
+  const setEditar = useCallback(
+    (abierto: boolean) => {
+      router.replace(
+        abierto
+          ? `/dashboard/pacientes/${id}?editar=1`
+          : `/dashboard/pacientes/${id}`,
+        // Sin esto, cerrar el diálogo saltaría al tope de la ficha.
+        { scroll: false },
+      );
+    },
+    [router, id],
+  );
   const [confirmarDesasignar, setConfirmarDesasignar] = useState(false);
   // Turno y plan se resuelven DESDE la ficha: son las dos cosas que se deciden
   // con el paciente delante, y mandarlas a otra pantalla obligaba a volver a

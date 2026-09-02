@@ -22,10 +22,15 @@ import { SIN_CARPETA, type DatosFormulario } from "./esquema";
 interface Props {
   control: Control<DatosFormulario>;
   grupos: { id: string; nombre: string }[];
+  /**
+   * Las carpetas son de los planes. Una PLANTILLA es un molde del que se saca
+   * un plan y no vive en ninguna carpeta, así que ahí el campo no se muestra.
+   */
+  conCarpeta: boolean;
 }
 
-/** Nombre, descripción y carpeta. Van en las dos modalidades de plan. */
-export function SeccionDatosGenerales({ control, grupos }: Props) {
+/** Nombre, descripción y —salvo en plantillas— carpeta. */
+export function SeccionDatosGenerales({ control, grupos, conCarpeta }: Props) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <FormField
@@ -54,33 +59,35 @@ export function SeccionDatosGenerales({ control, grupos }: Props) {
           </FormItem>
         )}
       />
-      <FormField
-        control={control}
-        name="grupoId"
-        render={({ field }) => (
-          <FormItem className="sm:col-span-2">
-            <FormLabel>Carpeta</FormLabel>
-            <Select value={field.value} onValueChange={field.onChange}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {/* Estar suelto es una opción, no la ausencia de una: por eso
+      {conCarpeta && (
+        <FormField
+          control={control}
+          name="grupoId"
+          render={({ field }) => (
+            <FormItem className="sm:col-span-2">
+              <FormLabel>Carpeta</FormLabel>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {/* Estar suelto es una opción, no la ausencia de una: por eso
                     el sentinela y no un value vacío. */}
-                <SelectItem value={SIN_CARPETA}>Sin carpeta</SelectItem>
-                {grupos.map((grupo) => (
-                  <SelectItem key={grupo.id} value={grupo.id}>
-                    {grupo.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+                  <SelectItem value={SIN_CARPETA}>Sin carpeta</SelectItem>
+                  {grupos.map((grupo) => (
+                    <SelectItem key={grupo.id} value={grupo.id}>
+                      {grupo.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
     </div>
   );
 }

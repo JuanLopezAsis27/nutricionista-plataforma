@@ -1,6 +1,14 @@
 import { z } from "zod";
 import { passwordNuevaDto } from "./password";
 import { SEXOS_BIOLOGICOS } from "@/dominio/servicios/composicionCorporal";
+import {
+  TIPOS_ALERTA_ALIMENTARIA,
+  SEVERIDADES_ALERTA,
+} from "@/dominio/entidades/AlertaAlimentaria";
+import {
+  campoPersonalizadoHistoriaDto,
+  medidasAntropometricasDto,
+} from "./evaluacion.dto";
 
 /**
  * DTOs de Paciente — esquemas Zod de entrada/salida.
@@ -83,4 +91,106 @@ export interface PacientesPaginados {
   pacientes: PacienteSalidaDto[];
   total: number;
   paginas: number;
+}
+
+// --- Alta desde un documento (ficha en PDF, Word o foto) ----------------------
+
+/** Lee la ficha ya subida. El archivo todavía no tiene dueño: no hay paciente. */
+export const interpretarFichaPacienteDto = z.object({
+  archivoId: z.string().min(1),
+});
+export type InterpretarFichaPacienteDto = z.infer<
+  typeof interpretarFichaPacienteDto
+>;
+
+const alertaSugeridaDto = z.object({
+  tipo: z.enum(TIPOS_ALERTA_ALIMENTARIA),
+  descripcion: z.string().min(1).max(300),
+  severidad: z.enum(SEVERIDADES_ALERTA),
+  notas: z.string().max(1000).nullable(),
+});
+
+const laboratorioSugeridoDto = z.object({
+  /** ISO `YYYY-MM-DD`, o null si el documento no la traía legible. */
+  fecha: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable(),
+  titulo: z.string().min(1).max(200),
+  notas: z.string().max(5000).nullable(),
+});
+
+const antropometriaSugeridaDto = medidasAntropometricasDto.extend({
+  fecha: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable(),
+});
+
+/**
+ * Lo que la IA reconoció en el documento. Nada de esto está guardado: es lo
+ * que precarga el formulario de alta para que el profesional lo revise.
+ *
+ * Todos los datos del paciente son nullable —incluido el email, que la entidad
+ * exige— porque una ficha en papel casi nunca lo trae y quien lo completa es
+ * el profesional.
+ */
+export const fichaPacienteSugeridaDto = z.object({
+  paciente: z.object({
+    nombre: z.string().nullable(),
+    apellido: z.string().nullable(),
+    email: z.string().nullable(),
+    telefono: z.string().nullable(),
+    fechaNacimiento: z.string().nullable(),
+    sexo: z.enum(SEXOS_BIOLOGICOS).nullable(),
+    notas: z.string().nullable(),
+  }),
+  historiaClinica: z.object({
+    motivoConsulta: z.string().nullable(),
+    diagnosticos: z.string().nullable(),
+    medicacion: z.string().nullable(),
+    antecedentesPersonales: z.string().nullable(),
+    antecedentesFamiliares: z.string().nullable(),
+    habitos: z.string().nullable(),
+    contexto: z.string().nullable(),
+  }),
+  camposPersonalizados: z.array(campoPersonalizadoHistoriaDto),
+  alertas: z.array(alertaSugeridaDto),
+  antropometria: antropometriaSugeridaDto.nullable(),
+  laboratorios: z.array(laboratorioSugeridoDto),
+});
+export type FichaPacienteSugeridaDto = z.infer<typeof fichaPacienteSugeridaDto>;
+
+/**
+ * Alta confirmada por el profesional: el paciente con su cuenta, más los
+ * registros asociados que decidió conservar de lo que trajo el documento.
+ */
+export const crearPacienteDesdeFichaDto = crearPacienteConAccesoDto.extend({
+  historiaClinica: z
+    .object({
+      motivoConsulta: z.string().max(5000).nullable(),
+      diagnosticos: z.string().max(5000).nullable(),
+      medicacion: z.string().max(5000).nullable(),
+      antecedentesPersonales: z.string().max(5000).nullable(),
+      antecedentesFamiliares: z.string().max(5000).nullable(),
+      habitos: z.string().max(5000).nullable(),
+      contexto: z.string().max(5000).nullable(),
+      camposPersonalizados: z.array(campoPersonalizadoHistoriaDto).default([]),
+    })
+    .optional()
+    .nullable(),
+  alertas: z.array(alertaSugeridaDto).max(50).default([]),
+  antropometria: antropometriaSugeridaDto.optional().nullable(),
+  laboratorios: z.array(laboratorioSugeridoDto).max(50).default([]),
+  /** El documento leído, para que quede archivado en la ficha del paciente. */
+  archivoId: z.string().min(1).optional().nullable(),
+});
+export type CrearPacienteDesdeFichaDto = z.infer<
+  typeof crearPacienteDesdeFichaDto
+>;
+
+/** El paciente creado más lo que no se pudo guardar, para avisar en pantalla. */
+export interface AltaDesdeFichaSalidaDto {
+  paciente: PacienteSalidaDto;
+  advertencias: string[];
 }

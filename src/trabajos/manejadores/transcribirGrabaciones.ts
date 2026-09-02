@@ -5,6 +5,7 @@ import {
   ejecutarEnNutricionista,
 } from "@/infraestructura/multitenancy/contextoTenant";
 import { COLA_TRANSCRIBIR_GRABACION } from "@/aplicacion/casos-de-uso/grabaciones/RegistrarGrabacion";
+import { ZONA_HORARIA } from "../zonaHoraria";
 
 /** Cola del barrido que rescata las grabaciones que quedaron colgadas. */
 export const COLA_RESCATE_GRABACIONES = "rescatar-grabaciones";
@@ -84,7 +85,9 @@ export async function registrarTranscribirGrabaciones(
     }
   });
 
-  await boss.schedule(COLA_RESCATE_GRABACIONES, "*/10 * * * *");
+  await boss.schedule(COLA_RESCATE_GRABACIONES, "*/10 * * * *", undefined, {
+    tz: ZONA_HORARIA,
+  });
 }
 
 /** Resuelve el consultorio de la grabación y la transcribe en su alcance. */

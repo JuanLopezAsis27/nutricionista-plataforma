@@ -196,6 +196,14 @@ La pantalla de planes es un explorador, no un desplegable de filtro:
   paso de "crearlo y después moverlo";
 - cada plan tiene un botón **Mover** que abre solo el selector de carpeta.
 
+**Las carpetas son de los PLANES: las plantillas no viven en carpetas.** No hay
+navegador de carpetas en la pestaña de plantillas, la lista las muestra todas,
+el formulario no ofrece el campo Carpeta cuando se está creando una plantilla y
+la acción Mover no aparece. Una plantilla es un molde del que se saca un plan;
+guardarla dentro de la carpeta de un paciente la vuelve imposible de encontrar
+desde cualquier otro, que es lo contrario de para qué existe. Las carpetas
+ordenan el trabajo con UN paciente; las plantillas son transversales a todos.
+
 Es deliberado que se parezca a un explorador de archivos: «guardar el plan de
 Julia en la carpeta de Julia» es una idea espacial. Un desplegable no da la
 sensación de haber entrado a ningún lado, y peor, **nada indica que la carpeta

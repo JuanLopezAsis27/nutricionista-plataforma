@@ -159,12 +159,27 @@ export class ConfiguracionRecordatorios {
   }
 
   /**
-   * Si al barrido le toca correr a esta hora. El despachador pasa cada hora en
-   * punto, así que se compara la hora y no el minuto; que un barrido de más no
-   * duplique nada lo garantiza la idempotencia del envío, no esta condición.
+   * Si al barrido le toca correr en esta pasada: ya pasó la hora de envío de
+   * HOY.
+   *
+   * Es `>=`, no `===`, y la diferencia es la que hace que la función sirva.
+   * Comparando por igualdad, el barrido solo salía si el worker estaba vivo
+   * justo en esa hora: un worker que arrancaba 10:30 se perdía la pasada de
+   * las 10:05, la de las 11:05 respondía "no es la hora" y ese consultorio se
+   * quedaba sin recordatorios TODO el día, sin ningún error a la vista.
+   *
+   * Correr de más no duplica nada: los dos medios son idempotentes por
+   * escalón —WhatsApp por el índice único (turno, diasAntes) y el email por la
+   * unicidad de `emails_enviados`—, que es lo mismo que ya permitía a pg-boss
+   * reintentar un inquilino fallido.
+   *
+   * Se comparan HORA Y MINUTO: con `horaEnvio` 10:30 la pasada de las 10:05 no
+   * corresponde todavía y sale en la de las 11:05.
    */
-  correspondeALaHora(ahora: Date): boolean {
-    return Number(this.props.horaEnvio.slice(0, 2)) === ahora.getHours();
+  yaEsHoraDeEnviar(ahora: Date): boolean {
+    const [hora, minuto] = this.props.horaEnvio.split(":").map(Number);
+    const configurado = (hora ?? 0) * 60 + (minuto ?? 0);
+    return ahora.getHours() * 60 + ahora.getMinutes() >= configurado;
   }
 
   /**

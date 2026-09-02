@@ -19,6 +19,8 @@ import {
   idObjetivoComposicionDto,
   guardarPlantillaAntropometricaDto,
   idPlantillaAntropometricaDto,
+  guardarCampoHistoriaClinicaDto,
+  idCampoHistoriaClinicaDto,
 } from "@/aplicacion/dtos/evaluacion.dto";
 import { z } from "zod";
 
@@ -57,6 +59,27 @@ export const routerEvaluacion = crearRouter({
       return await ctx.servicios.evaluacion.historiaClinica.interpretarDesdeArchivo(
         input,
       );
+    }),
+
+  /**
+   * Campos personalizados que el consultorio agrega a la historia clínica.
+   * Son del inquilino, no de un paciente: no llevan pacienteId.
+   */
+  obtenerCamposHistoria: nutricionistaProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.evaluacion.historiaClinica.obtenerCampos();
+  }),
+
+  guardarCampoHistoria: nutricionistaProcedimiento
+    .input(guardarCampoHistoriaClinicaDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.evaluacion.historiaClinica.guardarCampo(input);
+    }),
+
+  eliminarCampoHistoria: nutricionistaProcedimiento
+    .input(idCampoHistoriaClinicaDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.evaluacion.historiaClinica.eliminarCampo(input.id);
+      return { eliminado: true };
     }),
 
   // --- Antropometría ----------------------------------------------------------

@@ -8,9 +8,13 @@ import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoReposit
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamientoArchivos";
 import type { IInterpretadorHistoriaClinica } from "@/dominio/servicios/IInterpretadorHistoriaClinica";
+import type { ICampoHistoriaClinicaRepositorio } from "@/dominio/repositorios/ICampoHistoriaClinicaRepositorio";
 import { GuardarHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/GuardarHistoriaClinica";
 import { ObtenerHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerHistoriaClinica";
 import { InterpretarHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/InterpretarHistoriaClinica";
+import { ObtenerCamposHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerCamposHistoriaClinica";
+import { GuardarCampoHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/GuardarCampoHistoriaClinica";
+import { EliminarCampoHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/EliminarCampoHistoriaClinica";
 import { RegistrarAntropometria } from "@/aplicacion/casos-de-uso/evaluacion/RegistrarAntropometria";
 import { ActualizarAntropometria } from "@/aplicacion/casos-de-uso/evaluacion/ActualizarAntropometria";
 import { EliminarAntropometria } from "@/aplicacion/casos-de-uso/evaluacion/EliminarAntropometria";
@@ -47,6 +51,7 @@ export function crearServicioEvaluacion(deps: {
   pacientes: IPacienteRepositorio;
   almacenamiento: IAlmacenamientoArchivos;
   interpretadorHistoriaClinica: IInterpretadorHistoriaClinica;
+  camposHistoria: ICampoHistoriaClinicaRepositorio;
 }): ServicioEvaluacion {
   // Cada servicio recibe SOLO los casos de uso de su subdominio. Antes esto
   // era una sola lista de 20 argumentos posicionales, donde invertir dos del
@@ -60,6 +65,9 @@ export function crearServicioEvaluacion(deps: {
         deps.archivos,
         deps.pacientes,
       ),
+      new ObtenerCamposHistoriaClinica(deps.camposHistoria),
+      new GuardarCampoHistoriaClinica(deps.camposHistoria),
+      new EliminarCampoHistoriaClinica(deps.camposHistoria),
     ),
     new ServicioAntropometria(
       new RegistrarAntropometria(deps.antropometrias, deps.pacientes),

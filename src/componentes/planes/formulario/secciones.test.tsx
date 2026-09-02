@@ -110,6 +110,7 @@ describe("SeccionDatosGenerales", () => {
           <SeccionDatosGenerales
             control={form.control}
             grupos={[{ id: "g-1", nombre: "Descenso" }]}
+            conCarpeta
           />
         )}
       </Envoltorio>,
@@ -119,6 +120,27 @@ describe("SeccionDatosGenerales", () => {
     // `getAllByText` y no `getByText`: Radix pinta el valor elegido en el
     // trigger Y en la lista, así que "Sin carpeta" aparece dos veces en el DOM.
     expect(screen.getAllByText("Sin carpeta").length).toBeGreaterThan(0);
+  });
+
+  it("no muestra la carpeta en una plantilla", () => {
+    // Las carpetas son de los planes: una plantilla es un molde del que se saca
+    // un plan y esconderla en la carpeta de un paciente la vuelve imposible de
+    // encontrar desde otro.
+    render(
+      <Envoltorio>
+        {(form) => (
+          <SeccionDatosGenerales
+            control={form.control}
+            grupos={[{ id: "g-1", nombre: "Descenso" }]}
+            conCarpeta={false}
+          />
+        )}
+      </Envoltorio>,
+    );
+
+    expect(screen.getByLabelText("Nombre del plan")).toBeInTheDocument();
+    expect(screen.queryByText("Sin carpeta")).not.toBeInTheDocument();
+    expect(screen.queryByText("Descenso")).not.toBeInTheDocument();
   });
 });
 

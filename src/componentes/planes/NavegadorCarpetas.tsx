@@ -12,8 +12,6 @@ interface Props {
   /** Carpeta abierta, o null en la raíz. */
   carpetaId: string | null;
   onAbrir: (carpetaId: string | null) => void;
-  /** Qué se está listando: decide qué número muestra cada carpeta. */
-  esPlantilla: boolean;
 }
 
 /**
@@ -21,12 +19,14 @@ interface Props {
  *
  * El dibujo y la interacción viven en `comunes/NavegadorCarpetas`, que también
  * usa el recetario. Acá queda lo único propio de los planes: de dónde salen las
- * carpetas y qué número muestra cada una, que depende de si la pestaña está
- * listando planes o plantillas —una carpeta con 3 planes y ninguna plantilla
- * tiene que verse vacía en la pestaña de plantillas, no decir «3» y abrirse sin
- * nada—.
+ * carpetas.
+ *
+ * Las carpetas son SOLO de los planes. Las plantillas no se guardan en carpetas
+ * —son moldes de los que se saca un plan, y meterlas en la carpeta de un
+ * paciente las vuelve imposibles de encontrar desde otro—, así que el número de
+ * cada carpeta es siempre el de planes.
  */
-export function NavegadorCarpetas({ carpetaId, onAbrir, esPlantilla }: Props) {
+export function NavegadorCarpetas({ carpetaId, onAbrir }: Props) {
   const {
     grupos: listarGrupos,
     crearGrupo,
@@ -39,7 +39,7 @@ export function NavegadorCarpetas({ carpetaId, onAbrir, esPlantilla }: Props) {
     id: carpeta.id,
     nombre: carpeta.nombre,
     descripcion: carpeta.descripcion,
-    cantidad: esPlantilla ? carpeta.cantidadPlantillas : carpeta.cantidadPlanes,
+    cantidad: carpeta.cantidadPlanes,
   }));
 
   return (
@@ -48,8 +48,8 @@ export function NavegadorCarpetas({ carpetaId, onAbrir, esPlantilla }: Props) {
       cargando={consulta.isLoading}
       carpetaId={carpetaId}
       onAbrir={onAbrir}
-      singular={esPlantilla ? "plantilla" : "plan"}
-      plural={esPlantilla ? "plantillas" : "planes"}
+      singular="plan"
+      plural="planes"
       ejemplos="Julia Pérez, Descenso, Deportistas…"
       guardando={crearGrupo.isPending || actualizarGrupo.isPending}
       eliminando={eliminarGrupo.isPending}

@@ -3,6 +3,7 @@ import type {
   IProveedorLLM,
   OpcionesLLM,
   OpcionesConversacion,
+  EsfuerzoLLM,
 } from "./IProveedorLLM";
 import { extraerTexto } from "./respuestaClaude";
 import { ejecutarHerramientaSegura } from "./herramientas";
@@ -14,6 +15,17 @@ const MIMES: ReadonlyArray<string> = [
   "image/gif",
   "image/webp",
 ];
+
+/**
+ * `output_config.effort` de Anthropic, por nivel del puerto. Los valores son
+ * los de la API (low | medium | high | xhigh | max); el puerto no los nombra
+ * así para no atar el dominio al vocabulario de un proveedor.
+ */
+const EFFORT: Record<EsfuerzoLLM, "low" | "medium" | "high"> = {
+  bajo: "low",
+  medio: "medium",
+  alto: "high",
+};
 
 /** Proveedor LLM con la API de Anthropic (Claude directo). */
 export class ProveedorLLMAnthropic implements IProveedorLLM {
@@ -52,7 +64,7 @@ export class ProveedorLLMAnthropic implements IProveedorLLM {
       max_tokens: opts.maxTokens,
       thinking: { type: "adaptive" },
       output_config: {
-        effort: "low",
+        effort: EFFORT[opts.esfuerzo ?? "bajo"],
         ...(opts.esquemaJson
           ? {
               format: {
@@ -78,15 +90,21 @@ export class ProveedorLLMAnthropic implements IProveedorLLM {
       description: h.descripcion,
       input_schema: h.esquema as Anthropic.Messages.Tool.InputSchema,
     }));
-    const messages: Anthropic.Messages.MessageParam[] = [
-      { role: "user", content: opts.pregunta },
-    ];
+    const messages: Anthropic.Messages.MessageParam[] = opts.mensajes.map(
+      (turno) => ({
+        role:
+          turno.rol === "usuario" ? ("user" as const) : ("assistant" as const),
+        content: turno.texto,
+      }),
+    );
     const maxIteraciones = opts.maxIteraciones ?? 4;
 
     for (let i = 0; i < maxIteraciones; i++) {
       const respuesta = await this.cliente.messages.create({
         model: this.modelo,
         max_tokens: opts.maxTokens,
+        thinking: { type: "adaptive" },
+        output_config: { effort: EFFORT[opts.esfuerzo ?? "bajo"] },
         system: opts.system,
         messages,
         tools,

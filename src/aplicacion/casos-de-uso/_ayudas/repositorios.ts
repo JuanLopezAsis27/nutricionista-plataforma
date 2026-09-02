@@ -5,6 +5,8 @@ import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioReposit
 import type { ITokenRecuperacionRepositorio } from "@/dominio/repositorios/ITokenRecuperacionRepositorio";
 import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
 import type { IHistoriaClinicaRepositorio } from "@/dominio/repositorios/IHistoriaClinicaRepositorio";
+import type { ICampoHistoriaClinicaRepositorio } from "@/dominio/repositorios/ICampoHistoriaClinicaRepositorio";
+import type { IConversacionIARepositorio } from "@/dominio/repositorios/IConversacionIARepositorio";
 import type { IAntropometriaRepositorio } from "@/dominio/repositorios/IAntropometriaRepositorio";
 import type { IObjetivoComposicionRepositorio } from "@/dominio/repositorios/IObjetivoComposicionRepositorio";
 import type { IPlantillaAntropometricaRepositorio } from "@/dominio/repositorios/IPlantillaAntropometricaRepositorio";
@@ -49,6 +51,7 @@ import { Usuario } from "@/dominio/entidades/Usuario";
 import { TokenRecuperacion } from "@/dominio/entidades/TokenRecuperacion";
 import { Archivo } from "@/dominio/entidades/Archivo";
 import { HistoriaClinica } from "@/dominio/entidades/HistoriaClinica";
+import type { CampoHistoriaClinica } from "@/dominio/entidades/CampoHistoriaClinica";
 import { Antropometria } from "@/dominio/entidades/Antropometria";
 import { AlertaAlimentaria } from "@/dominio/entidades/AlertaAlimentaria";
 import { Laboratorio } from "@/dominio/entidades/Laboratorio";
@@ -173,6 +176,33 @@ export function mockHistoriaClinicaRepositorio(
   return {
     guardar: vi.fn(async (h: HistoriaClinica) => h),
     obtenerPorPaciente: vi.fn(async () => null),
+    ...parcial,
+  };
+}
+
+export function mockConversacionIARepositorio(
+  parcial: Partial<IConversacionIARepositorio> = {},
+): IConversacionIARepositorio {
+  return {
+    crear: vi.fn(async () => {}),
+    agregarMensaje: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    listar: vi.fn(async () => []),
+    eliminar: vi.fn(async () => {}),
+    ...parcial,
+  };
+}
+
+export function mockCampoHistoriaClinicaRepositorio(
+  parcial: Partial<ICampoHistoriaClinicaRepositorio> = {},
+): ICampoHistoriaClinicaRepositorio {
+  return {
+    obtenerTodos: vi.fn(async () => []),
+    obtenerPorId: vi.fn(async () => null),
+    obtenerPorNombre: vi.fn(async () => null),
+    crear: vi.fn(async (c: CampoHistoriaClinica) => c),
+    actualizar: vi.fn(async (c: CampoHistoriaClinica) => c),
+    eliminar: vi.fn(async () => {}),
     ...parcial,
   };
 }

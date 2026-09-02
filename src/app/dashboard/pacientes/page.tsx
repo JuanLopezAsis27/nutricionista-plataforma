@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Plus, Eye, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Eye, Pencil, Trash2, Search, FileUp } from "lucide-react";
 import type { PacienteSalidaDto } from "@/aplicacion/dtos/paciente.dto";
 import { usePacientes } from "@/lib/hooks/usePacientes";
 import { useDebounce } from "@/lib/hooks/useDebounce";
@@ -21,6 +21,7 @@ import {
 } from "@/componentes/comunes/TablaDatos";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { FormularioPaciente } from "@/componentes/pacientes/FormularioPaciente";
+import { AltaPacienteDesdeDocumento } from "@/componentes/pacientes/AltaPacienteDesdeDocumento";
 
 const POR_PAGINA = 10;
 
@@ -36,6 +37,7 @@ export default function PaginaPacientes() {
     useState<PacienteSalidaDto | null>(null);
   const [pacienteEliminar, setPacienteEliminar] =
     useState<PacienteSalidaDto | null>(null);
+  const [documentoAbierto, setDocumentoAbierto] = useState(false);
 
   const consulta = listar({
     pagina,
@@ -121,10 +123,16 @@ export default function PaginaPacientes() {
             }}
           />
         </div>
-        <Button onClick={abrirNuevo}>
-          <Plus className="h-4 w-4" />
-          Nuevo paciente
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setDocumentoAbierto(true)}>
+            <FileUp className="h-4 w-4" />
+            Desde documento
+          </Button>
+          <Button onClick={abrirNuevo}>
+            <Plus className="h-4 w-4" />
+            Nuevo paciente
+          </Button>
+        </div>
       </div>
 
       {consulta.isError ? (
@@ -155,6 +163,21 @@ export default function PaginaPacientes() {
           <FormularioPaciente
             pacienteInicial={pacienteEditar}
             onTerminado={() => setFormAbierto(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Alta desde una ficha en PDF, Word o foto */}
+      <Dialog open={documentoAbierto} onOpenChange={setDocumentoAbierto}>
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Cargar paciente desde un documento</DialogTitle>
+          </DialogHeader>
+          {/* La clave remonta el componente al cerrar: si no, el documento ya
+              leído seguiría precargado la próxima vez que se abra el modal. */}
+          <AltaPacienteDesdeDocumento
+            key={documentoAbierto ? "abierto" : "cerrado"}
+            onTerminado={() => setDocumentoAbierto(false)}
           />
         </DialogContent>
       </Dialog>

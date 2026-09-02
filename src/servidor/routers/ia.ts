@@ -11,8 +11,10 @@ import {
 } from "@/infraestructura/seguridad/LimitadorTasa";
 import {
   preguntarDto,
+  analizarDto,
   analizarComidaDto,
   feedbackInsightDto,
+  idConversacionIADto,
 } from "@/aplicacion/dtos/ia.dto";
 
 /**
@@ -92,10 +94,30 @@ export const routerIA = crearRouter({
   }),
 
   // Asistente analítico del nutri: chat con herramientas sobre la base.
+  // Sin `conversacionId` abre un chat nuevo; con él continúa el existente y el
+  // modelo recibe los turnos anteriores como contexto.
   analizar: nutricionistaProcedimiento
-    .input(preguntarDto)
+    .input(analizarDto)
     .mutation(async ({ ctx, input }) => {
-      return await ctx.servicios.ia.analizar(input.pregunta);
+      return await ctx.servicios.ia.analizar(input);
+    }),
+
+  /** Los chats guardados del profesional con el asistente. */
+  conversaciones: nutricionistaProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.ia.conversaciones();
+  }),
+
+  conversacion: nutricionistaProcedimiento
+    .input(idConversacionIADto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.ia.conversacion(input.id);
+    }),
+
+  eliminarConversacion: nutricionistaProcedimiento
+    .input(idConversacionIADto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.ia.eliminarConversacion(input.id);
+      return { eliminado: true };
     }),
 
   // Loop de feedback: el nutri corrige un insight (👍/👎) → etiqueta para el ML.

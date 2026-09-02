@@ -36,6 +36,14 @@ export function useEvaluacion() {
       trpc.evaluacion.interpretarHistoriaDesdeArchivo.useMutation({
         onError: (error) => toast.error(error.message),
       }),
+    // Campos personalizados de la historia clínica (del consultorio)
+    obtenerCamposHistoria: trpc.evaluacion.obtenerCamposHistoria.useQuery,
+    guardarCampoHistoria: trpc.evaluacion.guardarCampoHistoria.useMutation(
+      conToasts("Campo guardado."),
+    ),
+    eliminarCampoHistoria: trpc.evaluacion.eliminarCampoHistoria.useMutation(
+      conToasts("Campo eliminado. Lo ya cargado en las fichas se conserva."),
+    ),
     // Antropometría
     obtenerEvolucion: trpc.evaluacion.obtenerEvolucion.useQuery,
     registrarAntropometria: trpc.evaluacion.registrarAntropometria.useMutation(

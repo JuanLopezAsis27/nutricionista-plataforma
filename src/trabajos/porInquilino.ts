@@ -4,6 +4,7 @@ import {
   ejecutarGlobal,
   ejecutarEnNutricionista,
 } from "@/infraestructura/multitenancy/contextoTenant";
+import { ZONA_HORARIA } from "./zonaHoraria";
 
 /**
  * Barridos diarios que corren una vez POR INQUILINO.
@@ -135,5 +136,9 @@ export async function registrarTrabajoPorInquilino<R>(
     }
   });
 
-  await boss.schedule(colaDespacho, trabajo.cron);
+  // La zona horaria es explícita: sin `tz`, pg-boss programa en UTC y el
+  // cron no correría a la hora que dice el comentario de cada trabajo.
+  await boss.schedule(colaDespacho, trabajo.cron, undefined, {
+    tz: ZONA_HORARIA,
+  });
 }

@@ -1,11 +1,8 @@
 import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamientoArchivos";
 import type { IInterpretadorHistoriaClinica } from "@/dominio/servicios/IInterpretadorHistoriaClinica";
 import type { CamposHistoriaClinica } from "@/dominio/entidades/HistoriaClinica";
-import type { BloqueUsuario } from "./IProveedorLLM";
 import type { IResolvedorConfigIA } from "./ResolvedorConfigIA";
-
-const MIMES_IMAGEN = ["image/jpeg", "image/png", "image/webp"] as const;
-const MIME_PDF = "application/pdf";
+import { leerDocumentoParaLLM } from "./documentoParaLLM";
 
 const CAMPOS = [
   "motivoConsulta",
@@ -26,7 +23,7 @@ const ESQUEMA_HISTORIA = {
   required: [...CAMPOS],
 };
 
-const SYSTEM = `Sos el asistente de un consultorio de nutrición. Recibís una foto de un documento de historia clínica (una ficha, un informe, algo escrito a mano o impreso) y extraés SOLO lo que está escrito ahí.
+const SYSTEM = `Sos el asistente de un consultorio de nutrición. Recibís un documento de historia clínica (una ficha, un informe, algo escrito a mano o impreso, o el texto de un Word) y extraés SOLO lo que está escrito ahí.
 
 Reglas:
 1. NO inventes ni completes nada que no esté en el documento. Si un campo no aparece, devolvé null para ese campo.
@@ -36,8 +33,8 @@ Reglas:
 Campos a completar: motivo de consulta, diagnósticos, medicación, antecedentes personales, antecedentes familiares, hábitos (actividad, sueño, consumo), contexto (trabajo, horarios, entorno).`;
 
 /**
- * Interpreta una foto o un PDF de historia clínica con el LLM del consultorio
- * y sugiere los 7 campos del formulario.
+ * Interpreta una foto, un PDF o un Word de historia clínica con el LLM del
+ * consultorio y sugiere los 7 campos del formulario.
  *
  * Sin proveedor configurado LANZA (no hay stub que invente datos clínicos):
  * mismo criterio que `ResumidorConsultaLLM`, porque lo que salga de acá se
@@ -59,30 +56,11 @@ export class InterpretadorHistoriaClinicaLLM implements IInterpretadorHistoriaCl
         "No hay IA configurada para interpretar el archivo. Cargá la clave en Integraciones o completá los campos a mano.",
       );
     }
-    const esImagen = (MIMES_IMAGEN as readonly string[]).includes(
-      archivo.mimeType,
-    );
-    const esPdf = archivo.mimeType === MIME_PDF;
-    if (!esImagen && !esPdf) {
-      throw new Error(
-        "Solo se puede autocompletar desde una foto (JPG, PNG, WEBP) o un PDF. Los documentos Word no se pueden leer automáticamente: completá los campos a mano.",
-      );
-    }
 
-    const url = await this.almacenamiento.generarUrlLectura(archivo.clave, 120);
-    const respuesta = await fetch(url);
-    if (!respuesta.ok) {
-      throw new Error(
-        `No se pudo leer el archivo del bucket (${respuesta.status}).`,
-      );
-    }
-    const base64 = Buffer.from(await respuesta.arrayBuffer()).toString(
-      "base64",
+    const bloqueArchivo = await leerDocumentoParaLLM(
+      this.almacenamiento,
+      archivo,
     );
-
-    const bloqueArchivo: BloqueUsuario = esPdf
-      ? { tipo: "documento", base64, mimeType: "application/pdf" }
-      : { tipo: "imagen", base64, mimeType: archivo.mimeType };
 
     const texto = await llm.completar({
       system: SYSTEM,
@@ -93,7 +71,10 @@ export class InterpretadorHistoriaClinicaLLM implements IInterpretadorHistoriaCl
           texto: "Extraé los campos de la historia clínica de este documento.",
         },
       ],
-      maxTokens: 1500,
+      maxTokens: 3000,
+      // Mismo criterio que la ficha de alta: extraer de un documento clínico
+      // no es una tarea de una pasada, y lo que salga se copia a la ficha.
+      esfuerzo: "alto",
       esquemaJson: { nombre: "historia_clinica", esquema: ESQUEMA_HISTORIA },
     });
 

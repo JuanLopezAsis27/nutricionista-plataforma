@@ -10,6 +10,8 @@ import type { IAsistenteNutricional } from "@/dominio/servicios/IAsistenteNutric
 import type { IAnalisisComidaIA } from "@/dominio/servicios/IAnalisisComidaIA";
 import type { IAnalisisPredictivo } from "@/dominio/servicios/IAnalisisPredictivo";
 import type { IAsistenteAnalitico } from "@/dominio/servicios/IAsistenteAnalitico";
+import type { IConversacionIARepositorio } from "@/dominio/repositorios/IConversacionIARepositorio";
+import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio";
 import type { IRetroalimentacionInsightRepositorio } from "@/dominio/repositorios/IRetroalimentacionInsightRepositorio";
 import type { IPerfilDeportivoRepositorio } from "@/dominio/repositorios/IPerfilDeportivoRepositorio";
@@ -19,6 +21,11 @@ import { AnalizarFotoDeComida } from "@/aplicacion/casos-de-uso/ia/AnalizarFotoD
 import { ListarConsultasIA } from "@/aplicacion/casos-de-uso/ia/ListarConsultasIA";
 import { ObtenerInsightsPredictivos } from "@/aplicacion/casos-de-uso/ia/ObtenerInsightsPredictivos";
 import { AnalizarConAsistente } from "@/aplicacion/casos-de-uso/ia/AnalizarConAsistente";
+import {
+  ListarConversacionesIA,
+  ObtenerConversacionIA,
+  EliminarConversacionIA,
+} from "@/aplicacion/casos-de-uso/ia/GestionarConversacionesIA";
 import { RegistrarRetroalimentacionInsight } from "@/aplicacion/casos-de-uso/ia/RegistrarRetroalimentacionInsight";
 import {
   ServicioIA,
@@ -44,6 +51,8 @@ export function crearServicioIA(deps: {
   analisisComida: IAnalisisComidaIA;
   analisisPredictivo: IAnalisisPredictivo;
   retroalimentacion: IRetroalimentacionInsightRepositorio;
+  conversaciones: IConversacionIARepositorio;
+  reloj: IRelojFecha;
   estado: EstadoIADeps;
 }): ServicioIA {
   return new ServicioIA(
@@ -71,11 +80,16 @@ export function crearServicioIA(deps: {
       deps.objetivos,
       deps.alertas,
       deps.asistenteAnalitico,
+      deps.reloj,
+      deps.conversaciones,
     ),
     new RegistrarRetroalimentacionInsight(
       deps.retroalimentacion,
       deps.pacientes,
     ),
+    new ListarConversacionesIA(deps.conversaciones),
+    new ObtenerConversacionIA(deps.conversaciones),
+    new EliminarConversacionIA(deps.conversaciones),
     deps.estado,
   );
 }

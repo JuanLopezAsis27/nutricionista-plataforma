@@ -3,9 +3,17 @@ import type { AnalizarFotoDeComida } from "@/aplicacion/casos-de-uso/ia/Analizar
 import type { ListarConsultasIA } from "@/aplicacion/casos-de-uso/ia/ListarConsultasIA";
 import type { ObtenerInsightsPredictivos } from "@/aplicacion/casos-de-uso/ia/ObtenerInsightsPredictivos";
 import type { AnalizarConAsistente } from "@/aplicacion/casos-de-uso/ia/AnalizarConAsistente";
+import type {
+  ListarConversacionesIA,
+  ObtenerConversacionIA,
+  EliminarConversacionIA,
+} from "@/aplicacion/casos-de-uso/ia/GestionarConversacionesIA";
 import type { RegistrarRetroalimentacionInsight } from "@/aplicacion/casos-de-uso/ia/RegistrarRetroalimentacionInsight";
 import type {
   RespuestaAsistenteDto,
+  RespuestaAnalisisDto,
+  ResumenConversacionIADto,
+  ConversacionIASalidaDto,
   ConsultaIASalidaDto,
   ResultadoAnalisisComidaDto,
   InsightPacienteDto,
@@ -38,6 +46,9 @@ export class ServicioIA {
     private readonly insightsUC: ObtenerInsightsPredictivos,
     private readonly analizarConAsistenteUC: AnalizarConAsistente,
     private readonly registrarFeedbackUC: RegistrarRetroalimentacionInsight,
+    private readonly listarConversacionesUC: ListarConversacionesIA,
+    private readonly obtenerConversacionUC: ObtenerConversacionIA,
+    private readonly eliminarConversacionUC: EliminarConversacionIA,
     private readonly estadoDeps: EstadoIADeps,
   ) {}
 
@@ -84,8 +95,37 @@ export class ServicioIA {
   }
 
   /** Consulta analítica del nutricionista (con herramientas sobre la base). */
-  async analizar(pregunta: string): Promise<RespuestaAsistenteDto> {
-    return this.analizarConAsistenteUC.ejecutar(pregunta);
+  async analizar(datos: {
+    pregunta: string;
+    conversacionId?: string | null;
+  }): Promise<RespuestaAnalisisDto> {
+    return this.analizarConAsistenteUC.ejecutar(datos);
+  }
+
+  /** Los chats del profesional con el asistente, para la barra lateral. */
+  async conversaciones(): Promise<ResumenConversacionIADto[]> {
+    return this.listarConversacionesUC.ejecutar();
+  }
+
+  /** Un chat guardado, con todos sus turnos. */
+  async conversacion(id: string): Promise<ConversacionIASalidaDto> {
+    const c = await this.obtenerConversacionUC.ejecutar(id);
+    const d = c.aPrimitivos();
+    return {
+      id: d.id,
+      titulo: d.titulo,
+      mensajes: d.mensajes.map((m) => ({
+        id: m.id,
+        rol: m.rol,
+        contenido: m.contenido,
+        creadoEn: m.creadoEn,
+      })),
+      actualizadoEn: d.actualizadoEn,
+    };
+  }
+
+  async eliminarConversacion(id: string): Promise<void> {
+    await this.eliminarConversacionUC.ejecutar(id);
   }
 
   /** Registra la corrección del profesional sobre un insight (👍/👎). */

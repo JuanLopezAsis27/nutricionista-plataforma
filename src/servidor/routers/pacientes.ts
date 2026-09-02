@@ -5,6 +5,8 @@ import {
   idPacienteDto,
   listarPacientesDto,
   archivarPacienteDto,
+  interpretarFichaPacienteDto,
+  crearPacienteDesdeFichaDto,
 } from "@/aplicacion/dtos/paciente.dto";
 
 /**
@@ -31,6 +33,24 @@ export const routerPacientes = crearRouter({
     .input(crearPacienteConAccesoDto)
     .mutation(async ({ ctx, input }) => {
       return await ctx.servicios.paciente.crearPaciente(input);
+    }),
+
+  /**
+   * Lee una ficha (PDF, Word o foto) ya subida y devuelve lo que la IA
+   * reconoció, para precargar el alta. NO crea nada: el paciente lo da de alta
+   * el profesional con `crearDesdeFicha`, después de revisar.
+   */
+  interpretarFicha: nutricionistaProcedimiento
+    .input(interpretarFichaPacienteDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.paciente.interpretarFicha(input);
+    }),
+
+  /** Alta confirmada desde una ficha: el paciente y todo lo que traía. */
+  crearDesdeFicha: nutricionistaProcedimiento
+    .input(crearPacienteDesdeFichaDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.paciente.crearPacienteDesdeFicha(input);
     }),
 
   actualizar: nutricionistaProcedimiento
