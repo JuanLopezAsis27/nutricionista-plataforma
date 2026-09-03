@@ -1,4 +1,4 @@
-import type { Macros } from "./macros";
+import type { Macros } from "@/componentes/comunes/alimentos/macros";
 
 /** Una columna del resumen de macros (total o por porción). */
 export function TotalItem({

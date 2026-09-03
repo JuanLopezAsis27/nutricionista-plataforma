@@ -13,32 +13,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Skeleton } from "@/componentes/ui/skeleton";
-
-/**
- * Paleta categórica de 2 series, reutilizada de los informes de F5 y validada
- * con el validador de dataviz contra las superficies de card
- * (#FFFFFF claro / #1D1D20 oscuro): las 6 comprobaciones en PASS.
- */
-const TEMAS = {
-  light: {
-    total: "#2A78D6",
-    completados: "#F4535E",
-    tinta: "#52514E",
-    grilla: "#E1E0D9",
-    fondoTooltip: "#FFFFFF",
-    bordeTooltip: "rgba(11,11,11,0.10)",
-    texto: "#0B0B0B",
-  },
-  dark: {
-    total: "#3987E5",
-    completados: "#EF4E59",
-    tinta: "#C3C2B7",
-    grilla: "#2C2C2A",
-    fondoTooltip: "#1D1D20",
-    bordeTooltip: "rgba(255,255,255,0.10)",
-    texto: "#FFFFFF",
-  },
-} as const;
+import { TEMAS_GRAFICO } from "./paletaGraficos";
 
 const MESES_CORTOS = [
   "ene",
@@ -82,7 +57,8 @@ export function GraficoTurnosMensuales({
   if (cargando) return <Skeleton className="h-56 w-full" />;
   if (!montado) return null; // evita desajuste de hidratación por el tema
 
-  const tema = resolvedTheme === "dark" ? TEMAS.dark : TEMAS.light;
+  const tema =
+    resolvedTheme === "dark" ? TEMAS_GRAFICO.dark : TEMAS_GRAFICO.light;
   const filas = datos.map((punto) => ({
     mes: etiquetaMes(punto.mes),
     total: punto.total,

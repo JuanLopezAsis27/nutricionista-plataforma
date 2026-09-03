@@ -29,6 +29,7 @@ import { crearServicioDiario } from "./modulos/diario";
 import { crearServicioReceta } from "./modulos/recetas";
 import { crearServicioGrabaciones } from "./modulos/grabaciones";
 import { crearServicioPlan } from "./modulos/planes";
+import { crearServicioPlanSemanal } from "./modulos/planes-semanales";
 import { crearServicioObjetivo } from "./modulos/objetivos";
 import { crearServicioBiblioteca } from "./modulos/biblioteca";
 import { crearServicioSeguimiento } from "./modulos/seguimiento";
@@ -196,6 +197,19 @@ export const servicioPlan = perezoso(() =>
     planes: nucleo.repositorioPlan(),
     pacientes: nucleo.repositorioPaciente(),
     grupos: nucleo.repositorioGrupoPlan(),
+  }),
+);
+
+/**
+ * Planes semanales de referencia. Lleva también el repositorio de planes
+ * porque las metas diarias contra las que se compara cada día salen del plan
+ * nutricional asignado al paciente.
+ */
+export const servicioPlanSemanal = perezoso(() =>
+  crearServicioPlanSemanal({
+    semanales: nucleo.repositorioPlanSemanal(),
+    planes: nucleo.repositorioPlan(),
+    pacientes: nucleo.repositorioPaciente(),
   }),
 );
 

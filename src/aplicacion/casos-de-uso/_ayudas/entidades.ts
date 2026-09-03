@@ -44,6 +44,10 @@ import {
   type DatosNuevoPlan,
 } from "@/dominio/entidades/PlanNutricional";
 import {
+  PlanSemanal,
+  type DatosNuevoPlanSemanal,
+} from "@/dominio/entidades/PlanSemanal";
+import {
   Objetivo,
   type DatosNuevoObjetivo,
 } from "@/dominio/entidades/Objetivo";
@@ -665,6 +669,76 @@ export function axiomaEjemplo(
       ...cambios,
     },
     id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+/**
+ * Plan semanal de ejemplo: dos franjas y el lunes con dos alternativas de
+ * almuerzo, que es el caso que distingue la principal de las demás.
+ */
+export function planSemanalEjemplo(
+  cambios: Partial<DatosNuevoPlanSemanal> = {},
+  id = "sem-1",
+): PlanSemanal {
+  let contador = 0;
+  return PlanSemanal.crear(
+    {
+      nombre: "Semana tipo",
+      franjas: [
+        {
+          nombre: "Desayuno",
+          horaDesde: "08:00",
+          comidas: [
+            {
+              dia: "LUNES",
+              descripcion: "Tostadas con palta y café",
+              items: [
+                {
+                  nombre: "Pan integral",
+                  cantidadGramos: 60,
+                  caloriasPor100: 250,
+                  proteinasPor100: 9,
+                },
+              ],
+            },
+          ],
+        },
+        {
+          nombre: "Almuerzo",
+          horaDesde: "12:30",
+          comidas: [
+            {
+              dia: "LUNES",
+              descripcion: "Carne con verduras",
+              items: [
+                {
+                  nombre: "Carne magra",
+                  cantidadGramos: 150,
+                  caloriasPor100: 200,
+                  proteinasPor100: 26,
+                },
+              ],
+            },
+            {
+              dia: "LUNES",
+              descripcion: "Tarta de verdura (alternativa)",
+              items: [
+                {
+                  nombre: "Tarta de verdura",
+                  cantidadGramos: 200,
+                  caloriasPor100: 180,
+                  proteinasPor100: 7,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      ...cambios,
+    },
+    id,
+    () => `sem-hijo-${++contador}`,
     new Date("2026-07-14T12:00:00Z"),
   );
 }

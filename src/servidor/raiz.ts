@@ -7,6 +7,7 @@ import { routerDiario } from "./routers/diario";
 import { routerRecetas } from "./routers/recetas";
 import { routerGrabaciones } from "./routers/grabaciones";
 import { routerPlanes } from "./routers/planes";
+import { routerPlanesSemanales } from "./routers/planesSemanales";
 import { routerNutricion } from "./routers/nutricion";
 import { routerObjetivos } from "./routers/objetivos";
 import { routerBiblioteca } from "./routers/biblioteca";
@@ -43,6 +44,7 @@ export const routerApp = crearRouter({
   recetas: routerRecetas,
   grabaciones: routerGrabaciones,
   planes: routerPlanes,
+  planesSemanales: routerPlanesSemanales,
   nutricion: routerNutricion,
   objetivos: routerObjetivos,
   biblioteca: routerBiblioteca,

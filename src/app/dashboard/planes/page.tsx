@@ -14,6 +14,7 @@ import {
   FileDown,
   FileUp,
   FolderInput,
+  CalendarRange,
 } from "lucide-react";
 import type { PlanSalidaDto } from "@/aplicacion/dtos/plan.dto";
 import type { ModalidadPlan } from "@/dominio/entidades/PlanNutricional";
@@ -41,6 +42,7 @@ import { FormularioPlan } from "@/componentes/planes/FormularioPlan";
 import { FormularioAsignacionPlan } from "@/componentes/planes/FormularioAsignacionPlan";
 import { NavegadorCarpetas } from "@/componentes/planes/NavegadorCarpetas";
 import { MoverPlanACarpeta } from "@/componentes/planes/MoverPlanACarpeta";
+import { SeccionPlanesSemanales } from "@/componentes/planes-semanales/SeccionPlanesSemanales";
 
 export default function PaginaPlanes() {
   const { listarPaginado, eliminar, archivar, crearDesdePlantilla } =
@@ -241,6 +243,12 @@ export default function PaginaPlanes() {
               <TabsTrigger value="plantillas">
                 Plantillas ({consultaPlantillas.data?.total ?? 0})
               </TabsTrigger>
+              {/* El menú de la semana: otra manera de entregar el plan, no una
+                  modalidad suya. Ver docs/PLANES-SEMANALES.md. */}
+              <TabsTrigger value="semanales" className="gap-1.5">
+                <CalendarRange className="h-4 w-4" />
+                Planes semanales
+              </TabsTrigger>
             </TabsList>
             <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" onClick={() => abrirNuevo(true)}>
@@ -279,6 +287,9 @@ export default function PaginaPlanes() {
               totalPaginas={consultaPlanes.data?.paginas ?? 1}
               onCambiarPagina={setPaginaPlanes}
             />
+          </TabsContent>
+          <TabsContent value="semanales">
+            <SeccionPlanesSemanales />
           </TabsContent>
           <TabsContent value="plantillas" className="space-y-4">
             <TablaDatos

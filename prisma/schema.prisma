@@ -107,6 +107,20 @@ enum ModalidadPlan {
   PDF
 }
 
+/// Día de la semana de una comida del plan semanal. Es un enum y no un 0-6
+/// porque el día acá no es una fecha: el plan semanal es de referencia («los
+/// lunes») y no arranca en ninguna semana concreta. Con un número habría que
+/// recordar en cada lectura si el 0 es domingo (getUTCDay) o lunes (la grilla).
+enum DiaSemana {
+  LUNES
+  MARTES
+  MIERCOLES
+  JUEVES
+  VIERNES
+  SABADO
+  DOMINGO
+}
+
 enum PrioridadObjetivo {
   ALTA
   MEDIA
@@ -320,6 +334,7 @@ model Nutricionista {
   analisisComida            AnalisisComida[]
   configuraciones           ConfiguracionConsultorio[]
   axiomasNutricionales      AxiomaNutricional[]
+  planesSemanales           PlanSemanal[]
 
   // Hijas del agregado: heredan el inquilino de su padre, pero lo llevan
   // materializado para que la extensión pueda filtrarlas por id directo.
@@ -337,6 +352,10 @@ model Nutricionista {
   asignacionesPlan     AsignacionPlan[]
   asignacionesReceta   AsignacionReceta[]
   asignacionesMaterial AsignacionMaterial[]
+  franjasPlanSemanal   FranjaPlanSemanal[]
+  comidasSemanales     ComidaSemanal[]
+  itemsComidaSemanal   ItemComidaSemanal[]
+  asignacionesSemanal  AsignacionPlanSemanal[]
 
   @@map("nutricionistas")
 }
@@ -377,6 +396,7 @@ model Paciente {
   archivos              Archivo[]
   registrosDiarios      RegistroDiario[]
   asignacionesPlan      AsignacionPlan[]
+  asignacionesSemanal   AsignacionPlanSemanal[]
   asignacionesReceta    AsignacionReceta[]
   objetivos             Objetivo[]
   perfilDeportivo       PerfilDeportivo?
@@ -390,7 +410,7 @@ model Paciente {
   metricasDispositivo   MetricaDispositivo[]
   mensajesWhatsapp      MensajeWhatsapp[]
   recordatoriosWhatsapp RecordatorioWhatsapp[]
-  nutricionista         Nutricionista          @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  nutricionista         Nutricionista           @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@unique([nutricionistaId, id])
   // El email es único POR INQUILINO, no global: una misma persona puede ser
@@ -1320,14 +1340,15 @@ model Receta {
   creadoEn        DateTime @default(now())
   actualizadoEn   DateTime @updatedAt
 
-  fotos         Archivo[]           @relation("ArchivosDeReceta")
-  fotoPrincipal Archivo?            @relation("FotoPrincipalReceta", fields: [fotoPrincipalId], references: [id], onDelete: SetNull)
-  opciones      OpcionComida[]
-  asignaciones  AsignacionReceta[]
-  ingredientes  IngredienteReceta[]
-  nutricionista Nutricionista       @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  fotos            Archivo[]           @relation("ArchivosDeReceta")
+  fotoPrincipal    Archivo?            @relation("FotoPrincipalReceta", fields: [fotoPrincipalId], references: [id], onDelete: SetNull)
+  opciones         OpcionComida[]
+  comidasSemanales ComidaSemanal[]
+  asignaciones     AsignacionReceta[]
+  ingredientes     IngredienteReceta[]
+  nutricionista    Nutricionista       @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
   /// Borrar la carpeta NO borra las recetas: quedan sueltas (ver migración 41).
-  grupo         GrupoReceta?        @relation(fields: [grupoId], references: [id], onDelete: SetNull)
+  grupo            GrupoReceta?        @relation(fields: [grupoId], references: [id], onDelete: SetNull)
 
   @@unique([nutricionistaId, id])
   @@index([nutricionistaId, nombre])
@@ -1555,6 +1576,146 @@ model RecomendacionPlan {
 
   @@index([nutricionistaId, planId])
   @@map("recomendaciones_plan")
+}
+
+// ---------------------------------------------------------------------------
+// Planes semanales de referencia (migración 45)
+// ---------------------------------------------------------------------------
+
+/// Menú de referencia de una semana completa: siete días × las franjas que use
+/// el consultorio, con alternativas por celda.
+///
+/// NO reemplaza a `PlanNutricional` ni es una modalidad suya: aquel describe un
+/// DÍA TIPO (franjas con opciones que valen cualquier día) y este la SEMANA
+/// (qué se come el lunes al mediodía, que no es lo del martes). Conviven a
+/// propósito y un paciente puede tener los dos: el plan fija los macros
+/// diarios, el semanal es una manera concreta de alcanzarlos, y es contra
+/// aquellos macros que se compara el total de cada día.
+model PlanSemanal {
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
+  nombre          String
+  descripcion     String?
+  creadoEn        DateTime @default(now())
+  actualizadoEn   DateTime @updatedAt
+
+  franjas       FranjaPlanSemanal[]
+  asignaciones  AsignacionPlanSemanal[]
+  nutricionista Nutricionista           @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@unique([nutricionistaId, id])
+  /// Mismo motivo que en los planes: el nombre es lo único que se ve al elegir
+  /// uno para asignar, y dos llamados igual son indistinguibles ahí.
+  @@unique([nutricionistaId, nombre])
+  @@index([nutricionistaId, nombre])
+  @@map("planes_semanales")
+}
+
+/// Franja del plan semanal (Desayuno, Col. AM, Almuerzo…): una FILA de la
+/// grilla, con sus comidas de los siete días.
+model FranjaPlanSemanal {
+  id              String  @id @default(uuid(4))
+  nutricionistaId String
+  planSemanalId   String
+  nombre          String
+  horaDesde       String? // HH:mm
+  horaHasta       String? // HH:mm
+  orden           Int     @default(0)
+
+  plan          PlanSemanal     @relation(fields: [planSemanalId], references: [id], onDelete: Cascade)
+  comidas       ComidaSemanal[]
+  nutricionista Nutricionista   @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@index([nutricionistaId, planSemanalId])
+  @@map("franjas_plan_semanal")
+}
+
+/// Una comida del plan semanal: un día, una franja y su contenido (texto libre,
+/// una receta del recetario, alimentos con macros, o una combinación).
+///
+/// `orden` distingue las ALTERNATIVAS de una misma celda —tres almuerzos
+/// posibles para el lunes—. La de orden 0 es la principal y es la única que
+/// suma al total del día: las otras son intercambiables con ella, y sumarlas
+/// daría el triple de calorías para un lunes con tres opciones.
+model ComidaSemanal {
+  id              String    @id @default(uuid(4))
+  nutricionistaId String
+  franjaId        String
+  dia             DiaSemana
+  orden           Int       @default(0)
+  descripcion     String?
+  recetaId        String?
+  /// Porciones de la receta vinculada que entran en esta comida.
+  porciones       Decimal?  @db.Decimal(6, 2)
+
+  franja        FranjaPlanSemanal   @relation(fields: [franjaId], references: [id], onDelete: Cascade)
+  /// SET NULL: borrar una receta no puede llevarse el menú de la semana.
+  receta        Receta?             @relation(fields: [recetaId], references: [id], onDelete: SetNull)
+  items         ItemComidaSemanal[]
+  nutricionista Nutricionista       @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@index([nutricionistaId, franjaId, dia, orden])
+  @@index([nutricionistaId, recetaId])
+  @@map("comidas_semanales")
+}
+
+/// Alimento de una comida del plan semanal: cantidad en gramos + macros por
+/// 100 g, traídos del buscador de alimentos o cargados a mano. Es la misma
+/// forma que `IngredienteReceta`, y a propósito: las dos pantallas usan el
+/// mismo buscador y la misma cuenta (`dominio/servicios/macrosAlimentos`).
+model ItemComidaSemanal {
+  id                  String   @id @default(uuid(4))
+  nutricionistaId     String
+  comidaId            String
+  nombre              String
+  cantidadGramos      Decimal? @db.Decimal(8, 1)
+  caloriasPor100      Decimal? @db.Decimal(7, 2)
+  proteinasPor100     Decimal? @db.Decimal(7, 2)
+  carbohidratosPor100 Decimal? @db.Decimal(7, 2)
+  grasasPor100        Decimal? @db.Decimal(7, 2)
+  fuente              String? // "OFF" | "FATSECRET" | "PROPIO" | "MANUAL"
+  referenciaExterna   String?
+  orden               Int      @default(0)
+
+  comida        ComidaSemanal @relation(fields: [comidaId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@index([nutricionistaId, comidaId])
+  @@map("items_comida_semanal")
+}
+
+/// Vincula un plan semanal a un paciente durante un período.
+///
+/// Es el gemelo de `AsignacionPlan` y con las mismas reglas: uno activo por
+/// paciente, historial que no se borra (se desactiva) y que SOBREVIVE al
+/// borrado del plan (FK SET NULL + `nombrePlan` congelado).
+///
+/// Es un historial APARTE del de planes porque son dos cosas que se cambian
+/// por separado: se puede reemplazar el menú de la semana sin tocar la pauta
+/// de macros, y al revés.
+model AsignacionPlanSemanal {
+  id              String    @id @default(uuid(4))
+  nutricionistaId String
+  planSemanalId   String?
+  /// Nombre del plan al momento de asignarlo. Es una FOTO, no un cache.
+  nombrePlan      String
+  pacienteId      String
+  fechaInicio     DateTime  @db.Date
+  /// Fin PLANIFICADO al asignar (opcional).
+  fechaFin        DateTime? @db.Date
+  /// Fin REAL: al asignarse otro o al finalizarlo a mano.
+  finalizadaEn    DateTime? @db.Date
+  activa          Boolean   @default(true)
+  creadoEn        DateTime  @default(now())
+
+  plan          PlanSemanal?  @relation(fields: [planSemanalId], references: [id], onDelete: SetNull)
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@index([nutricionistaId, pacienteId])
+  @@index([nutricionistaId, planSemanalId])
+  @@index([nutricionistaId, activa])
+  @@map("asignaciones_plan_semanal")
 }
 
 // ---------------------------------------------------------------------------

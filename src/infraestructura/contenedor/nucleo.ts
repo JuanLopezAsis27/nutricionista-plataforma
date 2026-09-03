@@ -32,6 +32,7 @@ import { PrismaRepositorioLaboratorio } from "@/infraestructura/repositorios/Pri
 import { PrismaRepositorioRegistroDiario } from "@/infraestructura/repositorios/PrismaRepositorioRegistroDiario";
 import { PrismaRepositorioReceta } from "@/infraestructura/repositorios/PrismaRepositorioReceta";
 import { PrismaRepositorioPlan } from "@/infraestructura/repositorios/PrismaRepositorioPlan";
+import { PrismaRepositorioPlanSemanal } from "@/infraestructura/repositorios/PrismaRepositorioPlanSemanal";
 import { PrismaRepositorioGrupoPlan } from "@/infraestructura/repositorios/PrismaRepositorioGrupoPlan";
 import { PrismaRepositorioGrupoReceta } from "@/infraestructura/repositorios/PrismaRepositorioGrupoReceta";
 import { PrismaRepositorioGrabacionConsulta } from "@/infraestructura/repositorios/PrismaRepositorioGrabacionConsulta";
@@ -183,6 +184,9 @@ export const repositorioReceta = perezoso(
 );
 export const repositorioPlan = perezoso(
   () => new PrismaRepositorioPlan(prisma()),
+);
+export const repositorioPlanSemanal = perezoso(
+  () => new PrismaRepositorioPlanSemanal(prisma()),
 );
 export const repositorioGrupoPlan = perezoso(
   () => new PrismaRepositorioGrupoPlan(prisma()),

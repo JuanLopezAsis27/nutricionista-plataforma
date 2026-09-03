@@ -33,10 +33,10 @@ import {
   calcularTotales,
   porPorcion,
   hayMacros,
-} from "./formulario/macros";
+} from "@/componentes/comunes/alimentos/macros";
 import { TotalItem } from "./formulario/TotalItem";
 import { FilaIngrediente } from "./formulario/FilaIngrediente";
-import { BuscadorAlimento } from "./formulario/BuscadorAlimento";
+import { BuscadorAlimento } from "@/componentes/comunes/alimentos/BuscadorAlimento";
 
 // El esquema se reexporta porque `coherencia-formularios-2.test.ts` lo importa
 // desde acá, que sigue siendo el punto de entrada del formulario.

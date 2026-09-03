@@ -17,6 +17,8 @@ import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositor
 import type { IMetricaDispositivoRepositorio } from "@/dominio/repositorios/IMetricaDispositivoRepositorio";
 import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
+import type { IPlanSemanalRepositorio } from "@/dominio/repositorios/IPlanSemanalRepositorio";
+import type { IAsignacionPlanSemanalRepositorio } from "@/dominio/repositorios/IAsignacionPlanSemanalRepositorio";
 import type { IGrupoPlanRepositorio } from "@/dominio/repositorios/IGrupoPlanRepositorio";
 import type { IGrupoRecetaRepositorio } from "@/dominio/repositorios/IGrupoRecetaRepositorio";
 import type { IGrabacionConsultaRepositorio } from "@/dominio/repositorios/IGrabacionConsultaRepositorio";
@@ -58,6 +60,7 @@ import { Laboratorio } from "@/dominio/entidades/Laboratorio";
 import { RegistroDiario } from "@/dominio/entidades/RegistroDiario";
 import { Receta } from "@/dominio/entidades/Receta";
 import { PlanNutricional } from "@/dominio/entidades/PlanNutricional";
+import type { PlanSemanal } from "@/dominio/entidades/PlanSemanal";
 import { Objetivo } from "@/dominio/entidades/Objetivo";
 import { PerfilDeportivo } from "@/dominio/entidades/PerfilDeportivo";
 import { Competencia } from "@/dominio/entidades/Competencia";
@@ -403,6 +406,38 @@ export function mockAsignacionPlanRepositorio(
     listarAsignacionesDePaciente: vi.fn(async () => []),
     obtenerPlanActivoDePaciente: vi.fn(async () => null),
     listarAsignacionesActivasVencidas: vi.fn(async () => []),
+    contarAsignacionesActivasDePlan: vi.fn(async () => 0),
+    ...parcial,
+  };
+}
+
+/** Mock del repositorio de planes semanales. */
+export function mockPlanSemanalRepositorio(
+  parcial: Partial<IPlanSemanalRepositorio> = {},
+): IPlanSemanalRepositorio {
+  return {
+    crear: vi.fn(async (p: PlanSemanal) => p),
+    actualizar: vi.fn(async (p: PlanSemanal) => p),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    listar: vi.fn(async () => []),
+    contar: vi.fn(async () => 0),
+    existeNombre: vi.fn(async () => false),
+    ...parcial,
+  };
+}
+
+/** Mock del puerto de asignaciones plan semanal ⇄ paciente. */
+export function mockAsignacionPlanSemanalRepositorio(
+  parcial: Partial<IAsignacionPlanSemanalRepositorio> = {},
+): IAsignacionPlanSemanalRepositorio {
+  return {
+    asignarAPaciente: vi.fn(async (a) => a),
+    desactivarAsignacionesDe: vi.fn(async () => {}),
+    obtenerAsignacionActiva: vi.fn(async () => null),
+    listarAsignacionesDePaciente: vi.fn(async () => []),
+    listarAsignacionesDePlan: vi.fn(async () => []),
+    obtenerPlanSemanalActivoDePaciente: vi.fn(async () => null),
     contarAsignacionesActivasDePlan: vi.fn(async () => 0),
     ...parcial,
   };
