@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { aNumero, calcularTotales, porPorcion, hayMacros } from "./macros";
-import type { IngredienteFormulario } from "./esquema";
+import type { AlimentoEnFormulario } from "./macros";
 
 /**
  * Tests del cálculo de macros de una receta.
@@ -18,17 +18,14 @@ import type { IngredienteFormulario } from "./esquema";
  */
 
 function ingrediente(
-  cambios: Partial<IngredienteFormulario> = {},
-): IngredienteFormulario {
+  cambios: Partial<AlimentoEnFormulario> = {},
+): AlimentoEnFormulario {
   return {
-    nombre: "Ingrediente",
     cantidadGramos: "100",
     caloriasPor100: "",
     proteinasPor100: "",
     carbohidratosPor100: "",
     grasasPor100: "",
-    fuente: "MANUAL",
-    referenciaExterna: "",
     ...cambios,
   };
 }

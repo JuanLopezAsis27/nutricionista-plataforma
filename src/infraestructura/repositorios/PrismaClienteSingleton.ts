@@ -71,6 +71,7 @@ export const MODELOS_INQUILINO = new Set<string>([
   "PlantillaWhatsapp",
   "ConfiguracionRecordatorios",
   "MensajeWhatsapp",
+  "PlanSemanal",
 
   // Hijas del agregado (migración 27). Antes quedaban fuera del filtro: se
   // llegaba a ellas por id directo sin ningún control de inquilino. Los casos
@@ -88,6 +89,10 @@ export const MODELOS_INQUILINO = new Set<string>([
   "Estrategia",
   "HistorialObjetivo",
   "AsignacionPlan",
+  "FranjaPlanSemanal",
+  "ComidaSemanal",
+  "ItemComidaSemanal",
+  "AsignacionPlanSemanal",
   "AsignacionReceta",
   "AsignacionMaterial",
 ]);

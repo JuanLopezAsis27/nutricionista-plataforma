@@ -31,3 +31,5 @@ export { ErrorTurnoFueraDeAtencion } from "./ErrorTurnoFueraDeAtencion";
 export { ErrorPlanDuplicado } from "./ErrorPlanDuplicado";
 export { ErrorGrupoPlanNoEncontrado } from "./ErrorGrupoPlanNoEncontrado";
 export { ErrorGrupoPlanDuplicado } from "./ErrorGrupoPlanDuplicado";
+export { ErrorPlanSemanalNoEncontrado } from "./ErrorPlanSemanalNoEncontrado";
+export { ErrorPlanSemanalDuplicado } from "./ErrorPlanSemanalDuplicado";

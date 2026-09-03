@@ -2,20 +2,10 @@
 
 import { useCallback, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import {
-  ArrowLeft,
-  Pencil,
-  FileDown,
-  UserPlus,
-  CircleOff,
-  CalendarPlus,
-  Mic,
-  Repeat,
-} from "lucide-react";
+import { ArrowLeft, Pencil, FileDown, CalendarPlus, Mic } from "lucide-react";
 import Link from "next/link";
 import { usePacientes } from "@/lib/hooks/usePacientes";
 import { useTurnos } from "@/lib/hooks/useTurnos";
-import { usePlanes } from "@/lib/hooks/usePlanes";
 import { formatearFecha } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import {
@@ -38,11 +28,8 @@ import {
   DialogTitle,
 } from "@/componentes/ui/dialog";
 import { EstadoBadge } from "@/componentes/comunes/EstadoBadge";
-import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { FormularioPaciente } from "@/componentes/pacientes/FormularioPaciente";
-import { VistaPlan } from "@/componentes/planes/VistaPlan";
-import { FormularioAsignacionPlan } from "@/componentes/planes/FormularioAsignacionPlan";
-import { HistorialDePlanes } from "@/componentes/planes/HistorialDePlanes";
+import { SeccionPlanesDelPaciente } from "@/componentes/planes/SeccionPlanesDelPaciente";
 import { FormularioTurno } from "@/componentes/turnos/FormularioTurno";
 import { GrabacionesConsulta } from "@/componentes/turnos/GrabacionesConsulta";
 import {
@@ -70,7 +57,6 @@ export default function PaginaDetallePaciente() {
 
   const { obtenerPorId } = usePacientes();
   const { porPaciente } = useTurnos();
-  const { delPaciente, desasignar } = usePlanes();
 
   /**
    * El diálogo de edición se lee de la URL, NO de un `useState` inicializado
@@ -96,17 +82,14 @@ export default function PaginaDetallePaciente() {
     },
     [router, id],
   );
-  const [confirmarDesasignar, setConfirmarDesasignar] = useState(false);
   // Turno y plan se resuelven DESDE la ficha: son las dos cosas que se deciden
   // con el paciente delante, y mandarlas a otra pantalla obligaba a volver a
   // buscarlo ahí.
   const [agendarAbierto, setAgendarAbierto] = useState(false);
-  const [asignarAbierto, setAsignarAbierto] = useState(false);
   const [turnoGrabar, setTurnoGrabar] = useState<string | null>(null);
 
   const paciente = obtenerPorId({ id });
   const turnos = porPaciente({ pacienteId: id });
-  const plan = delPaciente({ pacienteId: id });
 
   if (paciente.isLoading) {
     return <Skeleton className="h-40 w-full" />;
@@ -182,7 +165,7 @@ export default function PaginaDetallePaciente() {
           <TabsTrigger value="objetivos">Objetivos</TabsTrigger>
           <TabsTrigger value="diario">Diario</TabsTrigger>
           <TabsTrigger value="turnos">Turnos</TabsTrigger>
-          <TabsTrigger value="plan">Plan actual</TabsTrigger>
+          <TabsTrigger value="plan">Planes</TabsTrigger>
           <TabsTrigger value="suplementos">Suplementos</TabsTrigger>
           <TabsTrigger value="deporte">Deporte</TabsTrigger>
           <TabsTrigger value="mensajes">Mensajes</TabsTrigger>
@@ -283,80 +266,14 @@ export default function PaginaDetallePaciente() {
           )}
         </TabsContent>
 
-        <TabsContent value="plan" className="space-y-4">
-          {plan.isLoading ? (
-            <Skeleton className="h-32 w-full" />
-          ) : plan.data ? (
-            <>
-              <div className="flex flex-wrap justify-end gap-2">
-                {/* El PDF generado arma el plan CARGADO con el membrete. Un
-                    plan que YA es un PDF no tiene nada que generar: el suyo se
-                    abre desde el visor. */}
-                {plan.data.modalidad === "APP" && (
-                  <Button asChild variant="outline" size="sm">
-                    <a
-                      href={`/api/planes/${plan.data.id}/pdf?paciente=${id}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <FileDown className="h-4 w-4" />
-                      PDF
-                    </a>
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAsignarAbierto(true)}
-                >
-                  <Repeat className="h-4 w-4" />
-                  Cambiar plan
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setConfirmarDesasignar(true)}
-                >
-                  <CircleOff className="h-4 w-4" />
-                  Finalizar plan
-                </Button>
-              </div>
-              <VistaPlan plan={plan.data} />
-            </>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                El paciente no tiene un plan activo asignado.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" onClick={() => setAsignarAbierto(true)}>
-                  <UserPlus className="h-4 w-4" />
-                  Asignar plan
-                </Button>
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/dashboard/planes">Ver planes</Link>
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <HistorialDePlanes pacienteId={id} />
+        <TabsContent value="plan">
+          <SeccionPlanesDelPaciente
+            pacienteId={id}
+            nombre={p.nombre}
+            apellido={p.apellido}
+          />
         </TabsContent>
       </Tabs>
-
-      <ModalConfirmacion
-        abierto={confirmarDesasignar}
-        titulo="Finalizar plan"
-        descripcion={`¿Finalizar el plan activo de ${p.nombre}? El paciente quedará sin plan asignado.`}
-        cargando={desasignar.isPending}
-        onCancelar={() => setConfirmarDesasignar(false)}
-        onConfirmar={() =>
-          desasignar.mutate(
-            { pacienteId: id },
-            { onSuccess: () => setConfirmarDesasignar(false) },
-          )
-        }
-      />
 
       <Dialog
         open={Boolean(turnoGrabar)}
@@ -383,20 +300,6 @@ export default function PaginaDetallePaciente() {
             pacienteIdInicial={id}
             pacienteFijo
             onTerminado={() => setAgendarAbierto(false)}
-          />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={asignarAbierto} onOpenChange={setAsignarAbierto}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              Asignar plan a {p.nombre} {p.apellido}
-            </DialogTitle>
-          </DialogHeader>
-          <FormularioAsignacionPlan
-            pacienteIdFijo={id}
-            onTerminado={() => setAsignarAbierto(false)}
           />
         </DialogContent>
       </Dialog>

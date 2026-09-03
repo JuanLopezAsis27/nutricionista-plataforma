@@ -40,10 +40,12 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 
 | Documento                    | Qué cubre                                            |
 | ---------------------------- | ---------------------------------------------------- |
+| `docs/DASHBOARD.md`          | Qué muestra la pantalla de inicio y por qué           |
 | `docs/AGENDA.md`             | Días y horarios de atención; dónde vive la regla      |
 | `docs/CALENDARIO-TURNOS.md`  | La vista de calendario: grilla semanal y globos       |
 | `docs/RECORDATORIOS.md`      | Los tres medios de aviso y su política única          |
 | `docs/PLANES.md`             | Modalidades, archivos, carpetas e historial           |
+| `docs/PLANES-SEMANALES.md`   | El menú de la semana, sus alternativas y la comparación |
 | `docs/ANTROPOMETRIA.md`      | Ecuaciones de grasa, distribución y sitios de pliegue |
 | `docs/HISTORIA-CLINICA.md`   | Campos personalizados y el alta leyendo un documento  |
 | `docs/ASISTENTE-IA.md`       | El chat analítico: herramientas, contexto e historial |
@@ -303,6 +305,22 @@ al dar de alta, no se cambia editando.
 (FK SET NULL + `nombrePlan` congelado). Nunca borrar una asignación para
 "limpiar". Ver `docs/PLANES.md`.
 
+### Plan Semanal
+
+El menú de la semana: siete días × las franjas del consultorio, con
+alternativas por celda. **No es una modalidad de `PlanNutricional`**: aquel
+describe un día tipo y este los siete días concretos, y un paciente puede tener
+los dos.
+
+Dos reglas que se rompen fácil: el total de un día suma la comida **principal**
+(`orden = 0`) de cada franja y no las alternativas —sumarlas triplicaría un
+lunes con tres almuerzos—, y **las metas contra las que se compara salen del
+PLAN NUTRICIONAL asignado**, no del plan semanal, que no las tiene. Su
+historial (`AsignacionPlanSemanal`) es aparte del de planes: el menú se cambia
+sin tocar la pauta de macros.
+
+Ver `docs/PLANES-SEMANALES.md`.
+
 ### Antropometría y composición corporal
 
 Una `Antropometria` es una consulta: el perfil ISAK completo más los sitios de
@@ -452,6 +470,10 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   repositorio: `ObtenerPlanesPaginado` y `ObtenerRecetasPaginado` enumeran los
   campos a mano y lo que no esté ahí se descarta en silencio
 - Nunca borrar una asignación de plan para "limpiar": son el historial clínico
+- Nunca sumar TODAS las comidas de una celda del plan semanal al total del día:
+  son alternativas entre sí y suma la principal (`orden = 0`). Y si tocás esa
+  cuenta, tocá las dos —el dominio y el espejo de la grilla—: `totales.test.ts`
+  compara las dos y es lo único que las mantiene diciendo lo mismo
 - Nunca embeber un archivo del bucket por su URL firmada: es otro origen, no es
   alcanzable en producción y la CSP lo bloquea. Va `/api/archivos/<id>/ver`
 - Nunca hacer que `TranscribirGrabacion` lance ante un fallo del proveedor: la

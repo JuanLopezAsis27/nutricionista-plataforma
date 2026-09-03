@@ -1,4 +1,10 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
+import {
+  sumarPorGramos,
+  dividirMacros,
+  hayMacros,
+  type Macros,
+} from "../servicios/macrosAlimentos";
 
 /** Resumen de una foto de la receta (lo completa el repositorio). */
 export interface FotoReceta {
@@ -10,13 +16,14 @@ export interface FotoReceta {
 /** Resumen de un documento adjunto de la receta (PDF, Word). */
 export type DocumentoReceta = FotoReceta;
 
-/** Macros (por porción o totales de la receta; todas opcionales). */
-export interface MacrosReceta {
-  calorias: number | null;
-  proteinasG: number | null;
-  carbohidratosG: number | null;
-  grasasG: number | null;
-}
+/**
+ * Macros (por porción o totales de la receta; todas opcionales).
+ *
+ * Es el tipo compartido del dominio: la suma de macros de una lista de
+ * alimentos es la misma regla acá y en las comidas del plan semanal
+ * (`servicios/macrosAlimentos`).
+ */
+export type MacrosReceta = Macros;
 
 /** Ingrediente estructurado ya normalizado (estado persistido). */
 export interface IngredienteDeReceta {
@@ -132,12 +139,12 @@ export class Receta {
     validarNoNegativo(datos.grasasG, "Las grasas");
 
     const ingredientes = normalizarIngredientes(datos.ingredientes);
-    const totales = calcularTotales(ingredientes);
-    const macrosCalculados = tieneAlgunMacro(totales);
+    const totales = sumarPorGramos(ingredientes);
+    const macrosCalculados = hayMacros(totales);
     // Si los ingredientes traen datos → macros por porción = totales / porciones.
     // Si no → se respetan los macros cargados a mano.
     const macros = macrosCalculados
-      ? porPorcion(totales, datos.porciones ?? null)
+      ? dividirMacros(totales, datos.porciones ?? null)
       : {
           calorias: datos.calorias ?? null,
           proteinasG: datos.proteinasG ?? null,
@@ -259,12 +266,12 @@ export class Receta {
 
   /** Macros TOTALES de la receta (suma de todos los ingredientes con datos). */
   totales(): MacrosReceta {
-    return calcularTotales(this.props.ingredientes);
+    return sumarPorGramos(this.props.ingredientes);
   }
 
   /** true si los macros por porción salen del cálculo de ingredientes (no manual). */
   get macrosCalculados(): boolean {
-    return tieneAlgunMacro(this.totales());
+    return hayMacros(this.totales());
   }
 
   aPrimitivos(): PropiedadesReceta {
@@ -365,79 +372,6 @@ function normalizarNumero(
     throw new ErrorValidacion(`${etiqueta} no puede ser negativa.`);
   }
   return valor;
-}
-
-/** Suma los macros de todos los ingredientes con cantidad y dato disponibles. */
-function calcularTotales(ingredientes: IngredienteDeReceta[]): MacrosReceta {
-  let cal = 0;
-  let prot = 0;
-  let carb = 0;
-  let gras = 0;
-  let hayCal = false;
-  let hayProt = false;
-  let hayCarb = false;
-  let hayGras = false;
-
-  for (const ing of ingredientes) {
-    const gramos = ing.cantidadGramos;
-    if (gramos == null || gramos <= 0) continue;
-    const factor = gramos / 100;
-    if (ing.caloriasPor100 != null) {
-      cal += ing.caloriasPor100 * factor;
-      hayCal = true;
-    }
-    if (ing.proteinasPor100 != null) {
-      prot += ing.proteinasPor100 * factor;
-      hayProt = true;
-    }
-    if (ing.carbohidratosPor100 != null) {
-      carb += ing.carbohidratosPor100 * factor;
-      hayCarb = true;
-    }
-    if (ing.grasasPor100 != null) {
-      gras += ing.grasasPor100 * factor;
-      hayGras = true;
-    }
-  }
-
-  return {
-    calorias: hayCal ? Math.round(cal) : null,
-    proteinasG: hayProt ? redondear1(prot) : null,
-    carbohidratosG: hayCarb ? redondear1(carb) : null,
-    grasasG: hayGras ? redondear1(gras) : null,
-  };
-}
-
-/** Divide los totales por la cantidad de porciones (1 si no se indica). */
-function porPorcion(
-  totales: MacrosReceta,
-  porciones: number | null,
-): MacrosReceta {
-  const p = porciones != null && porciones > 0 ? porciones : 1;
-  return {
-    calorias:
-      totales.calorias != null ? Math.round(totales.calorias / p) : null,
-    proteinasG:
-      totales.proteinasG != null ? redondear1(totales.proteinasG / p) : null,
-    carbohidratosG:
-      totales.carbohidratosG != null
-        ? redondear1(totales.carbohidratosG / p)
-        : null,
-    grasasG: totales.grasasG != null ? redondear1(totales.grasasG / p) : null,
-  };
-}
-
-function tieneAlgunMacro(m: MacrosReceta): boolean {
-  return (
-    m.calorias != null ||
-    m.proteinasG != null ||
-    m.carbohidratosG != null ||
-    m.grasasG != null
-  );
-}
-
-function redondear1(valor: number): number {
-  return Math.round(valor * 10) / 10;
 }
 
 function validarNoNegativo(
