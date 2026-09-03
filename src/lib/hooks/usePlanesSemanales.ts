@@ -54,6 +54,8 @@ export function usePlanesSemanales() {
     listar: trpc.planesSemanales.listar.useQuery,
     obtenerPorId: trpc.planesSemanales.obtenerPorId.useQuery,
     delPaciente: trpc.planesSemanales.obtenerDelPaciente.useQuery,
+    /** Portal del paciente: su propio menú vigente (pacienteId de la sesión). */
+    miPlanSemanal: trpc.planesSemanales.obtenerMiPlanSemanal.useQuery,
     historialDelPaciente:
       trpc.planesSemanales.obtenerHistorialDePaciente.useQuery,
     pacientesDelPlan: trpc.planesSemanales.obtenerPacientesDePlan.useQuery,

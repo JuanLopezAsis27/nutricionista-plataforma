@@ -55,7 +55,6 @@ export const MODELOS_INQUILINO = new Set<string>([
   "EmailEnviado",
   "CuentaConectada",
   "Conversacion",
-  "ConsultaIA",
   "ConversacionIA",
   "MensajeIA",
   "AnalisisComida",

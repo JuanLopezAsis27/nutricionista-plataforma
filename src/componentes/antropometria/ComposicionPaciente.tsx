@@ -4,14 +4,18 @@ import {
   Activity,
   CalendarX,
   CheckCircle2,
+  ChevronRight,
   CircleAlert,
   FileDown,
   HelpCircle,
+  LineChart,
+  PieChart,
   Scale,
   Target,
   TrendingDown,
   TrendingUp,
   Waves,
+  type LucideIcon,
 } from "lucide-react";
 import type { ObjetivoComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
 import type { EstadoProyeccion } from "@/dominio/servicios/proyeccionComposicion";
@@ -95,7 +99,13 @@ export function ComposicionPaciente() {
   const { tema, montado } = useTemaComposicion();
 
   if (consulta.isLoading || !montado) {
-    return <Skeleton className="h-72 w-full" />;
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-14 w-full" />
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-72 w-full" />
+      </div>
+    );
   }
   if (consulta.isError || !consulta.data) {
     return (
@@ -109,10 +119,15 @@ export function ComposicionPaciente() {
 
   if (mediciones.length === 0) {
     return (
-      <p className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-        Todavía no tenés mediciones cargadas. Tu nutricionista las va a tomar en
-        la consulta y acá vas a ver tus resultados y tu evolución.
-      </p>
+      <div className="rounded-xl border border-dashed p-10 text-center">
+        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+          <Scale className="h-6 w-6 text-primary" />
+        </span>
+        <p className="pt-3 text-sm text-muted-foreground">
+          Todavía no tenés mediciones cargadas. Tu nutricionista las va a tomar
+          en la consulta y acá vas a ver tus resultados y tu evolución.
+        </p>
+      </div>
     );
   }
 
@@ -130,10 +145,16 @@ export function ComposicionPaciente() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">
-          Última medición: <strong>{formatearFecha(actual.fecha)}</strong>
-          {anterior && ` · anterior: ${formatearFecha(anterior.fecha)}`}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card px-4 py-3">
+        <p className="text-sm">
+          <span className="text-muted-foreground">Última medición: </span>
+          <strong>{formatearFecha(actual.fecha)}</strong>
+          {anterior && (
+            <span className="text-muted-foreground">
+              {" · anterior: "}
+              {formatearFecha(anterior.fecha)}
+            </span>
+          )}
         </p>
         <Button asChild variant="outline" size="sm">
           <a
@@ -202,17 +223,22 @@ export function ComposicionPaciente() {
 
       {objetivos.length > 0 && (
         <section className="space-y-3">
-          <h2 className="flex items-center gap-2 font-semibold">
-            <Target className="h-5 w-5 text-primary" /> Tus objetivos
+          <h2 className="flex items-center gap-2 text-lg font-bold">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+              <Target className="h-4 w-4 text-primary" />
+            </span>
+            Tus objetivos
           </h2>
           {resultado.fraccionamiento && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">
-                  Tus masas hoy y a dónde apuntan tus objetivos
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+            <Card className="overflow-hidden">
+              <CabeceraTarjeta
+                icono={Target}
+                titulo="Tus masas hoy y a dónde apuntan tus objetivos"
+                fondo="bg-primary/5"
+                tinte="bg-primary/10"
+                color="text-primary"
+              />
+              <CardContent className="p-4">
                 <TortaMasasConObjetivos
                   medicion={actual}
                   objetivos={objetivos}
@@ -235,13 +261,15 @@ export function ComposicionPaciente() {
       )}
 
       {resultado.fraccionamiento && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">
-              Cómo se reparte tu peso
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Card className="overflow-hidden">
+          <CabeceraTarjeta
+            icono={PieChart}
+            titulo="Cómo se reparte tu peso"
+            fondo="bg-emerald-500/5"
+            tinte="bg-emerald-500/10"
+            color="text-emerald-600 dark:text-emerald-400"
+          />
+          <CardContent className="p-4">
             <DonutMasas
               fraccionamiento={resultado.fraccionamiento}
               anterior={anterior?.resultado.fraccionamiento ?? null}
@@ -252,13 +280,15 @@ export function ComposicionPaciente() {
       )}
 
       {mediciones.length > 1 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">
-              Tu evolución
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pl-0 pr-3">
+        <Card className="overflow-hidden">
+          <CabeceraTarjeta
+            icono={LineChart}
+            titulo="Tu evolución"
+            fondo="bg-sky-500/5"
+            tinte="bg-sky-500/10"
+            color="text-sky-600 dark:text-sky-400"
+          />
+          <CardContent className="py-4 pl-0 pr-3">
             {metodoSerie != null ? (
               <EvolucionGrasa
                 mediciones={mediciones}
@@ -339,7 +369,7 @@ function TarjetaObjetivoPaciente({
               </strong>
             </span>
           </div>
-          <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-muted">
+          <div className="relative h-3 w-full overflow-hidden rounded-full bg-muted">
             <span
               className="absolute inset-y-0 left-0 rounded-full transition-all"
               style={{
@@ -366,8 +396,9 @@ function TarjetaObjetivoPaciente({
         </p>
 
         {objetivo.proyeccionPliegues && (
-          <details className="border-t pt-3 text-xs">
-            <summary className="cursor-pointer font-semibold">
+          <details className="group border-t pt-3 text-xs">
+            <summary className="flex cursor-pointer items-center gap-1 font-semibold text-primary">
+              <ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" />
               Cómo quedarían tus pliegues
             </summary>
             <div className="pt-2">
@@ -380,6 +411,40 @@ function TarjetaObjetivoPaciente({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Cabecera de una tarjeta de la pantalla: su ícono en un cuadrado de color y el
+ * título. El color agrupa —masas, evolución, objetivos— y el título lo dice.
+ */
+function CabeceraTarjeta({
+  icono: Icono,
+  titulo,
+  fondo,
+  tinte,
+  color,
+}: {
+  icono: LucideIcon;
+  titulo: string;
+  fondo: string;
+  tinte: string;
+  color: string;
+}) {
+  return (
+    <CardHeader className={cn("border-b p-4", fondo)}>
+      <CardTitle className="flex items-center gap-2 text-base">
+        <span
+          className={cn(
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+            tinte,
+          )}
+        >
+          <Icono className={cn("h-4 w-4", color)} />
+        </span>
+        {titulo}
+      </CardTitle>
+    </CardHeader>
   );
 }
 
@@ -399,23 +464,23 @@ function Indicador({
   color?: string;
 }) {
   return (
-    <Card>
+    <Card className="transition-shadow hover:shadow-md">
       <CardContent className="p-4">
-        <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          <Icono
-            className="h-3.5 w-3.5"
-            style={color ? { color } : undefined}
-          />
-          {titulo}
-        </p>
-        <p className={cn("mt-1 text-2xl font-bold tabular-nums")}>
+        <span
+          className="flex h-8 w-8 items-center justify-center rounded-lg"
+          style={{ backgroundColor: `${color ?? "#F4535E"}1a` }}
+        >
+          <Icono className="h-4 w-4" style={{ color: color ?? undefined }} />
+        </span>
+        <p className="pt-2 text-2xl font-bold leading-none tabular-nums">
           {valor}
           <span className="ml-1 text-sm font-normal text-muted-foreground">
             {unidad}
           </span>
         </p>
+        <p className="pt-1.5 text-xs font-medium">{titulo}</p>
         {detalle && (
-          <p className="mt-0.5 text-xs text-muted-foreground">{detalle}</p>
+          <p className="pt-0.5 text-xs text-muted-foreground">{detalle}</p>
         )}
       </CardContent>
     </Card>

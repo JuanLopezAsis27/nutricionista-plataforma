@@ -15,7 +15,7 @@ import {
   type DatosFormulario,
 } from "./esquema";
 import { macrosDeComida, type MacrosDeRecetas } from "./totales";
-import { estiloDeFranja } from "../paletaFranjas";
+import { estiloDeFranja } from "@/componentes/comunes/paletaFranjas";
 
 interface Props {
   franjas: DatosFormulario["franjas"];

@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { PlanSemanal, type DatosNuevoPlanSemanal } from "./PlanSemanal";
+import {
+  PlanSemanal,
+  diaSemanaDe,
+  type DatosNuevoPlanSemanal,
+} from "./PlanSemanal";
 import { ErrorValidacion } from "../errores/ErrorValidacion";
 
 /**
@@ -288,5 +292,38 @@ describe("PlanSemanal.actualizar", () => {
     expect(despues.nombre).toBe("Semana 2");
     expect(despues.franjas).toHaveLength(1);
     expect(despues.franjas[0]!.comidas[0]!.dia).toBe("VIERNES");
+  });
+});
+
+/**
+ * El corrimiento entre el calendario y la grilla.
+ *
+ * `getDay()` cuenta desde el DOMINGO y `DIAS_SEMANA` desde el LUNES. Errarle
+ * por uno no rompe nada visible: el paciente ve un menú completo y prolijo,
+ * solo que el del día equivocado. Por eso se congelan los dos extremos —el
+ * domingo, que es el que se corre de punta a punta, y el lunes, que es el 0
+ * de la grilla— y no un día cualquiera del medio.
+ */
+describe("diaSemanaDe", () => {
+  it("mapea cada fecha al día de la grilla, que empieza en lunes", () => {
+    // 2026-08-31 fue lunes; se recorre la semana completa desde ahí.
+    const esperados = [
+      "LUNES",
+      "MARTES",
+      "MIERCOLES",
+      "JUEVES",
+      "VIERNES",
+      "SABADO",
+      "DOMINGO",
+    ] as const;
+
+    esperados.forEach((esperado, indice) => {
+      const fecha = new Date(2026, 7, 31 + indice, 12, 0, 0);
+      expect(diaSemanaDe(fecha)).toBe(esperado);
+    });
+  });
+
+  it("manda el domingo al final de la semana, no al principio", () => {
+    expect(diaSemanaDe(new Date(2026, 8, 6, 12, 0, 0))).toBe("DOMINGO");
   });
 });

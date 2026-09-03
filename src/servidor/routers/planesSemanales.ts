@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { crearRouter, nutricionistaProcedimiento } from "../trpc";
+import {
+  crearRouter,
+  nutricionistaProcedimiento,
+  protegidoProcedimiento,
+} from "../trpc";
+import { pacienteDeSesion } from "@/dominio/servicios/politicaAcceso";
 import {
   crearPlanSemanalDto,
   actualizarPlanSemanalDto,
@@ -16,8 +21,9 @@ import {
  * meterlos en `routerPlanes` haría que la mitad de sus procedimientos hablaran
  * de otra cosa.
  *
- * Todo es del NUTRICIONISTA: el menú de la semana se arma y se asigna desde el
- * consultorio.
+ * La gestión es del NUTRICIONISTA: el menú de la semana se arma y se asigna
+ * desde el consultorio. El paciente solo lee el suyo (`obtenerMiPlanSemanal`,
+ * con el pacienteId tomado de la sesión).
  */
 export const routerPlanesSemanales = crearRouter({
   listar: nutricionistaProcedimiento
@@ -91,4 +97,19 @@ export const routerPlanesSemanales = crearRouter({
         input.id,
       );
     }),
+
+  /**
+   * Portal: el paciente ve SU menú vigente (pacienteId de la sesión).
+   *
+   * Devuelve lo mismo que `obtenerDelPaciente` —el menú más la comparación
+   * contra las metas de su plan nutricional—: es la misma lectura, y lo único
+   * que cambia es de dónde sale el paciente. Va aparte y no con un pacienteId
+   * opcional porque acá no hay nada que elegir, que es justo lo que evita que
+   * un paciente pida el menú de otro.
+   */
+  obtenerMiPlanSemanal: protegidoProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.planSemanal.obtenerPlanSemanalDelPaciente(
+      pacienteDeSesion(ctx.usuario),
+    );
+  }),
 });

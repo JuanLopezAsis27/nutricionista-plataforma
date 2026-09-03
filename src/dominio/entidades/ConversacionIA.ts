@@ -13,6 +13,8 @@ export interface MensajeIA {
 
 export interface PropiedadesConversacionIA {
   id: string;
+  /** Paciente dueño del chat; null = chat analítico del profesional. */
+  pacienteId: string | null;
   titulo: string;
   /** Del más viejo al más nuevo. */
   mensajes: MensajeIA[];
@@ -24,28 +26,43 @@ export interface PropiedadesConversacionIA {
 const LARGO_TITULO = 80;
 
 /**
- * Una conversación del profesional con el asistente analítico.
+ * Una conversación con el asistente.
  *
  * Existe por dos motivos que van juntos: el asistente **no recordaba nada** —
  * cada pregunta viajaba sola al modelo, así que "¿y de ese paciente qué más?"
  * no tenía a qué referirse— y las consultas **no quedaban registradas** en
- * ningún lado, así que lo analizado ayer se perdía al recargar la pantalla.
+ * ningún lado, así que lo hablado ayer se perdía al recargar la pantalla.
  *
- * Guardar los turnos resuelve las dos: son el historial que el profesional
- * puede releer Y el contexto que se le manda al modelo en la próxima pregunta.
+ * Guardar los turnos resuelve las dos: son el historial que se puede releer Y
+ * el contexto que se le manda al modelo en la próxima pregunta.
  *
- * Es del CONSULTORIO, no de un paciente: el asistente analítico responde sobre
- * toda la práctica y una consulta puede cruzar varios pacientes. El historial
- * por paciente del portal es otra cosa y vive en `ConsultaIA`.
+ * Hay DOS clases, y `pacienteId` es lo único que las distingue:
+ *
+ * - **null** → chat analítico del PROFESIONAL sobre su práctica. Es del
+ *   consultorio y no de un paciente, porque una consulta analítica puede
+ *   cruzar varios.
+ * - **con valor** → chat de ESE paciente en su portal, sobre sus propios datos.
+ *
+ * Son la misma cosa —turnos ordenados que se releen y se mandan como
+ * contexto—, así que comparten entidad, tabla y repositorio. Lo que no
+ * comparten nunca es la lista: cada uno ve la suya, y eso lo garantizan los
+ * casos de uso, que siempre resuelven el dueño antes de leer.
  */
 export class ConversacionIA {
   private constructor(private readonly props: PropiedadesConversacionIA) {}
 
-  /** Abre una conversación nueva, titulada con la primera pregunta. */
+  /**
+   * Abre una conversación nueva, titulada con la primera pregunta.
+   *
+   * `pacienteId` decide de quién es (ver arriba): null la deja del
+   * consultorio. Se fija ACÁ y no se puede cambiar después: un chat que
+   * cambiara de dueño aparecería en la lista de otro con todo lo dicho.
+   */
   static iniciar(
     primeraPregunta: string,
     id: string,
     ahora: Date = new Date(),
+    pacienteId: string | null = null,
   ): ConversacionIA {
     const pregunta = primeraPregunta?.trim() ?? "";
     if (pregunta.length === 0) {
@@ -53,6 +70,7 @@ export class ConversacionIA {
     }
     return new ConversacionIA({
       id,
+      pacienteId,
       titulo: titularDesde(pregunta),
       mensajes: [],
       creadoEn: ahora,
@@ -103,6 +121,9 @@ export class ConversacionIA {
 
   get id(): string {
     return this.props.id;
+  }
+  get pacienteId(): string | null {
+    return this.props.pacienteId;
   }
   get titulo(): string {
     return this.props.titulo;

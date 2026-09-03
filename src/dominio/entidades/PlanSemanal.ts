@@ -38,6 +38,30 @@ export const ETIQUETA_DIA: Record<DiaSemana, string> = {
   DOMINGO: "Dom",
 };
 
+/** Nombre completo de cada día, para leer un solo día fuera de la grilla. */
+export const ETIQUETA_DIA_LARGA: Record<DiaSemana, string> = {
+  LUNES: "Lunes",
+  MARTES: "Martes",
+  MIERCOLES: "Miércoles",
+  JUEVES: "Jueves",
+  VIERNES: "Viernes",
+  SABADO: "Sábado",
+  DOMINGO: "Domingo",
+};
+
+/**
+ * Qué día de la semana del plan es una fecha concreta.
+ *
+ * El plan es de referencia y no arranca en ninguna semana, pero el paciente
+ * mira el suyo un día puntual —«qué me toca hoy»—, y ahí sí hace falta cruzar
+ * el calendario con el enum. Va acá, en una sola función, porque `getDay()`
+ * cuenta desde el domingo y `DIAS_SEMANA` desde el lunes: repetir ese corrimiento
+ * en cada pantalla es lo que termina mostrando el menú del día equivocado.
+ */
+export function diaSemanaDe(fecha: Date): DiaSemana {
+  return DIAS_SEMANA[(fecha.getDay() + 6) % 7]!;
+}
+
 const PATRON_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 // --- Estado persistido -------------------------------------------------------

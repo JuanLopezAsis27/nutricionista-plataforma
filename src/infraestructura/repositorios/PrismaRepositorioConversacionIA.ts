@@ -19,6 +19,7 @@ export class PrismaRepositorioConversacionIA implements IConversacionIARepositor
       data: {
         id: datos.id,
         nutricionistaId: inquilinoActual(),
+        pacienteId: datos.pacienteId,
         titulo: datos.titulo,
       },
     });
@@ -57,6 +58,7 @@ export class PrismaRepositorioConversacionIA implements IConversacionIARepositor
     if (!fila) return null;
     return ConversacionIA.reconstruir({
       id: fila.id,
+      pacienteId: fila.pacienteId,
       titulo: fila.titulo,
       mensajes: fila.mensajes.map((m) => ({
         id: m.id,
@@ -69,8 +71,14 @@ export class PrismaRepositorioConversacionIA implements IConversacionIARepositor
     });
   }
 
-  async listar(limite: number): Promise<ResumenConversacionIA[]> {
+  async listar(
+    limite: number,
+    pacienteId: string | null,
+  ): Promise<ResumenConversacionIA[]> {
     const filas = await this.prisma.conversacionIA.findMany({
+      // `pacienteId: null` filtra por IS NULL, que es exactamente «los chats
+      // del profesional». Ese es el contrato del puerto: null no es «todos».
+      where: { pacienteId },
       orderBy: { actualizadoEn: "desc" },
       take: limite,
       select: {

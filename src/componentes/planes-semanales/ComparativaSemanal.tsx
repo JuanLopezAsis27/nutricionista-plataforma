@@ -5,7 +5,7 @@ import type {
   DiaComparadoDto,
   MacrosDto,
 } from "@/aplicacion/dtos/planSemanal.dto";
-import { COLOR_ESTADO_META } from "./paletaFranjas";
+import { COLOR_ESTADO_META } from "@/componentes/comunes/paletaFranjas";
 
 /** Las cuatro columnas, en el orden en que se leen en toda la app. */
 const MACROS = [

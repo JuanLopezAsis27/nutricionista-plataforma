@@ -10,6 +10,10 @@ import {
   Trash2,
   Camera,
   ExternalLink,
+  NotebookPen,
+  Plus,
+  Check,
+  type LucideIcon,
 } from "lucide-react";
 import {
   FRANJAS_SUGERIDAS,
@@ -20,6 +24,7 @@ import {
 } from "@/dominio/entidades/RegistroDiario";
 import { useDiario } from "@/lib/hooks/useDiario";
 import { formatearFechaLarga } from "@/lib/formato";
+import { cn } from "@/lib/utilidades";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { Label } from "@/componentes/ui/label";
@@ -39,6 +44,11 @@ import {
   SelectItem,
 } from "@/componentes/ui/select";
 import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
+import {
+  VasosDeAgua,
+  textoDeAgua,
+  ML_POR_VASO,
+} from "@/componentes/comunes/VasosDeAgua";
 
 const ETIQUETAS_CALIDAD: Record<CalidadSueno, string> = {
   MALA: "Mala",
@@ -61,8 +71,14 @@ function aNumero(valor: string): number | undefined {
 }
 
 /**
- * Hoja del día del diario: peso, agua (con botones rápidos), sueño y notas,
- * más las comidas (con foto) y actividades del día.
+ * Hoja del día del diario: peso, agua, sueño y notas, más las comidas (con
+ * foto) y las actividades.
+ *
+ * Los escalares del día se guardan con un botón y el resto se guarda solo (una
+ * comida se agrega, una actividad se agrega). Esa mezcla es la que hace fácil
+ * perder lo escrito, así que el botón avisa cuándo hay algo sin guardar en vez
+ * de quedarse siempre igual: es el único lugar del portal donde escribir no
+ * alcanza.
  */
 export function HojaDia({ fechaISO }: { fechaISO: string }) {
   const {
@@ -114,6 +130,14 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
     return <Skeleton className="h-64 w-full" />;
   }
 
+  // Lo escrito contra lo guardado: es lo que decide si el botón avisa.
+  const hayCambios =
+    (aNumero(peso) ?? null) !== (registro?.pesoKg ?? null) ||
+    (agua > 0 ? agua : null) !== (registro?.aguaMl ?? null) ||
+    (aNumero(horasSueno) ?? null) !== (registro?.horasSueno ?? null) ||
+    (calidadSueno || null) !== (registro?.calidadSueno ?? null) ||
+    (notas.trim() || null) !== (registro?.notas ?? null);
+
   function guardarEscalares() {
     guardarMiDia.mutate({
       fecha,
@@ -164,22 +188,30 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
     );
   }
 
+  const comidas = registro?.comidas ?? [];
+  const actividades = registro?.actividades ?? [];
+
   return (
     <div className="space-y-4">
-      <h2 className="font-semibold capitalize">
+      <h2 className="text-lg font-bold capitalize">
         {formatearFechaLarga(fechaISO)}
       </h2>
 
       {/* Escalares del día */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Mi día</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <Card className="overflow-hidden">
+        <CabeceraSeccion
+          icono={NotebookPen}
+          titulo="Mi día"
+          fondo="bg-primary/5"
+          tinte="bg-primary/10"
+          color="text-primary"
+        />
+        <CardContent className="space-y-5 p-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-sm">
-                <Scale className="h-4 w-4" /> Peso (kg)
+              <Label className="flex items-center gap-1.5 text-sm font-medium">
+                <Scale className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                Peso (kg)
               </Label>
               <Input
                 inputMode="decimal"
@@ -189,50 +221,62 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-sm">
-                <Moon className="h-4 w-4" /> Sueño (horas)
+              <Label className="flex items-center gap-1.5 text-sm font-medium">
+                <Moon className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                Sueño (horas)
               </Label>
-              <div className="flex gap-2">
-                <Input
-                  inputMode="decimal"
-                  placeholder="—"
-                  value={horasSueno}
-                  onChange={(e) => setHorasSueno(e.target.value)}
-                />
-                <Select
-                  value={calidadSueno}
-                  onValueChange={(v) => setCalidadSueno(v as CalidadSueno)}
-                >
-                  <SelectTrigger
-                    className="w-28"
-                    aria-label="Calidad del sueño"
-                  >
-                    <SelectValue placeholder="Calidad" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CALIDADES_SUENO.map((calidad) => (
-                      <SelectItem key={calidad} value={calidad}>
-                        {ETIQUETAS_CALIDAD[calidad]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <Input
+                inputMode="decimal"
+                placeholder="—"
+                value={horasSueno}
+                onChange={(e) => setHorasSueno(e.target.value)}
+              />
+              {/* Tres opciones no necesitan un desplegable: en un teléfono son
+                  dos toques donde alcanza con uno, y acá se ven las tres. */}
+              <div
+                className="flex gap-1.5 pt-0.5"
+                role="group"
+                aria-label="Calidad del sueño"
+              >
+                {CALIDADES_SUENO.map((calidad) => {
+                  const activa = calidadSueno === calidad;
+                  return (
+                    <button
+                      key={calidad}
+                      type="button"
+                      aria-pressed={activa}
+                      onClick={() => setCalidadSueno(activa ? "" : calidad)}
+                      className={cn(
+                        "flex-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors",
+                        activa
+                          ? "border-indigo-500 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300"
+                          : "text-muted-foreground hover:border-indigo-500/40 hover:text-foreground",
+                      )}
+                    >
+                      {ETIQUETAS_CALIDAD[calidad]}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="flex items-center gap-1.5 text-sm">
-              <GlassWater className="h-4 w-4" /> Agua: {agua} ml
+          <div className="space-y-2 rounded-xl border bg-sky-500/5 p-3">
+            <Label className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
+              <GlassWater className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+              Agua
+              <span className="ml-auto tabular-nums text-muted-foreground">
+                {textoDeAgua(agua)}
+              </span>
             </Label>
+            <VasosDeAgua ml={agua} />
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
-                variant="outline"
                 size="sm"
-                onClick={() => setAgua(agua + 250)}
+                onClick={() => setAgua(agua + ML_POR_VASO)}
               >
-                +250 ml
+                <Plus className="h-4 w-4" />1 vaso
               </Button>
               <Button
                 type="button"
@@ -246,6 +290,7 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
                 type="button"
                 variant="ghost"
                 size="sm"
+                className="text-muted-foreground"
                 onClick={() => setAgua(0)}
                 disabled={agua === 0}
               >
@@ -255,18 +300,31 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-sm">Notas del día</Label>
+            <Label className="text-sm font-medium">Notas del día</Label>
             <Textarea
               rows={2}
+              placeholder="Cómo te sentiste, qué te costó, qué salió bien…"
               value={notas}
               onChange={(e) => setNotas(e.target.value)}
             />
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {hayCambios ? (
+              <span className="mr-auto text-xs text-muted-foreground">
+                Tenés cambios sin guardar.
+              </span>
+            ) : (
+              registro && (
+                <span className="mr-auto flex items-center gap-1 text-xs text-muted-foreground">
+                  <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  Todo guardado.
+                </span>
+              )
+            )}
             <Button
               onClick={guardarEscalares}
-              disabled={guardarMiDia.isPending}
+              disabled={guardarMiDia.isPending || !hayCambios}
             >
               {guardarMiDia.isPending ? "Guardando…" : "Guardar mi día"}
             </Button>
@@ -275,32 +333,47 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
       </Card>
 
       {/* Comidas */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <UtensilsCrossed className="h-5 w-5 text-primary" /> Comidas
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {(registro?.comidas ?? []).map((comida) => (
-            <div key={comida.id} className="rounded-md border p-3 text-sm">
+      <Card className="overflow-hidden">
+        <CabeceraSeccion
+          icono={UtensilsCrossed}
+          titulo="Comidas"
+          cantidad={comidas.length}
+          fondo="bg-emerald-500/5"
+          tinte="bg-emerald-500/10"
+          color="text-emerald-600 dark:text-emerald-400"
+        />
+        <CardContent className="space-y-3 p-4">
+          {comidas.length === 0 && (
+            <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
+              Todavía no cargaste comidas de este día.
+            </p>
+          )}
+
+          {comidas.map((comida) => (
+            <div
+              key={comida.id}
+              className="rounded-xl border border-l-4 border-l-emerald-500/60 p-3 text-sm"
+            >
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-medium">
+                <div className="min-w-0">
+                  <p className="flex flex-wrap items-center gap-x-2 font-medium">
                     {comida.franja}
-                    {comida.hora ? ` · ${comida.hora}` : ""}
-                    {comida.porcion ? (
-                      <span className="font-normal text-muted-foreground">
-                        {" · "}
+                    {comida.hora && (
+                      <span className="text-xs tabular-nums text-muted-foreground">
+                        {comida.hora}
+                      </span>
+                    )}
+                    {comida.porcion && (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
                         {comida.porcion}
                       </span>
-                    ) : null}
+                    )}
                   </p>
-                  <p className="whitespace-pre-wrap text-muted-foreground">
+                  <p className="whitespace-pre-wrap pt-0.5 text-muted-foreground">
                     {comida.descripcion}
                   </p>
                 </div>
-                <span className="flex gap-0.5">
+                <span className="flex shrink-0 gap-0.5">
                   {comida.fotoArchivoId ? (
                     <Button
                       asChild
@@ -355,7 +428,10 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
             </div>
           ))}
 
-          <div className="space-y-2 rounded-md border border-dashed p-3">
+          <div className="space-y-2 rounded-xl border border-dashed bg-muted/30 p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Agregar una comida
+            </p>
             <div className="grid gap-2 sm:grid-cols-[10rem_6rem_1fr]">
               <Select value={franja} onValueChange={setFranja}>
                 <SelectTrigger aria-label="Franja">
@@ -393,6 +469,7 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
                 onClick={registrarComida}
                 disabled={agregarComida.isPending || !descripcionComida.trim()}
               >
+                <Plus className="h-4 w-4" />
                 Agregar
               </Button>
             </div>
@@ -401,21 +478,32 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
       </Card>
 
       {/* Actividad física */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Dumbbell className="h-5 w-5 text-primary" /> Actividad física
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {(registro?.actividades ?? []).map((actividad) => (
+      <Card className="overflow-hidden">
+        <CabeceraSeccion
+          icono={Dumbbell}
+          titulo="Actividad física"
+          cantidad={actividades.length}
+          fondo="bg-violet-500/5"
+          tinte="bg-violet-500/10"
+          color="text-violet-600 dark:text-violet-400"
+        />
+        <CardContent className="space-y-3 p-4">
+          {actividades.length === 0 && (
+            <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
+              Sin actividad registrada este día.
+            </p>
+          )}
+
+          {actividades.map((actividad) => (
             <div
               key={actividad.id}
-              className="flex items-center justify-between gap-2 rounded-md border p-3 text-sm"
+              className="flex items-center justify-between gap-2 rounded-xl border border-l-4 border-l-violet-500/60 p-3 text-sm"
             >
               <p>
                 <span className="font-medium">{actividad.tipo}</span> ·{" "}
-                {actividad.duracionMinutos} min
+                <span className="tabular-nums">
+                  {actividad.duracionMinutos} min
+                </span>
                 {actividad.intensidad
                   ? ` · intensidad ${ETIQUETAS_INTENSIDAD[actividad.intensidad].toLowerCase()}`
                   : ""}
@@ -431,46 +519,95 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
             </div>
           ))}
 
-          <div className="grid gap-2 rounded-md border border-dashed p-3 sm:grid-cols-[1fr_7rem_9rem_auto]">
-            <Input
-              placeholder="Pesas, running, fútbol…"
-              value={tipoActividad}
-              onChange={(e) => setTipoActividad(e.target.value)}
-            />
-            <Input
-              inputMode="numeric"
-              placeholder="Minutos"
-              value={duracion}
-              onChange={(e) => setDuracion(e.target.value)}
-            />
-            <Select
-              value={intensidad}
-              onValueChange={(v) => setIntensidad(v as IntensidadActividad)}
-            >
-              <SelectTrigger aria-label="Intensidad">
-                <SelectValue placeholder="Intensidad" />
-              </SelectTrigger>
-              <SelectContent>
-                {INTENSIDADES_ACTIVIDAD.map((nivel) => (
-                  <SelectItem key={nivel} value={nivel}>
-                    {ETIQUETAS_INTENSIDAD[nivel]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              onClick={registrarActividad}
-              disabled={
-                agregarActividad.isPending ||
-                !tipoActividad.trim() ||
-                !aNumero(duracion)
-              }
-            >
-              Agregar
-            </Button>
+          <div className="space-y-2 rounded-xl border border-dashed bg-muted/30 p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Agregar actividad
+            </p>
+            <div className="grid gap-2 sm:grid-cols-[1fr_7rem_9rem_auto]">
+              <Input
+                placeholder="Pesas, running, fútbol…"
+                value={tipoActividad}
+                onChange={(e) => setTipoActividad(e.target.value)}
+              />
+              <Input
+                inputMode="numeric"
+                placeholder="Minutos"
+                value={duracion}
+                onChange={(e) => setDuracion(e.target.value)}
+              />
+              <Select
+                value={intensidad}
+                onValueChange={(v) => setIntensidad(v as IntensidadActividad)}
+              >
+                <SelectTrigger aria-label="Intensidad">
+                  <SelectValue placeholder="Intensidad" />
+                </SelectTrigger>
+                <SelectContent>
+                  {INTENSIDADES_ACTIVIDAD.map((nivel) => (
+                    <SelectItem key={nivel} value={nivel}>
+                      {ETIQUETAS_INTENSIDAD[nivel]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                onClick={registrarActividad}
+                disabled={
+                  agregarActividad.isPending ||
+                  !tipoActividad.trim() ||
+                  !aNumero(duracion)
+                }
+              >
+                <Plus className="h-4 w-4" />
+                Agregar
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/** Cabecera de una de las tres secciones del día, con su color y su contador. */
+function CabeceraSeccion({
+  icono: Icono,
+  titulo,
+  cantidad,
+  fondo,
+  tinte,
+  color,
+}: {
+  icono: LucideIcon;
+  titulo: string;
+  cantidad?: number;
+  fondo: string;
+  tinte: string;
+  color: string;
+}) {
+  return (
+    <CardHeader
+      className={cn(
+        "flex-row items-center justify-between space-y-0 border-b p-4",
+        fondo,
+      )}
+    >
+      <CardTitle className="flex items-center gap-2 text-base">
+        <span
+          className={cn(
+            "flex h-8 w-8 items-center justify-center rounded-lg",
+            tinte,
+          )}
+        >
+          <Icono className={cn("h-4 w-4", color)} />
+        </span>
+        {titulo}
+      </CardTitle>
+      {cantidad != null && cantidad > 0 && (
+        <span className="rounded-full bg-background px-2 py-0.5 text-xs font-semibold tabular-nums">
+          {cantidad}
+        </span>
+      )}
+    </CardHeader>
   );
 }

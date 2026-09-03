@@ -18,7 +18,6 @@ import type { IPerfilDeportivoRepositorio } from "@/dominio/repositorios/IPerfil
 import type { ICompetenciaRepositorio } from "@/dominio/repositorios/ICompetenciaRepositorio";
 import { PreguntarAlAsistente } from "@/aplicacion/casos-de-uso/ia/PreguntarAlAsistente";
 import { AnalizarFotoDeComida } from "@/aplicacion/casos-de-uso/ia/AnalizarFotoDeComida";
-import { ListarConsultasIA } from "@/aplicacion/casos-de-uso/ia/ListarConsultasIA";
 import { ObtenerInsightsPredictivos } from "@/aplicacion/casos-de-uso/ia/ObtenerInsightsPredictivos";
 import { AnalizarConAsistente } from "@/aplicacion/casos-de-uso/ia/AnalizarConAsistente";
 import {
@@ -64,12 +63,12 @@ export function crearServicioIA(deps: {
       deps.alertas,
       deps.axiomas,
       deps.asistente,
-      deps.historial,
+      deps.conversaciones,
       deps.perfilesDeportivos,
       deps.competencias,
+      deps.reloj,
     ),
     new AnalizarFotoDeComida(deps.analisisComida, deps.historial),
-    new ListarConsultasIA(deps.historial),
     new ObtenerInsightsPredictivos(deps.analisisPredictivo),
     new AnalizarConAsistente(
       deps.pacientes,

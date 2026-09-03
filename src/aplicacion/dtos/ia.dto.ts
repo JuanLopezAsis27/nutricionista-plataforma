@@ -2,15 +2,15 @@ import { z } from "zod";
 
 /** DTOs del módulo de IA (asistente + análisis de comida + insights). */
 
+/** Pregunta al asistente: sin conversacionId abre un chat nuevo. */
 export const preguntarDto = z.object({
   pregunta: z.string().min(1, "Escribí tu consulta").max(2000),
+  conversacionId: z.string().min(1).optional().nullable(),
 });
 export type PreguntarDto = z.infer<typeof preguntarDto>;
 
-/** Consulta analítica: sin conversacionId abre un chat nuevo. */
-export const analizarDto = preguntarDto.extend({
-  conversacionId: z.string().min(1).optional().nullable(),
-});
+/** Consulta analítica del profesional: mismo par pregunta + chat. */
+export const analizarDto = preguntarDto;
 export type AnalizarDto = z.infer<typeof analizarDto>;
 
 export const analizarComidaDto = z.object({
@@ -19,17 +19,15 @@ export const analizarComidaDto = z.object({
 });
 export type AnalizarComidaDto = z.infer<typeof analizarComidaDto>;
 
+/** Lo que vuelve de una pregunta: el turno y en qué chat quedó guardado. */
 export const respuestaAsistenteDto = z.object({
+  conversacionId: z.string(),
   pregunta: z.string(),
   respuesta: z.string(),
 });
 export type RespuestaAsistenteDto = z.infer<typeof respuestaAsistenteDto>;
 
-export const respuestaAnalisisDto = z.object({
-  conversacionId: z.string(),
-  pregunta: z.string(),
-  respuesta: z.string(),
-});
+export const respuestaAnalisisDto = respuestaAsistenteDto;
 export type RespuestaAnalisisDto = z.infer<typeof respuestaAnalisisDto>;
 
 export const idConversacionIADto = z.object({ id: z.string().min(1) });
@@ -56,14 +54,6 @@ export const conversacionIASalidaDto = z.object({
   actualizadoEn: z.date(),
 });
 export type ConversacionIASalidaDto = z.infer<typeof conversacionIASalidaDto>;
-
-export const consultaIASalidaDto = z.object({
-  id: z.string(),
-  pregunta: z.string(),
-  respuesta: z.string(),
-  creadoEn: z.date(),
-});
-export type ConsultaIASalidaDto = z.infer<typeof consultaIASalidaDto>;
 
 export const resultadoAnalisisComidaDto = z.object({
   descripcion: z.string(),

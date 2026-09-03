@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Sparkles, Send, Camera, Info } from "lucide-react";
+import { useState } from "react";
+import { Sparkles, Camera, Info } from "lucide-react";
 import type { ArchivoSalidaDto } from "@/aplicacion/dtos/archivo.dto";
 import type { ResultadoAnalisisComidaDto } from "@/aplicacion/dtos/ia.dto";
 import { useIA } from "@/lib/hooks/useIA";
 import { cn } from "@/lib/utilidades";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
-import { Textarea } from "@/componentes/ui/textarea";
-import { Skeleton } from "@/componentes/ui/skeleton";
 import { Card, CardContent } from "@/componentes/ui/card";
 import {
   Tabs,
@@ -18,7 +16,7 @@ import {
   TabsContent,
 } from "@/componentes/ui/tabs";
 import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
-import { PensandoAnimado } from "@/componentes/ia/PensandoAnimado";
+import { AsistentePacienteChat } from "@/componentes/ia/AsistentePacienteChat";
 
 function BannerDemo() {
   return (
@@ -39,11 +37,17 @@ export default function PaginaAsistente() {
 
   return (
     <div className="space-y-4">
+      {/* La única pantalla del portal sin el encabezado con degradado: acá el
+          alto es la función. El chat ocupa lo que queda de la ventana, y un
+          encabezado de 7rem se lo come sin dar nada a cambio. */}
       <div>
         <h1 className="flex items-center gap-2 text-2xl font-bold">
-          <Sparkles className="h-6 w-6 text-primary" /> Asistente
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+            <Sparkles className="h-5 w-5 text-primary" />
+          </span>
+          Asistente
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="pt-1.5 text-sm text-muted-foreground">
           Hacé preguntas sobre tu plan o analizá una foto de tu comida.
         </p>
       </div>
@@ -56,97 +60,13 @@ export default function PaginaAsistente() {
           <TabsTrigger value="comida">Analizar comida</TabsTrigger>
         </TabsList>
         <TabsContent value="chat">
-          <Chat />
+          <AsistentePacienteChat />
         </TabsContent>
         <TabsContent value="comida">
           <AnalizarComida />
         </TabsContent>
       </Tabs>
     </div>
-  );
-}
-
-function Chat() {
-  const { misConsultas, preguntar } = useIA();
-  const consulta = misConsultas();
-  const consultas = consulta.data ?? [];
-  const [pregunta, setPregunta] = useState("");
-  const finRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    finRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [consultas.length, preguntar.isPending]);
-
-  function enviar() {
-    const texto = pregunta.trim();
-    if (!texto || preguntar.isPending) return;
-    preguntar.mutate({ pregunta: texto });
-    setPregunta("");
-  }
-
-  return (
-    <Card className="flex h-[65vh] flex-col p-3">
-      <div className="flex-1 space-y-3 overflow-y-auto p-1">
-        {consulta.isLoading ? (
-          <Skeleton className="h-10 w-2/3" />
-        ) : consultas.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            Preguntale al asistente sobre tu plan, tus objetivos o hábitos.
-          </p>
-        ) : (
-          consultas.map((item) => (
-            <div key={item.id} className="space-y-2">
-              <div className="flex justify-end">
-                <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground">
-                  {item.pregunta}
-                </div>
-              </div>
-              <div className="flex justify-start">
-                <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-sm">
-                  {item.respuesta}
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-        {/* Optimista: el mensaje enviado se muestra al instante + "pensando" animado. */}
-        {preguntar.isPending && preguntar.variables && (
-          <div className="space-y-2">
-            <div className="flex justify-end">
-              <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground">
-                {preguntar.variables.pregunta}
-              </div>
-            </div>
-            <PensandoAnimado />
-          </div>
-        )}
-        <div ref={finRef} />
-      </div>
-
-      <div className="mt-2 flex items-end gap-2 border-t pt-2">
-        <Textarea
-          rows={1}
-          value={pregunta}
-          placeholder="Escribí tu pregunta…"
-          className="max-h-32 min-h-10 resize-none"
-          onChange={(e) => setPregunta(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              enviar();
-            }
-          }}
-        />
-        <Button
-          size="icon"
-          onClick={enviar}
-          disabled={preguntar.isPending || pregunta.trim().length === 0}
-          aria-label="Enviar"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
-      </div>
-    </Card>
   );
 }
 
