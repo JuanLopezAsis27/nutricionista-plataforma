@@ -8,7 +8,7 @@ import { ObtenerCuentaGoogle } from "./integraciones/ObtenerCuentaGoogle";
 import { CambiarEstadoNutricionista } from "./superadmin/CambiarEstadoNutricionista";
 import { ListarNutricionistas } from "./superadmin/ListarNutricionistas";
 import { ObtenerDia } from "./diario/ObtenerDia";
-import { ListarConsultasIA } from "./ia/ListarConsultasIA";
+import { ListarConversacionesIA } from "./ia/GestionarConversacionesIA";
 import { Usuario } from "@/dominio/entidades/Usuario";
 import {
   formatearFechaCorta,
@@ -21,7 +21,7 @@ import {
   mockCuentaConectadaRepositorio,
   mockUsuarioRepositorio,
   mockRegistroDiarioRepositorio,
-  mockHistorialIARepositorio,
+  mockConversacionIARepositorio,
   mockServicioEmail,
   plantillaEmailEjemplo,
 } from "./_ayudas-test";
@@ -243,10 +243,17 @@ describe("Lecturas simples", () => {
     expect(await caso.ejecutar("pac-1", new Date("2026-07-01"))).toBeNull();
   });
 
-  it("ListarConsultasIA delega en el historial", async () => {
-    const repositorio = mockHistorialIARepositorio();
-    await new ListarConsultasIA(repositorio).ejecutar("pac-1");
+  /**
+   * El dueño viaja hasta el repositorio tal cual: un `null` que se colara ahí
+   * al listar los de un paciente le mostraría los chats del profesional.
+   */
+  it("ListarConversacionesIA delega en el repositorio con su dueño", async () => {
+    const repositorio = mockConversacionIARepositorio();
+    await new ListarConversacionesIA(repositorio).ejecutar("pac-1");
 
-    expect(repositorio.listarConsultas).toHaveBeenCalled();
+    expect(repositorio.listar).toHaveBeenCalledWith(
+      expect.any(Number),
+      "pac-1",
+    );
   });
 });

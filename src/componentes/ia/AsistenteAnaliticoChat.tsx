@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Bot, Send, Plus, Trash2, MessageSquare } from "lucide-react";
 import { useIA } from "@/lib/hooks/useIA";
 import {
@@ -15,6 +15,7 @@ import { Skeleton } from "@/componentes/ui/skeleton";
 import { PensandoAnimado } from "@/componentes/ia/PensandoAnimado";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { formatearFecha } from "@/lib/formato";
+import { useHiloDeChat, type TurnoChat } from "./hiloDeChat";
 
 const SUGERENCIAS = [
   "¿Qué pacientes tienen turno esta semana?",
@@ -32,11 +33,6 @@ const SUGERENCIAS = [
  * pantalla baja, donde la resta dejaría una tira de dos renglones.
  */
 const ALTO = "h-[calc(100vh-13rem)] min-h-[420px]";
-
-interface Turno {
-  rol: "USUARIO" | "ASISTENTE";
-  contenido: string;
-}
 
 /**
  * Chat analítico del nutricionista.
@@ -59,65 +55,28 @@ export function AsistenteAnaliticoChat() {
   const listado = conversaciones();
 
   const [conversacionId, setConversacionId] = useState<string | null>(null);
-  /**
-   * Cola local: los turnos escritos en esta pantalla que la query todavía no
-   * trajo, y cuántos turnos había guardados cuando se empezó a escribirlos.
-   *
-   * Existe para que la pregunta y la respuesta aparezcan al instante sin
-   * esperar el refetch. `desde` es lo que evita el duplicado: a medida que la
-   * query alcanza a la cola, se descarta de la cola exactamente lo que ya
-   * llegó guardado, en vez de comparar textos.
-   */
-  const [cola, setCola] = useState<{ desde: number; turnos: Turno[] }>({
-    desde: 0,
-    turnos: [],
-  });
   const [texto, setTexto] = useState("");
   const [aEliminar, setAEliminar] = useState<string | null>(null);
-  const hiloRef = useRef<HTMLDivElement>(null);
-  /** Última conversación a la que se bajó, para no animar al cambiar de chat. */
-  const ultimaBajada = useRef<string | null>(null);
 
   const abierta = conversacion(
     { id: conversacionId ?? "" },
     { enabled: conversacionId != null },
   );
 
-  const guardados: Turno[] = (abierta.data?.mensajes ?? []).map((m) => ({
+  const guardados: TurnoChat[] = (abierta.data?.mensajes ?? []).map((m) => ({
     rol: m.rol,
     contenido: m.contenido,
   }));
-  const yaLlegaron = Math.max(0, guardados.length - cola.desde);
-  const turnos = [...guardados, ...cola.turnos.slice(yaLlegaron)];
-
-  /**
-   * Baja el hilo del chat moviendo SOLO su propio scroll.
-   *
-   * Antes acá había un `scrollIntoView()` sobre un div al final de la lista, y
-   * eso arrastra a todos los contenedores con scroll que lo contienen —incluida
-   * la página—: cada mensaje nuevo, y cada vez que se abría una conversación,
-   * la pestaña entera se iba al fondo, porque debajo del chat esta pantalla
-   * sigue con los KPIs y las advertencias. Tocar `scrollTop` del contenedor no
-   * puede mover nada de afuera.
-   */
-  useEffect(() => {
-    const hilo = hiloRef.current;
-    if (!hilo) return;
-    // Al cambiar de conversación se baja de una: animar el recorrido de un
-    // historial largo no aporta nada y se ve como un tirón.
-    const cambioDeChat = ultimaBajada.current !== conversacionId;
-    ultimaBajada.current = conversacionId;
-    hilo.scrollTo({
-      top: hilo.scrollHeight,
-      behavior: cambioDeChat ? "auto" : "smooth",
-    });
-  }, [turnos.length, analizar.isPending, conversacionId]);
+  const hilo = useHiloDeChat({
+    guardados,
+    conversacionId,
+    pendiente: analizar.isPending,
+  });
+  const { turnos, hiloRef } = hilo;
 
   function abrir(id: string | null) {
     setConversacionId(id);
-    // La cola es de la conversación que se deja: si no se vacía, sus turnos se
-    // colarían al final de la que se abre.
-    setCola({ desde: 0, turnos: [] });
+    hilo.vaciar();
     setTexto("");
   }
 
@@ -125,30 +84,15 @@ export function AsistenteAnaliticoChat() {
     const p = (pregunta ?? texto).trim();
     if (!p || analizar.isPending) return;
     setTexto("");
-    setCola((prev) => ({
-      desde: prev.turnos.length === 0 ? guardados.length : prev.desde,
-      turnos: [...prev.turnos, { rol: "USUARIO", contenido: p }],
-    }));
+    hilo.encolarPregunta(p);
     analizar.mutate(
       { pregunta: p, conversacionId },
       {
         onSuccess: (data) => {
           setConversacionId(data.conversacionId);
-          setCola((prev) => ({
-            ...prev,
-            turnos: [
-              ...prev.turnos,
-              { rol: "ASISTENTE", contenido: data.respuesta },
-            ],
-          }));
+          hilo.encolarRespuesta(data.respuesta);
         },
-        onError: () =>
-          // La pregunta ya quedó guardada en el servidor, pero acá se saca para
-          // que el profesional pueda reescribirla sin verla duplicada.
-          setCola((prev) => ({
-            ...prev,
-            turnos: prev.turnos.slice(0, -1),
-          })),
+        onError: () => hilo.descartarUltima(),
       },
     );
   }

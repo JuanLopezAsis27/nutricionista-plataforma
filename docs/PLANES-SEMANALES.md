@@ -146,6 +146,43 @@ menú, que es lo que congela `ComparativaSemanal.test.ts`—.
   las de Antropometría. Estaban una debajo de la otra y competían por el
   scroll: la de abajo —el menú, que es lo que el paciente mira todos los días—
   quedaba escondida.
+- **Portal del paciente, `/mi-semana`**: su propio menú, en modo lectura.
+
+## El paciente lo lee de otra forma: un día por vez
+
+`obtenerMiPlanSemanal` devuelve exactamente lo mismo que `obtenerDelPaciente`
+—el menú más la comparación contra las metas de su plan—; lo único que cambia
+es de dónde sale el paciente: de la sesión (`pacienteDeSesion`) y no de un
+`pacienteId` de entrada. Va como procedimiento aparte y no como un parámetro
+opcional porque acá no hay nada que elegir, y es justo eso lo que impide que un
+paciente pida el menú de otro.
+
+Lo que sí cambia es la pantalla. La grilla de siete columnas
+(`VistaPlanSemanal`) es la del consultorio: el profesional arma la semana
+entera y necesita verla junta para repartir los macros. El paciente abre la app
+para saber qué come hoy, y una tabla de 42 celdas que en un teléfono se barre
+de costado es lo contrario de esa pregunta. Por eso el portal usa
+`VistaSemanaPaciente`: **un día por vez**, elegido con un selector que arranca
+en hoy, y cada franja como una tarjeta con su comida principal.
+
+Las **alternativas van plegadas**. Son intercambiables entre sí —«o esto, o
+esto otro»—, así que mostrarlas abiertas haría que un día con opciones
+pareciera un día con el triple de comida, que es el mismo malentendido que evita
+el total del día al sumar solo la principal.
+
+De `lg` para arriba la pantalla ofrece además la grilla completa, porque ahí
+entra. Abajo de eso el selector no existe: no es una preferencia que convenga
+dejar elegir cuando una de las dos opciones no se puede leer.
+
+`textoDeComida` —qué se lee de una comida: su texto, o la receta, o sus
+alimentos— vive en `componentes/planes-semanales/textoComida.ts` y lo usan las
+dos vistas. Con una copia por vista, la que se agregue tercera va a decir algo
+distinto de la misma comida.
+
+`diaSemanaDe` (en la entidad) es lo único que cruza el calendario con el enum:
+`getDay()` cuenta desde el domingo y `DIAS_SEMANA` desde el lunes, y repetir ese
+corrimiento en cada pantalla termina mostrando el menú del día equivocado. Está
+congelado en `PlanSemanal.test.ts`.
 
 No hay carpetas ni plantillas: un plan semanal **ya es** el molde reutilizable
 —se asigna a cuantos pacientes haga falta y se edita en un solo lugar—, así que

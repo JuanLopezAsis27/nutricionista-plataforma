@@ -1,6 +1,5 @@
 import type { PreguntarAlAsistente } from "@/aplicacion/casos-de-uso/ia/PreguntarAlAsistente";
 import type { AnalizarFotoDeComida } from "@/aplicacion/casos-de-uso/ia/AnalizarFotoDeComida";
-import type { ListarConsultasIA } from "@/aplicacion/casos-de-uso/ia/ListarConsultasIA";
 import type { ObtenerInsightsPredictivos } from "@/aplicacion/casos-de-uso/ia/ObtenerInsightsPredictivos";
 import type { AnalizarConAsistente } from "@/aplicacion/casos-de-uso/ia/AnalizarConAsistente";
 import type {
@@ -9,12 +8,12 @@ import type {
   EliminarConversacionIA,
 } from "@/aplicacion/casos-de-uso/ia/GestionarConversacionesIA";
 import type { RegistrarRetroalimentacionInsight } from "@/aplicacion/casos-de-uso/ia/RegistrarRetroalimentacionInsight";
+import type { ConversacionIA } from "@/dominio/entidades/ConversacionIA";
 import type {
   RespuestaAsistenteDto,
   RespuestaAnalisisDto,
   ResumenConversacionIADto,
   ConversacionIASalidaDto,
-  ConsultaIASalidaDto,
   ResultadoAnalisisComidaDto,
   InsightPacienteDto,
   FeedbackInsightDto,
@@ -42,7 +41,6 @@ export class ServicioIA {
   constructor(
     private readonly preguntarUC: PreguntarAlAsistente,
     private readonly analizarUC: AnalizarFotoDeComida,
-    private readonly listarConsultasUC: ListarConsultasIA,
     private readonly insightsUC: ObtenerInsightsPredictivos,
     private readonly analizarConAsistenteUC: AnalizarConAsistente,
     private readonly registrarFeedbackUC: RegistrarRetroalimentacionInsight,
@@ -59,11 +57,16 @@ export class ServicioIA {
     };
   }
 
+  /** Portal: una pregunta del paciente, dentro de su chat. */
   async preguntar(
     pacienteId: string,
-    pregunta: string,
+    datos: { pregunta: string; conversacionId?: string | null },
   ): Promise<RespuestaAsistenteDto> {
-    return this.preguntarUC.ejecutar(pacienteId, pregunta);
+    return this.preguntarUC.ejecutar(
+      pacienteId,
+      datos.pregunta,
+      datos.conversacionId,
+    );
   }
 
   async analizarFoto(
@@ -77,17 +80,25 @@ export class ServicioIA {
     });
   }
 
-  async misConsultas(pacienteId: string): Promise<ConsultaIASalidaDto[]> {
-    const consultas = await this.listarConsultasUC.ejecutar(pacienteId);
-    return consultas.map((c) => {
-      const p = c.aPrimitivos();
-      return {
-        id: p.id,
-        pregunta: p.pregunta,
-        respuesta: p.respuesta,
-        creadoEn: p.creadoEn,
-      };
-    });
+  /** Los chats guardados del paciente con el asistente. */
+  async misConversaciones(
+    pacienteId: string,
+  ): Promise<ResumenConversacionIADto[]> {
+    return this.listarConversacionesUC.ejecutar(pacienteId);
+  }
+
+  /** Un chat del paciente, con todos sus turnos. */
+  async miConversacion(
+    id: string,
+    pacienteId: string,
+  ): Promise<ConversacionIASalidaDto> {
+    return ServicioIA.aSalidaConversacion(
+      await this.obtenerConversacionUC.ejecutar(id, pacienteId),
+    );
+  }
+
+  async eliminarMiConversacion(id: string, pacienteId: string): Promise<void> {
+    await this.eliminarConversacionUC.ejecutar(id, pacienteId);
   }
 
   async insights(): Promise<InsightPacienteDto[]> {
@@ -102,15 +113,31 @@ export class ServicioIA {
     return this.analizarConAsistenteUC.ejecutar(datos);
   }
 
-  /** Los chats del profesional con el asistente, para la barra lateral. */
+  /**
+   * Los chats del PROFESIONAL con el asistente, para la barra lateral.
+   *
+   * `null` como dueño no es «todos»: es «los del consultorio». Los de los
+   * pacientes viven en la misma tabla y se piden con `misConversaciones`.
+   */
   async conversaciones(): Promise<ResumenConversacionIADto[]> {
-    return this.listarConversacionesUC.ejecutar();
+    return this.listarConversacionesUC.ejecutar(null);
   }
 
-  /** Un chat guardado, con todos sus turnos. */
+  /** Un chat guardado del profesional, con todos sus turnos. */
   async conversacion(id: string): Promise<ConversacionIASalidaDto> {
-    const c = await this.obtenerConversacionUC.ejecutar(id);
-    const d = c.aPrimitivos();
+    return ServicioIA.aSalidaConversacion(
+      await this.obtenerConversacionUC.ejecutar(id, null),
+    );
+  }
+
+  async eliminarConversacion(id: string): Promise<void> {
+    await this.eliminarConversacionUC.ejecutar(id, null);
+  }
+
+  private static aSalidaConversacion(
+    conversacion: ConversacionIA,
+  ): ConversacionIASalidaDto {
+    const d = conversacion.aPrimitivos();
     return {
       id: d.id,
       titulo: d.titulo,
@@ -122,10 +149,6 @@ export class ServicioIA {
       })),
       actualizadoEn: d.actualizadoEn,
     };
-  }
-
-  async eliminarConversacion(id: string): Promise<void> {
-    await this.eliminarConversacionUC.ejecutar(id);
   }
 
   /** Registra la corrección del profesional sobre un insight (👍/👎). */

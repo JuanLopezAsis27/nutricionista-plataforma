@@ -15,6 +15,28 @@ import {
   ETIQUETAS_ZONA,
   ETIQUETAS_SEGMENTO,
 } from "@/dominio/servicios/composicion/distribucion";
+import {
+  BarraApilada,
+  GraficoLineas,
+  Leyenda,
+  estilosGrafico,
+  formatearFecha,
+  formatearMedida,
+  formatearNumero,
+  signo,
+  CORAL,
+  GRIS_TEXTO,
+  GRIS_SUAVE,
+  FONDO_SUAVE,
+  BORDE,
+  COLOR_ADIPOSA,
+  COLOR_MUSCULAR,
+  COLOR_RESIDUAL,
+  COLOR_OSEA,
+  COLOR_PIEL,
+  COLORES_ZONA_ADIPOSA,
+  type Pintor,
+} from "./graficosPdf";
 
 /**
  * Documento PDF del dashboard de composición corporal: la misma medición que
@@ -42,56 +64,15 @@ import {
  * índices— que `ComposicionPaciente.tsx` excluye a propósito del portal.
  */
 
-const CORAL = "#F4535E";
-const GRIS_TEXTO = "#3f3f46";
-const GRIS_SUAVE = "#71717a";
-const FONDO_SUAVE = "#fafafa";
-const BORDE = "#e4e4e7";
-
 /**
- * Paleta propia del PDF para las masas y los tejidos. No es la del tema de
- * pantalla (`paleta.ts`, con variantes claro/oscuro): la infraestructura no
- * puede importar de `componentes` (ver `arquitectura.test.ts`), y un PDF no
- * tiene modo oscuro que respetar.
+ * Semáforo del Score-Z, propio de este documento. Los colores de las masas y
+ * los tejidos —compartidos con el PDF del paciente— están en `graficosPdf`,
+ * junto con los gráficos que los usan.
  */
-const COLOR_ADIPOSA = "#f4535e";
-const COLOR_MUSCULAR = "#3b82f6";
-const COLOR_RESIDUAL = "#a855f7";
-const COLOR_OSEA = "#f59e0b";
-const COLOR_PIEL = "#94a3b8";
-const COLORES_ZONA_ADIPOSA = ["#f4535e", "#fb7185", "#fda4af"];
 const COLOR_BIEN = "#22c55e";
 const COLOR_ATENCION = "#f59e0b";
 const COLOR_ALERTA = "#ef4444";
 
-// Formateadores propios: la infraestructura no puede importar `@/lib/formato`
-// (es presentación). Mismos parámetros Intl que allá.
-const formateadorFecha = new Intl.DateTimeFormat("es-AR", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-  timeZone: "UTC",
-});
-const formateadorMedida = new Intl.NumberFormat("es-AR", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-const formateadorNumero = new Intl.NumberFormat("es-AR", {
-  maximumFractionDigits: 1,
-});
-function formatearFecha(fecha: Date | string | null | undefined): string {
-  return fecha ? formateadorFecha.format(new Date(fecha)) : "—";
-}
-function formatearMedida(valor: number | null | undefined): string {
-  return valor == null ? "—" : formateadorMedida.format(valor);
-}
-function formatearNumero(valor: number | null | undefined): string {
-  return valor == null ? "—" : formateadorNumero.format(valor);
-}
-function signo(valor: number | null | undefined): string {
-  if (valor == null) return "—";
-  return `${valor > 0 ? "+" : ""}${formatearMedida(valor)}`;
-}
 /** Banda de apartamiento de un Score-Z, por valor absoluto (mismo criterio que `InsigniaZ` en pantalla). */
 function colorDeZ(valor: number): string {
   const magnitud = Math.abs(valor);
@@ -247,26 +228,6 @@ const estilos = StyleSheet.create({
   },
   mitadDerecha: { flex: 1, height: 7, backgroundColor: FONDO_SUAVE },
   lineaCero: { width: 1, height: 9, backgroundColor: GRIS_SUAVE },
-
-  barraApilada: { flexDirection: "row", height: 16, marginBottom: 6 },
-  leyenda: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    columnGap: 12,
-    rowGap: 3,
-    marginBottom: 10,
-  },
-  leyendaItem: { flexDirection: "row", alignItems: "center", gap: 3 },
-  leyendaSwatch: { width: 7, height: 7 },
-  leyendaTexto: { fontSize: 7, color: GRIS_SUAVE },
-
-  // --- Gráficos de líneas (Canvas) -----------------------------------------
-  bloqueGrafico: { marginBottom: 10 },
-  tituloGrafico: {
-    fontSize: 8,
-    fontFamily: "Helvetica-Bold",
-    marginBottom: 3,
-  },
 
   pie: {
     position: "absolute",
@@ -653,7 +614,7 @@ function DashboardComposicionPdf({
                   return resultado.distribucion.muscular.segmentos.map(
                     (seg) => (
                       <View key={seg.segmento} style={{ marginTop: 4 }}>
-                        <Text style={estilos.leyendaTexto}>
+                        <Text style={estilosGrafico.leyendaTexto}>
                           {ETIQUETAS_SEGMENTO[seg.segmento] ?? seg.etiqueta}
                         </Text>
                         <View
@@ -727,8 +688,8 @@ function DashboardComposicionPdf({
                 ` · % graso por ${DEFINICIONES_METODO[metodoSerie].etiqueta}`}
             </Text>
 
-            <View style={estilos.bloqueGrafico} wrap={false}>
-              <Text style={estilos.tituloGrafico}>Peso (kg)</Text>
+            <View style={estilosGrafico.bloqueGrafico} wrap={false}>
+              <Text style={estilosGrafico.tituloGrafico}>Peso (kg)</Text>
               <GraficoLineas
                 ancho={ANCHO_CONTENIDO}
                 alto={100}
@@ -739,8 +700,8 @@ function DashboardComposicionPdf({
             </View>
 
             {hayGrasaEnSerie && (
-              <View style={estilos.bloqueGrafico} wrap={false}>
-                <Text style={estilos.tituloGrafico}>% graso</Text>
+              <View style={estilosGrafico.bloqueGrafico} wrap={false}>
+                <Text style={estilosGrafico.tituloGrafico}>% graso</Text>
                 <GraficoLineas
                   ancho={ANCHO_CONTENIDO}
                   alto={100}
@@ -752,8 +713,8 @@ function DashboardComposicionPdf({
             )}
 
             {hayMasasEnSerie && (
-              <View style={estilos.bloqueGrafico} wrap={false}>
-                <Text style={estilos.tituloGrafico}>
+              <View style={estilosGrafico.bloqueGrafico} wrap={false}>
+                <Text style={estilosGrafico.tituloGrafico}>
                   Masa adiposa y muscular (kg)
                 </Text>
                 <GraficoLineas
@@ -766,26 +727,12 @@ function DashboardComposicionPdf({
                   fechas={fechasEvolucion}
                   unidad="kg"
                 />
-                <View style={estilos.leyenda}>
-                  <View style={estilos.leyendaItem}>
-                    <View
-                      style={[
-                        estilos.leyendaSwatch,
-                        { backgroundColor: COLOR_ADIPOSA },
-                      ]}
-                    />
-                    <Text style={estilos.leyendaTexto}>Masa adiposa</Text>
-                  </View>
-                  <View style={estilos.leyendaItem}>
-                    <View
-                      style={[
-                        estilos.leyendaSwatch,
-                        { backgroundColor: COLOR_MUSCULAR },
-                      ]}
-                    />
-                    <Text style={estilos.leyendaTexto}>Masa muscular</Text>
-                  </View>
-                </View>
+                <Leyenda
+                  entradas={[
+                    { etiqueta: "Masa adiposa", color: COLOR_ADIPOSA },
+                    { etiqueta: "Masa muscular", color: COLOR_MUSCULAR },
+                  ]}
+                />
               </View>
             )}
 
@@ -1150,207 +1097,6 @@ function CeldaBarraDivergente({ valor }: { valor: number | null }) {
       </View>
       <Text style={estilos.celdaBarraTexto}>{signo(valor)}</Text>
     </View>
-  );
-}
-
-/** Barra 100% apilada (proporciones por `flex`) + leyenda con sus colores. */
-function BarraApilada({
-  segmentos,
-}: {
-  segmentos: { etiqueta: string; valor: number; color: string }[];
-}) {
-  return (
-    <View>
-      <View style={estilos.barraApilada}>
-        {segmentos.map((s) => (
-          <View
-            key={s.etiqueta}
-            style={{ flex: Math.max(0, s.valor), backgroundColor: s.color }}
-          />
-        ))}
-      </View>
-      <View style={estilos.leyenda}>
-        {segmentos.map((s) => (
-          <View key={s.etiqueta} style={estilos.leyendaItem}>
-            <View
-              style={[estilos.leyendaSwatch, { backgroundColor: s.color }]}
-            />
-            <Text style={estilos.leyendaTexto}>
-              {s.etiqueta} {formatearMedida(s.valor)} %
-            </Text>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-/**
- * Subconjunto de la API vectorial de PDFKit que expone `Canvas` de react-pdf
- * (`node_modules/@react-pdf/render`: `availableMethods`). react-pdf tipa el
- * parámetro como `any` porque es un wrapper genérico; acá se declara el
- * subconjunto real que usan los gráficos de este archivo, para no perderlo.
- */
-interface Pintor {
-  moveTo(x: number, y: number): Pintor;
-  lineTo(x: number, y: number): Pintor;
-  circle(x: number, y: number, radio: number): Pintor;
-  lineWidth(ancho: number): Pintor;
-  strokeColor(color: string): Pintor;
-  fillColor(color: string): Pintor;
-  stroke(): Pintor;
-  fill(): Pintor;
-  font(nombre: string): Pintor;
-  fontSize(tamano: number): Pintor;
-  text(
-    texto: string,
-    x: number,
-    y: number,
-    opciones?: { width?: number; align?: "left" | "center" | "right" },
-  ): Pintor;
-  dash(largo: number, opciones?: { space?: number }): Pintor;
-}
-
-/** Fecha corta (sin año) para las etiquetas del eje X: el año ya está en la fecha de la medición del encabezado y en la tabla de abajo. */
-const formateadorFechaCorta = new Intl.DateTimeFormat("es-AR", {
-  day: "2-digit",
-  month: "2-digit",
-  timeZone: "UTC",
-});
-function formatearFechaCorta(fecha: Date | string): string {
-  return formateadorFechaCorta.format(new Date(fecha));
-}
-
-/**
- * Gráfico de líneas con sus dos ejes dibujados: el Y con tres marcas de valor
- * (máximo, medio, mínimo) y el X con la fecha bajo cada punto — más el valor
- * de cada serie escrito arriba (o abajo, la segunda serie) de su punto. Con
- * pocos puntos entran todas las etiquetas; con muchos, se saltean a un paso
- * fijo para que no se superpongan, sin dejar nunca afuera al primero ni al
- * último.
- */
-function GraficoLineas({
-  ancho,
-  alto,
-  series,
-  fechas,
-  unidad,
-}: {
-  ancho: number;
-  alto: number;
-  series: { color: string; valores: (number | null)[] }[];
-  fechas: Date[];
-  unidad?: string;
-}) {
-  const margenIzq = 40;
-  const margenDer = 6;
-  const margenSup = 14;
-  const margenInf = 14;
-  const anchoUtil = ancho - margenIzq - margenDer;
-  const altoUtil = alto - margenSup - margenInf;
-
-  const n = Math.max(2, fechas.length, ...series.map((s) => s.valores.length));
-  const todos = series.flatMap((s) =>
-    s.valores.filter((v): v is number => v != null),
-  );
-  const minY = Math.min(...todos);
-  const maxY = Math.max(...todos);
-  const medioY = (minY + maxY) / 2;
-  const rango = maxY - minY || 1;
-
-  const xDe = (i: number) =>
-    n <= 1 ? margenIzq + anchoUtil / 2 : margenIzq + (i / (n - 1)) * anchoUtil;
-  const yDe = (v: number) =>
-    margenSup + altoUtil - ((v - minY) / rango) * altoUtil;
-
-  // Índices con etiqueta (fecha + valor): el primero y el último siempre;
-  // los del medio, a un paso que deje ~40 pt por etiqueta.
-  const maxEtiquetas = Math.max(2, Math.floor(anchoUtil / 40));
-  const paso = Math.max(1, Math.ceil(n / maxEtiquetas));
-  const llevaEtiqueta = (i: number) => i % paso === 0 || i === n - 1;
-
-  return (
-    <Canvas
-      style={{ width: ancho, height: alto }}
-      paint={(p: Pintor) => {
-        // Ejes.
-        p.moveTo(margenIzq, margenSup)
-          .lineTo(margenIzq, margenSup + altoUtil)
-          .lineWidth(0.5)
-          .strokeColor(BORDE)
-          .stroke();
-        p.moveTo(margenIzq, margenSup + altoUtil)
-          .lineTo(margenIzq + anchoUtil, margenSup + altoUtil)
-          .lineWidth(0.5)
-          .strokeColor(BORDE)
-          .stroke();
-
-        // Eje Y: valor arriba, en el medio y abajo (sin repetir si la serie
-        // es plana, un único valor en toda la medición).
-        const marcasY = maxY === minY ? [maxY] : [maxY, medioY, minY];
-        p.font("Helvetica").fontSize(6).fillColor(GRIS_SUAVE);
-        marcasY.forEach((valor) => {
-          const y = yDe(valor);
-          p.text(
-            `${formatearMedida(valor)}${unidad ? ` ${unidad}` : ""}`,
-            0,
-            Math.max(0, y - 3),
-            { width: margenIzq - 4, align: "right" },
-          );
-          p.moveTo(margenIzq - 2, y)
-            .lineTo(margenIzq, y)
-            .lineWidth(0.5)
-            .strokeColor(BORDE)
-            .stroke();
-        });
-
-        // Eje X: fecha bajo cada punto (con el salteo de `llevaEtiqueta`).
-        p.font("Helvetica").fontSize(6).fillColor(GRIS_SUAVE);
-        fechas.forEach((fecha, i) => {
-          if (!llevaEtiqueta(i)) return;
-          const x = xDe(i);
-          p.text(formatearFechaCorta(fecha), x - 16, margenSup + altoUtil + 3, {
-            width: 32,
-            align: "center",
-          });
-        });
-
-        // Series: línea, puntos y el valor sobre (o bajo) cada punto con
-        // etiqueta. La segunda serie en adelante escribe el valor ABAJO del
-        // punto: dos series que se cruzan no pueden escribir las dos arriba
-        // sin superponerse.
-        series.forEach((serie, indiceSerie) => {
-          const puntos = serie.valores
-            .map((v, i): [number, number] | null =>
-              v == null ? null : [xDe(i), yDe(v)],
-            )
-            .filter((pt): pt is [number, number] => pt != null);
-
-          if (puntos.length > 1) {
-            p.moveTo(puntos[0]![0], puntos[0]![1]);
-            for (const [x, y] of puntos.slice(1)) p.lineTo(x, y);
-            p.lineWidth(1.5).strokeColor(serie.color).stroke();
-          }
-          for (const [x, y] of puntos) {
-            p.circle(x, y, 2).fillColor(serie.color).fill();
-          }
-
-          p.font("Helvetica-Bold").fontSize(6.5).fillColor(serie.color);
-          serie.valores.forEach((v, i) => {
-            if (v == null || !llevaEtiqueta(i)) return;
-            const x = xDe(i);
-            const y = yDe(v);
-            const yTexto = indiceSerie === 0 ? y - 10 : y + 4;
-            p.text(formatearMedida(v), x - 16, yTexto, {
-              width: 32,
-              align: "center",
-            });
-          });
-        });
-
-        return null;
-      }}
-    />
   );
 }
 

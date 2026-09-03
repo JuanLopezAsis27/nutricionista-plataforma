@@ -148,6 +148,7 @@ describe("AnalizarConAsistente", () => {
     // y un "¿y de ese paciente qué más?" no tenía a qué referirse.
     const previa = ConversacionIA.reconstruir({
       id: "conv-1",
+      pacienteId: null,
       titulo: "Sobre Ana",
       mensajes: [
         {

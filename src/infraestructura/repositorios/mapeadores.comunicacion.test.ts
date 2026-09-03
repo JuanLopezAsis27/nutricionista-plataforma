@@ -12,10 +12,7 @@ import { mapearConfiguracionRecordatorios } from "./PrismaRepositorioConfiguraci
 import { mapearAxioma } from "./PrismaRepositorioAxioma";
 import { mapearArchivo } from "./PrismaRepositorioArchivo";
 import { mapearConfiguracion } from "./PrismaRepositorioConfiguracion";
-import {
-  mapearConsultaIA,
-  mapearAnalisisComida,
-} from "./PrismaRepositorioHistorialIA";
+import { mapearAnalisisComida } from "./PrismaRepositorioHistorialIA";
 import { mapearTokenRecuperacion } from "./PrismaRepositorioTokenRecuperacion";
 import { mapearCuentaConectada } from "./PrismaRepositorioCuentaConectada";
 
@@ -351,21 +348,7 @@ describe("mapearArchivo", () => {
   });
 });
 
-describe("mapearConsultaIA y mapearAnalisisComida", () => {
-  it("no cruza pregunta con respuesta", () => {
-    const datos = mapearConsultaIA({
-      id: "ia-1",
-      nutricionistaId: "nutri-1",
-      pacienteId: "pac-1",
-      pregunta: "que puedo mejorar",
-      respuesta: "aumentar proteina en el desayuno",
-      creadoEn: new Date("2026-01-01T00:00:00.000Z"),
-    }).aPrimitivos();
-
-    expect(datos.pregunta).toBe("que puedo mejorar");
-    expect(datos.respuesta).toBe("aumentar proteina en el desayuno");
-  });
-
+describe("mapearAnalisisComida", () => {
   it("conserva el resultado del analisis como objeto estructurado", () => {
     const datos = mapearAnalisisComida({
       id: "an-1",

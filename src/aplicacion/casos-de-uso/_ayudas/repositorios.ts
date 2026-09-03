@@ -598,8 +598,6 @@ export function mockHistorialIARepositorio(
   parcial: Partial<IHistorialIARepositorio> = {},
 ): IHistorialIARepositorio {
   return {
-    guardarConsulta: vi.fn(async () => {}),
-    listarConsultas: vi.fn(async () => []),
     guardarAnalisis: vi.fn(async () => {}),
     listarAnalisis: vi.fn(async () => []),
     ...parcial,

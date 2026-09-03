@@ -41,6 +41,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | Documento                    | Qué cubre                                            |
 | ---------------------------- | ---------------------------------------------------- |
 | `docs/DASHBOARD.md`          | Qué muestra la pantalla de inicio y por qué           |
+| `docs/PORTAL-PACIENTE.md`    | Las pantallas del paciente y por qué están así       |
 | `docs/AGENDA.md`             | Días y horarios de atención; dónde vive la regla      |
 | `docs/CALENDARIO-TURNOS.md`  | La vista de calendario: grilla semanal y globos       |
 | `docs/RECORDATORIOS.md`      | Los tres medios de aviso y su política única          |

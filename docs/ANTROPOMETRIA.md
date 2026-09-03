@@ -249,3 +249,38 @@ debajo.
   —si apunta a una de las cinco masas— en `MASA_DE_VARIABLE` de
   `TortaMasasConObjetivos`. Las tres primeras rompen la compilación si se
   olvidan; las dos últimas no.
+
+## Los dos PDF, y por qué los dos llevan gráficos
+
+| PDF                            | Quién lo baja   | Qué trae                                   |
+| ------------------------------ | --------------- | ------------------------------------------ |
+| `MedicionAntropometricaPdf`    | El **paciente** | Su medición: reparto del peso, evolución y la planilla completa |
+| `DashboardComposicionPdf`      | El profesional  | El dashboard técnico: Phantom, somatocarta, índices |
+
+El del paciente era solo la planilla: cuarenta números crudos en una tabla,
+que es justo lo que `ComposicionPaciente` evita mostrarle sin interpretación.
+Ahora arranca con los mismos dos gráficos que mira en pantalla —cómo se reparte
+su peso y su evolución— y la planilla queda debajo, para quien la quiera.
+
+El reparto sale del **fraccionamiento de Kerr** cuando está, que es la
+partición completa; si no hay, de la ecuación de pliegues destacada, que reparte
+el peso en dos (graso y no graso). Sin ninguno de los dos no se dibuja: una
+barra de un solo color no dice nada.
+
+La serie de evolución llega **hasta esa medición**, no hasta la última: el PDF
+de una medición de marzo con la curva completa hasta hoy diría cosas que en
+marzo no se sabían, y dos descargas del mismo PDF en fechas distintas no
+coincidirían.
+
+Los gráficos los dibuja `infraestructura/pdf/graficosPdf.tsx`, compartido por
+los dos documentos. react-pdf tiene su propio renderer —los componentes de
+pantalla son SVG del DOM y no se pueden reusar—, así que ahí viven las dos
+formas de dibujar que sirven: `View` con `flex` proporcional para las barras y
+`Canvas` (el lienzo vectorial de PDFKit) para las trayectorias en el plano.
+Estaban adentro del PDF del dashboard cuando era el único con gráficos;
+copiarlas al segundo habría dejado dos evoluciones del mismo gráfico.
+
+Cada gráfico va **acompañado de sus números exactos** —la leyenda de la barra,
+el valor sobre cada punto, la tabla debajo de la evolución—, nunca los
+reemplaza: con muchas mediciones el gráfico saltea etiquetas para que no se
+pisen, y el número tiene que estar en algún lado.

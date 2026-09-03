@@ -1,10 +1,13 @@
-import type { ConsultaIA } from "../entidades/ConsultaIA";
 import type { AnalisisComida } from "../entidades/AnalisisComida";
 
-/** Contrato de persistencia del historial de IA (consultas + análisis de comida). */
+/**
+ * Contrato de persistencia del historial de IA.
+ *
+ * Hoy es solo el análisis de fotos de comida. Las preguntas al asistente
+ * también vivían acá, sueltas (`ConsultaIA`); desde la migración 46 son turnos
+ * de un chat y las guarda `IConversacionIARepositorio`.
+ */
 export interface IHistorialIARepositorio {
-  guardarConsulta(consulta: ConsultaIA): Promise<void>;
-  listarConsultas(pacienteId: string, limite?: number): Promise<ConsultaIA[]>;
   guardarAnalisis(analisis: AnalisisComida): Promise<void>;
   listarAnalisis(
     pacienteId: string,

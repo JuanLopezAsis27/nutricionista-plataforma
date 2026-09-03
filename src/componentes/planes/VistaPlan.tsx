@@ -1,5 +1,13 @@
-import { Clock, BookOpen, Paperclip, ExternalLink } from "lucide-react";
+import {
+  Clock,
+  BookOpen,
+  Paperclip,
+  ExternalLink,
+  Repeat2,
+} from "lucide-react";
 import type { PlanSalidaDto } from "@/aplicacion/dtos/plan.dto";
+import { cn } from "@/lib/utilidades";
+import { estiloDeFranja } from "@/componentes/comunes/paletaFranjas";
 import {
   Card,
   CardContent,
@@ -22,6 +30,12 @@ import { formatearTamano } from "@/lib/formato";
  *
  * Que el visor viva acá y no en cada pantalla es lo que hace que el paciente lo
  * vea en «Mi plan» sin tocar esa página.
+ *
+ * Cada franja lleva el color de su POSICIÓN, el mismo criterio y la misma
+ * paleta que la grilla semanal (`comunes/paletaFranjas`): para el paciente,
+ * «Mi plan» y «Mi semana» son dos vistas de lo que come, y que el almuerzo
+ * cambiara de color entre una y otra rompe lo único que el color hace —ubicar
+ * la franja sin leer—.
  */
 export function VistaPlan({ plan }: { plan: PlanSalidaDto }) {
   const metas = [
@@ -66,15 +80,17 @@ export function VistaPlan({ plan }: { plan: PlanSalidaDto }) {
       </div>
 
       {metas.length > 0 && (
-        <div className="flex flex-wrap gap-3">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
           {metas.map((meta) => (
             <div
               key={meta.etiqueta}
-              className="rounded-lg border bg-card px-4 py-2"
+              className="rounded-xl border bg-card px-4 py-3"
             >
-              <p className="font-semibold">{meta.valor}</p>
-              <p className="text-xs uppercase text-muted-foreground">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {meta.etiqueta}
+              </p>
+              <p className="pt-1 text-xl font-bold tabular-nums leading-none">
+                {meta.valor}
               </p>
             </div>
           ))}
@@ -95,49 +111,70 @@ export function VistaPlan({ plan }: { plan: PlanSalidaDto }) {
         </p>
       )}
 
-      <div className="space-y-4">
-        {plan.comidas.map((comida) => (
-          <Card key={comida.id}>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base">
-                {comida.nombre}
-                {(comida.horaDesde || comida.horaHasta) && (
-                  <span className="flex items-center gap-1 text-xs font-normal text-muted-foreground">
-                    <Clock className="h-3.5 w-3.5" />
-                    {[comida.horaDesde, comida.horaHasta]
-                      .filter(Boolean)
-                      .join(" a ")}{" "}
-                    hs
+      <div className="space-y-3">
+        {plan.comidas.map((comida, indice) => {
+          const estilo = estiloDeFranja(indice);
+          return (
+            <Card
+              key={comida.id}
+              className={cn("overflow-hidden", estilo.celda)}
+            >
+              <CardHeader className={cn("border-b p-3", estilo.rotulo)}>
+                <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base">
+                  <span className="flex items-center gap-2">
+                    <span
+                      className={cn("h-2.5 w-2.5 rounded-full", estilo.punto)}
+                    />
+                    <span className={estilo.texto}>{comida.nombre}</span>
                   </span>
+                  {(comida.horaDesde || comida.horaHasta) && (
+                    <span className="flex items-center gap-1 text-xs font-normal tabular-nums text-muted-foreground">
+                      <Clock className="h-3.5 w-3.5" />
+                      {[comida.horaDesde, comida.horaHasta]
+                        .filter(Boolean)
+                        .join(" a ")}{" "}
+                      hs
+                    </span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 bg-card p-3 text-sm">
+                {/* Las opciones de una franja son intercambiables entre sí: se
+                  come UNA. Sin decirlo, tres opciones se leen como tres
+                  comidas —el mismo malentendido que evita el plan semanal al
+                  sumar solo la principal de cada celda—. */}
+                {comida.opciones.length > 1 && (
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Repeat2 className="h-3.5 w-3.5" />
+                    Elegí una de las {comida.opciones.length} opciones.
+                  </p>
                 )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              {comida.opciones.map((opcion) => (
-                <div key={opcion.id} className="rounded-md border p-3">
-                  {comida.opciones.length > 1 && (
-                    <p className="mb-1 text-xs font-semibold text-primary">
-                      Opción {opcion.numero}
-                    </p>
-                  )}
-                  <p className="whitespace-pre-line">{opcion.contenido}</p>
-                  {opcion.recetaNombre && (
-                    <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
-                      <BookOpen className="h-3.5 w-3.5" /> Receta:{" "}
-                      {opcion.recetaNombre}
-                      {opcion.recetaMacros &&
-                        macrosReceta(opcion.recetaMacros) && (
-                          <span className="text-muted-foreground/80">
-                            · {macrosReceta(opcion.recetaMacros)} / porción
-                          </span>
-                        )}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        ))}
+                {comida.opciones.map((opcion) => (
+                  <div key={opcion.id} className="rounded-lg border p-3">
+                    {comida.opciones.length > 1 && (
+                      <p className="mb-1 text-xs font-semibold text-primary">
+                        Opción {opcion.numero}
+                      </p>
+                    )}
+                    <p className="whitespace-pre-line">{opcion.contenido}</p>
+                    {opcion.recetaNombre && (
+                      <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+                        <BookOpen className="h-3.5 w-3.5" /> Receta:{" "}
+                        {opcion.recetaNombre}
+                        {opcion.recetaMacros &&
+                          macrosReceta(opcion.recetaMacros) && (
+                            <span className="text-muted-foreground/80">
+                              · {macrosReceta(opcion.recetaMacros)} / porción
+                            </span>
+                          )}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {plan.equivalencias.length > 0 && (

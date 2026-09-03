@@ -330,7 +330,6 @@ model Nutricionista {
   cuentasConectadas         CuentaConectada[]
   sincronizacionesTurno     SincronizacionTurno[]
   conversaciones            Conversacion[]
-  consultasIA               ConsultaIA[]
   analisisComida            AnalisisComida[]
   configuraciones           ConfiguracionConsultorio[]
   axiomasNutricionales      AxiomaNutricional[]
@@ -405,7 +404,7 @@ model Paciente {
   suplementos           Suplemento[]
   alertasSeguimiento    AlertaSeguimiento[]
   conversacion          Conversacion?
-  consultasIA           ConsultaIA[]
+  conversacionesIA      ConversacionIA[]
   analisisComida        AnalisisComida[]
   metricasDispositivo   MetricaDispositivo[]
   mensajesWhatsapp      MensajeWhatsapp[]
@@ -2007,43 +2006,31 @@ model Mensaje {
 // Fase 7 — IA/ML (andamiaje: historial para el análisis futuro con Claude)
 // ---------------------------------------------------------------------------
 
-/// Pregunta del paciente al asistente y su respuesta. Hoy la respuesta la
-/// genera un adaptador stub; a futuro, un adaptador Claude. Se guarda el
-/// historial como señal para el ML.
-model ConsultaIA {
-  id              String   @id @default(uuid(4))
-  nutricionistaId String
-  pacienteId      String
-  pregunta        String
-  respuesta       String
-  creadoEn        DateTime @default(now())
-
-  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
-  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
-
-  @@index([nutricionistaId, pacienteId, creadoEn])
-  @@map("consultas_ia")
-}
-
-/// Un chat del PROFESIONAL con el asistente analítico, con todos sus turnos.
+/// Un chat con el asistente, con todos sus turnos.
 ///
-/// Es del consultorio y no de un paciente (una consulta puede cruzar varios):
-/// el historial por paciente del portal es `consultas_ia`.
+/// `pacienteId` dice de quién es y hay dos clases, que no se mezclan nunca en
+/// la misma lista: NULL es un chat analítico del PROFESIONAL sobre su práctica
+/// (puede cruzar varios pacientes) y con valor es el chat de ESE paciente en
+/// su portal. Es la misma conversación —turnos guardados que se releen y que
+/// se le mandan al modelo como contexto— y separarlas en dos tablas habría
+/// duplicado entidad, repositorio y casos de uso para cambiar una sola columna.
 ///
-/// Guardar los turnos cumple dos funciones a la vez: son el registro que el
-/// profesional puede releer y el contexto que se le manda al modelo en la
-/// pregunta siguiente.
+/// Reemplazó a `consultas_ia`, que guardaba pregunta y respuesta sueltas: sin
+/// hilo, el asistente del paciente no podía responder un "¿y con qué lo
+/// acompaño?" y la pantalla no tenía chats que ofrecer.
 model ConversacionIA {
   id              String   @id @default(uuid(4))
   nutricionistaId String
+  pacienteId      String?
   titulo          String
   creadoEn        DateTime @default(now())
   actualizadoEn   DateTime @updatedAt
 
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  paciente      Paciente?     @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
   mensajes      MensajeIA[]
 
-  @@index([nutricionistaId, actualizadoEn])
+  @@index([nutricionistaId, pacienteId, actualizadoEn])
   @@map("conversaciones_ia")
 }
 

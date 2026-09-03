@@ -1,5 +1,11 @@
 /**
- * Color de cada franja de la grilla semanal.
+ * Color de cada franja, en la grilla semanal y en el plan del día.
+ *
+ * Vive en `comunes/` porque lo usan los DOS planes: el semanal (la grilla del
+ * consultorio y la vista por día del paciente) y el nutricional (`VistaPlan`).
+ * Son la misma idea de franja —desayuno, almuerzo, cena— y que el almuerzo
+ * cambiara de color entre «Mi plan» y «Mi semana» rompería justamente lo que el
+ * color hace: orientar sin leer.
  *
  * El color se asigna por la POSICIÓN de la franja, no por su nombre: las
  * franjas son texto libre —un consultorio escribe «Col. AM» y otro «Media

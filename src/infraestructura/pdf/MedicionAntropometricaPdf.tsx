@@ -11,59 +11,46 @@ import type { ConfiguracionSalidaDto } from "@/aplicacion/dtos/configuracion.dto
 import { DEFINICIONES_METODO } from "@/dominio/servicios/grasaPorPliegues";
 import { GRUPOS } from "@/aplicacion/servicios/evaluacion/filasMedicion";
 import { ETIQUETAS_PROTOCOLO } from "@/aplicacion/servicios/evaluacion/resumenMedicion";
+import {
+  BarraApilada,
+  GraficoLineas,
+  estilosGrafico,
+  formatearFecha,
+  formatearMedida,
+  formatearNumero,
+  textoPdf,
+  CORAL,
+  GRIS_TEXTO,
+  GRIS_SUAVE,
+  FONDO_SUAVE,
+  BORDE,
+  COLOR_ADIPOSA,
+  COLOR_MUSCULAR,
+  COLOR_RESIDUAL,
+  COLOR_OSEA,
+  COLOR_PIEL,
+} from "./graficosPdf";
 
 /**
- * Documento PDF de UNA medición antropométrica.
+ * Documento PDF de UNA medición antropométrica — el que se baja el paciente.
  *
  * La planilla que arma es la MISMA que la ficha en pantalla (`DetalleMedicion`):
  * lee `GRUPOS` de `filasMedicion.ts`, la única definición de la planilla. Así
  * el PDF nunca se desincroniza de lo que se ve al clickear una tarjeta — si se
  * agrega una medida al formulario, las tres vistas la muestran o ninguna.
+ *
+ * Antes de la planilla van los GRÁFICOS: cómo se reparte el peso y la
+ * evolución de la serie. Son los mismos dos que el paciente mira en
+ * `ComposicionPaciente`, y sin ellos el PDF era una tabla de cuarenta números
+ * crudos —justo lo que esa pantalla evita mostrarle sin interpretación—. Los
+ * dibuja `graficosPdf`, el mismo módulo que usa el dashboard del profesional.
+ *
+ * Lo que NO trae, igual que la pantalla: perfil Phantom, somatocarta e índices
+ * técnicos. Eso es lectura profesional y vive en `DashboardComposicionPdf`.
  */
 
-const CORAL = "#F4535E";
-const GRIS_TEXTO = "#3f3f46";
-const GRIS_SUAVE = "#71717a";
-const FONDO_SUAVE = "#fafafa";
-const BORDE = "#e4e4e7";
-
-// Formateadores propios: la infraestructura no puede importar `@/lib/formato`
-// (es presentación). Mismos parámetros Intl que allá, para que el PDF lea
-// igual que la pantalla.
-const formateadorFecha = new Intl.DateTimeFormat("es-AR", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-  timeZone: "UTC",
-});
-const formateadorMedida = new Intl.NumberFormat("es-AR", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-const formateadorNumero = new Intl.NumberFormat("es-AR", {
-  maximumFractionDigits: 1,
-});
-
-function formatearFecha(fecha: Date | string | null | undefined): string {
-  return fecha ? formateadorFecha.format(new Date(fecha)) : "—";
-}
-function formatearMedida(valor: number | null | undefined): string {
-  return valor == null ? "—" : formateadorMedida.format(valor);
-}
-function formatearNumero(valor: number | null | undefined): string {
-  return valor == null ? "—" : formateadorNumero.format(valor);
-}
-
-/**
- * `GRUPOS` trae etiquetas pensadas para pantalla ("Σ 6 pliegues"), donde el
- * navegador tiene una fuente Unicode completa. La fuente Helvetica estándar
- * de PDFKit no tiene glifo para la sigma griega y la imprime como "£"; acá se
- * cambia SOLO al mostrarla, sin tocar `filasMedicion.ts` — esa etiqueta la
- * lee también la pantalla, y ahí sí se ve bien.
- */
-function textoPdf(texto: string): string {
-  return texto.replace(/Σ/g, "Suma");
-}
+/** Ancho útil de la página (A4, 595,28 pt − 48 pt de margen a cada lado). */
+const ANCHO_CONTENIDO = 499;
 
 const estilos = StyleSheet.create({
   pagina: {
@@ -145,18 +132,75 @@ const estilos = StyleSheet.create({
     gap: 12,
   },
   pieTexto: { fontSize: 8, color: GRIS_SUAVE },
+
+  // --- Gráficos ------------------------------------------------------------
+  seccionTitulo: {
+    fontSize: 11,
+    fontFamily: "Helvetica-Bold",
+    marginTop: 4,
+    marginBottom: 6,
+  },
+  notaGrafico: { fontSize: 8, color: GRIS_SUAVE, marginBottom: 6 },
+  filaTabla: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: BORDE,
+    paddingVertical: 2.5,
+    paddingHorizontal: 6,
+  },
+  filaCabecera: {
+    flexDirection: "row",
+    backgroundColor: FONDO_SUAVE,
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+  },
+  colFecha: { flex: 1, fontSize: 8 },
+  colFechaCab: {
+    flex: 1,
+    fontSize: 8,
+    fontFamily: "Helvetica-Bold",
+    color: GRIS_SUAVE,
+  },
+  colNumero: { width: 90, fontSize: 8, textAlign: "right" },
+  colNumeroCab: {
+    width: 90,
+    fontSize: 8,
+    textAlign: "right",
+    fontFamily: "Helvetica-Bold",
+    color: GRIS_SUAVE,
+  },
 });
 
 interface Props {
   medicion: MedicionComposicionDto;
   /** La consulta inmediatamente anterior, para la columna de diferencia. */
   anterior: MedicionComposicionDto | null;
+  /**
+   * La serie del paciente HASTA esta medición (de la más vieja a esta),
+   * incluida. Es lo que dibujan los gráficos de evolución.
+   *
+   * Va hasta esta y no hasta la última: el PDF de una medición de marzo que
+   * mostrara la curva completa hasta hoy diría cosas que en marzo no se
+   * sabían, y dos copias del mismo PDF sacadas en fechas distintas no
+   * coincidirían.
+   */
+  serie?: MedicionComposicionDto[];
   nombrePaciente: string;
   config?: ConfiguracionSalidaDto | null;
 }
 
 function signo(valor: number): string {
   return `${valor > 0 ? "+" : ""}${formatearMedida(valor)}`;
+}
+
+/** El resultado de grasa de la ecuación destacada de esa medición. */
+function grasaDestacada(medicion: MedicionComposicionDto) {
+  const resultados = medicion.resultado.grasaPorPliegues.resultados;
+  return (
+    resultados.find((r) => r.metodo === medicion.metodoGrasa) ??
+    resultados[0] ??
+    null
+  );
 }
 
 /** Renderiza la medición a un buffer PDF (la única API que consume la presentación). */
@@ -167,6 +211,7 @@ export async function renderizarMedicionPdf(props: Props): Promise<Buffer> {
 function MedicionAntropometricaPdf({
   medicion,
   anterior,
+  serie,
   nombrePaciente,
   config,
 }: Props) {
@@ -188,6 +233,68 @@ function MedicionAntropometricaPdf({
       (fila) => fila.derivada || fila.valor(medicion) != null,
     ),
   })).filter((grupo) => grupo.filas.some((f) => f.valor(medicion) != null));
+
+  // --- Datos de los gráficos ---
+  const fraccionamiento = medicion.resultado.fraccionamiento;
+  const grasa = grasaDestacada(medicion);
+
+  // El reparto del peso sale del fraccionamiento de Kerr cuando está —es la
+  // partición completa— y, si no, de la ecuación de pliegues, que reparte el
+  // peso en dos: lo graso y lo demás. Sin ninguno de los dos no hay barra que
+  // dibujar, y una barra de un solo color no dice nada.
+  const reparto = fraccionamiento
+    ? [
+        {
+          etiqueta: "Adiposa",
+          valor: fraccionamiento.adiposa.porcentaje,
+          color: COLOR_ADIPOSA,
+        },
+        {
+          etiqueta: "Muscular",
+          valor: fraccionamiento.muscular.porcentaje,
+          color: COLOR_MUSCULAR,
+        },
+        {
+          etiqueta: "Residual",
+          valor: fraccionamiento.residual.porcentaje,
+          color: COLOR_RESIDUAL,
+        },
+        {
+          etiqueta: "Ósea",
+          valor: fraccionamiento.osea.porcentaje,
+          color: COLOR_OSEA,
+        },
+        {
+          etiqueta: "Piel",
+          valor: fraccionamiento.piel.porcentaje,
+          color: COLOR_PIEL,
+        },
+      ]
+    : grasa
+      ? [
+          {
+            etiqueta: "Grasa",
+            valor: grasa.porcentajeGrasa,
+            color: COLOR_ADIPOSA,
+          },
+          {
+            etiqueta: "Libre de grasa",
+            valor: 100 - grasa.porcentajeGrasa,
+            color: COLOR_MUSCULAR,
+          },
+        ]
+      : null;
+
+  // La serie llega hasta esta medición; si no vino, el PDF es de una sola y no
+  // hay evolución que mostrar.
+  const evolucion = serie ?? [];
+  const hayEvolucion = evolucion.length > 1;
+  const fechasEvolucion = evolucion.map((m) => m.fecha);
+  const seriePeso = evolucion.map((m) => m.medidas.pesoKg);
+  const serieGrasa = evolucion.map(
+    (m) => grasaDestacada(m)?.porcentajeGrasa ?? null,
+  );
+  const hayGrasaEnSerie = serieGrasa.some((v) => v != null);
 
   return (
     <Document
@@ -226,6 +333,88 @@ function MedicionAntropometricaPdf({
 
         {medicion.observaciones && (
           <Text style={estilos.observaciones}>{medicion.observaciones}</Text>
+        )}
+
+        {reparto && (
+          <View wrap={false}>
+            <Text style={[estilos.seccionTitulo, { color }]}>
+              Cómo se reparte tu peso
+            </Text>
+            <BarraApilada segmentos={reparto} />
+            <Text style={estilos.notaGrafico}>
+              {fraccionamiento
+                ? `Fraccionamiento en 5 masas sobre ${formatearMedida(medicion.medidas.pesoKg)} kg.`
+                : `Estimado con ${metodoDestacado ?? "la ecuación destacada"} sobre ${formatearMedida(medicion.medidas.pesoKg)} kg: ${formatearMedida(grasa?.masaGrasaKg)} kg de grasa y ${formatearMedida(grasa?.masaLibreGrasaKg)} kg libres de grasa.`}
+            </Text>
+          </View>
+        )}
+
+        {hayEvolucion && (
+          <View>
+            <Text style={[estilos.seccionTitulo, { color }]}>Tu evolución</Text>
+
+            <View style={estilosGrafico.bloqueGrafico} wrap={false}>
+              <Text style={estilosGrafico.tituloGrafico}>Peso (kg)</Text>
+              <GraficoLineas
+                ancho={ANCHO_CONTENIDO}
+                alto={100}
+                series={[{ color, valores: seriePeso }]}
+                fechas={fechasEvolucion}
+                unidad="kg"
+              />
+            </View>
+
+            {hayGrasaEnSerie && (
+              <View style={estilosGrafico.bloqueGrafico} wrap={false}>
+                <Text style={estilosGrafico.tituloGrafico}>
+                  Grasa corporal (%)
+                  {metodoDestacado && ` · ${metodoDestacado}`}
+                </Text>
+                <GraficoLineas
+                  ancho={ANCHO_CONTENIDO}
+                  alto={100}
+                  series={[{ color: COLOR_ADIPOSA, valores: serieGrasa }]}
+                  fechas={fechasEvolucion}
+                  unidad="%"
+                />
+              </View>
+            )}
+
+            {/* La tabla acompaña al gráfico, no lo reemplaza: con muchas
+                mediciones el gráfico saltea etiquetas para que no se pisen, y
+                los números exactos tienen que estar en algún lado. */}
+            <View wrap={false}>
+              <View style={estilos.filaCabecera}>
+                <Text style={estilos.colFechaCab}>Medición</Text>
+                <Text style={estilos.colNumeroCab}>Peso (kg)</Text>
+                {hayGrasaEnSerie && (
+                  <Text style={estilos.colNumeroCab}>Grasa (%)</Text>
+                )}
+              </View>
+              {evolucion.map((m, i) => (
+                <View key={m.id} style={estilos.filaTabla}>
+                  <Text style={estilos.colFecha}>
+                    {formatearFecha(m.fecha)}
+                    {i === evolucion.length - 1 ? " · esta" : ""}
+                  </Text>
+                  <Text style={estilos.colNumero}>
+                    {formatearMedida(m.medidas.pesoKg)}
+                  </Text>
+                  {hayGrasaEnSerie && (
+                    <Text style={estilos.colNumero}>
+                      {formatearMedida(serieGrasa[i])}
+                    </Text>
+                  )}
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {(reparto || hayEvolucion) && (
+          <Text style={[estilos.seccionTitulo, { color }]}>
+            Todas tus medidas
+          </Text>
         )}
 
         {grupos.map((grupo) => (

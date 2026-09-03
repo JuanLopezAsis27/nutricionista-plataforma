@@ -7,10 +7,12 @@ import type {
   MacrosDto,
 } from "@/aplicacion/dtos/planSemanal.dto";
 import { Badge } from "@/componentes/ui/badge";
-import { estiloDeFranja, COLOR_ESTADO_META } from "./paletaFranjas";
+import {
+  estiloDeFranja,
+  COLOR_ESTADO_META,
+} from "@/componentes/comunes/paletaFranjas";
+import { textoDeComida } from "./textoComida";
 import { ComparativaSemanal } from "./ComparativaSemanal";
-
-type ComidaSalida = PlanSemanalSalidaDto["franjas"][number]["comidas"][number];
 
 interface Props {
   plan: PlanSemanalSalidaDto;
@@ -58,11 +60,11 @@ export function VistaPlanSemanal({
               : "El paciente no tiene un plan nutricional activo: se muestran los totales sin comparar."}
         </p>
       )}
-      // A lo ancho: en pantallas grandes los siete días se reparten el espacio
-      y // entran sin scroll (`lg:table-fixed`). En mobile eso daría columnas de
-      // 40 px ilegibles, así que ahí la grilla conserva su ancho mínimo y se //
-      barre de costado —una semana no entra en 375 px, y fingir que sí la //
-      vuelve inservible—.
+      {/* A lo ancho: en pantallas grandes los siete días se reparten el
+          espacio y entran sin scroll (`lg:table-fixed`). En mobile eso daría
+          columnas de 40 px ilegibles, así que ahí la grilla conserva su ancho
+          mínimo y se barre de costado —una semana no entra en 375 px, y
+          fingir que sí la vuelve inservible—. */}
       <div className="overflow-x-auto lg:overflow-x-visible">
         <table className="w-full min-w-[56rem] border-separate border-spacing-1 text-sm lg:min-w-0 lg:table-fixed">
           <thead>
@@ -215,14 +217,6 @@ function TotalDelDia({
       )}
     </div>
   );
-}
-
-/** Qué se lee de una comida: su texto, o la receta, o sus alimentos. */
-function textoDeComida(comida: ComidaSalida): string {
-  if (comida.descripcion?.trim()) return comida.descripcion.trim();
-  if (comida.recetaNombre) return comida.recetaNombre;
-  const alimentos = comida.items.map((item) => item.nombre).filter(Boolean);
-  return alimentos.length > 0 ? alimentos.join(", ") : "Sin cargar";
 }
 
 function leyendaDe(

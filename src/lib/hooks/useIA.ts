@@ -8,7 +8,14 @@ export function useIA() {
   const utils = trpc.useUtils();
 
   const preguntar = trpc.ia.preguntar.useMutation({
-    onSuccess: () => void utils.ia.misConsultas.invalidate(),
+    // El turno quedó guardado en un chat: se refrescan la lista lateral (por
+    // el título nuevo, o por el que sube al tope) y el chat abierto.
+    onSuccess: (respuesta) => {
+      void utils.ia.misConversaciones.invalidate();
+      void utils.ia.miConversacion.invalidate({
+        id: respuesta.conversacionId,
+      });
+    },
     onError: (error) => toast.error(error.message),
   });
 
@@ -31,13 +38,22 @@ export function useIA() {
     onError: (error) => toast.error(error.message),
   });
 
+  const eliminarMiConversacion = trpc.ia.eliminarMiConversacion.useMutation({
+    onSuccess: () => {
+      toast.success("Chat eliminado.");
+      void utils.ia.misConversaciones.invalidate();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
   const feedbackInsight = trpc.ia.feedbackInsight.useMutation({
     onError: (error) => toast.error(error.message),
   });
 
   return {
     utils,
-    misConsultas: trpc.ia.misConsultas.useQuery,
+    misConversaciones: trpc.ia.misConversaciones.useQuery,
+    miConversacion: trpc.ia.miConversacion.useQuery,
     insights: trpc.ia.insights.useQuery,
     estado: trpc.ia.estado.useQuery,
     conversaciones: trpc.ia.conversaciones.useQuery,
@@ -46,6 +62,7 @@ export function useIA() {
     analizarFoto,
     analizar,
     eliminarConversacion,
+    eliminarMiConversacion,
     feedbackInsight,
   };
 }

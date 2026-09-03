@@ -1,6 +1,6 @@
 "use client";
 
-import { Watch, Footprints, Moon, Activity } from "lucide-react";
+import { Watch, Footprints, Moon, Activity, Hammer } from "lucide-react";
 import type { MetricaSalidaDto } from "@/aplicacion/dtos/metricas.dto";
 import { useMetricas } from "@/lib/hooks/useMetricas";
 import { formatearFecha } from "@/lib/formato";
@@ -36,6 +36,17 @@ interface DiaMetrica {
  * (pasos, sueño, actividad) y, para el paciente, un toggle por día para elegir
  * si cuentan en su seguimiento (opt-in). Los datos los importa la app nativa
  * (Capacitor + HealthKit/Health Connect); ver docs/WEARABLES.md.
+ *
+ * **Va marcada como EN DESARROLLO, y eso no es un detalle de copy.** El backend
+ * está entero —entidad, importación, opt-in, integración con el tracking— pero
+ * el plugin de salud que llena los datos todavía no está montado en la app
+ * nativa, así que en la práctica nadie tiene nada acá. Sin el aviso, la tarjeta
+ * vacía se lee como «tu reloj no sincronizó» —un problema del paciente, que va
+ * a ir a buscar el permiso que le falta— en vez de «esto todavía no existe».
+ *
+ * El aviso se saca cuando el plugin esté andando, no antes: mientras la lista
+ * pueda estar vacía por una función que falta, decirlo es la única lectura
+ * correcta de esa tarjeta.
  */
 export function MetricasDispositivo({
   pacienteId,
@@ -53,27 +64,31 @@ export function MetricasDispositivo({
   const consultaMia = mias({ desde, hasta }, { enabled: !esNutri });
   const consulta = esNutri ? consultaNutri : consultaMia;
 
-  if (consulta.isLoading) {
-    return <Skeleton className="h-40 w-full" />;
-  }
-
   const dias = consolidarPorDia(consulta.data ?? []);
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
+    <Card className="overflow-hidden">
+      <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 space-y-0 border-b bg-amber-500/5 p-4">
         <CardTitle className="flex items-center gap-2 text-base">
-          <Watch className="h-5 w-5 text-primary" /> Datos del reloj
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10">
+            <Watch className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          </span>
+          Datos del reloj
         </CardTitle>
+        {/* El estado va escrito, no solo en el color del rótulo. */}
+        <span className="flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
+          <Hammer className="h-3 w-3" />
+          En desarrollo
+        </span>
       </CardHeader>
-      <CardContent>
-        {dias.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {editable
-              ? "Todavía no hay datos de un reloj o app de salud. Se sincronizan desde la app del teléfono."
-              : "El paciente todavía no sincronizó datos de un reloj."}
-          </p>
-        ) : (
+      <CardContent className="space-y-3 p-4">
+        <p className="text-sm text-muted-foreground">
+          {editable
+            ? "Todavía estamos trabajando en la sincronización con el reloj. Cuando esté lista vas a ver acá tus pasos, tu sueño y tus minutos de actividad, y vas a poder elegir qué días cuentan para tu seguimiento."
+            : "La sincronización con el reloj del paciente todavía está en desarrollo: hasta que esté, esta sección puede no traer nada."}
+        </p>
+        {consulta.isLoading && <Skeleton className="h-16 w-full" />}
+        {dias.length > 0 && (
           <ul className="space-y-1.5">
             {dias.map((dia) => (
               <li

@@ -37,19 +37,52 @@ entera.
 
 ## Las conversaciones se guardan
 
-`ConversacionIA` + `MensajeIA` (migración 44), del **consultorio** y no de un
-paciente: una consulta analítica puede cruzar varios. El historial por paciente
-del portal sigue siendo `ConsultaIA`.
-
-Guardar los turnos cumple dos funciones a la vez, y por eso es una sola tabla y
-no dos mecanismos: son **el registro** que el profesional relee y **el
-contexto** que se le manda al modelo en la pregunta siguiente.
+`ConversacionIA` + `MensajeIA` (migración 44). Guardar los turnos cumple dos
+funciones a la vez, y por eso es una sola tabla y no dos mecanismos: son **el
+registro** que se relee y **el contexto** que se le manda al modelo en la
+pregunta siguiente.
 
 - La pregunta se guarda **antes** de llamar al modelo y la respuesta después:
-  si el modelo falla, lo que el profesional escribió no se pierde.
+  si el modelo falla, lo que se escribió no se pierde.
 - Se mandan los **últimos 12 turnos**, no la conversación entera: viaja completa
   en cada pregunta y se paga por token cada vez.
 - El título sale de la primera pregunta, cortado en un espacio.
+
+## Los dos asistentes comparten la tabla, nunca la lista
+
+Migración 46. `ConversacionIA.pacienteId` dice de quién es el chat:
+
+- **NULL** → el chat analítico del **profesional** sobre su práctica. Es del
+  consultorio y no de un paciente porque una consulta analítica puede cruzar
+  varios.
+- **con valor** → el chat de **ese paciente** en su portal, sobre sus datos.
+
+El asistente del paciente guardaba antes cada par pregunta-respuesta suelto, en
+`consultas_ia`. Eso dejaba dos agujeros a la vez: cada pregunta viajaba sola al
+modelo —un «¿y con qué lo acompaño?» no tenía a qué referirse— y la pantalla no
+tenía chats que ofrecer, solo una lista plana que crecía para siempre. Es
+exactamente lo que ya se había arreglado del lado del profesional, así que
+`consultas_ia` se convirtió en chats (un chat por paciente, cada consulta como
+sus dos turnos) y se borró; la migración hace esa copia antes del `DROP`, en la
+misma transacción.
+
+Una tabla y no dos porque es la misma cosa: turnos ordenados que se releen y se
+mandan como contexto. Duplicarla habría duplicado entidad, repositorio y los
+tres casos de uso de gestión para cambiar una columna.
+
+**Lo que no se comparte nunca es la lista.** `null` como dueño significa «los
+del consultorio», no «todos»: por eso `listar` lo recibe obligatorio aunque
+admita null —un parámetro opcional habría hecho que el olvido más fácil de
+cometer fuera justo el que mezcla los chats de los pacientes con los del
+profesional—. Y `verificarDueno` corre en los cuatro caminos que tocan un chat
+por id (abrir, borrar, continuar, preguntar): el repositorio ya acota al
+inquilino, pero adentro de un consultorio conviven los chats del profesional y
+los de todos sus pacientes.
+
+En la UI, la mecánica del hilo es una sola: `componentes/ia/hiloDeChat.ts`.
+Ahí viven las dos partes que fallan en silencio —la cola que muestra la
+pregunta al instante sin duplicarla cuando la query la trae guardada, y el
+scroll que baja moviendo solo su contenedor y no la página entera—.
 
 ## Qué ve el asistente de un plan
 

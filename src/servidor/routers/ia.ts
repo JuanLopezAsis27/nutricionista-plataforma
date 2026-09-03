@@ -59,12 +59,14 @@ function verificarCuotaIA(
  */
 export const routerIA = crearRouter({
   // --- Portal del paciente -------------------------------------------------
+  // Sin `conversacionId` abre un chat nuevo; con él continúa el existente y el
+  // modelo recibe los turnos anteriores como contexto.
   preguntar: protegidoProcedimiento
     .input(preguntarDto)
     .mutation(async ({ ctx, input }) => {
       const pacienteId = pacienteDeSesion(ctx.usuario);
       verificarCuotaIA(pacienteId, ctx.usuario.nutricionistaId);
-      return await ctx.servicios.ia.preguntar(pacienteId, input.pregunta);
+      return await ctx.servicios.ia.preguntar(pacienteId, input);
     }),
 
   analizarFoto: protegidoProcedimiento
@@ -78,9 +80,31 @@ export const routerIA = crearRouter({
       });
     }),
 
-  misConsultas: protegidoProcedimiento.query(async ({ ctx }) => {
-    return await ctx.servicios.ia.misConsultas(pacienteDeSesion(ctx.usuario));
+  /** Los chats guardados del paciente (pacienteId de la sesión). */
+  misConversaciones: protegidoProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.ia.misConversaciones(
+      pacienteDeSesion(ctx.usuario),
+    );
   }),
+
+  miConversacion: protegidoProcedimiento
+    .input(idConversacionIADto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.ia.miConversacion(
+        input.id,
+        pacienteDeSesion(ctx.usuario),
+      );
+    }),
+
+  eliminarMiConversacion: protegidoProcedimiento
+    .input(idConversacionIADto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.ia.eliminarMiConversacion(
+        input.id,
+        pacienteDeSesion(ctx.usuario),
+      );
+      return { eliminado: true };
+    }),
 
   // Si la IA está activa (clave/servicio configurados) para ocultar los banners
   // de "demostración". Cualquier usuario autenticado (el paciente usa la del nutri).

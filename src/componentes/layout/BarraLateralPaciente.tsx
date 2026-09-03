@@ -3,6 +3,7 @@
 import {
   Home,
   CalendarDays,
+  CalendarRange,
   NotebookPen,
   ClipboardList,
   BookOpen,
@@ -38,6 +39,7 @@ export function BarraLateralPaciente({ email }: { email: string }) {
       icono: PersonStanding,
     },
     { href: "/mi-plan", etiqueta: "Mi plan", icono: ClipboardList },
+    { href: "/mi-semana", etiqueta: "Mi semana", icono: CalendarRange },
     { href: "/mis-objetivos", etiqueta: "Mis objetivos", icono: Target },
     { href: "/mis-recetas", etiqueta: "Mis recetas", icono: BookOpen },
     { href: "/mi-material", etiqueta: "Mi material", icono: Library },

@@ -72,6 +72,10 @@ export function GET(
       const buffer = await renderizarMedicionPdf({
         medicion,
         anterior,
+        // La serie va HASTA esta medición: el PDF de una de marzo con la curva
+        // completa hasta hoy diría cosas que en marzo no se sabían, y dos
+        // descargas del mismo PDF en fechas distintas no coincidirían.
+        serie: composicion.mediciones.slice(0, indice + 1),
         nombrePaciente: `${paciente.nombre} ${paciente.apellido}`,
         config,
       });
