@@ -31,6 +31,48 @@ export interface BloqueTurno {
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000;
 
+/**
+ * Alto mínimo de una hora, en píxeles. Es la escala histórica de la grilla y
+ * el piso: una jornada larga se comprime hasta acá y de ahí en más scrollea,
+ * porque por debajo un turno de 15 minutos deja de ser clickeable.
+ */
+const PX_POR_HORA_MIN = 56;
+
+/**
+ * Alto máximo de una hora. Sin tope, un consultorio que atiende dos horas
+ * dibujaría franjas gigantes y el turno de las 15 quedaría a media pantalla
+ * del de las 16: la grilla se leería peor, no mejor.
+ */
+const PX_POR_HORA_MAX = 132;
+
+/**
+ * Alto que la grilla intenta llenar, en píxeles.
+ *
+ * Es el `max-h-[65vh]` del cuerpo con scroll traducido a un número: ~65 % de
+ * una ventana típica de escritorio. Va como constante y no medido del DOM a
+ * propósito — la escala se calcula en el primer render, igual en el servidor
+ * que en el cliente, y no hay un salto de layout cuando llega la medición.
+ */
+const ALTO_UTIL = 620;
+
+/**
+ * Alto de una hora para un rango de `horas` horas visibles.
+ *
+ * La grilla tenía un alto de hora FIJO, pensado para una jornada de 8–12
+ * horas. Un consultorio que atiende de 15 a 18 dibujaba tres franjas de 56 px
+ * arriba de todo y dejaba dos tercios de la pantalla en blanco, con los turnos
+ * apretados donde más lugar había.
+ *
+ * La escala es **uniforme**: se estira la hora, no cada bloque por su cuenta.
+ * Es lo que mantiene el invariante de la grilla —un turno de 30 minutos mide
+ * exactamente la mitad que uno de una hora— con cualquier rango.
+ */
+export function altoDeHora(horas: number): number {
+  if (horas <= 0) return PX_POR_HORA_MAX;
+  const justo = ALTO_UTIL / horas;
+  return Math.min(PX_POR_HORA_MAX, Math.max(PX_POR_HORA_MIN, justo));
+}
+
 /** Suma (o resta) días a un "YYYY-MM-DD", en UTC. */
 export function sumarDias(fechaISO: string, dias: number): string {
   const base = new Date(`${fechaISO}T00:00:00Z`);

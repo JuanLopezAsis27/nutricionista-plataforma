@@ -44,6 +44,33 @@ export function useEvaluacion() {
     eliminarCampoHistoria: trpc.evaluacion.eliminarCampoHistoria.useMutation(
       conToasts("Campo eliminado. Lo ya cargado en las fichas se conserva."),
     ),
+    // Evoluciones de control
+    obtenerEvoluciones: trpc.evaluacion.obtenerEvoluciones.useQuery,
+    registrarEvolucion: trpc.evaluacion.registrarEvolucion.useMutation(
+      conToasts("Evolución registrada."),
+    ),
+    actualizarEvolucion: trpc.evaluacion.actualizarEvolucion.useMutation(
+      conToasts("Evolución actualizada."),
+    ),
+    eliminarEvolucion: trpc.evaluacion.eliminarEvolucion.useMutation(
+      conToasts("Evolución eliminada."),
+    ),
+    // El toast lo arma el llamador: cuántas entraron y cuántas quedaron
+    // afuera es justamente lo que hay que decir de una importación.
+    importarEvoluciones: trpc.evaluacion.importarEvoluciones.useMutation({
+      onSuccess: () => void invalidar(),
+      onError: (error) => toast.error(error.message),
+    }),
+    // Campos personalizados de las evoluciones (del consultorio)
+    obtenerCamposEvolucion: trpc.evaluacion.obtenerCamposEvolucion.useQuery,
+    guardarCampoEvolucion: trpc.evaluacion.guardarCampoEvolucion.useMutation(
+      conToasts("Campo guardado."),
+    ),
+    eliminarCampoEvolucion: trpc.evaluacion.eliminarCampoEvolucion.useMutation(
+      conToasts(
+        "Campo eliminado. Lo ya cargado en las evoluciones se conserva.",
+      ),
+    ),
     // Antropometría
     obtenerEvolucion: trpc.evaluacion.obtenerEvolucion.useQuery,
     registrarAntropometria: trpc.evaluacion.registrarAntropometria.useMutation(
@@ -56,6 +83,18 @@ export function useEvaluacion() {
     eliminarAntropometria: trpc.evaluacion.eliminarAntropometria.useMutation(
       conToasts("Medición eliminada."),
     ),
+    // Sin conToasts: no persiste nada. La pantalla de revisión muestra lo que
+    // se leyó y el profesional decide qué importar.
+    interpretarMedicionesDesdeArchivo:
+      trpc.evaluacion.interpretarMedicionesDesdeArchivo.useMutation({
+        onError: (error) => toast.error(error.message),
+      }),
+    // El toast lo arma el llamador: cuántas entraron y cuántas quedaron
+    // afuera es justamente lo que hay que decir de una importación.
+    importarMediciones: trpc.evaluacion.importarMediciones.useMutation({
+      onSuccess: () => void invalidar(),
+      onError: (error) => toast.error(error.message),
+    }),
     // Composición corporal
     obtenerComposicion: trpc.evaluacion.obtenerComposicion.useQuery,
     /** Portal del paciente: su propia composición (el id sale de la sesión). */

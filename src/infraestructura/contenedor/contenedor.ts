@@ -156,7 +156,10 @@ export const servicioEvaluacion = perezoso(() =>
     pacientes: nucleo.repositorioPaciente(),
     almacenamiento: nucleo.almacenamiento(),
     interpretadorHistoriaClinica: nucleo.interpretadorHistoriaClinica(),
+    interpretadorMediciones: nucleo.interpretadorMediciones(),
     camposHistoria: nucleo.repositorioCampoHistoriaClinica(),
+    evoluciones: nucleo.repositorioEvolucion(),
+    camposEvolucion: nucleo.repositorioCampoEvolucion(),
   }),
 );
 

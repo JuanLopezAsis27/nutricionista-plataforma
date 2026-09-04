@@ -8,6 +8,8 @@ import type { EliminarObjetivoComposicion } from "@/aplicacion/casos-de-uso/eval
 import type { GuardarPlantillaAntropometrica } from "@/aplicacion/casos-de-uso/evaluacion/GuardarPlantillaAntropometrica";
 import type { EliminarPlantillaAntropometrica } from "@/aplicacion/casos-de-uso/evaluacion/EliminarPlantillaAntropometrica";
 import type { ObtenerPlantillasAntropometricas } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerPlantillasAntropometricas";
+import type { InterpretarMediciones } from "@/aplicacion/casos-de-uso/evaluacion/InterpretarMediciones";
+import type { ImportarMediciones } from "@/aplicacion/casos-de-uso/evaluacion/ImportarMediciones";
 import type { PlantillaAntropometrica } from "@/dominio/entidades/PlantillaAntropometrica";
 import type {
   RegistrarAntropometriaDto,
@@ -20,6 +22,10 @@ import type {
   GuardarObjetivoComposicionDto,
   GuardarPlantillaAntropometricaDto,
   PlantillaAntropometricaDto,
+  InterpretarMedicionesDto,
+  MedicionesSugeridasDto,
+  ImportarMedicionesDto,
+  ResultadoImportacionDto,
 } from "../../dtos/evaluacion.dto";
 
 /**
@@ -47,6 +53,8 @@ export class ServicioAntropometria {
     private readonly guardarPlantillaUC: GuardarPlantillaAntropometrica,
     private readonly eliminarPlantillaUC: EliminarPlantillaAntropometrica,
     private readonly obtenerPlantillasUC: ObtenerPlantillasAntropometricas,
+    private readonly interpretarMedicionesUC: InterpretarMediciones,
+    private readonly importarMedicionesUC: ImportarMediciones,
   ) {}
 
   // --- Mediciones -------------------------------------------------------------
@@ -69,6 +77,29 @@ export class ServicioAntropometria {
 
   async eliminar(id: string): Promise<void> {
     await this.eliminarUC.ejecutar(id);
+  }
+
+  // --- Importación desde una planilla -----------------------------------------
+
+  /**
+   * Lee la planilla y devuelve lo que reconoció. No persiste nada: la pantalla
+   * de revisión decide qué columnas se importan.
+   */
+  async interpretarDesdePlanilla(
+    datos: InterpretarMedicionesDto,
+  ): Promise<MedicionesSugeridasDto> {
+    return await this.interpretarMedicionesUC.ejecutar(datos);
+  }
+
+  /** Importa el lote ya revisado y devuelve el detalle más la evolución nueva. */
+  async importar(
+    datos: ImportarMedicionesDto,
+  ): Promise<ResultadoImportacionDto> {
+    const resultado = await this.importarMedicionesUC.ejecutar(datos);
+    return {
+      ...resultado,
+      evolucion: await this.obtenerEvolucion(datos.pacienteId),
+    };
   }
 
   async obtenerEvolucion(

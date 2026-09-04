@@ -1,4 +1,5 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
+import { derivarClave } from "../servicios/claveCampo";
 
 /** Tope de campos personalizados por consultorio. */
 export const MAXIMO_CAMPOS_PERSONALIZADOS = 30;
@@ -125,23 +126,4 @@ function normalizarNombre(nombre: string): string {
     );
   }
   return limpio;
-}
-
-/**
- * Slug estable a partir del nombre, más un sufijo aleatorio corto.
- *
- * El sufijo evita que dos campos distintos colisionen en la misma clave
- * ("Suplementos" y "suplementos!"), que dejaría a los dos escribiendo sobre el
- * mismo valor en la historia de cada paciente.
- */
-export function derivarClave(nombre: string): string {
-  const base = nombre
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
-  const sufijo = crypto.randomUUID().slice(0, 8);
-  return `${base || "campo"}-${sufijo}`;
 }

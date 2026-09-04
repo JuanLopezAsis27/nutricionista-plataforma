@@ -21,7 +21,7 @@ import {
   ETIQUETAS_CAMPO_PLANTILLA,
 } from "@/dominio/entidades/PlantillaAntropometrica";
 import { SEXOS_BIOLOGICOS } from "@/dominio/servicios/composicionCorporal";
-import { derivarClave } from "@/dominio/entidades/CampoHistoriaClinica";
+import { derivarClave } from "@/dominio/servicios/claveCampo";
 import type { IResolvedorConfigIA } from "./ResolvedorConfigIA";
 import { leerDocumentoParaLLM } from "./documentoParaLLM";
 

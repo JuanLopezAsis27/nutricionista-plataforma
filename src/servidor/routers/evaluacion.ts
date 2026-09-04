@@ -10,6 +10,8 @@ import {
   registrarAntropometriaDto,
   actualizarAntropometriaDto,
   idAntropometriaDto,
+  interpretarMedicionesDto,
+  importarMedicionesDto,
   registrarAlertaAlimentariaDto,
   actualizarAlertaAlimentariaDto,
   registrarLaboratorioDto,
@@ -21,6 +23,12 @@ import {
   idPlantillaAntropometricaDto,
   guardarCampoHistoriaClinicaDto,
   idCampoHistoriaClinicaDto,
+  registrarEvolucionDto,
+  actualizarEvolucionDto,
+  idEvolucionDto,
+  importarEvolucionesDto,
+  guardarCampoEvolucionDto,
+  idCampoEvolucionDto,
 } from "@/aplicacion/dtos/evaluacion.dto";
 import { z } from "zod";
 
@@ -82,6 +90,64 @@ export const routerEvaluacion = crearRouter({
       return { eliminado: true };
     }),
 
+  // --- Evoluciones de control -------------------------------------------------
+  // El repaso cualitativo de cada consulta. Es del profesional: no se expone
+  // al portal del paciente, igual que la historia clínica.
+  obtenerEvoluciones: nutricionistaProcedimiento
+    .input(idPacienteEvaluacionDto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.evaluacion.evoluciones.obtener(
+        input.pacienteId,
+      );
+    }),
+
+  registrarEvolucion: nutricionistaProcedimiento
+    .input(registrarEvolucionDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.evaluacion.evoluciones.registrar(input);
+    }),
+
+  actualizarEvolucion: nutricionistaProcedimiento
+    .input(actualizarEvolucionDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.evaluacion.evoluciones.actualizar(input);
+    }),
+
+  eliminarEvolucion: nutricionistaProcedimiento
+    .input(idEvolucionDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.evaluacion.evoluciones.eliminar(input.id);
+      return { eliminado: true };
+    }),
+
+  /** Alta en lote de las evoluciones que la IA leyó del documento. */
+  importarEvoluciones: nutricionistaProcedimiento
+    .input(importarEvolucionesDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.evaluacion.evoluciones.importar(input);
+    }),
+
+  /**
+   * Campos personalizados que el consultorio agrega a las evoluciones.
+   * Son del inquilino, no de un paciente: no llevan pacienteId.
+   */
+  obtenerCamposEvolucion: nutricionistaProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.evaluacion.evoluciones.obtenerCampos();
+  }),
+
+  guardarCampoEvolucion: nutricionistaProcedimiento
+    .input(guardarCampoEvolucionDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.evaluacion.evoluciones.guardarCampo(input);
+    }),
+
+  eliminarCampoEvolucion: nutricionistaProcedimiento
+    .input(idCampoEvolucionDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.evaluacion.evoluciones.eliminarCampo(input.id);
+      return { eliminado: true };
+    }),
+
   // --- Antropometría ----------------------------------------------------------
   obtenerEvolucion: nutricionistaProcedimiento
     .input(idPacienteEvaluacionDto)
@@ -108,6 +174,25 @@ export const routerEvaluacion = crearRouter({
     .mutation(async ({ ctx, input }) => {
       await ctx.servicios.evaluacion.antropometria.eliminar(input.id);
       return { eliminado: true };
+    }),
+
+  /**
+   * Lee una planilla de evolución ya subida y devuelve las mediciones que
+   * trae. Es mutation y no query porque llama a la IA: cuesta plata y no se
+   * puede refetchear sola cuando la pantalla recupera el foco.
+   */
+  interpretarMedicionesDesdeArchivo: nutricionistaProcedimiento
+    .input(interpretarMedicionesDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.evaluacion.antropometria.interpretarDesdePlanilla(
+        input,
+      );
+    }),
+
+  importarMediciones: nutricionistaProcedimiento
+    .input(importarMedicionesDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.evaluacion.antropometria.importar(input);
     }),
 
   // --- Composición corporal ---------------------------------------------------

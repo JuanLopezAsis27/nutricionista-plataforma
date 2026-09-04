@@ -99,6 +99,12 @@ const FIRMAS: Record<string, readonly Firma[]> = {
     { desde: 0, bytes: [0x50, 0x4b, 0x05, 0x06] },
     { desde: 0, bytes: [0x50, 0x4b, 0x07, 0x08] },
   ],
+  // .xlsx es un ZIP, igual que el .docx: mismas tres cabeceras.
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+    { desde: 0, bytes: [0x50, 0x4b, 0x03, 0x04] },
+    { desde: 0, bytes: [0x50, 0x4b, 0x05, 0x06] },
+    { desde: 0, bytes: [0x50, 0x4b, 0x07, 0x08] },
+  ],
 };
 
 /** ¿El contenido coincide con una firma concreta? */

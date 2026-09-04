@@ -55,10 +55,34 @@ Navegación con dos velocidades, a propósito:
 
 ### La escala
 
-`PX_POR_HORA` (56 px) es la única constante de escala: la posición de un turno,
-su alto y la línea de «ahora» se derivan de ella. Un turno de 30 minutos mide
-exactamente la mitad que uno de una hora, así que la lectura visual no puede
-mentir sobre la duración.
+`altoDeHora(horas)` es la única fuente de escala: la posición de un turno, su
+alto, el de las franjas y la línea de «ahora» se derivan de ella. Un turno de
+30 minutos mide exactamente la mitad que uno de una hora, así que la lectura
+visual no puede mentir sobre la duración.
+
+**La escala se adapta al rango visible.** Era fija en 56 px, pensada para una
+jornada de 8–12 horas: un consultorio que atiende de 15 a 18 dibujaba tres
+franjas chiquitas arriba de todo y dejaba dos tercios de la pantalla en blanco,
+con los turnos apretados justo donde más lugar sobraba. Ahora la hora se estira
+hasta llenar `ALTO_UTIL` (620 px, el `max-h-[65vh]` del cuerpo traducido a un
+número), entre un piso de 56 px y un techo de 132 px:
+
+| Rango visible | px por hora | Alto de la grilla |
+| ------------- | ----------- | ----------------- |
+| 3 h           | 132 (techo) | 396 px            |
+| 6 h           | 103         | 620 px            |
+| 10 h          | 62          | 620 px            |
+| 12 h o más    | 56 (piso)   | scrollea          |
+
+Los dos límites existen por lo mismo: por debajo de 56 px un turno de 15
+minutos deja de ser clickeable, y sin techo dos horas de atención dejarían el
+turno de las 15 a media pantalla del de las 16 —la grilla se leería peor, no
+mejor—.
+
+Lo que se estira es **la hora, no cada bloque**: es lo que mantiene el
+invariante de la mitad/el doble con cualquier rango, y hay un test que lo fija.
+La constante `ALTO_UTIL` no se mide del DOM a propósito: así la escala sale
+igual en el servidor que en el cliente y no hay un salto de layout al hidratar.
 
 El rango de horas **arranca en el horario de atención y se estira** para que
 entre cualquier turno que caiga afuera. Los hay: uno cargado antes de acotar el
@@ -141,6 +165,9 @@ vista por defecto.
 
 - La geometría va en `src/lib/calendarioSemanal.ts`, con su test. Un turno mal
   ubicado no tira error: tapa a otro.
+- La escala sale SIEMPRE de `altoDeHora`, nunca de un número escrito en el
+  componente: si el alto de las franjas y el de los bloques dejan de salir del
+  mismo lugar, la grilla miente sobre la duración y nada falla.
 - Los huecos ofrecidos salen de `franjasDelDia`, nunca de una rejilla propia:
   ver arriba por qué.
 - Los días de la semana se leen **en UTC** (`getUTCDay()`), como en todo el

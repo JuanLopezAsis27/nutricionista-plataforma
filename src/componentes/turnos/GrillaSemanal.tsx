@@ -12,6 +12,7 @@ import {
   ETIQUETA_MOTIVO,
 } from "@/lib/agenda";
 import {
+  altoDeHora,
   rangoHorarioVisible,
   repartirCarriles,
   type BloqueTurno,
@@ -24,14 +25,6 @@ import {
   PopoverContent,
 } from "@/componentes/ui/popover";
 import { DetalleTurno } from "@/componentes/turnos/DetalleTurno";
-
-/**
- * Alto de una hora en la grilla. Es la constante que fija la escala: todo lo
- * demás —el alto de un turno, su posición, la línea de "ahora"— se deriva de
- * acá, así que un turno de 30 minutos siempre mide exactamente la mitad de una
- * hora y la lectura visual no miente sobre la duración.
- */
-const PX_POR_HORA = 56;
 
 /** Ancho de la columna de las horas, a la izquierda. */
 const ANCHO_HORAS = "3.25rem";
@@ -121,11 +114,22 @@ export function GrillaSemanal({
     { length: (hastaMinutos - desdeMinutos) / 60 },
     (_, i) => desdeMinutos + i * 60,
   );
-  const altoTotal = ((hastaMinutos - desdeMinutos) / 60) * PX_POR_HORA;
+
+  /**
+   * La escala de la grilla, en píxeles por hora. Es lo único de lo que
+   * dependen la posición de un turno, su alto y la línea de «ahora», así que
+   * un turno de 30 minutos siempre mide la mitad que uno de una hora.
+   *
+   * Se ADAPTA al rango visible (`altoDeHora`): con un horario de atención
+   * corto las franjas se agrandan hasta llenar la pantalla en vez de dejar la
+   * jornada apretada arriba de todo.
+   */
+  const pxPorHora = altoDeHora(horas.length);
+  const altoTotal = horas.length * pxPorHora;
 
   /** Minutos desde medianoche → píxeles desde el borde superior de la grilla. */
   const aPixeles = (minutos: number) =>
-    ((minutos - desdeMinutos) / 60) * PX_POR_HORA;
+    ((minutos - desdeMinutos) / 60) * pxPorHora;
 
   const minutosAhora = ahoraHHmm != null ? aMinutos(ahoraHHmm) : null;
 
@@ -165,7 +169,7 @@ export function GrillaSemanal({
               <div
                 key={minutos}
                 className="relative"
-                style={{ height: PX_POR_HORA }}
+                style={{ height: pxPorHora }}
               >
                 <span className="absolute right-1.5 top-0 -translate-y-1/2 text-[11px] tabular-nums text-muted-foreground">
                   {aHora(minutos)}
@@ -187,6 +191,7 @@ export function GrillaSemanal({
               desdeMinutos={desdeMinutos}
               hastaMinutos={hastaMinutos}
               altoTotal={altoTotal}
+              pxPorHora={pxPorHora}
               aPixeles={aPixeles}
               hoyISO={hoyISO}
               ahoraHHmm={ahoraHHmm}
@@ -213,6 +218,8 @@ interface PropsColumnaDia {
   desdeMinutos: number;
   hastaMinutos: number;
   altoTotal: number;
+  /** Escala de la grilla; la calcula `GrillaSemanal` según el rango visible. */
+  pxPorHora: number;
   aPixeles: (minutos: number) => number;
   hoyISO: string;
   ahoraHHmm: string | null;
@@ -234,6 +241,7 @@ function ColumnaDia({
   desdeMinutos,
   hastaMinutos,
   altoTotal,
+  pxPorHora,
   aPixeles,
   hoyISO,
   ahoraHHmm,
@@ -321,7 +329,7 @@ function ColumnaDia({
             )}
             style={{
               top: aPixeles(inicio),
-              height: (paso / 60) * PX_POR_HORA,
+              height: (paso / 60) * pxPorHora,
             }}
           />
         );
@@ -331,7 +339,7 @@ function ColumnaDia({
         const ancho = 100 / bloque.carriles;
         const alto = Math.max(
           16,
-          ((bloque.finMinutos - bloque.inicioMinutos) / 60) * PX_POR_HORA - 2,
+          ((bloque.finMinutos - bloque.inicioMinutos) / 60) * pxPorHora - 2,
         );
         const compacto = alto < 34;
         const nombre = nombrePaciente(bloque.turno.pacienteId);

@@ -7,6 +7,10 @@ import { NIVELES_ACTIVIDAD } from "@/dominio/servicios/composicionCorporal";
 import { PROTOCOLOS_COMPOSICION } from "@/dominio/entidades/Antropometria";
 import { CAMPOS_PLANTILLA } from "@/dominio/entidades/PlantillaAntropometrica";
 import { MAXIMO_CAMPOS_EN_HISTORIA } from "@/dominio/entidades/HistoriaClinica";
+import {
+  CAMPOS_EVOLUCION,
+  MAXIMO_CAMPOS_EN_EVOLUCION,
+} from "@/dominio/entidades/Evolucion";
 import type {
   AlcancePlantilla,
   CampoPlantilla,
@@ -102,6 +106,139 @@ export type HistoriaClinicaSugeridaDto = z.infer<
   typeof historiaClinicaSugeridaDto
 >;
 
+// --- Evoluciones de control ---------------------------------------------------
+
+/**
+ * Valor de un campo personalizado dentro de UNA evolución. Viaja con su
+ * etiqueta por lo mismo que el de la historia clínica.
+ */
+export const campoPersonalizadoEvolucionDto = z.object({
+  clave: z.string().min(1).max(60),
+  etiqueta: z.string().min(1).max(80),
+  valor: z.string().max(2000),
+});
+export type CampoPersonalizadoEvolucionDto = z.infer<
+  typeof campoPersonalizadoEvolucionDto
+>;
+
+const campoEvolucionTexto = z.string().max(2000).optional().nullable();
+
+/** Los campos fijos salen de la entidad: sumar uno allá lo trae acá solo. */
+const camposEvolucionDto = z.object(
+  Object.fromEntries(
+    CAMPOS_EVOLUCION.map((campo) => [campo, campoEvolucionTexto]),
+  ) as Record<(typeof CAMPOS_EVOLUCION)[number], typeof campoEvolucionTexto>,
+);
+
+/**
+ * Lo que la IA leyó del documento: la historia clínica y las evoluciones de
+ * control que traiga. Nada de esto está persistido.
+ */
+export const lecturaHistoriaClinicaDto = z.object({
+  campos: historiaClinicaSugeridaDto,
+  evoluciones: z.array(
+    camposEvolucionDto.extend({
+      // La fecha viaja como ISO y no como Date: puede venir en null cuando
+      // el documento no fecha ese bloque, y quien la completa es el
+      // profesional en la pantalla de revisión.
+      fecha: z.string().nullable(),
+      camposPersonalizados: z.array(campoPersonalizadoEvolucionDto),
+    }),
+  ),
+});
+export type LecturaHistoriaClinicaDto = z.infer<
+  typeof lecturaHistoriaClinicaDto
+>;
+
+export const registrarEvolucionDto = camposEvolucionDto.extend({
+  pacienteId: z.string().min(1),
+  fecha: z.coerce.date(),
+  camposPersonalizados: z
+    .array(campoPersonalizadoEvolucionDto)
+    .max(MAXIMO_CAMPOS_EN_EVOLUCION)
+    .optional(),
+});
+export type RegistrarEvolucionDto = z.infer<typeof registrarEvolucionDto>;
+
+export const actualizarEvolucionDto = camposEvolucionDto.extend({
+  id: z.string().min(1),
+  fecha: z.coerce.date().optional(),
+  camposPersonalizados: z
+    .array(campoPersonalizadoEvolucionDto)
+    .max(MAXIMO_CAMPOS_EN_EVOLUCION)
+    .optional(),
+});
+export type ActualizarEvolucionDto = z.infer<typeof actualizarEvolucionDto>;
+
+export const idEvolucionDto = z.object({ id: z.string().min(1) });
+
+export const importarEvolucionesDto = z.object({
+  pacienteId: z.string().min(1),
+  evoluciones: z
+    .array(
+      camposEvolucionDto.extend({
+        fecha: z.coerce.date(),
+        camposPersonalizados: z
+          .array(campoPersonalizadoEvolucionDto)
+          .max(MAXIMO_CAMPOS_EN_EVOLUCION)
+          .optional(),
+      }),
+    )
+    .min(1, "No hay evoluciones para importar")
+    .max(60),
+});
+export type ImportarEvolucionesDto = z.infer<typeof importarEvolucionesDto>;
+
+export interface EvolucionSalidaDto {
+  id: string;
+  pacienteId: string;
+  fecha: Date;
+  cumplimientoDieta: string | null;
+  entrenamiento: string | null;
+  deposiciones: string | null;
+  orina: string | null;
+  descanso: string | null;
+  indispuesta: string | null;
+  sePercibe: string | null;
+  camposPersonalizados: CampoPersonalizadoEvolucionDto[];
+  creadoEn: Date;
+  actualizadoEn: Date;
+}
+
+/** Qué pasó con cada evolución del lote, para el resumen de la importación. */
+export interface ResultadoImportacionEvolucionesDto {
+  registradas: number;
+  resultados: {
+    fecha: Date;
+    estado: "REGISTRADA" | "DUPLICADA" | "RECHAZADA";
+    motivo: string | null;
+  }[];
+  /** Las evoluciones ya recargadas: la lista se repinta con lo importado. */
+  evoluciones: EvolucionSalidaDto[];
+}
+
+// --- Campos personalizados de las evoluciones (definidos por consultorio) ------
+
+export const guardarCampoEvolucionDto = z.object({
+  /** Sin id se crea; con id se renombra el existente (la clave no cambia). */
+  id: z.string().min(1).optional(),
+  nombre: z.string().min(1, "El nombre es obligatorio").max(80),
+  descripcion: z.string().max(300).optional().nullable(),
+  orden: z.number().int().min(0).max(999).optional(),
+});
+export type GuardarCampoEvolucionDto = z.infer<typeof guardarCampoEvolucionDto>;
+
+export const idCampoEvolucionDto = z.object({ id: z.string().min(1) });
+
+export const campoEvolucionSalidaDto = z.object({
+  id: z.string(),
+  clave: z.string(),
+  nombre: z.string(),
+  descripcion: z.string().nullable(),
+  orden: z.number(),
+});
+export type CampoEvolucionSalidaDto = z.infer<typeof campoEvolucionSalidaDto>;
+
 // --- Campos personalizados de la historia clínica (definidos por consultorio) --
 
 export const guardarCampoHistoriaClinicaDto = z.object({
@@ -192,6 +329,59 @@ export type ActualizarAntropometriaDto = z.infer<
 >;
 
 export const idAntropometriaDto = z.object({ id: z.string().min(1) });
+
+// --- Importación de mediciones desde una planilla ------------------------------
+
+export const interpretarMedicionesDto = z.object({
+  pacienteId: z.string().min(1),
+  archivoId: z.string().min(1),
+});
+export type InterpretarMedicionesDto = z.infer<typeof interpretarMedicionesDto>;
+
+/**
+ * Una medición leída de la planilla, tal como se la ofrece a la UI.
+ *
+ * Las medidas se validan con el mismo esquema que la carga a mano, salvo el
+ * peso y la fecha: la planilla puede no traerlos y la pantalla de revisión
+ * tiene que poder mostrar igual la columna para que el profesional la
+ * complete o la descarte. Al importar sí son obligatorios.
+ */
+export const medicionSugeridaDto = medidasAntropometricasDto.partial().extend({
+  fecha: z.string().nullable(),
+  pesoKg: z.number().min(20).max(400).nullable(),
+});
+export type MedicionSugeridaDto = z.infer<typeof medicionSugeridaDto>;
+
+export const medicionesSugeridasDto = z.object({
+  nombreEnPlanilla: z.string().nullable(),
+  mediciones: z.array(medicionSugeridaDto),
+});
+export type MedicionesSugeridasDto = z.infer<typeof medicionesSugeridasDto>;
+
+export const importarMedicionesDto = z.object({
+  pacienteId: z.string().min(1),
+  mediciones: z
+    .array(
+      medidasAntropometricasDto.extend({
+        fecha: z.coerce.date(),
+      }),
+    )
+    .min(1, "No hay mediciones para importar")
+    .max(60),
+});
+export type ImportarMedicionesDto = z.infer<typeof importarMedicionesDto>;
+
+/** Qué pasó con cada medición del lote, para el resumen de la importación. */
+export interface ResultadoImportacionDto {
+  registradas: number;
+  resultados: {
+    fecha: Date;
+    estado: "REGISTRADA" | "DUPLICADA" | "RECHAZADA";
+    motivo: string | null;
+  }[];
+  /** Evolución ya recalculada: la tabla se repinta con lo importado. */
+  evolucion: EvolucionAntropometricaDto;
+}
 
 /** Medición + derivados de la planilla, para la vista de evolución. */
 export interface MedicionEvolucionDto {

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Plus, UserCog } from "lucide-react";
+import { FileSpreadsheet, Plus, UserCog } from "lucide-react";
 import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
 import { formatearFecha } from "@/lib/formato";
@@ -32,6 +32,7 @@ import { Label } from "@/componentes/ui/label";
 import { DashboardComposicion } from "./DashboardComposicion";
 import { FormularioMedicion } from "./FormularioMedicion";
 import { GestorPlantillas } from "./GestorPlantillas";
+import { ImportadorMediciones } from "./ImportadorMediciones";
 import { ObjetivosComposicion } from "./ObjetivosComposicion";
 import { TarjetasMediciones } from "./TarjetasMediciones";
 
@@ -60,6 +61,7 @@ export function SeccionComposicionCorporal({
   const [plantillaId, setPlantillaId] = useState<string>(PERFIL_COMPLETO);
 
   const [abierto, setAbierto] = useState(false);
+  const [importando, setImportando] = useState(false);
   const [editando, setEditando] = useState<MedicionComposicionDto | null>(null);
   const [eliminando, setEliminando] = useState<MedicionComposicionDto | null>(
     null,
@@ -129,10 +131,20 @@ export function SeccionComposicionCorporal({
             </TabsTrigger>
             <TabsTrigger value="plantillas">Plantillas</TabsTrigger>
           </TabsList>
-          <Button size="sm" onClick={abrirNueva}>
-            <Plus className="h-4 w-4" />
-            Nueva medición
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setImportando(true)}
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              Importar planilla
+            </Button>
+            <Button size="sm" onClick={abrirNueva}>
+              <Plus className="h-4 w-4" />
+              Nueva medición
+            </Button>
+          </div>
         </div>
 
         <TabsContent value="dashboard" className="mt-4">
@@ -203,6 +215,23 @@ export function SeccionComposicionCorporal({
             camposVisibles={plantillaElegida?.campos ?? null}
             onTerminado={() => setAbierto(false)}
           />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={importando} onOpenChange={setImportando}>
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Importar mediciones desde una planilla</DialogTitle>
+          </DialogHeader>
+          {/* Se desmonta al cerrar: si el importador quedara montado, volver a
+              abrirlo mostraría la revisión de la planilla anterior, ya
+              importada, en vez del subidor vacío. */}
+          {importando && (
+            <ImportadorMediciones
+              pacienteId={pacienteId}
+              onTerminado={() => setImportando(false)}
+            />
+          )}
         </DialogContent>
       </Dialog>
 

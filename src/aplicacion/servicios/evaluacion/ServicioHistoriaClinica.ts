@@ -9,7 +9,7 @@ import type {
   GuardarHistoriaClinicaDto,
   HistoriaClinicaSalidaDto,
   InterpretarHistoriaClinicaDto,
-  HistoriaClinicaSugeridaDto,
+  LecturaHistoriaClinicaDto,
   GuardarCampoHistoriaClinicaDto,
   CampoHistoriaClinicaSalidaDto,
 } from "../../dtos/evaluacion.dto";
@@ -42,18 +42,36 @@ export class ServicioHistoriaClinica {
     return historia ? historia.aPrimitivos() : null;
   }
 
+  /**
+   * Lee el documento subido y devuelve la historia clínica MÁS las evoluciones
+   * de control que traiga. No persiste nada: los dos formularios se precargan
+   * y el profesional confirma.
+   */
   async interpretarDesdeArchivo(
     datos: InterpretarHistoriaClinicaDto,
-  ): Promise<HistoriaClinicaSugeridaDto> {
-    const sugerido = await this.interpretarUC.ejecutar(datos);
+  ): Promise<LecturaHistoriaClinicaDto> {
+    const { campos, evoluciones } = await this.interpretarUC.ejecutar(datos);
     return {
-      motivoConsulta: sugerido.motivoConsulta ?? null,
-      diagnosticos: sugerido.diagnosticos ?? null,
-      medicacion: sugerido.medicacion ?? null,
-      antecedentesPersonales: sugerido.antecedentesPersonales ?? null,
-      antecedentesFamiliares: sugerido.antecedentesFamiliares ?? null,
-      habitos: sugerido.habitos ?? null,
-      contexto: sugerido.contexto ?? null,
+      campos: {
+        motivoConsulta: campos.motivoConsulta ?? null,
+        diagnosticos: campos.diagnosticos ?? null,
+        medicacion: campos.medicacion ?? null,
+        antecedentesPersonales: campos.antecedentesPersonales ?? null,
+        antecedentesFamiliares: campos.antecedentesFamiliares ?? null,
+        habitos: campos.habitos ?? null,
+        contexto: campos.contexto ?? null,
+      },
+      evoluciones: evoluciones.map((evolucion) => ({
+        fecha: evolucion.fecha,
+        cumplimientoDieta: evolucion.cumplimientoDieta ?? null,
+        entrenamiento: evolucion.entrenamiento ?? null,
+        deposiciones: evolucion.deposiciones ?? null,
+        orina: evolucion.orina ?? null,
+        descanso: evolucion.descanso ?? null,
+        indispuesta: evolucion.indispuesta ?? null,
+        sePercibe: evolucion.sePercibe ?? null,
+        camposPersonalizados: evolucion.camposPersonalizados,
+      })),
     };
   }
 

@@ -48,7 +48,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/PLANES.md`             | Modalidades, archivos, carpetas e historial           |
 | `docs/PLANES-SEMANALES.md`   | El menú de la semana, sus alternativas y la comparación |
 | `docs/ANTROPOMETRIA.md`      | Ecuaciones de grasa, distribución y sitios de pliegue |
-| `docs/HISTORIA-CLINICA.md`   | Campos personalizados y el alta leyendo un documento  |
+| `docs/HISTORIA-CLINICA.md`   | Evoluciones, campos personalizados y el alta por documento |
 | `docs/ASISTENTE-IA.md`       | El chat analítico: herramientas, contexto e historial |
 | `docs/GRABACIONES.md`        | Grabar la consulta, transcribirla y resumirla con IA  |
 | `docs/ARCHIVOS.md`           | Cómo llega al navegador un archivo del bucket         |
@@ -348,6 +348,13 @@ reemplazarlas por PI/10 o 1/3 desplazaría los resultados históricos.
 El `sexo` biológico vive en el Paciente (no cambia entre consultas) y el nivel de
 actividad en la medición (sí cambia).
 
+La serie histórica se puede **importar de la planilla del profesional** (un
+Excel con una columna por consulta): la IA la lee y precarga una tabla de
+revisión; nada se guarda hasta confirmar. La importación NO es todo-o-nada —una
+fecha ya cargada o una medida fuera de rango se informan y el resto entra— y
+los derivados de la planilla (Σ pliegues, kg bajados, % graso) se ignoran a
+propósito: los recalcula el dominio.
+
 `ObjetivoComposicion` es la meta cuantitativa, una sola vigente por paciente y
 variable. Dos reglas que ya se rompieron una vez: **el progreso se mide desde que
 la meta existe**, no desde la primera medición del paciente (el ESTADO, en
@@ -361,6 +368,28 @@ del paciente, **Mi composición** es la ÚNICA parte de la evaluación que se
 expone: historia clínica, laboratorios y alertas siguen siendo del profesional.
 
 Ver `docs/ANTROPOMETRIA.md`.
+
+### Evolución de control
+
+El repaso cualitativo de UNA consulta (cumplimiento de la dieta, entrenamiento,
+deposiciones, orina, descanso, si está indispuesta y cómo se percibe), más los
+campos propios del consultorio.
+
+Es la **contracara de `Antropometria`**: las dos son una por consulta, las dos
+llevan `UNIQUE (pacienteId, fecha)` y las dos se ordenan por fecha, pero
+aquella guarda lo que se MIDIÓ y esta lo que el paciente CONTÓ.
+
+Los campos son **texto libre y no números**: en la consulta se anota «50%, 10
+días no respetó por viaje», y el motivo es la mitad del dato. Lo cuantitativo
+del seguimiento ya vive en la antropometría y en el diario.
+
+Se cargan a mano o **salen del documento que se sube en la historia clínica**:
+el interpretador devuelve la ficha y las evoluciones en UNA sola llamada
+(suelen ser el mismo archivo), y lo leído se revisa antes de importarse. La
+importación NO es todo-o-nada, y el unique por fecha es lo que hace que releer
+el mismo documento no duplique el seguimiento.
+
+Ver `docs/HISTORIA-CLINICA.md`.
 
 ### Los dos tipos de objetivo
 
@@ -487,7 +516,18 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   los adjuntos hasta que alguien lo reportó)
 - Nunca renombrar ni reordenar los valores del enum `MetodoGrasa`: una serie
   histórica de composición corporal no puede cambiar de ecuación
-- Nunca tocar la `clave` de un `CampoHistoriaClinica` al editarlo: es lo que ata
+- Nunca importar de una planilla los valores DERIVADOS que trae calculados (Σ de
+  pliegues, kg bajados, % graso): el dominio los recalcula en cada lectura, y
+  los de una planilla vieja pueden venir de otra ecuación. Solo `kgGrasa`, que
+  es un dato cargado a mano
+- Nunca convertir un campo de evolución en número o enum: «50%» sin «10 días no
+  respetó por viaje» es la mitad del dato, y «normales o constipada» no entra en
+  ningún enum. Es texto libre a propósito
+- Nunca hacer que la importación de una planilla sea todo-o-nada: son años de
+  consultas, y una fecha repetida o un pliegue fuera de rango no pueden tirar
+  abajo las otras diez columnas que estaban bien
+- Nunca tocar la `clave` de un `CampoHistoriaClinica` ni de un `CampoEvolucion`
+  al editarlo: es lo que ata
   el campo a los valores ya cargados, y moverla vacía ese campo en todas las
   fichas del consultorio. El repositorio la deja fuera del `update` a propósito
 - Nunca guardar el valor de un campo personalizado sin su etiqueta: un campo
