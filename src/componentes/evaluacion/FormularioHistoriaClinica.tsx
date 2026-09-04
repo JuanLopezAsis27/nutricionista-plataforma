@@ -12,7 +12,10 @@ import { Textarea } from "@/componentes/ui/textarea";
 import { Label } from "@/componentes/ui/label";
 import { Skeleton } from "@/componentes/ui/skeleton";
 import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
+import { SeccionDesplegable } from "@/componentes/comunes/SeccionDesplegable";
 import { formatearFecha } from "@/lib/formato";
+import { RevisionEvolucionesLeidas } from "./RevisionEvolucionesLeidas";
+import type { LecturaHistoriaClinicaDto } from "@/aplicacion/dtos/evaluacion.dto";
 
 const CAMPOS = [
   { nombre: "motivoConsulta", etiqueta: "Motivo de consulta" },
@@ -82,6 +85,17 @@ export function FormularioHistoriaClinica({
   const [quitados, setQuitados] = useState<Set<string>>(new Set());
   const [etiquetaNueva, setEtiquetaNueva] = useState("");
 
+  /**
+   * Las evoluciones que la IA encontró en el documento, esperando revisión.
+   *
+   * Viven acá y no en la sección de Evoluciones porque nacen de ESTA subida:
+   * el cuaderno del profesional suele ser un solo archivo con la ficha
+   * adelante y el seguimiento atrás, y se lee de una pasada.
+   */
+  const [evolucionesLeidas, setEvolucionesLeidas] = useState<
+    LecturaHistoriaClinicaDto["evoluciones"] | null
+  >(null);
+
   // Los siete campos fijos sí van por react-hook-form, que necesita el reset.
   useEffect(() => {
     if (!historia.data) return;
@@ -123,18 +137,31 @@ export function FormularioHistoriaClinica({
     interpretarHistoriaDesdeArchivo.mutate(
       { pacienteId, archivoId: archivo.id },
       {
-        onSuccess: (sugerido) => {
+        onSuccess: (lectura) => {
           let algunCampo = false;
           for (const campo of CAMPOS) {
-            const valor = sugerido[campo.nombre];
+            const valor = lectura.campos[campo.nombre];
             if (valor) {
               form.setValue(campo.nombre, valor);
               algunCampo = true;
             }
           }
-          toast[algunCampo ? "success" : "info"](
-            algunCampo
-              ? "Campos sugeridos por IA. Revisalos antes de guardar."
+          // Las evoluciones NO se guardan solas: se muestran abajo para
+          // revisar y el profesional decide cuáles importar.
+          setEvolucionesLeidas(
+            lectura.evoluciones.length > 0 ? lectura.evoluciones : null,
+          );
+
+          const encontrado = [
+            algunCampo ? "campos de la historia" : null,
+            lectura.evoluciones.length > 0
+              ? `${lectura.evoluciones.length} ${lectura.evoluciones.length === 1 ? "evolución" : "evoluciones"}`
+              : null,
+          ].filter((parte) => parte !== null);
+
+          toast[encontrado.length > 0 ? "success" : "info"](
+            encontrado.length > 0
+              ? `La IA leyó ${encontrado.join(" y ")}. Revisá antes de guardar.`
               : "La IA no encontró datos para completar en el documento.",
           );
         },
@@ -204,133 +231,153 @@ export function FormularioHistoriaClinica({
   ];
 
   return (
-    <form onSubmit={form.handleSubmit(alEnviar)} className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold">Historia clínica</h3>
-        {historia.data && (
-          <span className="text-xs text-muted-foreground">
-            Última actualización: {formatearFecha(historia.data.actualizadoEn)}
-          </span>
-        )}
-      </div>
-
-      <div className="space-y-2 rounded-md border p-3">
-        <p className="text-sm font-medium">Subir documento</p>
-        <p className="text-xs text-muted-foreground">
-          Subí el documento de historia clínica: una foto (JPG, PNG, WEBP), un
-          PDF o un Word (.docx). Queda guardado en la ficha del paciente y la IA
-          sugiere los campos de abajo (no se guarda nada solo: revisá y apretá
-          &quot;Guardar historia clínica&quot;). El .doc viejo, anterior a 2007,
-          no se puede leer: guardalo como .docx o PDF.
-        </p>
-        <SubidorArchivo
-          contexto="paciente"
-          pacienteId={pacienteId}
-          accept="image/jpeg,image/png,image/webp,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-          sinVistaPrevia
-          onSubido={alSubirDocumento}
-        />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {CAMPOS.map((campo) => (
-          <div key={campo.nombre} className="space-y-2">
-            <Label htmlFor={campo.nombre}>{campo.etiqueta}</Label>
-            <Textarea
-              id={campo.nombre}
-              rows={3}
-              {...form.register(campo.nombre)}
-              placeholder="—"
+    <form onSubmit={form.handleSubmit(alEnviar)}>
+      <SeccionDesplegable
+        titulo="Historia clínica"
+        resumen={
+          historia.data
+            ? `actualizada el ${formatearFecha(historia.data.actualizadoEn)}`
+            : "sin cargar"
+        }
+      >
+        <div className="space-y-4">
+          <div className="space-y-2 rounded-md border p-3">
+            <p className="text-sm font-medium">Subir documento</p>
+            <p className="text-xs text-muted-foreground">
+              Subí el documento de historia clínica: una foto (JPG, PNG, WEBP),
+              un PDF, un Word (.docx) o un Excel (.xlsx). Queda guardado en la
+              ficha del paciente y la IA sugiere los campos de abajo{" "}
+              <span className="font-medium">
+                y las evoluciones de control que el documento traiga
+              </span>{" "}
+              (no se guarda nada solo: revisá y confirmá). El .doc viejo,
+              anterior a 2007, no se puede leer: guardalo como .docx o PDF.
+            </p>
+            <SubidorArchivo
+              contexto="paciente"
+              pacienteId={pacienteId}
+              accept="image/jpeg,image/png,image/webp,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              sinVistaPrevia
+              onSubido={alSubirDocumento}
             />
+            {interpretarHistoriaDesdeArchivo.isPending && (
+              <p className="text-xs text-muted-foreground">
+                Leyendo el documento… puede tardar si trae muchas consultas.
+              </p>
+            )}
           </div>
-        ))}
-      </div>
 
-      <div className="space-y-3 rounded-md border p-3">
-        <div>
-          <p className="text-sm font-medium">Campos personalizados</p>
-          <p className="text-xs text-muted-foreground">
-            Los definidos en Configuración aparecen en todos tus pacientes. Los
-            que agregues acá valen solo para esta ficha.
-          </p>
-        </div>
+          {evolucionesLeidas && (
+            <RevisionEvolucionesLeidas
+              pacienteId={pacienteId}
+              evoluciones={evolucionesLeidas}
+              onCerrar={() => setEvolucionesLeidas(null)}
+            />
+          )}
 
-        {personalizados.length > 0 && (
           <div className="grid gap-4 md:grid-cols-2">
-            {personalizados.map((campo) => (
-              <div key={campo.clave} className="space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <Label htmlFor={campo.clave}>{campo.etiqueta}</Label>
-                  {campo.suelto && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => quitarSuelto(campo.clave)}
-                      aria-label={`Quitar ${campo.etiqueta}`}
-                    >
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
-                  )}
-                </div>
+            {CAMPOS.map((campo) => (
+              <div key={campo.nombre} className="space-y-2">
+                <Label htmlFor={campo.nombre}>{campo.etiqueta}</Label>
                 <Textarea
-                  id={campo.clave}
-                  rows={2}
+                  id={campo.nombre}
+                  rows={3}
+                  {...form.register(campo.nombre)}
                   placeholder="—"
-                  value={valorDe(campo.clave)}
-                  onChange={(evento) =>
-                    setEdiciones((previos) => ({
-                      ...previos,
-                      [campo.clave]: evento.target.value,
-                    }))
-                  }
                 />
-                {campo.ayuda && (
-                  <p className="text-xs text-muted-foreground">{campo.ayuda}</p>
-                )}
               </div>
             ))}
           </div>
-        )}
 
-        <div className="flex items-end gap-2">
-          <div className="flex-1 space-y-2">
-            <Label htmlFor="campo-suelto-nuevo">
-              Agregar un campo solo para este paciente
-            </Label>
-            <Input
-              id="campo-suelto-nuevo"
-              value={etiquetaNueva}
-              maxLength={80}
-              placeholder="Nombre del campo"
-              onChange={(evento) => setEtiquetaNueva(evento.target.value)}
-              onKeyDown={(evento) => {
-                // Enter agrega el campo en vez de enviar la historia entera.
-                if (evento.key === "Enter") {
-                  evento.preventDefault();
-                  agregarSuelto();
-                }
-              }}
-            />
+          <div className="space-y-3 rounded-md border p-3">
+            <div>
+              <p className="text-sm font-medium">Campos personalizados</p>
+              <p className="text-xs text-muted-foreground">
+                Los definidos en Configuración aparecen en todos tus pacientes.
+                Los que agregues acá valen solo para esta ficha.
+              </p>
+            </div>
+
+            {personalizados.length > 0 && (
+              <div className="grid gap-4 md:grid-cols-2">
+                {personalizados.map((campo) => (
+                  <div key={campo.clave} className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label htmlFor={campo.clave}>{campo.etiqueta}</Label>
+                      {campo.suelto && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => quitarSuelto(campo.clave)}
+                          aria-label={`Quitar ${campo.etiqueta}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                    <Textarea
+                      id={campo.clave}
+                      rows={2}
+                      placeholder="—"
+                      value={valorDe(campo.clave)}
+                      onChange={(evento) =>
+                        setEdiciones((previos) => ({
+                          ...previos,
+                          [campo.clave]: evento.target.value,
+                        }))
+                      }
+                    />
+                    {campo.ayuda && (
+                      <p className="text-xs text-muted-foreground">
+                        {campo.ayuda}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-end gap-2">
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="campo-suelto-nuevo">
+                  Agregar un campo solo para este paciente
+                </Label>
+                <Input
+                  id="campo-suelto-nuevo"
+                  value={etiquetaNueva}
+                  maxLength={80}
+                  placeholder="Nombre del campo"
+                  onChange={(evento) => setEtiquetaNueva(evento.target.value)}
+                  onKeyDown={(evento) => {
+                    // Enter agrega el campo en vez de enviar la historia entera.
+                    if (evento.key === "Enter") {
+                      evento.preventDefault();
+                      agregarSuelto();
+                    }
+                  }}
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={agregarSuelto}
+                disabled={!etiquetaNueva.trim()}
+              >
+                <Plus className="mr-2 h-4 w-4" /> Agregar
+              </Button>
+            </div>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={agregarSuelto}
-            disabled={!etiquetaNueva.trim()}
-          >
-            <Plus className="mr-2 h-4 w-4" /> Agregar
-          </Button>
-        </div>
-      </div>
 
-      <div className="flex justify-end">
-        <Button type="submit" disabled={guardarHistoria.isPending}>
-          {guardarHistoria.isPending
-            ? "Guardando…"
-            : "Guardar historia clínica"}
-        </Button>
-      </div>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={guardarHistoria.isPending}>
+              {guardarHistoria.isPending
+                ? "Guardando…"
+                : "Guardar historia clínica"}
+            </Button>
+          </div>
+        </div>
+      </SeccionDesplegable>
     </form>
   );
 }

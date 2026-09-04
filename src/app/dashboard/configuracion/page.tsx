@@ -13,6 +13,7 @@ import { FormularioWhatsapp } from "@/componentes/configuracion/FormularioWhatsa
 import { GestionAxiomas } from "@/componentes/configuracion/GestionAxiomas";
 import { GestionPlantillasEmail } from "@/componentes/configuracion/GestionPlantillasEmail";
 import { GestionCamposHistoriaClinica } from "@/componentes/configuracion/GestionCamposHistoriaClinica";
+import { GestionCamposEvolucion } from "@/componentes/configuracion/GestionCamposEvolucion";
 
 /** Configuración del consultorio: turnos, membrete y base de conocimiento. */
 export default function PaginaConfiguracion() {
@@ -35,6 +36,7 @@ export default function PaginaConfiguracion() {
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="emails">Plantillas de email</TabsTrigger>
           <TabsTrigger value="historia">Historia clínica</TabsTrigger>
+          <TabsTrigger value="evoluciones">Evoluciones</TabsTrigger>
           <TabsTrigger value="axiomas">Base de conocimiento</TabsTrigger>
         </TabsList>
 
@@ -56,6 +58,10 @@ export default function PaginaConfiguracion() {
 
         <TabsContent value="historia">
           <GestionCamposHistoriaClinica />
+        </TabsContent>
+
+        <TabsContent value="evoluciones">
+          <GestionCamposEvolucion />
         </TabsContent>
 
         <TabsContent value="axiomas">

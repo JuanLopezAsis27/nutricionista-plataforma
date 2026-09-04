@@ -14,6 +14,19 @@ const MIMES_DOCUMENTO = [
 ] as const;
 
 /**
+ * Planilla de cálculo. Solo `.xlsx`: el `.xls` binario anterior a 2007 no lo
+ * lee ninguna librería del proyecto, y aceptarlo sería subir un archivo que
+ * después no se puede interpretar.
+ *
+ * Va aparte de `MIMES_DOCUMENTO` a propósito: la planilla se acepta donde se
+ * la puede LEER —la ficha del paciente, de donde sale la importación de
+ * mediciones—, no como adjunto genérico de una receta o del recetario.
+ */
+const MIMES_PLANILLA = [
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+] as const;
+
+/**
  * Audio de las grabaciones de consulta.
  *
  * `audio/webm` es lo que produce `MediaRecorder` en Chrome y Firefox;
@@ -61,7 +74,7 @@ export const CONTEXTOS_ARCHIVO = {
   },
   paciente: {
     prefijo: "pacientes",
-    mimes: [...MIMES_DOCUMENTO, ...MIMES_IMAGEN],
+    mimes: [...MIMES_DOCUMENTO, ...MIMES_IMAGEN, ...MIMES_PLANILLA],
     maxBytes: 10 * MB,
   },
   // El plan armado afuera (Word, Canva) y subido tal cual. Solo PDF: es lo

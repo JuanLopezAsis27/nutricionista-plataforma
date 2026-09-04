@@ -309,6 +309,8 @@ model Nutricionista {
   alimentosPropios          AlimentoPropio[]
   historiasClinicas         HistoriaClinica[]
   camposHistoriaClinica     CampoHistoriaClinica[]
+  evoluciones               Evolucion[]
+  camposEvolucion           CampoEvolucion[]
   conversacionesIA          ConversacionIA[]
   mensajesIA                MensajeIA[]
   alertasAlimentarias       AlertaAlimentaria[]
@@ -389,6 +391,7 @@ model Paciente {
   turnos                Turno[]
   usuario               Usuario?
   historiaClinica       HistoriaClinica?
+  evoluciones           Evolucion[]
   antropometrias        Antropometria[]
   objetivosComposicion  ObjetivoComposicion[]
   laboratorios          Laboratorio[]
@@ -1092,6 +1095,65 @@ model CampoHistoriaClinica {
   @@unique([nutricionistaId, clave])
   @@index([nutricionistaId])
   @@map("campos_historia_clinica")
+}
+
+/// Evolución de control: el repaso cualitativo de UNA consulta (cumplimiento
+/// de la dieta, entrenamiento, deposiciones, orina, descanso, si está
+/// indispuesta y cómo se percibe).
+///
+/// Es la contracara de `antropometrias`: las dos son "una por consulta" y se
+/// ordenan por fecha, pero aquella guarda lo que se MIDIÓ y esta lo que el
+/// paciente CONTÓ. Los campos son texto libre a propósito: en la consulta se
+/// anota "50%, 10 días no respetó por viaje", y un porcentaje solo perdería el
+/// motivo, que es la mitad del dato.
+model Evolucion {
+  id                   String   @id @default(uuid(4))
+  nutricionistaId      String
+  pacienteId           String
+  fecha                DateTime @db.Date
+  cumplimientoDieta    String?
+  entrenamiento        String?
+  deposiciones         String?
+  orina                String?
+  descanso             String?
+  indispuesta          String?
+  sePercibe            String?
+  /// Valores de los campos personalizados de ESTA evolución, como
+  /// [{ clave, etiqueta, valor }]. Guarda la etiqueta junto al valor por lo
+  /// mismo que la historia clínica: para que la evolución se siga leyendo
+  /// aunque después se borre la definición del campo.
+  camposPersonalizados Json     @default("[]")
+  creadoEn             DateTime @default(now())
+  actualizadoEn        DateTime @updatedAt
+
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@unique([pacienteId, fecha])
+  @@index([pacienteId, fecha])
+  @@map("evoluciones")
+}
+
+/// Campo extra que el consultorio agrega a las evoluciones de TODOS sus
+/// pacientes. Mismo modelo que campos_historia_clinica, y una lista aparte a
+/// propósito: la historia se carga una vez y describe de dónde viene el
+/// paciente; la evolución se carga en cada consulta y describe cómo viene.
+model CampoEvolucion {
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
+  clave           String
+  nombre          String
+  descripcion     String?
+  orden           Int      @default(0)
+  creadoEn        DateTime @default(now())
+  actualizadoEn   DateTime @updatedAt
+
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@unique([nutricionistaId, nombre])
+  @@unique([nutricionistaId, clave])
+  @@index([nutricionistaId])
+  @@map("campos_evolucion")
 }
 
 /// Alergia, intolerancia o restricción alimentaria del paciente.

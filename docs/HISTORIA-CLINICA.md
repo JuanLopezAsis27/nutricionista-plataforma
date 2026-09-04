@@ -1,6 +1,6 @@
-# Historia clínica y alta desde un documento
+# Historia clínica, evoluciones y alta desde un documento
 
-Dos funciones que comparten la misma pieza —leer un documento con IA— y la
+Tres funciones que comparten la misma pieza —leer un documento con IA— y la
 misma regla: **nada se guarda solo**. La IA precarga un formulario y el
 profesional revisa y confirma.
 
@@ -73,9 +73,78 @@ El prompt también deletrea dos cosas que el modelo erraba solo: cómo separar
 que va antes de la coma es el apellido) y que **el sexo** llega como "M", "F",
 "Masc", "Varón" o "Mujer" y hay que mapearlo al enum.
 
+## Evoluciones de control
+
+La historia clínica se carga UNA vez y dice de dónde viene el paciente. La
+**evolución** se carga en cada consulta y dice cómo viene:
+
+```
+12/07/2024
+Cumplimiento dieta: 50%. 10 días no respetó por viaje.
+Entrenamiento: 3 veces pesas. Mejoró las cargas.
+Deposiciones: normales o constipada.
+Orina: clarito. Sí toma agua, pero podría mejorar. No tiene calambres.
+Descanso: 7 hs.
+Indispuesta: no.
+Se percibe: igual. No tomó nada nuevo.
+```
+
+Siete campos fijos (`CAMPOS_EVOLUCION`), más los personalizados del
+consultorio, más los sueltos de esa consulta. Se cargan a mano en Evaluación →
+Evoluciones, o **salen del documento que se sube en la historia clínica**.
+
+### Por qué son TEXTO libre y no números
+
+«50%» sin «10 días no respetó por viaje» es la mitad del dato, y el motivo es
+justamente lo que cambia la conducta de la próxima consulta. Un enum de tres
+opciones tampoco tiene dónde poner «normales o constipada», que es lo que el
+paciente efectivamente contesta. Lo cuantitativo del seguimiento ya vive en
+otro lado: el peso y los pliegues en `Antropometria`, la adherencia día a día
+en el diario del paciente.
+
+### Es la contracara de la antropometría, y va aparte
+
+Las dos son «una por consulta», las dos se ordenan por fecha y las dos tienen
+`@@unique([pacienteId, fecha])`. Pero una guarda lo que se **midió** y la otra
+lo que el paciente **contó**, se cargan en momentos distintos —la medición con
+el calibre en la mano, la evolución hablando— y una consulta puede tener
+cualquiera de las dos sin la otra.
+
+El unique no es decorativo: es lo que hace que **volver a leer el mismo
+documento no duplique el seguimiento entero**. Pasa, porque se sube de nuevo
+para corregir un campo.
+
+### Se leen del MISMO documento que la historia
+
+`InterpretadorHistoriaClinicaLLM` devuelve ahora `{ campos, evoluciones }` en
+una sola llamada. El cuaderno del profesional suele ser un archivo único —la
+ficha adelante, las consultas atrás—, así que partirlo en dos llamadas costaría
+el doble para leer lo mismo.
+
+El prompt lleva el ejemplo de arriba **literal**: es lo que le enseña al modelo
+que una fecha seguida de esos rótulos es UNA evolución, y que la fecha
+siguiente empieza otra. Y le dice explícitamente que copie el texto entero, que
+no lo resuma ni lo convierta en un número.
+
+Lo leído aparece en una tarjeta de revisión debajo del subidor
+(`RevisionEvolucionesLeidas`): se marca qué se importa y se corrige la fecha
+—la identidad de la consulta—, y recién ahí se guarda. Lo único editable ahí es
+la fecha; el contenido se corrige después desde la evolución ya cargada, que es
+donde está el formulario completo.
+
+**La importación no es todo-o-nada** (`ImportarEvoluciones`), por lo mismo que
+la de mediciones: una fecha ya cargada se informa como DUPLICADA y no pisa
+nada, una evolución vacía como RECHAZADA, y el resto entra igual. Solo un fallo
+de infraestructura corta el lote.
+
+Una evolución **sin fecha** llega igual a la revisión, desmarcada: descartarla
+perdería una consulta que el documento sí traía, y la fecha la completa el
+profesional.
+
 ## Campos personalizados
 
-Conviven **dos clases a propósito**, y se guardan igual:
+Hay **dos listas** —una para la historia clínica y otra para las evoluciones—
+y en cada una conviven **dos clases a propósito**, que se guardan igual:
 
 - **Del consultorio** (`CampoHistoriaClinica`, una fila por inquilino).
   Se declaran en Configuración → Historia clínica y aparecen en la historia de
@@ -84,8 +153,20 @@ Conviven **dos clases a propósito**, y se guardan igual:
 - **Sueltos**, cargados en la ficha de UN paciente. Para lo que aparece una vez
   y no justifica sumárselo a los otros 300.
 
-Los valores viven en `historias_clinicas.camposPersonalizados` (JSONB), como
-`[{ clave, etiqueta, valor }]`.
+Los valores viven en `historias_clinicas.camposPersonalizados` y en
+`evoluciones.camposPersonalizados` (JSONB), como `[{ clave, etiqueta, valor }]`.
+
+**Las dos listas van separadas** (`CampoHistoriaClinica` y `CampoEvolucion`)
+porque describen cosas distintas: «antecedentes familiares» no se pregunta
+consulta a consulta, y «horas de pantalla esta semana» no se congela en el
+alta. Unirlas obligaría a que cada campo declarara en cuál de los dos
+formularios aparece: la misma separación, con un flag y una fuente más de
+error. La pantalla que los administra sí es una sola
+(`GestionCamposPersonalizados`), porque la mecánica es idéntica.
+
+La derivación de la clave (`derivarClave`) vive en
+`dominio/servicios/claveCampo.ts` y la comparten las dos: con dos copias, el
+mismo nombre daría claves distintas según en qué formulario se lo definió.
 
 ### Las tres reglas que sostienen los datos ya cargados
 
@@ -165,11 +246,20 @@ de lo que se cargó, y sin eso quedaría huérfano en el bucket hasta la limpiez
 | `casos-de-uso/pacientes/InterpretarFichaPaciente.ts`  | Lee y sugiere (no persiste)              |
 | `casos-de-uso/pacientes/CrearPacienteDesdeFicha.ts`   | El alta confirmada, con advertencias     |
 | `componentes/pacientes/AltaPacienteDesdeDocumento.tsx` | Subir → revisar → confirmar             |
-| `componentes/configuracion/GestionCamposHistoriaClinica.tsx` | Declarar los campos del consultorio |
+| `componentes/configuracion/GestionCamposPersonalizados.tsx` | Declarar los campos del consultorio (historia y evolución) |
+| `dominio/entidades/Evolucion.ts`               | El repaso de una consulta, con sus invariantes  |
+| `dominio/entidades/CampoEvolucion.ts`          | La definición del consultorio para evoluciones  |
+| `casos-de-uso/evaluacion/ImportarEvoluciones.ts` | El alta en lote, no todo-o-nada               |
+| `componentes/evaluacion/EvolucionesPaciente.tsx` | La lista de la ficha, una tarjeta por consulta |
+| `componentes/evaluacion/RevisionEvolucionesLeidas.tsx` | Revisar lo que la IA leyó antes de importar |
 
 Migración **43** (`campos_personalizados_historia`): la tabla
 `campos_historia_clinica` y la columna JSONB en `historias_clinicas`.
 `CampoHistoriaClinica` está en `MODELOS_INQUILINO`.
+
+Migración **47** (`evoluciones_de_control`): las tablas `evoluciones` y
+`campos_evolucion`. `Evolucion` y `CampoEvolucion` están en
+`MODELOS_INQUILINO`.
 
 ## El modelo configurado es el techo
 

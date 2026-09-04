@@ -6,6 +6,8 @@ import type { ITokenRecuperacionRepositorio } from "@/dominio/repositorios/IToke
 import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
 import type { IHistoriaClinicaRepositorio } from "@/dominio/repositorios/IHistoriaClinicaRepositorio";
 import type { ICampoHistoriaClinicaRepositorio } from "@/dominio/repositorios/ICampoHistoriaClinicaRepositorio";
+import type { IEvolucionRepositorio } from "@/dominio/repositorios/IEvolucionRepositorio";
+import type { ICampoEvolucionRepositorio } from "@/dominio/repositorios/ICampoEvolucionRepositorio";
 import type { IConversacionIARepositorio } from "@/dominio/repositorios/IConversacionIARepositorio";
 import type { IAntropometriaRepositorio } from "@/dominio/repositorios/IAntropometriaRepositorio";
 import type { IObjetivoComposicionRepositorio } from "@/dominio/repositorios/IObjetivoComposicionRepositorio";
@@ -54,6 +56,8 @@ import { TokenRecuperacion } from "@/dominio/entidades/TokenRecuperacion";
 import { Archivo } from "@/dominio/entidades/Archivo";
 import { HistoriaClinica } from "@/dominio/entidades/HistoriaClinica";
 import type { CampoHistoriaClinica } from "@/dominio/entidades/CampoHistoriaClinica";
+import type { Evolucion } from "@/dominio/entidades/Evolucion";
+import type { CampoEvolucion } from "@/dominio/entidades/CampoEvolucion";
 import { Antropometria } from "@/dominio/entidades/Antropometria";
 import { AlertaAlimentaria } from "@/dominio/entidades/AlertaAlimentaria";
 import { Laboratorio } from "@/dominio/entidades/Laboratorio";
@@ -726,6 +730,34 @@ export function mockRetroalimentacionInsightRepositorio(
 ): IRetroalimentacionInsightRepositorio {
   return {
     registrar: vi.fn(async () => {}),
+    ...parcial,
+  };
+}
+
+export function mockEvolucionRepositorio(
+  parcial: Partial<IEvolucionRepositorio> = {},
+): IEvolucionRepositorio {
+  return {
+    crear: vi.fn(async (e: Evolucion) => e),
+    actualizar: vi.fn(async (e: Evolucion) => e),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    listarPorPaciente: vi.fn(async () => []),
+    existeEnFecha: vi.fn(async () => false),
+    ...parcial,
+  };
+}
+
+export function mockCampoEvolucionRepositorio(
+  parcial: Partial<ICampoEvolucionRepositorio> = {},
+): ICampoEvolucionRepositorio {
+  return {
+    obtenerTodos: vi.fn(async () => []),
+    obtenerPorId: vi.fn(async () => null),
+    obtenerPorNombre: vi.fn(async () => null),
+    crear: vi.fn(async (c: CampoEvolucion) => c),
+    actualizar: vi.fn(async (c: CampoEvolucion) => c),
+    eliminar: vi.fn(async () => {}),
     ...parcial,
   };
 }

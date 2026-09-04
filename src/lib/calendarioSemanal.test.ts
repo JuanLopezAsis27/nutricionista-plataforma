@@ -4,6 +4,7 @@ import {
   sumarDias,
   ventanaDeDias,
   rangoHorarioVisible,
+  altoDeHora,
   repartirCarriles,
 } from "./calendarioSemanal";
 
@@ -74,6 +75,36 @@ describe("calendarioSemanal", () => {
       };
       const { desdeMinutos, hastaMinutos } = rangoHorarioVisible(invertido, []);
       expect(hastaMinutos - desdeMinutos).toBeGreaterThanOrEqual(60);
+    });
+  });
+
+  describe("alto de la hora", () => {
+    it("agranda las franjas cuando el rango es corto", () => {
+      // Un consultorio de 15 a 18 dibujaba tres franjas de 56 px arriba de
+      // todo y dejaba el resto de la pantalla en blanco.
+      expect(altoDeHora(3)).toBeGreaterThan(altoDeHora(12));
+    });
+
+    it("mantiene la escala de siempre en una jornada larga", () => {
+      // 12 horas o más ya llenan la pantalla: ahí no hay nada que estirar.
+      expect(altoDeHora(12)).toBe(56);
+      expect(altoDeHora(16)).toBe(56);
+    });
+
+    it("no crece sin límite con un rango mínimo", () => {
+      // Sin tope, dos horas de atención dejarían el turno de las 15 a media
+      // pantalla del de las 16.
+      expect(altoDeHora(1)).toBe(altoDeHora(2));
+      expect(altoDeHora(1)).toBeLessThanOrEqual(132);
+    });
+
+    it("la escala es uniforme: media hora es la mitad de una hora", () => {
+      // Es el invariante de la grilla y vale con cualquier rango: se estira la
+      // HORA, no cada bloque por su cuenta.
+      for (const horas of [1, 3, 8, 12, 24]) {
+        const alto = altoDeHora(horas);
+        expect((30 / 60) * alto).toBeCloseTo(alto / 2);
+      }
     });
   });
 

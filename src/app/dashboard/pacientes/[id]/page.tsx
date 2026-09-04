@@ -37,6 +37,7 @@ import {
   GestionAlertas,
 } from "@/componentes/evaluacion/AlertasPaciente";
 import { FormularioHistoriaClinica } from "@/componentes/evaluacion/FormularioHistoriaClinica";
+import { EvolucionesPaciente } from "@/componentes/evaluacion/EvolucionesPaciente";
 import { ListaLaboratorios } from "@/componentes/evaluacion/ListaLaboratorios";
 import { ArchivosPaciente } from "@/componentes/evaluacion/ArchivosPaciente";
 import { DiarioPacienteVista } from "@/componentes/diario/DiarioPacienteVista";
@@ -189,6 +190,7 @@ export default function PaginaDetallePaciente() {
           </div>
           <GestionAlertas pacienteId={id} />
           <FormularioHistoriaClinica pacienteId={id} />
+          <EvolucionesPaciente pacienteId={id} />
           <ListaLaboratorios pacienteId={id} />
           <ArchivosPaciente pacienteId={id} />
         </TabsContent>

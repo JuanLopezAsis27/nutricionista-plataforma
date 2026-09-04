@@ -29,6 +29,7 @@ import {
   DialogTitle,
 } from "@/componentes/ui/dialog";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
+import { SeccionDesplegable } from "@/componentes/comunes/SeccionDesplegable";
 
 /** Colores por severidad (estado, siempre acompañados de ícono + texto). */
 const COLORES_SEVERIDAD: Record<SeveridadAlerta, string> = {
@@ -127,64 +128,81 @@ export function GestionAlertas({ pacienteId }: { pacienteId: string }) {
 
   const enviando = registrarAlerta.isPending || actualizarAlerta.isPending;
 
+  const cantidad = (alertas.data ?? []).length;
+
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold">Alertas de intolerancias y alergias</h3>
-        <Button size="sm" variant="outline" onClick={abrirNueva}>
-          <Plus className="h-4 w-4" />
-          Agregar
-        </Button>
-      </div>
-
-      {(alertas.data ?? []).length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Sin alertas registradas. Cargá alergias, intolerancias o restricciones
-          para que aparezcan destacadas en toda la ficha.
-        </p>
-      ) : (
-        <ul className="divide-y rounded-md border">
-          {alertas.data!.map((alerta) => (
-            <li key={alerta.id} className="flex items-center gap-3 p-3 text-sm">
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold",
-                  COLORES_SEVERIDAD[alerta.severidad],
-                )}
+      <SeccionDesplegable
+        titulo="Alertas de intolerancias y alergias"
+        // El resumen cuenta lo que hay estando plegada. Que no se vean acá no
+        // esconde nada clínicamente: `BadgesAlertas` las muestra SIEMPRE en el
+        // encabezado de la ficha, que es donde no pueden pasarse por alto.
+        resumen={
+          cantidad === 0
+            ? "sin alertas"
+            : cantidad === 1
+              ? "1 alerta"
+              : `${cantidad} alertas`
+        }
+        acciones={
+          <Button size="sm" variant="outline" onClick={abrirNueva}>
+            <Plus className="h-4 w-4" />
+            Agregar
+          </Button>
+        }
+      >
+        {(alertas.data ?? []).length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Sin alertas registradas. Cargá alergias, intolerancias o
+            restricciones para que aparezcan destacadas en toda la ficha.
+          </p>
+        ) : (
+          <ul className="divide-y rounded-md border">
+            {alertas.data!.map((alerta) => (
+              <li
+                key={alerta.id}
+                className="flex items-center gap-3 p-3 text-sm"
               >
-                <AlertTriangle className="h-3 w-3" />
-                {ETIQUETAS_SEVERIDAD[alerta.severidad]}
-              </span>
-              <div className="flex-1">
-                <p className="font-medium">
-                  {ETIQUETAS_TIPO_ALERTA[alerta.tipo]}: {alerta.descripcion}
-                </p>
-                {alerta.notas && (
-                  <p className="text-xs text-muted-foreground">
-                    {alerta.notas}
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold",
+                    COLORES_SEVERIDAD[alerta.severidad],
+                  )}
+                >
+                  <AlertTriangle className="h-3 w-3" />
+                  {ETIQUETAS_SEVERIDAD[alerta.severidad]}
+                </span>
+                <div className="flex-1">
+                  <p className="font-medium">
+                    {ETIQUETAS_TIPO_ALERTA[alerta.tipo]}: {alerta.descripcion}
                   </p>
-                )}
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Editar alerta"
-                onClick={() => abrirEdicion(alerta)}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Eliminar alerta"
-                onClick={() => setEliminando(alerta)}
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </li>
-          ))}
-        </ul>
-      )}
+                  {alerta.notas && (
+                    <p className="text-xs text-muted-foreground">
+                      {alerta.notas}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Editar alerta"
+                  onClick={() => abrirEdicion(alerta)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Eliminar alerta"
+                  onClick={() => setEliminando(alerta)}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </SeccionDesplegable>
 
       <Dialog open={abierta} onOpenChange={setAbierta}>
         <DialogContent>

@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { CampoHistoriaClinica, derivarClave } from "./CampoHistoriaClinica";
+import { CampoHistoriaClinica } from "./CampoHistoriaClinica";
+// La derivación de la clave se comparte con los campos de evolución: la regla
+// del slug tiene que ser UNA, o el mismo nombre daría claves distintas según
+// en qué formulario se lo definió.
+import { derivarClave } from "../servicios/claveCampo";
 import { ErrorValidacion } from "../errores/ErrorValidacion";
 
 describe("CampoHistoriaClinica", () => {

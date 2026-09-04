@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import JSZip from "jszip";
+import ExcelJS from "exceljs";
 import {
   leerDocumentoParaLLM,
   ErrorDocumentoNoInterpretable,
@@ -8,6 +9,8 @@ import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamient
 
 const MIME_DOCX =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const MIME_XLSX =
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 function almacenamientoCon(contenido: Uint8Array): IAlmacenamientoArchivos {
   return {
@@ -38,6 +41,17 @@ async function docxCon(parrafos: string[]): Promise<Uint8Array> {
     `<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${cuerpo}</w:body></w:document>`,
   );
   return await zip.generateAsync({ type: "uint8array" });
+}
+
+/** Arma un .xlsx real con una hoja cargada fila por fila. */
+async function planillaCon(
+  filas: readonly (readonly ExcelJS.CellValue[])[],
+): Promise<Uint8Array> {
+  const libro = new ExcelJS.Workbook();
+  const hoja = libro.addWorksheet("Evolución");
+  for (const fila of filas) hoja.addRow([...fila]);
+  const buffer = await libro.xlsx.writeBuffer();
+  return new Uint8Array(buffer);
 }
 
 describe("leerDocumentoParaLLM", () => {
@@ -102,6 +116,53 @@ describe("leerDocumentoParaLLM", () => {
         mimeType: "application/zip",
       }),
     ).rejects.toBeInstanceOf(ErrorDocumentoNoInterpretable);
+  });
+
+  it("serializa un Excel como grilla con la referencia de cada celda", async () => {
+    // Sin las coordenadas el modelo no puede cruzar la fila de la medida con
+    // la columna de la fecha, que es como se lee una planilla de evolución.
+    const xlsx = await planillaCon([
+      ["", new Date(Date.UTC(2024, 2, 15)), new Date(Date.UTC(2024, 3, 12))],
+      ["Peso", 87.3, 84.7],
+    ]);
+
+    const bloque = await leerDocumentoParaLLM(almacenamientoCon(xlsx), {
+      clave: "pacientes/evolucion.xlsx",
+      mimeType: MIME_XLSX,
+    });
+
+    expect(bloque.tipo).toBe("texto");
+    const texto = (bloque as { texto: string }).texto;
+    expect(texto).toContain("B1: 2024-03-15");
+    expect(texto).toContain("A2: Peso");
+    expect(texto).toContain("B2: 87.3");
+  });
+
+  it("de una fórmula manda el resultado, no la fórmula", async () => {
+    // La sumatoria de pliegues y los kg de grasa de la planilla del
+    // profesional son fórmulas: pedirle al modelo que haga la cuenta es
+    // exactamente lo que no se hace con datos clínicos.
+    const xlsx = await planillaCon([
+      ["Suma", { formula: "SUM(1,2)", result: 3 }],
+    ]);
+
+    const bloque = await leerDocumentoParaLLM(almacenamientoCon(xlsx), {
+      clave: "pacientes/evolucion.xlsx",
+      mimeType: MIME_XLSX,
+    });
+
+    const texto = (bloque as { texto: string }).texto;
+    expect(texto).toContain("B1: 3");
+    expect(texto).not.toContain("SUM");
+  });
+
+  it("rechaza el .xls viejo explicando qué hacer", async () => {
+    await expect(
+      leerDocumentoParaLLM(almacenamientoCon(new Uint8Array([1])), {
+        clave: "pacientes/vieja.xls",
+        mimeType: "application/vnd.ms-excel",
+      }),
+    ).rejects.toThrow(/\.xlsx/);
   });
 
   it("rechaza un Word sin texto (escaneado dentro del documento)", async () => {

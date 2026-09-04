@@ -8,13 +8,24 @@ import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoReposit
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamientoArchivos";
 import type { IInterpretadorHistoriaClinica } from "@/dominio/servicios/IInterpretadorHistoriaClinica";
+import type { IInterpretadorMediciones } from "@/dominio/servicios/IInterpretadorMediciones";
 import type { ICampoHistoriaClinicaRepositorio } from "@/dominio/repositorios/ICampoHistoriaClinicaRepositorio";
+import type { IEvolucionRepositorio } from "@/dominio/repositorios/IEvolucionRepositorio";
+import type { ICampoEvolucionRepositorio } from "@/dominio/repositorios/ICampoEvolucionRepositorio";
 import { GuardarHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/GuardarHistoriaClinica";
 import { ObtenerHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerHistoriaClinica";
 import { InterpretarHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/InterpretarHistoriaClinica";
 import { ObtenerCamposHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerCamposHistoriaClinica";
 import { GuardarCampoHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/GuardarCampoHistoriaClinica";
 import { EliminarCampoHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/EliminarCampoHistoriaClinica";
+import { RegistrarEvolucion } from "@/aplicacion/casos-de-uso/evaluacion/RegistrarEvolucion";
+import { ActualizarEvolucion } from "@/aplicacion/casos-de-uso/evaluacion/ActualizarEvolucion";
+import { EliminarEvolucion } from "@/aplicacion/casos-de-uso/evaluacion/EliminarEvolucion";
+import { ObtenerEvoluciones } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerEvoluciones";
+import { ImportarEvoluciones } from "@/aplicacion/casos-de-uso/evaluacion/ImportarEvoluciones";
+import { ObtenerCamposEvolucion } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerCamposEvolucion";
+import { GuardarCampoEvolucion } from "@/aplicacion/casos-de-uso/evaluacion/GuardarCampoEvolucion";
+import { EliminarCampoEvolucion } from "@/aplicacion/casos-de-uso/evaluacion/EliminarCampoEvolucion";
 import { RegistrarAntropometria } from "@/aplicacion/casos-de-uso/evaluacion/RegistrarAntropometria";
 import { ActualizarAntropometria } from "@/aplicacion/casos-de-uso/evaluacion/ActualizarAntropometria";
 import { EliminarAntropometria } from "@/aplicacion/casos-de-uso/evaluacion/EliminarAntropometria";
@@ -25,6 +36,8 @@ import { EliminarObjetivoComposicion } from "@/aplicacion/casos-de-uso/evaluacio
 import { GuardarPlantillaAntropometrica } from "@/aplicacion/casos-de-uso/evaluacion/GuardarPlantillaAntropometrica";
 import { EliminarPlantillaAntropometrica } from "@/aplicacion/casos-de-uso/evaluacion/EliminarPlantillaAntropometrica";
 import { ObtenerPlantillasAntropometricas } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerPlantillasAntropometricas";
+import { InterpretarMediciones } from "@/aplicacion/casos-de-uso/evaluacion/InterpretarMediciones";
+import { ImportarMediciones } from "@/aplicacion/casos-de-uso/evaluacion/ImportarMediciones";
 import { RegistrarAlertaAlimentaria } from "@/aplicacion/casos-de-uso/evaluacion/RegistrarAlertaAlimentaria";
 import { ActualizarAlertaAlimentaria } from "@/aplicacion/casos-de-uso/evaluacion/ActualizarAlertaAlimentaria";
 import { EliminarAlertaAlimentaria } from "@/aplicacion/casos-de-uso/evaluacion/EliminarAlertaAlimentaria";
@@ -35,6 +48,7 @@ import { EliminarLaboratorio } from "@/aplicacion/casos-de-uso/evaluacion/Elimin
 import { ObtenerLaboratorios } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerLaboratorios";
 import { ServicioEvaluacion } from "@/aplicacion/servicios/ServicioEvaluacion";
 import { ServicioHistoriaClinica } from "@/aplicacion/servicios/evaluacion/ServicioHistoriaClinica";
+import { ServicioEvoluciones } from "@/aplicacion/servicios/evaluacion/ServicioEvoluciones";
 import { ServicioAntropometria } from "@/aplicacion/servicios/evaluacion/ServicioAntropometria";
 import { ServicioAlertasAlimentarias } from "@/aplicacion/servicios/evaluacion/ServicioAlertasAlimentarias";
 import { ServicioLaboratorios } from "@/aplicacion/servicios/evaluacion/ServicioLaboratorios";
@@ -51,7 +65,10 @@ export function crearServicioEvaluacion(deps: {
   pacientes: IPacienteRepositorio;
   almacenamiento: IAlmacenamientoArchivos;
   interpretadorHistoriaClinica: IInterpretadorHistoriaClinica;
+  interpretadorMediciones: IInterpretadorMediciones;
   camposHistoria: ICampoHistoriaClinicaRepositorio;
+  evoluciones: IEvolucionRepositorio;
+  camposEvolucion: ICampoEvolucionRepositorio;
 }): ServicioEvaluacion {
   // Cada servicio recibe SOLO los casos de uso de su subdominio. Antes esto
   // era una sola lista de 20 argumentos posicionales, donde invertir dos del
@@ -64,10 +81,21 @@ export function crearServicioEvaluacion(deps: {
         deps.interpretadorHistoriaClinica,
         deps.archivos,
         deps.pacientes,
+        deps.camposEvolucion,
       ),
       new ObtenerCamposHistoriaClinica(deps.camposHistoria),
       new GuardarCampoHistoriaClinica(deps.camposHistoria),
       new EliminarCampoHistoriaClinica(deps.camposHistoria),
+    ),
+    new ServicioEvoluciones(
+      new RegistrarEvolucion(deps.evoluciones, deps.pacientes),
+      new ActualizarEvolucion(deps.evoluciones),
+      new EliminarEvolucion(deps.evoluciones),
+      new ObtenerEvoluciones(deps.evoluciones, deps.pacientes),
+      new ImportarEvoluciones(deps.evoluciones, deps.pacientes),
+      new ObtenerCamposEvolucion(deps.camposEvolucion),
+      new GuardarCampoEvolucion(deps.camposEvolucion),
+      new EliminarCampoEvolucion(deps.camposEvolucion),
     ),
     new ServicioAntropometria(
       new RegistrarAntropometria(deps.antropometrias, deps.pacientes),
@@ -84,6 +112,12 @@ export function crearServicioEvaluacion(deps: {
       new GuardarPlantillaAntropometrica(deps.plantillasAntropometricas),
       new EliminarPlantillaAntropometrica(deps.plantillasAntropometricas),
       new ObtenerPlantillasAntropometricas(deps.plantillasAntropometricas),
+      new InterpretarMediciones(
+        deps.interpretadorMediciones,
+        deps.archivos,
+        deps.pacientes,
+      ),
+      new ImportarMediciones(deps.antropometrias, deps.pacientes),
     ),
     new ServicioAlertasAlimentarias(
       new RegistrarAlertaAlimentaria(deps.alertas, deps.pacientes),

@@ -220,6 +220,48 @@ las filas vive en `filasMedicion.ts` y la leen las dos vistas: mientras estuvo
 adentro del componente de la tabla, agregar una medida al formulario podía
 dejar a una de las dos sin mostrarla, en silencio.
 
+## Importar una planilla de evolución
+
+El seguimiento del profesional venía en un Excel: **una columna por consulta**
+(encabezada por su fecha), una fila por medida y años de historia. Cargarlo a
+mano son 20 medidas x 10 fechas por paciente, así que la planilla se sube, una
+IA la lee y se importan TODAS las consultas de una vez
+(`ImportadorMediciones`, botón «Importar planilla» de la pestaña).
+
+Por qué la lee una IA y no un parser: **cada planilla es distinta**. Los
+rótulos son los que el profesional escribió («P TRICIPITAL», «C Brazo»,
+«Cintura Máxima»), la orientación puede estar dada vuelta, las unidades a veces
+están en una leyenda al pie y las filas de derivados conviven con las de datos.
+Un parser de posiciones fijas anda con una planilla y falla con la siguiente.
+
+Las cuatro reglas que sostienen esto:
+
+- **La planilla se serializa POSICIONALMENTE, no como texto plano**
+  (`planillaATexto` en `documentoParaLLM.ts`). Cada celda viaja con su
+  referencia (`B5: 87.3`), porque el dato de una planilla de evolución está en
+  el cruce de fila con columna; de una fórmula va el **resultado cacheado** y
+  las fechas se pasan a ISO. Un `.xls` anterior a 2007 se rechaza con un
+  mensaje que dice qué hacer, igual que el `.doc`.
+- **Los derivados NO se importan**: la sumatoria de pliegues, los kg bajados y
+  el % de grasa los recalcula el dominio en cada lectura, y una planilla vieja
+  puede traerlos con otra ecuación. Se le pide al modelo que ignore esas filas.
+  `kgGrasa` es la excepción: es un dato que el profesional carga a mano.
+- **Nada se persiste hasta que el profesional confirma.** La IA precarga la
+  tabla de revisión —fecha y peso editables, el resto desplegable— y cada
+  consulta se corrige o se descarta. Es la misma política que la lectura de una
+  ficha de alta, y por el mismo motivo: lo que sale de un modelo no entra solo
+  al historial de una persona.
+- **La importación NO es todo-o-nada** (`ImportarMediciones`). Una fecha que ya
+  tenía medición se informa como DUPLICADA y no pisa nada; una medida fuera de
+  rango, como RECHAZADA. El resto entra igual: una planilla de años no puede
+  caerse entera por una columna. Solo un fallo de infraestructura corta el
+  lote — se propaga en vez de anotarse como rechazo de dato.
+
+Las columnas sin peso se descartan al normalizar la respuesta: la entidad lo
+exige y una columna con dos pliegues sueltos no se puede registrar. Las que no
+tienen fecha sí llegan a la revisión, desmarcadas, para que el profesional la
+complete.
+
 ## Layout del dashboard
 
 El perfil Phantom crece con la cantidad de medidas cargadas y con el ISAK
@@ -244,6 +286,9 @@ debajo.
   valores del enum `MetodoGrasa` solo se agregan, nunca se renombran ni se
   reordenan. Lo mismo vale para `VariableComposicion`: el orden de un enum de
   Postgres es su orden de comparación y las metas ya cargadas lo usan.
+- Un sitio nuevo entra solo a la importación por planilla si está en
+  `CAMPOS_PLANTILLA`: de ahí salen tanto el esquema JSON que se le pide al
+  modelo como los campos editables de la revisión.
 - Una variable objetivable nueva va en `VARIABLES_COMPOSICION`,
   `RANGOS_VARIABLE`, `ORIGEN_DE_VARIABLE`, el `switch` de `valorDeVariable` y
   —si apunta a una de las cinco masas— en `MASA_DE_VARIABLE` de
