@@ -40,7 +40,7 @@ export function MensajesDePaciente({ pacienteId }: { pacienteId: string }) {
             mensajes={mensajes}
             cargando={hilo.isLoading}
             enviando={enviarA.isPending}
-            onEnviar={(cuerpo) => enviarA.mutate({ pacienteId, cuerpo })}
+            onEnviar={(cuerpo) => enviarA.mutateAsync({ pacienteId, cuerpo })}
             textoVacio="Todavía no hay mensajes con este paciente. Escribile el primero."
           />
         </Card>

@@ -52,6 +52,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/ASISTENTE-IA.md`       | El chat analítico: herramientas, contexto e historial |
 | `docs/GRABACIONES.md`        | Grabar la consulta, transcribirla y resumirla con IA  |
 | `docs/ARCHIVOS.md`           | Cómo llega al navegador un archivo del bucket         |
+| `docs/MENSAJERIA.md`         | La bandeja, el hilo y las piezas que comparten los canales |
 | `docs/WHATSAPP.md`           | Cloud API, plantillas de Meta, webhook                |
 | `docs/WEARABLES.md`          | Importación de métricas de dispositivos               |
 | `docs/MOBILE.md`             | La app Android con Capacitor                          |

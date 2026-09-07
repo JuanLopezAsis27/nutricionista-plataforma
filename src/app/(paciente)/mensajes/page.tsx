@@ -35,7 +35,7 @@ export default function PaginaMisMensajes() {
           mensajes={mensajes}
           cargando={consulta.isLoading}
           enviando={enviar.isPending}
-          onEnviar={(cuerpo) => enviar.mutate({ cuerpo })}
+          onEnviar={(cuerpo) => enviar.mutateAsync({ cuerpo })}
         />
       </Card>
     </div>
