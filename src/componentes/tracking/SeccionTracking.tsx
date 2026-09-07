@@ -20,12 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useTracking } from "@/lib/hooks/useTracking";
-import {
-  aFechaISO,
-  formatearFecha,
-  formatearNumero,
-  hoyLocalISO,
-} from "@/lib/formato";
+import { formatearFecha, formatearNumero, hoyLocalISO } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import {
   Card,
@@ -77,6 +72,61 @@ const PERIODOS = [
   { dias: 90, etiqueta: "90 días" },
 ] as const;
 
+/** De dónde salió el peso que se está mirando. */
+type FuentePeso = "CONSULTA" | "DIARIO";
+
+/**
+ * Las dos fuentes de peso, en el orden del selector. La de CONSULTA va primera
+ * y es la predeterminada: la balanza del consultorio es la misma en cada
+ * medición y la toma el profesional, así que es la serie sobre la que se
+ * decide. La de casa varía con la balanza, la hora y la ropa, y sirve para ver
+ * la tendencia entre consultas, no para comparar contra la anterior.
+ */
+const FUENTES_PESO = [
+  {
+    valor: "CONSULTA",
+    etiqueta: "En consulta",
+    detalle: "lo que se midió en el consultorio",
+  },
+  {
+    valor: "DIARIO",
+    etiqueta: "En el diario",
+    detalle: "lo que se registra en casa",
+  },
+] as const;
+
+/** La serie de peso con sus cifras, ya recortada a una fuente. */
+interface SeriePeso {
+  puntos: { fecha: Date; peso: number; fuente: FuentePeso }[];
+  inicial: number | null;
+  actual: number | null;
+  variacion: number | null;
+}
+
+/**
+ * Recorta la serie a una sola fuente y RECALCULA sus cifras.
+ *
+ * Inicial, actual y variación tienen que salir de los mismos puntos que se
+ * dibujan: una variación que arranca en la balanza de casa y termina en la del
+ * consultorio no mide el cambio del paciente, mide el cambio de balanza. Los
+ * puntos vienen del servidor ordenados por fecha, así que filtrar los mantiene
+ * ordenados.
+ */
+function filtrarPeso(peso: SeriePeso, fuente: FuentePeso): SeriePeso {
+  const puntos = peso.puntos.filter((p) => p.fuente === fuente);
+  const inicial = puntos[0]?.peso ?? null;
+  const actual = puntos[puntos.length - 1]?.peso ?? null;
+  return {
+    puntos,
+    inicial,
+    actual,
+    variacion:
+      inicial != null && actual != null
+        ? Math.round((actual - inicial) * 10) / 10
+        : null,
+  };
+}
+
 /**
  * Sección de Progreso del paciente: el seguimiento del DÍA A DÍA — peso que se
  * registra en casa, hábitos, adherencia a los axiomas y concordancia con el
@@ -93,6 +143,7 @@ const PERIODOS = [
  */
 export function SeccionTracking({ pacienteId }: { pacienteId?: string }) {
   const [dias, setDias] = useState<number>(30);
+  const [fuentePeso, setFuentePeso] = useState<FuentePeso>("CONSULTA");
   const { miTracking, dePaciente } = useTracking();
 
   const hasta = useMemo(() => new Date(hoyLocalISO()), []);
@@ -110,6 +161,13 @@ export function SeccionTracking({ pacienteId }: { pacienteId?: string }) {
   const consultaMia = miTracking({ desde, hasta }, { enabled: !esNutri });
   const consulta = esNutri ? consultaNutri : consultaMia;
   const datos = consulta.data;
+
+  // La cifra de arriba y la curva miran la MISMA fuente: dos números de peso
+  // distintos en la misma pantalla se leen como un error de la app.
+  const peso = useMemo(
+    () => (datos ? filtrarPeso(datos.peso, fuentePeso) : null),
+    [datos, fuentePeso],
+  );
 
   // Promedio de cumplimiento de los axiomas que SÍ se miden: los informativos
   // no tienen porcentaje, y contarlos como cero hundiría el número por tener
@@ -152,7 +210,7 @@ export function SeccionTracking({ pacienteId }: { pacienteId?: string }) {
         ))}
       </div>
 
-      {consulta.isLoading || !datos ? (
+      {consulta.isLoading || !datos || !peso ? (
         <div className="space-y-4">
           <Skeleton className="h-20 w-full" />
           <Skeleton className="h-52 w-full" />
@@ -174,11 +232,11 @@ export function SeccionTracking({ pacienteId }: { pacienteId?: string }) {
             <Cifra
               etiqueta="Variación de peso"
               valor={
-                datos.peso.variacion != null
-                  ? `${datos.peso.variacion > 0 ? "+" : ""}${formatearNumero(datos.peso.variacion)}`
+                peso.variacion != null
+                  ? `${peso.variacion > 0 ? "+" : ""}${formatearNumero(peso.variacion)}`
                   : "—"
               }
-              unidad={datos.peso.variacion != null ? "kg" : undefined}
+              unidad={peso.variacion != null ? "kg" : undefined}
               tinte="bg-rose-500/10"
               color="text-rose-600 dark:text-rose-400"
               icono={Scale}
@@ -208,16 +266,19 @@ export function SeccionTracking({ pacienteId }: { pacienteId?: string }) {
               hasta={hasta}
             />
           )}
-          <TarjetaPeso peso={datos.peso} />
+          <TarjetaPeso
+            peso={peso}
+            fuente={fuentePeso}
+            onCambiarFuente={setFuentePeso}
+          />
           <TarjetaAdherencia adherencia={datos.adherencia} />
           <TarjetaConcordancia concordancia={datos.concordancia} />
           {esNutri && (
             <p className="text-xs text-muted-foreground">
-              La curva de peso cruza las dos fuentes: lo que el paciente carga
-              en su diario y el peso de cada medición de consulta, cada uno con
-              su trazo. El resto de las medidas de consulta —pliegues,
-              perímetros, masas y somatotipo— está en la pestaña
-              «Antropometría».
+              La curva de peso muestra una fuente por vez: el peso de las
+              mediciones de consulta o el que el paciente carga en su diario. El
+              resto de las medidas de consulta —pliegues, perímetros, masas y
+              somatotipo— está en la pestaña «Antropometría».
             </p>
           )}
         </>
@@ -278,67 +339,61 @@ function Cifra({
 // --- Peso --------------------------------------------------------------------
 
 /**
- * La curva de peso, con las DOS fuentes separadas.
+ * La curva de peso, de UNA fuente por vez.
  *
- * El peso llega de dos lados —lo que el paciente carga en su diario y lo que
- * se mide en la consulta— y era una sola línea de puntos indistinguibles. No
- * es un detalle de estilo: la balanza de casa a la mañana y la del consultorio
- * a la tarde no miden lo mismo, así que un escalón entre dos puntos puede ser
- * el paciente o puede ser el cambio de balanza. Sin saber cuál es cuál, ese
- * escalón se lee como progreso (o retroceso) real.
+ * El peso llega de dos lados —lo que el paciente carga en su diario y lo que se
+ * mide en la consulta— y antes iban las dos juntas, cada una con su trazo. La
+ * balanza de casa a la mañana y la del consultorio a la tarde no miden lo
+ * mismo, así que un escalón entre un punto de una serie y el de la otra no es
+ * progreso: es el cambio de balanza. Superpuestas se seguían leyendo como una
+ * sola curva, así que ahora el selector deja ver una a la vez.
  *
- * Se distinguen por tres cosas a la vez y no solo por color: la de consulta va
- * punteada, con puntos más grandes, y la leyenda las nombra.
+ * Predeterminada, la de CONSULTA: es la que toma el profesional, siempre con la
+ * misma balanza y el mismo procedimiento, y es sobre la que se decide. La del
+ * diario está a un clic y sirve para la tendencia entre consultas.
+ *
+ * La serie llega ya filtrada y con sus cifras recalculadas (`filtrarPeso`); acá
+ * solo se dibuja. El color y el trazo se conservan por fuente —coral continuo
+ * el diario, azul punteado la consulta— para que cambiar de fuente se note aun
+ * sin mirar el selector.
  */
 function TarjetaPeso({
   peso,
+  fuente,
+  onCambiarFuente,
 }: {
-  peso: {
-    puntos: { fecha: Date; peso: number; fuente: "DIARIO" | "CONSULTA" }[];
-    inicial: number | null;
-    actual: number | null;
-    variacion: number | null;
-  };
+  peso: SeriePeso;
+  fuente: FuentePeso;
+  onCambiarFuente: (fuente: FuentePeso) => void;
 }) {
   const { resolvedTheme } = useTheme();
   const [montado, setMontado] = useState(false);
   useEffect(() => setMontado(true), []);
   const oscuro = resolvedTheme === "dark";
   const tema = oscuro ? TEMAS.dark : TEMAS.light;
-  const colorConsulta = oscuro
-    ? TEMAS_GRAFICO.dark.total
-    : TEMAS_GRAFICO.light.total;
+  const esConsulta = fuente === "CONSULTA";
+  const color = esConsulta
+    ? oscuro
+      ? TEMAS_GRAFICO.dark.total
+      : TEMAS_GRAFICO.light.total
+    : tema.peso;
+  const descriptor = FUENTES_PESO.find((f) => f.valor === fuente)!;
 
-  // Un día puede tener las dos fuentes (se pesó en casa Y vino a consulta):
-  // van en la MISMA fila para caer sobre la misma marca del eje X, cada una en
-  // su serie. Con una fila por punto, ese día aparecería dos veces en el eje.
-  const serie = useMemo(() => {
-    const porFecha = new Map<
-      string,
-      { fecha: string; diario: number | null; consulta: number | null }
-    >();
-    for (const punto of peso.puntos) {
-      const clave = aFechaISO(punto.fecha);
-      const fila = porFecha.get(clave) ?? {
+  // Una fila por punto, sin agrupar por fecha: dentro de una misma fuente hay
+  // como mucho un peso por día (`@@unique([pacienteId, fecha])` en las dos
+  // tablas), así que ninguna fecha se repite en el eje.
+  const serie = useMemo(
+    () =>
+      peso.puntos.map((punto) => ({
         fecha: formatearFecha(punto.fecha),
-        diario: null,
-        consulta: null,
-      };
-      if (punto.fuente === "CONSULTA") fila.consulta = punto.peso;
-      else fila.diario = punto.peso;
-      porFecha.set(clave, fila);
-    }
-    return [...porFecha.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([, fila]) => fila);
-  }, [peso.puntos]);
-
-  const hayDiario = peso.puntos.some((p) => p.fuente === "DIARIO");
-  const hayConsulta = peso.puntos.some((p) => p.fuente === "CONSULTA");
+        peso: punto.peso,
+      })),
+    [peso.puntos],
+  );
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="flex-row items-center justify-between space-y-0 border-b bg-rose-500/5 p-4">
+      <CardHeader className="space-y-3 border-b bg-rose-500/5 p-4">
         <CardTitle className="flex items-center justify-between gap-2 text-base">
           <span className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/10">
@@ -358,11 +413,39 @@ function TarjetaPeso({
             </span>
           )}
         </CardTitle>
+        {/* Mismo control segmentado que el período: son dos lecturas
+            excluyentes de lo mismo, no dos filtros que se acumulan. */}
+        <div
+          className="inline-flex rounded-lg border bg-card p-1"
+          role="group"
+          aria-label="Fuente del peso"
+        >
+          {FUENTES_PESO.map((f) => (
+            <button
+              key={f.valor}
+              type="button"
+              aria-pressed={f.valor === fuente}
+              onClick={() => onCambiarFuente(f.valor)}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                f.valor === fuente
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {f.etiqueta}
+            </button>
+          ))}
+        </div>
       </CardHeader>
       <CardContent className="py-4 pl-0 pr-3">
         {peso.puntos.length < 2 ? (
           <p className="px-6 py-8 text-center text-sm text-muted-foreground">
-            Con dos o más registros de peso vas a ver la curva de evolución.
+            {peso.puntos.length === 0
+              ? esConsulta
+                ? "No hay mediciones de consulta en este período."
+                : "No hay pesos cargados en el diario en este período."
+              : "Con dos o más registros de esta fuente vas a ver la curva de evolución."}
           </p>
         ) : !montado ? null : (
           <>
@@ -398,62 +481,41 @@ function TarjetaPeso({
                     color: tema.texto,
                     fontSize: 12,
                   }}
-                  formatter={(valor, nombre) => [
+                  formatter={(valor) => [
                     `${formatearNumero(valor as number)} kg`,
-                    nombre === "consulta" ? "En consulta" : "En tu diario",
+                    descriptor.etiqueta,
                   ]}
                 />
-                {/* `connectNulls`: cada serie une SUS puntos salteando los días
-                    en los que registró la otra. Sin eso, la de consulta —que
-                    tiene un punto cada varias semanas— quedaría en puntos
-                    sueltos, sin línea que los una. */}
                 <Line
-                  name="diario"
+                  name={fuente}
                   type="monotone"
-                  dataKey="diario"
-                  connectNulls
-                  stroke={tema.peso}
+                  dataKey="peso"
+                  stroke={color}
                   strokeWidth={2}
-                  dot={{ r: 3, fill: tema.peso, strokeWidth: 0 }}
-                  activeDot={{ r: 5 }}
-                  isAnimationActive={false}
-                />
-                <Line
-                  name="consulta"
-                  type="monotone"
-                  dataKey="consulta"
-                  connectNulls
-                  stroke={colorConsulta}
-                  strokeWidth={2}
-                  strokeDasharray="5 3"
-                  dot={{
-                    r: 5,
-                    fill: colorConsulta,
-                    stroke: tema.fondoTooltip,
-                    strokeWidth: 1.5,
-                  }}
-                  activeDot={{ r: 7 }}
+                  strokeDasharray={esConsulta ? "5 3" : undefined}
+                  dot={
+                    esConsulta
+                      ? {
+                          r: 5,
+                          fill: color,
+                          stroke: tema.fondoTooltip,
+                          strokeWidth: 1.5,
+                        }
+                      : { r: 3, fill: color, strokeWidth: 0 }
+                  }
+                  activeDot={{ r: esConsulta ? 7 : 5 }}
                   isAnimationActive={false}
                 />
               </LineChart>
             </ResponsiveContainer>
 
             <div className="flex flex-wrap gap-x-4 gap-y-1 pl-6 pt-1">
-              {hayDiario && (
-                <LeyendaFuente
-                  color={tema.peso}
-                  etiqueta="En el diario"
-                  detalle="lo que se registra en casa"
-                />
-              )}
-              {hayConsulta && (
-                <LeyendaFuente
-                  color={colorConsulta}
-                  etiqueta="En consulta"
-                  detalle="lo que se midió en el consultorio"
-                  punteada
-                />
-              )}
+              <LeyendaFuente
+                color={color}
+                etiqueta={descriptor.etiqueta}
+                detalle={descriptor.detalle}
+                punteada={esConsulta}
+              />
             </div>
           </>
         )}

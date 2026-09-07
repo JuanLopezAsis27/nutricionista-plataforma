@@ -120,26 +120,45 @@ que hace fácil perder lo escrito, así que el botón **avisa cuándo hay algo s
 guardar** y se apaga cuando no: es el único lugar del portal donde escribir no
 alcanza.
 
-## La curva de peso dice de dónde salió cada punto
+## La curva de peso muestra una fuente por vez
 
 `SeccionTracking` es la misma pieza en el portal y en la ficha del profesional,
 así que esto se ve en los dos lados.
 
 El peso llega de dos fuentes —lo que el paciente carga en su diario y el de cada
 medición de consulta— y el read-model del tracking ya las distinguía
-(`PuntoPeso.fuente`), pero el gráfico las pintaba iguales. La balanza de casa a
-la mañana y la del consultorio a la tarde no miden lo mismo: un escalón entre
-dos puntos podía ser el paciente o podía ser el cambio de balanza, y sin saber
-cuál es cuál se leía como progreso real.
+(`PuntoPeso.fuente`). Primero se las pintaba iguales; después, dos series
+superpuestas con color y trazo distintos. Ninguna de las dos alcanzó: la balanza
+de casa a la mañana y la del consultorio a la tarde no miden lo mismo, y dos
+curvas en el mismo eje se siguen leyendo como una sola nube de puntos donde un
+escalón entre una serie y la otra parece progreso y es el cambio de balanza.
 
-Ahora son dos series, y se distinguen por **tres cosas a la vez**: color
-—coral el diario, azul la consulta, los dos de la categórica ya validada en
-`paletaGraficos`—, trazo (la de consulta va punteada, con puntos más grandes) y
-una leyenda que las nombra. El color solo no lo ve todo el mundo, y acá la
-diferencia es justamente lo que hay que leer.
+Ahora hay un **selector de fuente** en la tarjeta y se ve **una sola serie**. El
+predeterminado es **En consulta**: es la que toma el profesional, siempre con la
+misma balanza y el mismo procedimiento, y es sobre la que se decide. **En el
+diario** está a un clic y sirve para la tendencia entre consultas, que es lo que
+esa fuente sí contesta.
 
-Las dos van con `connectNulls`: la de consulta tiene un punto cada varias
-semanas y, sin eso, quedaría en puntos sueltos sin línea que los una.
+El filtro vive en `SeccionTracking`, no dentro de la tarjeta, porque la cifra
+**Variación de peso** de arriba tiene que mirar la misma fuente: dos números de
+peso distintos en la misma pantalla se leen como un error de la app. `filtrarPeso`
+recorta los puntos y **recalcula** inicial, actual y variación con los que
+quedan — una variación que arranca en la balanza de casa y termina en la del
+consultorio no mide el paciente, mide la balanza.
+
+Cada fuente conserva su color y su trazo —coral continuo el diario, azul
+punteado y con puntos más grandes la consulta, los dos de la categórica ya
+validada en `paletaGraficos`—, más la leyenda al pie que nombra la que se está
+viendo. Cambiar de fuente se nota sin mirar el selector.
+
+Ya no hace falta `connectNulls` ni agrupar los puntos por fecha: dentro de una
+misma fuente hay como mucho un peso por día (`@@unique([pacienteId, fecha])` en
+`registros_diarios` y en `antropometrias`), así que la serie es una fila por
+punto y ninguna fecha se repite en el eje.
+
+El vacío se explica por fuente («No hay mediciones de consulta en este
+período»), porque con el filtro puesto un gráfico vacío no dice si falta el dato
+o si está del otro lado del selector.
 
 ## El asistente guarda los chats
 

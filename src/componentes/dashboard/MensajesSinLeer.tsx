@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { MessageSquare, ChevronRight } from "lucide-react";
 import { useMensajeria } from "@/lib/hooks/useMensajeria";
-import { formatearFechaHora } from "@/lib/formato";
+import { etiquetaRelativa, inicialesDe } from "@/componentes/mensajeria/chat";
 import { Badge } from "@/componentes/ui/badge";
 import { Button } from "@/componentes/ui/button";
 import {
@@ -75,8 +75,10 @@ export function MensajesSinLeer() {
           <ul className="divide-y">
             {pendientes.slice(0, MAXIMO).map((conversacion) => (
               <li key={conversacion.id} className="py-2.5 first:pt-0">
+                {/* Al paciente, no a la bandeja: el motivo del clic es ESA
+                    conversación, y la página la abre con ?paciente=. */}
                 <Link
-                  href="/dashboard/mensajes"
+                  href={`/dashboard/mensajes?paciente=${conversacion.pacienteId}`}
                   className="flex items-start justify-between gap-3"
                 >
                   <div className="flex min-w-0 items-center gap-2.5">
@@ -95,7 +97,7 @@ export function MensajesSinLeer() {
                   <div className="flex shrink-0 items-center gap-2">
                     {conversacion.ultimoMensajeEn && (
                       <span className="text-xs text-muted-foreground">
-                        {formatearFechaHora(conversacion.ultimoMensajeEn)}
+                        {etiquetaRelativa(conversacion.ultimoMensajeEn)}
                       </span>
                     )}
                     <Badge className="bg-rose-500 text-white hover:bg-rose-500">
@@ -116,14 +118,4 @@ export function MensajesSinLeer() {
       </CardContent>
     </Card>
   );
-}
-
-/** Las iniciales del paciente, para el círculo de la lista. */
-function inicialesDe(nombre: string): string {
-  return nombre
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((parte) => parte[0]?.toUpperCase() ?? "")
-    .join("");
 }
