@@ -1,7 +1,10 @@
 # Imagen de respaldos: pg_dump (PostgreSQL 18) + mc (cliente MinIO/S3) para
 # subir las copias a OVH Object Storage. Corre un programador que hace un
 # respaldo diario a la hora indicada.
-FROM postgres:18
+# El stage lleva nombre para que la matriz de construcción del CI pueda pasar
+# `--target` de forma uniforme en los cuatro componentes, sin un caso especial
+# con el target vacío.
+FROM postgres:18 AS respaldo
 
 # mc (MinIO Client) para copiar/espejar hacia S3 (OVH). ca-certificates para TLS.
 # gnupg cifra el volcado antes de que salga del servidor (ver respaldo.sh): el

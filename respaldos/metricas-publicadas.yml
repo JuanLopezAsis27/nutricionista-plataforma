@@ -1,0 +1,67 @@
+# =============================================================================
+# CONTRATO: métricas que este repositorio publica hacia afuera.
+#
+# `respaldo.sh` escribe estos valores en el directorio del *textfile collector*
+# de node_exporter (RUTA_METRICAS). Un Prometheus EXTERNO —el repositorio
+# `monitoreo`— las levanta y define alertas sobre ellas.
+#
+# POR QUÉ EXISTE ESTE ARCHIVO
+#
+# El consumidor vive en otro repositorio, así que un renombre acá no rompe nada
+# visible: simplemente la alerta del otro lado deja de encontrar la métrica y
+# NUNCA MÁS DISPARA. Como son las alertas de respaldos, el modo de falla es el
+# peor posible: creer que estás cubierto y no estarlo, hasta el día que haya que
+# restaurar.
+#
+# El paso "Verificar el contrato de métricas" del CI compara esta lista contra
+# lo que `respaldo.sh` emite de verdad y falla si no coinciden. Así el renombre
+# se detecta EN EL MOMENTO Y EN EL REPOSITORIO donde se causó, en vez de seis
+# meses después.
+#
+# CÓMO CAMBIAR UNA MÉTRICA (en este orden):
+#   1. Agregá el nombre nuevo acá y en respaldo.sh, emitiendo AMBOS por un
+#      tiempo.
+#   2. Actualizá las reglas en el repositorio `monitoreo` y desplegalas.
+#   3. Recién entonces sacá el nombre viejo de los dos lados.
+# Es el mismo expand/contract que se usa para las migraciones de base, y por la
+# misma razón: hay un consumidor que no se actualiza en el mismo instante.
+# =============================================================================
+
+consumidor: repositorio `monitoreo` (reglas/nutricionista-respaldos.yml)
+emisor: respaldos/respaldo.sh
+
+metricas:
+  - nombre: nutricionista_respaldo_ultimo_exito_timestamp
+    tipo: gauge
+    unidad: segundos desde epoch
+    significado: >-
+      Momento en que terminó el último respaldo COMPLETO, incluida la subida al
+      almacenamiento externo. Un volcado que quedó sólo en el disco del VPS no
+      cuenta: no protege de que el VPS se muera.
+    se_escribe: sólo cuando el respaldo termina bien
+    por_que_importa: >-
+      Es la única forma de detectar el respaldo que NO CORRIÓ. Un proceso muerto
+      no reporta su propia muerte, así que vigilar fallos no lo ve nunca; hay que
+      alertar por antigüedad de este valor.
+
+  - nombre: nutricionista_respaldo_ultimo_resultado
+    tipo: gauge
+    unidad: 1 = éxito, 0 = fallo
+    significado: Resultado del último intento, haya terminado bien o mal.
+    se_escribe: en cada corrida
+
+  - nombre: nutricionista_respaldo_duracion_segundos
+    tipo: gauge
+    unidad: segundos
+    significado: Cuánto tardó el último respaldo exitoso.
+    se_escribe: sólo cuando el respaldo termina bien
+
+  - nombre: nutricionista_respaldo_tamano_bytes
+    tipo: gauge
+    unidad: bytes
+    significado: Tamaño del último volcado subido.
+    se_escribe: sólo cuando el respaldo termina bien
+    por_que_importa: >-
+      Un volcado que de golpe pesa la mitad es señal de corrupción o de un
+      pg_dump que terminó a medias, y se nota acá mucho antes que el día que haya
+      que restaurar.
