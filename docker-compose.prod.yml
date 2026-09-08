@@ -7,14 +7,34 @@
 #   - Bucket MinIO      → DISCO SECUNDARIO (bind-mount a ${RUTA_BUCKET}, la ruta
 #     donde montaste el disco extra, p. ej. /mnt/bucket).
 #
-# El MISMO archivo sirve para PRODUCCIÓN y STAGING en el mismo VPS: se corre dos
-# veces con distinto proyecto (-p) y distinto env:
-#   Prod:     docker compose -p nutri_prod    --env-file .env.produccion -f docker-compose.prod.yml --profile respaldos up -d --build
-#   Staging:  docker compose -p nutri_staging --env-file .env.staging    -f docker-compose.prod.yml up -d --build
-# El reverse proxy es nginx en el HOST (ver docs/nginx.conf.ejemplo): cada entorno
-# publica su puerto en 127.0.0.1 (APP_PORT) y nginx proxea ahí por dominio.
+# El MISMO archivo sirve para PRODUCCIÓN y STAGING, que ahora viven en VPS
+# DISTINTOS. Lo que cambia es el proyecto (-p), el archivo de entorno y los
+# perfiles; de eso se encarga `scripts/desplegar.sh prod|staging`.
+#
+# El reverse proxy es nginx en el HOST (ver docs/nginx.conf.ejemplo): cada
+# entorno publica su puerto en 127.0.0.1 (APP_PORT) y nginx proxea ahí.
 #
 # Arranque: postgres(sano) → migrate(one-shot) + crear_bucket(one-shot) → app/worker.
+#
+# --- IMÁGENES: ya NO se construyen en el servidor -----------------------------
+#
+# `app`, `worker`, `migrate` y `respaldo` se compilan en el CI y se publican en
+# GHCR etiquetadas con el SHA del commit. El servidor sólo hace `pull`.
+#
+# Por qué cambió:
+#   - Compilar en producción hacía que `npm ci` + `next build` compitieran por
+#     CPU y RAM con el Postgres que atiende a los pacientes.
+#   - Sin etiquetas inmutables no había ROLLBACK: la imagen anterior quedaba sin
+#     referencia y volver atrás exigía recompilar desde cero en un servidor ya
+#     degradado, que es el peor momento posible.
+#
+# Con esto, revertir es apuntar a otra etiqueta:
+#   IMAGE_TAG=<sha-anterior> ./scripts/desplegar.sh prod
+#   (o directamente `./scripts/revertir.sh prod <sha-anterior>`)
+#
+# Variables:
+#   REGISTRO   raíz de las imágenes (por defecto, el GHCR de este repositorio)
+#   IMAGE_TAG  etiqueta a desplegar; el CI pasa el SHA del commit
 # =============================================================================
 
 # Entorno compartido por la app y el worker (misma imagen lógica, distinto rol).
@@ -68,10 +88,36 @@ x-app-env: &app-env
   NUTRICION_DESHABILITADA: ${NUTRICION_DESHABILITADA:-false}
   OFF_BASE_URL: ${OFF_BASE_URL:-https://es.openfoodfacts.org}
   TZ: ${TZ:-America/Argentina/Buenos_Aires}
+  # Destino de los errores no esperados (Slack/Discord/colector propio). El
+  # código ya lo soportaba (src/infraestructura/monitoreo/configMonitoreo.ts)
+  # pero la variable nunca se pasaba al contenedor: en producción el monitoreo
+  # quedaba reducido a console.error sobre un log que nadie lee. Si se deja
+  # vacía, el comportamiento es el de antes (sólo consola).
+  MONITOR_WEBHOOK_URL: ${MONITOR_WEBHOOK_URL:-}
+
+# Rotación de logs, compartida por todos los servicios.
+#
+# El driver por defecto de Docker es json-file SIN TOPE: un log ruidoso o un
+# bucle de errores crece hasta llenar el disco, y un disco lleno deja a Postgres
+# sin poder escribir el WAL. Es el único modo de falla de este stack que causa
+# PÉRDIDA DE DATOS en vez de una caída recuperable con un reinicio.
+#
+# 10 MB × 3 archivos = 30 MB como máximo por contenedor.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 
 services:
   # --- PostgreSQL (disco principal) ---
   postgres:
+    # `postgres:18` fija la MAYOR y deja flotar la menor (18.1, 18.2, …), a
+    # diferencia de MinIO, que sí va clavado abajo. Es deliberado: en Postgres
+    # las versiones menores son sólo correcciones y parches de seguridad, con
+    # compatibilidad garantizada, así que recibirlos automáticamente vale más
+    # que la reproducibilidad exacta. Lo que rompería —un salto de mayor, que
+    # exige migrar el directorio de datos— está fijado.
     image: postgres:18
     restart: unless-stopped
     environment:
@@ -86,11 +132,26 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *logging
+    # Deliberadamente SIN mem_limit.
+    #
+    # El objetivo de los límites que llevan los demás servicios es proteger a
+    # ESTE. Cuando el kernel se queda sin memoria, el OOM killer elige a la
+    # víctima por consumo, y Postgres suele ser el proceso más grande de la
+    # máquina: sin límites en el resto, una fuga en la app terminaba matando la
+    # base. Acotando a los otros, el proceso que sobrevive es el que guarda los
+    # datos. Limitar a Postgres sería exactamente el error opuesto.
     networks: [interna]
 
   # --- Bucket MinIO (disco SECUNDARIO vía bind-mount) ---
   minio:
-    image: minio/minio
+    # Versión FIJA, no `latest`.
+    #
+    # Sin tag, cada `up -d --build` podía traer una versión distinta de MinIO
+    # sin que nadie lo decidiera. Un cambio incompatible rompe el bucket en un
+    # despliegue que "no tocó nada", que es el peor escenario para diagnosticar.
+    # Actualizar es cambiar esta línea a conciencia, no un efecto secundario.
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
@@ -104,11 +165,13 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *logging
+    mem_limit: 512m
     networks: [interna]
 
   # --- One-shot: crea el bucket si no existe ---
   crear_bucket:
-    image: minio/mc
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
     environment:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}
@@ -123,28 +186,38 @@ services:
       echo 'bucket listo: '$$S3_BUCKET
       "
     restart: "no"
+    logging: *logging
+    mem_limit: 256m
     networks: [interna]
 
   # --- One-shot: aplica migraciones de Prisma y termina ---
   migrate:
+    # La imagen viene del REGISTRY, etiquetada con el SHA del commit. Ya no se
+    # construye en el servidor (ver el encabezado del archivo).
+    image: ${REGISTRO:-ghcr.io/juanlopezasis27/nutricionista-plataforma}/migrate:${IMAGE_TAG:-latest}
+    # `build` se conserva SÓLO como salida de emergencia: permite levantar el
+    # stack sin registry (primer arranque, GHCR caído, prueba local) con
+    # `CONSTRUIR_LOCAL=1 ./scripts/desplegar.sh`. El despliegue normal nunca
+    # pasa `--build`.
     build:
       context: .
       target: migrator
-    image: nutricionista-app-migrate
     environment:
       DATABASE_URL: ${DATABASE_URL}
     depends_on:
       postgres:
         condition: service_healthy
     restart: "no"
+    logging: *logging
+    mem_limit: 512m
     networks: [interna]
 
   # --- Aplicación Next.js (servidor autónomo, detrás de nginx del host) ---
   app:
+    image: ${REGISTRO:-ghcr.io/juanlopezasis27/nutricionista-plataforma}/app:${IMAGE_TAG:-latest}
     build:
       context: .
       target: runner
-    image: nutricionista-app
     restart: unless-stopped
     environment: *app-env
     depends_on:
@@ -176,14 +249,21 @@ services:
       retries: 3
       # El arranque de Next tarda: durante este período los fallos no cuentan.
       start_period: 40s
+    logging: *logging
+    # Punto de partida para un VPS de 4 GB. Next.js autónomo suele residir en
+    # 200-400 MB; 1 GB deja margen para picos (build de PDFs, importación de
+    # Excel) sin permitir que una fuga se coma la máquina. Si el contenedor
+    # empieza a morir por OOM, la respuesta correcta es investigar la fuga, no
+    # subir el número a ciegas: `docker stats` muestra el consumo real.
+    mem_limit: 1g
     networks: [interna]
 
   # --- Worker de trabajos en segundo plano (pg-boss) ---
   worker:
+    image: ${REGISTRO:-ghcr.io/juanlopezasis27/nutricionista-plataforma}/worker:${IMAGE_TAG:-latest}
     build:
       context: .
       target: worker
-    image: nutricionista-app-worker
     restart: unless-stopped
     environment: *app-env
     depends_on:
@@ -199,13 +279,15 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
+    logging: *logging
+    mem_limit: 512m
     networks: [interna]
 
   # --- Respaldos offsite a OVH Object Storage (solo con --profile respaldos) ---
   respaldo:
+    image: ${REGISTRO:-ghcr.io/juanlopezasis27/nutricionista-plataforma}/respaldo:${IMAGE_TAG:-latest}
     build:
       context: ./respaldos
-    image: nutricionista-respaldo
     restart: unless-stopped
     profiles: ["respaldos"]
     environment:
@@ -235,9 +317,94 @@ services:
       # Llavero GPG del host, solo lectura: contiene únicamente la clave PÚBLICA
       # con la que se cifra. Si no usás cifrado, esta línea es inofensiva.
       - ${RUTA_LLAVES_GPG:-/etc/nutricionista/llaves}:/llaves:ro
+      # Directorio del *textfile collector* de node_exporter, en el HOST.
+      #
+      # Es el interruptor de hombre muerto de los respaldos: respaldo.sh escribe
+      # acá el timestamp del último éxito y Prometheus alerta por ANTIGÜEDAD del
+      # dato. Detecta el caso que hoy es invisible —el respaldo que directamente
+      # no corrió—, que un chequeo de "¿falló?" nunca ve, porque un proceso
+      # muerto no reporta fallos.
+      #
+      # Si todavía no instalaste node_exporter, escribir el archivo es inocuo.
+      - ${RUTA_METRICAS:-/var/lib/node_exporter/textfile_collector}:/metricas
     depends_on:
       postgres:
         condition: service_healthy
+    logging: *logging
+    mem_limit: 512m
+    networks: [interna]
+
+  # --- Servicio de ML (perfil `ml`, opcional) --------------------------------
+  #
+  # Corre en la RED INTERNA y sin publicar puertos: sólo lo alcanza la app por
+  # http://ml:8000.
+  #
+  # Esto reemplaza el plan original de "ML en la nube on-demand", que obligaba a
+  # exponer la base fuera del VPS —abrir el 5432, montar una réplica en otro host
+  # o mantener un túnel— para un cómputo que tarda microsegundos. Se pagaba
+  # complejidad de red por un problema de cómputo que no existe.
+  #
+  # ESTÁ DETRÁS DE UN PERFIL Y NO ARRANCA SOLO. Antes de habilitarlo:
+  #
+  #   1. Verificá la RAM libre del VPS (`free -m`). Este servicio pide ~300-500 MB
+  #      residentes. Si el servidor tiene 2 GB con Postgres + Next + MinIO +
+  #      worker, NO entra: agrandá primero.
+  #   2. Creá el rol de solo lectura: scripts/crear-rol-ml.sql
+  #   3. Completá DATABASE_URL_RO y ML_SERVICE_TOKEN en el .env.
+  #   4. Agregá `--profile ml` a los perfiles de tu entorno en desplegar.sh.
+  #
+  # Y poné ML_SERVICE_URL=http://ml:8000 en el .env para que la app lo consuma;
+  # si queda vacía, la app usa los stubs y funciona igual.
+  ml:
+    image: ${REGISTRO:-ghcr.io/juanlopezasis27/nutricionista-plataforma}/ml:${IMAGE_TAG:-latest}
+    build:
+      context: ./ml-servicio
+    restart: unless-stopped
+    profiles: ["ml"]
+    environment:
+      # Rol de SOLO LECTURA, no el usuario de la app. La garantía no depende de
+      # que el cliente se porte bien: el rol tiene default_transaction_read_only
+      # y statement_timeout definidos del lado del servidor.
+      DATABASE_URL_RO: ${DATABASE_URL_RO:-}
+      ML_SERVICE_TOKEN: ${ML_SERVICE_TOKEN:-}
+      TZ: ${TZ:-America/Argentina/Buenos_Aires}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *logging
+    mem_limit: 512m
+    networks: [interna]
+
+  # --- Sink de correo para STAGING (perfil correo-prueba) ---------------------
+  #
+  # NO es una comodidad de desarrollo: es un control de seguridad.
+  #
+  # El worker de staging corre los MISMOS crons que el de producción, incluido
+  # el recordatorio diario de turnos por email (docs/DESPLIEGUE.md §5). Cuando
+  # se restaure un dump de producción para el simulacro de recuperación, ese
+  # entorno va a contener direcciones de pacientes reales; con un SMTP que
+  # entregue de verdad, el cron de la mañana siguiente les escribe desde el
+  # servidor de pruebas. Mailpit acepta todo y no entrega nada.
+  #
+  # Se descartó un sink externo (Mailtrap y similares): con datos clínicos
+  # restaurados, mandaría nombres, emails y teléfonos de pacientes a un tercero.
+  # Mailpit no saca nada de la máquina.
+  #
+  # `.env.staging` ya apunta acá (SMTP_HOST=mailpit), pero el servicio no
+  # existía en este archivo —sólo en docker-compose.yml, el de desarrollo—, así
+  # que en un VPS de staging ese host no resolvía y TODOS los envíos fallaban en
+  # silencio.
+  #
+  # La UI se publica sólo en localhost: para verla, túnel SSH
+  # (`ssh -L 8025:localhost:8025 staging`).
+  mailpit:
+    image: axllent/mailpit:v1.21
+    restart: unless-stopped
+    profiles: ["correo-prueba"]
+    ports:
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+    logging: *logging
+    mem_limit: 256m
     networks: [interna]
 
 volumes:
