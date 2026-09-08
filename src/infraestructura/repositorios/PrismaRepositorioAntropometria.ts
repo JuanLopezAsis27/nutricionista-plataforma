@@ -4,6 +4,7 @@ import type {
 } from "@prisma/client";
 import type { IAntropometriaRepositorio } from "@/dominio/repositorios/IAntropometriaRepositorio";
 import { Antropometria } from "@/dominio/entidades/Antropometria";
+import { esMetodoGrasaVigente } from "@/dominio/servicios/grasaPorPliegues";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
 import { soloFecha } from "./base/fechas";
@@ -90,7 +91,12 @@ export function mapearAntropometria(fila: AntropometriaFila): Antropometria {
     tallaSentadoCm: aNumero(fila.tallaSentadoCm),
     nivelActividad: fila.nivelActividad,
     protocolo: fila.protocolo,
-    metodoGrasa: fila.metodoGrasa,
+    // `esMetodoGrasaVigente` degrada a null un método retirado de la
+    // aplicación (Jackson & Pollock, Parrillo) que una fila histórica pueda
+    // tener guardado: el enum de Postgres no se tocó a propósito.
+    metodoGrasa: esMetodoGrasaVigente(fila.metodoGrasa)
+      ? fila.metodoGrasa
+      : null,
     diamBiacromial: aNumero(fila.diamBiacromial),
     diamToraxTransverso: aNumero(fila.diamToraxTransverso),
     diamToraxAnteroposterior: aNumero(fila.diamToraxAnteroposterior),

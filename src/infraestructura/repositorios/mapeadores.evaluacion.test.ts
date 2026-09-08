@@ -68,7 +68,7 @@ describe("mapearAntropometria", () => {
     fecha: new Date("2026-03-01T00:00:00.000Z"),
     nivelActividad: "MODERADO",
     protocolo: "ISAK_5",
-    metodoGrasa: "YUHASZ",
+    metodoGrasa: "YUHASZ_CARTER",
     observaciones: "sin novedades",
     creadoEn: new Date("2026-03-01T10:30:00.000Z"),
     actualizadoEn: new Date("2026-03-02T11:00:00.000Z"),
@@ -98,8 +98,19 @@ describe("mapearAntropometria", () => {
     expect(datos.creadoEn).toEqual(new Date("2026-03-01T10:30:00.000Z"));
     expect(datos.nivelActividad).toBe("MODERADO");
     expect(datos.protocolo).toBe("ISAK_5");
-    expect(datos.metodoGrasa).toBe("YUHASZ");
+    expect(datos.metodoGrasa).toBe("YUHASZ_CARTER");
     expect(datos.observaciones).toBe("sin novedades");
+  });
+
+  it("degrada a null un método retirado de la aplicación (Jackson & Pollock, Parrillo)", () => {
+    // El enum de Postgres los conserva a propósito (una serie histórica nunca
+    // cambia de ecuación), pero la app ya no los conoce como vigentes.
+    const conMetodoRetirado = {
+      ...fila,
+      metodoGrasa: "PARRILLO",
+    } as unknown as Parameters<typeof mapearAntropometria>[0];
+    const datos = mapearAntropometria(conMetodoRetirado).aPrimitivos();
+    expect(datos.metodoGrasa).toBeNull();
   });
 
   it("convierte los Decimal de Prisma a number, no a string", () => {
@@ -243,7 +254,7 @@ describe("mapearObjetivoComposicion", () => {
     nutricionistaId: "nutri-1",
     pacienteId: "pac-1",
     variable: "MASA_GRASA",
-    metodoGrasa: "YUHASZ",
+    metodoGrasa: "YUHASZ_CARTER",
     valorObjetivo: decimal(18.5),
     fechaObjetivo: new Date("2026-06-01T00:00:00.000Z"),
     estado: "ACTIVO",

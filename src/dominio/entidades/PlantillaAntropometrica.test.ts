@@ -100,26 +100,24 @@ describe("alcanceDe", () => {
 
     expect(alcance.cincoMasas).toBe(true);
     expect(alcance.somatotipo).toBe(true);
-    expect(soloAmbos(alcance)).toHaveLength(7);
+    expect(soloAmbos(alcance)).toHaveLength(6);
   });
 
-  it("ni el ISAK completo alcanza para Jackson & Pollock de 7 ni para Parrillo", () => {
-    // Piden pectoral, axilar medio y lumbar, que NO son sitios del perfil
-    // ISAK. Es el motivo por el que existe la plantilla que los suma.
-    const isak = PLANTILLAS_BASE.find((p) => p.clave === "ISAK_COMPLETO")!;
-    const conISAK = alcanceDe(isak.campos).metodosGrasa.map((m) => m.metodo);
-    expect(conISAK).toContain("JACKSON_POLLOCK_4");
-    expect(conISAK).not.toContain("JACKSON_POLLOCK_7");
-    expect(conISAK).not.toContain("PARRILLO");
-
-    const completa = PLANTILLAS_BASE.find(
-      (p) => p.clave === "JACKSON_POLLOCK_PARRILLO",
-    )!;
-    const conTodos = alcanceDe(completa.campos).metodosGrasa.map(
+  it("Jackson & Pollock y Parrillo ya no son ecuaciones que ninguna plantilla habilite", () => {
+    // Se retiraron de la aplicación: ninguna combinación de campos, ni
+    // siquiera con pectoral/axilar medio/lumbar, las vuelve a habilitar.
+    const conTodo = alcanceDe(CAMPOS_PLANTILLA).metodosGrasa.map(
       (m) => m.metodo,
     );
-    expect(conTodos).toContain("JACKSON_POLLOCK_7");
-    expect(conTodos).toContain("PARRILLO");
+    expect(conTodo).not.toContain("JACKSON_POLLOCK_7");
+    expect(conTodo).not.toContain("JACKSON_POLLOCK_4");
+    expect(conTodo).not.toContain("PARRILLO");
+  });
+
+  it("pectoral, axilar medio y lumbar siguen siendo campos elegibles para una plantilla propia", () => {
+    expect(CAMPOS_PLANTILLA).toContain("plieguePectoral");
+    expect(CAMPOS_PLANTILLA).toContain("pliegueAxilarMedio");
+    expect(CAMPOS_PLANTILLA).toContain("pliegueLumbar");
   });
 });
 
