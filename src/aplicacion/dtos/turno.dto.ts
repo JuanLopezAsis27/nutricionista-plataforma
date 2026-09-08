@@ -9,6 +9,13 @@ const horaHHmm = z
 
 export const agendarTurnoDto = z.object({
   pacienteId: z.string().min(1),
+  /**
+   * Dónde se atiende. Opcional en la entrada, obligatorio en la base: si la
+   * pantalla no eligió sede, `AgendarTurno` usa la principal. Así el
+   * formulario de un consultorio con una sola sede no tiene que mostrar un
+   * selector de una sola opción.
+   */
+  establecimientoId: z.string().min(1).optional(),
   fecha: z.coerce.date(),
   hora: horaHHmm,
   duracionMinutos: z.number().int().positive().max(480).default(30),
@@ -30,6 +37,8 @@ export const reprogramarTurnoDto = z.object({
   fecha: z.coerce.date(),
   hora: horaHHmm,
   duracionMinutos: z.number().int().positive().max(480).default(30),
+  /** Sin valor, el turno se queda en la sede que ya tenía. */
+  establecimientoId: z.string().min(1).optional(),
 });
 export type ReprogramarTurnoDto = z.infer<typeof reprogramarTurnoDto>;
 
@@ -37,6 +46,8 @@ export const listarTurnosDto = z.object({
   fecha: z.coerce.date().optional(),
   estado: z.enum(ESTADOS_TURNO).optional(),
   pacienteId: z.string().optional(),
+  /** Recorta la agenda a una sede. Sin valor, se ven todas. */
+  establecimientoId: z.string().optional(),
 });
 export type ListarTurnosDto = z.infer<typeof listarTurnosDto>;
 
@@ -53,6 +64,7 @@ export type RegistrarCobroTurnoDto = z.infer<typeof registrarCobroTurnoDto>;
 export const turnoSalidaDto = z.object({
   id: z.string(),
   pacienteId: z.string(),
+  establecimientoId: z.string(),
   fecha: z.date(),
   hora: z.string(),
   duracionMinutos: z.number(),

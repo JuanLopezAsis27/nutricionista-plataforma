@@ -6,6 +6,12 @@ export interface FiltroTurnos {
   fecha?: Date;
   estado?: EstadoTurno;
   pacienteId?: string;
+  /**
+   * Filtra por sede. Es lo que necesita el selector de "dónde estoy
+   * atendiendo": la agenda se recorta al lugar, sin esconder al paciente, que
+   * sigue siendo del consultorio entero.
+   */
+  establecimientoId?: string;
 }
 
 /**
