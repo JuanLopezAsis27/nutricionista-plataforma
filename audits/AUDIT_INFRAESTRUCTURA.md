@@ -412,6 +412,16 @@ verificado ejecutándolo, no sólo escribiéndolo.
 | G-28 Monitoreo externo | ⬜ | **no se puede hacer desde el repo**: 10 min en UptimeRobot |
 | ML-03 Batch nocturno | ⬜ | |
 
+**Lo que aparecio al encender el CI.** Los tres primeros intentos de corrida sobre codigo real destaparon defectos latentes que nadie habia visto porque el workflow no se ejecutaba (G-01). Vale la pena listarlos, porque son la medida concreta de lo que costaba tener el CI apagado:
+
+| # | Defecto | Por que estaba invisible |
+| - | ------- | ------------------------- |
+| 1 | `npm ci` imposible por desajuste de npm 10/11 (G-31) | La imagen de produccion no se podia construir |
+| 2 | `nodemailer` vulnerable en el arbol de produccion (G-33) | El gate de `npm audit` existia pero no corria |
+| 3 | `CifradorTokens.test.ts` dependia de que `TOKENS_SECRET` NO estuviera definida | Pasaba en local sólo porque vitest no carga `.env`; el CI sí define esa variable, así que el constructor encontraba un secreto válido y no lanzaba. El test comprobaba el entorno, no el código. |
+
+Ninguno era un problema del pipeline: los tres eran defectos reales del proyecto que el pipeline hizo visibles la primera vez que se ejecutó.
+
 **Decisión registrada — Node 22.** No se sube a 24 pese a que el entorno local
 lo use: Node 22 es lo desplegado y probado, tiene soporte hasta abril de 2027, y
 perseguir la versión local no arregla la causa (con Node 26 el desajuste
