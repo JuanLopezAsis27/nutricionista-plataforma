@@ -322,9 +322,28 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # El nombre del repositorio puede tener mayúsculas; las rutas de imagen no.
-      - name: Calcular nombre de la imagen
+      # El nombre del repositorio puede tener mayúsculas y las rutas de imagen no,
+      # de ahí el `tr`.
+      #
+      # Las etiquetas se arman acá, y no en el paso de build, por el alias de
+      # rama: `github.ref_name` sólo es un nombre de rama en los eventos `push`.
+      # En un `pull_request` vale `<numero>/merge` (de `refs/pull/N/merge`), y la
+      # barra NO es válida en una etiqueta de Docker — buildx aborta con
+      # "invalid reference format". Por eso el alias se agrega únicamente en push,
+      # que además es el único caso donde sirve: en un PR no se publica nada.
+      - name: Calcular nombre y etiquetas
         id: nombre
-        run: echo "ruta=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')/${{ matrix.componente }}" >> "$GITHUB_OUTPUT"
+        run: |
+          ruta="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')/${{ matrix.componente }}"
+          echo "ruta=$ruta" >> "$GITHUB_OUTPUT"
+          {
+            echo "etiquetas<<FIN"
+            echo "$ruta:${{ github.sha }}"
+            if [ "${{ github.event_name }}" = "push" ]; then
+              echo "$ruta:${{ github.ref_name }}"
+            fi
+            echo "FIN"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Construir y publicar (${{ matrix.componente }})
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
@@ -332,9 +351,7 @@ jobs:
           context: ${{ matrix.contexto }}
           target: ${{ matrix.target }}
           push: ${{ github.event_name == 'push' }}
-          tags: |
-            ${{ steps.nombre.outputs.ruta }}:${{ github.sha }}
-            ${{ steps.nombre.outputs.ruta }}:${{ github.ref_name }}
+          tags: ${{ steps.nombre.outputs.etiquetas }}
           # Caché entre corridas: sin esto, cada build reinstala node_modules
           # desde cero y el pipeline se vuelve demasiado lento para usarlo.
           cache-from: type=gha,scope=${{ matrix.componente }}
