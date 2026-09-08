@@ -51,6 +51,37 @@ export class AlimentoPropio {
     return new AlimentoPropio(props);
   }
 
+  /** Copia con los cambios aplicados y validados (id intacto). */
+  actualizar(cambios: Partial<DatosNuevoAlimentoPropio>): AlimentoPropio {
+    const fusionar = <T>(nuevo: T | undefined, actual: T): T =>
+      nuevo !== undefined ? nuevo : actual;
+
+    return AlimentoPropio.crear(
+      {
+        nombre: cambios.nombre ?? this.props.nombre,
+        marca: fusionar(cambios.marca, this.props.marca),
+        caloriasPor100: fusionar(
+          cambios.caloriasPor100,
+          this.props.caloriasPor100,
+        ),
+        proteinasPor100: fusionar(
+          cambios.proteinasPor100,
+          this.props.proteinasPor100,
+        ),
+        carbohidratosPor100: fusionar(
+          cambios.carbohidratosPor100,
+          this.props.carbohidratosPor100,
+        ),
+        grasasPor100: fusionar(cambios.grasasPor100, this.props.grasasPor100),
+      },
+      this.props.id,
+    );
+  }
+
+  get id(): string {
+    return this.props.id;
+  }
+
   /** Nombre en minúsculas/trim, para la búsqueda case-insensitive. */
   get nombreNormalizado(): string {
     return this.props.nombre.trim().toLowerCase();

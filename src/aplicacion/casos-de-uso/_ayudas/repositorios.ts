@@ -48,6 +48,7 @@ import { PlantillaAntropometrica } from "@/dominio/entidades/PlantillaAntropomet
 import { RecordatorioWhatsapp } from "@/dominio/entidades/RecordatorioWhatsapp";
 import type { IAxiomaRepositorio } from "@/dominio/repositorios/IAxiomaRepositorio";
 import type { IAlimentoPropioRepositorio } from "@/dominio/repositorios/IAlimentoPropioRepositorio";
+import type { AlimentoPropio } from "@/dominio/entidades/AlimentoPropio";
 import type { IRetroalimentacionInsightRepositorio } from "@/dominio/repositorios/IRetroalimentacionInsightRepositorio";
 import type { ICuentaConectadaRepositorio } from "@/dominio/repositorios/ICuentaConectadaRepositorio";
 import { Paciente } from "@/dominio/entidades/Paciente";
@@ -755,6 +756,11 @@ export function mockAlimentoPropioRepositorio(
 ): IAlimentoPropioRepositorio {
   return {
     reemplazarTodos: vi.fn(async (a) => a.length),
+    crear: vi.fn(async (a: AlimentoPropio) => a),
+    actualizar: vi.fn(async (a: AlimentoPropio) => a),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    listar: vi.fn(async () => []),
     buscar: vi.fn(async () => []),
     contar: vi.fn(async () => 0),
     vaciar: vi.fn(async () => {}),

@@ -94,6 +94,10 @@ import {
   AxiomaNutricional,
   type DatosNuevoAxioma,
 } from "@/dominio/entidades/AxiomaNutricional";
+import {
+  AlimentoPropio,
+  type DatosNuevoAlimentoPropio,
+} from "@/dominio/entidades/AlimentoPropio";
 import { CuentaConectada } from "@/dominio/entidades/CuentaConectada";
 
 /**
@@ -671,6 +675,23 @@ export function axiomaEjemplo(
     },
     id,
     new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function alimentoPropioEjemplo(
+  cambios: Partial<DatosNuevoAlimentoPropio> = {},
+  id = "ali-1",
+): AlimentoPropio {
+  return AlimentoPropio.crear(
+    {
+      nombre: "Arroz",
+      caloriasPor100: 130,
+      proteinasPor100: 2.7,
+      carbohidratosPor100: 28,
+      grasasPor100: 0.3,
+      ...cambios,
+    },
+    id,
   );
 }
 

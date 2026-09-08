@@ -1,20 +1,48 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
 /**
- * Hook de los alimentos propios (Excel de macros). La importación va por el
- * route handler multipart /api/alimentos/importar; el estado y el vaciado por
- * tRPC. Tras importar/vaciar, invalida el estado para refrescar la UI.
+ * Hook de los alimentos propios (Excel de macros). La importación masiva va
+ * por el route handler multipart /api/alimentos/importar; la gestión manual
+ * (listado, alta, edición y baja de a uno) y el vaciado van por tRPC.
  */
 export function useAlimentosPropios() {
-  const utils = trpc.useUtils();
+  const invalidar = useInvalidar();
   const [importando, setImportando] = useState(false);
 
   const estado = trpc.nutricion.estadoAlimentosPropios.useQuery;
+  const listar = trpc.nutricion.listarAlimentosPropios.useQuery;
+
   const vaciar = trpc.nutricion.vaciarAlimentosPropios.useMutation({
-    onSuccess: () => utils.nutricion.estadoAlimentosPropios.invalidate(),
+    onSuccess: () => invalidar(),
+  });
+
+  const crear = trpc.nutricion.crearAlimentoPropio.useMutation({
+    onSuccess: () => {
+      toast.success("Alimento agregado.");
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const actualizar = trpc.nutricion.actualizarAlimentoPropio.useMutation({
+    onSuccess: () => {
+      toast.success("Alimento actualizado.");
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const eliminar = trpc.nutricion.eliminarAlimentoPropio.useMutation({
+    onSuccess: () => {
+      toast.success("Alimento eliminado.");
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
   });
 
   async function importar(archivo: File): Promise<number> {
@@ -33,12 +61,21 @@ export function useAlimentosPropios() {
           "error" in cuerpo ? cuerpo.error : "No se pudo importar la planilla.",
         );
       }
-      await utils.nutricion.estadoAlimentosPropios.invalidate();
+      invalidar();
       return cuerpo.importados;
     } finally {
       setImportando(false);
     }
   }
 
-  return { estado, importar, importando, vaciar };
+  return {
+    estado,
+    listar,
+    importar,
+    importando,
+    vaciar,
+    crear,
+    actualizar,
+    eliminar,
+  };
 }

@@ -58,6 +58,10 @@ import { ServicioAlimentosPropios } from "@/aplicacion/servicios/ServicioAliment
 import { ImportarAlimentos } from "@/aplicacion/casos-de-uso/nutricion/ImportarAlimentos";
 import { ObtenerEstadoAlimentosPropios } from "@/aplicacion/casos-de-uso/nutricion/ObtenerEstadoAlimentosPropios";
 import { VaciarAlimentosPropios } from "@/aplicacion/casos-de-uso/nutricion/VaciarAlimentosPropios";
+import { CrearAlimentoPropio } from "@/aplicacion/casos-de-uso/nutricion/CrearAlimentoPropio";
+import { ActualizarAlimentoPropio } from "@/aplicacion/casos-de-uso/nutricion/ActualizarAlimentoPropio";
+import { EliminarAlimentoPropio } from "@/aplicacion/casos-de-uso/nutricion/EliminarAlimentoPropio";
+import { ListarAlimentosPropios } from "@/aplicacion/casos-de-uso/nutricion/ListarAlimentosPropios";
 
 // --- Reexportes del núcleo que consume la presentación --------------------------
 export { busEventos, proveedorGoogle, directorioWhatsapp } from "./nucleo";
@@ -239,6 +243,10 @@ export const servicioAlimentosPropios = perezoso(
       new ImportarAlimentos(nucleo.repositorioAlimentoPropio()),
       new ObtenerEstadoAlimentosPropios(nucleo.repositorioAlimentoPropio()),
       new VaciarAlimentosPropios(nucleo.repositorioAlimentoPropio()),
+      new CrearAlimentoPropio(nucleo.repositorioAlimentoPropio()),
+      new ActualizarAlimentoPropio(nucleo.repositorioAlimentoPropio()),
+      new EliminarAlimentoPropio(nucleo.repositorioAlimentoPropio()),
+      new ListarAlimentosPropios(nucleo.repositorioAlimentoPropio()),
     ),
 );
 
