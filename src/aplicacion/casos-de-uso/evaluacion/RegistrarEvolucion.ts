@@ -1,11 +1,17 @@
 import type { IEvolucionRepositorio } from "@/dominio/repositorios/IEvolucionRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
+import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
 import {
   Evolucion,
   type DatosNuevaEvolucion,
 } from "@/dominio/entidades/Evolucion";
 import { ErrorPacienteNoEncontrado } from "@/dominio/errores/ErrorPacienteNoEncontrado";
 import { ErrorEvolucionDuplicada } from "@/dominio/errores/ErrorEvolucionDuplicada";
+
+/** Datos de entrada: la evolución + ids de fotos ya subidas al bucket. */
+export interface DatosRegistrarEvolucion extends DatosNuevaEvolucion {
+  fotoIds?: string[];
+}
 
 /**
  * Caso de uso: registrar la evolución de control de una consulta.
@@ -18,9 +24,10 @@ export class RegistrarEvolucion {
   constructor(
     private readonly evoluciones: IEvolucionRepositorio,
     private readonly pacientes: IPacienteRepositorio,
+    private readonly archivos: IArchivoRepositorio,
   ) {}
 
-  async ejecutar(datos: DatosNuevaEvolucion): Promise<Evolucion> {
+  async ejecutar(datos: DatosRegistrarEvolucion): Promise<Evolucion> {
     const paciente = await this.pacientes.obtenerPorId(datos.pacienteId);
     if (!paciente) {
       throw new ErrorPacienteNoEncontrado(datos.pacienteId);
@@ -34,6 +41,14 @@ export class RegistrarEvolucion {
       throw new ErrorEvolucionDuplicada(evolucion.fecha);
     }
 
-    return this.evoluciones.crear(evolucion);
+    const creada = await this.evoluciones.crear(evolucion);
+
+    // Las fotos se suben antes (módulo Archivos) y acá solo se vinculan a la
+    // evolución, igual que las fotos de una receta.
+    for (const fotoId of datos.fotoIds ?? []) {
+      await this.archivos.vincularDueno(fotoId, { evolucionId: creada.id });
+    }
+
+    return creada;
   }
 }

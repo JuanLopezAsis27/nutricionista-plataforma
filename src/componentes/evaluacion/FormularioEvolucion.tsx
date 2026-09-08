@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { ImagePlus, Plus, Trash2, X } from "lucide-react";
 import type {
   CampoEvolucionSalidaDto,
   CampoPersonalizadoEvolucionDto,
   EvolucionSalidaDto,
 } from "@/aplicacion/dtos/evaluacion.dto";
+import type { ArchivoSalidaDto } from "@/aplicacion/dtos/archivo.dto";
 import {
   CAMPOS_EVOLUCION,
   ETIQUETAS_EVOLUCION,
@@ -17,6 +18,7 @@ import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { Label } from "@/componentes/ui/label";
 import { Textarea } from "@/componentes/ui/textarea";
+import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
 
 /** Prefijo de la clave de un campo suelto, cargado solo en esta evolución. */
 const PREFIJO_SUELTO = "suelto-";
@@ -59,11 +61,13 @@ export function FormularioEvolucion({
   camposDefinidos,
   onTerminado,
 }: Props) {
-  const { registrarEvolucion, actualizarEvolucion } = useEvaluacion();
+  const { registrarEvolucion, actualizarEvolucion, eliminarFotoEvolucion } =
+    useEvaluacion();
 
   const [fecha, setFecha] = useState(
     evolucion ? aFechaISO(evolucion.fecha) : hoyISO(),
   );
+  const [fotosNuevas, setFotosNuevas] = useState<ArchivoSalidaDto[]>([]);
   const [valores, setValores] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       CAMPOS_EVOLUCION.map((campo) => [campo, evolucion?.[campo] ?? ""]),
@@ -148,7 +152,11 @@ export function FormularioEvolucion({
     }
     setError(null);
 
-    const base = { ...fijos, camposPersonalizados };
+    const base = {
+      ...fijos,
+      camposPersonalizados,
+      fotoIds: fotosNuevas.map((foto) => foto.id),
+    };
     if (evolucion) {
       actualizarEvolucion.mutate(
         {
@@ -205,6 +213,84 @@ export function FormularioEvolucion({
           />
         </div>
       ))}
+
+      <div className="space-y-2">
+        <p className="flex items-center gap-1.5 text-sm font-medium">
+          <ImagePlus className="h-4 w-4" /> Fotos
+        </p>
+
+        {/* Ya guardadas: se borran en el acto, sin pasar por "Guardar". */}
+        {evolucion && evolucion.fotos.length > 0 && (
+          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {evolucion.fotos.map((foto) => (
+              <li key={foto.id} className="overflow-hidden rounded-md border">
+                {/* eslint-disable-next-line @next/next/no-img-element -- ruta dinámica autorizada, no optimizable */}
+                <img
+                  src={`/api/archivos/${foto.id}/ver`}
+                  alt={foto.nombreOriginal}
+                  className="h-24 w-full object-cover"
+                />
+                <div className="flex justify-end p-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    aria-label={`Borrar ${foto.nombreOriginal}`}
+                    disabled={eliminarFotoEvolucion.isPending}
+                    onClick={() =>
+                      eliminarFotoEvolucion.mutate({ id: foto.id })
+                    }
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Nuevas: se suben ya mismo y viajan como `fotoIds` al guardar. */}
+        {fotosNuevas.length > 0 && (
+          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {fotosNuevas.map((foto) => (
+              <li key={foto.id} className="overflow-hidden rounded-md border">
+                {/* eslint-disable-next-line @next/next/no-img-element -- ruta dinámica autorizada, no optimizable */}
+                <img
+                  src={`/api/archivos/${foto.id}/ver`}
+                  alt={foto.nombreOriginal}
+                  className="h-24 w-full object-cover"
+                />
+                <div className="flex justify-end p-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    aria-label={`Quitar ${foto.nombreOriginal}`}
+                    onClick={() =>
+                      setFotosNuevas((previas) =>
+                        previas.filter((f) => f.id !== foto.id),
+                      )
+                    }
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <SubidorArchivo
+          contexto="evolucion"
+          accept="image/*"
+          sinVistaPrevia
+          onSubido={(archivo) =>
+            setFotosNuevas((previas) => [...previas, archivo])
+          }
+        />
+      </div>
 
       {(camposDefinidos.length > 0 || sueltos.length > 0) && (
         <fieldset className="space-y-3 rounded-md border p-3">

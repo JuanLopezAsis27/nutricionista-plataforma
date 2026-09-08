@@ -88,8 +88,8 @@ export function crearServicioEvaluacion(deps: {
       new EliminarCampoHistoriaClinica(deps.camposHistoria),
     ),
     new ServicioEvoluciones(
-      new RegistrarEvolucion(deps.evoluciones, deps.pacientes),
-      new ActualizarEvolucion(deps.evoluciones),
+      new RegistrarEvolucion(deps.evoluciones, deps.pacientes, deps.archivos),
+      new ActualizarEvolucion(deps.evoluciones, deps.archivos),
       new EliminarEvolucion(deps.evoluciones),
       new ObtenerEvoluciones(deps.evoluciones, deps.pacientes),
       new ImportarEvoluciones(deps.evoluciones, deps.pacientes),
