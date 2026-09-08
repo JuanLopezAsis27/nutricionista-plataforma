@@ -5,6 +5,7 @@ import {
   ejecutarEnNutricionista,
 } from "@/infraestructura/multitenancy/contextoTenant";
 import { ZONA_HORARIA } from "./zonaHoraria";
+import { monitorErrores } from "@/infraestructura/monitoreo/monitor";
 
 /**
  * Barridos diarios que corren una vez POR INQUILINO.
@@ -55,6 +56,9 @@ export function colaDeInquilino(nombre: string): string {
  * trabajo queda marcado como fallido y nadie se entera de qué consultorio se
  * quedó sin recordatorios. pg-boss copia acá el payload del trabajo agotado,
  * así que queda la constancia de a quién hay que revisarle el envío.
+ *
+ * Esa constancia ahora además AVISA: hay un worker sobre esta cola que reporta
+ * al monitor (ver más abajo). Un buzón que nadie abre no es detección.
  */
 export function colaDeFallidos(nombre: string): string {
   return `${nombre}-fallidos`;
@@ -125,14 +129,56 @@ export async function registrarTrabajoPorInquilino<R>(
   await boss.work<DatosInquilino>(colaTrabajo, async (trabajos) => {
     for (const unidad of trabajos) {
       const { nutricionistaId } = unidad.data;
-      // Si esto lanza, pg-boss reintenta SOLO este inquilino.
-      const resultado = await ejecutarEnNutricionista(
-        nutricionistaId,
-        trabajo.ejecutar,
-      );
-      console.log(
-        `[worker] ${colaTrabajo} [${nutricionistaId}]: ${trabajo.describir(resultado)}`,
-      );
+      try {
+        // Si esto lanza, pg-boss reintenta SOLO este inquilino.
+        const resultado = await ejecutarEnNutricionista(
+          nutricionistaId,
+          trabajo.ejecutar,
+        );
+        console.log(
+          `[worker] ${colaTrabajo} [${nutricionistaId}]: ${trabajo.describir(resultado)}`,
+        );
+      } catch (error) {
+        // Se reporta y SE VUELVE A LANZAR: el monitor deja constancia de qué
+        // inquilino falló y por qué, y pg-boss conserva su comportamiento de
+        // reintento. Sin el `throw`, un fallo quedaría marcado como éxito y el
+        // consultorio se quedaría sin el barrido sin que nadie lo note.
+        monitorErrores.capturar(error, {
+          origen: "worker",
+          ruta: colaTrabajo,
+          // `retryCount` sólo existe en JobWithMetadata (haría falta
+          // `includeMetadata`); el id del trabajo alcanza para cruzarlo con las
+          // tablas de pg-boss si se quiere ver el historial de reintentos.
+          extra: { nutricionistaId, trabajoId: unidad.id },
+        });
+        throw error;
+      }
+    }
+  });
+
+  // --- Buzón de fallidos: ahora avisa ---------------------------------------
+  //
+  // Antes esta cola se dejaba deliberadamente SIN worker, para que funcionara
+  // como buzón de inspección manual. El problema es que nadie lo inspecciona:
+  // un inquilino que agota los reintentos —es decir, un consultorio que se
+  // quedó sin recordatorios ese día— desaparecía en silencio.
+  //
+  // El worker no "resuelve" nada: sólo convierte ese silencio en una alerta con
+  // el nutricionistaId adentro. La constancia no se pierde, porque pg-boss
+  // archiva los trabajos completados.
+  await boss.work<DatosInquilino>(colaFallidos, async (trabajos) => {
+    for (const unidad of trabajos) {
+      const { nutricionistaId } = unidad.data ?? {};
+      const mensaje =
+        `El trabajo "${colaDespacho}" agotó los reintentos para el ` +
+        `nutricionista ${nutricionistaId ?? "(desconocido)"}. ` +
+        `Ese consultorio NO recibió este barrido.`;
+      console.error(`[worker] ${colaFallidos}: ${mensaje}`);
+      monitorErrores.capturar(new Error(mensaje), {
+        origen: "worker",
+        ruta: colaFallidos,
+        extra: { nutricionistaId, trabajo: colaDespacho },
+      });
     }
   });
 
