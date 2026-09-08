@@ -289,6 +289,7 @@ export function mockRegistroDiarioRepositorio(
     actualizarEscalares: vi.fn(async (r: RegistroDiario) => r),
     obtenerPorPacienteYFecha: vi.fn(async () => null),
     listarPorRango: vi.fn(async () => []),
+    listarPaginado: vi.fn(async () => []),
     contarRegistros: vi.fn(async () => 0),
     resumenPorPacienteEnRango: vi.fn(async () => new Map()),
     agregarComida: vi.fn(async () => {}),

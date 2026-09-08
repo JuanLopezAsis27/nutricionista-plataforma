@@ -39,6 +39,18 @@ export interface IRegistroDiarioRepositorio {
     desde: Date,
     hasta: Date,
   ): Promise<RegistroDiario[]>;
+  /**
+   * Una página de registros del paciente, del más reciente al más viejo.
+   * A diferencia de `listarPorRango` (una ventana de fechas, con huecos si el
+   * paciente no cargó todos los días), esto pagina por DÍAS CON CARGA: la
+   * página siempre trae `limite` registros si el paciente tiene esa historia,
+   * sin importar cuántos días de calendario ocupen.
+   */
+  listarPaginado(
+    pacienteId: string,
+    limite: number,
+    desplazamiento: number,
+  ): Promise<RegistroDiario[]>;
   /** Cantidad total de registros del paciente (¿inició su diario?). */
   contarRegistros(pacienteId: string): Promise<number>;
 

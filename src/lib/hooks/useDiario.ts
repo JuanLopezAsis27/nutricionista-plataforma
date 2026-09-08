@@ -45,5 +45,6 @@ export function useDiario() {
     ),
     // Vista del nutricionista
     obtenerRango: trpc.diario.obtenerRango.useQuery,
+    obtenerPaginado: trpc.diario.obtenerPaginado.useQuery,
   };
 }

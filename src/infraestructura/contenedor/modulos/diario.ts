@@ -6,6 +6,7 @@ import { GuardarDia } from "@/aplicacion/casos-de-uso/diario/GuardarDia";
 import { ObtenerDia } from "@/aplicacion/casos-de-uso/diario/ObtenerDia";
 import { ObtenerCalendarioDiario } from "@/aplicacion/casos-de-uso/diario/ObtenerCalendarioDiario";
 import { ObtenerRegistrosEnRango } from "@/aplicacion/casos-de-uso/diario/ObtenerRegistrosEnRango";
+import { ObtenerRegistrosPaginados } from "@/aplicacion/casos-de-uso/diario/ObtenerRegistrosPaginados";
 import { AgregarComidaDiario } from "@/aplicacion/casos-de-uso/diario/AgregarComidaDiario";
 import { EliminarComidaDiario } from "@/aplicacion/casos-de-uso/diario/EliminarComidaDiario";
 import { AgregarActividadDiario } from "@/aplicacion/casos-de-uso/diario/AgregarActividadDiario";
@@ -25,6 +26,7 @@ export function crearServicioDiario(deps: {
     new ObtenerDia(deps.registros),
     new ObtenerCalendarioDiario(deps.registros),
     new ObtenerRegistrosEnRango(deps.registros, deps.pacientes),
+    new ObtenerRegistrosPaginados(deps.registros, deps.pacientes),
     new AgregarComidaDiario(deps.registros, deps.pacientes),
     new EliminarComidaDiario(
       deps.registros,
