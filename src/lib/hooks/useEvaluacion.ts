@@ -55,6 +55,12 @@ export function useEvaluacion() {
     eliminarEvolucion: trpc.evaluacion.eliminarEvolucion.useMutation(
       conToasts("Evolución eliminada."),
     ),
+    // Borra una foto de evolución. Va por el router genérico de Archivos: no
+    // hace falta un endpoint propio, el borrado no depende de a quién estaba
+    // vinculada.
+    eliminarFotoEvolucion: trpc.archivos.eliminar.useMutation(
+      conToasts("Foto eliminada."),
+    ),
     // El toast lo arma el llamador: cuántas entraron y cuántas quedaron
     // afuera es justamente lo que hay que decir de una importación.
     importarEvoluciones: trpc.evaluacion.importarEvoluciones.useMutation({

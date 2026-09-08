@@ -904,6 +904,8 @@ model Archivo {
   planId            String?
   /// Audio de una grabación de consulta (1 a 1). Ver GrabacionConsulta.
   grabacionId       String? @unique
+  /// Fotos de una evolución de control (1 a muchas). Ver migración 51.
+  evolucionId       String?
 
   paciente          Paciente?                  @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
   laboratorio       Laboratorio?               @relation(fields: [laboratorioId], references: [id], onDelete: Cascade)
@@ -920,6 +922,7 @@ model Archivo {
   /// dos cosas: estar adjunto al plan y SER el plan.
   planPrincipalDe   PlanNutricional[]          @relation("ArchivoPrincipalPlan")
   grabacion         GrabacionConsulta?         @relation("ArchivoDeGrabacion", fields: [grabacionId], references: [id], onDelete: Cascade)
+  evolucion         Evolucion?                 @relation("ArchivosDeEvolucion", fields: [evolucionId], references: [id], onDelete: Cascade)
   configuraciones   ConfiguracionConsultorio[]
   nutricionista     Nutricionista              @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
@@ -927,6 +930,7 @@ model Archivo {
   @@index([nutricionistaId, laboratorioId])
   @@index([nutricionistaId, recetaId])
   @@index([nutricionistaId, planId])
+  @@index([nutricionistaId, evolucionId])
   @@map("archivos")
 }
 
@@ -1135,8 +1139,16 @@ model HistoriaClinica {
   motivoConsulta         String?
   diagnosticos           String?
   medicacion             String?
-  antecedentesPersonales String?
+  /// Antes "antecedentesPersonales" — ver migración 50: se reorientó a
+  /// enfermedades digestivas y deposiciones.
+  antecedentesDigestivos String?
   antecedentesFamiliares String?
+  /// Se separó de `habitos` (migración 50): entrenamiento habitual del
+  /// paciente, distinto del seguimiento consulta a consulta de `Evolucion`.
+  entrenamientos         String?
+  /// Se separó de `habitos` (migración 50): calidad/rutina de descanso de
+  /// base, distinta del seguimiento consulta a consulta de `Evolucion`.
+  descanso               String?
   habitos                String?
   contexto               String?
   /// Valores de los campos personalizados de ESTE paciente, como
@@ -1208,6 +1220,9 @@ model Evolucion {
 
   paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  /// Fotos de esta evolución (1 a muchas). La FK vive en `archivos`, como el
+  /// resto de los dueños de archivo. Ver migración 51.
+  archivos      Archivo[]     @relation("ArchivosDeEvolucion")
 
   @@unique([pacienteId, fecha])
   @@index([pacienteId, fecha])

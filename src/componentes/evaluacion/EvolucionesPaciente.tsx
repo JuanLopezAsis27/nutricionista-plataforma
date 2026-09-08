@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/componentes/ui/dialog";
+import { FotoConVisor } from "@/componentes/comunes/FotoConVisor";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { SeccionDesplegable } from "@/componentes/comunes/SeccionDesplegable";
 import { FormularioEvolucion } from "./FormularioEvolucion";
@@ -146,6 +147,24 @@ export function EvolucionesPaciente({ pacienteId }: { pacienteId: string }) {
                       </div>
                     ))}
                   </dl>
+
+                  {/* Galería de fotos asociadas a esta evolución. */}
+                  {evolucion.fotos.length > 0 && (
+                    <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+                      {evolucion.fotos.map((foto) => (
+                        <li
+                          key={foto.id}
+                          className="overflow-hidden rounded-md border"
+                        >
+                          <FotoConVisor
+                            archivoId={foto.id}
+                            alt={foto.nombreOriginal}
+                            className="h-20 w-full"
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>

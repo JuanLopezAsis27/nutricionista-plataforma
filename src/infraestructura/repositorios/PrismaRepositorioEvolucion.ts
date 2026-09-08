@@ -9,6 +9,13 @@ import type { CampoPersonalizadoEvolucion } from "@/dominio/entidades/Evolucion"
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
 
+/** Fila de evolución con sus fotos incluidas. */
+type EvolucionConFotos = Prisma.EvolucionGetPayload<{
+  include: { archivos: true };
+}>;
+
+const INCLUIR = { archivos: true } satisfies Prisma.EvolucionInclude;
+
 /** Implementación con Prisma del repositorio de Evoluciones de control. */
 export class PrismaRepositorioEvolucion
   extends RepositorioPrismaBase<EvolucionFila, Evolucion>
@@ -24,8 +31,9 @@ export class PrismaRepositorioEvolucion
         nutricionistaId: inquilinoActual(),
         ...escribibles(evolucion),
       },
+      include: INCLUIR,
     });
-    return mapearEvolucion(fila);
+    return mapearEvolucionConFotos(fila);
   }
 
   async actualizar(evolucion: Evolucion): Promise<Evolucion> {
@@ -37,8 +45,9 @@ export class PrismaRepositorioEvolucion
     const fila = await this.prisma.evolucion.update({
       where: { id: evolucion.id },
       data: cambios,
+      include: INCLUIR,
     });
-    return mapearEvolucion(fila);
+    return mapearEvolucionConFotos(fila);
   }
 
   /** Descendente: la ficha muestra primero la última consulta. */
@@ -46,8 +55,9 @@ export class PrismaRepositorioEvolucion
     const filas = await this.prisma.evolucion.findMany({
       where: { pacienteId },
       orderBy: { fecha: "desc" },
+      include: INCLUIR,
     });
-    return this.mapearTodas(filas);
+    return filas.map(mapearEvolucionConFotos);
   }
 
   async existeEnFecha(
@@ -112,8 +122,24 @@ export function mapearEvolucion(fila: EvolucionFila): Evolucion {
     indispuesta: fila.indispuesta,
     sePercibe: fila.sePercibe,
     camposPersonalizados: leerCamposPersonalizados(fila.camposPersonalizados),
+    // Sin `include: { archivos: true }` (el `mapear` genérico de la base) no
+    // hay cómo saber las fotos: se listan aparte cuando hacen falta.
+    fotos: [],
     creadoEn: fila.creadoEn,
     actualizadoEn: fila.actualizadoEn,
+  });
+}
+
+/** Igual que `mapearEvolucion`, más las fotos ya incluidas en la consulta. */
+function mapearEvolucionConFotos(fila: EvolucionConFotos): Evolucion {
+  const evolucion = mapearEvolucion(fila);
+  return Evolucion.reconstruir({
+    ...evolucion.aPrimitivos(),
+    fotos: fila.archivos.map((archivo) => ({
+      id: archivo.id,
+      nombreOriginal: archivo.nombreOriginal,
+      mimeType: archivo.mimeType,
+    })),
   });
 }
 

@@ -68,7 +68,7 @@ describe("mapearAntropometria", () => {
     fecha: new Date("2026-03-01T00:00:00.000Z"),
     nivelActividad: "MODERADO",
     protocolo: "ISAK_5",
-    metodoGrasa: "YUHASZ",
+    metodoGrasa: "YUHASZ_CARTER",
     observaciones: "sin novedades",
     creadoEn: new Date("2026-03-01T10:30:00.000Z"),
     actualizadoEn: new Date("2026-03-02T11:00:00.000Z"),
@@ -98,8 +98,19 @@ describe("mapearAntropometria", () => {
     expect(datos.creadoEn).toEqual(new Date("2026-03-01T10:30:00.000Z"));
     expect(datos.nivelActividad).toBe("MODERADO");
     expect(datos.protocolo).toBe("ISAK_5");
-    expect(datos.metodoGrasa).toBe("YUHASZ");
+    expect(datos.metodoGrasa).toBe("YUHASZ_CARTER");
     expect(datos.observaciones).toBe("sin novedades");
+  });
+
+  it("degrada a null un método retirado de la aplicación (Jackson & Pollock, Parrillo)", () => {
+    // El enum de Postgres los conserva a propósito (una serie histórica nunca
+    // cambia de ecuación), pero la app ya no los conoce como vigentes.
+    const conMetodoRetirado = {
+      ...fila,
+      metodoGrasa: "PARRILLO",
+    } as unknown as Parameters<typeof mapearAntropometria>[0];
+    const datos = mapearAntropometria(conMetodoRetirado).aPrimitivos();
+    expect(datos.metodoGrasa).toBeNull();
   });
 
   it("convierte los Decimal de Prisma a number, no a string", () => {
@@ -189,8 +200,10 @@ describe("mapearHistoriaClinica", () => {
     motivoConsulta: "motivo",
     diagnosticos: "diagnosticos",
     medicacion: "medicacion",
-    antecedentesPersonales: "personales",
+    antecedentesDigestivos: "digestivos",
     antecedentesFamiliares: "familiares",
+    entrenamientos: "entrenamientos",
+    descanso: "descanso",
     habitos: "habitos",
     contexto: "contexto",
     creadoEn: new Date("2026-01-05T00:00:00.000Z"),
@@ -198,15 +211,17 @@ describe("mapearHistoriaClinica", () => {
   } as unknown as Parameters<typeof mapearHistoriaClinica>[0];
 
   it("no cruza los campos de texto libre entre sí", () => {
-    // Cinco campos `string | null` consecutivos: el escenario clásico donde un
-    // copiar-pegar deja "antecedentes familiares" dentro de "personales".
+    // Campos `string | null` consecutivos: el escenario clásico donde un
+    // copiar-pegar deja "antecedentes familiares" dentro de "digestivos".
     const datos = mapearHistoriaClinica(fila).aPrimitivos();
 
     expect(datos.motivoConsulta).toBe("motivo");
     expect(datos.diagnosticos).toBe("diagnosticos");
     expect(datos.medicacion).toBe("medicacion");
-    expect(datos.antecedentesPersonales).toBe("personales");
+    expect(datos.antecedentesDigestivos).toBe("digestivos");
     expect(datos.antecedentesFamiliares).toBe("familiares");
+    expect(datos.entrenamientos).toBe("entrenamientos");
+    expect(datos.descanso).toBe("descanso");
     expect(datos.habitos).toBe("habitos");
     expect(datos.contexto).toBe("contexto");
   });
@@ -243,7 +258,7 @@ describe("mapearObjetivoComposicion", () => {
     nutricionistaId: "nutri-1",
     pacienteId: "pac-1",
     variable: "MASA_GRASA",
-    metodoGrasa: "YUHASZ",
+    metodoGrasa: "YUHASZ_CARTER",
     valorObjetivo: decimal(18.5),
     fechaObjetivo: new Date("2026-06-01T00:00:00.000Z"),
     estado: "ACTIVO",

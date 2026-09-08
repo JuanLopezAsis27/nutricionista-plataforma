@@ -60,6 +60,12 @@ export const CONTEXTOS_ARCHIVO = {
     mimes: [...MIMES_IMAGEN],
     maxBytes: 10 * MB,
   },
+  /** Fotos de una evolución de control (1 a muchas, como las de receta). */
+  evolucion: {
+    prefijo: "evoluciones",
+    mimes: [...MIMES_IMAGEN],
+    maxBytes: 10 * MB,
+  },
   receta: {
     prefijo: "recetas",
     // Fotos (imágenes) y documentos adjuntos (PDF/Word) de la receta. Al leer,

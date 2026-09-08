@@ -14,16 +14,22 @@ import { Skeleton } from "@/componentes/ui/skeleton";
 import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
 import { SeccionDesplegable } from "@/componentes/comunes/SeccionDesplegable";
 import { formatearFecha } from "@/lib/formato";
+import { GestionAlertas } from "./AlertasPaciente";
 import { RevisionEvolucionesLeidas } from "./RevisionEvolucionesLeidas";
 import type { LecturaHistoriaClinicaDto } from "@/aplicacion/dtos/evaluacion.dto";
 
 const CAMPOS = [
   { nombre: "motivoConsulta", etiqueta: "Motivo de consulta" },
   { nombre: "diagnosticos", etiqueta: "Diagnósticos" },
-  { nombre: "medicacion", etiqueta: "Medicación" },
-  { nombre: "antecedentesPersonales", etiqueta: "Antecedentes personales" },
+  { nombre: "medicacion", etiqueta: "Medicación/suplementos" },
+  {
+    nombre: "antecedentesDigestivos",
+    etiqueta: "Antecedentes de enfermedades digestivas/deposiciones",
+  },
   { nombre: "antecedentesFamiliares", etiqueta: "Antecedentes familiares" },
-  { nombre: "habitos", etiqueta: "Hábitos (actividad, sueño, consumo)" },
+  { nombre: "entrenamientos", etiqueta: "Entrenamientos" },
+  { nombre: "descanso", etiqueta: "Descanso" },
+  { nombre: "habitos", etiqueta: "Hábitos y observaciones" },
   { nombre: "contexto", etiqueta: "Contexto (trabajo, horarios, entorno)" },
 ] as const;
 
@@ -274,6 +280,11 @@ export function FormularioHistoriaClinica({
               onCerrar={() => setEvolucionesLeidas(null)}
             />
           )}
+
+          {/* Intolerancias y alergias viven dentro de la historia clínica:
+              son parte de "de dónde viene" el paciente, igual que el resto de
+              estos campos. */}
+          <GestionAlertas pacienteId={pacienteId} />
 
           <div className="grid gap-4 md:grid-cols-2">
             {CAMPOS.map((campo) => (

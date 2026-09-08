@@ -164,6 +164,17 @@ const ETIQUETAS_PROTOCOLO: Record<
 /** Valor del select cuando el campo quedó sin especificar. */
 const SIN_DATO = "SIN_DATO";
 
+/**
+ * Campos que NO se muestran en el perfil completo (predeterminado): son sitios
+ * fuera del protocolo habitual de consulta y solo tienen sentido si el
+ * profesional arma una plantilla propia que los pida explícitamente.
+ */
+const CAMPOS_EXCLUIDOS_PREDETERMINADO = new Set<string>([
+  "pliegueBicipital",
+  "pliegueAxilarMedio",
+  "pliegueLumbar",
+]);
+
 const CAMPOS_NUMERICOS = [
   "pesoKg",
   "tallaCm",
@@ -235,8 +246,9 @@ export function FormularioMedicion({
    * perderlo de vista sin que nadie lo haya borrado.
    */
   const visible = (campo: CampoNumerico): boolean => {
-    if (camposVisibles == null) return true;
     if (medidas?.[campo] != null) return true;
+    if (camposVisibles == null)
+      return !CAMPOS_EXCLUIDOS_PREDETERMINADO.has(campo);
     return (camposVisibles as readonly string[]).includes(campo);
   };
   const enviando =

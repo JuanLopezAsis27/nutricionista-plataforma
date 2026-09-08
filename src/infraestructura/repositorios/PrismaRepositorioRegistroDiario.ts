@@ -100,6 +100,21 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
     return filas.map((fila) => mapearRegistroDiario(fila));
   }
 
+  async listarPaginado(
+    pacienteId: string,
+    limite: number,
+    desplazamiento: number,
+  ): Promise<RegistroDiario[]> {
+    const filas = await this.prisma.registroDiario.findMany({
+      where: { pacienteId },
+      include: INCLUIR_HIJOS,
+      orderBy: { fecha: "desc" },
+      take: limite,
+      skip: desplazamiento,
+    });
+    return filas.map((fila) => mapearRegistroDiario(fila));
+  }
+
   async contarRegistros(pacienteId: string): Promise<number> {
     return this.prisma.registroDiario.count({ where: { pacienteId } });
   }

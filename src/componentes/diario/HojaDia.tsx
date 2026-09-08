@@ -9,7 +9,6 @@ import {
   Dumbbell,
   Trash2,
   Camera,
-  ExternalLink,
   NotebookPen,
   Plus,
   Check,
@@ -43,6 +42,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/componentes/ui/select";
+import { FotoConVisor } from "@/componentes/comunes/FotoConVisor";
 import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
 import {
   VasosDeAgua,
@@ -373,22 +373,13 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
                     {comida.descripcion}
                   </p>
                 </div>
-                <span className="flex shrink-0 gap-0.5">
+                <span className="flex shrink-0 items-center gap-0.5">
                   {comida.fotoArchivoId ? (
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Ver foto"
-                    >
-                      <a
-                        href={`/api/archivos/${comida.fotoArchivoId}/ver`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
-                    </Button>
+                    <FotoConVisor
+                      archivoId={comida.fotoArchivoId}
+                      alt={`Foto de ${comida.franja.toLowerCase()}`}
+                      className="h-9 w-9"
+                    />
                   ) : (
                     <Button
                       variant="ghost"

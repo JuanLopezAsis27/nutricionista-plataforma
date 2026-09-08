@@ -57,8 +57,10 @@ export const guardarHistoriaClinicaDto = z.object({
   motivoConsulta: campoTextoLargo,
   diagnosticos: campoTextoLargo,
   medicacion: campoTextoLargo,
-  antecedentesPersonales: campoTextoLargo,
+  antecedentesDigestivos: campoTextoLargo,
   antecedentesFamiliares: campoTextoLargo,
+  entrenamientos: campoTextoLargo,
+  descanso: campoTextoLargo,
   habitos: campoTextoLargo,
   contexto: campoTextoLargo,
   camposPersonalizados: z
@@ -76,8 +78,10 @@ export const historiaClinicaSalidaDto = z.object({
   motivoConsulta: z.string().nullable(),
   diagnosticos: z.string().nullable(),
   medicacion: z.string().nullable(),
-  antecedentesPersonales: z.string().nullable(),
+  antecedentesDigestivos: z.string().nullable(),
   antecedentesFamiliares: z.string().nullable(),
+  entrenamientos: z.string().nullable(),
+  descanso: z.string().nullable(),
   habitos: z.string().nullable(),
   contexto: z.string().nullable(),
   camposPersonalizados: z.array(campoPersonalizadoHistoriaDto),
@@ -97,8 +101,10 @@ export const historiaClinicaSugeridaDto = z.object({
   motivoConsulta: z.string().nullable(),
   diagnosticos: z.string().nullable(),
   medicacion: z.string().nullable(),
-  antecedentesPersonales: z.string().nullable(),
+  antecedentesDigestivos: z.string().nullable(),
   antecedentesFamiliares: z.string().nullable(),
+  entrenamientos: z.string().nullable(),
+  descanso: z.string().nullable(),
   habitos: z.string().nullable(),
   contexto: z.string().nullable(),
 });
@@ -150,6 +156,9 @@ export type LecturaHistoriaClinicaDto = z.infer<
   typeof lecturaHistoriaClinicaDto
 >;
 
+/** Ids de fotos ya subidas (módulo Archivos) que se vinculan al guardar. */
+const fotoIdsEvolucionDto = z.array(z.string().min(1)).max(20).optional();
+
 export const registrarEvolucionDto = camposEvolucionDto.extend({
   pacienteId: z.string().min(1),
   fecha: z.coerce.date(),
@@ -157,6 +166,7 @@ export const registrarEvolucionDto = camposEvolucionDto.extend({
     .array(campoPersonalizadoEvolucionDto)
     .max(MAXIMO_CAMPOS_EN_EVOLUCION)
     .optional(),
+  fotoIds: fotoIdsEvolucionDto,
 });
 export type RegistrarEvolucionDto = z.infer<typeof registrarEvolucionDto>;
 
@@ -167,6 +177,7 @@ export const actualizarEvolucionDto = camposEvolucionDto.extend({
     .array(campoPersonalizadoEvolucionDto)
     .max(MAXIMO_CAMPOS_EN_EVOLUCION)
     .optional(),
+  fotoIds: fotoIdsEvolucionDto,
 });
 export type ActualizarEvolucionDto = z.infer<typeof actualizarEvolucionDto>;
 
@@ -189,6 +200,13 @@ export const importarEvolucionesDto = z.object({
 });
 export type ImportarEvolucionesDto = z.infer<typeof importarEvolucionesDto>;
 
+/** Foto de una evolución, ya subida y vinculada. */
+export interface FotoEvolucionDto {
+  id: string;
+  nombreOriginal: string;
+  mimeType: string;
+}
+
 export interface EvolucionSalidaDto {
   id: string;
   pacienteId: string;
@@ -201,6 +219,7 @@ export interface EvolucionSalidaDto {
   indispuesta: string | null;
   sePercibe: string | null;
   camposPersonalizados: CampoPersonalizadoEvolucionDto[];
+  fotos: FotoEvolucionDto[];
   creadoEn: Date;
   actualizadoEn: Date;
 }

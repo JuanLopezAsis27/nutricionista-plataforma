@@ -7,7 +7,10 @@ import {
   ObjetivoComposicion,
   type VariableComposicion,
 } from "@/dominio/entidades/ObjetivoComposicion";
-import type { MetodoGrasa } from "@/dominio/servicios/grasaPorPliegues";
+import {
+  esMetodoGrasaVigente,
+  type MetodoGrasa,
+} from "@/dominio/servicios/grasaPorPliegues";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
 
@@ -93,7 +96,11 @@ export function mapearObjetivoComposicion(
     id: fila.id,
     pacienteId: fila.pacienteId,
     variable: fila.variable,
-    metodoGrasa: fila.metodoGrasa,
+    // Ver `esMetodoGrasaVigente`: degrada a null un método retirado
+    // (Jackson & Pollock, Parrillo) que un objetivo histórico pueda tener.
+    metodoGrasa: esMetodoGrasaVigente(fila.metodoGrasa)
+      ? fila.metodoGrasa
+      : null,
     valorObjetivo: Number(fila.valorObjetivo),
     fechaObjetivo: fila.fechaObjetivo,
     estado: fila.estado,

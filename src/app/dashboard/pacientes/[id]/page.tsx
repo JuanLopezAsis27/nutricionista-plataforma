@@ -32,10 +32,7 @@ import { FormularioPaciente } from "@/componentes/pacientes/FormularioPaciente";
 import { SeccionPlanesDelPaciente } from "@/componentes/planes/SeccionPlanesDelPaciente";
 import { FormularioTurno } from "@/componentes/turnos/FormularioTurno";
 import { GrabacionesConsulta } from "@/componentes/turnos/GrabacionesConsulta";
-import {
-  BadgesAlertas,
-  GestionAlertas,
-} from "@/componentes/evaluacion/AlertasPaciente";
+import { BadgesAlertas } from "@/componentes/evaluacion/AlertasPaciente";
 import { FormularioHistoriaClinica } from "@/componentes/evaluacion/FormularioHistoriaClinica";
 import { EvolucionesPaciente } from "@/componentes/evaluacion/EvolucionesPaciente";
 import { ListaLaboratorios } from "@/componentes/evaluacion/ListaLaboratorios";
@@ -188,7 +185,6 @@ export default function PaginaDetallePaciente() {
               </a>
             </Button>
           </div>
-          <GestionAlertas pacienteId={id} />
           <FormularioHistoriaClinica pacienteId={id} />
           <EvolucionesPaciente pacienteId={id} />
           <ListaLaboratorios pacienteId={id} />

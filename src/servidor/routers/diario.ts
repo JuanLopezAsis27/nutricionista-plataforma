@@ -13,6 +13,7 @@ import {
   agregarFotoComidaDto,
   mesCalendarioDto,
   rangoDiarioDto,
+  paginaDiarioDto,
 } from "@/aplicacion/dtos/diario.dto";
 
 /** pacienteId del usuario logueado; el diario es solo para pacientes. */
@@ -121,5 +122,15 @@ export const routerDiario = crearRouter({
         input.desde,
         input.hasta,
       );
+    }),
+
+  /** Diario paginado por días con carga (no por ventana de fechas). */
+  obtenerPaginado: nutricionistaProcedimiento
+    .input(paginaDiarioDto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.diario.obtenerPaginado(input.pacienteId, {
+        pagina: input.pagina,
+        porPagina: input.porPagina,
+      });
     }),
 });
