@@ -12,6 +12,12 @@ export interface TokensGoogle {
 export interface EventoCalendario {
   titulo: string;
   descripcion?: string;
+  /**
+   * Dónde es. Con un solo consultorio era obvio; con varios, el evento sin
+   * ubicación manda al paciente al lugar equivocado. Google lo muestra en la
+   * invitación y ofrece el mapa desde el teléfono.
+   */
+  ubicacion?: string;
   inicio: Date;
   fin: Date;
   /**

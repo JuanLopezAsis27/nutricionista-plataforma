@@ -11,6 +11,7 @@ import { CLAVE_RECORDATORIO_TURNO } from "@/dominio/entidades/PlantillaEmail";
 import { ErrorPlantillaNoEncontrada } from "@/dominio/errores/ErrorPlantillaNoEncontrada";
 import type { Turno } from "@/dominio/entidades/Turno";
 import { variablesRecordatorio } from "../secretaria/variables";
+import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstablecimientoRepositorio";
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 const HORA_MS = 60 * 60 * 1000;
@@ -64,6 +65,8 @@ export class EnviarRecordatoriosPorEmail {
     private readonly reloj: IRelojFecha,
     private readonly preferencias: IConfiguracionRecordatoriosRepositorio,
     private readonly nombreProfesional: string,
+    /** Da {{establecimiento}} y {{direccion}} a la plantilla del email. */
+    private readonly establecimientos: IEstablecimientoRepositorio,
   ) {}
 
   async ejecutar(): Promise<ResultadoRecordatoriosEmail> {
@@ -164,12 +167,20 @@ export class EnviarRecordatoriosPorEmail {
       throw new ErrorPlantillaNoEncontrada(CLAVE_RECORDATORIO_TURNO);
     }
 
+    // La sede del turno: con varios consultorios, un recordatorio que no dice
+    // dónde manda al paciente al lugar equivocado.
+    const sede = await this.establecimientos.obtenerPorId(
+      turno.establecimientoId,
+    );
+
     const { asunto, html } = plantilla.renderizar(
       variablesRecordatorio({
         nombrePaciente: paciente.nombreCompleto,
         fecha: turno.fecha,
         hora: turno.hora,
         nombreProfesional: this.nombreProfesional,
+        nombreEstablecimiento: sede?.nombre,
+        direccionEstablecimiento: sede?.direccion,
       }),
     );
 

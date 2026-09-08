@@ -341,6 +341,7 @@ model Nutricionista {
   configuraciones           ConfiguracionConsultorio[]
   axiomasNutricionales      AxiomaNutricional[]
   planesSemanales           PlanSemanal[]
+  establecimientos          Establecimiento[]
 
   // Hijas del agregado: heredan el inquilino de su padre, pero lo llevan
   // materializado para que la extensión pueda filtrarlas por id directo.
@@ -366,58 +367,123 @@ model Nutricionista {
   @@map("nutricionistas")
 }
 
-/// Persona atendida por el nutricionista.
-model Paciente {
-  id              String         @id @default(uuid(4))
+/// Lugar físico donde el nutricionista atiende: un consultorio, un gimnasio,
+/// un centro médico.
+///
+/// Lo que pertenece a un establecimiento es el TURNO, no el paciente: la misma
+/// persona puede atenderse en los dos, y asociarla a uno solo obligaría a
+/// elegir de qué sede "es" alguien que va a ambas. El paciente sí guarda una
+/// preferencia (`establecimientoHabitualId`), que solo precarga formularios.
+///
+/// La AGENDA (días, horario, duración y paso del turno) vive acá y no en
+/// `ConfiguracionConsultorio` porque describe al lugar: "lunes y miércoles en
+/// el centro, martes y jueves en el barrio". En la configuración se queda lo
+/// que describe al profesional, que es uno solo: membrete, matrícula, PDF,
+/// prefijo telefónico.
+///
+/// Lo que NO cambia por tener varias sedes: la regla de no solapamiento
+/// (`turnos_sin_solapamiento`, migración 27) sigue agrupando por
+/// `nutricionistaId` y nada más. El profesional no puede estar en dos lugares
+/// a las 10:00, así que el eje del choque es quién atiende, no dónde.
+model Establecimiento {
+  id              String  @id @default(uuid(4))
   nutricionistaId String
   nombre          String
-  apellido        String
-  email           String
+  direccion       String?
   telefono        String?
+  /// Color del globo en el calendario semanal: ver de un vistazo en qué sede
+  /// es cada turno es la mitad de para qué sirve esto.
+  color           String?
+  orden           Int     @default(0)
+  /// El que resuelve el fallback cuando todavía nadie eligió sede. Hay uno
+  /// solo por inquilino (índice único parcial en la migración 48).
+  esPrincipal     Boolean @default(false)
+
+  // Agenda del lugar. Semántica idéntica a la que tenía
+  // `ConfiguracionConsultorio` (ver docs/AGENDA.md): `diasAtencion` es 0..6 con
+  // 0 = domingo y la lista VACÍA significa "sin restricción", no "no atiende
+  // nunca"; el horario nulo tampoco restringe.
+  diasAtencion         Int[]
+  atencionHoraDesde    String? // HH:mm
+  atencionHoraHasta    String? // HH:mm
+  turnoDuracionMinutos Int     @default(30)
+  turnoPasoMinutos     Int     @default(15)
+
+  /// Baja lógica, como en `Paciente`. Una sede que cerró sigue siendo el lugar
+  /// donde ocurrieron sus turnos: la FK desde `Turno` es Restrict.
+  archivadoEn   DateTime?
+  creadoEn      DateTime  @default(now())
+  actualizadoEn DateTime  @updatedAt
+
+  turnos              Turno[]
+  pacientesHabituales Paciente[]
+  nutricionista       Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@unique([nutricionistaId, id])
+  @@index([nutricionistaId])
+  @@map("establecimientos")
+}
+
+/// Persona atendida por el nutricionista.
+model Paciente {
+  id                        String         @id @default(uuid(4))
+  nutricionistaId           String
+  nombre                    String
+  apellido                  String
+  email                     String
+  telefono                  String?
   /// Teléfono normalizado a E.164 sin "+", derivado de `telefono` al guardar.
   /// Existe para que la ingesta de WhatsApp resuelva al paciente con un índice
   /// en vez de traer la tabla entera y normalizar en memoria. Null cuando el
   /// teléfono está vacío o no se puede interpretar (no bloquea el alta).
-  telefonoE164    String?
-  fechaNacimiento DateTime?
+  telefonoE164              String?
+  fechaNacimiento           DateTime?
   /// Necesario para la antropometría (masa de la piel, peso ideal, MB).
   /// Opcional: los pacientes cargados antes de la función no lo tienen.
-  sexo            SexoBiologico?
-  notas           String?
+  sexo                      SexoBiologico?
+  notas                     String?
   /// Baja lógica del paciente: null = vigente. Reemplaza al viejo `activo`,
   /// que se leía en las estadísticas pero no lo escribía nadie (y por eso
   /// "pacientes activos" era en realidad "pacientes totales").
-  archivadoEn     DateTime?
-  motivoArchivado String?
-  creadoEn        DateTime       @default(now())
-  actualizadoEn   DateTime       @updatedAt
+  archivadoEn               DateTime?
+  motivoArchivado           String?
+  /// Dónde SUELE atenderse. Es una preferencia, no una pertenencia: precarga
+  /// el formulario de turno y ordena el listado, y nunca limita en qué
+  /// establecimiento se le puede dar un turno. El lugar de la consulta vive en
+  /// `Turno.establecimientoId`, que es lo que efectivamente pasó.
+  establecimientoHabitualId String?
+  creadoEn                  DateTime       @default(now())
+  actualizadoEn             DateTime       @updatedAt
 
-  turnos                Turno[]
-  usuario               Usuario?
-  historiaClinica       HistoriaClinica?
-  evoluciones           Evolucion[]
-  antropometrias        Antropometria[]
-  objetivosComposicion  ObjetivoComposicion[]
-  laboratorios          Laboratorio[]
-  alertasAlimentarias   AlertaAlimentaria[]
-  archivos              Archivo[]
-  registrosDiarios      RegistroDiario[]
-  asignacionesPlan      AsignacionPlan[]
-  asignacionesSemanal   AsignacionPlanSemanal[]
-  asignacionesReceta    AsignacionReceta[]
-  objetivos             Objetivo[]
-  perfilDeportivo       PerfilDeportivo?
-  competencias          Competencia[]
-  asignacionesMaterial  AsignacionMaterial[]
-  suplementos           Suplemento[]
-  alertasSeguimiento    AlertaSeguimiento[]
-  conversacion          Conversacion?
-  conversacionesIA      ConversacionIA[]
-  analisisComida        AnalisisComida[]
-  metricasDispositivo   MetricaDispositivo[]
-  mensajesWhatsapp      MensajeWhatsapp[]
-  recordatoriosWhatsapp RecordatorioWhatsapp[]
-  nutricionista         Nutricionista           @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  turnos                  Turno[]
+  usuario                 Usuario?
+  historiaClinica         HistoriaClinica?
+  evoluciones             Evolucion[]
+  antropometrias          Antropometria[]
+  objetivosComposicion    ObjetivoComposicion[]
+  laboratorios            Laboratorio[]
+  alertasAlimentarias     AlertaAlimentaria[]
+  archivos                Archivo[]
+  registrosDiarios        RegistroDiario[]
+  asignacionesPlan        AsignacionPlan[]
+  asignacionesSemanal     AsignacionPlanSemanal[]
+  asignacionesReceta      AsignacionReceta[]
+  objetivos               Objetivo[]
+  perfilDeportivo         PerfilDeportivo?
+  competencias            Competencia[]
+  asignacionesMaterial    AsignacionMaterial[]
+  suplementos             Suplemento[]
+  alertasSeguimiento      AlertaSeguimiento[]
+  conversacion            Conversacion?
+  conversacionesIA        ConversacionIA[]
+  analisisComida          AnalisisComida[]
+  metricasDispositivo     MetricaDispositivo[]
+  mensajesWhatsapp        MensajeWhatsapp[]
+  recordatoriosWhatsapp   RecordatorioWhatsapp[]
+  nutricionista           Nutricionista           @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  // SetNull: archivar una sede no puede dejar fichas apuntando a un
+  // establecimiento que ya no se ofrece. Perder la preferencia no rompe nada.
+  establecimientoHabitual Establecimiento?        @relation(fields: [establecimientoHabitualId], references: [id], onDelete: SetNull)
 
   @@unique([nutricionistaId, id])
   // El email es único POR INQUILINO, no global: una misma persona puede ser
@@ -529,28 +595,33 @@ model AlertaSeguimiento {
 
 /// Cita agendada entre el nutricionista y un paciente.
 model Turno {
-  id              String                  @id @default(uuid(4))
-  nutricionistaId String
-  pacienteId      String
-  fecha           DateTime                @db.Date
-  hora            String // formato HH:mm
-  duracionMinutos Int                     @default(30)
-  estado          EstadoTurno             @default(PENDIENTE)
-  notas           String?
+  id                String                  @id @default(uuid(4))
+  nutricionistaId   String
+  pacienteId        String
+  /// Dónde se atiende ESTE turno. Va acá y no en `Paciente` porque el mismo
+  /// paciente va a los dos consultorios, y porque un turno de marzo en el
+  /// centro tiene que seguir siendo del centro aunque hoy la persona se
+  /// atienda en otro lado.
+  establecimientoId String
+  fecha             DateTime                @db.Date
+  hora              String // formato HH:mm
+  duracionMinutos   Int                     @default(30)
+  estado            EstadoTurno             @default(PENDIENTE)
+  notas             String?
   // Cobro de la consulta (secretaría). Decimal nunca cruza infraestructura:
   // los repositorios lo mapean a number. `pagado` habilita el cálculo de
   // ingresos cobrados vs. pendientes en las estadísticas.
-  precio          Decimal?                @db.Decimal(10, 2)
-  pagado          Boolean                 @default(false)
+  precio            Decimal?                @db.Decimal(10, 2)
+  pagado            Boolean                 @default(false)
   /// Rango [inicio, fin) del turno, columna GENERADA por Postgres a partir de
   /// `fecha` + `hora` + `duracionMinutos` (ver migración 27). Sostiene el
   /// EXCLUDE que impide dos turnos superpuestos. Prisma no sabe expresar una
   /// columna generada: se declara como Unsupported para que sepa que existe y
   /// no intente borrarla en cada `migrate diff`. Nunca se lee ni se escribe
   /// desde la app.
-  periodo         Unsupported("tsrange")?
-  creadoEn        DateTime                @default(now())
-  actualizadoEn   DateTime                @updatedAt
+  periodo           Unsupported("tsrange")?
+  creadoEn          DateTime                @default(now())
+  actualizadoEn     DateTime                @updatedAt
 
   recordatoriosWhatsapp RecordatorioWhatsapp[]
   grabaciones           GrabacionConsulta[]
@@ -562,9 +633,14 @@ model Turno {
   // cancelado libera el horario para uno nuevo.
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
+  // Restrict: los turnos son el histórico del lugar. Un establecimiento que
+  // cerró se archiva (`archivadoEn`), no se borra.
+  establecimiento Establecimiento @relation(fields: [establecimientoId], references: [id], onDelete: Restrict)
+
   @@index([nutricionistaId, pacienteId])
   @@index([nutricionistaId, fecha])
   @@index([nutricionistaId, estado, fecha])
+  @@index([nutricionistaId, establecimientoId, fecha])
   @@map("turnos")
 }
 
@@ -2168,17 +2244,16 @@ enum OperadorAxioma {
 
 /// Configuración del consultorio: UNA FILA POR INQUILINO (no una fila única
 /// global, como decía este comentario antes: la unicidad es sobre
-/// `nutricionistaId`). Reemplaza
-/// los valores incrustados (ej. duración de turno por defecto) y guarda el
-/// membrete del profesional para PDF/emails.
+/// `nutricionistaId`). Guarda lo que describe al PROFESIONAL —membrete,
+/// matrícula, logo, apariencia del PDF—, no al lugar.
+///
+/// La agenda (días y horarios de atención, duración y paso del turno) vivió
+/// acá hasta la migración 49 y ahora está en `Establecimiento`: describe al
+/// LUGAR, y con una sola copia no se podía decir "lunes y miércoles en el
+/// centro, martes y jueves en el barrio".
 model ConfiguracionConsultorio {
   id                        String        @id @default(uuid(4))
   nutricionistaId           String        @unique
-  turnoDuracionMinutos      Int           @default(30)
-  turnoPasoMinutos          Int           @default(15)
-  atencionHoraDesde         String? // HH:mm
-  atencionHoraHasta         String? // HH:mm
-  diasAtencion              Int[] // 0=domingo … 6=sábado
   nombreProfesional         String?
   matricula                 String?
   logoArchivoId             String?

@@ -6,6 +6,7 @@ import {
   pacienteEjemplo,
   configuracionEjemplo,
   plantillaWhatsappEjemplo,
+  establecimientoEjemplo,
 } from "../_ayudas-test";
 
 /**
@@ -230,5 +231,66 @@ describe("armarRecordatorio — envío por plantilla de Meta", () => {
     );
 
     expect(armado.envioPlantilla?.telefono).toBe(armado.telefono);
+  });
+});
+
+describe("armarRecordatorio — dónde se atiende", () => {
+  it("reemplaza {{establecimiento}} y {{direccion}} con los de la sede", () => {
+    // Con dos consultorios, un recordatorio que no dice dónde manda al
+    // paciente al lugar equivocado.
+    const plantilla = plantillaWhatsappEjemplo({
+      cuerpo: "Te espero en {{establecimiento}} ({{direccion}}) el {{fecha}}.",
+    });
+    const sede = establecimientoEjemplo({
+      nombre: "Consultorio centro",
+      direccion: "Av. Siempreviva 742",
+    });
+
+    const armado = armarRecordatorio(
+      turnoEjemplo(),
+      pacienteEjemplo({ telefono: "1155554444" }),
+      config(),
+      plantilla,
+      sede,
+    );
+
+    expect(armado.mensaje).toContain("Consultorio centro");
+    expect(armado.mensaje).toContain("Av. Siempreviva 742");
+    expect(armado.mensaje).not.toContain("{{");
+  });
+
+  it("sin sede resuelta deja las variables vacías, nunca el placeholder crudo", () => {
+    // Mandarle «{{direccion}}» al paciente es peor que no decirle la dirección.
+    const plantilla = plantillaWhatsappEjemplo({
+      cuerpo: "Te espero el {{fecha}}. {{direccion}}",
+    });
+
+    const armado = armarRecordatorio(
+      turnoEjemplo(),
+      pacienteEjemplo({ telefono: "1155554444" }),
+      config(),
+      plantilla,
+      null,
+    );
+
+    expect(armado.mensaje).not.toContain("{{");
+  });
+
+  it("una sede sin dirección cargada tampoco deja el placeholder", () => {
+    const plantilla = plantillaWhatsappEjemplo({
+      cuerpo: "{{establecimiento}} — {{direccion}}",
+    });
+    const sinDireccion = establecimientoEjemplo({ nombre: "Barrio" });
+
+    const armado = armarRecordatorio(
+      turnoEjemplo(),
+      pacienteEjemplo({ telefono: "1155554444" }),
+      config(),
+      plantilla,
+      sinDireccion,
+    );
+
+    expect(armado.mensaje).toContain("Barrio");
+    expect(armado.mensaje).not.toContain("{{");
   });
 });

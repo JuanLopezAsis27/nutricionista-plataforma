@@ -151,7 +151,7 @@ describe("ObtenerConfiguracion", () => {
     const config = await caso.ejecutar();
 
     expect(config).toBeInstanceOf(ConfiguracionConsultorio);
-    expect(config.aPrimitivos().turnoDuracionMinutos).toBeGreaterThan(0);
+    expect(config.aPrimitivos().pdfMostrarRecetas).toBe(true);
   });
 
   it("devuelve la guardada cuando existe", async () => {

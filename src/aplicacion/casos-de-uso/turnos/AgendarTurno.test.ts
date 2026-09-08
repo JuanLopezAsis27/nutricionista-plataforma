@@ -4,26 +4,33 @@ import { Turno, type DatosNuevoTurno } from "@/dominio/entidades/Turno";
 import { ErrorPacienteNoEncontrado } from "@/dominio/errores/ErrorPacienteNoEncontrado";
 import { ErrorTurnoConflicto } from "@/dominio/errores/ErrorTurnoConflicto";
 import { ErrorTurnoFueraDeAtencion } from "@/dominio/errores/ErrorTurnoFueraDeAtencion";
-import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
+import { ErrorEstablecimientoNoEncontrado } from "@/dominio/errores/ErrorEstablecimientoNoEncontrado";
+import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 import {
   mockTurnoRepositorio,
   mockPacienteRepositorio,
-  mockConfiguracionRepositorio,
+  mockEstablecimientoRepositorio,
+  establecimientoEjemplo,
   pacienteEjemplo,
   turnoEjemplo,
 } from "../_ayudas-test";
 
-/** Repositorio de configuración con la agenda pedida (sin fila = por defecto). */
-function configuracionCon(
-  cambios: Partial<Parameters<ConfiguracionConsultorio["actualizar"]>[0]>,
+/** Repositorio con una única sede, cuya agenda es la que se le pide. */
+function sedeConAgenda(
+  agenda: Partial<Parameters<typeof establecimientoEjemplo>[0]>,
 ) {
-  const config = ConfiguracionConsultorio.porDefecto().actualizar(cambios);
-  return mockConfiguracionRepositorio({ obtener: vi.fn(async () => config) });
+  const sede = establecimientoEjemplo(agenda);
+  return mockEstablecimientoRepositorio({
+    obtenerPorId: vi.fn(async () => sede),
+    obtenerPrincipal: vi.fn(async () => sede),
+    listar: vi.fn(async () => [sede]),
+  });
 }
 
-// 2026-07-01 es miércoles, día de atención en la configuración por defecto.
+// 2026-07-01 es miércoles. La sede de ejemplo no restringe días ni horario.
 const datos: DatosNuevoTurno = {
   pacienteId: "pac-1",
+  establecimientoId: "est-1",
   fecha: new Date("2026-07-01"),
   hora: "10:00",
   duracionMinutos: 30,
@@ -39,7 +46,7 @@ describe("AgendarTurno", () => {
     const casoUso = new AgendarTurno(
       turnos,
       pacientes,
-      mockConfiguracionRepositorio(),
+      mockEstablecimientoRepositorio(),
     );
 
     const turno = await casoUso.ejecutar(datos);
@@ -55,7 +62,7 @@ describe("AgendarTurno", () => {
     const casoUso = new AgendarTurno(
       turnos,
       pacientes,
-      mockConfiguracionRepositorio(),
+      mockEstablecimientoRepositorio(),
     );
 
     await expect(casoUso.ejecutar(datos)).rejects.toBeInstanceOf(
@@ -78,7 +85,7 @@ describe("AgendarTurno", () => {
     const casoUso = new AgendarTurno(
       turnos,
       pacientes,
-      mockConfiguracionRepositorio(),
+      mockEstablecimientoRepositorio(),
     );
 
     await expect(casoUso.ejecutar(datos)).rejects.toBeInstanceOf(
@@ -102,7 +109,7 @@ describe("AgendarTurno", () => {
     const casoUso = new AgendarTurno(
       turnos,
       pacientes,
-      mockConfiguracionRepositorio(),
+      mockEstablecimientoRepositorio(),
     );
 
     const turno = await casoUso.ejecutar(datos);
@@ -111,7 +118,7 @@ describe("AgendarTurno", () => {
     expect(turnos.crear).toHaveBeenCalledOnce();
   });
 
-  it("rechaza un turno en un día que el consultorio no atiende", async () => {
+  it("rechaza un turno en un día que esa sede no atiende", async () => {
     const turnos = mockTurnoRepositorio();
     const pacientes = mockPacienteRepositorio({
       obtenerPorId: vi.fn(async () => pacienteEjemplo()),
@@ -120,7 +127,7 @@ describe("AgendarTurno", () => {
     const casoUso = new AgendarTurno(
       turnos,
       pacientes,
-      configuracionCon({ diasAtencion: [1] }),
+      sedeConAgenda({ diasAtencion: [1] }),
     );
 
     await expect(casoUso.ejecutar(datos)).rejects.toBeInstanceOf(
@@ -137,7 +144,7 @@ describe("AgendarTurno", () => {
     const casoUso = new AgendarTurno(
       turnos,
       pacientes,
-      configuracionCon({
+      sedeConAgenda({
         atencionHoraDesde: "09:00",
         atencionHoraHasta: "10:15",
       }),
@@ -158,12 +165,136 @@ describe("AgendarTurno", () => {
     const casoUso = new AgendarTurno(
       turnos,
       pacientes,
-      configuracionCon({
+      sedeConAgenda({
         atencionHoraDesde: "09:00",
         atencionHoraHasta: "10:30",
       }),
     );
 
     await expect(casoUso.ejecutar(datos)).resolves.toBeInstanceOf(Turno);
+  });
+
+  // --- Establecimiento ------------------------------------------------------
+
+  it("usa la sede principal cuando la pantalla no eligió ninguna", async () => {
+    const turnos = mockTurnoRepositorio();
+    const pacientes = mockPacienteRepositorio({
+      obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+    });
+    const casoUso = new AgendarTurno(
+      turnos,
+      pacientes,
+      mockEstablecimientoRepositorio(),
+    );
+
+    const { establecimientoId: _omitido, ...sinSede } = datos;
+    const turno = await casoUso.ejecutar(sinSede);
+
+    expect(turno.establecimientoId).toBe("est-1");
+  });
+
+  it("cae en la primera sede vigente si no hay ninguna marcada como principal", async () => {
+    const turnos = mockTurnoRepositorio();
+    const pacientes = mockPacienteRepositorio({
+      obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+    });
+    // El consultorio archivó su principal y todavía no marcó otra.
+    const otra = establecimientoEjemplo(
+      { nombre: "Consultorio barrio" },
+      "est-9",
+    );
+    const casoUso = new AgendarTurno(
+      turnos,
+      pacientes,
+      mockEstablecimientoRepositorio({
+        obtenerPrincipal: vi.fn(async () => null),
+        listar: vi.fn(async () => [otra]),
+      }),
+    );
+
+    const { establecimientoId: _omitido, ...sinSede } = datos;
+    const turno = await casoUso.ejecutar(sinSede);
+
+    expect(turno.establecimientoId).toBe("est-9");
+  });
+
+  it("rechaza el turno si el consultorio no tiene ninguna sede activa", async () => {
+    const turnos = mockTurnoRepositorio();
+    const pacientes = mockPacienteRepositorio({
+      obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+    });
+    const casoUso = new AgendarTurno(
+      turnos,
+      pacientes,
+      mockEstablecimientoRepositorio({
+        obtenerPrincipal: vi.fn(async () => null),
+        listar: vi.fn(async () => []),
+      }),
+    );
+
+    const { establecimientoId: _omitido, ...sinSede } = datos;
+    await expect(casoUso.ejecutar(sinSede)).rejects.toBeInstanceOf(
+      ErrorValidacion,
+    );
+    expect(turnos.crear).not.toHaveBeenCalled();
+  });
+
+  it("rechaza una sede que no existe", async () => {
+    const turnos = mockTurnoRepositorio();
+    const pacientes = mockPacienteRepositorio({
+      obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+    });
+    const casoUso = new AgendarTurno(
+      turnos,
+      pacientes,
+      mockEstablecimientoRepositorio(),
+    );
+
+    await expect(
+      casoUso.ejecutar({ ...datos, establecimientoId: "est-inventado" }),
+    ).rejects.toBeInstanceOf(ErrorEstablecimientoNoEncontrado);
+    expect(turnos.crear).not.toHaveBeenCalled();
+  });
+
+  it("rechaza agendar en una sede archivada", async () => {
+    const turnos = mockTurnoRepositorio();
+    const pacientes = mockPacienteRepositorio({
+      obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+    });
+    const cerrada = establecimientoEjemplo({}, "est-1").archivar();
+    const casoUso = new AgendarTurno(
+      turnos,
+      pacientes,
+      mockEstablecimientoRepositorio({
+        obtenerPorId: vi.fn(async () => cerrada),
+      }),
+    );
+
+    await expect(casoUso.ejecutar(datos)).rejects.toBeInstanceOf(
+      ErrorValidacion,
+    );
+    expect(turnos.crear).not.toHaveBeenCalled();
+  });
+
+  it("el solapamiento no distingue de sede: el profesional es uno solo", async () => {
+    const pacientes = mockPacienteRepositorio({
+      obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+    });
+    // Ya hay un turno a las 10:00 en OTRO establecimiento.
+    const turnos = mockTurnoRepositorio({
+      obtenerEnFecha: vi.fn(async () => [
+        turnoEjemplo({ establecimientoId: "est-9", hora: "10:00" }, "tur-9"),
+      ]),
+    });
+    const casoUso = new AgendarTurno(
+      turnos,
+      pacientes,
+      mockEstablecimientoRepositorio(),
+    );
+
+    await expect(casoUso.ejecutar(datos)).rejects.toBeInstanceOf(
+      ErrorTurnoConflicto,
+    );
+    expect(turnos.crear).not.toHaveBeenCalled();
   });
 });

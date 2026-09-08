@@ -2,6 +2,7 @@ import type { Turno } from "@/dominio/entidades/Turno";
 import type { Paciente } from "@/dominio/entidades/Paciente";
 import type { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
 import type { PlantillaWhatsapp } from "@/dominio/entidades/PlantillaWhatsapp";
+import type { Establecimiento } from "@/dominio/entidades/Establecimiento";
 import type { PlantillaWhatsappEnvio } from "@/dominio/servicios/IProveedorWhatsapp";
 import { variablesRecordatorio } from "../secretaria/variables";
 import {
@@ -39,6 +40,13 @@ export function armarRecordatorio(
   paciente: Paciente,
   configuracion: ConfiguracionConsultorio,
   plantilla: PlantillaWhatsapp,
+  /**
+   * El establecimiento del turno, para las variables `{{establecimiento}}` y
+   * `{{direccion}}`. Puede faltar —una sede archivada y borrada del listado, o
+   * un llamador que todavía no la resuelve—: ahí las variables quedan vacías,
+   * que es preferible a mandar el placeholder crudo.
+   */
+  establecimiento?: Establecimiento | null,
 ): RecordatorioArmado {
   const config = configuracion.aPrimitivos();
   const telefono = normalizarTelefonoE164(
@@ -50,6 +58,8 @@ export function armarRecordatorio(
     fecha: turno.fecha,
     hora: turno.hora,
     nombreProfesional: config.nombreProfesional ?? "tu nutricionista",
+    nombreEstablecimiento: establecimiento?.nombre,
+    direccionEstablecimiento: establecimiento?.direccion,
   });
   const mensaje = renderizarPlantilla(plantilla.cuerpo, variables);
 

@@ -2,6 +2,7 @@ import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
 import type { IPlantillaWhatsappRepositorio } from "@/dominio/repositorios/IPlantillaWhatsappRepositorio";
+import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstablecimientoRepositorio";
 import type { IConfiguracionRecordatoriosRepositorio } from "@/dominio/repositorios/IConfiguracionRecordatoriosRepositorio";
 import type { IRecordatorioWhatsappRepositorio } from "@/dominio/repositorios/IRecordatorioWhatsappRepositorio";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
@@ -76,6 +77,7 @@ export class EnviarRecordatoriosProgramados {
     private readonly enviarUno: EnviarRecordatorioWhatsapp,
     private readonly enviarEmail: EnviarRecordatoriosPorEmail,
     private readonly reloj: IRelojFecha,
+    private readonly establecimientos: IEstablecimientoRepositorio,
   ) {}
 
   async ejecutar(
@@ -169,6 +171,15 @@ export class EnviarRecordatoriosProgramados {
     const config =
       (await this.configuracion.obtener()) ??
       ConfiguracionConsultorio.porDefecto();
+    // Todas las sedes en UNA consulta, incluidas las archivadas: un turno viejo
+    // puede ser de una que cerró, y su dirección sigue siendo la que
+    // corresponde a ese turno. Pedirla por turno serían N consultas para un
+    // dato que cambia una vez al año.
+    const sedes = new Map(
+      (await this.establecimientos.listar({ incluirArchivados: true })).map(
+        (sede) => [sede.id, sede],
+      ),
+    );
     const existentes = await this.recordatorios.porTurnos(
       turnos.map((t) => t.id),
     );
@@ -198,6 +209,7 @@ export class EnviarRecordatoriosProgramados {
           paciente,
           plantilla,
           configuracion: config,
+          establecimiento: sedes.get(turno.establecimientoId) ?? null,
           diasAntes: dias,
           origen: "AUTOMATICO",
           // Nadie apretó un botón: el log queda sin usuario, que es la verdad.

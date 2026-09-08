@@ -15,10 +15,10 @@ describe("GuardarConfiguracion", () => {
     });
 
     const resultado = await new GuardarConfiguracion(repo).ejecutar({
-      turnoDuracionMinutos: 45,
+      matricula: "M.N. 1234",
     });
 
-    expect(resultado.aPrimitivos().turnoDuracionMinutos).toBe(45);
+    expect(resultado.aPrimitivos().matricula).toBe("M.N. 1234");
     expect(guardar).toHaveBeenCalledOnce();
   });
 
@@ -32,16 +32,16 @@ describe("GuardarConfiguracion", () => {
     });
 
     expect(resultado.aPrimitivos().nombreProfesional).toBe("Lic. López Asis");
-    expect(resultado.aPrimitivos().turnoDuracionMinutos).toBe(30); // default intacto
+    expect(resultado.aPrimitivos().pdfMostrarRecetas).toBe(true); // default intacto
   });
 
-  it("rechaza una duración de turno fuera de rango", async () => {
+  it("rechaza un color de PDF que no es hexadecimal", async () => {
     const repo = mockConfiguracionRepositorio({
       obtener: vi.fn(async () => configuracionEjemplo()),
     });
 
     await expect(
-      new GuardarConfiguracion(repo).ejecutar({ turnoDuracionMinutos: 1000 }),
+      new GuardarConfiguracion(repo).ejecutar({ pdfColorPrimario: "coral" }),
     ).rejects.toBeInstanceOf(ErrorValidacion);
   });
 });

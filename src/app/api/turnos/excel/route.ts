@@ -4,6 +4,7 @@ import { usuarioDeSesion } from "@/lib/autenticacion/sesion";
 import {
   servicioTurno,
   servicioPaciente,
+  servicioEstablecimiento,
 } from "@/infraestructura/contenedor/contenedor";
 import { ESTADOS_TURNO, type EstadoTurno } from "@/dominio/entidades/Turno";
 import {
@@ -20,6 +21,7 @@ const COLUMNAS = [
   { header: "Paciente", key: "paciente", width: 28 },
   { header: "Fecha", key: "fecha", width: 14 },
   { header: "Hora", key: "hora", width: 10 },
+  { header: "Establecimiento", key: "establecimiento", width: 24 },
   { header: "Duración (min)", key: "duracion", width: 16 },
   { header: "Estado", key: "estado", width: 14 },
   { header: "Precio", key: "precio", width: 14 },
@@ -53,22 +55,30 @@ export function GET(solicitud: Request): Promise<NextResponse> {
       const parametros = new URL(solicitud.url).searchParams;
       const estadoParam = parametros.get("estado");
       const fechaParam = parametros.get("fecha");
+      // Sin este parámetro se exportan todas las sedes, igual que el
+      // calendario unificado: el Excel exporta lo que se está viendo.
+      const sedeParam = parametros.get("establecimientoId");
 
-      const [turnos, { pacientes }] = await Promise.all([
+      const [turnos, { pacientes }, sedes] = await Promise.all([
         servicioTurno().obtenerTurnos({
           estado: esEstadoTurno(estadoParam) ? estadoParam : undefined,
           fecha: fechaParam ? new Date(fechaParam) : undefined,
+          establecimientoId: sedeParam ?? undefined,
         }),
         servicioPaciente().obtenerPacientes({
           pagina: 1,
           porPagina: 10_000,
           incluirArchivados: true,
         }),
+        // Con las archivadas: un turno viejo puede apuntar a una sede cerrada
+        // y la columna tiene que decir su nombre igual.
+        servicioEstablecimiento().listar({ incluirArchivados: true }),
       ]);
 
       const nombrePorId = new Map(
         pacientes.map((p) => [p.id, `${p.nombre} ${p.apellido}`]),
       );
+      const sedePorId = new Map(sedes.map((s) => [s.id, s.nombre]));
 
       const libro = new ExcelJS.Workbook();
       const hoja = libro.addWorksheet("Turnos");
@@ -80,6 +90,7 @@ export function GET(solicitud: Request): Promise<NextResponse> {
           paciente: nombrePorId.get(t.pacienteId) ?? "—",
           fecha: formatearFecha(t.fecha),
           hora: t.hora,
+          establecimiento: sedePorId.get(t.establecimientoId) ?? "—",
           duracion: t.duracionMinutos,
           estado: ETIQUETAS_ESTADO_TURNO[t.estado],
           precio: t.precio != null ? formatearMoneda(t.precio) : "",

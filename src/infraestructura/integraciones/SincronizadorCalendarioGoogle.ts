@@ -5,6 +5,7 @@ import type {
 import type { ICuentaConectadaRepositorio } from "@/dominio/repositorios/ICuentaConectadaRepositorio";
 import type { ISincronizacionTurnoRepositorio } from "@/dominio/repositorios/ISincronizacionTurnoRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
+import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstablecimientoRepositorio";
 import type { IConfiguracionRecordatoriosRepositorio } from "@/dominio/repositorios/IConfiguracionRecordatoriosRepositorio";
 import type {
   IProveedorGoogle,
@@ -35,6 +36,7 @@ export class SincronizadorCalendarioGoogle implements ISincronizadorCalendario {
     private readonly proveedor: IProveedorGoogle,
     private readonly pacientes: IPacienteRepositorio,
     private readonly preferencias: IConfiguracionRecordatoriosRepositorio,
+    private readonly establecimientos: IEstablecimientoRepositorio,
   ) {}
 
   async alAgendar(turno: DatosTurnoSync): Promise<void> {
@@ -131,6 +133,17 @@ export class SincronizadorCalendarioGoogle implements ISincronizadorCalendario {
 
     const paciente = await this.pacientes.obtenerPorId(turno.pacienteId);
     const nombre = paciente ? paciente.nombreCompleto : "paciente";
+
+    // La sede del turno, para el `location`. Se pide por id (no del listado
+    // vigente) porque un turno viejo puede ser de una sede archivada, y esa
+    // sigue siendo la dirección correcta para ese turno. Sin dirección cargada
+    // queda el nombre solo, que ya distingue un consultorio del otro.
+    const sede = await this.establecimientos.obtenerPorId(
+      turno.establecimientoId,
+    );
+    const ubicacion = sede
+      ? [sede.nombre, sede.direccion].filter(Boolean).join(" — ")
+      : undefined;
     // Sin email no hay a quién invitar: el evento se crea igual, en el
     // calendario del consultorio, que es lo que hacía antes de esta feature.
     const invitar =
@@ -139,6 +152,7 @@ export class SincronizadorCalendarioGoogle implements ISincronizadorCalendario {
     return {
       titulo: `Turno — ${nombre}`,
       descripcion: "Turno agendado desde la app del consultorio.",
+      ubicacion,
       inicio,
       fin,
       invitados: invitar ? [paciente!.email] : [],

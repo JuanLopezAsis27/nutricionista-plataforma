@@ -24,11 +24,6 @@ export class PrismaRepositorioConfiguracion implements IConfiguracionRepositorio
   ): Promise<ConfiguracionConsultorio> {
     const d = configuracion.aPrimitivos();
     const datos = {
-      turnoDuracionMinutos: d.turnoDuracionMinutos,
-      turnoPasoMinutos: d.turnoPasoMinutos,
-      atencionHoraDesde: d.atencionHoraDesde,
-      atencionHoraHasta: d.atencionHoraHasta,
-      diasAtencion: d.diasAtencion,
       nombreProfesional: d.nombreProfesional,
       matricula: d.matricula,
       logoArchivoId: d.logoArchivoId,
@@ -60,11 +55,6 @@ export function mapearConfiguracion(
 ): ConfiguracionConsultorio {
   return ConfiguracionConsultorio.reconstruir({
     id: fila.id,
-    turnoDuracionMinutos: fila.turnoDuracionMinutos,
-    turnoPasoMinutos: fila.turnoPasoMinutos,
-    atencionHoraDesde: fila.atencionHoraDesde,
-    atencionHoraHasta: fila.atencionHoraHasta,
-    diasAtencion: fila.diasAtencion,
     nombreProfesional: fila.nombreProfesional,
     matricula: fila.matricula,
     logoArchivoId: fila.logoArchivoId,

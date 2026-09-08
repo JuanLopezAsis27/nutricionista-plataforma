@@ -2,6 +2,12 @@
 export interface DatosTurnoSync {
   id: string;
   pacienteId: string;
+  /**
+   * Dónde se atiende. Lo resuelve el sincronizador a nombre y dirección para
+   * el `location` del evento: con varias sedes, una invitación sin ubicación
+   * manda al paciente al consultorio equivocado.
+   */
+  establecimientoId: string;
   fecha: Date;
   hora: string; // HH:mm
   duracionMinutos: number;

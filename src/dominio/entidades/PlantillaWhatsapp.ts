@@ -5,6 +5,12 @@ import { ErrorValidacion } from "../errores/ErrorValidacion";
  * plantillas de email para que el profesional no aprenda dos vocabularios.
  */
 export const VARIABLES_RECORDATORIO = [
+  // `establecimiento` y `direccion` llegaron con las sedes múltiples: con un
+  // solo consultorio el paciente sabía dónde, con dos hay que decírselo. Son
+  // opcionales en la plantilla como todas las demás; las viejas siguen
+  // funcionando sin tocarlas.
+  "establecimiento",
+  "direccion",
   "paciente",
   "fecha",
   "hora",

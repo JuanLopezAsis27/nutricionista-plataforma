@@ -11,9 +11,8 @@ import userEvent from "@testing-library/user-event";
  * formulario efectivamente las APLIQUE al usarlo —que el error se muestre y que
  * no se dispare la mutación—.
  *
- * `usePacientes` se sustituye por un doble: el objetivo es el formulario, no la
- * capa de red. Es la única dependencia que hay que falsear, señal de que el
- * componente está razonablemente aislado.
+ * Los hooks de datos se sustituyen por dobles: el objetivo es el formulario,
+ * no la capa de red.
  */
 
 const crear = { mutate: vi.fn(), isPending: false };
@@ -21,6 +20,12 @@ const actualizar = { mutate: vi.fn(), isPending: false };
 
 vi.mock("@/lib/hooks/usePacientes", () => ({
   usePacientes: () => ({ crear, actualizar }),
+}));
+
+// Con una sola sede el selector de establecimiento habitual no se dibuja, que
+// es el caso del consultorio típico y deja intactos los tests de siempre.
+vi.mock("@/lib/hooks/useEstablecimientos", () => ({
+  useEstablecimientos: () => ({ listar: () => ({ data: [] }) }),
 }));
 
 const { FormularioPaciente } = await import("./FormularioPaciente");
@@ -103,6 +108,7 @@ describe("FormularioPaciente (alta)", () => {
           email: "ana@ejemplo.test",
           telefono: null,
           telefonoE164: null,
+          establecimientoHabitualId: null,
           fechaNacimiento: null,
           sexo: null,
           notas: null,

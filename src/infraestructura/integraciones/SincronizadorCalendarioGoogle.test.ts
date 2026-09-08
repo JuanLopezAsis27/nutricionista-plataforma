@@ -7,6 +7,7 @@ import {
   mockCuentaConectadaRepositorio,
   mockPacienteRepositorio,
   mockConfiguracionRecordatoriosRepositorio,
+  mockEstablecimientoRepositorio,
   cuentaConectadaEjemplo,
   pacienteEjemplo,
 } from "@/aplicacion/casos-de-uso/_ayudas-test";
@@ -49,6 +50,7 @@ function syncRepoMock(
 const turno: DatosTurnoSync = {
   id: "tur-1",
   pacienteId: "pac-1",
+  establecimientoId: "est-1",
   fecha: new Date("2026-08-10T00:00:00Z"),
   hora: "10:00",
   duracionMinutos: 30,
@@ -68,6 +70,7 @@ describe("SincronizadorCalendarioGoogle", () => {
         obtenerPorId: vi.fn(async () => pacienteEjemplo()),
       }),
       mockConfiguracionRecordatoriosRepositorio(),
+      mockEstablecimientoRepositorio(),
     );
 
     await sinc.alAgendar(turno);
@@ -86,6 +89,7 @@ describe("SincronizadorCalendarioGoogle", () => {
       proveedorMock({ crearEvento }),
       mockPacienteRepositorio(),
       mockConfiguracionRecordatoriosRepositorio(),
+      mockEstablecimientoRepositorio(),
     );
 
     await sinc.alAgendar(turno);
@@ -111,6 +115,7 @@ describe("SincronizadorCalendarioGoogle", () => {
       proveedorMock({ eliminarEvento }),
       mockPacienteRepositorio(),
       mockConfiguracionRecordatoriosRepositorio(),
+      mockEstablecimientoRepositorio(),
     );
 
     await sinc.alCancelar("tur-1");
@@ -134,6 +139,7 @@ describe("SincronizadorCalendarioGoogle", () => {
         obtenerPorId: vi.fn(async () => pacienteEjemplo()),
       }),
       mockConfiguracionRecordatoriosRepositorio(),
+      mockEstablecimientoRepositorio(),
     );
 
     await expect(sinc.alAgendar(turno)).resolves.toBeUndefined();

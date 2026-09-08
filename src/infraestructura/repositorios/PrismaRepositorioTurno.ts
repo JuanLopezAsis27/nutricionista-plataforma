@@ -48,6 +48,7 @@ export class PrismaRepositorioTurno
           nutricionistaId: inquilinoActual(),
           id: datos.id,
           pacienteId: datos.pacienteId,
+          establecimientoId: datos.establecimientoId,
           fecha: soloFecha(datos.fecha),
           hora: datos.hora,
           duracionMinutos: datos.duracionMinutos,
@@ -71,6 +72,7 @@ export class PrismaRepositorioTurno
         where: { id: datos.id },
         data: {
           pacienteId: datos.pacienteId,
+          establecimientoId: datos.establecimientoId,
           fecha: soloFecha(datos.fecha),
           hora: datos.hora,
           duracionMinutos: datos.duracionMinutos,
@@ -117,6 +119,9 @@ export class PrismaRepositorioTurno
     if (filtro.fecha) where.fecha = soloFecha(filtro.fecha);
     if (filtro.estado) where.estado = filtro.estado;
     if (filtro.pacienteId) where.pacienteId = filtro.pacienteId;
+    if (filtro.establecimientoId) {
+      where.establecimientoId = filtro.establecimientoId;
+    }
 
     const filas = await this.prisma.turno.findMany({
       where,
@@ -135,6 +140,7 @@ export function mapearTurno(fila: TurnoFila): Turno {
   return Turno.reconstruir({
     id: fila.id,
     pacienteId: fila.pacienteId,
+    establecimientoId: fila.establecimientoId,
     fecha: fila.fecha,
     hora: fila.hora,
     duracionMinutos: fila.duracionMinutos,

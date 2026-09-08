@@ -18,6 +18,7 @@ import { routerTiempoReal } from "./routers/tiempoReal";
 import { routerMensajeria } from "./routers/mensajeria";
 import { routerNotificaciones } from "./routers/notificaciones";
 import { routerConfiguracion } from "./routers/configuracion";
+import { routerEstablecimientos } from "./routers/establecimientos";
 import { routerAxiomas } from "./routers/axiomas";
 import { routerTracking } from "./routers/tracking";
 import { routerMetricas } from "./routers/metricas";
@@ -55,6 +56,7 @@ export const routerApp = crearRouter({
   mensajeria: routerMensajeria,
   notificaciones: routerNotificaciones,
   configuracion: routerConfiguracion,
+  establecimientos: routerEstablecimientos,
   axiomas: routerAxiomas,
   tracking: routerTracking,
   metricas: routerMetricas,

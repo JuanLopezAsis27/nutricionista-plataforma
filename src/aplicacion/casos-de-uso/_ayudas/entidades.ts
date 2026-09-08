@@ -255,6 +255,7 @@ export function turnoEjemplo(
   return Turno.crear(
     {
       pacienteId: "pac-1",
+      establecimientoId: "est-1",
       fecha: new Date("2026-07-01"),
       hora: "10:00",
       duracionMinutos: 30,

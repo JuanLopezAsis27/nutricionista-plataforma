@@ -61,6 +61,7 @@ export const MODELOS_INQUILINO = new Set<string>([
   "MensajeIA",
   "AnalisisComida",
   "ConfiguracionConsultorio",
+  "Establecimiento",
   "AxiomaNutricional",
   "SincronizacionTurno",
   "MetricaDispositivo",

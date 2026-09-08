@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { CalendarOff } from "lucide-react";
 import { useTurnos } from "@/lib/hooks/useTurnos";
-import { useConfiguracion } from "@/lib/hooks/useConfiguracion";
-import type { ConfiguracionSalidaDto } from "@/aplicacion/dtos/configuracion.dto";
+import { usePacientes } from "@/lib/hooks/usePacientes";
+import { useEstablecimientos } from "@/lib/hooks/useEstablecimientos";
+import { useSedeActiva } from "@/lib/hooks/useSedeActiva";
+import type { EstablecimientoSalidaDto } from "@/aplicacion/dtos/establecimiento.dto";
 import { hoyArgentinaISO, horaArgentinaHHmm } from "@/lib/formato";
 import {
   franjasDelDia,
@@ -57,6 +59,7 @@ export const esquema = z.object({
   pacienteId: z.string().min(1, "Elegí un paciente"),
   fecha: z.string().min(1, "Elegí una fecha"),
   hora: z.string().min(1, "Elegí una hora"),
+  establecimientoId: z.string().min(1, "Elegí un establecimiento"),
   duracion: duracionTurno,
   // El DTO corta en 1000: sin esto, una nota larga se escribía entera y se
   // perdía al enviar.
@@ -83,20 +86,62 @@ interface PropsFormularioTurno {
    * elegido a mano.
    */
   horaInicial?: string;
+  /**
+   * Sede con la que abrir el formulario: la dueña del hueco clickeado en la
+   * grilla. Sin esto, un click en un martes del consultorio del barrio abriría
+   * el alta en la sede activa y el día quedaría fuera de su agenda.
+   */
+  establecimientoInicialId?: string;
 }
 
 /**
- * Formulario para agendar un turno. Los horarios (paso/rango), los días de
- * atención y la duración por defecto salen de la Configuración del consultorio;
- * se espera a que cargue para inicializar los valores correctos.
+ * Formulario para agendar un turno.
+ *
+ * Los horarios (paso/rango), los días de atención y la duración por defecto
+ * salen del ESTABLECIMIENTO elegido y cambian con él: cada sede tiene su
+ * agenda. Arranca en la que el profesional está gestionando; si está mirando
+ * todas juntas, en la principal —la misma que resolvería el servidor si el
+ * formulario no dijera nada—.
  */
 export function FormularioTurno(props: PropsFormularioTurno) {
-  const { obtener } = useConfiguracion();
-  const consulta = obtener();
-  if (consulta.isLoading || !consulta.data) {
+  const { listar } = useEstablecimientos();
+  const { sedeActivaId } = useSedeActiva();
+  const consulta = listar();
+
+  if (consulta.isLoading) {
     return <Skeleton className="h-96 w-full" />;
   }
-  return <FormularioTurnoInterno {...props} config={consulta.data} />;
+  const sedes = consulta.data ?? [];
+  // Sin ninguna sede no hay agenda que ofrecer, y el servidor rechazaría el
+  // alta igual. Se dice acá, que es donde el profesional puede resolverlo.
+  if (sedes.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Todavía no hay ningún establecimiento activo. Creá uno en Configuración
+        → Establecimientos para poder agendar turnos.
+      </p>
+    );
+  }
+
+  // El fallback repite el de `AgendarTurno`: principal, y si no hay, la
+  // primera. Que las dos resuelvan lo mismo es lo que evita que el formulario
+  // ofrezca horarios que el servidor va a rechazar.
+  // Prioridad: la del hueco clickeado (el día ya dice cuál), después la que se
+  // está gestionando, y si se están mirando todas, la principal. El último
+  // escalón repite el fallback de `AgendarTurno`: que la pantalla y el servidor
+  // resuelvan lo mismo es lo que evita ofrecer horarios que después se rechazan.
+  const delHueco = sedes.find((s) => s.id === props.establecimientoInicialId);
+  const activa = sedes.find((s) => s.id === sedeActivaId);
+  const sedeInicial =
+    delHueco ?? activa ?? sedes.find((s) => s.esPrincipal) ?? sedes[0]!;
+
+  return (
+    <FormularioTurnoInterno
+      {...props}
+      sedes={sedes}
+      sedeInicial={sedeInicial}
+    />
+  );
 }
 
 function FormularioTurnoInterno({
@@ -105,20 +150,21 @@ function FormularioTurnoInterno({
   pacienteFijo,
   fechaInicial,
   horaInicial,
-  config,
-}: PropsFormularioTurno & { config: ConfiguracionSalidaDto }) {
+  establecimientoInicialId,
+  sedes,
+  sedeInicial,
+}: PropsFormularioTurno & {
+  sedes: EstablecimientoSalidaDto[];
+  sedeInicial: EstablecimientoSalidaDto;
+}) {
   const { agendar, listar } = useTurnos();
+  const { obtenerPorId: obtenerPaciente } = usePacientes();
 
   const hoy = hoyArgentinaISO();
   const pedida = fechaInicial && fechaInicial >= hoy ? fechaInicial : hoy;
   // Si el día pedido no se atiende, se abre directamente en el próximo que sí:
   // el formulario nunca arranca en un día donde nada se puede agendar.
-  const fechaResuelta = proximoDiaDeAtencion(config, pedida);
-
-  const duraciones = useMemo(() => {
-    const base = new Set([30, 45, 60, 90, config.turnoDuracionMinutos]);
-    return [...base].sort((a, b) => a - b).map(String);
-  }, [config.turnoDuracionMinutos]);
+  const fechaResuelta = proximoDiaDeAtencion(sedeInicial, pedida);
 
   const form = useForm<DatosFormulario>({
     resolver: zodResolver(esquema),
@@ -128,7 +174,8 @@ function FormularioTurnoInterno({
       // Solo se respeta si el día no se movió: con otra fecha, la hora pedida
       // ya no significa nada.
       hora: fechaResuelta === fechaInicial ? (horaInicial ?? "") : "",
-      duracion: String(config.turnoDuracionMinutos),
+      establecimientoId: sedeInicial.id,
+      duracion: String(sedeInicial.turnoDuracionMinutos),
       notas: "",
     },
   });
@@ -136,8 +183,41 @@ function FormularioTurnoInterno({
   const fechaActual = form.watch("fecha");
   const horaActual = form.watch("hora");
   const duracionActual = Number(form.watch("duracion"));
+  const sedeElegidaId = form.watch("establecimientoId");
+  const pacienteActual = form.watch("pacienteId");
 
-  const diaHabil = esDiaDeAtencion(config, fechaActual);
+  // Al elegir un paciente, la sede salta a la que suele atenderse. Es una
+  // PRECARGA, no una imposición: se puede cambiar en el acto, y el turno queda
+  // donde diga el formulario. Solo se aplica si el profesional no eligió sede
+  // a mano (`sedeTocada`), para no pisarle la elección al cargar el paciente.
+  const habitual = obtenerPaciente(
+    { id: pacienteActual },
+    { enabled: Boolean(pacienteActual) },
+  ).data?.establecimientoHabitualId;
+  // Un hueco de la grilla YA eligió la sede (el día la determina): no se la
+  // pisa con la habitual del paciente.
+  const sedeTocada = useRef(Boolean(establecimientoInicialId));
+  useEffect(() => {
+    if (sedeTocada.current || !habitual) return;
+    if (sedes.some((s) => s.id === habitual)) {
+      form.setValue("establecimientoId", habitual);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [habitual]);
+
+  // Cambiar de sede cambia la agenda: los días, el horario y el paso salen de
+  // acá, y las franjas se recalculan solas.
+  const sede = useMemo(
+    () => sedes.find((s) => s.id === sedeElegidaId) ?? sedeInicial,
+    [sedes, sedeElegidaId, sedeInicial],
+  );
+
+  const duraciones = useMemo(() => {
+    const base = new Set([30, 45, 60, 90, sede.turnoDuracionMinutos]);
+    return [...base].sort((a, b) => a - b).map(String);
+  }, [sede.turnoDuracionMinutos]);
+
+  const diaHabil = esDiaDeAtencion(sede, fechaActual);
 
   // Turnos del día elegido: son los que ocupan las franjas. Solo se piden
   // cuando el día se atiende (si no, no hay grilla que pintar).
@@ -149,14 +229,14 @@ function FormularioTurnoInterno({
   const franjas = useMemo(
     () =>
       franjasDelDia({
-        config,
+        agenda: sede,
         fechaISO: fechaActual,
-        duracionMinutos: duracionActual || config.turnoDuracionMinutos,
+        duracionMinutos: duracionActual || sede.turnoDuracionMinutos,
         ocupados: turnosDelDia.data ?? [],
         hoyISO: hoy,
         ahoraHHmm: horaArgentinaHHmm(),
       }),
-    [config, fechaActual, duracionActual, turnosDelDia.data, hoy],
+    [sede, fechaActual, duracionActual, turnosDelDia.data, hoy],
   );
 
   const cargandoFranjas = diaHabil && turnosDelDia.isLoading;
@@ -179,6 +259,7 @@ function FormularioTurnoInterno({
     agendar.mutate(
       {
         pacienteId: datos.pacienteId,
+        establecimientoId: datos.establecimientoId,
         fecha: new Date(datos.fecha),
         hora: datos.hora,
         duracionMinutos: Number(datos.duracion),
@@ -206,6 +287,43 @@ function FormularioTurnoInterno({
                     onCambiar={field.onChange}
                   />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        {/* Con una sola sede no se pregunta: no hay nada que elegir y el
+            servidor resolvería lo mismo. */}
+        {sedes.length > 1 && (
+          <FormField
+            control={form.control}
+            name="establecimientoId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Establecimiento</FormLabel>
+                <Select
+                  value={field.value}
+                  onValueChange={(valor) => {
+                    // A partir de acá manda la elección del profesional: elegir
+                    // otro paciente no vuelve a mover la sede.
+                    sedeTocada.current = true;
+                    field.onChange(valor);
+                  }}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Elegí dónde se atiende" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {sedes.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -274,7 +392,8 @@ function FormularioTurnoInterno({
             <CalendarOff className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
               Ese día el consultorio no atiende. Días de atención:{" "}
-              {diasDeAtencionEnTexto(config)}. Se cambian en Configuración.
+              {diasDeAtencionEnTexto(sede)}. Se cambian en Configuración →
+              Establecimientos.
             </span>
           </p>
         )}

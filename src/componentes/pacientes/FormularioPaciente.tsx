@@ -11,6 +11,7 @@ import {
 } from "@/aplicacion/dtos/password";
 import { SEXOS_BIOLOGICOS } from "@/dominio/servicios/composicionCorporal";
 import { usePacientes } from "@/lib/hooks/usePacientes";
+import { useEstablecimientos } from "@/lib/hooks/useEstablecimientos";
 import { aFechaISO } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
@@ -53,6 +54,8 @@ export function crearEsquemaPaciente(editando: boolean) {
     telefono: z.string().optional(),
     fechaNacimiento: z.string().optional(),
     sexo: z.enum([...SEXOS_BIOLOGICOS, SIN_SEXO]),
+    /** Id de la sede habitual, o SIN_SEDE. Ver el campo en el formulario. */
+    establecimientoHabitualId: z.string(),
     notas: z.string().optional(),
     password: editando ? z.string().optional() : passwordNuevaDto,
   });
@@ -66,6 +69,15 @@ const ETIQUETAS_SEXO: Record<(typeof SEXOS_BIOLOGICOS)[number], string> = {
 /** Valor del select cuando el sexo todavía no se cargó. */
 const SIN_SEXO = "SIN_DATO";
 
+/**
+ * Valor del select cuando no hay sede habitual.
+ *
+ * Existe porque «ninguna» es una respuesta válida y frecuente: el paciente que
+ * va indistintamente a las dos no tiene una sede habitual, y forzarlo a elegir
+ * una convertiría una preferencia en una pertenencia falsa.
+ */
+const SIN_SEDE = "SIN_SEDE";
+
 interface PropsFormularioPaciente {
   pacienteInicial?: PacienteSalidaDto | null;
   onTerminado: () => void;
@@ -77,6 +89,8 @@ export function FormularioPaciente({
   onTerminado,
 }: PropsFormularioPaciente) {
   const { crear, actualizar } = usePacientes();
+  const { listar: listarSedes } = useEstablecimientos();
+  const sedes = listarSedes().data ?? [];
   const editando = Boolean(pacienteInicial);
 
   // En el alta la contraseña es obligatoria (se crea la cuenta del paciente);
@@ -93,6 +107,8 @@ export function FormularioPaciente({
       telefono: pacienteInicial?.telefono ?? "",
       fechaNacimiento: aFechaISO(pacienteInicial?.fechaNacimiento),
       sexo: pacienteInicial?.sexo ?? SIN_SEXO,
+      establecimientoHabitualId:
+        pacienteInicial?.establecimientoHabitualId ?? SIN_SEDE,
       notas: pacienteInicial?.notas ?? "",
       password: "",
     },
@@ -110,6 +126,10 @@ export function FormularioPaciente({
         ? new Date(datos.fechaNacimiento)
         : null,
       sexo: datos.sexo === SIN_SEXO ? null : datos.sexo,
+      establecimientoHabitualId:
+        datos.establecimientoHabitualId === SIN_SEDE
+          ? null
+          : datos.establecimientoHabitualId,
       notas: datos.notas?.trim() ? datos.notas : null,
     };
 
@@ -256,6 +276,39 @@ export function FormularioPaciente({
             </FormItem>
           )}
         />
+
+        {/* Con una sola sede no se pregunta: no hay preferencia que expresar. */}
+        {sedes.length > 1 && (
+          <FormField
+            control={form.control}
+            name="establecimientoHabitualId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Establecimiento habitual</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={SIN_SEDE}>Sin preferencia</SelectItem>
+                    {sedes.map((sede) => (
+                      <SelectItem key={sede.id} value={sede.id}>
+                        {sede.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Solo precarga el formulario de turno. El paciente puede
+                  atenderse en cualquier establecimiento.
+                </p>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={form.control}

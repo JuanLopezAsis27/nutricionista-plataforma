@@ -170,6 +170,57 @@ export default function PaginaEstadisticas() {
               />
             </CardContent>
           </Card>
+
+          {/* Con un solo consultorio el corte no dice nada: repetiría los
+              totales de arriba fila por fila. */}
+          {(datos?.porEstablecimiento.length ?? 0) > 1 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Por establecimiento</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-muted-foreground">
+                        <th className="py-2 font-medium">Establecimiento</th>
+                        <th className="py-2 text-right font-medium">Turnos</th>
+                        <th className="py-2 text-right font-medium">
+                          Completados
+                        </th>
+                        <th className="py-2 text-right font-medium">Cobrado</th>
+                        <th className="py-2 text-right font-medium">
+                          Pendiente
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {datos?.porEstablecimiento.map((fila) => (
+                        <tr
+                          key={fila.establecimientoId}
+                          className="border-b last:border-0"
+                        >
+                          <td className="py-2">{fila.nombre}</td>
+                          <td className="py-2 text-right tabular-nums">
+                            {fila.turnos}
+                          </td>
+                          <td className="py-2 text-right tabular-nums">
+                            {fila.completados}
+                          </td>
+                          <td className="py-2 text-right tabular-nums">
+                            {formatearMoneda(fila.ingresoCobrado)}
+                          </td>
+                          <td className="py-2 text-right tabular-nums">
+                            {formatearMoneda(fila.ingresoPendiente)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
 

@@ -33,6 +33,7 @@ function evento(evento: EventoCalendario): Record<string, unknown> {
   return {
     summary: evento.titulo,
     description: evento.descripcion,
+    location: evento.ubicacion,
     start: { dateTime: evento.inicio.toISOString() },
     end: { dateTime: evento.fin.toISOString() },
     ...(evento.invitados?.length

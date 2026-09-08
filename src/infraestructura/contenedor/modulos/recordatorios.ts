@@ -2,6 +2,7 @@ import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
 import type { IPlantillaWhatsappRepositorio } from "@/dominio/repositorios/IPlantillaWhatsappRepositorio";
+import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstablecimientoRepositorio";
 import type { IConfiguracionRecordatoriosRepositorio } from "@/dominio/repositorios/IConfiguracionRecordatoriosRepositorio";
 import type { IRecordatorioWhatsappRepositorio } from "@/dominio/repositorios/IRecordatorioWhatsappRepositorio";
 import type { IMensajeWhatsappRepositorio } from "@/dominio/repositorios/IMensajeWhatsappRepositorio";
@@ -40,6 +41,8 @@ export interface DepsRecordatorios {
   pacientes: IPacienteRepositorio;
   configuracion: IConfiguracionRepositorio;
   plantillas: IPlantillaWhatsappRepositorio;
+  /** Da el nombre y la dirección de la sede a {{establecimiento}}/{{direccion}}. */
+  establecimientos: IEstablecimientoRepositorio;
   configRecordatorios: IConfiguracionRecordatoriosRepositorio;
   recordatorios: IRecordatorioWhatsappRepositorio;
   mensajes: IMensajeWhatsappRepositorio;
@@ -86,6 +89,7 @@ export function crearServicioRecordatorios(
     deps.reloj,
     deps.configRecordatorios,
     deps.nombreProfesional,
+    deps.establecimientos,
   );
 
   // Cada servicio recibe SOLO lo de su area. Antes era una lista plana de 17
@@ -120,6 +124,7 @@ export function crearServicioRecordatorios(
         deps.recordatorios,
         enviarUno,
         enviarEmail,
+        deps.establecimientos,
       ),
       new EnviarRecordatoriosProgramados(
         deps.turnos,
@@ -131,6 +136,7 @@ export function crearServicioRecordatorios(
         enviarUno,
         enviarEmail,
         deps.reloj,
+        deps.establecimientos,
       ),
       new ObtenerVistaPreviaRecordatorio(
         deps.turnos,
@@ -138,6 +144,7 @@ export function crearServicioRecordatorios(
         deps.configuracion,
         deps.plantillas,
         deps.proveedor,
+        deps.establecimientos,
       ),
       deps.usuarios,
       deps.bus,

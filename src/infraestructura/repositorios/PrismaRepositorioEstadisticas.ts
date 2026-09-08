@@ -4,6 +4,7 @@ import type {
   ParametrosEstadisticas,
   DatosCrudosEstadisticas,
   PuntoSerieMensual,
+  EstadisticaEstablecimiento,
   TipoDetalleEstadistica,
   PacienteEstadistica,
 } from "@/dominio/repositorios/IEstadisticasRepositorio";
@@ -30,6 +31,7 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
       ingresoCobrado,
       ingresoPendiente,
       serieMensual,
+      porEstablecimiento,
     ] = await Promise.all([
       this.prisma.paciente.count({ where: { archivadoEn: null } }),
       this.prisma.paciente.count({ where: { creadoEn: rangoFecha } }),
@@ -43,6 +45,7 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
         fecha: rangoFecha,
       }),
       this.serieMensual(hasta, meses),
+      this.porEstablecimiento(desde, hasta),
     ]);
 
     return {
@@ -53,7 +56,76 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
       ingresoCobrado,
       ingresoPendiente,
       serieMensual,
+      porEstablecimiento,
     };
+  }
+
+  /**
+   * Corte por sede del período: cuántos turnos, cuántos se completaron y
+   * cuánta plata entró y falta entrar en cada una.
+   *
+   * Dos `groupBy` y una lectura de nombres, no una consulta por sede: el corte
+   * tiene que costar lo mismo con dos consultorios que con diez. Los nombres
+   * se piden aparte —incluidas las archivadas— porque un turno del período
+   * puede ser de una sede que ya cerró y la fila igual tiene que decir cuál.
+   */
+  private async porEstablecimiento(
+    desde: Date,
+    hasta: Date,
+  ): Promise<EstadisticaEstablecimiento[]> {
+    const rangoFecha = { gte: desde, lte: hasta };
+
+    const [porEstado, porCobro, sedes] = await Promise.all([
+      this.prisma.turno.groupBy({
+        by: ["establecimientoId", "estado"],
+        where: { fecha: rangoFecha },
+        _count: { _all: true },
+      }),
+      this.prisma.turno.groupBy({
+        by: ["establecimientoId", "pagado"],
+        // Un turno cancelado no es plata pendiente: nadie la va a cobrar.
+        where: {
+          fecha: rangoFecha,
+          precio: { not: null },
+          estado: { not: "CANCELADO" },
+        },
+        _sum: { precio: true },
+      }),
+      this.prisma.establecimiento.findMany({
+        select: { id: true, nombre: true },
+      }),
+    ]);
+
+    const nombres = new Map(sedes.map((s) => [s.id, s.nombre]));
+    const filas = new Map<string, EstadisticaEstablecimiento>();
+    const fila = (id: string): EstadisticaEstablecimiento => {
+      const actual = filas.get(id) ?? {
+        establecimientoId: id,
+        nombre: nombres.get(id) ?? "Establecimiento eliminado",
+        turnos: 0,
+        completados: 0,
+        ingresoCobrado: 0,
+        ingresoPendiente: 0,
+      };
+      filas.set(id, actual);
+      return actual;
+    };
+
+    for (const g of porEstado) {
+      const f = fila(g.establecimientoId);
+      f.turnos += g._count._all;
+      if (g.estado === "COMPLETADO") f.completados += g._count._all;
+    }
+    for (const g of porCobro) {
+      const f = fila(g.establecimientoId);
+      const monto = g._sum.precio == null ? 0 : Number(g._sum.precio);
+      if (g.pagado) f.ingresoCobrado += monto;
+      else f.ingresoPendiente += monto;
+    }
+
+    return [...filas.values()].sort(
+      (a, b) => b.ingresoCobrado - a.ingresoCobrado,
+    );
   }
 
   async listarPacientes(

@@ -7,6 +7,9 @@ import type { TurnoSalidaDto } from "@/aplicacion/dtos/turno.dto";
 import { ESTADOS_TURNO, type EstadoTurno } from "@/dominio/entidades/Turno";
 import { useTurnos } from "@/lib/hooks/useTurnos";
 import { usePacientes } from "@/lib/hooks/usePacientes";
+import { useEstablecimientos } from "@/lib/hooks/useEstablecimientos";
+import { useSedeActiva } from "@/lib/hooks/useSedeActiva";
+import { coloresDeSedes } from "@/lib/sedes";
 import { formatearFecha, ETIQUETAS_ESTADO_TURNO } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
@@ -32,20 +35,36 @@ import { FormularioTurno } from "@/componentes/turnos/FormularioTurno";
 import { FormularioReprogramar } from "@/componentes/turnos/FormularioReprogramar";
 import { GrabacionesConsulta } from "@/componentes/turnos/GrabacionesConsulta";
 import { CalendarioTurnos } from "@/componentes/turnos/CalendarioTurnos";
+import { SelectorSede } from "@/componentes/turnos/SelectorSede";
 import { AccionesTurno } from "@/componentes/turnos/AccionesTurno";
 import { CobroTurno } from "@/componentes/turnos/CobroTurno";
 
 type Vista = "lista" | "calendario";
 
-/** Día y hora con los que abrir el alta desde el calendario. */
+/** Día, hora y sede con los que abrir el alta desde el calendario. */
 interface HuecoElegido {
   fecha: string;
   hora?: string;
+  /**
+   * La sede dueña del día clickeado. Viene resuelta desde la grilla: solo se
+   * ofrecen huecos cuando el día pertenece a un único establecimiento.
+   */
+  establecimientoId?: string;
 }
 
 export default function PaginaTurnos() {
   const { listar } = useTurnos();
   const { listar: listarPacientes } = usePacientes();
+  const { listar: listarSedes } = useEstablecimientos();
+  const { sedeActivaId } = useSedeActiva();
+
+  // Solo las vigentes: las archivadas siguen siendo el lugar de turnos viejos,
+  // pero no son un filtro que ofrecerle a nadie.
+  const consultaSedes = listarSedes();
+  const sedes = useMemo(() => consultaSedes.data ?? [], [consultaSedes.data]);
+  const colores = useMemo(() => coloresDeSedes(sedes), [sedes]);
+  const nombreSede = (id: string): string =>
+    sedes.find((s) => s.id === id)?.nombre ?? "—";
 
   const [vista, setVista] = useState<Vista>("calendario");
   const [filtroEstado, setFiltroEstado] = useState<EstadoTurno | "TODOS">(
@@ -80,9 +99,13 @@ export default function PaginaTurnos() {
     [mapaPacientes],
   );
 
+  // `establecimientoId` sin valor = todas las sedes juntas, que es el
+  // calendario unificado. El filtro es del turno, no del paciente: el mismo
+  // paciente puede aparecer en las dos sedes y eso es correcto.
   const turnos = listar({
     estado: filtroEstado === "TODOS" ? undefined : filtroEstado,
     fecha: vista === "lista" && filtroFecha ? new Date(filtroFecha) : undefined,
+    establecimientoId: sedeActivaId ?? undefined,
   });
 
   // Mismos filtros que la consulta de arriba: el Excel exporta lo que se ve.
@@ -90,9 +113,14 @@ export default function PaginaTurnos() {
   if (filtroEstado !== "TODOS") parametrosExcel.set("estado", filtroEstado);
   if (vista === "lista" && filtroFecha)
     parametrosExcel.set("fecha", filtroFecha);
+  if (sedeActivaId) parametrosExcel.set("establecimientoId", sedeActivaId);
 
-  function abrirAlta(fecha?: string, hora?: string) {
-    setHueco(fecha ? { fecha, hora } : null);
+  function abrirAlta(
+    fecha?: string,
+    hora?: string,
+    establecimientoId?: string,
+  ) {
+    setHueco(fecha ? { fecha, hora, establecimientoId } : null);
     setAgendarAbierto(true);
   }
 
@@ -115,6 +143,20 @@ export default function PaginaTurnos() {
       render: (t) => formatearFecha(t.fecha),
     },
     { clave: "hora", encabezado: "Hora", render: (t) => t.hora },
+    {
+      clave: "establecimiento",
+      encabezado: "Establecimiento",
+      render: (t) => (
+        <span className="flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className="h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: colores.get(t.establecimientoId) }}
+          />
+          {nombreSede(t.establecimientoId)}
+        </span>
+      ),
+    },
     {
       clave: "duracion",
       encabezado: "Duración",
@@ -167,6 +209,8 @@ export default function PaginaTurnos() {
         </div>
 
         <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
+          <SelectorSede sedes={sedes} colores={colores} />
+
           <Select
             value={filtroEstado}
             onValueChange={(v) => setFiltroEstado(v as EstadoTurno | "TODOS")}
@@ -225,6 +269,8 @@ export default function PaginaTurnos() {
         <CalendarioTurnos
           turnos={turnos.data ?? []}
           mapaPacientes={mapaNombres}
+          sedes={sedes}
+          colores={colores}
           onAgendar={abrirAlta}
           onReprogramar={setTurnoReprogramar}
           onGrabar={setTurnoGrabar}
@@ -241,9 +287,10 @@ export default function PaginaTurnos() {
             // La clave fuerza un formulario nuevo por hueco: sin esto, abrir el
             // diálogo desde otra franja reusa el que quedó montado y conserva
             // el día y la hora anteriores.
-            key={`${hueco?.fecha ?? ""}-${hueco?.hora ?? ""}`}
+            key={`${hueco?.fecha ?? ""}-${hueco?.hora ?? ""}-${hueco?.establecimientoId ?? ""}`}
             fechaInicial={hueco?.fecha}
             horaInicial={hueco?.hora}
+            establecimientoInicialId={hueco?.establecimientoId}
             onTerminado={() => setAgendarAbierto(false)}
           />
         </DialogContent>

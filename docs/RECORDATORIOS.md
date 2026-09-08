@@ -212,9 +212,17 @@ segundo es que el profesional decidió no mandarlo.
 Una plantilla guarda **el texto** y, opcionalmente, **la plantilla aprobada en
 Meta**. Las dos hacen falta:
 
-- `cuerpo` — el texto en castellano con `{{paciente}}`, `{{fecha}}`, `{{hora}}`
-  y `{{profesional}}`. Es lo que se ve en la vista previa y lo que viaja por el
-  enlace `wa.me`.
+- `cuerpo` — el texto en castellano con `{{paciente}}`, `{{fecha}}`, `{{hora}}`,
+  `{{profesional}}`, `{{establecimiento}}` y `{{direccion}}`. Es lo que se ve en
+  la vista previa y lo que viaja por el enlace `wa.me`.
+
+  Las dos últimas llegaron con los establecimientos múltiples: con un solo
+  consultorio el paciente sabía dónde, con dos hay que decírselo. Son
+  opcionales como todas las demás —las plantillas viejas siguen andando sin
+  tocarlas— y **nunca dejan el placeholder crudo**: sin sede resuelta o sin
+  dirección cargada se reemplazan por vacío, porque mandarle «{{direccion}}» al
+  paciente es peor que no decirle la dirección. Ver
+  [ESTABLECIMIENTOS.md](ESTABLECIMIENTOS.md).
 - `claveMeta` + `variablesMeta` — el nombre de la plantilla aprobada y el ORDEN
   de sus parámetros. Meta los numera (`{{1}}`, `{{2}}`…) en vez de nombrarlos,
   así que el orden es parte del contrato: mal puesto, al paciente le llega la

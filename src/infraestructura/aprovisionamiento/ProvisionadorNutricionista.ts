@@ -1,10 +1,12 @@
 import type { IProvisionadorNutricionista } from "@/dominio/servicios/IProvisionadorNutricionista";
 import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
+import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstablecimientoRepositorio";
 import type { IPlantillaEmailRepositorio } from "@/dominio/repositorios/IPlantillaEmailRepositorio";
 import type { IAxiomaRepositorio } from "@/dominio/repositorios/IAxiomaRepositorio";
 import type { IPlantillaWhatsappRepositorio } from "@/dominio/repositorios/IPlantillaWhatsappRepositorio";
 import type { IConfiguracionRecordatoriosRepositorio } from "@/dominio/repositorios/IConfiguracionRecordatoriosRepositorio";
 import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
+import { Establecimiento } from "@/dominio/entidades/Establecimiento";
 import { PlantillaEmail } from "@/dominio/entidades/PlantillaEmail";
 import { AxiomaNutricional } from "@/dominio/entidades/AxiomaNutricional";
 import {
@@ -85,6 +87,7 @@ const AXIOMAS_EJEMPLO = [
 export class ProvisionadorNutricionista implements IProvisionadorNutricionista {
   constructor(
     private readonly configuracion: IConfiguracionRepositorio,
+    private readonly establecimientos: IEstablecimientoRepositorio,
     private readonly plantillas: IPlantillaEmailRepositorio,
     private readonly axiomas: IAxiomaRepositorio,
     private readonly plantillasWhatsapp: IPlantillaWhatsappRepositorio,
@@ -94,6 +97,20 @@ export class ProvisionadorNutricionista implements IProvisionadorNutricionista {
   async aprovisionar(nutricionistaId: string): Promise<void> {
     await ejecutarEnNutricionista(nutricionistaId, async () => {
       await this.configuracion.guardar(ConfiguracionConsultorio.porDefecto());
+
+      // La sede principal, que es la contraparte del backfill de la migración
+      // 48: los consultorios que ya existían recibieron la suya ahí, y los
+      // nuevos la reciben acá. Sin ninguna, agendar un turno no tendría dónde,
+      // y desde la 49 además es la que decide días y horarios de atención.
+      // Arranca de lunes a viernes, que era el default histórico del
+      // consultorio y sigue siendo el caso más común.
+      await this.establecimientos.crear(
+        Establecimiento.crear({
+          nombre: "Consultorio principal",
+          diasAtencion: [1, 2, 3, 4, 5],
+        }).marcarPrincipal(true),
+      );
+
       for (const datos of PLANTILLAS_SISTEMA) {
         await this.plantillas.crear(
           PlantillaEmail.crear(

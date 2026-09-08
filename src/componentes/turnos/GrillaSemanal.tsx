@@ -2,7 +2,8 @@
 
 import { useMemo } from "react";
 import type { TurnoSalidaDto } from "@/aplicacion/dtos/turno.dto";
-import type { ConfiguracionSalidaDto } from "@/aplicacion/dtos/configuracion.dto";
+import type { AgendaVigente } from "@/lib/agenda";
+import type { EstablecimientoSalidaDto } from "@/aplicacion/dtos/establecimiento.dto";
 import type { EstadoTurno } from "@/dominio/entidades/Turno";
 import {
   aHora,
@@ -48,12 +49,40 @@ interface PropsGrillaSemanal {
   /** Todos los turnos cargados; la grilla se queda con los de estos días. */
   turnos: TurnoSalidaDto[];
   nombrePaciente: (pacienteId: string) => string;
-  config: ConfiguracionSalidaDto;
+  /**
+   * La agenda que gobierna la grilla: la de la sede elegida, o la unión de
+   * todas cuando se las mira juntas (ver `agendaUnificada`).
+   */
+  agenda: AgendaVigente;
+  /**
+   * Se están mirando varias sedes a la vez: los globos llevan el color de su
+   * establecimiento en el filo y aparece la leyenda.
+   */
+  unificado: boolean;
+  /**
+   * La sede a la que pertenece ese día, o `null` si no se puede decidir.
+   *
+   * Es lo que gobierna los huecos clickeables. Con una sola sede a la vista es
+   * siempre esa. Con varias, solo cuando comparten horario y duración y sus
+   * días no se pisan (ver `sedePorDiaDeLaSemana`): ahí el día ya dice el
+   * lugar. Si devuelve `null` no se dibujan huecos, porque ofrecer uno sería
+   * ofrecer un turno que alguna de las sedes va a rechazar.
+   */
+  sedeDelDia: (fechaISO: string) => EstablecimientoSalidaDto | null;
+  /** Color por establecimiento, para distinguirlos en la vista unificada. */
+  colores: Map<string, string>;
   hoyISO: string;
   /** Hora actual "HH:mm", o null mientras no haya reloj del cliente. */
   ahoraHHmm: string | null;
-  /** Click en una franja libre: abre el alta con ese día y esa hora. */
-  onAgendar: (fechaISO: string, hora: string) => void;
+  /**
+   * Click en una franja libre: abre el alta con ese día, esa hora y la sede
+   * dueña del día ya elegidos.
+   */
+  onAgendar: (
+    fechaISO: string,
+    hora: string,
+    establecimientoId: string,
+  ) => void;
   onReprogramar: (turno: TurnoSalidaDto) => void;
   onGrabar: (turno: TurnoSalidaDto) => void;
   /** Turno cuyo globo está abierto (lo gobierna la pantalla, no la grilla). */
@@ -79,7 +108,10 @@ export function GrillaSemanal({
   dias,
   turnos,
   nombrePaciente,
-  config,
+  agenda,
+  unificado,
+  colores,
+  sedeDelDia,
   hoyISO,
   ahoraHHmm,
   onAgendar,
@@ -94,8 +126,8 @@ export function GrillaSemanal({
   }, [turnos, dias]);
 
   const { desdeMinutos, hastaMinutos } = useMemo(
-    () => rangoHorarioVisible(config, enLaVentana),
-    [config, enLaVentana],
+    () => rangoHorarioVisible(agenda, enLaVentana),
+    [agenda, enLaVentana],
   );
 
   /** Turnos ya ubicados en carriles, por día. */
@@ -187,7 +219,10 @@ export function GrillaSemanal({
                 (t) => aFechaISO(t.fecha) === dia,
               )}
               nombrePaciente={nombrePaciente}
-              config={config}
+              agenda={agenda}
+              unificado={unificado}
+              colores={colores}
+              sedeDelDia={sedeDelDia}
               desdeMinutos={desdeMinutos}
               hastaMinutos={hastaMinutos}
               altoTotal={altoTotal}
@@ -214,7 +249,10 @@ interface PropsColumnaDia {
   bloques: BloqueTurno[];
   turnosDelDia: TurnoSalidaDto[];
   nombrePaciente: (pacienteId: string) => string;
-  config: ConfiguracionSalidaDto;
+  agenda: AgendaVigente;
+  unificado: boolean;
+  colores: Map<string, string>;
+  sedeDelDia: (fechaISO: string) => EstablecimientoSalidaDto | null;
   desdeMinutos: number;
   hastaMinutos: number;
   altoTotal: number;
@@ -224,7 +262,11 @@ interface PropsColumnaDia {
   hoyISO: string;
   ahoraHHmm: string | null;
   minutosAhora: number | null;
-  onAgendar: (fechaISO: string, hora: string) => void;
+  onAgendar: (
+    fechaISO: string,
+    hora: string,
+    establecimientoId: string,
+  ) => void;
   onReprogramar: (turno: TurnoSalidaDto) => void;
   onGrabar: (turno: TurnoSalidaDto) => void;
   turnoAbiertoId: string | null;
@@ -237,7 +279,10 @@ function ColumnaDia({
   bloques,
   turnosDelDia,
   nombrePaciente,
-  config,
+  agenda,
+  unificado,
+  colores,
+  sedeDelDia,
   desdeMinutos,
   hastaMinutos,
   altoTotal,
@@ -252,8 +297,15 @@ function ColumnaDia({
   turnoAbiertoId,
   onAbrirTurno,
 }: PropsColumnaDia) {
-  const diaHabil = esDiaDeAtencion(config, dia);
-  const paso = config.turnoPasoMinutos;
+  const diaHabil = esDiaDeAtencion(agenda, dia);
+
+  // De quién es este día. Con una sola sede a la vista es esa; con varias, solo
+  // si los días no se pisan. Cuando hay dueño, las franjas se calculan con SU
+  // agenda —su paso, su duración—, no con la unión: el hueco que se ofrece es
+  // exactamente el que esa sede acepta.
+  const duena = sedeDelDia(dia);
+  const agendaDelDia = duena ?? agenda;
+  const paso = agendaDelDia.turnoPasoMinutos;
 
   // Las franjas del día con su motivo, exactamente las que ofrece el
   // formulario: se dibujan como huecos clickeables y las demás no existen.
@@ -262,11 +314,14 @@ function ColumnaDia({
   // en punto: con apertura 08:15 y paso 30, una rejilla propia caería siempre
   // entre franjas y no habría un solo hueco para clickear.
   const franjas = useMemo(() => {
-    if (!diaHabil) return [];
+    // Sin dueño no se ofrecen huecos: un hueco es "acá se puede agendar", y sin
+    // saber en cuál de las sedes la afirmación no significa nada. Se agenda
+    // desde el botón, que sí pregunta dónde.
+    if (!diaHabil || !duena) return [];
     return franjasDelDia({
-      config,
+      agenda: agendaDelDia,
       fechaISO: dia,
-      duracionMinutos: config.turnoDuracionMinutos,
+      duracionMinutos: agendaDelDia.turnoDuracionMinutos,
       ocupados: turnosDelDia,
       hoyISO,
       ahoraHHmm: ahoraHHmm ?? "00:00",
@@ -274,7 +329,16 @@ function ColumnaDia({
       // `franjasDelDia` la devuelve para poder explicar por qué): dibujarla
       // desbordaría la grilla por abajo.
     }).filter((f) => aMinutos(f.hora) < hastaMinutos);
-  }, [config, dia, diaHabil, turnosDelDia, hoyISO, ahoraHHmm, hastaMinutos]);
+  }, [
+    agendaDelDia,
+    duena,
+    dia,
+    diaHabil,
+    turnosDelDia,
+    hoyISO,
+    ahoraHHmm,
+    hastaMinutos,
+  ]);
 
   const horasEnPunto = Array.from(
     { length: (hastaMinutos - desdeMinutos) / 60 },
@@ -310,7 +374,7 @@ function ColumnaDia({
             key={franja.hora}
             type="button"
             disabled={!franja.disponible}
-            onClick={() => onAgendar(dia, franja.hora)}
+            onClick={() => onAgendar(dia, franja.hora, duena!.id)}
             title={
               franja.disponible
                 ? `Agendar a las ${franja.hora}`
@@ -364,6 +428,16 @@ function ColumnaDia({
                   height: alto,
                   left: `calc(${bloque.carril * ancho}% + 2px)`,
                   width: `calc(${ancho}% - 4px)`,
+                  // El relleno sigue diciendo el ESTADO; el filo izquierdo dice
+                  // el LUGAR, y solo cuando hay más de uno a la vista. Si
+                  // compitieran por el mismo color se perdería uno de los dos.
+                  ...(unificado
+                    ? {
+                        borderLeftColor: colores.get(
+                          bloque.turno.establecimientoId,
+                        ),
+                      }
+                    : {}),
                 }}
                 title={`${bloque.turno.hora} · ${nombre}`}
               >

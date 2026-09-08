@@ -202,10 +202,29 @@ async function sembrarPlantillas(): Promise<void> {
 
 async function sembrarConfiguracion(): Promise<void> {
   if (await prisma.configuracionConsultorio.findFirst()) return;
+  // Los días de atención ya no están acá: son del establecimiento (49).
   await prisma.configuracionConsultorio.create({
-    data: { nutricionistaId: inquilinoActual(), diasAtencion: [1, 2, 3, 4, 5] },
+    data: { nutricionistaId: inquilinoActual() },
   });
   console.log("  ✔ Configuración por defecto");
+}
+
+/**
+ * La sede principal. Sin ninguna no se puede agendar: `turnos` la exige,
+ * `AgendarTurno` la busca cuando la pantalla no elige, y desde la migración 49
+ * es además la que declara los días y horarios de atención.
+ */
+async function sembrarEstablecimiento(): Promise<void> {
+  if (await prisma.establecimiento.findFirst()) return;
+  await prisma.establecimiento.create({
+    data: {
+      nutricionistaId: inquilinoActual(),
+      nombre: "Consultorio principal",
+      esPrincipal: true,
+      diasAtencion: [1, 2, 3, 4, 5],
+    },
+  });
+  console.log("  ✔ Establecimiento principal");
 }
 
 const AXIOMAS_EJEMPLO = [
@@ -275,6 +294,7 @@ async function principal(): Promise<void> {
       await ejecutarEnNutricionista(nutriId, async () => {
         await sembrarPlantillas();
         await sembrarConfiguracion();
+        await sembrarEstablecimiento();
         await sembrarAxiomas();
       });
     }

@@ -110,6 +110,7 @@ export class ServicioTurno {
     return {
       id: d.id,
       pacienteId: d.pacienteId,
+      establecimientoId: d.establecimientoId,
       fecha: d.fecha,
       hora: d.hora,
       duracionMinutos: d.duracionMinutos,

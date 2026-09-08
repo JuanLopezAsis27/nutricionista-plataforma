@@ -123,6 +123,30 @@ es una **preferencia, no una imposición**: si para cuando el diálogo termina d
 cargar la franja dejó de estar libre, el formulario la reubica en la primera
 disponible, igual que si se la hubiera elegido a mano.
 
+**Con varias sedes a la vista los huecos dependen de si el día tiene dueño.**
+Un hueco significa "acá se puede agendar", y en general eso depende de en cuál
+de las sedes se pregunte. La excepción: cuando todas comparten horario y
+duración y sus días no se pisan, el día YA dice el consultorio y el hueco
+vuelve a ser clickeable —el formulario se abre con esa sede puesta—. Lo resuelve
+`sedePorDiaDeLaSemana`; ver [ESTABLECIMIENTOS.md](ESTABLECIMIENTOS.md).
+
+### Varias sedes en la misma grilla
+
+El selector de establecimiento de la barra decide qué se ve, y su valor por
+defecto es **todos juntos**: el profesional no puede estar en dos lugares a la
+vez, así que su semana es una sola agenda.
+
+- La ventana horaria y los días son la **unión** de las sedes visibles
+  (`agendaUnificada`), nunca la intersección: recortar escondería turnos.
+- El relleno del globo sigue diciendo el **estado**; el filo izquierdo lleva el
+  color del **establecimiento**, con su leyenda al costado. Dos datos, dos
+  lugares del mismo globo.
+- Con una sola sede elegida la grilla se comporta exactamente como antes,
+  huecos clickeables incluidos.
+- Las franjas de un día se calculan con la agenda de la sede DUEÑA de ese día,
+  no con la unión: su paso y su duración. Por eso el paso puede diferir entre
+  sedes sin romper nada.
+
 ### El globo de detalle
 
 Clickear un turno abre su ficha en un `Popover` anclado al bloque —cerca de
@@ -156,8 +180,10 @@ el costo real sigue siendo un render por minuto.
 
 ## La vista de lista
 
-Sigue existiendo, con la tabla, los filtros por estado y por fecha y las mismas
-acciones. Es la que sirve para buscar («¿qué turnos tiene este estado?»),
+Sigue existiendo, con la tabla, los filtros por estado, por fecha y por
+establecimiento —una columna nueva dice de qué sede es cada turno— y las mismas
+acciones. El Excel se descarga con los mismos filtros que la pantalla tenga
+puestos. Es la que sirve para buscar («¿qué turnos tiene este estado?»),
 mientras que el calendario sirve para mirar la agenda. El calendario es la
 vista por defecto.
 
@@ -170,6 +196,12 @@ vista por defecto.
   mismo lugar, la grilla miente sobre la duración y nada falla.
 - Los huecos ofrecidos salen de `franjasDelDia`, nunca de una rejilla propia:
   ver arriba por qué.
+- La agenda que gobierna la grilla llega por props (`agenda: AgendaVigente`).
+  La grilla NO sabe si es de una sede o la unión de varias: eso lo decide
+  `CalendarioTurnos`, y así se la puede probar con una agenda cualquiera.
+- De quién es cada día también llega por props (`sedeDelDia`). La grilla no
+  conoce la regla de las tres condiciones: solo sabe que sin dueño no hay
+  huecos.
 - Los días de la semana se leen **en UTC** (`getUTCDay()`), como en todo el
   módulo de turnos: `Turno.fecha` es un `DATE` que llega como medianoche UTC.
 - El globo no puede contener otra superficie flotante. Lo que necesite una,

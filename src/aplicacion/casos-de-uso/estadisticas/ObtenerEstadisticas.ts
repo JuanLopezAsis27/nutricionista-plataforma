@@ -1,6 +1,7 @@
 import type {
   IEstadisticasRepositorio,
   PuntoSerieMensual,
+  EstadisticaEstablecimiento,
 } from "@/dominio/repositorios/IEstadisticasRepositorio";
 
 /** Días sin turno ni registro para considerar a un paciente en riesgo de abandono. */
@@ -27,6 +28,8 @@ export interface EstadisticasConsultorio {
     pendiente: number;
   };
   serieMensual: PuntoSerieMensual[];
+  /** Corte por sede: turnos, completados y plata de cada consultorio. */
+  porEstablecimiento: EstadisticaEstablecimiento[];
   diasAbandono: number;
 }
 
@@ -77,6 +80,7 @@ export class ObtenerEstadisticas {
         pendiente: datos.ingresoPendiente,
       },
       serieMensual: datos.serieMensual,
+      porEstablecimiento: datos.porEstablecimiento,
       diasAbandono: DIAS_ABANDONO,
     };
   }

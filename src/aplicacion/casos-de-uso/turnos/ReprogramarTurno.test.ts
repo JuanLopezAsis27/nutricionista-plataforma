@@ -4,10 +4,11 @@ import { ErrorTurnoNoEncontrado } from "@/dominio/errores/ErrorTurnoNoEncontrado
 import { ErrorTurnoConflicto } from "@/dominio/errores/ErrorTurnoConflicto";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 import { ErrorTurnoFueraDeAtencion } from "@/dominio/errores/ErrorTurnoFueraDeAtencion";
-import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
+import { ErrorEstablecimientoNoEncontrado } from "@/dominio/errores/ErrorEstablecimientoNoEncontrado";
 import {
   mockTurnoRepositorio,
-  mockConfiguracionRepositorio,
+  mockEstablecimientoRepositorio,
+  establecimientoEjemplo,
   turnoEjemplo,
 } from "../_ayudas-test";
 
@@ -22,7 +23,7 @@ describe("ReprogramarTurno", () => {
     });
     const casoUso = new ReprogramarTurno(
       repositorio,
-      mockConfiguracionRepositorio(),
+      mockEstablecimientoRepositorio(),
     );
 
     const turno = await casoUso.ejecutar({ id: "tur-1", fecha, hora: "11:00" });
@@ -39,7 +40,7 @@ describe("ReprogramarTurno", () => {
     });
     const casoUso = new ReprogramarTurno(
       repositorio,
-      mockConfiguracionRepositorio(),
+      mockEstablecimientoRepositorio(),
     );
 
     await expect(
@@ -51,7 +52,7 @@ describe("ReprogramarTurno", () => {
     const repositorio = mockTurnoRepositorio();
     const casoUso = new ReprogramarTurno(
       repositorio,
-      mockConfiguracionRepositorio(),
+      mockEstablecimientoRepositorio(),
     );
 
     await expect(
@@ -67,7 +68,7 @@ describe("ReprogramarTurno", () => {
     });
     const casoUso = new ReprogramarTurno(
       repositorio,
-      mockConfiguracionRepositorio(),
+      mockEstablecimientoRepositorio(),
     );
 
     await expect(
@@ -83,7 +84,7 @@ describe("ReprogramarTurno", () => {
     });
     const casoUso = new ReprogramarTurno(
       repositorio,
-      mockConfiguracionRepositorio(),
+      mockEstablecimientoRepositorio(),
     );
 
     await expect(
@@ -91,22 +92,87 @@ describe("ReprogramarTurno", () => {
     ).rejects.toBeInstanceOf(ErrorValidacion);
   });
 
-  it("rechaza mover el turno a un día que el consultorio no atiende", async () => {
+  it("rechaza mover el turno a un día que esa sede no atiende", async () => {
     const repositorio = mockTurnoRepositorio({
       obtenerPorId: vi.fn(async () => turnoEjemplo()),
       obtenerEnFecha: vi.fn(async () => []),
     });
-    const config = ConfiguracionConsultorio.porDefecto().actualizar({
-      diasAtencion: [1],
-    });
+    // La sede solo atiende los lunes: el miércoles deja de ser válido.
+    const sede = establecimientoEjemplo({ diasAtencion: [1] });
     const casoUso = new ReprogramarTurno(
       repositorio,
-      mockConfiguracionRepositorio({ obtener: vi.fn(async () => config) }),
+      mockEstablecimientoRepositorio({
+        obtenerPorId: vi.fn(async () => sede),
+      }),
     );
 
     await expect(
       casoUso.ejecutar({ id: "tur-1", fecha, hora: "11:00" }),
     ).rejects.toBeInstanceOf(ErrorTurnoFueraDeAtencion);
+    expect(repositorio.actualizar).not.toHaveBeenCalled();
+  });
+
+  // --- Cambio de sede -------------------------------------------------------
+
+  it("mueve el turno de establecimiento", async () => {
+    const repositorio = mockTurnoRepositorio({
+      obtenerPorId: vi.fn(async () => turnoEjemplo()),
+      obtenerEnFecha: vi.fn(async () => []),
+    });
+    const destino = establecimientoEjemplo({ nombre: "Barrio" }, "est-9");
+    const casoUso = new ReprogramarTurno(
+      repositorio,
+      mockEstablecimientoRepositorio({
+        obtenerPorId: vi.fn(async () => destino),
+      }),
+    );
+
+    const turno = await casoUso.ejecutar({
+      id: "tur-1",
+      fecha,
+      hora: "11:00",
+      establecimientoId: "est-9",
+    });
+
+    expect(turno.establecimientoId).toBe("est-9");
+  });
+
+  it("sin establecimientoId el turno se queda donde estaba", async () => {
+    const repositorio = mockTurnoRepositorio({
+      obtenerPorId: vi.fn(async () => turnoEjemplo()),
+      obtenerEnFecha: vi.fn(async () => []),
+    });
+    const establecimientos = mockEstablecimientoRepositorio();
+    const casoUso = new ReprogramarTurno(repositorio, establecimientos);
+
+    const turno = await casoUso.ejecutar({ id: "tur-1", fecha, hora: "11:00" });
+
+    expect(turno.establecimientoId).toBe("est-1");
+    // Se consulta igual, pero la del turno: es de donde sale la agenda contra
+    // la que se valida el nuevo horario.
+    expect(establecimientos.obtenerPorId).toHaveBeenCalledWith("est-1");
+  });
+
+  it("rechaza mover el turno a una sede que no existe, sin tocarlo", async () => {
+    const repositorio = mockTurnoRepositorio({
+      obtenerPorId: vi.fn(async () => turnoEjemplo()),
+      obtenerEnFecha: vi.fn(async () => []),
+    });
+    const casoUso = new ReprogramarTurno(
+      repositorio,
+      mockEstablecimientoRepositorio({
+        obtenerPorId: vi.fn(async () => null),
+      }),
+    );
+
+    await expect(
+      casoUso.ejecutar({
+        id: "tur-1",
+        fecha,
+        hora: "11:00",
+        establecimientoId: "est-inventado",
+      }),
+    ).rejects.toBeInstanceOf(ErrorEstablecimientoNoEncontrado);
     expect(repositorio.actualizar).not.toHaveBeenCalled();
   });
 });

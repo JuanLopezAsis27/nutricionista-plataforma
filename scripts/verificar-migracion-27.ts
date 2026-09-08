@@ -58,8 +58,12 @@ async function debeFallar(
   );
 }
 
-async function crearInquilino(nombre: string): Promise<string> {
+/** Inquilino de prueba, con su sede principal (migración 48). */
+async function crearInquilino(
+  nombre: string,
+): Promise<{ id: string; establecimientoId: string }> {
   const id = crypto.randomUUID();
+  const establecimientoId = crypto.randomUUID();
   await ejecutarGlobal(async () => {
     await prisma.nutricionista.create({ data: { id } });
     await prisma.usuario.create({
@@ -71,8 +75,16 @@ async function crearInquilino(nombre: string): Promise<string> {
         rol: "NUTRICIONISTA",
       },
     });
+    await prisma.establecimiento.create({
+      data: {
+        id: establecimientoId,
+        nutricionistaId: id,
+        nombre: "Consultorio principal",
+        esPrincipal: true,
+      },
+    });
   });
-  return id;
+  return { id, establecimientoId };
 }
 
 async function main(): Promise<void> {
@@ -80,8 +92,10 @@ async function main(): Promise<void> {
     throw new Error("Este script solo corre contra la base «verificacion».");
   }
 
-  const nutriA = await crearInquilino("consultorio-a");
-  const nutriB = await crearInquilino("consultorio-b");
+  const { id: nutriA, establecimientoId: sedeA } =
+    await crearInquilino("consultorio-a");
+  const { id: nutriB, establecimientoId: sedeB } =
+    await crearInquilino("consultorio-b");
 
   console.log("\nC-3 · El email del paciente es único POR INQUILINO");
   let pacienteA = "";
@@ -251,6 +265,7 @@ async function main(): Promise<void> {
           id: crypto.randomUUID(),
           nutricionistaId: nutriA,
           pacienteId: pacienteA,
+          establecimientoId: sedeA,
           fecha,
           hora,
           duracionMinutos: 30,
@@ -279,6 +294,7 @@ async function main(): Promise<void> {
             id: crypto.randomUUID(),
             nutricionistaId: nutriB,
             pacienteId: pacienteB,
+            establecimientoId: sedeB,
             fecha,
             hora: "09:00",
             duracionMinutos: 30,

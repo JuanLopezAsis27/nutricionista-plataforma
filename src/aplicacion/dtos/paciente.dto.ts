@@ -27,6 +27,11 @@ export const crearPacienteDto = z.object({
   /** Lo necesita la antropometría; opcional para no frenar el alta rápida. */
   sexo: z.enum(SEXOS_BIOLOGICOS).optional().nullable(),
   notas: z.string().max(1000).optional().nullable(),
+  /**
+   * Dónde suele atenderse. Solo precarga el formulario de turno: el paciente
+   * puede recibir turnos en cualquier sede.
+   */
+  establecimientoHabitualId: z.string().optional().nullable(),
 });
 export type CrearPacienteDto = z.infer<typeof crearPacienteDto>;
 
@@ -79,6 +84,7 @@ export const pacienteSalidaDto = z.object({
   fechaNacimiento: z.date().nullable(),
   sexo: z.enum(SEXOS_BIOLOGICOS).nullable(),
   notas: z.string().nullable(),
+  establecimientoHabitualId: z.string().nullable(),
   archivadoEn: z.date().nullable(),
   motivoArchivado: z.string().nullable(),
   creadoEn: z.date(),

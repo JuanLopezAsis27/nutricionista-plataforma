@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { TurnoSalidaDto } from "@/aplicacion/dtos/turno.dto";
-import { useConfiguracion } from "@/lib/hooks/useConfiguracion";
+import type { EstablecimientoSalidaDto } from "@/aplicacion/dtos/establecimiento.dto";
+import { useSedeActiva } from "@/lib/hooks/useSedeActiva";
+import { agendaUnificada, sedePorDiaDeLaSemana } from "@/lib/sedes";
+import { diaSemanaISO } from "@/lib/agenda";
 import { aFechaISO, hoyArgentinaISO, horaArgentinaHHmm } from "@/lib/formato";
 import { sumarDias, ventanaDeDias } from "@/lib/calendarioSemanal";
 import { Button } from "@/componentes/ui/button";
-import { Skeleton } from "@/componentes/ui/skeleton";
 import { MiniMes } from "@/componentes/turnos/MiniMes";
 import { GrillaSemanal } from "@/componentes/turnos/GrillaSemanal";
 
@@ -32,8 +34,19 @@ const MESES_LARGOS = [
 interface PropsCalendario {
   turnos: TurnoSalidaDto[];
   mapaPacientes: Map<string, string>;
-  /** Click en un hueco libre: abrir el alta con ese día y esa hora. */
-  onAgendar: (fechaISO: string, hora: string) => void;
+  /** Las sedes vigentes, en el orden en que se muestran. */
+  sedes: EstablecimientoSalidaDto[];
+  /** Color por establecimiento, compartido con el selector y la leyenda. */
+  colores: Map<string, string>;
+  /**
+   * Click en un hueco libre: abrir el alta con ese día, esa hora y la sede a
+   * la que pertenece el día.
+   */
+  onAgendar: (
+    fechaISO: string,
+    hora: string,
+    establecimientoId: string,
+  ) => void;
   onReprogramar: (turno: TurnoSalidaDto) => void;
   onGrabar: (turno: TurnoSalidaDto) => void;
 }
@@ -60,12 +73,43 @@ interface PropsCalendario {
 export function CalendarioTurnos({
   turnos,
   mapaPacientes,
+  sedes,
+  colores,
   onAgendar,
   onReprogramar,
   onGrabar,
 }: PropsCalendario) {
-  const { obtener } = useConfiguracion();
-  const configuracion = obtener();
+  // Qué agenda gobierna la grilla: la de la sede elegida, o la UNIÓN de todas
+  // cuando se las mira juntas. La unión no recorta nada —días, horario y paso
+  // son los más amplios de las sedes visibles—, así que ningún turno queda
+  // fuera de la ventana ni un sábado se pinta cerrado porque una sola sede
+  // descansa. `rangoHorarioVisible` ensancha además por los turnos que caigan
+  // fuera del horario declarado.
+  const { sedeActivaId } = useSedeActiva();
+  const sedesVisibles = useMemo(
+    () => (sedeActivaId ? sedes.filter((s) => s.id === sedeActivaId) : sedes),
+    [sedes, sedeActivaId],
+  );
+  const agenda = useMemo(() => agendaUnificada(sedesVisibles), [sedesVisibles]);
+  const unificado = sedesVisibles.length > 1;
+
+  /**
+   * De quién es cada día, cuando se puede decidir. Con una sola sede a la
+   * vista es siempre esa; con varias, solo si comparten horario y duración y
+   * sus días no se pisan. Es lo que decide si se puede agendar clickeando un
+   * hueco (ver `sedePorDiaDeLaSemana`).
+   */
+  const duenaPorDia = useMemo(
+    () => (unificado ? sedePorDiaDeLaSemana(sedesVisibles) : null),
+    [unificado, sedesVisibles],
+  );
+  const sedeDelDia = useCallback(
+    (fechaISO: string) => {
+      if (!unificado) return sedesVisibles[0] ?? null;
+      return duenaPorDia?.get(diaSemanaISO(fechaISO)) ?? null;
+    },
+    [unificado, sedesVisibles, duenaPorDia],
+  );
 
   const hoyISO = hoyArgentinaISO();
   const [anclaISO, setAnclaISO] = useState(hoyISO);
@@ -101,10 +145,6 @@ export function CalendarioTurnos({
     setTurnoAbiertoId(null);
   }
 
-  if (configuracion.isLoading || !configuracion.data) {
-    return <Skeleton className="h-[32rem] w-full" />;
-  }
-
   return (
     <div className="grid gap-4 lg:grid-cols-[13rem_minmax(0,1fr)]">
       <aside className="space-y-3">
@@ -129,9 +169,30 @@ export function CalendarioTurnos({
           onSeleccionar={irA}
         />
         <p className="text-xs text-muted-foreground">
-          Clickeá un día para ver esa semana, un turno para abrir su ficha o un
-          hueco libre para agendar.
+          {unificado && !duenaPorDia
+            ? "Clickeá un día para ver esa semana o un turno para abrir su ficha. Para agendar desde un hueco, elegí un establecimiento: los consultorios comparten días u horarios y el hueco no diría en cuál."
+            : "Clickeá un día para ver esa semana, un turno para abrir su ficha o un hueco libre para agendar."}
         </p>
+
+        {/* La leyenda solo aparece cuando el color significa algo: con una sola
+            sede a la vista, todos los globos serían del mismo color. */}
+        {unificado && (
+          <ul className="space-y-1">
+            {sedesVisibles.map((sede) => (
+              <li
+                key={sede.id}
+                className="flex items-center gap-2 text-xs text-muted-foreground"
+              >
+                <span
+                  aria-hidden
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: colores.get(sede.id) }}
+                />
+                <span className="truncate">{sede.nombre}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </aside>
 
       <div className="space-y-3">
@@ -171,7 +232,10 @@ export function CalendarioTurnos({
           dias={dias}
           turnos={turnos}
           nombrePaciente={nombrePaciente}
-          config={configuracion.data}
+          agenda={agenda}
+          unificado={unificado}
+          colores={colores}
+          sedeDelDia={sedeDelDia}
           hoyISO={hoyISO}
           ahoraHHmm={ahoraHHmm}
           onAgendar={onAgendar}
