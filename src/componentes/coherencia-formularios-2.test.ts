@@ -145,6 +145,9 @@ describe("FormularioReceta vs crearRecetaDto", () => {
 describe("FormularioTurno / FormularioReprogramar vs turno.dto", () => {
   const base = {
     pacienteId: "pac-1",
+    // El formulario SIEMPRE manda la sede (arranca en la activa o la
+    // principal); en el DTO es opcional porque el servidor sabe resolverla.
+    establecimientoId: "est-1",
     fecha: "2026-05-10",
     hora: "10:00",
     duracion: "30",
