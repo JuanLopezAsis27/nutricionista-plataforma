@@ -1,0 +1,39 @@
+# Dependencias del servicio de ML.
+#
+# VERSIONES FIJAS (`==`), no rangos (`>=`).
+#
+# Con `>=`, dos builds de la misma imagen a un mes de distancia instalan
+# versiones distintas: la imagen deja de ser reproducible y un fallo puede venir
+# de un cambio en una dependencia que nadie eligió. Peor: el rollback deja de
+# funcionar, porque volver a la imagen anterior reconstruye con las bibliotecas
+# de hoy, no con las de entonces.
+#
+# Para actualizar (deliberadamente, no por accidente):
+#   pip install -U <paquete> && pip freeze | grep <paquete>
+# y pegá acá la versión resultante.
+
+# --- API ---
+fastapi==0.128.1
+uvicorn[standard]==0.40.0
+pydantic==2.12.5
+
+# Carga el archivo .env en local (uvicorn no lo hace solo).
+python-dotenv==1.2.1
+
+# --- Acceso a datos ---
+# Lectura de la base con el rol de solo lectura (ver db.py).
+psycopg[binary]==3.3.4
+
+# --- Modelos ---
+# Modelos interpretables (regresión de peso, scoring).
+numpy==2.5.1
+
+# Upgrade a modelos entrenados (cuando haya datos etiquetados). Al descomentar,
+# fijá la versión igual que las de arriba.
+# scikit-learn==1.7.2   # abandono / adherencia (clasificación entrenada)
+# pandas==2.3.3         # feature engineering a escala
+# boto3==1.40.47        # descargar imágenes del bucket S3/MinIO (visión propia)
+#
+# xgboost: NO agregar por ahora. A la escala de este proyecto rinde igual que
+# HistGradientBoostingClassifier de scikit-learn, que además maneja nulos de
+# forma nativa y evita el parche de imputación de modelos.py.
