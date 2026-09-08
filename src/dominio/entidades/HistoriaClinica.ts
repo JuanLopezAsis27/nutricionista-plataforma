@@ -5,8 +5,10 @@ export interface CamposHistoriaClinica {
   motivoConsulta: string | null;
   diagnosticos: string | null;
   medicacion: string | null;
-  antecedentesPersonales: string | null;
+  antecedentesDigestivos: string | null;
   antecedentesFamiliares: string | null;
+  entrenamientos: string | null;
+  descanso: string | null;
   habitos: string | null;
   contexto: string | null;
 }
@@ -48,8 +50,10 @@ const CAMPOS_CONTENIDO = [
   "motivoConsulta",
   "diagnosticos",
   "medicacion",
-  "antecedentesPersonales",
+  "antecedentesDigestivos",
   "antecedentesFamiliares",
+  "entrenamientos",
+  "descanso",
   "habitos",
   "contexto",
 ] as const satisfies readonly (keyof CamposHistoriaClinica)[];

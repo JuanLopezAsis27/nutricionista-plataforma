@@ -18,8 +18,10 @@ const CAMPOS = [
   "motivoConsulta",
   "diagnosticos",
   "medicacion",
-  "antecedentesPersonales",
+  "antecedentesDigestivos",
   "antecedentesFamiliares",
+  "entrenamientos",
+  "descanso",
   "habitos",
   "contexto",
 ] as const satisfies readonly (keyof CamposHistoriaClinica)[];
@@ -99,7 +101,7 @@ Reglas generales:
 2. No diagnostiques ni agregues interpretación clínica propia: transcribí y organizá lo que ya está escrito.
 3. Respondé en español, con el texto de cada campo breve y legible (no copies saltos de línea raros del original).
 
-HISTORIA CLÍNICA — un solo bloque, con los campos: motivo de consulta, diagnósticos, medicación, antecedentes personales, antecedentes familiares, hábitos (actividad, sueño, consumo) y contexto (trabajo, horarios, entorno).
+HISTORIA CLÍNICA — un solo bloque, con los campos: motivo de consulta, diagnósticos, medicación/suplementos, antecedentes de enfermedades digestivas/deposiciones, antecedentes familiares, entrenamientos, descanso, hábitos y observaciones, y contexto (trabajo, horarios, entorno).
 
 EVOLUCIONES — UNA POR CONSULTA. Se reconocen porque el documento las encabeza con una FECHA y debajo repite siempre los mismos rótulos. Por ejemplo:
 

@@ -41,10 +41,15 @@ const ETIQUETAS_SEXO: Record<(typeof SEXOS_BIOLOGICOS)[number], string> = {
 const CAMPOS_HISTORIA = [
   { clave: "motivoConsulta", etiqueta: "Motivo de consulta" },
   { clave: "diagnosticos", etiqueta: "Diagnósticos" },
-  { clave: "medicacion", etiqueta: "Medicación" },
-  { clave: "antecedentesPersonales", etiqueta: "Antecedentes personales" },
+  { clave: "medicacion", etiqueta: "Medicación/suplementos" },
+  {
+    clave: "antecedentesDigestivos",
+    etiqueta: "Antecedentes de enfermedades digestivas/deposiciones",
+  },
   { clave: "antecedentesFamiliares", etiqueta: "Antecedentes familiares" },
-  { clave: "habitos", etiqueta: "Hábitos" },
+  { clave: "entrenamientos", etiqueta: "Entrenamientos" },
+  { clave: "descanso", etiqueta: "Descanso" },
+  { clave: "habitos", etiqueta: "Hábitos y observaciones" },
   { clave: "contexto", etiqueta: "Contexto" },
 ] as const;
 

@@ -1135,8 +1135,16 @@ model HistoriaClinica {
   motivoConsulta         String?
   diagnosticos           String?
   medicacion             String?
-  antecedentesPersonales String?
+  /// Antes "antecedentesPersonales" — ver migración 50: se reorientó a
+  /// enfermedades digestivas y deposiciones.
+  antecedentesDigestivos String?
   antecedentesFamiliares String?
+  /// Se separó de `habitos` (migración 50): entrenamiento habitual del
+  /// paciente, distinto del seguimiento consulta a consulta de `Evolucion`.
+  entrenamientos         String?
+  /// Se separó de `habitos` (migración 50): calidad/rutina de descanso de
+  /// base, distinta del seguimiento consulta a consulta de `Evolucion`.
+  descanso               String?
   habitos                String?
   contexto               String?
   /// Valores de los campos personalizados de ESTE paciente, como

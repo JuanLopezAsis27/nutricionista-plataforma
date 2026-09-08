@@ -200,8 +200,10 @@ describe("mapearHistoriaClinica", () => {
     motivoConsulta: "motivo",
     diagnosticos: "diagnosticos",
     medicacion: "medicacion",
-    antecedentesPersonales: "personales",
+    antecedentesDigestivos: "digestivos",
     antecedentesFamiliares: "familiares",
+    entrenamientos: "entrenamientos",
+    descanso: "descanso",
     habitos: "habitos",
     contexto: "contexto",
     creadoEn: new Date("2026-01-05T00:00:00.000Z"),
@@ -209,15 +211,17 @@ describe("mapearHistoriaClinica", () => {
   } as unknown as Parameters<typeof mapearHistoriaClinica>[0];
 
   it("no cruza los campos de texto libre entre sí", () => {
-    // Cinco campos `string | null` consecutivos: el escenario clásico donde un
-    // copiar-pegar deja "antecedentes familiares" dentro de "personales".
+    // Campos `string | null` consecutivos: el escenario clásico donde un
+    // copiar-pegar deja "antecedentes familiares" dentro de "digestivos".
     const datos = mapearHistoriaClinica(fila).aPrimitivos();
 
     expect(datos.motivoConsulta).toBe("motivo");
     expect(datos.diagnosticos).toBe("diagnosticos");
     expect(datos.medicacion).toBe("medicacion");
-    expect(datos.antecedentesPersonales).toBe("personales");
+    expect(datos.antecedentesDigestivos).toBe("digestivos");
     expect(datos.antecedentesFamiliares).toBe("familiares");
+    expect(datos.entrenamientos).toBe("entrenamientos");
+    expect(datos.descanso).toBe("descanso");
     expect(datos.habitos).toBe("habitos");
     expect(datos.contexto).toBe("contexto");
   });
