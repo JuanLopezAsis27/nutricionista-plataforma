@@ -22,6 +22,14 @@ export interface DatosNuevoPaciente {
    */
   sexo?: SexoBiologico | null;
   notas?: string | null;
+  /**
+   * Dónde SUELE atenderse. Es una preferencia, no una pertenencia: precarga el
+   * formulario de turno y nada más. El paciente puede ir a cualquier sede —el
+   * lugar de la consulta vive en `Turno.establecimientoId`—, y por eso la FK
+   * es SET NULL: si la sede se archiva, se pierde la preferencia y no pasa
+   * nada.
+   */
+  establecimientoHabitualId?: string | null;
 }
 
 /** Estado completo de un paciente ya persistido. */
@@ -41,6 +49,7 @@ export interface PropiedadesPaciente {
   fechaNacimiento: Date | null;
   sexo: SexoBiologico | null;
   notas: string | null;
+  establecimientoHabitualId: string | null;
   /** Baja lógica: null = paciente vigente. */
   archivadoEn: Date | null;
   motivoArchivado: string | null;
@@ -102,6 +111,7 @@ export class Paciente {
       fechaNacimiento: datos.fechaNacimiento ?? null,
       sexo: datos.sexo ?? null,
       notas: datos.notas?.trim() || null,
+      establecimientoHabitualId: datos.establecimientoHabitualId ?? null,
       archivadoEn: null,
       motivoArchivado: null,
       creadoEn: ahora,
@@ -136,6 +146,10 @@ export class Paciente {
           : this.props.fechaNacimiento,
       sexo: cambios.sexo !== undefined ? cambios.sexo : this.props.sexo,
       notas: cambios.notas !== undefined ? cambios.notas : this.props.notas,
+      establecimientoHabitualId:
+        cambios.establecimientoHabitualId !== undefined
+          ? cambios.establecimientoHabitualId
+          : this.props.establecimientoHabitualId,
     };
 
     // Reutiliza la validación de `crear` y luego preserva lo que no se edita.
@@ -232,6 +246,9 @@ export class Paciente {
   }
   get notas(): string | null {
     return this.props.notas ?? null;
+  }
+  get establecimientoHabitualId(): string | null {
+    return this.props.establecimientoHabitualId ?? null;
   }
   get creadoEn(): Date {
     return this.props.creadoEn;

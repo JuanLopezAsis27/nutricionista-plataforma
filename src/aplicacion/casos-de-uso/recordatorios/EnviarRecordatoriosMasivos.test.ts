@@ -13,6 +13,7 @@ import {
   mockConfiguracionRecordatoriosRepositorio,
   mockRecordatorioWhatsappRepositorio,
   mockProveedorWhatsapp,
+  mockEstablecimientoRepositorio,
   turnoEjemplo,
   pacienteEjemplo,
   plantillaWhatsappEjemplo,
@@ -51,6 +52,7 @@ function armar(
     mockReloj(),
     mockConfiguracionRecordatoriosRepositorio(),
     "Lic. Nutrición",
+    mockEstablecimientoRepositorio(),
   );
   const recordatorios = mockRecordatorioWhatsappRepositorio({
     porTurnos: vi.fn(async () => opciones.existentes ?? new Map()),
@@ -86,6 +88,7 @@ function armar(
     recordatorios,
     new EnviarRecordatorioWhatsapp(recordatorios, proveedor),
     emailPorTurno,
+    mockEstablecimientoRepositorio(),
   );
   return { caso, recordatorios, proveedor, enviarEmail };
 }

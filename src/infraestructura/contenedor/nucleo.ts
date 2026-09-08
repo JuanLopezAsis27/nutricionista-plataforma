@@ -49,6 +49,7 @@ import { PrismaRepositorioEmailEnviado } from "@/infraestructura/repositorios/Pr
 import { PrismaRepositorioEstadisticas } from "@/infraestructura/repositorios/PrismaRepositorioEstadisticas";
 import { PrismaRepositorioMensajeria } from "@/infraestructura/repositorios/PrismaRepositorioMensajeria";
 import { PrismaRepositorioHistorialIA } from "@/infraestructura/repositorios/PrismaRepositorioHistorialIA";
+import { PrismaRepositorioEstablecimiento } from "@/infraestructura/repositorios/PrismaRepositorioEstablecimiento";
 import { PrismaRepositorioConfiguracion } from "@/infraestructura/repositorios/PrismaRepositorioConfiguracion";
 import { PrismaRepositorioNutricionista } from "@/infraestructura/repositorios/PrismaRepositorioNutricionista";
 import { PrismaRepositorioRecordatorioWhatsapp } from "@/infraestructura/repositorios/PrismaRepositorioRecordatorioWhatsapp";
@@ -235,6 +236,9 @@ export const repositorioHistorialIA = perezoso(
 );
 export const repositorioConfiguracion = perezoso(
   () => new PrismaRepositorioConfiguracion(prisma()),
+);
+export const repositorioEstablecimiento = perezoso(
+  () => new PrismaRepositorioEstablecimiento(prisma()),
 );
 /**
  * Registro de inquilinos: la fila que ahora referencian por FK las 45 tablas
@@ -463,6 +467,8 @@ export const sincronizadorCalendario = perezoso(
       // El sincronizador consulta la config para saber si el medio CALENDARIO
       // está activo y si hay que invitar al paciente al evento.
       repositorioConfiguracionRecordatorios(),
+      // Y la sede, para el `location` del evento.
+      repositorioEstablecimiento(),
     );
   },
 );
@@ -498,6 +504,7 @@ export const provisionadorNutricionista = perezoso(
   () =>
     new ProvisionadorNutricionista(
       repositorioConfiguracion(),
+      repositorioEstablecimiento(),
       repositorioPlantillaEmail(),
       repositorioAxioma(),
       repositorioPlantillaWhatsapp(),

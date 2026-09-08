@@ -2,6 +2,7 @@ import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
 import type { IPlantillaWhatsappRepositorio } from "@/dominio/repositorios/IPlantillaWhatsappRepositorio";
+import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstablecimientoRepositorio";
 import type { IConfiguracionRecordatoriosRepositorio } from "@/dominio/repositorios/IConfiguracionRecordatoriosRepositorio";
 import type { IRecordatorioWhatsappRepositorio } from "@/dominio/repositorios/IRecordatorioWhatsappRepositorio";
 import type { Paciente } from "@/dominio/entidades/Paciente";
@@ -67,6 +68,7 @@ export class EnviarRecordatoriosMasivos {
     private readonly recordatorios: IRecordatorioWhatsappRepositorio,
     private readonly enviarUno: EnviarRecordatorioWhatsapp,
     private readonly enviarEmail: EnviarRecordatoriosPorEmail,
+    private readonly establecimientos: IEstablecimientoRepositorio,
   ) {}
 
   async ejecutar(datos: {
@@ -118,6 +120,16 @@ export class EnviarRecordatoriosMasivos {
     const config =
       (await this.configuracion.obtener()) ??
       ConfiguracionConsultorio.porDefecto();
+    // Todas las sedes en UNA consulta, incluidas las archivadas: un turno viejo
+    // puede ser de una que cerró, y su dirección sigue siendo la que
+    // corresponde a ese turno. Pedirla por turno serían N consultas para un
+    // dato que cambia una vez al año.
+    const sedes = new Map(
+      (await this.establecimientos.listar({ incluirArchivados: true })).map(
+        (sede) => [sede.id, sede],
+      ),
+    );
+
     // Los avisos previos de todos los turnos del lote, en una sola consulta.
     const existentes = await this.recordatorios.porTurnos(datos.turnoIds);
 
@@ -174,6 +186,7 @@ export class EnviarRecordatoriosMasivos {
         paciente,
         plantilla,
         configuracion: config,
+        establecimiento: sedes.get(turno.establecimientoId) ?? null,
         diasAntes: null,
         origen: "MANUAL",
         usuarioId: datos.usuarioId,

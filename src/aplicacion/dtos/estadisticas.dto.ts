@@ -57,6 +57,17 @@ export const estadisticasSalidaDto = z.object({
       completados: z.number(),
     }),
   ),
+  /** Corte por sede del período, de mayor a menor ingreso cobrado. */
+  porEstablecimiento: z.array(
+    z.object({
+      establecimientoId: z.string(),
+      nombre: z.string(),
+      turnos: z.number(),
+      completados: z.number(),
+      ingresoCobrado: z.number(),
+      ingresoPendiente: z.number(),
+    }),
+  ),
   diasAbandono: z.number(),
 });
 export type EstadisticasSalidaDto = z.infer<typeof estadisticasSalidaDto>;

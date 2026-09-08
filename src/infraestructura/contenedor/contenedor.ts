@@ -21,6 +21,7 @@ import * as nucleo from "./nucleo";
 
 import { crearServicioPaciente } from "./modulos/pacientes";
 import { crearServicioTurno } from "./modulos/turnos";
+import { crearServicioEstablecimiento } from "./modulos/establecimientos";
 import { crearServicioWhatsapp } from "./modulos/whatsapp";
 import { crearServicioRecordatorios } from "./modulos/recordatorios";
 import { crearServicioArchivo } from "./modulos/archivos";
@@ -110,6 +111,7 @@ export const servicioRecordatorios = perezoso(() =>
     pacientes: nucleo.repositorioPaciente(),
     configuracion: nucleo.repositorioConfiguracion(),
     plantillas: nucleo.repositorioPlantillaWhatsapp(),
+    establecimientos: nucleo.repositorioEstablecimiento(),
     configRecordatorios: nucleo.repositorioConfiguracionRecordatorios(),
     recordatorios: nucleo.repositorioRecordatorioWhatsapp(),
     mensajes: nucleo.repositorioMensajeWhatsapp(),
@@ -125,11 +127,17 @@ export const servicioRecordatorios = perezoso(() =>
   }),
 );
 
+export const servicioEstablecimiento = perezoso(() =>
+  crearServicioEstablecimiento({
+    establecimientos: nucleo.repositorioEstablecimiento(),
+  }),
+);
+
 export const servicioTurno = perezoso(() =>
   crearServicioTurno({
     turnos: nucleo.repositorioTurno(),
     pacientes: nucleo.repositorioPaciente(),
-    configuracion: nucleo.repositorioConfiguracion(),
+    establecimientos: nucleo.repositorioEstablecimiento(),
     sincronizador: nucleo.sincronizadorCalendario(),
   }),
 );

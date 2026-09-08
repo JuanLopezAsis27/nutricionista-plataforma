@@ -12,18 +12,30 @@ export function formatearFechaCorta(fecha: Date): string {
   return `${dd}/${mm}/${yyyy}`;
 }
 
-/** Variables de un recordatorio de turno concreto. */
+/**
+ * Variables de un recordatorio de turno concreto.
+ *
+ * `establecimiento` y `direccion` pueden venir vacías: una sede sin dirección
+ * cargada es normal, y un consultorio de una sola sede no necesita nombrarla.
+ * Se devuelven como cadena vacía y no se omiten porque `renderizarPlantilla`
+ * tiene que poder reemplazar el placeholder por algo: dejarlo sin reemplazar
+ * mandaría «{{direccion}}» al paciente.
+ */
 export function variablesRecordatorio(datos: {
   nombrePaciente: string;
   fecha: Date;
   hora: string;
   nombreProfesional: string;
+  nombreEstablecimiento?: string | null;
+  direccionEstablecimiento?: string | null;
 }): Record<string, string> {
   return {
     paciente: datos.nombrePaciente,
     fecha: formatearFechaCorta(datos.fecha),
     hora: datos.hora,
     profesional: datos.nombreProfesional,
+    establecimiento: datos.nombreEstablecimiento ?? "",
+    direccion: datos.direccionEstablecimiento ?? "",
   };
 }
 
@@ -37,5 +49,7 @@ export function variablesEjemplo(
     fecha: formatearFechaCorta(hoy),
     hora: "10:00",
     profesional: nombreProfesional,
+    establecimiento: "Consultorio centro",
+    direccion: "Av. Siempreviva 742",
   };
 }

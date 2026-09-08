@@ -36,6 +36,8 @@ import type { IEstadisticasRepositorio } from "@/dominio/repositorios/IEstadisti
 import type { IMensajeriaRepositorio } from "@/dominio/repositorios/IMensajeriaRepositorio";
 import type { IHistorialIARepositorio } from "@/dominio/repositorios/IHistorialIARepositorio";
 import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
+import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstablecimientoRepositorio";
+import { Establecimiento } from "@/dominio/entidades/Establecimiento";
 import type { IPlantillaWhatsappRepositorio } from "@/dominio/repositorios/IPlantillaWhatsappRepositorio";
 import type { IConfiguracionRecordatoriosRepositorio } from "@/dominio/repositorios/IConfiguracionRecordatoriosRepositorio";
 import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
@@ -575,6 +577,7 @@ export function mockEstadisticasRepositorio(
       ingresoCobrado: 0,
       ingresoPendiente: 0,
       serieMensual: [],
+      porEstablecimiento: [],
     })),
     listarPacientes: vi.fn(async () => []),
     ...parcial,
@@ -669,6 +672,41 @@ export function mockConfiguracionRepositorio(
   return {
     obtener: vi.fn(async () => null),
     guardar: vi.fn(async (c: ConfiguracionConsultorio) => c),
+    ...parcial,
+  };
+}
+
+/**
+ * Sede de prueba. Por defecto vigente y principal, que es el estado del
+ * "Consultorio principal" que la migración 48 le creó a cada consultorio: un
+ * caso de uso que no habla de establecimientos tiene que seguir andando.
+ */
+export function establecimientoEjemplo(
+  cambios: Partial<Parameters<typeof Establecimiento.crear>[0]> = {},
+  id = "est-1",
+): Establecimiento {
+  return Establecimiento.crear(
+    { nombre: "Consultorio principal", ...cambios },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  ).marcarPrincipal(true, new Date("2026-07-14T12:00:00Z"));
+}
+
+export function mockEstablecimientoRepositorio(
+  parcial: Partial<IEstablecimientoRepositorio> = {},
+): IEstablecimientoRepositorio {
+  const principal = establecimientoEjemplo();
+  return {
+    obtenerPorId: vi.fn(async (id: string) =>
+      id === principal.id ? principal : null,
+    ),
+    listar: vi.fn(async () => [principal]),
+    obtenerPrincipal: vi.fn(async () => principal),
+    crear: vi.fn(async (e: Establecimiento) => e),
+    actualizar: vi.fn(async (e: Establecimiento) => e),
+    fijarPrincipal: vi.fn(async () => {}),
+    existeNombre: vi.fn(async () => false),
+    tieneTurnos: vi.fn(async () => false),
     ...parcial,
   };
 }

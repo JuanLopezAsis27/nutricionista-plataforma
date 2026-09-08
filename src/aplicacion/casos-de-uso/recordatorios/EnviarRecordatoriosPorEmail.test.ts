@@ -7,6 +7,7 @@ import {
   mockEmailEnviadoRepositorio,
   mockTurnoRepositorio,
   mockPacienteRepositorio,
+  mockEstablecimientoRepositorio,
   mockServicioEmail,
   mockReloj,
   plantillaEmailEjemplo,
@@ -49,6 +50,7 @@ function armar(overrides: {
     mockReloj(),
     mockConfiguracionRecordatoriosRepositorio(),
     PROFESIONAL,
+    mockEstablecimientoRepositorio(),
   );
   return { uc, enviar, registrar };
 }
@@ -125,6 +127,7 @@ describe("EnviarRecordatoriosPorEmail", () => {
       mockReloj(),
       mockConfiguracionRecordatoriosRepositorio(),
       PROFESIONAL,
+      mockEstablecimientoRepositorio(),
     );
 
     const resultado = await uc.ejecutar();
@@ -145,6 +148,7 @@ describe("EnviarRecordatoriosPorEmail", () => {
       mockReloj(),
       mockConfiguracionRecordatoriosRepositorio(),
       PROFESIONAL,
+      mockEstablecimientoRepositorio(),
     );
 
     await expect(uc.ejecutar()).rejects.toBeInstanceOf(

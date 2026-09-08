@@ -4,6 +4,7 @@ import type { Turno } from "@/dominio/entidades/Turno";
 import type { Paciente } from "@/dominio/entidades/Paciente";
 import type { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
 import type { PlantillaWhatsapp } from "@/dominio/entidades/PlantillaWhatsapp";
+import type { Establecimiento } from "@/dominio/entidades/Establecimiento";
 import type { OrigenRecordatorio } from "@/dominio/entidades/RecordatorioWhatsapp";
 import { RecordatorioWhatsapp } from "@/dominio/entidades/RecordatorioWhatsapp";
 import { armarRecordatorio } from "./armadoRecordatorio";
@@ -14,6 +15,12 @@ export interface PedidoRecordatorio {
   paciente: Paciente;
   plantilla: PlantillaWhatsapp;
   configuracion: ConfiguracionConsultorio;
+  /**
+   * El establecimiento del turno, para {{establecimiento}} y {{direccion}}.
+   * Lo resuelve quien arma el lote —en una sola consulta para todos los
+   * turnos—, igual que la configuración y la plantilla.
+   */
+  establecimiento: Establecimiento | null;
   /** Escalón de la programación, o null si es un envío manual. */
   diasAntes: number | null;
   origen: OrigenRecordatorio;
@@ -124,6 +131,7 @@ export class EnviarRecordatorioWhatsapp {
       pedido.paciente,
       pedido.configuracion,
       pedido.plantilla,
+      pedido.establecimiento,
     );
     const texto = pedido.textoManual?.trim() || plantillaArmada.mensaje;
     const armado = {

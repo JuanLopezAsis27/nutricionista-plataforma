@@ -11,6 +11,7 @@ import {
   mockPlantillaWhatsappRepositorio,
   mockConfiguracionRecordatoriosRepositorio,
   mockProveedorWhatsapp,
+  mockEstablecimientoRepositorio,
   turnoEjemplo,
   pacienteEjemplo,
   plantillaWhatsappEjemplo,
@@ -87,6 +88,7 @@ function armar(horasEntreAvisos = 24) {
     mockReloj(),
     mockConfiguracionRecordatoriosRepositorio(),
     "Lic. Nutrición",
+    mockEstablecimientoRepositorio(),
   );
   const recordatorios = repositorioEnMemoria();
   const proveedor = mockProveedorWhatsapp();
@@ -111,6 +113,7 @@ function armar(horasEntreAvisos = 24) {
     recordatorios,
     new EnviarRecordatorioWhatsapp(recordatorios, proveedor),
     emailPorTurno,
+    mockEstablecimientoRepositorio(),
   );
   return { caso, recordatorios };
 }

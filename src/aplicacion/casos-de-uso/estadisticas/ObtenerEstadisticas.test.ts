@@ -21,6 +21,7 @@ describe("ObtenerEstadisticas", () => {
         ingresoCobrado: 120000,
         ingresoPendiente: 30000,
         serieMensual: [{ mes: "2026-07", total: 10, completados: 8 }],
+        porEstablecimiento: [],
       })),
     });
 
@@ -56,6 +57,7 @@ describe("ObtenerEstadisticas", () => {
       ingresoCobrado: 0,
       ingresoPendiente: 0,
       serieMensual: [],
+      porEstablecimiento: [],
     }));
     const repo = mockEstadisticasRepositorio({ obtener });
 

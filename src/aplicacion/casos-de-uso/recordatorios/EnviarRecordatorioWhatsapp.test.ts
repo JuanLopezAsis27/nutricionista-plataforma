@@ -7,6 +7,7 @@ import { RecordatorioWhatsapp } from "@/dominio/entidades/RecordatorioWhatsapp";
 import {
   mockRecordatorioWhatsappRepositorio,
   mockProveedorWhatsapp,
+  establecimientoEjemplo,
   turnoEjemplo,
   pacienteEjemplo,
   configuracionEjemplo,
@@ -38,6 +39,7 @@ function pedidoBase(
     paciente: pacienteEjemplo({ telefono: "1155554444" }),
     plantilla: plantillaWhatsappEjemplo(),
     configuracion: configuracionEjemplo(),
+    establecimiento: establecimientoEjemplo(),
     diasAntes: null,
     origen: "MANUAL",
     usuarioId: "user-1",

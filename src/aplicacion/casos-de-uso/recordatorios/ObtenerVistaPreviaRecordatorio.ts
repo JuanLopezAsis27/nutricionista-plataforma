@@ -2,6 +2,7 @@ import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
 import type { IPlantillaWhatsappRepositorio } from "@/dominio/repositorios/IPlantillaWhatsappRepositorio";
+import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstablecimientoRepositorio";
 import type { IProveedorWhatsapp } from "@/dominio/servicios/IProveedorWhatsapp";
 import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
 import { ErrorTurnoNoEncontrado } from "@/dominio/errores/ErrorTurnoNoEncontrado";
@@ -44,6 +45,7 @@ export class ObtenerVistaPreviaRecordatorio {
     private readonly configuracion: IConfiguracionRepositorio,
     private readonly plantillas: IPlantillaWhatsappRepositorio,
     private readonly proveedor: IProveedorWhatsapp,
+    private readonly establecimientos: IEstablecimientoRepositorio,
   ) {}
 
   async ejecutar(
@@ -70,7 +72,20 @@ export class ObtenerVistaPreviaRecordatorio {
       (await this.configuracion.obtener()) ??
       ConfiguracionConsultorio.porDefecto();
 
-    const armado = armarRecordatorio(turno, paciente, config, plantilla);
+    // La sede del turno alimenta {{establecimiento}} y {{direccion}}. Se pide
+    // por id y no del listado vigente: un turno viejo puede ser de una sede
+    // archivada, y su dirección sigue siendo la correcta para ese turno.
+    const establecimiento = await this.establecimientos.obtenerPorId(
+      turno.establecimientoId,
+    );
+
+    const armado = armarRecordatorio(
+      turno,
+      paciente,
+      config,
+      plantilla,
+      establecimiento,
+    );
 
     return {
       turnoId: turno.id,

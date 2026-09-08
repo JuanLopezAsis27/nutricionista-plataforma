@@ -12,6 +12,7 @@ import {
   mockConfiguracionRecordatoriosRepositorio,
   mockRecordatorioWhatsappRepositorio,
   mockProveedorWhatsapp,
+  mockEstablecimientoRepositorio,
   turnoEjemplo,
   pacienteEjemplo,
   plantillaWhatsappEjemplo,
@@ -102,8 +103,10 @@ function armar(
         ),
       }),
       "Lic. Nutrición",
+      mockEstablecimientoRepositorio(),
     ),
     { ahora: () => AHORA, hoy: () => HOY },
+    mockEstablecimientoRepositorio(),
   );
   return { caso, recordatorios, proveedor, enviarEmail };
 }

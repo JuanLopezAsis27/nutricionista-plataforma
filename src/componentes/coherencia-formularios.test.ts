@@ -46,6 +46,8 @@ describe("FormularioPaciente vs crearPacienteConAccesoDto", () => {
     telefono: "",
     fechaNacimiento: "",
     sexo: "FEMENINO" as const,
+    // El formulario siempre manda un valor: el id de la sede o SIN_SEDE.
+    establecimientoHabitualId: "SIN_SEDE",
     notas: "",
   };
 

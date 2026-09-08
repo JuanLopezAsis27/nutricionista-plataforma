@@ -15,6 +15,7 @@ import {
   mockConfiguracionRepositorio,
   mockPlantillaWhatsappRepositorio,
   mockProveedorWhatsapp,
+  mockEstablecimientoRepositorio,
   mockMaterialRepositorio,
   mockMetricaDispositivoRepositorio,
   pacienteEjemplo,
@@ -146,6 +147,7 @@ describe("ObtenerVistaPreviaRecordatorio", () => {
         ),
       }),
       mockProveedorWhatsapp({ modoActual: vi.fn(async () => "API" as const) }),
+      mockEstablecimientoRepositorio(),
     );
   }
 
@@ -176,6 +178,7 @@ describe("ObtenerVistaPreviaRecordatorio", () => {
       mockConfiguracionRepositorio(),
       mockPlantillaWhatsappRepositorio(),
       mockProveedorWhatsapp(),
+      mockEstablecimientoRepositorio(),
     );
 
     await expect(caso.ejecutar("tur-inexistente")).rejects.toThrow();
