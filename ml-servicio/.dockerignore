@@ -1,0 +1,21 @@
+# Bytecode y cachés (se regeneran dentro de la imagen).
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Entorno y secretos: llegan por variables de entorno, nunca copiados.
+.env
+.env.*
+
+# Entornos virtuales locales.
+.venv/
+venv/
+
+# Artefactos de modelos: hoy no hay ninguno, pero cuando existan van a ser
+# grandes y deben entrar de forma explícita, no por arrastre de un COPY .
+artefactos/
+
+# Documentación.
+*.md

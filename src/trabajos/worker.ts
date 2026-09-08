@@ -14,6 +14,7 @@
 import { PgBoss } from "pg-boss";
 import { registrarTrabajos } from "./registrarTrabajos";
 import { describirDestinoEmail } from "@/infraestructura/email/destinoEmail";
+import { monitorErrores } from "@/infraestructura/monitoreo/monitor";
 
 async function principal(): Promise<void> {
   const url = process.env.DATABASE_URL;
@@ -24,6 +25,11 @@ async function principal(): Promise<void> {
   const boss = new PgBoss(url);
   boss.on("error", (error) => {
     console.error("[worker] error de pg-boss:", error);
+    // Además del log, va al monitor (consola estructurada + webhook). El worker
+    // no tiene a nadie mirando una pantalla: si sus fallos sólo quedan en
+    // `docker logs`, no se entera nadie hasta que un paciente avisa que no le
+    // llegó el recordatorio.
+    monitorErrores.capturar(error, { origen: "worker", ruta: "pg-boss" });
   });
 
   await boss.start();

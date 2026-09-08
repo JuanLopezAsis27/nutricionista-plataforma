@@ -86,7 +86,6 @@ import { InterpretadorMedicionesLLM } from "@/infraestructura/ia/InterpretadorMe
 import { ResolvedorConfigIA } from "@/infraestructura/ia/ResolvedorConfigIA";
 import { ResolvedorTranscripcion } from "@/infraestructura/ia/ResolvedorTranscripcion";
 import { ResumidorConsultaLLM } from "@/infraestructura/ia/ResumidorConsultaLLM";
-import { TraductorIngredientesIA } from "@/infraestructura/ia/TraductorIngredientesIA";
 import { obtenerConfigML } from "@/infraestructura/ml/configML";
 import { ClienteML } from "@/infraestructura/ml/clienteML";
 import { AnalisisPredictivoHTTP } from "@/infraestructura/ml/AnalisisPredictivoHTTP";
@@ -97,11 +96,6 @@ import type { IAnalisisComidaIA } from "@/dominio/servicios/IAnalisisComidaIA";
 import { obtenerConfigNutricion } from "@/infraestructura/nutricion/configNutricion";
 import { ProveedorOpenFoodFacts } from "@/infraestructura/nutricion/ProveedorOpenFoodFacts";
 import { ProveedorNutricionNulo } from "@/infraestructura/nutricion/ProveedorNutricionNulo";
-import { obtenerConfigFatSecret } from "@/infraestructura/nutricion/configFatSecret";
-import { ClienteFatSecret } from "@/infraestructura/nutricion/ClienteFatSecret";
-import { ProveedorNutricionApp } from "@/infraestructura/nutricion/ProveedorNutricionApp";
-import { obtenerConfigNutricionServicio } from "@/infraestructura/nutricion/configNutricionServicio";
-import { ProveedorNutricionHTTP } from "@/infraestructura/nutricion/ProveedorNutricionHTTP";
 import { ProveedorNutricionPropio } from "@/infraestructura/nutricion/ProveedorNutricionPropio";
 import { ProveedorNutricionDespachador } from "@/infraestructura/nutricion/ProveedorNutricionDespachador";
 import type { IProveedorDatosNutricionales } from "@/dominio/servicios/IProveedorDatosNutricionales";
@@ -298,7 +292,7 @@ const cifradorCredenciales = perezoso(() =>
 /**
  * Credenciales de integración por profesional: repo cifrado que resuelve la
  * clave del inquilino POR REQUEST. Así el profesional carga su propia clave
- * de Claude o FatSecret desde la app.
+ * de Claude, de transcripción o de WhatsApp desde la app.
  */
 export const repositorioCredenciales = perezoso(
   () => new PrismaRepositorioCredenciales(prisma(), cifradorCredenciales()),
@@ -410,34 +404,21 @@ export const analisisPredictivo = perezoso(() => {
 
 /**
  * Cadena de proveedores, de más específico a más genérico:
- *   alimentos propios del profesional → microservicio → FatSecret →
- *   Open Food Facts → nulo.
+ *   alimentos propios del profesional → Open Food Facts → nulo.
  * Cada eslabón degrada al siguiente en vez de romper la búsqueda.
+ *
+ * Antes había dos eslabones más en el medio, un microservicio en Go y FatSecret,
+ * ambos eliminados. Open Food Facts es gratuito y no necesita credenciales, así
+ * que la búsqueda sigue funcionando sin configurar nada.
  */
 export const proveedorNutricion = perezoso((): IProveedorDatosNutricionales => {
   const configNutricion = obtenerConfigNutricion();
-  const respaldo = configNutricion
+  const externo: IProveedorDatosNutricionales = configNutricion
     ? new ProveedorOpenFoodFacts(configNutricion)
     : new ProveedorNutricionNulo();
 
-  const local = new ProveedorNutricionApp(
-    repositorioCredenciales(),
-    new ClienteFatSecret(),
-    respaldo,
-    obtenerConfigFatSecret(),
-    // Traduce ES↔EN con la clave de Claude del profesional (si la cargó).
-    new TraductorIngredientesIA(resolvedorIA()),
-  );
-
-  // Si hay un microservicio de nutrición (Go/Lambda) configurado, es el
-  // primario (traduce y filtra afuera) con el local como respaldo.
-  const configServicio = obtenerConfigNutricionServicio();
-  const externo: IProveedorDatosNutricionales = configServicio
-    ? new ProveedorNutricionHTTP(configServicio, local)
-    : local;
-
-  // Si el nutricionista cargó su Excel, la búsqueda usa SU lista y desactiva
-  // FatSecret. El despachador decide por request.
+  // Si el nutricionista cargó su Excel, la búsqueda usa SU lista y no sale a
+  // internet. El despachador decide por request.
   return new ProveedorNutricionDespachador(
     new ProveedorNutricionPropio(repositorioAlimentoPropio()),
     externo,

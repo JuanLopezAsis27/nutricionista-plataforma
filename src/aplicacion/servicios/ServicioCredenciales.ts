@@ -22,9 +22,6 @@ export class ServicioCredenciales {
       proveedorIA: c?.proveedorIA ?? "ANTHROPIC",
       anthropicConfigurado: Boolean(c?.anthropicApiKey),
       anthropicModelo: c?.anthropicModelo ?? null,
-      fatsecretConfigurado: Boolean(
-        c?.fatsecretClientId && c?.fatsecretClientSecret,
-      ),
       whatsappConfigurado: Boolean(
         c?.whatsappToken && c?.whatsappPhoneNumberId,
       ),

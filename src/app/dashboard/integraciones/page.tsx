@@ -33,7 +33,7 @@ const MENSAJES_ERROR: Record<string, string> = {
  *
  * WhatsApp vive acá y no en Configuración porque conectar la Cloud API es
  * exactamente eso: dar de alta un servicio externo con sus credenciales, igual
- * que Google o FatSecret. Lo que quedó en Configuración es lo que sí es del
+ * que Google. Lo que quedó en Configuración es lo que sí es del
  * consultorio: cómo se normalizan los teléfonos de los pacientes.
  */
 export default function PaginaIntegraciones() {

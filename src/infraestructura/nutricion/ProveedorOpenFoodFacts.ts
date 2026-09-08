@@ -1,8 +1,10 @@
 import type {
   IProveedorDatosNutricionales,
   AlimentoNutricional,
+  CriterioAlimentos,
 } from "@/dominio/servicios/IProveedorDatosNutricionales";
 import type { ConfigNutricion } from "./configNutricion";
+import { filtrarAlimentos } from "./filtrarAlimentos";
 
 /** Forma (parcial) de un producto en la respuesta de Open Food Facts. */
 interface ProductoOFF {
@@ -29,7 +31,16 @@ const TIEMPO_LIMITE_MS = 7000;
 export class ProveedorOpenFoodFacts implements IProveedorDatosNutricionales {
   constructor(private readonly config: ConfigNutricion) {}
 
-  async buscar(termino: string, limite = 10): Promise<AlimentoNutricional[]> {
+  /**
+   * `criterio` filtra los resultados (ver filtrarAlimentos). Antes lo aplicaba
+   * el proveedor intermedio que envolvía a FatSecret; al eliminarse esa
+   * integración, el filtro se aplica acá para no perderlo.
+   */
+  async buscar(
+    termino: string,
+    limite = 10,
+    criterio?: CriterioAlimentos,
+  ): Promise<AlimentoNutricional[]> {
     const consulta = termino.trim();
     if (consulta.length < 2) return [];
 
@@ -52,10 +63,10 @@ export class ProveedorOpenFoodFacts implements IProveedorDatosNutricionales {
       if (!respuesta.ok) return [];
       const datos = (await respuesta.json()) as RespuestaBusquedaOFF;
       const productos = datos.products ?? [];
-      return productos
+      const alimentos = productos
         .map((p) => this.mapear(p))
-        .filter((a): a is AlimentoNutricional => a !== null)
-        .slice(0, limite);
+        .filter((a): a is AlimentoNutricional => a !== null);
+      return filtrarAlimentos(alimentos, criterio).slice(0, limite);
     } catch {
       // Red caída, timeout o JSON inválido → sin resultados (se carga a mano).
       return [];

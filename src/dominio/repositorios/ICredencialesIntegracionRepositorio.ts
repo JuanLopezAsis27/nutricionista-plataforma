@@ -24,8 +24,6 @@ export interface CredencialesIntegracion {
   proveedorIA: ProveedorIA | null;
   anthropicApiKey: string | null;
   anthropicModelo: string | null;
-  fatsecretClientId: string | null;
-  fatsecretClientSecret: string | null;
   /** WhatsApp Cloud API (Meta). Sin token + phoneNumberId todo cae al enlace wa.me. */
   whatsappToken: string | null;
   whatsappPhoneNumberId: string | null;
@@ -48,8 +46,6 @@ export interface DatosCredenciales {
   proveedorIA?: ProveedorIA;
   anthropicApiKey?: string | null;
   anthropicModelo?: string | null;
-  fatsecretClientId?: string | null;
-  fatsecretClientSecret?: string | null;
   whatsappToken?: string | null;
   whatsappPhoneNumberId?: string | null;
   whatsappVerifyToken?: string | null;
@@ -74,7 +70,6 @@ export interface DatosCredenciales {
 export const INTEGRACIONES_CREDENCIALES = [
   "IA",
   "TRANSCRIPCION",
-  "FATSECRET",
   "WHATSAPP",
 ] as const;
 export type IntegracionCredenciales =

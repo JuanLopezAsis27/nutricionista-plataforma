@@ -6,7 +6,7 @@ import {
 
 /**
  * Router de credenciales de integración (solo NUTRICIONISTA). Deja cargar la
- * clave de Claude y las de FatSecret desde la app; `estado` no revela secretos.
+ * clave de Claude y las de WhatsApp desde la app; `estado` no revela secretos.
  */
 export const routerCredenciales = crearRouter({
   estado: nutricionistaProcedimiento.query(async ({ ctx }) => {

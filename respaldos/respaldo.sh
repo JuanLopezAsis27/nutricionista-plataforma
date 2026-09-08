@@ -31,8 +31,60 @@
 set -eu
 
 marca=$(date +%Y%m%d-%H%M%S)
+inicio=$(date +%s)
 dir_db="/respaldos/db"
+dir_metricas="${DIR_METRICAS:-/metricas}"
 mkdir -p "$dir_db"
+
+# --- Interruptor de hombre muerto -------------------------------------------
+#
+# El fallo que importa no es "el respaldo dio error": es "el respaldo no corrió".
+# Un proceso muerto no reporta errores, así que vigilar fallos no lo detecta
+# nunca. La única forma de verlo es alertar por ANTIGÜEDAD de la última corrida
+# exitosa, y para eso hay que dejar registrado cuándo fue.
+#
+# Se escriben dos archivos en el directorio del *textfile collector* de
+# node_exporter, que Prometheus levanta junto con el resto de las métricas del
+# host:
+#
+#   respaldo_exito.prom      sólo se reescribe cuando el respaldo TERMINA BIEN.
+#                            Es el que se consulta por antigüedad; si un
+#                            respaldo falla, este archivo conserva la fecha del
+#                            último éxito real, que es justo el dato que hace
+#                            falta para saber cuánto hace que no hay copia.
+#   respaldo_resultado.prom  se reescribe en cada corrida (1 = ok, 0 = falló).
+#
+# La escritura es atómica (archivo temporal + mv): node_exporter lee el
+# directorio de forma concurrente y una lectura a medio escribir produce
+# métricas corruptas.
+#
+# Si el directorio no está montado (todavía no instalaste node_exporter), estas
+# funciones no hacen nada y el respaldo sigue igual.
+_escribir_metrica() {
+  # $1 = nombre de archivo, $2 = contenido
+  [ -d "$dir_metricas" ] || return 0
+  printf '%s\n' "$2" > "$dir_metricas/.$1.tmp" 2>/dev/null || return 0
+  mv "$dir_metricas/.$1.tmp" "$dir_metricas/$1" 2>/dev/null || return 0
+}
+
+_registrar_resultado() {
+  # $1 = 1 (éxito) | 0 (fallo)
+  _escribir_metrica "respaldo_resultado.prom" \
+"# HELP nutricionista_respaldo_ultimo_resultado Resultado de la ultima corrida (1=ok, 0=fallo).
+# TYPE nutricionista_respaldo_ultimo_resultado gauge
+nutricionista_respaldo_ultimo_resultado $1"
+}
+
+# En sh no existe `trap ERR`; se usa EXIT y se mira el código de salida. Con
+# `set -e`, cualquier comando que falle aborta el script y pasa por acá.
+_al_salir() {
+  estado=$?
+  if [ "$estado" -ne 0 ]; then
+    _registrar_resultado 0
+    echo "[respaldo] $(date '+%F %T') — FALLÓ (código de salida $estado)" >&2
+  fi
+}
+trap _al_salir EXIT
 
 echo "[respaldo] $(date '+%F %T') — iniciando"
 
@@ -81,4 +133,22 @@ find "$dir_db" -name '*.dump' -mtime "+${RETENCION_DIAS:-14}" -delete
 find "$dir_db" -name '*.dump.gpg' -mtime "+${RETENCION_DIAS:-14}" -delete
 mc rm --recursive --force --older-than "${RETENCION_DIAS:-14}d" "ovh/$OVH_S3_BUCKET/db/" >/dev/null 2>&1 || true
 
-echo "[respaldo] $(date '+%F %T') — completado"
+# 7. Registro del éxito para el interruptor de hombre muerto.
+#    Va al final a propósito: sólo cuenta como respaldo válido el que llegó
+#    hasta acá, es decir el que además de volcar la base la subió a OVH. Un dump
+#    que quedó en el disco del VPS no protege de que el VPS se muera.
+fin=$(date +%s)
+tamano=$(stat -c %s "$archivo" 2>/dev/null || echo 0)
+_escribir_metrica "respaldo_exito.prom" \
+"# HELP nutricionista_respaldo_ultimo_exito_timestamp Epoch del ultimo respaldo completado y subido.
+# TYPE nutricionista_respaldo_ultimo_exito_timestamp gauge
+nutricionista_respaldo_ultimo_exito_timestamp $fin
+# HELP nutricionista_respaldo_duracion_segundos Duracion del ultimo respaldo exitoso.
+# TYPE nutricionista_respaldo_duracion_segundos gauge
+nutricionista_respaldo_duracion_segundos $((fin - inicio))
+# HELP nutricionista_respaldo_tamano_bytes Tamano del ultimo volcado subido.
+# TYPE nutricionista_respaldo_tamano_bytes gauge
+nutricionista_respaldo_tamano_bytes $tamano"
+_registrar_resultado 1
+
+echo "[respaldo] $(date '+%F %T') — completado en $((fin - inicio))s"

@@ -21,7 +21,7 @@ import { Skeleton } from "@/componentes/ui/skeleton";
 
 /**
  * Importa un Excel/CSV de alimentos con sus macros. Si hay una lista cargada, la
- * búsqueda de ingredientes usa ESA lista y FatSecret queda desactivado.
+ * búsqueda de ingredientes usa ESA lista y no se consulta ninguna API externa.
  */
 export function ImportadorAlimentos() {
   const { estado, importar, importando, vaciar } = useAlimentosPropios();
@@ -36,7 +36,7 @@ export function ImportadorAlimentos() {
     try {
       const importados = await importar(archivo);
       toast.success(
-        `${importados} alimentos importados. FatSecret queda desactivado.`,
+        `${importados} alimentos importados. La búsqueda usa solo tu lista.`,
       );
     } catch (err) {
       const mensaje =
@@ -67,9 +67,8 @@ export function ImportadorAlimentos() {
         <p className="text-sm text-muted-foreground">
           Subí un <strong>Excel (.xlsx) o CSV</strong> con tus alimentos e
           insumos y sus macros. Si cargás una lista, la búsqueda de ingredientes
-          usa <strong>solo esa lista</strong> y se{" "}
-          <strong>desactiva FatSecret</strong> (no se consulta ninguna API
-          externa).
+          usa <strong>solo esa lista</strong> y{" "}
+          <strong>no se consulta ninguna API externa</strong>.
         </p>
         <p className="text-xs text-muted-foreground">
           Columnas esperadas (con encabezado, en cualquier orden):{" "}
@@ -94,9 +93,9 @@ export function ImportadorAlimentos() {
               <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 p-2 text-sm">
                 <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
                 <span>
-                  Tenés <strong>{e.cantidad}</strong> alimentos cargados.
-                  FatSecret está desactivado. Volvé a subir un archivo para
-                  reemplazar la lista.
+                  Tenés <strong>{e.cantidad}</strong> alimentos cargados. La
+                  búsqueda usa solo tu lista. Volvé a subir un archivo para
+                  reemplazarla.
                 </span>
               </div>
             )}

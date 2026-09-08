@@ -20,7 +20,12 @@ export const itemComidaSemanalDto = z.object({
   proteinasPor100: macroPor100,
   carbohidratosPor100: macroPor100,
   grasasPor100: macroPor100,
-  /** De dónde salieron los macros: "OFF", "FATSECRET", "PROPIO", "MANUAL". */
+  /**
+   * De dónde salieron los macros: "OFF", "PROPIO", "MANUAL".
+   *
+   * Las filas viejas pueden traer "FATSECRET": esa integración se eliminó, pero
+   * el valor sigue existiendo en los planes ya guardados y no se reescribe.
+   */
   fuente: z.string().max(40).optional().nullable(),
   referenciaExterna: z.string().max(200).optional().nullable(),
 });

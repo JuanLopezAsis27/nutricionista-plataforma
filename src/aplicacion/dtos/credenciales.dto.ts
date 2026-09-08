@@ -28,8 +28,6 @@ export const guardarCredencialesDto = z.object({
   proveedorIA: z.enum(PROVEEDORES_IA).optional(),
   anthropicApiKey: z.string().max(300).optional(),
   anthropicModelo: z.string().max(120).optional(),
-  fatsecretClientId: z.string().max(300).optional(),
-  fatsecretClientSecret: z.string().max(300).optional(),
   // WhatsApp Cloud API (Meta).
   whatsappToken: z.string().max(500).optional(),
   whatsappPhoneNumberId: z.string().max(60).optional(),
@@ -62,7 +60,6 @@ export const estadoCredencialesDto = z.object({
   proveedorIA: z.enum(PROVEEDORES_IA),
   anthropicConfigurado: z.boolean(),
   anthropicModelo: z.string().nullable(),
-  fatsecretConfigurado: z.boolean(),
   /** true = el inquilino puede enviar y recibir por la API oficial. */
   whatsappConfigurado: z.boolean(),
   /** El phone_number_id no es secreto: se muestra para verificar el alta en Meta. */

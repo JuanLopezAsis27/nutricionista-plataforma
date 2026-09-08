@@ -114,7 +114,7 @@ Lo que no puede es importar funciones ni casos de uso.
 
 **Dónde va cada pantalla de configuración**, que se movió más de una vez:
 Integraciones son SERVICIOS EXTERNOS con credenciales (Google, WhatsApp Cloud
-API, IA, FatSecret). Configuración es lo que describe al CONSULTORIO (horarios,
+API, IA). Configuración es lo que describe al CONSULTORIO (horarios,
 membrete, PDF, prefijo telefónico, plantillas de email que no son
 recordatorios). Recordatorios es la tarea de avisar turnos, completa. La
 pregunta que separa las tres: ¿esto es dar de alta algo de afuera, describir el
