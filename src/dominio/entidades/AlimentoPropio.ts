@@ -23,7 +23,7 @@ export interface DatosNuevoAlimentoPropio {
 
 /**
  * Entidad de dominio AlimentoPropio: un alimento/insumo que el nutricionista
- * cargó desde su propia planilla, con macros por 100 g. Reemplaza a FatSecret
+ * cargó desde su propia planilla, con macros por 100 g. Reemplaza a la búsqueda externa
  * cuando el inquilino tiene una lista cargada. TypeScript puro (sin Prisma).
  *
  * Invariantes: nombre obligatorio; macros no negativas (si vienen).

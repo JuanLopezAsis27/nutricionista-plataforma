@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import {
   Bot,
-  Utensils,
   CheckCircle2,
   Circle,
   Mic,
@@ -34,8 +33,8 @@ type ProveedorTranscripcion = "OPENAI" | "OPENROUTER";
 
 /**
  * Carga de credenciales de integraciones del profesional: la clave de Claude
- * (chat del paciente + análisis de foto de comida) y las de FatSecret (macros de
- * ingredientes). Los secretos se guardan cifrados y nunca se muestran de vuelta.
+ * (chat del paciente + análisis de foto de comida), la de voz a texto y las de
+ * WhatsApp. Los secretos se guardan cifrados y nunca se muestran de vuelta.
  */
 export function FormularioCredenciales() {
   const { estado, guardar } = useCredenciales();
@@ -45,8 +44,6 @@ export function FormularioCredenciales() {
   const [proveedor, setProveedor] = useState<ProveedorIA>("ANTHROPIC");
   const [claudeKey, setClaudeKey] = useState("");
   const [modelo, setModelo] = useState("");
-  const [fatId, setFatId] = useState("");
-  const [fatSecret, setFatSecret] = useState("");
 
   // Voz a texto de las grabaciones de consulta.
   const [proveedorVoz, setProveedorVoz] =
@@ -97,16 +94,6 @@ export function FormularioCredenciales() {
       anthropicModelo: modelo.trim() || undefined,
     });
     setClaudeKey("");
-  }
-
-  function guardarFatSecret() {
-    if (!fatId.trim() || !fatSecret.trim()) return;
-    guardar.mutate({
-      fatsecretClientId: fatId.trim(),
-      fatsecretClientSecret: fatSecret.trim(),
-    });
-    setFatId("");
-    setFatSecret("");
   }
 
   function guardarVoz() {
@@ -215,69 +202,6 @@ export function FormularioCredenciales() {
               type="button"
               disabled={guardar.isPending}
               onClick={guardarClaude}
-            >
-              Guardar
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* FatSecret */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center justify-between gap-2 text-base">
-            <span className="flex items-center gap-2">
-              <Utensils className="h-5 w-5 text-primary" /> Ingredientes
-              (FatSecret)
-            </span>
-            <Estado activo={e.fatsecretConfigurado} />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Trae los macros de los ingredientes desde FatSecret Platform (OAuth
-            2.0: <strong>Client ID</strong> + <strong>Client Secret</strong>{" "}
-            desde su portal). <strong>Importante:</strong> FatSecret exige
-            habilitar la IP de tu servidor en la cuenta (
-            <em>IP Restrictions</em>); si no, no devuelve datos. Su base está en
-            inglés: con la clave de Claude cargada arriba, la búsqueda y los
-            resultados se traducen al español automáticamente. Sin credenciales
-            de FatSecret se usa Open Food Facts (gratis).
-          </p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="fatId">Client ID</Label>
-              <Input
-                id="fatId"
-                autoComplete="off"
-                placeholder={e.fatsecretConfigurado ? "•••• configurado" : ""}
-                value={fatId}
-                onChange={(ev) => setFatId(ev.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="fatSecret">Client Secret</Label>
-              <Input
-                id="fatSecret"
-                type="password"
-                autoComplete="off"
-                placeholder={e.fatsecretConfigurado ? "•••• configurado" : ""}
-                value={fatSecret}
-                onChange={(ev) => setFatSecret(ev.target.value)}
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <EliminarCredenciales
-              integracion="FATSECRET"
-              nombre="FatSecret"
-              consecuencia="La búsqueda de ingredientes vuelve a Open Food Facts."
-              configurada={e.fatsecretConfigurado}
-            />
-            <Button
-              type="button"
-              disabled={guardar.isPending || !fatId.trim() || !fatSecret.trim()}
-              onClick={guardarFatSecret}
             >
               Guardar
             </Button>

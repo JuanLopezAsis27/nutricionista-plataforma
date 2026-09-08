@@ -257,6 +257,11 @@ enum ProveedorCuenta {
 enum ProveedorIntegracion {
   ANTHROPIC
   OPENROUTER
+  /// OBSOLETO. La integración con FatSecret se eliminó y ningún código escribe
+  /// ni lee este valor. Se conserva en el enum a propósito: PostgreSQL no
+  /// permite quitar un valor de un tipo enumerado —hay que recrear el tipo—, y
+  /// pueden existir filas de credenciales guardadas con él. Quitarlo requiere
+  /// una migración deliberada que primero borre esas filas.
   FATSECRET
   WHATSAPP
   OPENAI
@@ -988,7 +993,7 @@ model RetroalimentacionInsight {
 
 /// Alimento/insumo cargado por el nutricionista desde un Excel/CSV. Si el
 /// inquilino tiene al menos uno, la búsqueda de ingredientes usa SU lista y se
-/// desactiva FatSecret. Macros por 100 g. Tenant-scoped por nutricionistaId.
+/// desactiva la búsqueda externa. Macros por 100 g. Tenant-scoped por nutricionistaId.
 model AlimentoPropio {
   id                  String        @id @default(uuid(4))
   nutricionistaId     String
@@ -1734,7 +1739,9 @@ model ItemComidaSemanal {
   proteinasPor100     Decimal? @db.Decimal(7, 2)
   carbohidratosPor100 Decimal? @db.Decimal(7, 2)
   grasasPor100        Decimal? @db.Decimal(7, 2)
-  fuente              String? // "OFF" | "FATSECRET" | "PROPIO" | "MANUAL"
+  /// "OFF" | "PROPIO" | "MANUAL". Las filas viejas pueden traer "FATSECRET":
+  /// esa integración se eliminó, pero el valor persiste en los planes guardados.
+  fuente              String?
   referenciaExterna   String?
   orden               Int      @default(0)
 

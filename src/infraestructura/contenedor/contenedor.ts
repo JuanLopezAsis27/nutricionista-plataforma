@@ -224,7 +224,7 @@ export const servicioNutricion = perezoso(() =>
   }),
 );
 
-/** Alimentos propios del profesional (su Excel), que desplazan a FatSecret. */
+/** Alimentos propios del profesional (su Excel), que desplazan a Open Food Facts. */
 export const servicioAlimentosPropios = perezoso(
   () =>
     new ServicioAlimentosPropios(
@@ -336,7 +336,7 @@ export const servicioDeportivo = perezoso(() =>
   }),
 );
 
-/** Credenciales de integración del profesional (clave de Claude / FatSecret). */
+/** Credenciales de integración del profesional (Claude, voz a texto, WhatsApp). */
 export const servicioCredenciales = perezoso(() =>
   crearServicioCredenciales({
     credenciales: nucleo.repositorioCredenciales(),

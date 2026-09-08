@@ -75,7 +75,12 @@ export interface ItemDeComidaSemanal {
   proteinasPor100: number | null;
   carbohidratosPor100: number | null;
   grasasPor100: number | null;
-  /** De dónde salieron los macros: "OFF", "FATSECRET", "PROPIO", "MANUAL". */
+  /**
+   * De dónde salieron los macros: "OFF", "PROPIO", "MANUAL".
+   *
+   * Las filas viejas pueden traer "FATSECRET": esa integración se eliminó, pero
+   * el valor sigue existiendo en los planes ya guardados y no se reescribe.
+   */
   fuente: string | null;
   referenciaExterna: string | null;
   orden: number;

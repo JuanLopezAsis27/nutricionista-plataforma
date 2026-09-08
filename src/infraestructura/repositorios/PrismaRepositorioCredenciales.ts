@@ -76,10 +76,6 @@ const CLAVES_DE_INTEGRACION: Record<IntegracionCredenciales, RefCredencial[]> =
       { proveedor: "OPENAI", clave: CLAVE_TRANSCRIPCION },
       { proveedor: "OPENROUTER", clave: CLAVE_TRANSCRIPCION },
     ],
-    FATSECRET: [
-      { proveedor: "FATSECRET", clave: "CLIENT_ID" },
-      { proveedor: "FATSECRET", clave: "CLIENT_SECRET" },
-    ],
     WHATSAPP: [
       { proveedor: "WHATSAPP", clave: "TOKEN" },
       WHATSAPP_PHONE_NUMBER_ID,
@@ -134,8 +130,6 @@ export class PrismaRepositorioCredenciales implements ICredencialesIntegracionRe
       // La clave de IA se guarda bajo el proveedor elegido.
       anthropicApiKey: leer(proveedorIA, "API_KEY"),
       anthropicModelo: preferencias?.modeloIA ?? null,
-      fatsecretClientId: leer("FATSECRET", "CLIENT_ID"),
-      fatsecretClientSecret: leer("FATSECRET", "CLIENT_SECRET"),
       whatsappToken: leer("WHATSAPP", "TOKEN"),
       whatsappPhoneNumberId: leer("WHATSAPP", "PHONE_NUMBER_ID"),
       whatsappVerifyToken: leer("WHATSAPP", "VERIFY_TOKEN"),
@@ -172,11 +166,6 @@ export class PrismaRepositorioCredenciales implements ICredencialesIntegracionRe
 
     const cambios: [RefCredencial, string | null | undefined][] = [
       [{ proveedor: proveedorIA, clave: "API_KEY" }, datos.anthropicApiKey],
-      [{ proveedor: "FATSECRET", clave: "CLIENT_ID" }, datos.fatsecretClientId],
-      [
-        { proveedor: "FATSECRET", clave: "CLIENT_SECRET" },
-        datos.fatsecretClientSecret,
-      ],
       [{ proveedor: "WHATSAPP", clave: "TOKEN" }, datos.whatsappToken],
       [WHATSAPP_PHONE_NUMBER_ID, datos.whatsappPhoneNumberId],
       [WHATSAPP_VERIFY_TOKEN, datos.whatsappVerifyToken],

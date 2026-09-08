@@ -11,6 +11,6 @@ export interface IAlimentoPropioRepositorio {
   buscar(termino: string, limite: number): Promise<AlimentoPropio[]>;
   /** Cantidad de alimentos cargados por el inquilino. */
   contar(): Promise<number>;
-  /** Borra toda la lista del inquilino (reactiva FatSecret/OFF). */
+  /** Borra toda la lista del inquilino (reactiva Open Food Facts). */
   vaciar(): Promise<void>;
 }

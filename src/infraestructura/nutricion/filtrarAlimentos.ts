@@ -6,7 +6,7 @@ import type {
 /**
  * Filtra alimentos según el criterio del nutricionista. Espejo de `filtro.go`
  * del servicio Go: se usa en el proveedor local (cuando la app resuelve
- * FatSecret/OFF directo, sin el servicio Go). Un criterio `undefined` no filtra.
+ * Open Food Facts). Un criterio `undefined` no filtra.
  */
 export function filtrarAlimentos(
   alimentos: AlimentoNutricional[],

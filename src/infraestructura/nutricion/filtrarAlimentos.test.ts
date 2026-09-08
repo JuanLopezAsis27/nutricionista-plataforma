@@ -10,7 +10,7 @@ function alimento(p: Partial<AlimentoNutricional>): AlimentoNutricional {
     nombre: "Genérico",
     marca: null,
     referenciaExterna: null,
-    fuente: "FATSECRET",
+    fuente: "OFF",
     caloriasPor100: 100,
     proteinasPor100: 10,
     carbohidratosPor100: 10,

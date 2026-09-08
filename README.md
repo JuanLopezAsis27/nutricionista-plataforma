@@ -63,7 +63,7 @@ Verificación de referencia: `tsc` estricto limpio, **362 tests** (Vitest),
 | **PDF**                 | @react-pdf/renderer (planes nutricionales con membrete)                         |
 | **IA**                  | Anthropic SDK (Claude: chat + visión) detrás de puertos, con degradación a stub |
 | **ML**                  | Microservicio Python (FastAPI) detrás de puertos HTTP, con fallback             |
-| **Datos nutricionales** | FatSecret / Open Food Facts / Excel propio del nutri (exceljs)                  |
+| **Datos nutricionales** | Open Food Facts / Excel propio del nutri (exceljs)                              |
 | **Mobile**              | Capacitor (Android/iOS) + HealthKit/Health Connect (wearables)                  |
 | **Testing**             | Vitest (casos de uso con repos mock)                                            |
 | **Infra dev**           | Docker Compose (Postgres + MinIO + Mailpit)                                     |
@@ -235,14 +235,13 @@ Auth por credenciales (email + password con bcrypt), sesión JWT. El middleware
 | **SMTP (Mailpit/real)**                  | Bienvenida, recordatorios, recuperación de contraseña   | Sin envío de mails                 |
 | **Claude (Anthropic)**                   | Asistente del paciente + análisis de foto de comida     | Cae al **stub** de demostración    |
 | **Microservicio ML (Python)**            | Insights predictivos (abandono, adherencia, peso)       | Cae al **stub**                    |
-| **FatSecret**                            | Datos nutricionales de ingredientes                     | Cae a **Open Food Facts**          |
-| **`nutricion-servicio` (Go)**            | Traduce/filtra FatSecret ES↔EN                          | Cae al proveedor local             |
-| **Excel de alimentos**                   | El nutri sube su propia base de macros                  | Usa FatSecret/OFF                  |
+| **Open Food Facts**                      | Datos nutricionales de ingredientes                     | Carga manual de macros             |
+| **Excel de alimentos**                   | El nutri sube su propia base de macros                  | Usa Open Food Facts                |
 | **Google Calendar + Gmail**              | Sync de turnos y envío desde la casilla del profesional | SMTP + sin sync                    |
 | **Webhook de monitoreo**                 | Avisos de error (Slack/Discord)                         | Solo logs de consola               |
 | **Capacitor + HealthKit/Health Connect** | Métricas de wearables (opt-in por día)                  | App web normal                     |
 
-Las claves de Claude/FatSecret se cargan **por profesional** desde la app
+Las claves de Claude, voz a texto y WhatsApp se cargan **por profesional** desde la app
 (cifradas por inquilino) y se resuelven por request. Config general por
 variables de entorno (ver `.env.example`).
 
@@ -334,6 +333,5 @@ prisma/              # schema + 39 migraciones + seed
 docs/                # despliegue, mobile, wearables, whatsapp, recordatorios,
                      # agenda de turnos, planes nutricionales
 ml-servicio/         # microservicio ML (Python/FastAPI) — repo poliglota aparte
-nutricion-servicio/  # intermediario FatSecret (Go) — aparte
 android/             # proyecto Capacitor
 ```

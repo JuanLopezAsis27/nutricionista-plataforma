@@ -383,7 +383,8 @@ async function main(): Promise<void> {
           proveedorIA: "OPENROUTER",
           anthropicApiKey: "sk-secreta",
           anthropicModelo: "modelo-x",
-          fatsecretClientId: "fs-id",
+          proveedorTranscripcion: "OPENAI",
+          transcripcionApiKey: "voz-secreta",
           whatsappToken: "wa-token",
           whatsappPhoneNumberId: "111222333",
           whatsappAppSecret: "app-secret",
@@ -404,8 +405,8 @@ async function main(): Promise<void> {
         throw new Error("se perdió el proveedor");
       if (l.anthropicModelo !== "modelo-x")
         throw new Error("se perdió el modelo");
-      if (l.fatsecretClientId !== "fs-id")
-        throw new Error("se perdió FatSecret");
+      if (l.transcripcionApiKey !== "voz-secreta")
+        throw new Error("se perdió la clave de voz");
       if (l.whatsappPhoneNumberId !== "111222333")
         throw new Error("se perdió el número");
       if (l.criterios.maxCaloriasPor100 !== 500)
@@ -467,7 +468,9 @@ async function main(): Promise<void> {
         credenciales.obtener(),
       );
       if (l?.whatsappToken !== null) throw new Error("el token no se borró");
-      if (l.fatsecretClientId !== "fs-id") throw new Error("se borró de más");
+      // Otro proveedor distinto: borrar el token de WhatsApp no debe tocarlo.
+      if (l.transcripcionApiKey !== "voz-secreta")
+        throw new Error("se borró de más");
     },
   );
 
@@ -477,7 +480,7 @@ async function main(): Promise<void> {
       prisma.credencialProveedor.create({
         data: {
           nutricionistaId: nutriB,
-          proveedor: "FATSECRET",
+          proveedor: "OPENAI",
           clave: "CLAVE_INVENTADA",
           valor: "x",
         },

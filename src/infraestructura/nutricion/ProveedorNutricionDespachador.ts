@@ -7,9 +7,8 @@ import type { IAlimentoPropioRepositorio } from "@/dominio/repositorios/IAliment
 
 /**
  * Despachador de la búsqueda de ingredientes: si el inquilino cargó su propia
- * lista de alimentos (Excel), la usa EXCLUSIVAMENTE y NO consulta FatSecret /
- * el servicio Go / Open Food Facts. Si la lista está vacía, delega en el
- * proveedor externo (FatSecret con degradación a OFF).
+ * lista de alimentos (Excel), la usa EXCLUSIVAMENTE y NO sale a internet. Si la
+ * lista está vacía, delega en el proveedor externo (Open Food Facts).
  */
 export class ProveedorNutricionDespachador implements IProveedorDatosNutricionales {
   constructor(
