@@ -1,8 +1,7 @@
-import type { ConfiguracionSalidaDto } from "@/aplicacion/dtos/configuracion.dto";
 import type { EstadoTurno } from "@/dominio/entidades/Turno";
 
 /**
- * Disponibilidad de la agenda del consultorio, del lado de la pantalla.
+ * Disponibilidad de la agenda de un establecimiento, del lado de la pantalla.
  *
  * La regla dura vive en el dominio (`servicios/agendaConsultorio` +
  * `AgendarTurno`): esto NO la reemplaza, la anticipa. El servidor sigue
@@ -16,6 +15,22 @@ import type { EstadoTurno } from "@/dominio/entidades/Turno";
  */
 
 export type MotivoNoDisponible = "ocupado" | "pasado" | "cierra";
+
+/**
+ * Lo que este módulo necesita saber de una agenda, y nada más.
+ *
+ * Es una forma estructural y no `EstablecimientoSalidaDto` a propósito: acá
+ * solo se calculan franjas, y atarlo al DTO completo obligaría a cada llamador
+ * —y a cada test— a inventar un nombre, una dirección y un color que no se
+ * usan. El establecimiento la cumple; cualquier futura agenda también.
+ */
+export interface AgendaVigente {
+  diasAtencion: ReadonlyArray<number>;
+  atencionHoraDesde: string | null;
+  atencionHoraHasta: string | null;
+  turnoDuracionMinutos: number;
+  turnoPasoMinutos: number;
+}
 
 export interface FranjaAgenda {
   hora: string;
@@ -66,19 +81,19 @@ export function diaSemanaISO(fechaISO: string): number {
   return new Date(`${fechaISO}T00:00:00Z`).getUTCDay();
 }
 
-/** ¿El consultorio atiende ese día? Lista vacía = sin restricción. */
+/** ¿Se atiende ese día en esa sede? Lista vacía = sin restricción. */
 export function esDiaDeAtencion(
-  config: ConfiguracionSalidaDto,
+  agenda: AgendaVigente,
   fechaISO: string,
 ): boolean {
-  if (config.diasAtencion.length === 0) return true;
-  return config.diasAtencion.includes(diaSemanaISO(fechaISO));
+  if (agenda.diasAtencion.length === 0) return true;
+  return agenda.diasAtencion.includes(diaSemanaISO(fechaISO));
 }
 
-/** Nombres de los días que el consultorio atiende, para el texto de ayuda. */
-export function diasDeAtencionEnTexto(config: ConfiguracionSalidaDto): string {
-  if (config.diasAtencion.length === 0) return "todos los días";
-  const ordenados = [...config.diasAtencion].sort((a, b) => a - b);
+/** Nombres de los días que esa sede atiende, para el texto de ayuda. */
+export function diasDeAtencionEnTexto(agenda: AgendaVigente): string {
+  if (agenda.diasAtencion.length === 0) return "todos los días";
+  const ordenados = [...agenda.diasAtencion].sort((a, b) => a - b);
   return ordenados
     .map((d) => NOMBRES_DIA[d] ?? "")
     .filter(Boolean)
@@ -86,25 +101,25 @@ export function diasDeAtencionEnTexto(config: ConfiguracionSalidaDto): string {
 }
 
 /**
- * Primera fecha (YYYY-MM-DD) desde `desdeISO` inclusive en la que el
- * consultorio atiende. Busca hasta dos semanas: con siete días alcanza para
- * cualquier configuración no vacía, y el margen cubre el caso raro.
+ * Primera fecha (YYYY-MM-DD) desde `desdeISO` inclusive en la que esa sede
+ * atiende. Busca hasta dos semanas: con siete días alcanza para cualquier
+ * configuración no vacía, y el margen cubre el caso raro.
  */
 export function proximoDiaDeAtencion(
-  config: ConfiguracionSalidaDto,
+  agenda: AgendaVigente,
   desdeISO: string,
 ): string {
   let fecha = new Date(`${desdeISO}T00:00:00Z`);
   for (let intento = 0; intento < 14; intento += 1) {
     const iso = fecha.toISOString().slice(0, 10);
-    if (esDiaDeAtencion(config, iso)) return iso;
+    if (esDiaDeAtencion(agenda, iso)) return iso;
     fecha = new Date(fecha.getTime() + 24 * 60 * 60 * 1000);
   }
   return desdeISO;
 }
 
 interface ParametrosDisponibilidad {
-  config: ConfiguracionSalidaDto;
+  agenda: AgendaVigente;
   /** Fecha elegida (YYYY-MM-DD). */
   fechaISO: string;
   /** Duración de la consulta a agendar: define si el turno entra antes de cerrar. */
@@ -120,7 +135,7 @@ interface ParametrosDisponibilidad {
 
 /** Estado de cada franja horaria del día elegido. */
 export function franjasDelDia({
-  config,
+  agenda,
   fechaISO,
   duracionMinutos,
   ocupados,
@@ -128,9 +143,9 @@ export function franjasDelDia({
   ahoraHHmm,
   excluirTurnoId,
 }: ParametrosDisponibilidad): FranjaAgenda[] {
-  const paso = config.turnoPasoMinutos;
-  const desde = aMinutos(config.atencionHoraDesde ?? "08:00");
-  const hasta = aMinutos(config.atencionHoraHasta ?? "20:00");
+  const paso = agenda.turnoPasoMinutos;
+  const desde = aMinutos(agenda.atencionHoraDesde ?? "08:00");
+  const hasta = aMinutos(agenda.atencionHoraHasta ?? "20:00");
 
   // Rangos [inicio, fin) que ya están tomados ese día. Los cancelados liberan
   // el horario (misma regla que el dominio) y el turno propio no se cuenta.

@@ -476,19 +476,6 @@ describe("mapearConfiguracion", () => {
     expect(datos.pdfMostrarRecomendaciones).toBe(false);
   });
 
-  it("no cruza duracion con paso, ni hora de inicio con la de fin", () => {
-    // turnoDuracionMinutos (cuanto dura un turno) y turnoPasoMinutos (cada
-    // cuanto arranca uno) son dos numeros de minutos distintos: cruzarlos
-    // deforma toda la grilla de la agenda.
-    const datos = mapearConfiguracion(fila).aPrimitivos();
-
-    expect(datos.turnoDuracionMinutos).toBe(45);
-    expect(datos.turnoPasoMinutos).toBe(15);
-    expect(datos.atencionHoraDesde).toBe("08:00");
-    expect(datos.atencionHoraHasta).toBe("18:00");
-    expect(datos.diasAtencion).toEqual([1, 2, 3, 4, 5]);
-  });
-
   it("copia los datos de marca del profesional", () => {
     const datos = mapearConfiguracion(fila).aPrimitivos();
 

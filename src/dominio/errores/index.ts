@@ -31,6 +31,7 @@ export { ErrorAxiomaNoEncontrado } from "./ErrorAxiomaNoEncontrado";
 export { ErrorRecordatorioNoEncontrado } from "./ErrorRecordatorioNoEncontrado";
 export { ErrorPlantillaWhatsappNoEncontrada } from "./ErrorPlantillaWhatsappNoEncontrada";
 export { ErrorTurnoFueraDeAtencion } from "./ErrorTurnoFueraDeAtencion";
+export { ErrorEstablecimientoNoEncontrado } from "./ErrorEstablecimientoNoEncontrado";
 export { ErrorPlanDuplicado } from "./ErrorPlanDuplicado";
 export { ErrorGrupoPlanNoEncontrado } from "./ErrorGrupoPlanNoEncontrado";
 export { ErrorGrupoPlanDuplicado } from "./ErrorGrupoPlanDuplicado";

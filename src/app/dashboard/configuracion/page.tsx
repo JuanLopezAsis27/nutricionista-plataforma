@@ -8,6 +8,7 @@ import {
   TabsContent,
 } from "@/componentes/ui/tabs";
 import { FormularioConfiguracion } from "@/componentes/configuracion/FormularioConfiguracion";
+import { GestionEstablecimientos } from "@/componentes/configuracion/GestionEstablecimientos";
 import { FormularioPdfPlan } from "@/componentes/configuracion/FormularioPdfPlan";
 import { FormularioWhatsapp } from "@/componentes/configuracion/FormularioWhatsapp";
 import { GestionAxiomas } from "@/componentes/configuracion/GestionAxiomas";
@@ -15,7 +16,7 @@ import { GestionPlantillasEmail } from "@/componentes/configuracion/GestionPlant
 import { GestionCamposHistoriaClinica } from "@/componentes/configuracion/GestionCamposHistoriaClinica";
 import { GestionCamposEvolucion } from "@/componentes/configuracion/GestionCamposEvolucion";
 
-/** Configuración del consultorio: turnos, membrete y base de conocimiento. */
+/** Configuración del consultorio: establecimientos, membrete y base de conocimiento. */
 export default function PaginaConfiguracion() {
   return (
     <div className="space-y-6">
@@ -31,7 +32,8 @@ export default function PaginaConfiguracion() {
 
       <Tabs defaultValue="general">
         <TabsList>
-          <TabsTrigger value="general">Turnos y membrete</TabsTrigger>
+          <TabsTrigger value="general">Membrete</TabsTrigger>
+          <TabsTrigger value="establecimientos">Establecimientos</TabsTrigger>
           <TabsTrigger value="pdf">PDF del plan</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="emails">Plantillas de email</TabsTrigger>
@@ -42,6 +44,10 @@ export default function PaginaConfiguracion() {
 
         <TabsContent value="general">
           <FormularioConfiguracion />
+        </TabsContent>
+
+        <TabsContent value="establecimientos">
+          <GestionEstablecimientos />
         </TabsContent>
 
         <TabsContent value="pdf">

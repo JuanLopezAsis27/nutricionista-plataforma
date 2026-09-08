@@ -43,6 +43,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/DASHBOARD.md`          | Qué muestra la pantalla de inicio y por qué           |
 | `docs/PORTAL-PACIENTE.md`    | Las pantallas del paciente y por qué están así       |
 | `docs/AGENDA.md`             | Días y horarios de atención; dónde vive la regla      |
+| `docs/ESTABLECIMIENTOS.md`   | Varias sedes: qué es del lugar y qué del profesional  |
 | `docs/CALENDARIO-TURNOS.md`  | La vista de calendario: grilla semanal y globos       |
 | `docs/RECORDATORIOS.md`      | Los tres medios de aviso y su política única          |
 | `docs/PLANES.md`             | Modalidades, archivos, carpetas e historial           |
@@ -114,9 +115,10 @@ Lo que no puede es importar funciones ni casos de uso.
 
 **Dónde va cada pantalla de configuración**, que se movió más de una vez:
 Integraciones son SERVICIOS EXTERNOS con credenciales (Google, WhatsApp Cloud
-API, IA). Configuración es lo que describe al CONSULTORIO (horarios,
-membrete, PDF, prefijo telefónico, plantillas de email que no son
-recordatorios). Recordatorios es la tarea de avisar turnos, completa. La
+API, IA). Configuración es lo que describe al CONSULTORIO (membrete, PDF,
+prefijo telefónico, plantillas de email que no son recordatorios) y, en su
+propia pestaña, los ESTABLECIMIENTOS, que son los lugares donde se atiende y
+cada uno lleva su agenda (días, horario, duración y paso del turno). Recordatorios es la tarea de avisar turnos, completa. La
 pregunta que separa las tres: ¿esto es dar de alta algo de afuera, describir el
 consultorio, o hacer una tarea?
 

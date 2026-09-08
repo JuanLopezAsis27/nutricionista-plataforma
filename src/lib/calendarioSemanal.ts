@@ -1,5 +1,5 @@
 import type { TurnoSalidaDto } from "@/aplicacion/dtos/turno.dto";
-import type { ConfiguracionSalidaDto } from "@/aplicacion/dtos/configuracion.dto";
+import type { AgendaVigente } from "@/lib/agenda";
 import { aMinutos } from "@/lib/agenda";
 
 /**
@@ -97,14 +97,11 @@ export function ventanaDeDias(anclaISO: string, cantidad: number): string[] {
  * pantalla sin ningún aviso, que es la peor forma de perder un turno.
  */
 export function rangoHorarioVisible(
-  config: Pick<
-    ConfiguracionSalidaDto,
-    "atencionHoraDesde" | "atencionHoraHasta"
-  >,
+  agenda: Pick<AgendaVigente, "atencionHoraDesde" | "atencionHoraHasta">,
   turnos: ReadonlyArray<TurnoSalidaDto>,
 ): { desdeMinutos: number; hastaMinutos: number } {
-  let desde = aMinutos(config.atencionHoraDesde ?? "08:00");
-  let hasta = aMinutos(config.atencionHoraHasta ?? "20:00");
+  let desde = aMinutos(agenda.atencionHoraDesde ?? "08:00");
+  let hasta = aMinutos(agenda.atencionHoraHasta ?? "20:00");
 
   for (const turno of turnos) {
     const inicio = aMinutos(turno.hora);

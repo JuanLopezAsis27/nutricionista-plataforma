@@ -1,16 +1,14 @@
 import { describe, it, expect } from "vitest";
-import type { ConfiguracionSalidaDto } from "@/aplicacion/dtos/configuracion.dto";
 import {
   franjasDelDia,
+  type AgendaVigente,
   esDiaDeAtencion,
   proximoDiaDeAtencion,
   diaSemanaISO,
 } from "./agenda";
 
-/** Configuración base: lunes a viernes, 09:00–11:00, paso de 30 minutos. */
-function config(
-  cambios: Partial<ConfiguracionSalidaDto> = {},
-): ConfiguracionSalidaDto {
+/** Agenda base de una sede: lunes a viernes, 09:00–11:00, paso de 30 min. */
+function agenda(cambios: Partial<AgendaVigente> = {}): AgendaVigente {
   return {
     turnoDuracionMinutos: 30,
     turnoPasoMinutos: 30,
@@ -18,7 +16,7 @@ function config(
     atencionHoraHasta: "11:00",
     diasAtencion: [1, 2, 3, 4, 5],
     ...cambios,
-  } as ConfiguracionSalidaDto;
+  };
 }
 
 // 2026-07-01 es miércoles; 2026-07-04, sábado.
@@ -26,7 +24,7 @@ const MIERCOLES = "2026-07-01";
 const SABADO = "2026-07-04";
 
 const base = {
-  config: config(),
+  agenda: agenda(),
   fechaISO: MIERCOLES,
   duracionMinutos: 30,
   ocupados: [],
@@ -40,18 +38,18 @@ describe("agenda", () => {
     expect(diaSemanaISO(SABADO)).toBe(6);
   });
 
-  it("reconoce los días que el consultorio no atiende", () => {
-    expect(esDiaDeAtencion(config(), MIERCOLES)).toBe(true);
-    expect(esDiaDeAtencion(config(), SABADO)).toBe(false);
+  it("reconoce los días que la sede no atiende", () => {
+    expect(esDiaDeAtencion(agenda(), MIERCOLES)).toBe(true);
+    expect(esDiaDeAtencion(agenda(), SABADO)).toBe(false);
   });
 
   it("trata la lista vacía de días como «sin restricción»", () => {
-    expect(esDiaDeAtencion(config({ diasAtencion: [] }), SABADO)).toBe(true);
+    expect(esDiaDeAtencion(agenda({ diasAtencion: [] }), SABADO)).toBe(true);
   });
 
   it("salta al próximo día de atención", () => {
-    expect(proximoDiaDeAtencion(config(), SABADO)).toBe("2026-07-06"); // lunes
-    expect(proximoDiaDeAtencion(config(), MIERCOLES)).toBe(MIERCOLES);
+    expect(proximoDiaDeAtencion(agenda(), SABADO)).toBe("2026-07-06"); // lunes
+    expect(proximoDiaDeAtencion(agenda(), MIERCOLES)).toBe(MIERCOLES);
   });
 
   it("apaga la franja que no termina antes de cerrar", () => {

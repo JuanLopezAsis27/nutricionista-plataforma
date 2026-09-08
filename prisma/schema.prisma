@@ -2244,17 +2244,16 @@ enum OperadorAxioma {
 
 /// Configuración del consultorio: UNA FILA POR INQUILINO (no una fila única
 /// global, como decía este comentario antes: la unicidad es sobre
-/// `nutricionistaId`). Reemplaza
-/// los valores incrustados (ej. duración de turno por defecto) y guarda el
-/// membrete del profesional para PDF/emails.
+/// `nutricionistaId`). Guarda lo que describe al PROFESIONAL —membrete,
+/// matrícula, logo, apariencia del PDF—, no al lugar.
+///
+/// La agenda (días y horarios de atención, duración y paso del turno) vivió
+/// acá hasta la migración 49 y ahora está en `Establecimiento`: describe al
+/// LUGAR, y con una sola copia no se podía decir "lunes y miércoles en el
+/// centro, martes y jueves en el barrio".
 model ConfiguracionConsultorio {
   id                        String        @id @default(uuid(4))
   nutricionistaId           String        @unique
-  turnoDuracionMinutos      Int           @default(30)
-  turnoPasoMinutos          Int           @default(15)
-  atencionHoraDesde         String? // HH:mm
-  atencionHoraHasta         String? // HH:mm
-  diasAtencion              Int[] // 0=domingo … 6=sábado
   nombreProfesional         String?
   matricula                 String?
   logoArchivoId             String?

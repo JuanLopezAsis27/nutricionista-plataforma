@@ -1,7 +1,13 @@
-# Agenda del consultorio
+# Agenda del establecimiento
 
 Qué días y a qué horas se pueden dar turnos, y por qué esa regla vive donde
 vive.
+
+> **La agenda es del LUGAR, no del consultorio.** Hasta la migración 49 estos
+> campos vivían en `ConfiguracionConsultorio`, uno por profesional. Con dos
+> sedes eso no alcanza: "lunes y miércoles en el centro, martes y jueves en el
+> barrio" necesita una agenda por establecimiento. La regla y su semántica no
+> cambiaron; cambió de quién es. Ver `docs/ESTABLECIMIENTOS.md`.
 
 ## El problema que resuelve
 
@@ -25,16 +31,22 @@ ofrecía horarios que iba a rechazar.
 En el **dominio**, en un solo lugar, y la pantalla la anticipa.
 
 ```
-ConfiguracionConsultorio.atiendeEl(fecha)        ← ¿se atiende ese día?
-ConfiguracionConsultorio.admiteHorario(hora, min) ← ¿entra completo en el horario?
+Establecimiento.atiendeEl(fecha)         ← ¿se atiende ese día EN ESA SEDE?
+Establecimiento.admiteHorario(hora, min) ← ¿entra completo en su horario?
         ↑
 dominio/servicios/agendaConsultorio.ts
-  verificarDentroDeLaAgenda(configuracion, { fecha, hora, duracionMinutos })
+  verificarDentroDeLaAgenda(establecimiento, { fecha, hora, duracionMinutos })
         ↑                        ↑
    AgendarTurno          ReprogramarTurno
+   (sede resuelta)       (sede donde QUEDA el turno)
         ↑                        ↑
         └── src/lib/agenda.ts (franjasDelDia) → FormularioTurno / FormularioReprogramar
 ```
+
+`verificarDentroDeLaAgenda` recibe la **entidad ya resuelta**, no un
+repositorio: quién decide en qué sede cae el turno es el caso de uso —la
+elegida, o la principal— y acá solo se la compara. Es también lo que la volvió
+síncrona.
 
 `src/lib/agenda.ts` **no** es la regla: es su anticipo en pantalla. Apaga de
 antemano las opciones que el servidor iba a rechazar. El servidor las rechaza
@@ -49,7 +61,7 @@ un domingo. Duplicarla en los dos deja que uno se olvide al cambiarla.
 
 ### 1. Día de atención
 
-`diasAtencion` es un array de `0..6` (0 = domingo). Se lee **en UTC**
+`diasAtencion` es un array de `0..6` (0 = domingo), **por establecimiento**. Se lee **en UTC**
 (`fecha.getUTCDay()`), no en el huso del navegador ni del servidor: `Turno.fecha`
 es un `DATE` de Postgres y llega como medianoche UTC. Con `getDay()`, en
 cualquier zona al oeste de Greenwich —la nuestra— un turno del lunes se leería
@@ -112,8 +124,12 @@ dos reglas se rompió y dónde se cambia.
 ## Al tocar esto
 
 - Una regla nueva de agenda va en `agendaConsultorio.ts` y en
-  `ConfiguracionConsultorio`, **no** en un caso de uso: si entra en uno solo,
-  el otro camino queda abierto.
+  `Establecimiento`, **no** en un caso de uso: si entra en uno solo, el otro
+  camino queda abierto.
+- La pantalla y el servidor tienen que resolver **la misma sede**, o el
+  formulario ofrece horarios que el servidor rechaza. Por eso
+  `ObtenerEstablecimientoVigente` (que consume `establecimientos.vigente`)
+  repite exactamente el fallback de `AgendarTurno`.
 - El espejo de pantalla vive en `src/lib/agenda.ts` y tiene sus propios tests
   (`src/lib/agenda.test.ts`). Si cambia la regla del dominio, hay que cambiar
   las dos —son dos capas, no una duplicación por descuido— y los tests de

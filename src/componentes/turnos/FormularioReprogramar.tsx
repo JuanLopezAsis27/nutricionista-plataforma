@@ -6,9 +6,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { CalendarOff } from "lucide-react";
 import type { TurnoSalidaDto } from "@/aplicacion/dtos/turno.dto";
-import type { ConfiguracionSalidaDto } from "@/aplicacion/dtos/configuracion.dto";
+import type { EstablecimientoSalidaDto } from "@/aplicacion/dtos/establecimiento.dto";
 import { useTurnos } from "@/lib/hooks/useTurnos";
-import { useConfiguracion } from "@/lib/hooks/useConfiguracion";
+import { useEstablecimientos } from "@/lib/hooks/useEstablecimientos";
 import { aFechaISO, hoyArgentinaISO, horaArgentinaHHmm } from "@/lib/formato";
 import {
   franjasDelDia,
@@ -66,19 +66,26 @@ interface PropsFormularioReprogramar {
  * chocar consigo mismo.
  */
 export function FormularioReprogramar(props: PropsFormularioReprogramar) {
-  const { obtener } = useConfiguracion();
-  const consulta = obtener();
-  if (consulta.isLoading || !consulta.data) {
+  // La agenda que manda es la de la sede DEL TURNO, no la vigente: si se lo
+  // agendó en el consultorio del barrio, moverlo tiene que respetar los días y
+  // el horario de ahí. Se piden también las archivadas porque un turno viejo
+  // puede apuntar a una sede que ya cerró.
+  const { listar } = useEstablecimientos();
+  const consulta = listar({ incluirArchivados: true });
+  const sede = consulta.data?.find(
+    (e) => e.id === props.turno.establecimientoId,
+  );
+  if (consulta.isLoading || !sede) {
     return <Skeleton className="h-64 w-full" />;
   }
-  return <FormularioReprogramarInterno {...props} config={consulta.data} />;
+  return <FormularioReprogramarInterno {...props} sede={sede} />;
 }
 
 function FormularioReprogramarInterno({
   turno,
   onTerminado,
-  config,
-}: PropsFormularioReprogramar & { config: ConfiguracionSalidaDto }) {
+  sede,
+}: PropsFormularioReprogramar & { sede: EstablecimientoSalidaDto }) {
   const { reprogramar, listar } = useTurnos();
   const hoy = hoyArgentinaISO();
 
@@ -88,11 +95,11 @@ function FormularioReprogramarInterno({
       45,
       60,
       90,
-      config.turnoDuracionMinutos,
+      sede.turnoDuracionMinutos,
       turno.duracionMinutos,
     ]);
     return [...base].sort((a, b) => a - b).map(String);
-  }, [config.turnoDuracionMinutos, turno.duracionMinutos]);
+  }, [sede.turnoDuracionMinutos, turno.duracionMinutos]);
 
   const form = useForm<DatosFormulario>({
     resolver: zodResolver(esquema),
@@ -107,7 +114,7 @@ function FormularioReprogramarInterno({
   const horaActual = form.watch("hora");
   const duracionActual = Number(form.watch("duracion"));
 
-  const diaHabil = esDiaDeAtencion(config, fechaActual);
+  const diaHabil = esDiaDeAtencion(sede, fechaActual);
 
   const turnosDelDia = listar(
     { fecha: fechaActual ? new Date(fechaActual) : undefined },
@@ -117,7 +124,7 @@ function FormularioReprogramarInterno({
   const franjas = useMemo(
     () =>
       franjasDelDia({
-        config,
+        agenda: sede,
         fechaISO: fechaActual,
         duracionMinutos: duracionActual || turno.duracionMinutos,
         ocupados: turnosDelDia.data ?? [],
@@ -126,7 +133,7 @@ function FormularioReprogramarInterno({
         excluirTurnoId: turno.id,
       }),
     [
-      config,
+      sede,
       fechaActual,
       duracionActual,
       turnosDelDia.data,
@@ -234,7 +241,8 @@ function FormularioReprogramarInterno({
             <CalendarOff className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
               Ese día el consultorio no atiende. Días de atención:{" "}
-              {diasDeAtencionEnTexto(config)}. Se cambian en Configuración.
+              {diasDeAtencionEnTexto(sede)}. Se cambian en Configuración →
+              Establecimientos.
             </span>
           </p>
         )}
