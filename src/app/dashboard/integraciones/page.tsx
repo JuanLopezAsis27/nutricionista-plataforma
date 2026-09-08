@@ -13,6 +13,7 @@ import { TarjetaGoogle } from "@/componentes/integraciones/TarjetaGoogle";
 import { FormularioWhatsappApi } from "@/componentes/configuracion/FormularioWhatsappApi";
 import { FormularioCredenciales } from "@/componentes/configuracion/FormularioCredenciales";
 import { ImportadorAlimentos } from "@/componentes/configuracion/ImportadorAlimentos";
+import { ListaAlimentosPropios } from "@/componentes/configuracion/ListaAlimentosPropios";
 
 const MENSAJES_ERROR: Record<string, string> = {
   "no-configurado": "La integración con Google todavía no está configurada.",
@@ -81,8 +82,9 @@ export default function PaginaIntegraciones() {
           <FormularioCredenciales />
         </TabsContent>
 
-        <TabsContent value="alimentos" className="mt-4">
+        <TabsContent value="alimentos" className="mt-4 space-y-4">
           <ImportadorAlimentos />
+          <ListaAlimentosPropios />
         </TabsContent>
       </Tabs>
 

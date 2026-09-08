@@ -1,5 +1,11 @@
 import { crearRouter, nutricionistaProcedimiento } from "../trpc";
 import { buscarAlimentoDto } from "@/aplicacion/dtos/nutricion.dto";
+import {
+  crearAlimentoPropioDto,
+  actualizarAlimentoPropioDto,
+  idAlimentoPropioDto,
+  listarAlimentosPropiosDto,
+} from "@/aplicacion/dtos/alimentoPropio.dto";
 
 /**
  * Router de datos nutricionales (presentación → aplicación).
@@ -25,4 +31,30 @@ export const routerNutricion = crearRouter({
       return { ok: true };
     },
   ),
+
+  // Gestión manual de la lista: ver, agregar, editar y borrar de a un alimento.
+  listarAlimentosPropios: nutricionistaProcedimiento
+    .input(listarAlimentosPropiosDto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.alimentosPropios.listar(input);
+    }),
+
+  crearAlimentoPropio: nutricionistaProcedimiento
+    .input(crearAlimentoPropioDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.alimentosPropios.crear(input);
+    }),
+
+  actualizarAlimentoPropio: nutricionistaProcedimiento
+    .input(actualizarAlimentoPropioDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.alimentosPropios.actualizar(input);
+    }),
+
+  eliminarAlimentoPropio: nutricionistaProcedimiento
+    .input(idAlimentoPropioDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.alimentosPropios.eliminar(input.id);
+      return { eliminado: true };
+    }),
 });
