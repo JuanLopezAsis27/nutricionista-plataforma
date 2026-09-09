@@ -1,6 +1,7 @@
 import { Users, Flame, FileText, ExternalLink } from "lucide-react";
 import type { RecetaSalidaDto } from "@/aplicacion/dtos/receta.dto";
 import { Badge } from "@/componentes/ui/badge";
+import { FotoConVisor } from "@/componentes/comunes/FotoConVisor";
 
 /**
  * Vista de solo lectura de una receta (detalle del recetario y portal).
@@ -76,20 +77,12 @@ export function VistaReceta({ receta }: { receta: RecetaSalidaDto }) {
                   : 0,
             )
             .map((foto) => (
-              <a
+              <FotoConVisor
                 key={foto.id}
-                href={`/api/archivos/${foto.id}/ver`}
-                target="_blank"
-                rel="noreferrer"
-                title={foto.nombreOriginal}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element -- ruta dinámica autorizada, no optimizable */}
-                <img
-                  src={`/api/archivos/${foto.id}/ver`}
-                  alt={`Foto de ${receta.nombre}`}
-                  className="h-28 w-28 rounded-lg border object-cover"
-                />
-              </a>
+                archivoId={foto.id}
+                alt={`Foto de ${receta.nombre}`}
+                className="h-28 w-28 border"
+              />
             ))}
         </div>
       )}

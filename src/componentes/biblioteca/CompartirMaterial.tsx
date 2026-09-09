@@ -5,17 +5,18 @@ import { X } from "lucide-react";
 import { useBiblioteca } from "@/lib/hooks/useBiblioteca";
 import { usePacientes } from "@/lib/hooks/usePacientes";
 import { Button } from "@/componentes/ui/button";
+import { Badge } from "@/componentes/ui/badge";
 import { Skeleton } from "@/componentes/ui/skeleton";
-import { SelectorPaciente } from "@/componentes/pacientes/SelectorPaciente";
+import { SelectorPacientesMultiple } from "@/componentes/pacientes/SelectorPacientesMultiple";
 
 /**
- * Compartir un material con pacientes: selector + lista de asignados
- * (aparece en el portal del paciente como "Mi material").
+ * Compartir un material con pacientes: selector (de a varios a la vez) + lista
+ * de asignados (aparece en el portal del paciente como "Mi material").
  */
 export function CompartirMaterial({ materialId }: { materialId: string }) {
   const { pacientesAsignados, asignar, desasignar } = useBiblioteca();
   const { listar } = usePacientes();
-  const [seleccionado, setSeleccionado] = useState<string | null>(null);
+  const [seleccionados, setSeleccionados] = useState<string[]>([]);
 
   const asignados = pacientesAsignados({ id: materialId });
   // Trae una página amplia para resolver nombres de los asignados.
@@ -26,21 +27,50 @@ export function CompartirMaterial({ materialId }: { materialId: string }) {
     return paciente ? `${paciente.nombre} ${paciente.apellido}` : pacienteId;
   };
 
+  async function compartir() {
+    await Promise.all(
+      seleccionados.map((pacienteId) =>
+        asignar.mutateAsync({ materialId, pacienteId }),
+      ),
+    );
+    setSeleccionados([]);
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        <div className="flex-1">
-          <SelectorPaciente valor={seleccionado} onCambiar={setSeleccionado} />
-        </div>
+      <div className="space-y-2">
+        <SelectorPacientesMultiple
+          valores={seleccionados}
+          onCambiar={setSeleccionados}
+        />
+        {seleccionados.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {seleccionados.map((pacienteId) => (
+              <Badge
+                key={pacienteId}
+                variant="secondary"
+                className="gap-1 pr-1"
+              >
+                {nombreDe(pacienteId)}
+                <button
+                  type="button"
+                  aria-label="Quitar de la selección"
+                  onClick={() =>
+                    setSeleccionados((actual) =>
+                      actual.filter((id) => id !== pacienteId),
+                    )
+                  }
+                  className="rounded-full p-0.5 hover:bg-background/60"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+        )}
         <Button
-          disabled={!seleccionado || asignar.isPending}
-          onClick={() => {
-            if (!seleccionado) return;
-            asignar.mutate(
-              { materialId, pacienteId: seleccionado },
-              { onSuccess: () => setSeleccionado(null) },
-            );
-          }}
+          disabled={seleccionados.length === 0 || asignar.isPending}
+          onClick={compartir}
         >
           Compartir
         </Button>

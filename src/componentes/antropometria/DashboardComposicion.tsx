@@ -106,6 +106,22 @@ export function DashboardComposicion({
       tema={tema}
     />
   );
+  const tarjetaPhantom = (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-semibold">
+          Proporcionalidad Phantom
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <PerfilPhantom
+          puntos={resultado.phantom}
+          anteriores={anterior?.resultado.phantom ?? null}
+          tema={tema}
+        />
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="space-y-6">
@@ -151,10 +167,12 @@ export function DashboardComposicion({
 
       {!dosComponentesPrimero && tarjetaGrasa}
 
-      {/* Va después de los dos modelos y antes de la evolución: primero
-          cuánto hay —que es lo que se compara con la consulta anterior— y
-          recién después dónde está. */}
-      <TarjetaDistribucion distribucion={resultado.distribucion} tema={tema} />
+      {/* Índices y energía van ARRIBA de la evolución del % graso: son la
+          lectura de la consulta de hoy, antes de mirar la serie histórica. */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <TarjetaIndices indices={resultado.indices} />
+        <TarjetaEnergia energia={resultado.energia} />
+      </div>
 
       <TarjetasEvolucion
         mediciones={mediciones}
@@ -164,48 +182,32 @@ export function DashboardComposicion({
         tema={tema}
       />
 
-      {/* El Phantom crece con la cantidad de medidas cargadas y con el perfil
-          ISAK completo se vuelve la pieza más alta de la pantalla. Va SOLO en
-          su columna, con las tres tarjetas cortas apiladas al lado: cuando
-          compartía fila solo con la somatocarta, esa quedaba con media pantalla
-          de blanco debajo. `items-start` es lo que impide que la columna corta
-          se estire hasta igualar a la larga. */}
-      <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
-        <div className="space-y-4">
-          {resultado.somatotipo && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">
-                  Somatotipo{" "}
-                  <span className="font-normal text-muted-foreground">
-                    (Heath &amp; Carter, 1990)
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Somatocarta puntos={puntosSomatocarta} tema={tema} />
-              </CardContent>
-            </Card>
-          )}
-          <TarjetaIndices indices={resultado.indices} />
-          <TarjetaEnergia energia={resultado.energia} />
-        </div>
+      {resultado.somatotipo ? (
+        <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold">
+                Somatotipo{" "}
+                <span className="font-normal text-muted-foreground">
+                  (Heath &amp; Carter, 1990)
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Somatocarta puntos={puntosSomatocarta} tema={tema} />
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">
-              Proporcionalidad Phantom
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PerfilPhantom
-              puntos={resultado.phantom}
-              anteriores={anterior?.resultado.phantom ?? null}
-              tema={tema}
-            />
-          </CardContent>
-        </Card>
-      </div>
+          {tarjetaPhantom}
+        </div>
+      ) : (
+        tarjetaPhantom
+      )}
+
+      {/* Al final del todo y plegada: dónde está la adiposidad y el músculo
+          es una lectura más fina que cuánto hay, y no todas las consultas
+          la necesitan abierta. */}
+      <TarjetaDistribucion distribucion={resultado.distribucion} tema={tema} />
     </div>
   );
 }

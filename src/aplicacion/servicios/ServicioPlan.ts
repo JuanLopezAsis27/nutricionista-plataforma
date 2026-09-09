@@ -11,6 +11,7 @@ import type { DesasignarPlanDePaciente } from "@/aplicacion/casos-de-uso/planes/
 import type { ObtenerPlanDelPaciente } from "@/aplicacion/casos-de-uso/planes/ObtenerPlanDelPaciente";
 import type { ObtenerPacientesDePlan } from "@/aplicacion/casos-de-uso/planes/ObtenerPacientesDePlan";
 import type { ObtenerHistorialDePlanes } from "@/aplicacion/casos-de-uso/planes/ObtenerHistorialDePlanes";
+import type { SincronizarRecetasDePlan } from "@/aplicacion/casos-de-uso/planes/SincronizarRecetasDePlan";
 import type { MoverPlanAGrupo } from "@/aplicacion/casos-de-uso/planes/MoverPlanAGrupo";
 import type { CrearGrupoPlan } from "@/aplicacion/casos-de-uso/grupos-plan/CrearGrupoPlan";
 import type { ActualizarGrupoPlan } from "@/aplicacion/casos-de-uso/grupos-plan/ActualizarGrupoPlan";
@@ -55,6 +56,7 @@ export class ServicioPlan {
     private readonly obtenerDelPacienteUC: ObtenerPlanDelPaciente,
     private readonly pacientesDePlanUC: ObtenerPacientesDePlan,
     private readonly historialUC: ObtenerHistorialDePlanes,
+    private readonly sincronizarRecetasUC: SincronizarRecetasDePlan,
     private readonly moverAGrupoUC: MoverPlanAGrupo,
     private readonly crearGrupoUC: CrearGrupoPlan,
     private readonly actualizarGrupoUC: ActualizarGrupoPlan,
@@ -87,6 +89,9 @@ export class ServicioPlan {
 
   async actualizarPlan(datos: ActualizarPlanDto): Promise<PlanSalidaDto> {
     const plan = await this.actualizarUC.ejecutar(datos);
+    // Una franja pudo sumar una receta nueva: quien sigue este plan hoy tiene
+    // que verla en su portal sin que el profesional la comparta a mano.
+    await this.sincronizarRecetasUC.ejecutar(plan.id);
     return ServicioPlan.aSalida(plan);
   }
 
@@ -106,7 +111,10 @@ export class ServicioPlan {
   }
 
   async asignarPlanAPaciente(datos: AsignarPlanDto): Promise<AsignacionPlan> {
-    return this.asignarUC.ejecutar(datos);
+    const asignacion = await this.asignarUC.ejecutar(datos);
+    // El plan ya asignado pudo traer recetas cargadas de antes.
+    await this.sincronizarRecetasUC.ejecutar(datos.planId);
+    return asignacion;
   }
 
   async desasignarPlanDePaciente(pacienteId: string): Promise<void> {

@@ -192,7 +192,10 @@ export default tseslint.config(
     },
   },
   {
-    files: ["src/componentes/pacientes/SelectorPaciente.tsx"],
+    files: [
+      "src/componentes/pacientes/SelectorPaciente.tsx",
+      "src/componentes/pacientes/SelectorPacientesMultiple.tsx",
+    ],
     rules: {
       // El `autoFocus` está en el campo de búsqueda DENTRO de un popover que el
       // usuario acaba de abrir con esa intención: no roba el foco al cargar la

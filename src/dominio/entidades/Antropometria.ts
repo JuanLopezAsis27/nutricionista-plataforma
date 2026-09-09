@@ -64,6 +64,10 @@ export interface MedidasAntropometricas {
   circPantorrilla: number | null;
   /** Kg de grasa según la fórmula propia del profesional (se carga manualmente). */
   kgGrasa: number | null;
+  // Dinamometría manual (kg). No alimenta ninguna ecuación: se carga y se
+  // muestra tal cual, como kgGrasa.
+  fuerzaPresionDerecha: number | null;
+  fuerzaPresionIzquierda: number | null;
 }
 
 /** Datos para registrar una medición nueva. */
@@ -203,6 +207,8 @@ export class Antropometria {
       circMusloMedial: datos.circMusloMedial ?? null,
       circPantorrilla: datos.circPantorrilla ?? null,
       kgGrasa: datos.kgGrasa ?? null,
+      fuerzaPresionDerecha: datos.fuerzaPresionDerecha ?? null,
+      fuerzaPresionIzquierda: datos.fuerzaPresionIzquierda ?? null,
       observaciones: datos.observaciones?.trim() || null,
       creadoEn: ahora,
     });
@@ -439,6 +445,22 @@ function validarMedidas(
       0,
       150,
       "Los kg de grasa deben estar entre 0 y 150.",
+    );
+  }
+  if (datos.fuerzaPresionDerecha != null) {
+    validarRango(
+      datos.fuerzaPresionDerecha,
+      0,
+      100,
+      "La fuerza de presión derecha debe estar entre 0 y 100 kg.",
+    );
+  }
+  if (datos.fuerzaPresionIzquierda != null) {
+    validarRango(
+      datos.fuerzaPresionIzquierda,
+      0,
+      100,
+      "La fuerza de presión izquierda debe estar entre 0 y 100 kg.",
     );
   }
 }

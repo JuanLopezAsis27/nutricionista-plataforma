@@ -180,6 +180,8 @@ const CAMPOS_NUMERICOS = [
   "tallaCm",
   "tallaSentadoCm",
   "kgGrasa",
+  "fuerzaPresionDerecha",
+  "fuerzaPresionIzquierda",
   ...GRUPOS.flatMap((grupo) => grupo.campos.map((campo) => campo.nombre)),
 ] as const;
 
@@ -470,6 +472,16 @@ export function FormularioMedicion({
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           {campoNumerico("kgGrasa", "Kg grasa (fórmula propia)")}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {campoNumerico(
+            "fuerzaPresionDerecha",
+            "Fuerza de presión derecha (kg)",
+          )}
+          {campoNumerico(
+            "fuerzaPresionIzquierda",
+            "Fuerza de presión izquierda (kg)",
+          )}
         </div>
       </fieldset>
 

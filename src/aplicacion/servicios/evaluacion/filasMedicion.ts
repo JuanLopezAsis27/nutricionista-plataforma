@@ -60,6 +60,14 @@ export const GRUPOS: Grupo[] = [
         etiqueta: "Talla sentado (cm)",
         valor: (m) => m.medidas.tallaSentadoCm,
       },
+      {
+        etiqueta: "Fuerza de presión derecha (kg)",
+        valor: (m) => m.medidas.fuerzaPresionDerecha,
+      },
+      {
+        etiqueta: "Fuerza de presión izquierda (kg)",
+        valor: (m) => m.medidas.fuerzaPresionIzquierda,
+      },
     ],
   },
   {

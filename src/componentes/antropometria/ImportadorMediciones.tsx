@@ -23,13 +23,24 @@ import { Input } from "@/componentes/ui/input";
 import { Label } from "@/componentes/ui/label";
 import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
 
-/** Medidas editables de una fila, además del peso: las de la plantilla + kgGrasa. */
-const CAMPOS_MEDIDA = [...CAMPOS_PLANTILLA, "kgGrasa"] as const;
+/**
+ * Medidas editables de una fila, además del peso: las de la plantilla +
+ * kgGrasa y la fuerza de presión (ninguna de las tres es un campo de
+ * plantilla: se cargan siempre, como en el formulario manual).
+ */
+const CAMPOS_MEDIDA = [
+  ...CAMPOS_PLANTILLA,
+  "kgGrasa",
+  "fuerzaPresionDerecha",
+  "fuerzaPresionIzquierda",
+] as const;
 type CampoMedida = (typeof CAMPOS_MEDIDA)[number];
 
 const ETIQUETAS_MEDIDA: Record<CampoMedida, string> = {
   ...ETIQUETAS_CAMPO_PLANTILLA,
   kgGrasa: "Kg de grasa",
+  fuerzaPresionDerecha: "Fuerza de presión derecha (kg)",
+  fuerzaPresionIzquierda: "Fuerza de presión izquierda (kg)",
 };
 
 const ACEPTA_PLANILLA =
