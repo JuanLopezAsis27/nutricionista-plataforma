@@ -1,7 +1,7 @@
 # =============================================================================
 # nginx como reverse proxy de la app (corre en el HOST del VPS, no en Docker).
 # La app publica su puerto solo en localhost (docker-compose.prod.yml →
-# 127.0.0.1:3000). nginx termina TLS y proxea a ese puerto.
+# 127.0.0.1:3001). nginx termina TLS y proxea a ese puerto.
 #
 # Instalar:
 #   sudo cp docs/nginx.conf.ejemplo /etc/nginx/sites-available/nutricionista
@@ -93,7 +93,7 @@ server {
     # archivo, y se marca no-cacheable: una sonda que responde desde el caché
     # no verifica nada.
     location = /api/salud {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3001;
         proxy_http_version 1.1;
 
         proxy_set_header Host              $host;
@@ -115,7 +115,7 @@ server {
     location /api/auth {
         limit_req zone=autenticacion burst=5 nodelay;
 
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3001;
         proxy_http_version 1.1;
 
         proxy_set_header Host              $host;
@@ -129,7 +129,7 @@ server {
     location = /api/monitoreo {
         limit_req zone=autenticacion burst=10 nodelay;
 
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3001;
         proxy_http_version 1.1;
 
         proxy_set_header Host              $host;
@@ -141,7 +141,7 @@ server {
     location / {
         limit_req zone=general burst=60 nodelay;
 
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3001;
         proxy_http_version 1.1;
 
         # Cabeceras estándar de reverse proxy.
@@ -166,7 +166,7 @@ server {
         # tiempo conectado.
         limit_req zone=general burst=60 nodelay;
 
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3001;
         proxy_http_version 1.1;
 
         proxy_set_header Host              $host;

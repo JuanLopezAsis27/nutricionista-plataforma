@@ -24,13 +24,13 @@ que se publica **solo en localhost** (`127.0.0.1:3000`).
               ┌──────▼──────┐
               │     app     │   Next.js (standalone), puerto solo en localhost
               └──────┬──────┘
-   ┌─────────────────┼───────────────────────┐   (red interna del proyecto Docker)
-   │  ┌────────┐ ┌────────┐ ┌────────┐        │
-   │  │postgres│ │ worker │ │respaldo│  …      │
-   │  └────────┘ └────────┘ └───┬────┘        │
-   │  ┌────────┐                 │            │
-   │  │ minio  │◄── disco 2      │ offsite    │
-   │  └────────┘                 ▼            │
+   ┌─────────────────┼─────────────────────────────────────┐   (red interna del proyecto Docker)
+   │  ┌────────┐ ┌────────┐ ┌────────┐ ┌──────────────┐     │
+   │  │postgres│ │ worker │ │respaldo│ │ ml (perfil,  │ …   │
+   │  └────────┘ └────────┘ └───┬────┘ │  opcional)   │     │
+   │  ┌────────┐                 │     └──────────────┘     │
+   │  │ minio  │◄── disco 2      │ offsite                  │
+   │  └────────┘                 ▼                          │
    └────────────────────► OVH Object Storage (S3)
 ```
 
@@ -56,9 +56,24 @@ Sólo hay **dos ajustes que NO podés omitir** (ya están en
 - **Disco secundario** → **bucket MinIO** (fotos de recetas/labs, PDFs), montado
   con bind-mount en `RUTA_BUCKET`.
 
-**ML** corre en **otro entorno** (nube on-demand). La app solo lo consume por
-HTTP: cuando el servicio esté, se setea `ML_SERVICE_URL` y listo (si no está,
-la app usa los stubs y funciona igual).
+**ML** es un servicio **opcional del mismo stack** (perfil `ml`, no arranca
+solo). Corre en la red interna del proyecto Docker, sin publicar puertos: la
+app lo alcanza por `http://ml:8000`. Se conecta a Postgres con un rol de
+**solo lectura** (`ml_lector`), separado del usuario de la app. Antes de
+habilitarlo con `--profile ml`:
+
+1. Verificá RAM libre en el VPS (`free -m`): el servicio pide ~300-500 MB.
+2. Creá el rol de solo lectura: `scripts/crear-rol-ml.sql`.
+3. Completá `DATABASE_URL_RO` y `ML_SERVICE_TOKEN` en el `.env`.
+4. Agregá `--profile ml` a los perfiles del entorno en `desplegar.sh` y seteá
+   `ML_SERVICE_URL=http://ml:8000`.
+
+Si `ML_SERVICE_URL` queda vacía, la app usa los stubs de demostración y
+funciona igual — no es un requisito para desplegar.
+
+> Se descartó el plan anterior de correrlo en la nube (on-demand): exigía
+> exponer la base fuera del VPS —abrir el 5432, montar una réplica en otro
+> host o mantener un túnel— para un cómputo de microsegundos.
 
 ---
 
@@ -306,9 +321,9 @@ docker compose -p nutri_staging -f docker-compose.prod.yml stop worker
 
 ### Ya no se compila en el servidor
 
-`app`, `worker`, `migrate` y `respaldo` se compilan **en el CI** y se publican en
-GHCR con dos etiquetas: el **SHA del commit** (inmutable) y el **nombre de la
-rama** (alias móvil). El servidor sólo descarga.
+`app`, `worker`, `migrate`, `respaldo` y `ml` se compilan **en el CI** y se
+publican en GHCR con dos etiquetas: el **SHA del commit** (inmutable) y el
+**nombre de la rama** (alias móvil). El servidor sólo descarga.
 
 ```
    push a development/main
@@ -317,7 +332,8 @@ rama** (alias móvil). El servidor sólo descarga.
    CI: tests + docker build ──► ghcr.io/juanlopezasis27/nutricionista-plataforma/app:<sha>
                                                                               /worker:<sha>
             │                                                                 /migrate:<sha>
-            ▼                                                                 /respaldo:<sha>
+            │                                                                 /respaldo:<sha>
+            ▼                                                                 /ml:<sha>
    Deploy: ssh → docker compose pull → up -d --no-build → espera healthy
 ```
 
@@ -439,7 +455,8 @@ antes de tocar producción.
 - [ ] `.env.produccion`, `.env.staging` **fuera de git** (ya en `.gitignore`).
 - [ ] Firewall: solo 22 (SSH), 80 y 443 abiertos. La app publica su puerto
       **solo en `127.0.0.1`** (lo alcanza nginx del host, no desde afuera); la DB,
-      MinIO y el worker **no publican puertos**.
+      MinIO, el worker y el servicio de ML (si está habilitado) **no publican
+      puertos**.
 - [ ] nginx: `proxy_buffering off` en `/api/trpc` (SSE) y `client_max_body_size 26m`.
 - [ ] Certificado TLS emitido con certbot y **renovación automática** activa
       (`systemctl list-timers | grep certbot`).
