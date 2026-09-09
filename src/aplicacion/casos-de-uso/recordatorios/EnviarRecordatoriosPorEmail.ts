@@ -190,7 +190,7 @@ export class EnviarRecordatoriosPorEmail {
       // No se registra: sin fila en `emails_enviados`, el próximo barrido lo
       // vuelve a intentar. Registrar el fallo lo daría por avisado para siempre.
       console.error(
-        `[recordatorios] falló el email del turno ${turno.id}:`,
+        `[recordatorios] ${new Date().toISOString()} falló el email del turno ${turno.id}:`,
         error,
       );
       return "FALLIDO";

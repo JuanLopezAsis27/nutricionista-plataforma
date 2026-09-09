@@ -133,7 +133,7 @@ export function SidebarNav({
       {/* ---- Escritorio: sidebar colapsable ---- */}
       <aside
         className={cn(
-          "hidden h-screen shrink-0 flex-col border-r bg-background transition-[width] duration-200 md:flex",
+          "hidden h-dvh shrink-0 flex-col border-r bg-background transition-[width] duration-200 md:flex",
           colapsada ? "w-16" : "w-64",
         )}
       >

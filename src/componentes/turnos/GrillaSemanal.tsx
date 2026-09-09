@@ -30,6 +30,16 @@ import { DetalleTurno } from "@/componentes/turnos/DetalleTurno";
 /** Ancho de la columna de las horas, a la izquierda. */
 const ANCHO_HORAS = "3.25rem";
 
+/**
+ * Ancho mínimo de cada columna de día.
+ *
+ * Con 7 días a la vista, repartir el ancho disponible en partes iguales
+ * aplasta cada columna en una pantalla angosta hasta que el turno queda
+ * ilegible. Este mínimo hace que la grilla entera scrollee horizontalmente en
+ * vez de seguir achicando las columnas.
+ */
+const ANCHO_MIN_DIA = "6.5rem";
+
 const COLOR_ESTADO: Record<EstadoTurno, string> = {
   PENDIENTE:
     "border-yellow-400 bg-yellow-100 text-yellow-900 hover:bg-yellow-200 dark:border-yellow-600 dark:bg-yellow-950 dark:text-yellow-200 dark:hover:bg-yellow-900",
@@ -167,77 +177,97 @@ export function GrillaSemanal({
 
   return (
     <div className="overflow-hidden rounded-md border">
-      {/* Encabezado: qué día es cada columna. */}
-      <div className="flex border-b bg-muted/40">
-        <div className="shrink-0" style={{ width: ANCHO_HORAS }} />
-        {dias.map((dia) => {
-          const fecha = new Date(`${dia}T00:00:00Z`);
-          const esHoy = dia === hoyISO;
-          return (
-            <div key={dia} className="flex-1 border-l py-1.5 text-center">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                {DIAS_CORTOS[fecha.getUTCDay()]}
-              </p>
-              <p
-                className={cn(
-                  "mx-auto mt-0.5 flex h-7 w-7 items-center justify-center rounded-full text-sm tabular-nums",
-                  esHoy && "bg-primary font-semibold text-primary-foreground",
-                )}
-              >
-                {fecha.getUTCDate()}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Cuerpo con scroll: la jornada entera puede no entrar en pantalla. */}
-      <div className="max-h-[65vh] overflow-y-auto">
-        {/* El padding de arriba es para que la etiqueta de la primera hora,
-            que se centra sobre su línea, no quede cortada. */}
-        <div className="flex pt-2.5">
-          <div className="shrink-0" style={{ width: ANCHO_HORAS }}>
-            {horas.map((minutos) => (
-              <div
-                key={minutos}
-                className="relative"
-                style={{ height: pxPorHora }}
-              >
-                <span className="absolute right-1.5 top-0 -translate-y-1/2 text-[11px] tabular-nums text-muted-foreground">
-                  {aHora(minutos)}
-                </span>
-              </div>
-            ))}
+      {/*
+        Cada columna de día tiene un ancho mínimo (ver ANCHO_MIN_DIA): en
+        pantallas angostas el conjunto no entra, así que este contenedor
+        scrollea horizontalmente en vez de aplastar los días hasta hacerlos
+        ilegibles. El encabezado y el cuerpo comparten el mismo scroll
+        horizontal por estar los dos adentro.
+      */}
+      <div className="overflow-x-auto">
+        <div
+          style={{
+            minWidth: `calc(${ANCHO_HORAS} + ${dias.length} * ${ANCHO_MIN_DIA})`,
+          }}
+        >
+          {/* Encabezado: qué día es cada columna. */}
+          <div className="flex border-b bg-muted/40">
+            <div className="shrink-0" style={{ width: ANCHO_HORAS }} />
+            {dias.map((dia) => {
+              const fecha = new Date(`${dia}T00:00:00Z`);
+              const esHoy = dia === hoyISO;
+              return (
+                <div
+                  key={dia}
+                  className="flex-1 border-l py-1.5 text-center"
+                  style={{ minWidth: ANCHO_MIN_DIA }}
+                >
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    {DIAS_CORTOS[fecha.getUTCDay()]}
+                  </p>
+                  <p
+                    className={cn(
+                      "mx-auto mt-0.5 flex h-7 w-7 items-center justify-center rounded-full text-sm tabular-nums",
+                      esHoy &&
+                        "bg-primary font-semibold text-primary-foreground",
+                    )}
+                  >
+                    {fecha.getUTCDate()}
+                  </p>
+                </div>
+              );
+            })}
           </div>
 
-          {dias.map((dia) => (
-            <ColumnaDia
-              key={dia}
-              dia={dia}
-              bloques={bloquesPorDia.get(dia) ?? []}
-              turnosDelDia={enLaVentana.filter(
-                (t) => aFechaISO(t.fecha) === dia,
-              )}
-              nombrePaciente={nombrePaciente}
-              agenda={agenda}
-              unificado={unificado}
-              colores={colores}
-              sedeDelDia={sedeDelDia}
-              desdeMinutos={desdeMinutos}
-              hastaMinutos={hastaMinutos}
-              altoTotal={altoTotal}
-              pxPorHora={pxPorHora}
-              aPixeles={aPixeles}
-              hoyISO={hoyISO}
-              ahoraHHmm={ahoraHHmm}
-              minutosAhora={minutosAhora}
-              onAgendar={onAgendar}
-              onReprogramar={onReprogramar}
-              onGrabar={onGrabar}
-              turnoAbiertoId={turnoAbiertoId}
-              onAbrirTurno={onAbrirTurno}
-            />
-          ))}
+          {/* Cuerpo con scroll: la jornada entera puede no entrar en pantalla. */}
+          <div className="max-h-[65vh] overflow-y-auto">
+            {/* El padding de arriba es para que la etiqueta de la primera hora,
+                que se centra sobre su línea, no quede cortada. */}
+            <div className="flex pt-2.5">
+              <div className="shrink-0" style={{ width: ANCHO_HORAS }}>
+                {horas.map((minutos) => (
+                  <div
+                    key={minutos}
+                    className="relative"
+                    style={{ height: pxPorHora }}
+                  >
+                    <span className="absolute right-1.5 top-0 -translate-y-1/2 text-[11px] tabular-nums text-muted-foreground">
+                      {aHora(minutos)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {dias.map((dia) => (
+                <ColumnaDia
+                  key={dia}
+                  dia={dia}
+                  bloques={bloquesPorDia.get(dia) ?? []}
+                  turnosDelDia={enLaVentana.filter(
+                    (t) => aFechaISO(t.fecha) === dia,
+                  )}
+                  nombrePaciente={nombrePaciente}
+                  agenda={agenda}
+                  unificado={unificado}
+                  colores={colores}
+                  sedeDelDia={sedeDelDia}
+                  desdeMinutos={desdeMinutos}
+                  hastaMinutos={hastaMinutos}
+                  altoTotal={altoTotal}
+                  pxPorHora={pxPorHora}
+                  aPixeles={aPixeles}
+                  hoyISO={hoyISO}
+                  ahoraHHmm={ahoraHHmm}
+                  minutosAhora={minutosAhora}
+                  onAgendar={onAgendar}
+                  onReprogramar={onReprogramar}
+                  onGrabar={onGrabar}
+                  turnoAbiertoId={turnoAbiertoId}
+                  onAbrirTurno={onAbrirTurno}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -354,7 +384,7 @@ function ColumnaDia({
   return (
     <div
       className={cn("relative flex-1 border-l", !diaHabil && "bg-muted/40")}
-      style={{ height: altoTotal }}
+      style={{ height: altoTotal, minWidth: ANCHO_MIN_DIA }}
     >
       {/* Rayado de fondo: solo las horas en punto. Con una línea por franja la
           grilla se lee como un rayado y deja de leerse como horas. */}
@@ -458,7 +488,12 @@ function ColumnaDia({
                 )}
               </button>
             </PopoverTrigger>
-            <PopoverContent side="right" align="start" className="w-80 p-3">
+            <PopoverContent
+              side="right"
+              align="start"
+              collisionPadding={12}
+              className="w-[min(20rem,calc(100vw-1.5rem))] max-h-[calc(100dvh-1.5rem)] overflow-y-auto p-3"
+            >
               <DetalleTurno
                 turno={bloque.turno}
                 nombrePaciente={nombre}

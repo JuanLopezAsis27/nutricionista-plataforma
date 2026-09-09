@@ -28,10 +28,10 @@ export default async function LayoutPaciente({
   }
 
   return (
-    <div className="min-h-screen bg-muted/30 md:flex md:h-screen md:overflow-hidden">
+    <div className="min-h-dvh bg-muted/30 md:flex md:h-dvh md:overflow-hidden">
       <TiempoReal />
       <BarraLateralPaciente email={sesion.user.email} />
-      <main className="min-w-0 flex-1 md:overflow-y-auto">
+      <main className="min-h-0 min-w-0 flex-1 md:overflow-y-auto">
         <div className="mx-auto w-full max-w-6xl p-4 md:p-6">{children}</div>
       </main>
     </div>

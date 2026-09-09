@@ -53,6 +53,5 @@ venv/
 # Volúmenes de Docker (datos de PostgreSQL)
 /datos-postgres
 
-.claude
 # Configuración local de Capacitor (URL del servidor de desarrollo)
 capacitor.config.local.ts

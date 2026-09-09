@@ -39,17 +39,19 @@ export function MensajesSinLeer() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/10">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0 pb-2">
+        <CardTitle className="flex min-w-0 items-center gap-2 text-base">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rose-500/10">
             <MessageSquare className="h-4 w-4 text-rose-600 dark:text-rose-400" />
           </span>
-          Mensajes sin leer
+          <span className="truncate">Mensajes sin leer</span>
           {pendientes.length > 0 && (
-            <Badge variant="secondary">{pendientes.length}</Badge>
+            <Badge variant="secondary" className="shrink-0">
+              {pendientes.length}
+            </Badge>
           )}
         </CardTitle>
-        <Button asChild variant="ghost" size="sm">
+        <Button asChild variant="ghost" size="sm" className="shrink-0">
           <Link href="/dashboard/mensajes">
             Ver todos
             <ChevronRight className="h-4 w-4" />

@@ -65,6 +65,14 @@ export const turnoSalidaDto = z.object({
   id: z.string(),
   pacienteId: z.string(),
   establecimientoId: z.string(),
+  /**
+   * Nombre y dirección de la sede, resueltos por `ServicioTurno` (no vienen
+   * del dominio). Se piden por id y no del listado vigente: un turno viejo
+   * puede ser de una sede archivada, y esa sigue siendo la dirección correcta
+   * para ese turno (ver docs/ESTABLECIMIENTOS.md).
+   */
+  establecimientoNombre: z.string(),
+  establecimientoDireccion: z.string().nullable(),
   fecha: z.date(),
   hora: z.string(),
   duracionMinutos: z.number(),

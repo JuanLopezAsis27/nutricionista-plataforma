@@ -17,6 +17,8 @@ function turno(
     id,
     pacienteId: "p1",
     establecimientoId: "est-1",
+    establecimientoNombre: "Sede 1",
+    establecimientoDireccion: null,
     fecha: new Date("2026-07-01T00:00:00Z"),
     hora,
     duracionMinutos,

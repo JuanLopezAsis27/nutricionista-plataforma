@@ -378,8 +378,9 @@ jobs:
   #
   # Configuración necesaria una sola vez, en Settings → Environments:
   #   produccion → VPS_HOST, VPS_USER, VPS_SSH_KEY, VPS_DEPLOY_PATH
+  #                (+ VPS_PORT si el SSH no escucha en el 22)
   #                + "Required reviewers" (aprobación manual)
-  #   staging    → los mismos cuatro, apuntando al VPS de pruebas
+  #   staging    → los mismos, apuntando al VPS de pruebas
   desplegar:
     name: Desplegar (${{ github.ref_name == 'main' && 'producción' || 'staging' }})
     needs: [app, codeql, secretos, ml, imagenes]
@@ -408,6 +409,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || '22' }}
           # `envs` reenvía estas variables al shell remoto en vez de
           # interpolarlas dentro del script, que es lo que evita que un valor
           # con caracteres raros se convierta en comandos en el servidor.
