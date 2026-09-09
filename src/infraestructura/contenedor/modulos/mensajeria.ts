@@ -1,6 +1,9 @@
 import type { IMensajeriaRepositorio } from "@/dominio/repositorios/IMensajeriaRepositorio";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
+import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
+import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
 import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
+import { ObtenerContraparteDelHilo } from "@/aplicacion/casos-de-uso/mensajeria/ObtenerContraparteDelHilo";
 import { EnviarMensaje } from "@/aplicacion/casos-de-uso/mensajeria/EnviarMensaje";
 import { ObtenerConversacionDePaciente } from "@/aplicacion/casos-de-uso/mensajeria/ObtenerConversacionDePaciente";
 import { ListarMensajes } from "@/aplicacion/casos-de-uso/mensajeria/ListarMensajes";
@@ -13,6 +16,8 @@ import { ServicioMensajeria } from "@/aplicacion/servicios/ServicioMensajeria";
 export function crearServicioMensajeria(deps: {
   mensajeria: IMensajeriaRepositorio;
   usuarios: IUsuarioRepositorio;
+  pacientes: IPacienteRepositorio;
+  configuracion: IConfiguracionRepositorio;
   bus: IBusEventos;
 }): ServicioMensajeria {
   return new ServicioMensajeria(
@@ -22,5 +27,10 @@ export function crearServicioMensajeria(deps: {
     new ListarConversaciones(deps.mensajeria),
     new MarcarLeidos(deps.mensajeria),
     new ContarNoLeidos(deps.mensajeria),
+    new ObtenerContraparteDelHilo(
+      deps.usuarios,
+      deps.pacientes,
+      deps.configuracion,
+    ),
   );
 }

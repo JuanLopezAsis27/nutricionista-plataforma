@@ -149,6 +149,7 @@ export function mockUsuarioRepositorio(
     obtenerPorPacienteId: vi.fn(async () => null),
     listarPorRol: vi.fn(async () => []),
     eliminarPorPacienteId: vi.fn(async () => {}),
+    esFotoDePerfil: vi.fn(async () => false),
     ...parcial,
   };
 }

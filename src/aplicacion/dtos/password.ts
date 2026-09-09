@@ -11,10 +11,21 @@ import { z } from "zod";
  *
  * ## Los números
  *
- * 12 caracteres de mínimo. La recomendación actual (NIST SP 800-63B) es privilegiar
- * la longitud por sobre las reglas de composición: exigir mayúscula, número y
- * símbolo produce `Password1!` —que los diccionarios de ataque conocen de
- * memoria— mientras que la longitud sí agrega trabajo real al atacante.
+ * 8 caracteres de mínimo, que es el piso que NIST SP 800-63B fija como
+ * obligatorio. Estuvo en 12 —el valor que la misma guía RECOMIENDA— y se bajó a
+ * pedido: con 12, la pantalla de "Mi perfil" rechazaba la contraseña que el
+ * paciente ya venía usando en todos lados, y el efecto observable de eso no es
+ * gente eligiendo frases largas sino gente que no cambia nunca la contraseña.
+ *
+ * Es un compromiso consciente, no un descuido: 8 caracteres sin composición
+ * exigida es un espacio de búsqueda chico. Lo que lo sostiene es el resto del
+ * sistema —bcrypt para el hash, límite de tasa en el login y en el
+ * restablecimiento— y no la longitud sola.
+ *
+ * La recomendación de fondo no cambia: privilegiar la LONGITUD por sobre las
+ * reglas de composición. Exigir mayúscula, número y símbolo produce
+ * `Password1!` —que los diccionarios de ataque conocen de memoria— mientras
+ * que la longitud sí agrega trabajo real al atacante.
  *
  * Por eso no hay requisitos de composición, pero sí un filtro de las
  * contraseñas obvias: las que aparecen primeras en cualquier lista de ataque y
@@ -26,7 +37,7 @@ import { z } from "zod";
  * más sería mentirle al usuario sobre la fuerza de lo que eligió.
  */
 
-export const LARGO_MINIMO_PASSWORD = 12;
+export const LARGO_MINIMO_PASSWORD = 8;
 export const LARGO_MAXIMO_PASSWORD = 72;
 
 /**
@@ -36,8 +47,27 @@ export const LARGO_MAXIMO_PASSWORD = 72;
  * servicio— sino frenar los casos que se ven en la práctica: el usuario que
  * teclea algo obvio para salir del paso, incluida la contraseña de ejemplo de
  * la documentación de este mismo proyecto.
+ *
+ * Al bajar el mínimo de 12 a 8 hubo que ampliarla: hasta entonces el largo
+ * rechazaba solo `password` o `12345678` sin que nadie los nombrara, y esas
+ * son justamente las dos primeras de cualquier lista de ataque.
  */
 const PROHIBIDAS = new Set([
+  // Las que el mínimo de 12 rechazaba sin necesidad de nombrarlas.
+  "password",
+  "12345678",
+  "123456789",
+  "1234567890",
+  "qwertyui",
+  "qwerty123",
+  "abc12345",
+  "iloveyou",
+  "contrasena",
+  "contraseña",
+  "nutricion",
+  "cambiame",
+  "cambiar123",
+  // Las que ya estaban.
   "contrasena123",
   "contraseña123",
   "password1234",

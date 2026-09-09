@@ -28,7 +28,7 @@ export const routerMensajeria = crearRouter({
   hiloDe: nutricionistaProcedimiento
     .input(pacienteObjetivoDto)
     .query(async ({ ctx, input }) => {
-      return await ctx.servicios.mensajeria.abrirHilo(input.pacienteId);
+      return await ctx.servicios.mensajeria.abrirHilo(input.pacienteId, true);
     }),
 
   enviarA: nutricionistaProcedimiento
@@ -56,6 +56,7 @@ export const routerMensajeria = crearRouter({
   miHilo: protegidoProcedimiento.query(async ({ ctx }) => {
     return await ctx.servicios.mensajeria.abrirHilo(
       pacienteDeSesion(ctx.usuario),
+      false,
     );
   }),
 

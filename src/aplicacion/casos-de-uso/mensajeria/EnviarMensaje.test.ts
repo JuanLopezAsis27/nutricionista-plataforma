@@ -17,6 +17,7 @@ const usuarioNutri = Usuario.reconstruir({
   pacienteId: null,
   nutricionistaId: "usr-nutri",
   activo: true,
+  fotoPerfilId: null,
   creadoEn: new Date(),
 });
 const usuarioPaciente = Usuario.reconstruir({
@@ -27,6 +28,7 @@ const usuarioPaciente = Usuario.reconstruir({
   pacienteId: "pac-1",
   nutricionistaId: "usr-nutri",
   activo: true,
+  fotoPerfilId: null,
   creadoEn: new Date(),
 });
 

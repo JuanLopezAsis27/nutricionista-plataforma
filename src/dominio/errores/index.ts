@@ -6,6 +6,7 @@ export { ErrorTurnoConflicto } from "./ErrorTurnoConflicto";
 export { ErrorTurnoNoEncontrado } from "./ErrorTurnoNoEncontrado";
 export { ErrorUsuarioNoEncontrado } from "./ErrorUsuarioNoEncontrado";
 export { ErrorAccesoDenegado } from "./ErrorAccesoDenegado";
+export { ErrorPasswordIncorrecta } from "./ErrorPasswordIncorrecta";
 export { ErrorArchivoInvalido } from "./ErrorArchivoInvalido";
 export { ErrorArchivoNoEncontrado } from "./ErrorArchivoNoEncontrado";
 export { ErrorAntropometriaNoEncontrada } from "./ErrorAntropometriaNoEncontrada";

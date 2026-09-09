@@ -68,9 +68,14 @@ export function PlantillaEmailRecordatorio() {
             {plantilla.asunto}
           </p>
           <div
-            className="max-h-48 overflow-y-auto rounded-md border bg-muted/40 p-3 text-sm"
             // El cuerpo es HTML que escribió el propio profesional para sus
             // pacientes: se muestra tal cual para que la vista previa sea fiel.
+            // Fondo blanco fijo (no el `muted` del tema) porque ese HTML suele
+            // traer su propio color de texto oscuro fijado inline —como
+            // cualquier email—, y en modo oscuro quedaba letra oscura sobre
+            // fondo oscuro. Mismo criterio que la vista previa del editor
+            // (`FormularioPlantilla`).
+            className="max-h-48 overflow-y-auto rounded-md border bg-white p-3 text-sm text-black"
             dangerouslySetInnerHTML={{ __html: plantilla.cuerpoHtml }}
           />
           <div className="flex flex-wrap gap-2">
