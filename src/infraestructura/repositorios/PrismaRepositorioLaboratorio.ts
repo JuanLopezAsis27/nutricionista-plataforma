@@ -1,6 +1,8 @@
 import type { PrismaClient, Prisma } from "@prisma/client";
 import type { ILaboratorioRepositorio } from "@/dominio/repositorios/ILaboratorioRepositorio";
 import { Laboratorio } from "@/dominio/entidades/Laboratorio";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { soloFecha } from "./base/fechas";
 
 /** Fila de laboratorio con sus archivos incluidos. */
 type LaboratorioConArchivos = Prisma.LaboratorioGetPayload<{
@@ -15,14 +17,18 @@ type LaboratorioConArchivos = Prisma.LaboratorioGetPayload<{
 export class PrismaRepositorioLaboratorio implements ILaboratorioRepositorio {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async crear(laboratorio: Laboratorio, archivoIds: string[]): Promise<Laboratorio> {
+  async crear(
+    laboratorio: Laboratorio,
+    archivoIds: string[],
+  ): Promise<Laboratorio> {
     const datos = laboratorio.aPrimitivos();
     const fila = await this.prisma.$transaction(async (tx) => {
       await tx.laboratorio.create({
         data: {
+          nutricionistaId: inquilinoActual(),
           id: datos.id,
           pacienteId: datos.pacienteId,
-          fecha: this.soloFecha(datos.fecha),
+          fecha: soloFecha(datos.fecha),
           titulo: datos.titulo,
           notas: datos.notas,
           creadoEn: datos.creadoEn,
@@ -39,7 +45,7 @@ export class PrismaRepositorioLaboratorio implements ILaboratorioRepositorio {
         include: { archivos: true },
       });
     });
-    return this.mapear(fila);
+    return mapearLaboratorio(fila);
   }
 
   async actualizar(
@@ -51,7 +57,7 @@ export class PrismaRepositorioLaboratorio implements ILaboratorioRepositorio {
       await tx.laboratorio.update({
         where: { id: datos.id },
         data: {
-          fecha: this.soloFecha(datos.fecha),
+          fecha: soloFecha(datos.fecha),
           titulo: datos.titulo,
           notas: datos.notas,
         },
@@ -67,7 +73,7 @@ export class PrismaRepositorioLaboratorio implements ILaboratorioRepositorio {
         include: { archivos: true },
       });
     });
-    return this.mapear(fila);
+    return mapearLaboratorio(fila);
   }
 
   async eliminar(id: string): Promise<void> {
@@ -81,7 +87,7 @@ export class PrismaRepositorioLaboratorio implements ILaboratorioRepositorio {
       where: { id },
       include: { archivos: true },
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearLaboratorio(fila) : null;
   }
 
   async listarPorPaciente(pacienteId: string): Promise<Laboratorio[]> {
@@ -90,29 +96,23 @@ export class PrismaRepositorioLaboratorio implements ILaboratorioRepositorio {
       include: { archivos: true },
       orderBy: { fecha: "desc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearLaboratorio(fila));
   }
+}
 
-  private soloFecha(fecha: Date): Date {
-    return new Date(
-      Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
-    );
-  }
-
-  private mapear(fila: LaboratorioConArchivos): Laboratorio {
-    return Laboratorio.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      fecha: fila.fecha,
-      titulo: fila.titulo,
-      notas: fila.notas,
-      adjuntos: fila.archivos.map((archivo) => ({
-        id: archivo.id,
-        nombreOriginal: archivo.nombreOriginal,
-        mimeType: archivo.mimeType,
-        tamanoBytes: archivo.tamanoBytes,
-      })),
-      creadoEn: fila.creadoEn,
-    });
-  }
+export function mapearLaboratorio(fila: LaboratorioConArchivos): Laboratorio {
+  return Laboratorio.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    fecha: fila.fecha,
+    titulo: fila.titulo,
+    notas: fila.notas,
+    adjuntos: fila.archivos.map((archivo) => ({
+      id: archivo.id,
+      nombreOriginal: archivo.nombreOriginal,
+      mimeType: archivo.mimeType,
+      tamanoBytes: archivo.tamanoBytes,
+    })),
+    creadoEn: fila.creadoEn,
+  });
 }

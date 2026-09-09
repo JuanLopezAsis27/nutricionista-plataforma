@@ -18,7 +18,9 @@ import { Label } from "./label";
 const Form = FormProvider;
 
 type ContextoCampo = { name: string };
-const ContextoCampoForm = React.createContext<ContextoCampo>({} as ContextoCampo);
+const ContextoCampoForm = React.createContext<ContextoCampo>(
+  {} as ContextoCampo,
+);
 
 function FormField<
   TFieldValues extends FieldValues = FieldValues,
@@ -50,16 +52,17 @@ function useCampoForm() {
 type ContextoItem = { id: string };
 const ContextoItemForm = React.createContext<ContextoItem>({} as ContextoItem);
 
-const FormItem = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => {
-    const id = React.useId();
-    return (
-      <ContextoItemForm.Provider value={{ id }}>
-        <div ref={ref} className={cn("space-y-2", className)} {...props} />
-      </ContextoItemForm.Provider>
-    );
-  },
-);
+const FormItem = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => {
+  const id = React.useId();
+  return (
+    <ContextoItemForm.Provider value={{ id }}>
+      <div ref={ref} className={cn("space-y-2", className)} {...props} />
+    </ContextoItemForm.Provider>
+  );
+});
 FormItem.displayName = "FormItem";
 
 const FormLabel = React.forwardRef<
@@ -115,4 +118,12 @@ const FormMessage = React.forwardRef<
 });
 FormMessage.displayName = "FormMessage";
 
-export { Form, FormItem, FormLabel, FormControl, FormMessage, FormField, useCampoForm };
+export {
+  Form,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+  FormField,
+  useCampoForm,
+};

@@ -1,10 +1,7 @@
 import type { PrismaClient, Prisma } from "@prisma/client";
 import type { IAlertaSeguimientoRepositorio } from "@/dominio/repositorios/IAlertaSeguimientoRepositorio";
-import {
-  AlertaSeguimiento,
-  type TipoAlertaSeguimiento,
-  type EstadoAlertaSeguimiento,
-} from "@/dominio/entidades/AlertaSeguimiento";
+import { AlertaSeguimiento } from "@/dominio/entidades/AlertaSeguimiento";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 const INCLUIR_PACIENTE = {
   paciente: { select: { nombre: true, apellido: true } },
@@ -38,6 +35,7 @@ export class PrismaRepositorioAlertaSeguimiento implements IAlertaSeguimientoRep
 
       await tx.alertaSeguimiento.create({
         data: {
+          nutricionistaId: inquilinoActual(),
           id: d.id,
           pacienteId: d.pacienteId,
           tipo: d.tipo,
@@ -59,7 +57,7 @@ export class PrismaRepositorioAlertaSeguimiento implements IAlertaSeguimientoRep
       data: { estado: d.estado, resueltaEn: d.resueltaEn },
       include: INCLUIR_PACIENTE,
     });
-    return this.mapear(fila);
+    return mapearAlertaSeguimiento(fila);
   }
 
   async obtenerPorId(id: string): Promise<AlertaSeguimiento | null> {
@@ -67,7 +65,7 @@ export class PrismaRepositorioAlertaSeguimiento implements IAlertaSeguimientoRep
       where: { id },
       include: INCLUIR_PACIENTE,
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearAlertaSeguimiento(fila) : null;
   }
 
   async listarPendientes(): Promise<AlertaSeguimiento[]> {
@@ -76,25 +74,29 @@ export class PrismaRepositorioAlertaSeguimiento implements IAlertaSeguimientoRep
       include: INCLUIR_PACIENTE,
       orderBy: { creadoEn: "desc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearAlertaSeguimiento(fila));
   }
 
   async contarPendientes(): Promise<number> {
-    return this.prisma.alertaSeguimiento.count({ where: { estado: "PENDIENTE" } });
-  }
-
-  private mapear(fila: AlertaConPaciente): AlertaSeguimiento {
-    return AlertaSeguimiento.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      pacienteNombre: `${fila.paciente.nombre} ${fila.paciente.apellido}`,
-      tipo: fila.tipo as TipoAlertaSeguimiento,
-      estado: fila.estado as EstadoAlertaSeguimiento,
-      detalle: fila.detalle,
-      referenciaId: fila.referenciaId,
-      datos: (fila.datos as Record<string, unknown> | null) ?? null,
-      creadoEn: fila.creadoEn,
-      resueltaEn: fila.resueltaEn,
+    return this.prisma.alertaSeguimiento.count({
+      where: { estado: "PENDIENTE" },
     });
   }
+}
+
+export function mapearAlertaSeguimiento(
+  fila: AlertaConPaciente,
+): AlertaSeguimiento {
+  return AlertaSeguimiento.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    pacienteNombre: `${fila.paciente.nombre} ${fila.paciente.apellido}`,
+    tipo: fila.tipo,
+    estado: fila.estado,
+    detalle: fila.detalle,
+    referenciaId: fila.referenciaId,
+    datos: (fila.datos as Record<string, unknown> | null) ?? null,
+    creadoEn: fila.creadoEn,
+    resueltaEn: fila.resueltaEn,
+  });
 }

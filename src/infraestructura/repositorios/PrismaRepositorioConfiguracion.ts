@@ -4,6 +4,7 @@ import type {
 } from "@prisma/client";
 import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
 import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /**
  * Implementación con Prisma de la configuración del consultorio.
@@ -15,17 +16,14 @@ export class PrismaRepositorioConfiguracion implements IConfiguracionRepositorio
 
   async obtener(): Promise<ConfiguracionConsultorio | null> {
     const fila = await this.prisma.configuracionConsultorio.findFirst();
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearConfiguracion(fila) : null;
   }
 
-  async guardar(configuracion: ConfiguracionConsultorio): Promise<ConfiguracionConsultorio> {
+  async guardar(
+    configuracion: ConfiguracionConsultorio,
+  ): Promise<ConfiguracionConsultorio> {
     const d = configuracion.aPrimitivos();
     const datos = {
-      turnoDuracionMinutos: d.turnoDuracionMinutos,
-      turnoPasoMinutos: d.turnoPasoMinutos,
-      atencionHoraDesde: d.atencionHoraDesde,
-      atencionHoraHasta: d.atencionHoraHasta,
-      diasAtencion: d.diasAtencion,
       nombreProfesional: d.nombreProfesional,
       matricula: d.matricula,
       logoArchivoId: d.logoArchivoId,
@@ -36,6 +34,7 @@ export class PrismaRepositorioConfiguracion implements IConfiguracionRepositorio
       pdfMostrarMacros: d.pdfMostrarMacros,
       pdfMostrarEquivalencias: d.pdfMostrarEquivalencias,
       pdfMostrarRecomendaciones: d.pdfMostrarRecomendaciones,
+      whatsappPrefijoPais: d.whatsappPrefijoPais,
     };
     // La config del inquilino es única; si ya existe se actualiza, si no se crea.
     const existente = await this.prisma.configuracionConsultorio.findFirst();
@@ -45,31 +44,29 @@ export class PrismaRepositorioConfiguracion implements IConfiguracionRepositorio
           data: datos,
         })
       : await this.prisma.configuracionConsultorio.create({
-          data: { id: d.id, ...datos },
+          data: { id: d.id, nutricionistaId: inquilinoActual(), ...datos },
         });
-    return this.mapear(fila);
+    return mapearConfiguracion(fila);
   }
+}
 
-  private mapear(fila: ConfiguracionFila): ConfiguracionConsultorio {
-    return ConfiguracionConsultorio.reconstruir({
-      id: fila.id,
-      turnoDuracionMinutos: fila.turnoDuracionMinutos,
-      turnoPasoMinutos: fila.turnoPasoMinutos,
-      atencionHoraDesde: fila.atencionHoraDesde,
-      atencionHoraHasta: fila.atencionHoraHasta,
-      diasAtencion: fila.diasAtencion,
-      nombreProfesional: fila.nombreProfesional,
-      matricula: fila.matricula,
-      logoArchivoId: fila.logoArchivoId,
-      pdfColorPrimario: fila.pdfColorPrimario,
-      pdfSubtitulo: fila.pdfSubtitulo,
-      pdfPieTexto: fila.pdfPieTexto,
-      pdfMostrarRecetas: fila.pdfMostrarRecetas,
-      pdfMostrarMacros: fila.pdfMostrarMacros,
-      pdfMostrarEquivalencias: fila.pdfMostrarEquivalencias,
-      pdfMostrarRecomendaciones: fila.pdfMostrarRecomendaciones,
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+export function mapearConfiguracion(
+  fila: ConfiguracionFila,
+): ConfiguracionConsultorio {
+  return ConfiguracionConsultorio.reconstruir({
+    id: fila.id,
+    nombreProfesional: fila.nombreProfesional,
+    matricula: fila.matricula,
+    logoArchivoId: fila.logoArchivoId,
+    pdfColorPrimario: fila.pdfColorPrimario,
+    pdfSubtitulo: fila.pdfSubtitulo,
+    pdfPieTexto: fila.pdfPieTexto,
+    pdfMostrarRecetas: fila.pdfMostrarRecetas,
+    pdfMostrarMacros: fila.pdfMostrarMacros,
+    pdfMostrarEquivalencias: fila.pdfMostrarEquivalencias,
+    pdfMostrarRecomendaciones: fila.pdfMostrarRecomendaciones,
+    whatsappPrefijoPais: fila.whatsappPrefijoPais,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

@@ -9,6 +9,7 @@ import type {
 } from "@/dominio/repositorios/IMensajeriaRepositorio";
 import { Conversacion } from "@/dominio/entidades/Conversacion";
 import { Mensaje } from "@/dominio/entidades/Mensaje";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Implementación con Prisma de la mensajería (conversaciones + mensajes). */
 export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
@@ -16,18 +17,23 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
 
   async obtenerConversacionPorId(id: string): Promise<Conversacion | null> {
     const fila = await this.prisma.conversacion.findUnique({ where: { id } });
-    return fila ? this.mapearConversacion(fila) : null;
+    return fila ? mapearConversacion(fila) : null;
   }
 
-  async obtenerConversacionPorPaciente(pacienteId: string): Promise<Conversacion | null> {
-    const fila = await this.prisma.conversacion.findUnique({ where: { pacienteId } });
-    return fila ? this.mapearConversacion(fila) : null;
+  async obtenerConversacionPorPaciente(
+    pacienteId: string,
+  ): Promise<Conversacion | null> {
+    const fila = await this.prisma.conversacion.findUnique({
+      where: { pacienteId },
+    });
+    return fila ? mapearConversacion(fila) : null;
   }
 
   async crearConversacion(conversacion: Conversacion): Promise<Conversacion> {
     const d = conversacion.aPrimitivos();
     const fila = await this.prisma.conversacion.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         id: d.id,
         pacienteId: d.pacienteId,
         ultimoMensajeTexto: d.ultimoMensajeTexto,
@@ -36,10 +42,12 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
         actualizadoEn: d.actualizadoEn,
       },
     });
-    return this.mapearConversacion(fila);
+    return mapearConversacion(fila);
   }
 
-  async actualizarConversacion(conversacion: Conversacion): Promise<Conversacion> {
+  async actualizarConversacion(
+    conversacion: Conversacion,
+  ): Promise<Conversacion> {
     const d = conversacion.aPrimitivos();
     const fila = await this.prisma.conversacion.update({
       where: { id: d.id },
@@ -48,7 +56,7 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
         ultimoMensajeEn: d.ultimoMensajeEn,
       },
     });
-    return this.mapearConversacion(fila);
+    return mapearConversacion(fila);
   }
 
   async listarResumen(viewerId: string): Promise<ResumenConversacion[]> {
@@ -79,6 +87,7 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
     const d = mensaje.aPrimitivos();
     const fila = await this.prisma.mensaje.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         id: d.id,
         conversacionId: d.conversacionId,
         autorId: d.autorId,
@@ -87,27 +96,37 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
         creadoEn: d.creadoEn,
       },
     });
-    return this.mapearMensaje(fila);
+    return mapearMensaje(fila);
   }
 
-  async listarMensajes(conversacionId: string, limite = 200): Promise<Mensaje[]> {
+  async listarMensajes(
+    conversacionId: string,
+    limite = 200,
+  ): Promise<Mensaje[]> {
     // Trae los más recientes y los devuelve en orden cronológico ascendente.
     const filas = await this.prisma.mensaje.findMany({
       where: { conversacionId },
       orderBy: { creadoEn: "desc" },
       take: limite,
     });
-    return filas.reverse().map((fila) => this.mapearMensaje(fila));
+    return filas.reverse().map((fila) => mapearMensaje(fila));
   }
 
-  async marcarLeidos(conversacionId: string, viewerId: string, ahora: Date): Promise<void> {
+  async marcarLeidos(
+    conversacionId: string,
+    viewerId: string,
+    ahora: Date,
+  ): Promise<void> {
     await this.prisma.mensaje.updateMany({
       where: { conversacionId, autorId: { not: viewerId }, leidoEn: null },
       data: { leidoEn: ahora },
     });
   }
 
-  async contarNoLeidos(viewerId: string, conversacionId?: string): Promise<number> {
+  async contarNoLeidos(
+    viewerId: string,
+    conversacionId?: string,
+  ): Promise<number> {
     return this.prisma.mensaje.count({
       where: {
         leidoEn: null,
@@ -116,26 +135,26 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
       },
     });
   }
+}
 
-  private mapearConversacion(fila: ConversacionFila): Conversacion {
-    return Conversacion.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      ultimoMensajeTexto: fila.ultimoMensajeTexto,
-      ultimoMensajeEn: fila.ultimoMensajeEn,
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+export function mapearConversacion(fila: ConversacionFila): Conversacion {
+  return Conversacion.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    ultimoMensajeTexto: fila.ultimoMensajeTexto,
+    ultimoMensajeEn: fila.ultimoMensajeEn,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
+}
 
-  private mapearMensaje(fila: MensajeFila): Mensaje {
-    return Mensaje.reconstruir({
-      id: fila.id,
-      conversacionId: fila.conversacionId,
-      autorId: fila.autorId,
-      cuerpo: fila.cuerpo,
-      leidoEn: fila.leidoEn,
-      creadoEn: fila.creadoEn,
-    });
-  }
+export function mapearMensaje(fila: MensajeFila): Mensaje {
+  return Mensaje.reconstruir({
+    id: fila.id,
+    conversacionId: fila.conversacionId,
+    autorId: fila.autorId,
+    cuerpo: fila.cuerpo,
+    leidoEn: fila.leidoEn,
+    creadoEn: fila.creadoEn,
+  });
 }

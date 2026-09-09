@@ -1,9 +1,7 @@
 import type { PrismaClient, Prisma } from "@prisma/client";
 import type { IMetricaDispositivoRepositorio } from "@/dominio/repositorios/IMetricaDispositivoRepositorio";
-import {
-  MetricaDispositivo,
-  type FuenteMetrica,
-} from "@/dominio/entidades/MetricaDispositivo";
+import { MetricaDispositivo } from "@/dominio/entidades/MetricaDispositivo";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 type FilaMetrica = Prisma.MetricaDispositivoGetPayload<Record<string, never>>;
 
@@ -14,7 +12,9 @@ function aNumero(valor: Prisma.Decimal | null): number | null {
 
 /** Solo la parte de la fecha (UTC), para el índice único por día. */
 function soloFecha(fecha: Date): Date {
-  return new Date(Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()));
+  return new Date(
+    Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
+  );
 }
 
 /**
@@ -31,10 +31,15 @@ export class PrismaRepositorioMetricaDispositivo implements IMetricaDispositivoR
     const fecha = soloFecha(d.fecha);
     await this.prisma.metricaDispositivo.upsert({
       where: {
-        pacienteId_fecha_fuente: { pacienteId: d.pacienteId, fecha, fuente: d.fuente },
+        pacienteId_fecha_fuente: {
+          pacienteId: d.pacienteId,
+          fecha,
+          fuente: d.fuente,
+        },
       },
       create: {
         id: d.id,
+        nutricionistaId: inquilinoActual(),
         pacienteId: d.pacienteId,
         fecha,
         fuente: d.fuente,
@@ -64,33 +69,42 @@ export class PrismaRepositorioMetricaDispositivo implements IMetricaDispositivoR
     hasta: Date,
   ): Promise<MetricaDispositivo[]> {
     const filas = await this.prisma.metricaDispositivo.findMany({
-      where: { pacienteId, fecha: { gte: soloFecha(desde), lte: soloFecha(hasta) } },
+      where: {
+        pacienteId,
+        fecha: { gte: soloFecha(desde), lte: soloFecha(hasta) },
+      },
       orderBy: { fecha: "asc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearMetricaDispositivo(fila));
   }
 
-  async fijarInclusion(pacienteId: string, fecha: Date, incluir: boolean): Promise<void> {
+  async fijarInclusion(
+    pacienteId: string,
+    fecha: Date,
+    incluir: boolean,
+  ): Promise<void> {
     await this.prisma.metricaDispositivo.updateMany({
       where: { pacienteId, fecha: soloFecha(fecha) },
       data: { incluir },
     });
   }
+}
 
-  private mapear(fila: FilaMetrica): MetricaDispositivo {
-    return MetricaDispositivo.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      fecha: fila.fecha,
-      fuente: fila.fuente as FuenteMetrica,
-      pasos: fila.pasos,
-      minutosActividad: fila.minutosActividad,
-      caloriasActivas: fila.caloriasActivas,
-      frecuenciaCardiacaReposo: fila.frecuenciaCardiacaReposo,
-      horasSueno: aNumero(fila.horasSueno),
-      incluir: fila.incluir,
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+export function mapearMetricaDispositivo(
+  fila: FilaMetrica,
+): MetricaDispositivo {
+  return MetricaDispositivo.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    fecha: fila.fecha,
+    fuente: fila.fuente,
+    pasos: fila.pasos,
+    minutosActividad: fila.minutosActividad,
+    caloriasActivas: fila.caloriasActivas,
+    frecuenciaCardiacaReposo: fila.frecuenciaCardiacaReposo,
+    horasSueno: aNumero(fila.horasSueno),
+    incluir: fila.incluir,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

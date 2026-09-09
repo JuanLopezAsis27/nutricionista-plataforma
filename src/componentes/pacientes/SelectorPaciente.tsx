@@ -7,7 +7,11 @@ import { useDebounce } from "@/lib/hooks/useDebounce";
 import { cn } from "@/lib/utilidades";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
-import { Popover, PopoverTrigger, PopoverContent } from "@/componentes/ui/popover";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/componentes/ui/popover";
 
 interface PropsSelectorPaciente {
   valor: string | null;
@@ -30,7 +34,11 @@ export function SelectorPaciente({
   const [etiqueta, setEtiqueta] = useState<string | null>(null);
   const debounced = useDebounce(busqueda, 300);
 
-  const consulta = listar({ pagina: 1, porPagina: 20, busqueda: debounced || undefined });
+  const consulta = listar({
+    pagina: 1,
+    porPagina: 20,
+    busqueda: debounced || undefined,
+  });
 
   return (
     <Popover open={abierto} onOpenChange={setAbierto}>
@@ -39,7 +47,10 @@ export function SelectorPaciente({
           type="button"
           variant="outline"
           role="combobox"
-          className={cn("w-full justify-between font-normal", !valor && "text-muted-foreground")}
+          className={cn(
+            "w-full justify-between font-normal",
+            !valor && "text-muted-foreground",
+          )}
         >
           {valor && etiqueta ? etiqueta : placeholder}
           <ChevronsUpDown className="h-4 w-4 opacity-50" />
@@ -76,10 +87,15 @@ export function SelectorPaciente({
                   className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-secondary"
                 >
                   <Check
-                    className={cn("h-4 w-4", valor === p.id ? "opacity-100" : "opacity-0")}
+                    className={cn(
+                      "h-4 w-4",
+                      valor === p.id ? "opacity-100" : "opacity-0",
+                    )}
                   />
                   <span>{nombre}</span>
-                  <span className="ml-auto text-xs text-muted-foreground">{p.email}</span>
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    {p.email}
+                  </span>
                 </button>
               );
             })

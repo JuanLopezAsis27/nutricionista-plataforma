@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Pencil, Trash2, Share2 } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Pencil,
+  Trash2,
+  Share2,
+  FolderInput,
+} from "lucide-react";
 import type { RecetaSalidaDto } from "@/aplicacion/dtos/receta.dto";
 import { useRecetas } from "@/lib/hooks/useRecetas";
 import { useDebounce } from "@/lib/hooks/useDebounce";
@@ -15,25 +22,59 @@ import {
   DialogTitle,
 } from "@/componentes/ui/dialog";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
+import { ControlesPaginacion } from "@/componentes/comunes/ControlesPaginacion";
 import { TarjetaReceta } from "@/componentes/recetas/TarjetaReceta";
 import { VistaReceta } from "@/componentes/recetas/VistaReceta";
 import { FormularioReceta } from "@/componentes/recetas/FormularioReceta";
 import { CompartirReceta } from "@/componentes/recetas/CompartirReceta";
+import { NavegadorCarpetas } from "@/componentes/recetas/NavegadorCarpetas";
+import { MoverRecetaACarpeta } from "@/componentes/recetas/MoverRecetaACarpeta";
 
 export default function PaginaRecetas() {
-  const { listar, eliminar } = useRecetas();
+  const { listarPaginado, eliminar } = useRecetas();
 
   const [busqueda, setBusqueda] = useState("");
+  const [pagina, setPagina] = useState(1);
+  /** Carpeta abierta. `null` es la raíz. */
+  const [carpetaId, setCarpetaId] = useState<string | null>(null);
   const debounced = useDebounce(busqueda, 300);
-  const consulta = listar(debounced ? { texto: debounced } : undefined);
+  const buscando = debounced.length > 0;
+
+  // Buscar es una operación sobre TODO el recetario: mientras hay texto, la
+  // carpeta deja de filtrar. Si no, buscar en la raíz —que lista las sueltas—
+  // no encontraría una receta que existe solo porque está guardada en una
+  // carpeta, y eso se lee como "la búsqueda está rota".
+  //
+  // Sin búsqueda, la raíz lista las SUELTAS (grupoId: null) y no todas: si
+  // mostrara todas, las recetas de las carpetas aparecerían dos veces —arriba
+  // en la carpeta y abajo en la lista— y entrar a una carpeta no cambiaría nada.
+  const filtroCarpeta = buscando ? undefined : carpetaId;
+
+  function abrirCarpeta(id: string | null) {
+    setCarpetaId(id);
+    setPagina(1);
+  }
+
+  const consulta = listarPaginado({
+    texto: debounced || undefined,
+    grupoId: filtroCarpeta,
+    pagina,
+    porPagina: 10,
+  });
 
   const [formAbierto, setFormAbierto] = useState(false);
-  const [recetaEditar, setRecetaEditar] = useState<RecetaSalidaDto | null>(null);
+  const [recetaEditar, setRecetaEditar] = useState<RecetaSalidaDto | null>(
+    null,
+  );
   const [recetaVer, setRecetaVer] = useState<RecetaSalidaDto | null>(null);
-  const [recetaCompartir, setRecetaCompartir] = useState<RecetaSalidaDto | null>(null);
-  const [recetaEliminar, setRecetaEliminar] = useState<RecetaSalidaDto | null>(null);
+  const [recetaCompartir, setRecetaCompartir] =
+    useState<RecetaSalidaDto | null>(null);
+  const [recetaEliminar, setRecetaEliminar] = useState<RecetaSalidaDto | null>(
+    null,
+  );
+  const [recetaMover, setRecetaMover] = useState<RecetaSalidaDto | null>(null);
 
-  const recetas = consulta.data ?? [];
+  const recetas = consulta.data?.recetas ?? [];
 
   return (
     <div className="space-y-4">
@@ -44,7 +85,10 @@ export default function PaginaRecetas() {
             placeholder="Buscar receta…"
             className="pl-8"
             value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            onChange={(e) => {
+              setBusqueda(e.target.value);
+              setPagina(1);
+            }}
           />
         </div>
         <Button
@@ -58,6 +102,12 @@ export default function PaginaRecetas() {
         </Button>
       </div>
 
+      {/* Mientras se busca, el navegador se esconde: la búsqueda ya no está
+          mirando adentro de la carpeta y dejarlo abierto diría lo contrario. */}
+      {!buscando && (
+        <NavegadorCarpetas carpetaId={carpetaId} onAbrir={abrirCarpeta} />
+      )}
+
       {consulta.isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, indice) => (
@@ -65,12 +115,16 @@ export default function PaginaRecetas() {
           ))}
         </div>
       ) : consulta.isError ? (
-        <p className="text-sm text-destructive">No se pudieron cargar las recetas.</p>
+        <p className="text-sm text-destructive">
+          No se pudieron cargar las recetas.
+        </p>
       ) : recetas.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          {debounced
+          {buscando
             ? "No hay recetas que coincidan con la búsqueda."
-            : "Todavía no hay recetas en el recetario."}
+            : carpetaId
+              ? "Esta carpeta está vacía. Mové una receta acá adentro desde la lista."
+              : "No hay recetas sueltas. Las que estén en una carpeta se ven al abrirla."}
         </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -88,6 +142,14 @@ export default function PaginaRecetas() {
                     onClick={() => setRecetaCompartir(receta)}
                   >
                     <Share2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    title="Mover a una carpeta"
+                    onClick={() => setRecetaMover(receta)}
+                  >
+                    <FolderInput className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -115,21 +177,33 @@ export default function PaginaRecetas() {
         </div>
       )}
 
+      <ControlesPaginacion
+        pagina={pagina}
+        totalPaginas={consulta.data?.paginas ?? 1}
+        onCambiar={setPagina}
+      />
+
       {/* Alta / edición */}
       <Dialog open={formAbierto} onOpenChange={setFormAbierto}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{recetaEditar ? "Editar receta" : "Nueva receta"}</DialogTitle>
+            <DialogTitle>
+              {recetaEditar ? "Editar receta" : "Nueva receta"}
+            </DialogTitle>
           </DialogHeader>
           <FormularioReceta
             recetaInicial={recetaEditar}
+            grupoIdInicial={carpetaId}
             onTerminado={() => setFormAbierto(false)}
           />
         </DialogContent>
       </Dialog>
 
       {/* Detalle */}
-      <Dialog open={Boolean(recetaVer)} onOpenChange={(abierto) => !abierto && setRecetaVer(null)}>
+      <Dialog
+        open={Boolean(recetaVer)}
+        onOpenChange={(abierto) => !abierto && setRecetaVer(null)}
+      >
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{recetaVer?.nombre}</DialogTitle>
@@ -151,6 +225,11 @@ export default function PaginaRecetas() {
         </DialogContent>
       </Dialog>
 
+      <MoverRecetaACarpeta
+        receta={recetaMover}
+        onCerrar={() => setRecetaMover(null)}
+      />
+
       {/* Confirmación de eliminación */}
       <ModalConfirmacion
         abierto={Boolean(recetaEliminar)}
@@ -160,7 +239,10 @@ export default function PaginaRecetas() {
         onCancelar={() => setRecetaEliminar(null)}
         onConfirmar={() => {
           if (!recetaEliminar) return;
-          eliminar.mutate({ id: recetaEliminar.id }, { onSuccess: () => setRecetaEliminar(null) });
+          eliminar.mutate(
+            { id: recetaEliminar.id },
+            { onSuccess: () => setRecetaEliminar(null) },
+          );
         }}
       />
     </div>

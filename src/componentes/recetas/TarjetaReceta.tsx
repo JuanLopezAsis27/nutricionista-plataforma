@@ -15,7 +15,8 @@ interface PropsTarjetaReceta {
 
 /** Tarjeta del recetario: foto principal, nombre, etiquetas y calorías. */
 export function TarjetaReceta({ receta, onVer, acciones }: PropsTarjetaReceta) {
-  const fotoId = receta.fotos[0]?.id;
+  // La portada la resuelve el servidor (elegida, o la primera si no hay).
+  const fotoId = receta.fotoPrincipalId;
 
   return (
     <Card className="overflow-hidden">
@@ -26,9 +27,9 @@ export function TarjetaReceta({ receta, onVer, acciones }: PropsTarjetaReceta) {
         aria-label={`Ver la receta ${receta.nombre}`}
       >
         {fotoId ? (
-          // eslint-disable-next-line @next/next/no-img-element -- URL firmada temporal, no optimizable
+          // eslint-disable-next-line @next/next/no-img-element -- ruta dinámica autorizada, no optimizable
           <img
-            src={`/api/archivos/${fotoId}`}
+            src={`/api/archivos/${fotoId}/ver`}
             alt={`Foto de ${receta.nombre}`}
             className="h-36 w-full object-cover"
           />
@@ -39,7 +40,11 @@ export function TarjetaReceta({ receta, onVer, acciones }: PropsTarjetaReceta) {
         )}
       </button>
       <CardContent className="space-y-2 p-3">
-        <button type="button" onClick={onVer} className="block w-full text-left">
+        <button
+          type="button"
+          onClick={onVer}
+          className="block w-full text-left"
+        >
           <p className="font-medium leading-tight">{receta.nombre}</p>
         </button>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -54,7 +59,9 @@ export function TarjetaReceta({ receta, onVer, acciones }: PropsTarjetaReceta) {
             </Badge>
           ))}
         </div>
-        {acciones && <div className="flex justify-end gap-1 pt-1">{acciones}</div>}
+        {acciones && (
+          <div className="flex justify-end gap-1 pt-1">{acciones}</div>
+        )}
       </CardContent>
     </Card>
   );

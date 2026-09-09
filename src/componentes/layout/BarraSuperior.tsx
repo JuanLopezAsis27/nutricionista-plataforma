@@ -43,27 +43,29 @@ export function BarraSuperior({ email }: { email: string }) {
       <h1 className="text-xl font-semibold">{tituloDeRuta(ruta)}</h1>
 
       <div className="flex items-center gap-2">
-      <CampanaNotificaciones />
-      <ToggleTema />
-      <DropdownMenu>
-        <DropdownMenuTrigger className="rounded-full outline-none focus:ring-2 focus:ring-ring">
-          <Avatar>
-            <AvatarFallback>{inicial}</AvatarFallback>
-          </Avatar>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel className="truncate">{email}</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem disabled>
-            <User className="h-4 w-4" />
-            Ver perfil
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/login" })}>
-            <LogOut className="h-4 w-4" />
-            Cerrar sesión
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        <CampanaNotificaciones />
+        <ToggleTema />
+        <DropdownMenu>
+          <DropdownMenuTrigger className="rounded-full outline-none focus:ring-2 focus:ring-ring">
+            <Avatar>
+              <AvatarFallback>{inicial}</AvatarFallback>
+            </Avatar>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel className="truncate">{email}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem disabled>
+              <User className="h-4 w-4" />
+              Ver perfil
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => signOut({ callbackUrl: "/login" })}
+            >
+              <LogOut className="h-4 w-4" />
+              Cerrar sesión
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

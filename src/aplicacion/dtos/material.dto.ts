@@ -34,6 +34,18 @@ export const filtroMaterialesDto = z
   .optional();
 export type FiltroMaterialesDto = z.infer<typeof filtroMaterialesDto>;
 
+/** Listado paginado de la biblioteca (10 por página por defecto). */
+export const listarMaterialesPaginadoDto = z.object({
+  texto: z.string().max(160).optional(),
+  categoria: z.string().max(80).optional(),
+  etiqueta: z.string().max(60).optional(),
+  pagina: z.number().int().positive().default(1),
+  porPagina: z.number().int().positive().max(100).default(10),
+});
+export type ListarMaterialesPaginadoDto = z.infer<
+  typeof listarMaterialesPaginadoDto
+>;
+
 export const asignarMaterialDto = z.object({
   materialId: z.string().min(1),
   pacienteId: z.string().min(1),
@@ -49,9 +61,20 @@ export const materialSalidaDto = z.object({
   categoria: z.string().nullable(),
   etiquetas: z.array(z.string()),
   archivo: z
-    .object({ id: z.string(), nombreOriginal: z.string(), mimeType: z.string() })
+    .object({
+      id: z.string(),
+      nombreOriginal: z.string(),
+      mimeType: z.string(),
+    })
     .nullable(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
 });
 export type MaterialSalidaDto = z.infer<typeof materialSalidaDto>;
+
+/** Resultado paginado de la biblioteca. */
+export interface MaterialesPaginados {
+  materiales: MaterialSalidaDto[];
+  total: number;
+  paginas: number;
+}

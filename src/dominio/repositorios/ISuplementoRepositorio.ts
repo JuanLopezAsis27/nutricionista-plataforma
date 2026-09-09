@@ -7,5 +7,8 @@ export interface ISuplementoRepositorio {
   eliminar(id: string): Promise<void>;
   obtenerPorId(id: string): Promise<Suplemento | null>;
   /** Suplementos del paciente (activos primero, más recientes primero). */
-  listarPorPaciente(pacienteId: string, incluirInactivos?: boolean): Promise<Suplemento[]>;
+  listarPorPaciente(
+    pacienteId: string,
+    incluirInactivos?: boolean,
+  ): Promise<Suplemento[]>;
 }

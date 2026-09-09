@@ -10,12 +10,18 @@ import { Input } from "@/componentes/ui/input";
 import { Label } from "@/componentes/ui/label";
 import { Badge } from "@/componentes/ui/badge";
 import { Skeleton } from "@/componentes/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 import { ToggleTema } from "@/componentes/comunes/ToggleTema";
 
 /** Panel del SUPERADMIN: alta y gestión de cuentas de nutricionista. */
 export default function PaginaAdmin() {
-  const { listarNutricionistas, crearNutricionista, cambiarEstado } = useSuperAdmin();
+  const { listarNutricionistas, crearNutricionista, cambiarEstado } =
+    useSuperAdmin();
   const consulta = listarNutricionistas();
   const nutris = consulta.data ?? [];
 
@@ -42,12 +48,17 @@ export default function PaginaAdmin() {
             <Shield className="h-6 w-6 text-primary" /> Administración
           </h1>
           <p className="text-sm text-muted-foreground">
-            Cuentas de nutricionista (cada una es un espacio aislado con sus pacientes).
+            Cuentas de nutricionista (cada una es un espacio aislado con sus
+            pacientes).
           </p>
         </div>
         <div className="flex items-center gap-2">
           <ToggleTema />
-          <Button variant="outline" size="sm" onClick={() => signOut({ callbackUrl: "/login" })}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => signOut({ callbackUrl: "/login" })}
+          >
             <LogOut className="h-4 w-4" /> Salir
           </Button>
         </div>
@@ -56,7 +67,8 @@ export default function PaginaAdmin() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Plus className="h-5 w-5 text-primary" /> Nueva cuenta de nutricionista
+            <Plus className="h-5 w-5 text-primary" /> Nueva cuenta de
+            nutricionista
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
@@ -82,7 +94,11 @@ export default function PaginaAdmin() {
           </div>
           <Button
             onClick={crear}
-            disabled={crearNutricionista.isPending || !email.trim() || password.length < 8}
+            disabled={
+              crearNutricionista.isPending ||
+              !email.trim() ||
+              password.length < 8
+            }
           >
             Crear cuenta
           </Button>
@@ -103,7 +119,10 @@ export default function PaginaAdmin() {
           ) : (
             <ul className="divide-y">
               {nutris.map((n) => (
-                <li key={n.id} className="flex items-center justify-between gap-3 py-3">
+                <li
+                  key={n.id}
+                  className="flex items-center justify-between gap-3 py-3"
+                >
                   <div className="min-w-0">
                     <p className="flex items-center gap-2 font-medium">
                       <span className="truncate">{n.email}</span>
@@ -121,7 +140,9 @@ export default function PaginaAdmin() {
                     variant="outline"
                     size="sm"
                     disabled={cambiarEstado.isPending}
-                    onClick={() => cambiarEstado.mutate({ id: n.id, activo: !n.activo })}
+                    onClick={() =>
+                      cambiarEstado.mutate({ id: n.id, activo: !n.activo })
+                    }
                   >
                     {n.activo ? (
                       <>

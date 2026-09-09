@@ -21,7 +21,9 @@ export default function PaginaMiMaterial() {
       {consulta.isLoading ? (
         <Skeleton className="h-48 w-full" />
       ) : (consulta.data ?? []).length === 0 ? (
-        <p className="text-sm text-muted-foreground">Todavía no tenés material compartido.</p>
+        <p className="text-sm text-muted-foreground">
+          Todavía no tenés material compartido.
+        </p>
       ) : (
         <ul className="divide-y rounded-lg border bg-card">
           {consulta.data!.map((material) => (

@@ -13,7 +13,12 @@ import {
 import { useEstadisticas } from "@/lib/hooks/useEstadisticas";
 import { hoyLocalISO } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 import { Skeleton } from "@/componentes/ui/skeleton";
 import type { InsightPacienteDto } from "@/aplicacion/dtos/ia.dto";
 
@@ -34,11 +39,14 @@ export function PanelKpisAnalisis({
   const { obtener } = useEstadisticas();
   // Rango: últimos 3 meses (anclado al día local para claves de query estables).
   const hasta = new Date(hoyLocalISO());
-  const desde = new Date(Date.UTC(hasta.getUTCFullYear(), hasta.getUTCMonth() - 2, 1));
+  const desde = new Date(
+    Date.UTC(hasta.getUTCFullYear(), hasta.getUTCMonth() - 2, 1),
+  );
   const est = obtener({ desde, hasta });
   const d = est.data;
 
-  const porTipo = (tipo: string) => insights.filter((i) => i.tipo === tipo).length;
+  const porTipo = (tipo: string) =>
+    insights.filter((i) => i.tipo === tipo).length;
   const criticas = insights.filter((i) => i.severidad === "CRITICO").length;
 
   return (
@@ -67,7 +75,9 @@ export function PanelKpisAnalisis({
           icono={UserX}
           titulo="En riesgo"
           valor={d ? String(d.pacientesEnRiesgo) : null}
-          detalle={d ? `sin actividad +${d.diasAbandono} d` : "inactividad reciente"}
+          detalle={
+            d ? `sin actividad +${d.diasAbandono} d` : "inactividad reciente"
+          }
           alerta={Boolean(d && d.pacientesEnRiesgo > 0)}
         />
       </div>
@@ -123,14 +133,26 @@ function KpiTile({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5">
-        <CardTitle className="text-xs font-medium text-muted-foreground">{titulo}</CardTitle>
-        <Icono className={cn("h-4 w-4", alerta ? "text-destructive" : "text-muted-foreground")} />
+        <CardTitle className="text-xs font-medium text-muted-foreground">
+          {titulo}
+        </CardTitle>
+        <Icono
+          className={cn(
+            "h-4 w-4",
+            alerta ? "text-destructive" : "text-muted-foreground",
+          )}
+        />
       </CardHeader>
       <CardContent>
         {valor == null ? (
           <Skeleton className="h-7 w-16" />
         ) : (
-          <p className={cn("text-2xl font-bold tabular-nums", alerta && "text-destructive")}>
+          <p
+            className={cn(
+              "text-2xl font-bold tabular-nums",
+              alerta && "text-destructive",
+            )}
+          >
             {valor}
           </p>
         )}

@@ -18,5 +18,8 @@ export interface ResultadoAnalisisComida {
  * recibe la imagen del bucket y devuelve porción y macros estimados.
  */
 export interface IAnalisisComidaIA {
-  analizar(entrada: { archivoClave?: string; descripcion?: string }): Promise<ResultadoAnalisisComida>;
+  analizar(entrada: {
+    archivoClave?: string;
+    descripcion?: string;
+  }): Promise<ResultadoAnalisisComida>;
 }

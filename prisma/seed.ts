@@ -8,9 +8,16 @@
  *
  * Ejecutar con: npm run db:seed
  *
- * Credenciales (configurables por entorno):
- *   SUPERADMIN_EMAIL / SUPERADMIN_PASSWORD (default: admin@demo.com / cambiar123)
- *   SEED_EMAIL       / SEED_PASSWORD       (default: nutricionista@demo.com / cambiar123)
+ * Credenciales:
+ *   SUPERADMIN_EMAIL / SUPERADMIN_PASSWORD
+ *   SEED_EMAIL       / SEED_PASSWORD
+ *
+ * En desarrollo tienen valores por defecto para que la semilla ande sin
+ * configurar nada. En PRODUCCIÓN no: si faltan, el proceso ABORTA. Los valores
+ * por defecto eran públicos —están en este archivo, que está en el repo— así
+ * que correr la semilla en el VPS sin definirlas creaba la cuenta de mayor
+ * privilegio del sistema con una contraseña que sabe cualquiera. Fallar es
+ * ruidoso y se arregla en diez segundos; el default silencioso no se notaba.
  */
 import bcrypt from "bcryptjs";
 import { PrismaClienteSingleton } from "../src/infraestructura/repositorios/PrismaClienteSingleton";
@@ -18,15 +25,51 @@ import {
   ejecutarGlobal,
   ejecutarEnNutricionista,
 } from "../src/infraestructura/multitenancy/contextoTenant";
+import { inquilinoActual } from "../src/infraestructura/multitenancy/inquilino";
 import { Usuario } from "../src/dominio/entidades/Usuario";
 import { PlantillaEmail } from "../src/dominio/entidades/PlantillaEmail";
 import { AxiomaNutricional } from "../src/dominio/entidades/AxiomaNutricional";
 
 const prisma = PrismaClienteSingleton.obtenerInstancia();
 
+const EN_PRODUCCION = process.env.NODE_ENV === "production";
+
+/** Rondas de bcrypt para las cuentas sembradas (mismo costo que la app). */
+const RONDAS = 12;
+
+/**
+ * Credencial de una cuenta sembrada.
+ *
+ * En producción exige que la variable esté definida y no sea trivial. Fuera de
+ * producción cae al valor de ejemplo, que es lo que hace usable `npm run db:seed`
+ * en una máquina de desarrollo recién clonada.
+ */
+function credencial(variable: string, porDefecto: string, minimo = 1): string {
+  const valor = process.env[variable];
+
+  if (EN_PRODUCCION) {
+    if (!valor || valor.trim() === "") {
+      throw new Error(
+        `Falta ${variable}. En producción la semilla no usa credenciales por defecto: ` +
+          `definila antes de correr db:seed.`,
+      );
+    }
+    if (valor.length < minimo) {
+      throw new Error(
+        `${variable} es demasiado corta (mínimo ${minimo} caracteres).`,
+      );
+    }
+    return valor;
+  }
+
+  return valor && valor.trim() !== "" ? valor : porDefecto;
+}
+
 async function sembrarSuperAdmin(): Promise<void> {
-  const email = (process.env.SUPERADMIN_EMAIL ?? "admin@demo.com").trim().toLowerCase();
-  const password = process.env.SUPERADMIN_PASSWORD ?? "cambiar123";
+  const email = credencial("SUPERADMIN_EMAIL", "admin@demo.com")
+    .trim()
+    .toLowerCase();
+  const password = credencial("SUPERADMIN_PASSWORD", "cambiar123", 12);
 
   if (await prisma.usuario.findUnique({ where: { email } })) {
     console.log(`✔ El superadmin «${email}» ya existe.`);
@@ -35,7 +78,7 @@ async function sembrarSuperAdmin(): Promise<void> {
   const usuario = Usuario.crear(
     {
       email,
-      passwordHash: await bcrypt.hash(password, 10),
+      passwordHash: await bcrypt.hash(password, RONDAS),
       rol: "SUPERADMIN",
       pacienteId: null,
       nutricionistaId: null,
@@ -55,12 +98,16 @@ async function sembrarSuperAdmin(): Promise<void> {
       creadoEn: d.creadoEn,
     },
   });
-  console.log(`✔ SUPERADMIN creado: ${email}  (contraseña: ${password})`);
+  // Nunca se imprime la contraseña: la salida de la semilla termina en los logs
+  // de Docker, que se rotan y se respaldan.
+  console.log(`✔ SUPERADMIN creado: ${email}`);
 }
 
 async function sembrarNutricionista(): Promise<string | null> {
-  const email = (process.env.SEED_EMAIL ?? "nutricionista@demo.com").trim().toLowerCase();
-  const password = process.env.SEED_PASSWORD ?? "cambiar123";
+  const email = credencial("SEED_EMAIL", "nutricionista@demo.com")
+    .trim()
+    .toLowerCase();
+  const password = credencial("SEED_PASSWORD", "cambiar123", 12);
 
   const existente = await prisma.usuario.findUnique({ where: { email } });
   if (existente) {
@@ -68,10 +115,12 @@ async function sembrarNutricionista(): Promise<string | null> {
     return existente.id;
   }
   const id = crypto.randomUUID();
+  // El inquilino primero: `usuarios.nutricionistaId` es FK a `nutricionistas`.
+  await prisma.nutricionista.create({ data: { id } });
   const usuario = Usuario.crear(
     {
       email,
-      passwordHash: await bcrypt.hash(password, 10),
+      passwordHash: await bcrypt.hash(password, RONDAS),
       rol: "NUTRICIONISTA",
       pacienteId: null,
       nutricionistaId: id, // el nutricionista es su propio inquilino
@@ -91,7 +140,7 @@ async function sembrarNutricionista(): Promise<string | null> {
       creadoEn: d.creadoEn,
     },
   });
-  console.log(`✔ NUTRICIONISTA creado: ${email}  (contraseña: ${password})`);
+  console.log(`✔ NUTRICIONISTA creado: ${email}`);
   return id;
 }
 
@@ -124,12 +173,19 @@ const PLANTILLAS_SISTEMA = [
 
 async function sembrarPlantillas(): Promise<void> {
   for (const datos of PLANTILLAS_SISTEMA) {
-    if (await prisma.plantillaEmail.findFirst({ where: { clave: datos.clave } })) continue;
-    const plantilla = PlantillaEmail.crear({ ...datos, deSistema: true }, crypto.randomUUID());
+    if (
+      await prisma.plantillaEmail.findFirst({ where: { clave: datos.clave } })
+    )
+      continue;
+    const plantilla = PlantillaEmail.crear(
+      { ...datos, deSistema: true },
+      crypto.randomUUID(),
+    );
     const d = plantilla.aPrimitivos();
     await prisma.plantillaEmail.create({
       data: {
         id: d.id,
+        nutricionistaId: inquilinoActual(),
         clave: d.clave,
         nombre: d.nombre,
         asunto: d.asunto,
@@ -146,14 +202,62 @@ async function sembrarPlantillas(): Promise<void> {
 
 async function sembrarConfiguracion(): Promise<void> {
   if (await prisma.configuracionConsultorio.findFirst()) return;
-  await prisma.configuracionConsultorio.create({ data: { diasAtencion: [1, 2, 3, 4, 5] } });
+  // Los días de atención ya no están acá: son del establecimiento (49).
+  await prisma.configuracionConsultorio.create({
+    data: { nutricionistaId: inquilinoActual() },
+  });
   console.log("  ✔ Configuración por defecto");
 }
 
+/**
+ * La sede principal. Sin ninguna no se puede agendar: `turnos` la exige,
+ * `AgendarTurno` la busca cuando la pantalla no elige, y desde la migración 49
+ * es además la que declara los días y horarios de atención.
+ */
+async function sembrarEstablecimiento(): Promise<void> {
+  if (await prisma.establecimiento.findFirst()) return;
+  await prisma.establecimiento.create({
+    data: {
+      nutricionistaId: inquilinoActual(),
+      nombre: "Consultorio principal",
+      esPrincipal: true,
+      diasAtencion: [1, 2, 3, 4, 5],
+    },
+  });
+  console.log("  ✔ Establecimiento principal");
+}
+
 const AXIOMAS_EJEMPLO = [
-  { ambito: "SUENO" as const, parametro: "horasSueno", operador: "MAYOR_IGUAL" as const, valor: 7, unidad: "h", texto: "Dormir al menos 7 horas favorece la recuperación y el control del peso.", prioridad: 10 },
-  { ambito: "HIDRATACION" as const, parametro: "aguaMl", operador: "MAYOR_IGUAL" as const, valor: 2000, unidad: "ml", texto: "Tomar al menos 2 litros de agua por día mantiene una buena hidratación.", prioridad: 8 },
-  { ambito: "ACTIVIDAD" as const, parametro: "actividadMinutosDia", operador: "MAYOR_IGUAL" as const, valor: 30, unidad: "min", texto: "Al menos 30 minutos de actividad física por día mejoran la composición corporal.", prioridad: 6 },
+  {
+    ambito: "SUENO" as const,
+    parametro: "horasSueno",
+    operador: "MAYOR_IGUAL" as const,
+    valor: 7,
+    unidad: "h",
+    texto:
+      "Dormir al menos 7 horas favorece la recuperación y el control del peso.",
+    prioridad: 10,
+  },
+  {
+    ambito: "HIDRATACION" as const,
+    parametro: "aguaMl",
+    operador: "MAYOR_IGUAL" as const,
+    valor: 2000,
+    unidad: "ml",
+    texto:
+      "Tomar al menos 2 litros de agua por día mantiene una buena hidratación.",
+    prioridad: 8,
+  },
+  {
+    ambito: "ACTIVIDAD" as const,
+    parametro: "actividadMinutosDia",
+    operador: "MAYOR_IGUAL" as const,
+    valor: 30,
+    unidad: "min",
+    texto:
+      "Al menos 30 minutos de actividad física por día mejoran la composición corporal.",
+    prioridad: 6,
+  },
 ];
 
 async function sembrarAxiomas(): Promise<void> {
@@ -164,6 +268,7 @@ async function sembrarAxiomas(): Promise<void> {
     await prisma.axiomaNutricional.create({
       data: {
         id: d.id,
+        nutricionistaId: inquilinoActual(),
         ambito: d.ambito,
         parametro: d.parametro,
         operador: d.operador,
@@ -189,6 +294,7 @@ async function principal(): Promise<void> {
       await ejecutarEnNutricionista(nutriId, async () => {
         await sembrarPlantillas();
         await sembrarConfiguracion();
+        await sembrarEstablecimiento();
         await sembrarAxiomas();
       });
     }

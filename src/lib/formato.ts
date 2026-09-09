@@ -21,12 +21,40 @@ const formateadorFechaLarga = new Intl.DateTimeFormat("es-AR", {
   timeZone: "UTC",
 });
 
-export function formatearFecha(fecha: Date | string | null | undefined): string {
+export function formatearFecha(
+  fecha: Date | string | null | undefined,
+): string {
   if (!fecha) return "—";
   return formateadorFecha.format(new Date(fecha));
 }
 
-export function formatearFechaLarga(fecha: Date | string | null | undefined): string {
+/**
+ * Fecha y hora de un INSTANTE (`creadoEn`, `generadoEn`), en la zona horaria de
+ * quien mira.
+ *
+ * Va sin `timeZone: "UTC"`, al revés que `formatearFecha`: aquella formatea
+ * columnas `DATE` —que llegan como medianoche UTC y se correrían un día al
+ * pasarlas a hora local—, y esto formatea un momento real, donde lo que se
+ * quiere ver es la hora del reloj de la pared.
+ */
+const formateadorFechaHora = new Intl.DateTimeFormat("es-AR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+export function formatearFechaHora(
+  fecha: Date | string | null | undefined,
+): string {
+  if (!fecha) return "—";
+  return formateadorFechaHora.format(new Date(fecha));
+}
+
+export function formatearFechaLarga(
+  fecha: Date | string | null | undefined,
+): string {
   if (!fecha) return "—";
   return formateadorFechaLarga.format(new Date(fecha));
 }
@@ -107,6 +135,34 @@ const formateadorNumero = new Intl.NumberFormat("es-AR", {
 /** Formatea un número con hasta 1 decimal (es-AR); "—" si es null. */
 export function formatearNumero(valor: number | null | undefined): string {
   return valor == null ? "—" : formateadorNumero.format(valor);
+}
+
+const formateadorMedida = new Intl.NumberFormat("es-AR", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/**
+ * Medida antropométrica con SIEMPRE dos decimales (es-AR); "—" si es null.
+ *
+ * Es el formato de toda la sección de composición corporal, y son dos
+ * decimales por dos motivos distintos:
+ *
+ *   - **No perder precisión que el cálculo sí tiene.** El dominio redondea el
+ *     porcentaje graso, el IMC y los porcentajes de las masas a dos decimales;
+ *     con `formatearNumero` la pantalla los recortaba a uno y un 18,75 % se
+ *     leía 18,8 %. Entre dos consultas, ese redondeo se come diferencias
+ *     reales.
+ *   - **Que las columnas se lean.** Los números van con `tabular-nums` en
+ *     tablas y tarjetas comparativas; con la cantidad de decimales variable,
+ *     las comas no se alinean y la comparación visual entre filas se pierde.
+ *
+ * Por eso el mínimo también es 2: rellenar con el cero es deliberado, no un
+ * descuido. La EDAD no usa este formato —"30,00 años" no es una medida—, y
+ * fuera de antropometría sigue rigiendo `formatearNumero`.
+ */
+export function formatearMedida(valor: number | null | undefined): string {
+  return valor == null ? "—" : formateadorMedida.format(valor);
 }
 
 const formateadorMoneda = new Intl.NumberFormat("es-AR", {

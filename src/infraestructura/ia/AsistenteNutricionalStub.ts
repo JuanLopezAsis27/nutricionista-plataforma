@@ -12,7 +12,10 @@ import type {
  * (Messages) con el mismo contexto; la UI y los casos de uso no cambian.
  */
 export class AsistenteNutricionalStub implements IAsistenteNutricional {
-  async responder(pregunta: string, contexto: ContextoAsistente): Promise<string> {
+  async responder(
+    pregunta: string,
+    contexto: ContextoAsistente,
+  ): Promise<string> {
     const objetivos =
       contexto.objetivos.length > 0
         ? `Tus objetivos actuales: ${contexto.objetivos.join(", ")}.`

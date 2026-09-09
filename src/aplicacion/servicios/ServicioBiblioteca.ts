@@ -1,16 +1,19 @@
-import type { CrearMaterial } from "@/dominio/casos-de-uso/biblioteca/CrearMaterial";
-import type { ActualizarMaterial } from "@/dominio/casos-de-uso/biblioteca/ActualizarMaterial";
-import type { EliminarMaterial } from "@/dominio/casos-de-uso/biblioteca/EliminarMaterial";
-import type { ObtenerMateriales } from "@/dominio/casos-de-uso/biblioteca/ObtenerMateriales";
-import type { AsignarMaterialAPaciente } from "@/dominio/casos-de-uso/biblioteca/AsignarMaterialAPaciente";
-import type { DesasignarMaterialDePaciente } from "@/dominio/casos-de-uso/biblioteca/DesasignarMaterialDePaciente";
-import type { ObtenerMaterialesDelPaciente } from "@/dominio/casos-de-uso/biblioteca/ObtenerMaterialesDelPaciente";
-import type { ObtenerPacientesDeMaterial } from "@/dominio/casos-de-uso/biblioteca/ObtenerPacientesDeMaterial";
+import type { CrearMaterial } from "@/aplicacion/casos-de-uso/biblioteca/CrearMaterial";
+import type { ActualizarMaterial } from "@/aplicacion/casos-de-uso/biblioteca/ActualizarMaterial";
+import type { EliminarMaterial } from "@/aplicacion/casos-de-uso/biblioteca/EliminarMaterial";
+import type { ObtenerMateriales } from "@/aplicacion/casos-de-uso/biblioteca/ObtenerMateriales";
+import type { ObtenerMaterialesPaginado } from "@/aplicacion/casos-de-uso/biblioteca/ObtenerMaterialesPaginado";
+import type { AsignarMaterialAPaciente } from "@/aplicacion/casos-de-uso/biblioteca/AsignarMaterialAPaciente";
+import type { DesasignarMaterialDePaciente } from "@/aplicacion/casos-de-uso/biblioteca/DesasignarMaterialDePaciente";
+import type { ObtenerMaterialesDelPaciente } from "@/aplicacion/casos-de-uso/biblioteca/ObtenerMaterialesDelPaciente";
+import type { ObtenerPacientesDeMaterial } from "@/aplicacion/casos-de-uso/biblioteca/ObtenerPacientesDeMaterial";
 import type { MaterialBiblioteca } from "@/dominio/entidades/MaterialBiblioteca";
 import type {
   CrearMaterialDto,
   ActualizarMaterialDto,
   FiltroMaterialesDto,
+  ListarMaterialesPaginadoDto,
+  MaterialesPaginados,
   AsignarMaterialDto,
   MaterialSalidaDto,
 } from "../dtos/material.dto";
@@ -25,6 +28,7 @@ export class ServicioBiblioteca {
     private readonly actualizarUC: ActualizarMaterial,
     private readonly eliminarUC: EliminarMaterial,
     private readonly obtenerTodosUC: ObtenerMateriales,
+    private readonly obtenerPaginadoUC: ObtenerMaterialesPaginado,
     private readonly asignarUC: AsignarMaterialAPaciente,
     private readonly desasignarUC: DesasignarMaterialDePaciente,
     private readonly obtenerDelPacienteUC: ObtenerMaterialesDelPaciente,
@@ -36,7 +40,9 @@ export class ServicioBiblioteca {
     return ServicioBiblioteca.aSalida(material);
   }
 
-  async actualizarMaterial(datos: ActualizarMaterialDto): Promise<MaterialSalidaDto> {
+  async actualizarMaterial(
+    datos: ActualizarMaterialDto,
+  ): Promise<MaterialSalidaDto> {
     const material = await this.actualizarUC.ejecutar(datos);
     return ServicioBiblioteca.aSalida(material);
   }
@@ -45,9 +51,24 @@ export class ServicioBiblioteca {
     await this.eliminarUC.ejecutar(id);
   }
 
-  async obtenerMateriales(filtro?: FiltroMaterialesDto): Promise<MaterialSalidaDto[]> {
+  async obtenerMateriales(
+    filtro?: FiltroMaterialesDto,
+  ): Promise<MaterialSalidaDto[]> {
     const materiales = await this.obtenerTodosUC.ejecutar(filtro);
     return materiales.map(ServicioBiblioteca.aSalida);
+  }
+
+  /** Biblioteca paginada (trae solo la página pedida). */
+  async obtenerMaterialesPaginado(
+    datos: ListarMaterialesPaginadoDto,
+  ): Promise<MaterialesPaginados> {
+    const { items, total, paginas } =
+      await this.obtenerPaginadoUC.ejecutar(datos);
+    return {
+      materiales: items.map(ServicioBiblioteca.aSalida),
+      total,
+      paginas,
+    };
   }
 
   async asignarMaterialAPaciente(datos: AsignarMaterialDto): Promise<void> {
@@ -58,7 +79,9 @@ export class ServicioBiblioteca {
     await this.desasignarUC.ejecutar(datos);
   }
 
-  async obtenerMaterialesDelPaciente(pacienteId: string): Promise<MaterialSalidaDto[]> {
+  async obtenerMaterialesDelPaciente(
+    pacienteId: string,
+  ): Promise<MaterialSalidaDto[]> {
     const materiales = await this.obtenerDelPacienteUC.ejecutar(pacienteId);
     return materiales.map(ServicioBiblioteca.aSalida);
   }

@@ -1,5 +1,4 @@
 import { crearRouter, nutricionistaProcedimiento } from "../trpc";
-import { aTRPCError } from "../errores-trpc";
 import {
   rangoEstadisticasDto,
   detalleEstadisticaDto,
@@ -13,20 +12,12 @@ export const routerEstadisticas = crearRouter({
   obtener: nutricionistaProcedimiento
     .input(rangoEstadisticasDto)
     .query(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.estadisticas.obtener(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.estadisticas.obtener(input);
     }),
 
   detalle: nutricionistaProcedimiento
     .input(detalleEstadisticaDto)
     .query(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.estadisticas.detalle(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.estadisticas.detalle(input);
     }),
 });

@@ -4,9 +4,12 @@ import type {
   FiltroMateriales,
 } from "@/dominio/repositorios/IMaterialRepositorio";
 import { MaterialBiblioteca } from "@/dominio/entidades/MaterialBiblioteca";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Include estándar: el archivo del bucket (si el material es tipo ARCHIVO). */
-const INCLUIR_ARCHIVO = { archivo: true } satisfies Prisma.MaterialBibliotecaInclude;
+const INCLUIR_ARCHIVO = {
+  archivo: true,
+} satisfies Prisma.MaterialBibliotecaInclude;
 
 type MaterialConArchivo = Prisma.MaterialBibliotecaGetPayload<{
   include: typeof INCLUIR_ARCHIVO;
@@ -29,6 +32,7 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
       await tx.materialBiblioteca.create({
         data: {
           id: d.id,
+          nutricionistaId: inquilinoActual(),
           tipo: d.tipo,
           titulo: d.titulo,
           descripcion: d.descripcion,
@@ -50,7 +54,7 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
         include: INCLUIR_ARCHIVO,
       });
     });
-    return this.mapear(fila);
+    return mapearMaterial(fila);
   }
 
   async actualizar(material: MaterialBiblioteca): Promise<MaterialBiblioteca> {
@@ -66,7 +70,7 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
       },
       include: INCLUIR_ARCHIVO,
     });
-    return this.mapear(fila);
+    return mapearMaterial(fila);
   }
 
   async eliminar(id: string): Promise<void> {
@@ -80,10 +84,29 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
       where: { id },
       include: INCLUIR_ARCHIVO,
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearMaterial(fila) : null;
   }
 
   async listar(filtro?: FiltroMateriales): Promise<MaterialBiblioteca[]> {
+    const filas = await this.prisma.materialBiblioteca.findMany({
+      where: this.construirWhere(filtro),
+      include: INCLUIR_ARCHIVO,
+      orderBy: { titulo: "asc" },
+      skip: filtro?.desplazamiento,
+      take: filtro?.limite,
+    });
+    return filas.map((fila) => mapearMaterial(fila));
+  }
+
+  contar(filtro?: FiltroMateriales): Promise<number> {
+    return this.prisma.materialBiblioteca.count({
+      where: this.construirWhere(filtro),
+    });
+  }
+
+  private construirWhere(
+    filtro?: FiltroMateriales,
+  ): Prisma.MaterialBibliotecaWhereInput {
     const where: Prisma.MaterialBibliotecaWhereInput = {};
     if (filtro?.texto) {
       where.OR = [
@@ -97,24 +120,33 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
     if (filtro?.etiqueta) {
       where.etiquetas = { has: filtro.etiqueta };
     }
-    const filas = await this.prisma.materialBiblioteca.findMany({
-      where,
-      include: INCLUIR_ARCHIVO,
-      orderBy: { titulo: "asc" },
-    });
-    return filas.map((fila) => this.mapear(fila));
+    return where;
   }
 
-  async asignarAPaciente(materialId: string, pacienteId: string, id: string): Promise<void> {
+  async asignarAPaciente(
+    materialId: string,
+    pacienteId: string,
+    id: string,
+  ): Promise<void> {
     await this.prisma.asignacionMaterial.upsert({
       where: { materialId_pacienteId: { materialId, pacienteId } },
-      create: { id, materialId, pacienteId },
+      create: {
+        id,
+        nutricionistaId: inquilinoActual(),
+        materialId,
+        pacienteId,
+      },
       update: {},
     });
   }
 
-  async desasignarDePaciente(materialId: string, pacienteId: string): Promise<void> {
-    await this.prisma.asignacionMaterial.deleteMany({ where: { materialId, pacienteId } });
+  async desasignarDePaciente(
+    materialId: string,
+    pacienteId: string,
+  ): Promise<void> {
+    await this.prisma.asignacionMaterial.deleteMany({
+      where: { materialId, pacienteId },
+    });
   }
 
   async listarPorPaciente(pacienteId: string): Promise<MaterialBiblioteca[]> {
@@ -123,7 +155,7 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
       include: INCLUIR_ARCHIVO,
       orderBy: { titulo: "asc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearMaterial(fila));
   }
 
   async listarPacientesAsignados(materialId: string): Promise<string[]> {
@@ -133,25 +165,25 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
     });
     return filas.map((f) => f.pacienteId);
   }
+}
 
-  private mapear(fila: MaterialConArchivo): MaterialBiblioteca {
-    return MaterialBiblioteca.reconstruir({
-      id: fila.id,
-      tipo: fila.tipo,
-      titulo: fila.titulo,
-      descripcion: fila.descripcion,
-      url: fila.url,
-      categoria: fila.categoria,
-      etiquetas: fila.etiquetas,
-      archivo: fila.archivo
-        ? {
-            id: fila.archivo.id,
-            nombreOriginal: fila.archivo.nombreOriginal,
-            mimeType: fila.archivo.mimeType,
-          }
-        : null,
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+export function mapearMaterial(fila: MaterialConArchivo): MaterialBiblioteca {
+  return MaterialBiblioteca.reconstruir({
+    id: fila.id,
+    tipo: fila.tipo,
+    titulo: fila.titulo,
+    descripcion: fila.descripcion,
+    url: fila.url,
+    categoria: fila.categoria,
+    etiquetas: fila.etiquetas,
+    archivo: fila.archivo
+      ? {
+          id: fila.archivo.id,
+          nombreOriginal: fila.archivo.nombreOriginal,
+          mimeType: fila.archivo.mimeType,
+        }
+      : null,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

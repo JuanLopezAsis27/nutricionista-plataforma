@@ -29,9 +29,13 @@ export function LogoConsultorio({ variante = "completo", className }: Props) {
         <Leaf className="h-6 w-6" />
       </span>
       <div className={cn(completo && "space-y-0.5")}>
-        <p className="font-semibold leading-tight tracking-tight">{NOMBRE_PROFESIONAL}</p>
+        <p className="font-semibold leading-tight tracking-tight">
+          {NOMBRE_PROFESIONAL}
+        </p>
         {completo && (
-          <p className="text-xs text-muted-foreground">{SUBTITULO_PROFESIONAL}</p>
+          <p className="text-xs text-muted-foreground">
+            {SUBTITULO_PROFESIONAL}
+          </p>
         )}
       </div>
     </div>

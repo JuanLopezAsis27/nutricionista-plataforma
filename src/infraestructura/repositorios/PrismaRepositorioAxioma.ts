@@ -3,21 +3,25 @@ import type {
   AxiomaNutricional as AxiomaFila,
 } from "@prisma/client";
 import type { IAxiomaRepositorio } from "@/dominio/repositorios/IAxiomaRepositorio";
-import {
-  AxiomaNutricional,
-  type AmbitoAxioma,
-  type OperadorAxioma,
-} from "@/dominio/entidades/AxiomaNutricional";
+import { AxiomaNutricional } from "@/dominio/entidades/AxiomaNutricional";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
 
 /** Implementación con Prisma del repositorio de axiomas (base de conocimiento). */
-export class PrismaRepositorioAxioma implements IAxiomaRepositorio {
-  constructor(private readonly prisma: PrismaClient) {}
+export class PrismaRepositorioAxioma
+  extends RepositorioPrismaBase<AxiomaFila, AxiomaNutricional>
+  implements IAxiomaRepositorio
+{
+  constructor(private readonly prisma: PrismaClient) {
+    super(prisma.axiomaNutricional);
+  }
 
   async crear(axioma: AxiomaNutricional): Promise<AxiomaNutricional> {
     const d = axioma.aPrimitivos();
     const fila = await this.prisma.axiomaNutricional.create({
       data: {
         id: d.id,
+        nutricionistaId: inquilinoActual(),
         ambito: d.ambito,
         parametro: d.parametro,
         operador: d.operador,
@@ -30,7 +34,7 @@ export class PrismaRepositorioAxioma implements IAxiomaRepositorio {
         creadoEn: d.creadoEn,
       },
     });
-    return this.mapear(fila);
+    return mapearAxioma(fila);
   }
 
   async actualizar(axioma: AxiomaNutricional): Promise<AxiomaNutricional> {
@@ -49,23 +53,14 @@ export class PrismaRepositorioAxioma implements IAxiomaRepositorio {
         activo: d.activo,
       },
     });
-    return this.mapear(fila);
-  }
-
-  async eliminar(id: string): Promise<void> {
-    await this.prisma.axiomaNutricional.delete({ where: { id } });
-  }
-
-  async obtenerPorId(id: string): Promise<AxiomaNutricional | null> {
-    const fila = await this.prisma.axiomaNutricional.findUnique({ where: { id } });
-    return fila ? this.mapear(fila) : null;
+    return mapearAxioma(fila);
   }
 
   async listar(): Promise<AxiomaNutricional[]> {
     const filas = await this.prisma.axiomaNutricional.findMany({
       orderBy: [{ prioridad: "desc" }, { creadoEn: "asc" }],
     });
-    return filas.map((fila) => this.mapear(fila));
+    return this.mapearTodas(filas);
   }
 
   async listarActivos(): Promise<AxiomaNutricional[]> {
@@ -73,23 +68,27 @@ export class PrismaRepositorioAxioma implements IAxiomaRepositorio {
       where: { activo: true },
       orderBy: [{ prioridad: "desc" }, { creadoEn: "asc" }],
     });
-    return filas.map((fila) => this.mapear(fila));
+    return this.mapearTodas(filas);
   }
 
-  private mapear(fila: AxiomaFila): AxiomaNutricional {
-    return AxiomaNutricional.reconstruir({
-      id: fila.id,
-      ambito: fila.ambito as AmbitoAxioma,
-      parametro: fila.parametro,
-      operador: fila.operador as OperadorAxioma,
-      valor: fila.valor,
-      valorMax: fila.valorMax,
-      unidad: fila.unidad,
-      texto: fila.texto,
-      prioridad: fila.prioridad,
-      activo: fila.activo,
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
+  protected override mapear(fila: AxiomaFila): AxiomaNutricional {
+    return mapearAxioma(fila);
   }
+}
+
+export function mapearAxioma(fila: AxiomaFila): AxiomaNutricional {
+  return AxiomaNutricional.reconstruir({
+    id: fila.id,
+    ambito: fila.ambito,
+    parametro: fila.parametro,
+    operador: fila.operador,
+    valor: fila.valor,
+    valorMax: fila.valorMax,
+    unidad: fila.unidad,
+    texto: fila.texto,
+    prioridad: fila.prioridad,
+    activo: fila.activo,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

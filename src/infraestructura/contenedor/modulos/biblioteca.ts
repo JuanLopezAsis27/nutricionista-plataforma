@@ -2,14 +2,15 @@ import type { IMaterialRepositorio } from "@/dominio/repositorios/IMaterialRepos
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
 import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamientoArchivos";
-import { CrearMaterial } from "@/dominio/casos-de-uso/biblioteca/CrearMaterial";
-import { ActualizarMaterial } from "@/dominio/casos-de-uso/biblioteca/ActualizarMaterial";
-import { EliminarMaterial } from "@/dominio/casos-de-uso/biblioteca/EliminarMaterial";
-import { ObtenerMateriales } from "@/dominio/casos-de-uso/biblioteca/ObtenerMateriales";
-import { AsignarMaterialAPaciente } from "@/dominio/casos-de-uso/biblioteca/AsignarMaterialAPaciente";
-import { DesasignarMaterialDePaciente } from "@/dominio/casos-de-uso/biblioteca/DesasignarMaterialDePaciente";
-import { ObtenerMaterialesDelPaciente } from "@/dominio/casos-de-uso/biblioteca/ObtenerMaterialesDelPaciente";
-import { ObtenerPacientesDeMaterial } from "@/dominio/casos-de-uso/biblioteca/ObtenerPacientesDeMaterial";
+import { CrearMaterial } from "@/aplicacion/casos-de-uso/biblioteca/CrearMaterial";
+import { ActualizarMaterial } from "@/aplicacion/casos-de-uso/biblioteca/ActualizarMaterial";
+import { EliminarMaterial } from "@/aplicacion/casos-de-uso/biblioteca/EliminarMaterial";
+import { ObtenerMateriales } from "@/aplicacion/casos-de-uso/biblioteca/ObtenerMateriales";
+import { ObtenerMaterialesPaginado } from "@/aplicacion/casos-de-uso/biblioteca/ObtenerMaterialesPaginado";
+import { AsignarMaterialAPaciente } from "@/aplicacion/casos-de-uso/biblioteca/AsignarMaterialAPaciente";
+import { DesasignarMaterialDePaciente } from "@/aplicacion/casos-de-uso/biblioteca/DesasignarMaterialDePaciente";
+import { ObtenerMaterialesDelPaciente } from "@/aplicacion/casos-de-uso/biblioteca/ObtenerMaterialesDelPaciente";
+import { ObtenerPacientesDeMaterial } from "@/aplicacion/casos-de-uso/biblioteca/ObtenerPacientesDeMaterial";
 import { ServicioBiblioteca } from "@/aplicacion/servicios/ServicioBiblioteca";
 
 /** Arma el servicio de la Biblioteca con sus casos de uso. */
@@ -24,6 +25,7 @@ export function crearServicioBiblioteca(deps: {
     new ActualizarMaterial(deps.materiales),
     new EliminarMaterial(deps.materiales, deps.archivos, deps.almacenamiento),
     new ObtenerMateriales(deps.materiales),
+    new ObtenerMaterialesPaginado(deps.materiales),
     new AsignarMaterialAPaciente(deps.materiales, deps.pacientes),
     new DesasignarMaterialDePaciente(deps.materiales),
     new ObtenerMaterialesDelPaciente(deps.materiales),

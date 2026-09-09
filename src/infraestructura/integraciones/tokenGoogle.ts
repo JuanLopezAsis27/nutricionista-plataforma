@@ -12,7 +12,9 @@ export async function obtenerAccessTokenValido(
   proveedor: IProveedorGoogle,
 ): Promise<string> {
   if (cuenta.estaVencido() && cuenta.refreshToken) {
-    const { accessToken, expiraEn } = await proveedor.refrescarAccessToken(cuenta.refreshToken);
+    const { accessToken, expiraEn } = await proveedor.refrescarAccessToken(
+      cuenta.refreshToken,
+    );
     await cuentas.guardar(cuenta.conAccessToken(accessToken, expiraEn));
     return accessToken;
   }

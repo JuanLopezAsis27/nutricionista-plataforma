@@ -1,28 +1,29 @@
 import { crearRouter, nutricionistaProcedimiento } from "../trpc";
-import { aTRPCError } from "../errores-trpc";
-import { guardarCredencialesDto } from "@/aplicacion/dtos/credenciales.dto";
+import {
+  eliminarCredencialesDto,
+  guardarCredencialesDto,
+} from "@/aplicacion/dtos/credenciales.dto";
 
 /**
  * Router de credenciales de integración (solo NUTRICIONISTA). Deja cargar la
- * clave de Claude y las de FatSecret desde la app; `estado` no revela secretos.
+ * clave de Claude y las de WhatsApp desde la app; `estado` no revela secretos.
  */
 export const routerCredenciales = crearRouter({
   estado: nutricionistaProcedimiento.query(async ({ ctx }) => {
-    try {
-      return await ctx.servicios.credenciales.obtenerEstado();
-    } catch (error) {
-      throw aTRPCError(error);
-    }
+    return await ctx.servicios.credenciales.obtenerEstado();
   }),
 
   guardar: nutricionistaProcedimiento
     .input(guardarCredencialesDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        await ctx.servicios.credenciales.guardar(input);
-        return { ok: true };
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      await ctx.servicios.credenciales.guardar(input);
+      return { ok: true };
+    }),
+
+  eliminar: nutricionistaProcedimiento
+    .input(eliminarCredencialesDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.credenciales.eliminar(input.integracion);
+      return { ok: true };
     }),
 });

@@ -5,7 +5,9 @@ import { routerEvaluacion } from "./routers/evaluacion";
 import { routerArchivos } from "./routers/archivos";
 import { routerDiario } from "./routers/diario";
 import { routerRecetas } from "./routers/recetas";
+import { routerGrabaciones } from "./routers/grabaciones";
 import { routerPlanes } from "./routers/planes";
+import { routerPlanesSemanales } from "./routers/planesSemanales";
 import { routerNutricion } from "./routers/nutricion";
 import { routerObjetivos } from "./routers/objetivos";
 import { routerBiblioteca } from "./routers/biblioteca";
@@ -16,6 +18,7 @@ import { routerTiempoReal } from "./routers/tiempoReal";
 import { routerMensajeria } from "./routers/mensajeria";
 import { routerNotificaciones } from "./routers/notificaciones";
 import { routerConfiguracion } from "./routers/configuracion";
+import { routerEstablecimientos } from "./routers/establecimientos";
 import { routerAxiomas } from "./routers/axiomas";
 import { routerTracking } from "./routers/tracking";
 import { routerMetricas } from "./routers/metricas";
@@ -23,6 +26,10 @@ import { routerCredenciales } from "./routers/credenciales";
 import { routerSuperAdmin } from "./routers/superadmin";
 import { routerIntegraciones } from "./routers/integraciones";
 import { routerIA } from "./routers/ia";
+import { routerAutenticacion } from "./routers/autenticacion";
+import { routerDeportivo } from "./routers/deportivo";
+import { routerWhatsapp } from "./routers/whatsapp";
+import { routerRecordatorios } from "./routers/recordatorios";
 
 /**
  * Router raíz: combina todos los sub-routers de la aplicación.
@@ -36,7 +43,9 @@ export const routerApp = crearRouter({
   archivos: routerArchivos,
   diario: routerDiario,
   recetas: routerRecetas,
+  grabaciones: routerGrabaciones,
   planes: routerPlanes,
+  planesSemanales: routerPlanesSemanales,
   nutricion: routerNutricion,
   objetivos: routerObjetivos,
   biblioteca: routerBiblioteca,
@@ -47,6 +56,7 @@ export const routerApp = crearRouter({
   mensajeria: routerMensajeria,
   notificaciones: routerNotificaciones,
   configuracion: routerConfiguracion,
+  establecimientos: routerEstablecimientos,
   axiomas: routerAxiomas,
   tracking: routerTracking,
   metricas: routerMetricas,
@@ -54,6 +64,10 @@ export const routerApp = crearRouter({
   superadmin: routerSuperAdmin,
   integraciones: routerIntegraciones,
   ia: routerIA,
+  autenticacion: routerAutenticacion,
+  deportivo: routerDeportivo,
+  whatsapp: routerWhatsapp,
+  recordatorios: routerRecordatorios,
 });
 
 /** Tipo del router raíz, exportado para el cliente. */

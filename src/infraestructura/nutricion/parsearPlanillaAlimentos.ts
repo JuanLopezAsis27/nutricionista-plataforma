@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import type { FilaAlimentoPropioDto } from "@/aplicacion/dtos/alimentoPropio.dto";
+import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 
 /**
  * Parsea una planilla de alimentos (.xlsx o .csv) a filas `{nombre, marca,
@@ -20,7 +21,9 @@ export async function parsearPlanillaAlimentos(
   const encabezado = matriz[0]!.map(normalizarEncabezado);
   const col = mapearColumnas(encabezado);
   if (col.nombre < 0) {
-    throw new Error(
+    // Error de DOMINIO y no Error pelado: así el route handler lo distingue de
+    // un fallo interno del lector de Excel y puede mostrarlo sin exponer nada.
+    throw new ErrorValidacion(
       "No se encontró una columna de nombre. Poné un encabezado como «Nombre» (o Alimento/Insumo).",
     );
   }
@@ -66,11 +69,7 @@ function mapearColumnas(encabezado: string[]): Columnas {
 
 /** Encabezado sin acentos, en minúsculas y sin espacios de más. */
 function normalizarEncabezado(valor: string): string {
-  return valor
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .trim();
+  return valor.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 }
 
 /** Convierte a número aceptando coma o punto decimal; null si no es válido. */
@@ -104,21 +103,49 @@ function valorCelda(valor: unknown): string {
   if (typeof valor === "object") {
     const o = valor as Record<string, unknown>;
     if (typeof o.text === "string") return o.text; // hyperlink/richtext
-    if ("result" in o) return String(o.result ?? ""); // fórmula
+    // Fórmula. Su `result` puede ser un objeto de error ({ error: "#REF!" }),
+    // y ahí "[object Object]" entraría como el NOMBRE de un alimento.
+    if ("result" in o) return primitivoATexto(o.result);
     if (Array.isArray(o.richText)) {
-      return (o.richText as Array<{ text?: string }>).map((r) => r.text ?? "").join("");
+      return (o.richText as Array<{ text?: string }>)
+        .map((r) => r.text ?? "")
+        .join("");
     }
     return "";
   }
-  return String(valor);
+  return primitivoATexto(valor);
+}
+
+/** Texto de un primitivo; vacío para todo lo demás (incluidos los objetos). */
+function primitivoATexto(valor: unknown): string {
+  switch (typeof valor) {
+    case "string":
+      return valor;
+    case "number":
+    case "bigint":
+    case "boolean":
+      return valor.toString();
+    default:
+      // Incluye el objeto de error de una fórmula rota ({ error: "#REF!" }):
+      // mejor una celda vacía, que la fila descarta, que un alimento llamado
+      // "[object Object]".
+      return "";
+  }
 }
 
 function parsearCsv(contenido: Buffer): string[][] {
-  const texto = contenido.toString("utf-8").replace(/^﻿/, "");
+  // El BOM (U+FEFF): Excel lo antepone al exportar CSV en UTF-8 y, sin quitarlo,
+  // el primer encabezado nunca coincide. Va como escape y no como carácter
+  // literal para que se vea en el diff y no lo borre un editor por accidente.
+  const texto = contenido.toString("utf-8").replace(/^\uFEFF/, "");
   const lineas = texto.split(/\r?\n/).filter((l) => l.trim() !== "");
   if (lineas.length === 0) return [];
-  const delimitador = (lineas[0]!.match(/;/g)?.length ?? 0) > (lineas[0]!.match(/,/g)?.length ?? 0)
-    ? ";"
-    : ",";
-  return lineas.map((linea) => linea.split(delimitador).map((c) => c.trim().replace(/^"|"$/g, "")));
+  const delimitador =
+    (lineas[0]!.match(/;/g)?.length ?? 0) >
+    (lineas[0]!.match(/,/g)?.length ?? 0)
+      ? ";"
+      : ",";
+  return lineas.map((linea) =>
+    linea.split(delimitador).map((c) => c.trim().replace(/^"|"$/g, "")),
+  );
 }

@@ -4,6 +4,7 @@ import type {
   ParametrosEstadisticas,
   DatosCrudosEstadisticas,
   PuntoSerieMensual,
+  EstadisticaEstablecimiento,
   TipoDetalleEstadistica,
   PacienteEstadistica,
 } from "@/dominio/repositorios/IEstadisticasRepositorio";
@@ -16,7 +17,9 @@ import type {
 export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async obtener(params: ParametrosEstadisticas): Promise<DatosCrudosEstadisticas> {
+  async obtener(
+    params: ParametrosEstadisticas,
+  ): Promise<DatosCrudosEstadisticas> {
     const { desde, hasta, sinActividadDesde, meses } = params;
     const rangoFecha = { gte: desde, lte: hasta };
 
@@ -28,8 +31,9 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
       ingresoCobrado,
       ingresoPendiente,
       serieMensual,
+      porEstablecimiento,
     ] = await Promise.all([
-      this.prisma.paciente.count({ where: { activo: true } }),
+      this.prisma.paciente.count({ where: { archivadoEn: null } }),
       this.prisma.paciente.count({ where: { creadoEn: rangoFecha } }),
       this.contarEnRiesgo(sinActividadDesde),
       this.turnosPorEstado(desde, hasta),
@@ -41,6 +45,7 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
         fecha: rangoFecha,
       }),
       this.serieMensual(hasta, meses),
+      this.porEstablecimiento(desde, hasta),
     ]);
 
     return {
@@ -51,7 +56,76 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
       ingresoCobrado,
       ingresoPendiente,
       serieMensual,
+      porEstablecimiento,
     };
+  }
+
+  /**
+   * Corte por sede del período: cuántos turnos, cuántos se completaron y
+   * cuánta plata entró y falta entrar en cada una.
+   *
+   * Dos `groupBy` y una lectura de nombres, no una consulta por sede: el corte
+   * tiene que costar lo mismo con dos consultorios que con diez. Los nombres
+   * se piden aparte —incluidas las archivadas— porque un turno del período
+   * puede ser de una sede que ya cerró y la fila igual tiene que decir cuál.
+   */
+  private async porEstablecimiento(
+    desde: Date,
+    hasta: Date,
+  ): Promise<EstadisticaEstablecimiento[]> {
+    const rangoFecha = { gte: desde, lte: hasta };
+
+    const [porEstado, porCobro, sedes] = await Promise.all([
+      this.prisma.turno.groupBy({
+        by: ["establecimientoId", "estado"],
+        where: { fecha: rangoFecha },
+        _count: { _all: true },
+      }),
+      this.prisma.turno.groupBy({
+        by: ["establecimientoId", "pagado"],
+        // Un turno cancelado no es plata pendiente: nadie la va a cobrar.
+        where: {
+          fecha: rangoFecha,
+          precio: { not: null },
+          estado: { not: "CANCELADO" },
+        },
+        _sum: { precio: true },
+      }),
+      this.prisma.establecimiento.findMany({
+        select: { id: true, nombre: true },
+      }),
+    ]);
+
+    const nombres = new Map(sedes.map((s) => [s.id, s.nombre]));
+    const filas = new Map<string, EstadisticaEstablecimiento>();
+    const fila = (id: string): EstadisticaEstablecimiento => {
+      const actual = filas.get(id) ?? {
+        establecimientoId: id,
+        nombre: nombres.get(id) ?? "Establecimiento eliminado",
+        turnos: 0,
+        completados: 0,
+        ingresoCobrado: 0,
+        ingresoPendiente: 0,
+      };
+      filas.set(id, actual);
+      return actual;
+    };
+
+    for (const g of porEstado) {
+      const f = fila(g.establecimientoId);
+      f.turnos += g._count._all;
+      if (g.estado === "COMPLETADO") f.completados += g._count._all;
+    }
+    for (const g of porCobro) {
+      const f = fila(g.establecimientoId);
+      const monto = g._sum.precio == null ? 0 : Number(g._sum.precio);
+      if (g.pagado) f.ingresoCobrado += monto;
+      else f.ingresoPendiente += monto;
+    }
+
+    return [...filas.values()].sort(
+      (a, b) => b.ingresoCobrado - a.ingresoCobrado,
+    );
   }
 
   async listarPacientes(
@@ -69,17 +143,17 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
 
     if (tipo === "ACTIVOS") {
       const filas = await this.prisma.paciente.findMany({
-        where: { activo: true },
+        where: { archivadoEn: null },
         select: { id: true, nombre: true, apellido: true, creadoEn: true },
         orderBy: [{ apellido: "asc" }, { nombre: "asc" }],
       });
       return filas.map((f) => ({ ...f, referencia: f.creadoEn }));
     }
 
-    // EN_RIESGO: activos sin turno ni registro desde el umbral.
+    // EN_RIESGO: vigentes sin turno ni registro desde el umbral.
     const [activos, conActividad, ultimaActividad] = await Promise.all([
       this.prisma.paciente.findMany({
-        where: { activo: true },
+        where: { archivadoEn: null },
         select: { id: true, nombre: true, apellido: true },
         orderBy: [{ apellido: "asc" }, { nombre: "asc" }],
       }),
@@ -121,7 +195,10 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
   private async ultimaActividadPorPaciente(): Promise<Map<string, Date>> {
     const [turnos, registros] = await Promise.all([
       this.prisma.turno.groupBy({ by: ["pacienteId"], _max: { fecha: true } }),
-      this.prisma.registroDiario.groupBy({ by: ["pacienteId"], _max: { fecha: true } }),
+      this.prisma.registroDiario.groupBy({
+        by: ["pacienteId"],
+        _max: { fecha: true },
+      }),
     ]);
     const ultima = new Map<string, Date>();
     const registrar = (pacienteId: string, fecha: Date | null): void => {
@@ -134,10 +211,13 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
     return ultima;
   }
 
-  /** Pacientes activos sin turno NI registro diario desde la fecha umbral. */
+  /** Pacientes vigentes sin turno NI registro diario desde la fecha umbral. */
   private async contarEnRiesgo(sinActividadDesde: Date): Promise<number> {
     const [activos, conActividad] = await Promise.all([
-      this.prisma.paciente.findMany({ where: { activo: true }, select: { id: true } }),
+      this.prisma.paciente.findMany({
+        where: { archivadoEn: null },
+        select: { id: true },
+      }),
       this.idsConActividad(sinActividadDesde),
     ]);
     return activos.filter((p) => !conActividad.has(p.id)).length;
@@ -163,11 +243,17 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
   private async sumarIngresos(
     where: Parameters<PrismaClient["turno"]["aggregate"]>[0]["where"],
   ): Promise<number> {
-    const r = await this.prisma.turno.aggregate({ _sum: { precio: true }, where });
+    const r = await this.prisma.turno.aggregate({
+      _sum: { precio: true },
+      where,
+    });
     return r._sum.precio == null ? 0 : Number(r._sum.precio);
   }
 
-  private async serieMensual(hasta: Date, meses: number): Promise<PuntoSerieMensual[]> {
+  private async serieMensual(
+    hasta: Date,
+    meses: number,
+  ): Promise<PuntoSerieMensual[]> {
     const inicio = new Date(
       Date.UTC(hasta.getUTCFullYear(), hasta.getUTCMonth() - (meses - 1), 1),
     );
@@ -179,7 +265,9 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
     // Inicializa cada mes del rango en cero para no dejar huecos en el gráfico.
     const mapa = new Map<string, PuntoSerieMensual>();
     for (let i = 0; i < meses; i += 1) {
-      const d = new Date(Date.UTC(inicio.getUTCFullYear(), inicio.getUTCMonth() + i, 1));
+      const d = new Date(
+        Date.UTC(inicio.getUTCFullYear(), inicio.getUTCMonth() + i, 1),
+      );
       const clave = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
       mapa.set(clave, { mes: clave, total: 0, completados: 0 });
     }

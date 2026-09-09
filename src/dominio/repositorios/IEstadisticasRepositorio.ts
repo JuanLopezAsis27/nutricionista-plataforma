@@ -25,6 +25,22 @@ export interface PuntoSerieMensual {
   completados: number;
 }
 
+/**
+ * Corte por establecimiento del período.
+ *
+ * Sale gratis del modelo: `precio` y `pagado` ya viven en `Turno` y el turno
+ * sabe en qué sede fue. Es el número que el profesional necesita para decidir
+ * si un consultorio se sostiene, y con una sola agenda global no existía.
+ */
+export interface EstadisticaEstablecimiento {
+  establecimientoId: string;
+  nombre: string;
+  turnos: number;
+  completados: number;
+  ingresoCobrado: number;
+  ingresoPendiente: number;
+}
+
 /** Agregados crudos que devuelve la base. */
 export interface DatosCrudosEstadisticas {
   pacientesActivos: number;
@@ -39,6 +55,8 @@ export interface DatosCrudosEstadisticas {
   ingresoCobrado: number;
   ingresoPendiente: number;
   serieMensual: PuntoSerieMensual[];
+  /** Ordenado por ingreso cobrado descendente. Vacío si no hubo turnos. */
+  porEstablecimiento: EstadisticaEstablecimiento[];
 }
 
 /** Categorías de pacientes que se pueden desglosar (drill-down). */

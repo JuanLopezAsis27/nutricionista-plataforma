@@ -42,10 +42,16 @@ class FeaturesPaciente:
 def extraer(conn: psycopg.Connection, nutricionista_id: str) -> list[FeaturesPaciente]:
     hoy = date.today()
 
+    # `activo` YA NO EXISTE: la migración 27 (27_integridad_modelo_datos) hizo
+    # DROP COLUMN y lo reemplazó por `archivadoEn` (null = vigente) más
+    # `motivoArchivado`. Mientras esta consulta siguió pidiendo `activo`,
+    # Postgres devolvía UndefinedColumn, el except de main.py lo tragaba y el
+    # nutricionista veía "No se pudo leer la base de datos" de forma permanente
+    # e indistinguible de un Postgres caído.
     pacientes = consultar(
         conn,
         'SELECT id, nombre, apellido FROM pacientes '
-        'WHERE "nutricionistaId" = %s AND activo = true',
+        'WHERE "nutricionistaId" = %s AND "archivadoEn" IS NULL',
         (nutricionista_id,),
     )
     if not pacientes:

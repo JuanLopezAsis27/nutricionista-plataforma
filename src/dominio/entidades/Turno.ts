@@ -12,6 +12,14 @@ export type EstadoTurno = (typeof ESTADOS_TURNO)[number];
 /** Datos necesarios para agendar un turno nuevo. */
 export interface DatosNuevoTurno {
   pacienteId: string;
+  /**
+   * Dónde se atiende. Es obligatorio: una consulta siempre ocurre en algún
+   * lugar, y dejarlo opcional obligaría a cada lectura posterior —agenda,
+   * facturación por sede, dirección del recordatorio— a inventar un default
+   * propio. Quién lo resuelve cuando la pantalla no lo manda es el servicio de
+   * aplicación, con la sede principal.
+   */
+  establecimientoId: string;
   fecha: Date;
   hora: string; // formato HH:mm (24h)
   duracionMinutos?: number;
@@ -22,6 +30,7 @@ export interface DatosNuevoTurno {
 export interface PropiedadesTurno {
   id: string;
   pacienteId: string;
+  establecimientoId: string;
   fecha: Date;
   hora: string;
   duracionMinutos: number;
@@ -45,21 +54,33 @@ const PATRON_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 export class Turno {
   private constructor(private readonly props: PropiedadesTurno) {}
 
-  static crear(datos: DatosNuevoTurno, id: string, ahora: Date = new Date()): Turno {
+  static crear(
+    datos: DatosNuevoTurno,
+    id: string,
+    ahora: Date = new Date(),
+  ): Turno {
     if (!datos.pacienteId) {
       throw new ErrorValidacion("El turno debe estar asociado a un paciente.");
+    }
+    if (!datos.establecimientoId) {
+      throw new ErrorValidacion(
+        "El turno debe estar asociado a un establecimiento.",
+      );
     }
     if (!PATRON_HORA.test(datos.hora)) {
       throw new ErrorValidacion("La hora del turno debe tener formato HH:mm.");
     }
     const duracion = datos.duracionMinutos ?? 30;
     if (!Number.isInteger(duracion) || duracion <= 0) {
-      throw new ErrorValidacion("La duración del turno debe ser un entero positivo.");
+      throw new ErrorValidacion(
+        "La duración del turno debe ser un entero positivo.",
+      );
     }
 
     return new Turno({
       id,
       pacienteId: datos.pacienteId,
+      establecimientoId: datos.establecimientoId,
       fecha: datos.fecha,
       hora: datos.hora,
       duracionMinutos: duracion,
@@ -82,7 +103,10 @@ export class Turno {
    *   CANCELADO  → (ninguna, estado final)
    *   COMPLETADO → (ninguna, estado final)
    */
-  private static readonly TRANSICIONES: Record<EstadoTurno, ReadonlyArray<EstadoTurno>> = {
+  private static readonly TRANSICIONES: Record<
+    EstadoTurno,
+    ReadonlyArray<EstadoTurno>
+  > = {
     PENDIENTE: ["CONFIRMADO", "CANCELADO"],
     CONFIRMADO: ["COMPLETADO", "CANCELADO"],
     CANCELADO: [],
@@ -102,12 +126,16 @@ export class Turno {
 
   /** Indica si el turno puede cancelarse (solo PENDIENTE o CONFIRMADO). */
   puedeCancelarse(): boolean {
-    return this.props.estado === "PENDIENTE" || this.props.estado === "CONFIRMADO";
+    return (
+      this.props.estado === "PENDIENTE" || this.props.estado === "CONFIRMADO"
+    );
   }
 
   /** Indica si el turno puede reprogramarse (solo PENDIENTE o CONFIRMADO). */
   puedeReprogramarse(): boolean {
-    return this.props.estado === "PENDIENTE" || this.props.estado === "CONFIRMADO";
+    return (
+      this.props.estado === "PENDIENTE" || this.props.estado === "CONFIRMADO"
+    );
   }
 
   /**
@@ -116,7 +144,13 @@ export class Turno {
    * duración igual que en la creación. No verifica solapamiento: eso lo hace
    * el caso de uso con el repositorio.
    */
-  reprogramar(datos: { fecha: Date; hora: string; duracionMinutos?: number }): void {
+  reprogramar(datos: {
+    fecha: Date;
+    hora: string;
+    duracionMinutos?: number;
+    /** Mover de sede es parte de reprogramar: "te paso al del centro". */
+    establecimientoId?: string;
+  }): void {
     if (!this.puedeReprogramarse()) {
       throw new ErrorValidacion(
         `No se puede reprogramar un turno en estado ${this.props.estado}.`,
@@ -127,11 +161,16 @@ export class Turno {
     }
     const duracion = datos.duracionMinutos ?? this.props.duracionMinutos;
     if (!Number.isInteger(duracion) || duracion <= 0) {
-      throw new ErrorValidacion("La duración del turno debe ser un entero positivo.");
+      throw new ErrorValidacion(
+        "La duración del turno debe ser un entero positivo.",
+      );
     }
     this.props.fecha = datos.fecha;
     this.props.hora = datos.hora;
     this.props.duracionMinutos = duracion;
+    if (datos.establecimientoId) {
+      this.props.establecimientoId = datos.establecimientoId;
+    }
   }
 
   /** Cancela el turno (atajo semántico sobre cambiarEstado). */
@@ -150,13 +189,23 @@ export class Turno {
       }
     }
     if (pagado && precio == null) {
-      throw new ErrorValidacion("No se puede marcar como pagado un turno sin precio.");
+      throw new ErrorValidacion(
+        "No se puede marcar como pagado un turno sin precio.",
+      );
     }
     this.props.precio = precio;
     this.props.pagado = pagado;
   }
 
-  /** Determina si este turno se solapa en el tiempo con otro. */
+  /**
+   * Determina si este turno se solapa en el tiempo con otro.
+   *
+   * **No mira el establecimiento, y es a propósito.** El profesional es uno
+   * solo: dos turnos a las 10:00 en dos consultorios distintos no son dos
+   * turnos posibles, son uno imposible. El eje del choque es quién atiende, no
+   * dónde. Es la misma razón por la que el EXCLUDE `turnos_sin_solapamiento`
+   * (migración 27) agrupa por `nutricionistaId` y nada más.
+   */
   seSolapaCon(otro: Turno): boolean {
     if (this.props.fecha.getTime() !== otro.props.fecha.getTime()) {
       return false;
@@ -178,6 +227,9 @@ export class Turno {
   }
   get pacienteId(): string {
     return this.props.pacienteId;
+  }
+  get establecimientoId(): string {
+    return this.props.establecimientoId;
   }
   get fecha(): Date {
     return this.props.fecha;

@@ -1,19 +1,22 @@
-import type { GuardarDia } from "@/dominio/casos-de-uso/diario/GuardarDia";
-import type { ObtenerDia } from "@/dominio/casos-de-uso/diario/ObtenerDia";
-import type { ObtenerCalendarioDiario } from "@/dominio/casos-de-uso/diario/ObtenerCalendarioDiario";
-import type { ObtenerRegistrosEnRango } from "@/dominio/casos-de-uso/diario/ObtenerRegistrosEnRango";
-import type { AgregarComidaDiario } from "@/dominio/casos-de-uso/diario/AgregarComidaDiario";
-import type { EliminarComidaDiario } from "@/dominio/casos-de-uso/diario/EliminarComidaDiario";
-import type { AgregarActividadDiario } from "@/dominio/casos-de-uso/diario/AgregarActividadDiario";
-import type { EliminarActividadDiario } from "@/dominio/casos-de-uso/diario/EliminarActividadDiario";
-import type { AgregarFotoComida } from "@/dominio/casos-de-uso/diario/AgregarFotoComida";
+import type { GuardarDia } from "@/aplicacion/casos-de-uso/diario/GuardarDia";
+import type { ObtenerDia } from "@/aplicacion/casos-de-uso/diario/ObtenerDia";
+import type { ObtenerCalendarioDiario } from "@/aplicacion/casos-de-uso/diario/ObtenerCalendarioDiario";
+import type { ObtenerRegistrosEnRango } from "@/aplicacion/casos-de-uso/diario/ObtenerRegistrosEnRango";
+import type { ObtenerRegistrosPaginados } from "@/aplicacion/casos-de-uso/diario/ObtenerRegistrosPaginados";
+import type { AgregarComidaDiario } from "@/aplicacion/casos-de-uso/diario/AgregarComidaDiario";
+import type { EliminarComidaDiario } from "@/aplicacion/casos-de-uso/diario/EliminarComidaDiario";
+import type { AgregarActividadDiario } from "@/aplicacion/casos-de-uso/diario/AgregarActividadDiario";
+import type { EliminarActividadDiario } from "@/aplicacion/casos-de-uso/diario/EliminarActividadDiario";
+import type { AgregarFotoComida } from "@/aplicacion/casos-de-uso/diario/AgregarFotoComida";
 import type { RegistroDiario } from "@/dominio/entidades/RegistroDiario";
+import type { ParametrosPagina } from "@/aplicacion/casos-de-uso/_paginacion";
 import type {
   GuardarDiaDto,
   AgregarComidaDto,
   AgregarActividadDto,
   RegistroDiarioSalidaDto,
   DiaCalendarioDto,
+  PaginaRegistrosDiarioDto,
 } from "../dtos/diario.dto";
 
 /**
@@ -27,6 +30,7 @@ export class ServicioDiario {
     private readonly obtenerDiaUC: ObtenerDia,
     private readonly obtenerCalendarioUC: ObtenerCalendarioDiario,
     private readonly obtenerRangoUC: ObtenerRegistrosEnRango,
+    private readonly obtenerPaginadoUC: ObtenerRegistrosPaginados,
     private readonly agregarComidaUC: AgregarComidaDiario,
     private readonly eliminarComidaUC: EliminarComidaDiario,
     private readonly agregarActividadUC: AgregarActividadDiario,
@@ -63,8 +67,27 @@ export class ServicioDiario {
     desde: Date,
     hasta: Date,
   ): Promise<RegistroDiarioSalidaDto[]> {
-    const registros = await this.obtenerRangoUC.ejecutar(pacienteId, desde, hasta);
+    const registros = await this.obtenerRangoUC.ejecutar(
+      pacienteId,
+      desde,
+      hasta,
+    );
     return registros.map(ServicioDiario.aSalida);
+  }
+
+  async obtenerPaginado(
+    pacienteId: string,
+    parametros: ParametrosPagina,
+  ): Promise<PaginaRegistrosDiarioDto> {
+    const pagina = await this.obtenerPaginadoUC.ejecutar(
+      pacienteId,
+      parametros,
+    );
+    return {
+      items: pagina.items.map(ServicioDiario.aSalida),
+      total: pagina.total,
+      paginas: pagina.paginas,
+    };
   }
 
   async agregarComida(
@@ -72,7 +95,11 @@ export class ServicioDiario {
     datos: AgregarComidaDto,
   ): Promise<RegistroDiarioSalidaDto> {
     const { fecha, ...comida } = datos;
-    const registro = await this.agregarComidaUC.ejecutar(pacienteId, fecha, comida);
+    const registro = await this.agregarComidaUC.ejecutar(
+      pacienteId,
+      fecha,
+      comida,
+    );
     return ServicioDiario.aSalida(registro);
   }
 
@@ -85,11 +112,18 @@ export class ServicioDiario {
     datos: AgregarActividadDto,
   ): Promise<RegistroDiarioSalidaDto> {
     const { fecha, ...actividad } = datos;
-    const registro = await this.agregarActividadUC.ejecutar(pacienteId, fecha, actividad);
+    const registro = await this.agregarActividadUC.ejecutar(
+      pacienteId,
+      fecha,
+      actividad,
+    );
     return ServicioDiario.aSalida(registro);
   }
 
-  async eliminarActividad(pacienteId: string, actividadId: string): Promise<void> {
+  async eliminarActividad(
+    pacienteId: string,
+    actividadId: string,
+  ): Promise<void> {
     await this.eliminarActividadUC.ejecutar(pacienteId, actividadId);
   }
 

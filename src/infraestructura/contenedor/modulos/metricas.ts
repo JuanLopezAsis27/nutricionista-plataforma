@@ -1,7 +1,7 @@
 import type { IMetricaDispositivoRepositorio } from "@/dominio/repositorios/IMetricaDispositivoRepositorio";
-import { ImportarMetricas } from "@/dominio/casos-de-uso/metricas/ImportarMetricas";
-import { ObtenerMetricasDelPaciente } from "@/dominio/casos-de-uso/metricas/ObtenerMetricasDelPaciente";
-import { FijarInclusionDia } from "@/dominio/casos-de-uso/metricas/FijarInclusionDia";
+import { ImportarMetricas } from "@/aplicacion/casos-de-uso/metricas/ImportarMetricas";
+import { ObtenerMetricasDelPaciente } from "@/aplicacion/casos-de-uso/metricas/ObtenerMetricasDelPaciente";
+import { FijarInclusionDia } from "@/aplicacion/casos-de-uso/metricas/FijarInclusionDia";
 import { ServicioMetricas } from "@/aplicacion/servicios/ServicioMetricas";
 
 /** Arma el servicio de métricas de dispositivo (wearables). */

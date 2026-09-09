@@ -1,5 +1,5 @@
-import type { ObtenerConfiguracion } from "@/dominio/casos-de-uso/configuracion/ObtenerConfiguracion";
-import type { GuardarConfiguracion } from "@/dominio/casos-de-uso/configuracion/GuardarConfiguracion";
+import type { ObtenerConfiguracion } from "@/aplicacion/casos-de-uso/configuracion/ObtenerConfiguracion";
+import type { GuardarConfiguracion } from "@/aplicacion/casos-de-uso/configuracion/GuardarConfiguracion";
 import type { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
 import type {
   GuardarConfiguracionDto,
@@ -20,11 +20,17 @@ export class ServicioConfiguracion {
     return ServicioConfiguracion.aSalida(await this.obtenerUC.ejecutar());
   }
 
-  async guardar(cambios: GuardarConfiguracionDto): Promise<ConfiguracionSalidaDto> {
-    return ServicioConfiguracion.aSalida(await this.guardarUC.ejecutar(cambios));
+  async guardar(
+    cambios: GuardarConfiguracionDto,
+  ): Promise<ConfiguracionSalidaDto> {
+    return ServicioConfiguracion.aSalida(
+      await this.guardarUC.ejecutar(cambios),
+    );
   }
 
-  private static aSalida(config: ConfiguracionConsultorio): ConfiguracionSalidaDto {
+  private static aSalida(
+    config: ConfiguracionConsultorio,
+  ): ConfiguracionSalidaDto {
     return config.aPrimitivos();
   }
 }

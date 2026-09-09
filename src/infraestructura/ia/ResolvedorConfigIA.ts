@@ -28,7 +28,9 @@ interface ClaveResuelta {
 export class ResolvedorConfigIA implements IResolvedorConfigIA {
   private readonly cache = new Map<string, IProveedorLLM>();
 
-  constructor(private readonly credenciales: ICredencialesIntegracionRepositorio) {}
+  constructor(
+    private readonly credenciales: ICredencialesIntegracionRepositorio,
+  ) {}
 
   /** Solo indica si hay IA configurada (sin construir el proveedor). */
   async tieneIA(): Promise<boolean> {
@@ -45,7 +47,10 @@ export class ResolvedorConfigIA implements IResolvedorConfigIA {
       proveedor =
         r.proveedor === "OPENROUTER"
           ? new ProveedorLLMOpenRouter(r.apiKey, r.modelo)
-          : new ProveedorLLMAnthropic(new Anthropic({ apiKey: r.apiKey }), r.modelo);
+          : new ProveedorLLMAnthropic(
+              new Anthropic({ apiKey: r.apiKey }),
+              r.modelo,
+            );
       this.cache.set(clave, proveedor);
     }
     return proveedor;
@@ -55,7 +60,8 @@ export class ResolvedorConfigIA implements IResolvedorConfigIA {
     try {
       const c = await this.credenciales.obtener();
       if (c?.anthropicApiKey) {
-        const proveedor = c.proveedorIA === "OPENROUTER" ? "OPENROUTER" : "ANTHROPIC";
+        const proveedor =
+          c.proveedorIA === "OPENROUTER" ? "OPENROUTER" : "ANTHROPIC";
         const modelo =
           c.anthropicModelo ??
           (proveedor === "OPENROUTER" ? MODELO_OPENROUTER : MODELO_ANTHROPIC);
@@ -65,6 +71,8 @@ export class ResolvedorConfigIA implements IResolvedorConfigIA {
       // Sin alcance de inquilino o error de lectura → probamos el entorno.
     }
     const env = obtenerConfigClaude();
-    return env ? { proveedor: "ANTHROPIC", apiKey: env.apiKey, modelo: env.modelo } : null;
+    return env
+      ? { proveedor: "ANTHROPIC", apiKey: env.apiKey, modelo: env.modelo }
+      : null;
   }
 }

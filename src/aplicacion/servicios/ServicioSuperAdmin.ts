@@ -1,6 +1,6 @@
-import type { CrearCuentaNutricionista } from "@/dominio/casos-de-uso/superadmin/CrearCuentaNutricionista";
-import type { ListarNutricionistas } from "@/dominio/casos-de-uso/superadmin/ListarNutricionistas";
-import type { CambiarEstadoNutricionista } from "@/dominio/casos-de-uso/superadmin/CambiarEstadoNutricionista";
+import type { CrearCuentaNutricionista } from "@/aplicacion/casos-de-uso/superadmin/CrearCuentaNutricionista";
+import type { ListarNutricionistas } from "@/aplicacion/casos-de-uso/superadmin/ListarNutricionistas";
+import type { CambiarEstadoNutricionista } from "@/aplicacion/casos-de-uso/superadmin/CambiarEstadoNutricionista";
 import type { Usuario } from "@/dominio/entidades/Usuario";
 import type {
   CrearCuentaNutricionistaDto,
@@ -18,7 +18,9 @@ export class ServicioSuperAdmin {
     private readonly cambiarEstadoUC: CambiarEstadoNutricionista,
   ) {}
 
-  async crearNutricionista(datos: CrearCuentaNutricionistaDto): Promise<NutricionistaSalidaDto> {
+  async crearNutricionista(
+    datos: CrearCuentaNutricionistaDto,
+  ): Promise<NutricionistaSalidaDto> {
     return ServicioSuperAdmin.aSalida(await this.crearUC.ejecutar(datos));
   }
 
@@ -26,8 +28,13 @@ export class ServicioSuperAdmin {
     return (await this.listarUC.ejecutar()).map(ServicioSuperAdmin.aSalida);
   }
 
-  async cambiarEstado(id: string, activo: boolean): Promise<NutricionistaSalidaDto> {
-    return ServicioSuperAdmin.aSalida(await this.cambiarEstadoUC.ejecutar(id, activo));
+  async cambiarEstado(
+    id: string,
+    activo: boolean,
+  ): Promise<NutricionistaSalidaDto> {
+    return ServicioSuperAdmin.aSalida(
+      await this.cambiarEstadoUC.ejecutar(id, activo),
+    );
   }
 
   private static aSalida(usuario: Usuario): NutricionistaSalidaDto {

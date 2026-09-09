@@ -2,11 +2,12 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
 /** Encapsula las llamadas tRPC de la biblioteca de materiales. */
 export function useBiblioteca() {
   const utils = trpc.useUtils();
-  const invalidar = () => utils.biblioteca.invalidate();
+  const invalidar = useInvalidar();
 
   const crear = trpc.biblioteca.crear.useMutation({
     onSuccess: () => {
@@ -51,6 +52,7 @@ export function useBiblioteca() {
   return {
     utils,
     listar: trpc.biblioteca.obtenerTodos.useQuery,
+    listarPaginado: trpc.biblioteca.listarPaginado.useQuery,
     pacientesAsignados: trpc.biblioteca.pacientesAsignados.useQuery,
     delPaciente: trpc.biblioteca.obtenerDelPaciente.useQuery,
     miMaterial: trpc.biblioteca.obtenerMiMaterial.useQuery,

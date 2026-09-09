@@ -1,44 +1,53 @@
 "use client";
 
+import { useState } from "react";
 import {
   Scale,
   GlassWater,
   Moon,
   UtensilsCrossed,
   Dumbbell,
-  ExternalLink,
 } from "lucide-react";
 import { useDiario } from "@/lib/hooks/useDiario";
-import { formatearFechaLarga, formatearNumero, hoyLocalISO } from "@/lib/formato";
+import { formatearFechaLarga, formatearNumero } from "@/lib/formato";
 import { Skeleton } from "@/componentes/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
+import { ControlesPaginacion } from "@/componentes/comunes/ControlesPaginacion";
+import { FotoConVisor } from "@/componentes/comunes/FotoConVisor";
 
-const DIAS_VISTA = 14;
+/** Días con carga por página (no días de calendario: ver `obtenerPaginado`). */
+const POR_PAGINA = 10;
 
 /**
  * Vista de solo lectura del diario para el nutricionista (ficha del
- * paciente): los últimos 14 días con todo lo que el paciente registró.
+ * paciente): paginada por días CON CARGA, la más reciente primero.
  */
 export function DiarioPacienteVista({ pacienteId }: { pacienteId: string }) {
-  const { obtenerRango } = useDiario();
+  const { obtenerPaginado } = useDiario();
+  const [pagina, setPagina] = useState(1);
 
-  // Fechas ancladas al día (no `new Date()` por render: cambiaría la clave
-  // de la query en cada render y la consulta quedaría cargando para siempre).
-  const hasta = new Date(hoyLocalISO());
-  const desde = new Date(hasta.getTime() - (DIAS_VISTA - 1) * 24 * 60 * 60 * 1000);
-  const registros = obtenerRango({ pacienteId, desde, hasta });
+  const registros = obtenerPaginado({
+    pacienteId,
+    pagina,
+    porPagina: POR_PAGINA,
+  });
 
   if (registros.isLoading) {
     return <Skeleton className="h-48 w-full" />;
   }
 
-  const dias = [...(registros.data ?? [])].reverse(); // más reciente primero
+  const dias = registros.data?.items ?? [];
+  const totalPaginas = registros.data?.paginas ?? 1;
 
   if (dias.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        El paciente todavía no registró nada en su diario en los últimos{" "}
-        {DIAS_VISTA} días.
+        El paciente todavía no registró nada en su diario.
       </p>
     );
   }
@@ -46,7 +55,8 @@ export function DiarioPacienteVista({ pacienteId }: { pacienteId: string }) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Últimos {DIAS_VISTA} días registrados por el paciente (solo lectura).
+        Días registrados por el paciente (solo lectura), del más reciente al más
+        viejo.
       </p>
       {dias.map((dia) => (
         <Card key={dia.id}>
@@ -56,7 +66,8 @@ export function DiarioPacienteVista({ pacienteId }: { pacienteId: string }) {
               <span className="flex flex-wrap gap-3 text-xs font-normal normal-case text-muted-foreground">
                 {dia.pesoKg != null && (
                   <span className="inline-flex items-center gap-1">
-                    <Scale className="h-3.5 w-3.5" /> {formatearNumero(dia.pesoKg)} kg
+                    <Scale className="h-3.5 w-3.5" />{" "}
+                    {formatearNumero(dia.pesoKg)} kg
                   </span>
                 )}
                 {dia.aguaMl != null && (
@@ -66,8 +77,11 @@ export function DiarioPacienteVista({ pacienteId }: { pacienteId: string }) {
                 )}
                 {dia.horasSueno != null && (
                   <span className="inline-flex items-center gap-1">
-                    <Moon className="h-3.5 w-3.5" /> {formatearNumero(dia.horasSueno)} h
-                    {dia.calidadSueno ? ` (${dia.calidadSueno.toLowerCase()})` : ""}
+                    <Moon className="h-3.5 w-3.5" />{" "}
+                    {formatearNumero(dia.horasSueno)} h
+                    {dia.calidadSueno
+                      ? ` (${dia.calidadSueno.toLowerCase()})`
+                      : ""}
                   </span>
                 )}
               </span>
@@ -79,24 +93,23 @@ export function DiarioPacienteVista({ pacienteId }: { pacienteId: string }) {
                 <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground">
                   <UtensilsCrossed className="h-3.5 w-3.5" /> Comidas
                 </p>
-                <ul className="space-y-1">
+                <ul className="space-y-1.5">
                   {dia.comidas.map((comida) => (
                     <li key={comida.id} className="flex items-center gap-2">
-                      <span className="text-muted-foreground">
-                        {comida.franja}
-                        {comida.hora ? ` ${comida.hora}` : ""}:
-                      </span>
-                      {comida.descripcion}
                       {comida.fotoArchivoId && (
-                        <a
-                          href={`/api/archivos/${comida.fotoArchivoId}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-0.5 text-xs text-primary hover:underline"
-                        >
-                          foto <ExternalLink className="h-3 w-3" />
-                        </a>
+                        <FotoConVisor
+                          archivoId={comida.fotoArchivoId}
+                          alt={`Foto de ${comida.franja.toLowerCase()}`}
+                          className="h-10 w-10 shrink-0"
+                        />
                       )}
+                      <span>
+                        <span className="text-muted-foreground">
+                          {comida.franja}
+                          {comida.hora ? ` ${comida.hora}` : ""}:
+                        </span>{" "}
+                        {comida.descripcion}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -120,11 +133,19 @@ export function DiarioPacienteVista({ pacienteId }: { pacienteId: string }) {
               </div>
             )}
             {dia.notas && (
-              <p className="text-xs text-muted-foreground">Notas: {dia.notas}</p>
+              <p className="text-xs text-muted-foreground">
+                Notas: {dia.notas}
+              </p>
             )}
           </CardContent>
         </Card>
       ))}
+
+      <ControlesPaginacion
+        pagina={pagina}
+        totalPaginas={totalPaginas}
+        onCambiar={setPagina}
+      />
     </div>
   );
 }

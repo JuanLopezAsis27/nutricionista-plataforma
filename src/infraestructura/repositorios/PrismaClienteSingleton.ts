@@ -20,8 +20,14 @@ const globalParaPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-/** Tablas con columna `nutricionistaId` (inquilino). */
-const MODELOS_INQUILINO = new Set<string>([
+/**
+ * Tablas con columna `nutricionistaId` (inquilino).
+ *
+ * Debe coincidir con las back-relations del modelo `Nutricionista` en
+ * schema.prisma: si un modelo tiene la columna y no está acá, sus consultas
+ * por id NO se filtran por inquilino y se cruzan datos entre consultorios.
+ */
+export const MODELOS_INQUILINO = new Set<string>([
   "Paciente",
   "Usuario",
   "Suplemento",
@@ -34,21 +40,63 @@ const MODELOS_INQUILINO = new Set<string>([
   "Antropometria",
   "Receta",
   "PlanNutricional",
+  "GrupoPlan",
+  "GrupoReceta",
+  "GrabacionConsulta",
+  "ResumenConsulta",
   "MaterialBiblioteca",
   "Objetivo",
+  "ObjetivoComposicion",
+  "PlantillaAntropometrica",
+  "CampoHistoriaClinica",
+  "Evolucion",
+  "CampoEvolucion",
+  "PerfilDeportivo",
+  "Competencia",
   "PlantillaEmail",
   "EmailEnviado",
   "CuentaConectada",
   "Conversacion",
-  "ConsultaIA",
+  "ConversacionIA",
+  "MensajeIA",
   "AnalisisComida",
   "ConfiguracionConsultorio",
+  "Establecimiento",
   "AxiomaNutricional",
   "SincronizacionTurno",
   "MetricaDispositivo",
-  "CredencialesIntegracion",
+  "CredencialProveedor",
+  "PreferenciasIntegracion",
   "AlimentoPropio",
   "RetroalimentacionInsight",
+  "RecordatorioWhatsapp",
+  "PlantillaWhatsapp",
+  "ConfiguracionRecordatorios",
+  "MensajeWhatsapp",
+  "PlanSemanal",
+
+  // Hijas del agregado (migración 27). Antes quedaban fuera del filtro: se
+  // llegaba a ellas por id directo sin ningún control de inquilino. Los casos
+  // más visibles eran `Archivo` (el endpoint de descarga da acceso total al
+  // rol NUTRICIONISTA) y `Mensaje` (contarNoLeidos sumaba sobre toda la tabla).
+  "Archivo",
+  "Mensaje",
+  "ComidaConsumida",
+  "ActividadFisica",
+  "ComidaPlan",
+  "OpcionComida",
+  "EquivalenciaPlan",
+  "RecomendacionPlan",
+  "IngredienteReceta",
+  "Estrategia",
+  "HistorialObjetivo",
+  "AsignacionPlan",
+  "FranjaPlanSemanal",
+  "ComidaSemanal",
+  "ItemComidaSemanal",
+  "AsignacionPlanSemanal",
+  "AsignacionReceta",
+  "AsignacionMaterial",
 ]);
 
 function crearCliente(): PrismaClient {
@@ -75,14 +123,40 @@ function crearCliente(): PrismaClient {
           }
 
           const tenant = alcance.nutricionistaId;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
+          /* eslint-disable @typescript-eslint/no-explicit-any,
+                            @typescript-eslint/no-unsafe-assignment,
+                            @typescript-eslint/no-unsafe-member-access,
+                            @typescript-eslint/no-unsafe-call,
+                            @typescript-eslint/no-unsafe-argument
+             --
+             Excepción deliberada y acotada a este bloque.
+
+             `$allOperations` recibe los args de CUALQUIERA de los ~900 tipos de
+             operación que genera Prisma; no existe un tipo común que los cubra,
+             y la manipulación de `data`/`where`/`create` es dinámica por
+             diseño. Tiparlo "bien" exigiría una unión artificial que no
+             describe nada real y que habría que mantener a mano contra el
+             schema.
+
+             El riesgo está cubierto donde importa: este es el mecanismo de
+             aislamiento entre consultorios, es fail-closed (sin alcance
+             lanza), y está verificado por PrismaClienteSingleton.test.ts y
+             modelosInquilino.test.ts. Reescribirlo para satisfacer al linter
+             sería tocar el punto más sensible del sistema sin ganar seguridad.
+
+             El disable termina en el `eslint-enable` de abajo: no cubre nada
+             fuera de esta transformación. */
           const a: any = args ?? {};
 
           if (operation === "create") {
             a.data = { ...a.data, nutricionistaId: tenant };
           } else if (operation === "createMany") {
             a.data = Array.isArray(a.data)
-              ? a.data.map((d: Record<string, unknown>) => ({ ...d, nutricionistaId: tenant }))
+              ? a.data.map((d: Record<string, unknown>) => ({
+                  ...d,
+                  nutricionistaId: tenant,
+                }))
               : { ...a.data, nutricionistaId: tenant };
           } else if (operation === "upsert") {
             a.where = { ...a.where, nutricionistaId: tenant };
@@ -92,6 +166,11 @@ function crearCliente(): PrismaClient {
             a.where = { ...a.where, nutricionistaId: tenant };
           }
           return query(a);
+          /* eslint-enable @typescript-eslint/no-explicit-any,
+                           @typescript-eslint/no-unsafe-assignment,
+                           @typescript-eslint/no-unsafe-member-access,
+                           @typescript-eslint/no-unsafe-call,
+                           @typescript-eslint/no-unsafe-argument */
         },
       },
     },
@@ -108,7 +187,8 @@ export class PrismaClienteSingleton {
 
   static obtenerInstancia(): PrismaClient {
     if (!PrismaClienteSingleton.instancia) {
-      PrismaClienteSingleton.instancia = globalParaPrisma.prisma ?? crearCliente();
+      PrismaClienteSingleton.instancia =
+        globalParaPrisma.prisma ?? crearCliente();
 
       if (process.env.NODE_ENV !== "production") {
         globalParaPrisma.prisma = PrismaClienteSingleton.instancia;

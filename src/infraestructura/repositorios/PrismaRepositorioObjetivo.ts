@@ -7,9 +7,9 @@ import {
   Objetivo,
   type EstrategiaObjetivo,
   type EventoObjetivo,
-  type EstadoEstrategia,
-  type TipoEventoObjetivo,
 } from "@/dominio/entidades/Objetivo";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { soloFecha } from "./base/fechas";
 
 /** Include estándar: estrategias más recientes primero. */
 const INCLUIR_ESTRATEGIAS = {
@@ -28,18 +28,23 @@ type ObjetivoConEstrategias = Prisma.ObjetivoGetPayload<{
 export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async crear(objetivo: Objetivo, evento: DatosEventoObjetivo): Promise<Objetivo> {
+  async crear(
+    objetivo: Objetivo,
+    evento: DatosEventoObjetivo,
+  ): Promise<Objetivo> {
     const d = objetivo.aPrimitivos();
     const fila = await this.prisma.$transaction(async (tx) => {
       await tx.objetivo.create({
         data: {
+          nutricionistaId: inquilinoActual(),
           id: d.id,
           pacienteId: d.pacienteId,
+          objetivoComposicionId: d.objetivoComposicionId,
           titulo: d.titulo,
           descripcion: d.descripcion,
           prioridad: d.prioridad,
           estado: d.estado,
-          fechaObjetivo: d.fechaObjetivo ? this.soloFecha(d.fechaObjetivo) : null,
+          fechaObjetivo: d.fechaObjetivo ? soloFecha(d.fechaObjetivo) : null,
           creadoEn: d.creadoEn,
           actualizadoEn: d.actualizadoEn,
         },
@@ -50,20 +55,24 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
         include: INCLUIR_ESTRATEGIAS,
       });
     });
-    return this.mapear(fila);
+    return mapearObjetivo(fila);
   }
 
-  async actualizar(objetivo: Objetivo, evento: DatosEventoObjetivo): Promise<Objetivo> {
+  async actualizar(
+    objetivo: Objetivo,
+    evento: DatosEventoObjetivo,
+  ): Promise<Objetivo> {
     const d = objetivo.aPrimitivos();
     const fila = await this.prisma.$transaction(async (tx) => {
       await tx.objetivo.update({
         where: { id: d.id },
         data: {
+          objetivoComposicionId: d.objetivoComposicionId,
           titulo: d.titulo,
           descripcion: d.descripcion,
           prioridad: d.prioridad,
           estado: d.estado,
-          fechaObjetivo: d.fechaObjetivo ? this.soloFecha(d.fechaObjetivo) : null,
+          fechaObjetivo: d.fechaObjetivo ? soloFecha(d.fechaObjetivo) : null,
         },
       });
       await this.registrarEvento(tx, d.id, evento);
@@ -72,7 +81,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
         include: INCLUIR_ESTRATEGIAS,
       });
     });
-    return this.mapear(fila);
+    return mapearObjetivo(fila);
   }
 
   async eliminar(id: string): Promise<void> {
@@ -85,7 +94,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
       where: { id },
       include: INCLUIR_ESTRATEGIAS,
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearObjetivo(fila) : null;
   }
 
   async listarPorPaciente(pacienteId: string): Promise<Objetivo[]> {
@@ -94,7 +103,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
       include: INCLUIR_ESTRATEGIAS,
       orderBy: { creadoEn: "desc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearObjetivo(fila));
   }
 
   async agregarEstrategia(
@@ -105,6 +114,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
     await this.prisma.$transaction(async (tx) => {
       await tx.estrategia.create({
         data: {
+          nutricionistaId: inquilinoActual(),
           id: estrategia.id,
           objetivoId,
           descripcion: estrategia.descripcion,
@@ -153,7 +163,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
     });
     return filas.map((fila) => ({
       id: fila.id,
-      tipo: fila.tipo as TipoEventoObjetivo,
+      tipo: fila.tipo,
       detalle: fila.detalle,
       motivo: fila.motivo,
       creadoEn: fila.creadoEn,
@@ -167,6 +177,7 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
   ): Promise<void> {
     await tx.historialObjetivo.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         objetivoId,
         tipo: evento.tipo,
         detalle: evento.detalle,
@@ -174,31 +185,26 @@ export class PrismaRepositorioObjetivo implements IObjetivoRepositorio {
       },
     });
   }
+}
 
-  private soloFecha(fecha: Date): Date {
-    return new Date(
-      Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
-    );
-  }
-
-  private mapear(fila: ObjetivoConEstrategias): Objetivo {
-    return Objetivo.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      titulo: fila.titulo,
-      descripcion: fila.descripcion,
-      prioridad: fila.prioridad,
-      estado: fila.estado,
-      fechaObjetivo: fila.fechaObjetivo,
-      estrategias: fila.estrategias.map((estrategia) => ({
-        id: estrategia.id,
-        descripcion: estrategia.descripcion,
-        motivo: estrategia.motivo,
-        estado: estrategia.estado as EstadoEstrategia,
-        creadoEn: estrategia.creadoEn,
-      })),
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+export function mapearObjetivo(fila: ObjetivoConEstrategias): Objetivo {
+  return Objetivo.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    objetivoComposicionId: fila.objetivoComposicionId,
+    titulo: fila.titulo,
+    descripcion: fila.descripcion,
+    prioridad: fila.prioridad,
+    estado: fila.estado,
+    fechaObjetivo: fila.fechaObjetivo,
+    estrategias: fila.estrategias.map((estrategia) => ({
+      id: estrategia.id,
+      descripcion: estrategia.descripcion,
+      motivo: estrategia.motivo,
+      estado: estrategia.estado,
+      creadoEn: estrategia.creadoEn,
+    })),
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

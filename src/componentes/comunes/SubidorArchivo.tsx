@@ -19,6 +19,19 @@ interface PropsSubidor {
   categoria?: string;
   /** Vincula el archivo directamente a un paciente (ficha → Archivos). */
   pacienteId?: string;
+  /**
+   * El llamador ya muestra por su cuenta lo que se subió (una lista, una
+   * galería) y no quiere además la vista previa del subidor.
+   *
+   * Existe porque el formulario de receta mostraba el archivo DOS veces: en su
+   * lista de fotos nuevas y otra vez en la vista previa de acá abajo. El
+   * default sigue siendo mostrarla, porque hay llamadores —el asistente del
+   * paciente— donde la vista previa es la única señal de que la foto llegó.
+   *
+   * Mientras la subida está en curso la vista previa se muestra igual: ahí no
+   * duplica nada, porque el llamador todavía no tiene qué listar.
+   */
+  sinVistaPrevia?: boolean;
   className?: string;
 }
 
@@ -33,27 +46,39 @@ export function SubidorArchivo({
   titulo,
   categoria,
   pacienteId,
+  sinVistaPrevia = false,
   className,
 }: PropsSubidor) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { subir, subiendo } = useSubirArchivo();
   const [arrastrando, setArrastrando] = useState(false);
-  const [vistaPrevia, setVistaPrevia] = useState<{ nombre: string; url: string | null } | null>(
-    null,
-  );
+  const [vistaPrevia, setVistaPrevia] = useState<{
+    nombre: string;
+    url: string | null;
+  } | null>(null);
 
   async function manejarArchivo(archivo: File) {
     setVistaPrevia({
       nombre: archivo.name,
-      url: archivo.type.startsWith("image/") ? URL.createObjectURL(archivo) : null,
+      url: archivo.type.startsWith("image/")
+        ? URL.createObjectURL(archivo)
+        : null,
     });
     try {
-      const subido = await subir(archivo, { contexto, titulo, categoria, pacienteId });
+      const subido = await subir(archivo, {
+        contexto,
+        titulo,
+        categoria,
+        pacienteId,
+      });
       onSubido(subido);
+      if (sinVistaPrevia) setVistaPrevia(null);
       toast.success(`"${archivo.name}" subido correctamente.`);
     } catch (error) {
       setVistaPrevia(null);
-      toast.error(error instanceof Error ? error.message : "No se pudo subir el archivo.");
+      toast.error(
+        error instanceof Error ? error.message : "No se pudo subir el archivo.",
+      );
     }
   }
 
@@ -80,7 +105,9 @@ export function SubidorArchivo({
         onDrop={alSoltar}
         className={cn(
           "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors",
-          arrastrando ? "border-primary bg-accent" : "border-input hover:border-primary/50",
+          arrastrando
+            ? "border-primary bg-accent"
+            : "border-input hover:border-primary/50",
         )}
       >
         {subiendo ? (

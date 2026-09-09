@@ -2,11 +2,12 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
 /** Encapsula las llamadas tRPC de objetivos y estrategias. */
 export function useObjetivos() {
   const utils = trpc.useUtils();
-  const invalidar = () => utils.objetivos.invalidate();
+  const invalidar = useInvalidar();
 
   const crear = trpc.objetivos.crear.useMutation({
     onSuccess: () => {
@@ -48,13 +49,14 @@ export function useObjetivos() {
     onError: (error) => toast.error(error.message),
   });
 
-  const cambiarEstadoEstrategia = trpc.objetivos.cambiarEstadoEstrategia.useMutation({
-    onSuccess: () => {
-      toast.success("Estado de la estrategia actualizado.");
-      invalidar();
-    },
-    onError: (error) => toast.error(error.message),
-  });
+  const cambiarEstadoEstrategia =
+    trpc.objetivos.cambiarEstadoEstrategia.useMutation({
+      onSuccess: () => {
+        toast.success("Estado de la estrategia actualizado.");
+        invalidar();
+      },
+      onError: (error) => toast.error(error.message),
+    });
 
   const eliminarEstrategia = trpc.objetivos.eliminarEstrategia.useMutation({
     onSuccess: () => {

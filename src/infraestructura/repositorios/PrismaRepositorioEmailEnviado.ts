@@ -1,6 +1,7 @@
 import type { PrismaClient, EmailEnviado as EmailFila } from "@prisma/client";
 import type { IEmailEnviadoRepositorio } from "@/dominio/repositorios/IEmailEnviadoRepositorio";
 import { EmailEnviado } from "@/dominio/entidades/EmailEnviado";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Implementación con Prisma del log de emails enviados. */
 export class PrismaRepositorioEmailEnviado implements IEmailEnviadoRepositorio {
@@ -11,6 +12,7 @@ export class PrismaRepositorioEmailEnviado implements IEmailEnviadoRepositorio {
     await this.prisma.emailEnviado.create({
       data: {
         id: d.id,
+        nutricionistaId: inquilinoActual(),
         plantillaClave: d.plantillaClave,
         para: d.para,
         asunto: d.asunto,
@@ -22,11 +24,36 @@ export class PrismaRepositorioEmailEnviado implements IEmailEnviadoRepositorio {
     });
   }
 
-  async yaEnviado(plantillaClave: string, referenciaId: string): Promise<boolean> {
-    const fila = await this.prisma.emailEnviado.findUnique({
-      where: { plantillaClave_referenciaId: { plantillaClave, referenciaId } },
+  async yaEnviado(
+    plantillaClave: string,
+    referenciaId: string,
+  ): Promise<boolean> {
+    // La unicidad pasó a ser (nutricionistaId, plantillaClave, referenciaId):
+    // antes dos consultorios con el mismo referenciaId se pisaban la
+    // idempotencia y al segundo no le llegaba el recordatorio.
+    const fila = await this.prisma.emailEnviado.findFirst({
+      where: { plantillaClave, referenciaId },
     });
     return fila != null;
+  }
+
+  async ultimoEnviadoParaTurno(
+    plantillaClave: string,
+    turnoId: string,
+  ): Promise<Date | null> {
+    // `startsWith` cubre las tres formas de referencia del mismo turno:
+    // "<id>" (escalón de 1 día), "<id>:3" y "<id>:manual:<epoch>".
+    const fila = await this.prisma.emailEnviado.findFirst({
+      where: {
+        plantillaClave,
+        referenciaId: { startsWith: turnoId },
+        // Un envío que falló no cuenta como aviso dado.
+        error: null,
+      },
+      orderBy: { creadoEn: "desc" },
+      select: { creadoEn: true },
+    });
+    return fila?.creadoEn ?? null;
   }
 
   async listarRecientes(limite = 30): Promise<EmailEnviado[]> {
@@ -34,19 +61,19 @@ export class PrismaRepositorioEmailEnviado implements IEmailEnviadoRepositorio {
       orderBy: { creadoEn: "desc" },
       take: limite,
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearEmailEnviado(fila));
   }
+}
 
-  private mapear(fila: EmailFila): EmailEnviado {
-    return EmailEnviado.reconstruir({
-      id: fila.id,
-      plantillaClave: fila.plantillaClave,
-      para: fila.para,
-      asunto: fila.asunto,
-      referenciaId: fila.referenciaId,
-      pacienteId: fila.pacienteId,
-      error: fila.error,
-      creadoEn: fila.creadoEn,
-    });
-  }
+export function mapearEmailEnviado(fila: EmailFila): EmailEnviado {
+  return EmailEnviado.reconstruir({
+    id: fila.id,
+    plantillaClave: fila.plantillaClave,
+    para: fila.para,
+    asunto: fila.asunto,
+    referenciaId: fila.referenciaId,
+    pacienteId: fila.pacienteId,
+    error: fila.error,
+    creadoEn: fila.creadoEn,
+  });
 }

@@ -62,4 +62,6 @@ export const resultadoRecordatoriosDto = z.object({
   omitidos: z.number(),
   fallidos: z.number(),
 });
-export type ResultadoRecordatoriosDto = z.infer<typeof resultadoRecordatoriosDto>;
+export type ResultadoRecordatoriosDto = z.infer<
+  typeof resultadoRecordatoriosDto
+>;

@@ -1,6 +1,6 @@
-import type { ImportarMetricas } from "@/dominio/casos-de-uso/metricas/ImportarMetricas";
-import type { ObtenerMetricasDelPaciente } from "@/dominio/casos-de-uso/metricas/ObtenerMetricasDelPaciente";
-import type { FijarInclusionDia } from "@/dominio/casos-de-uso/metricas/FijarInclusionDia";
+import type { ImportarMetricas } from "@/aplicacion/casos-de-uso/metricas/ImportarMetricas";
+import type { ObtenerMetricasDelPaciente } from "@/aplicacion/casos-de-uso/metricas/ObtenerMetricasDelPaciente";
+import type { FijarInclusionDia } from "@/aplicacion/casos-de-uso/metricas/FijarInclusionDia";
 import type { MetricaDispositivo } from "@/dominio/entidades/MetricaDispositivo";
 import type {
   ImportarMetricasDto,
@@ -22,12 +22,20 @@ export class ServicioMetricas {
     return this.importarUC.ejecutar(pacienteId, datos.dias);
   }
 
-  async listar(pacienteId: string, desde: Date, hasta: Date): Promise<MetricaSalidaDto[]> {
+  async listar(
+    pacienteId: string,
+    desde: Date,
+    hasta: Date,
+  ): Promise<MetricaSalidaDto[]> {
     const metricas = await this.obtenerUC.ejecutar(pacienteId, desde, hasta);
     return metricas.map(ServicioMetricas.aSalida);
   }
 
-  fijarInclusion(pacienteId: string, fecha: Date, incluir: boolean): Promise<void> {
+  fijarInclusion(
+    pacienteId: string,
+    fecha: Date,
+    incluir: boolean,
+  ): Promise<void> {
     return this.fijarInclusionUC.ejecutar(pacienteId, fecha, incluir);
   }
 

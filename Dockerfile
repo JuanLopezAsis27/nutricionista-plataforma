@@ -26,10 +26,11 @@ RUN npm ci
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Variables dummy: el build de Next instancia módulos (Prisma/Auth) al
-# recolectar páginas. No se hornean en la imagen final (stage aparte).
-ENV DATABASE_URL="postgresql://build:build@localhost:5432/build?schema=public"
-ENV AUTH_SECRET="placeholder-build-secret-con-mas-de-32-caracteres"
+# Sin variables dummy: el contenedor de DI construye todo de forma perezosa
+# (ver src/infraestructura/contenedor/perezoso.ts), así que recolectar las
+# páginas ya no instancia Prisma ni Auth y el build no necesita credenciales.
+# Si alguna vez vuelven a hacer falta acá, es la señal de que algo volvió a
+# instanciarse al importar un módulo.
 RUN npx prisma generate
 RUN npm run build
 
@@ -41,6 +42,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY prisma ./prisma
 COPY src ./src
+COPY scripts ./scripts
 COPY tsconfig.json ./
 # Genera el cliente Prisma (lo necesita el seed; migrate deploy no, pero es
 # barato y deja la imagen lista para ambos comandos).

@@ -97,7 +97,11 @@ export interface PropiedadesRegistroDiario extends EscalaresDia {
 export class RegistroDiario {
   private constructor(private readonly props: PropiedadesRegistroDiario) {}
 
-  static crear(datos: DatosDia, id: string, ahora: Date = new Date()): RegistroDiario {
+  static crear(
+    datos: DatosDia,
+    id: string,
+    ahora: Date = new Date(),
+  ): RegistroDiario {
     if (!datos.pacienteId?.trim()) {
       throw new ErrorValidacion("El registro debe pertenecer a un paciente.");
     }
@@ -133,15 +137,24 @@ export class RegistroDiario {
       pesoKg: cambios.pesoKg !== undefined ? cambios.pesoKg : this.props.pesoKg,
       aguaMl: cambios.aguaMl !== undefined ? cambios.aguaMl : this.props.aguaMl,
       horasSueno:
-        cambios.horasSueno !== undefined ? cambios.horasSueno : this.props.horasSueno,
+        cambios.horasSueno !== undefined
+          ? cambios.horasSueno
+          : this.props.horasSueno,
       calidadSueno:
         cambios.calidadSueno !== undefined
           ? cambios.calidadSueno
           : this.props.calidadSueno,
-      notas: cambios.notas !== undefined ? cambios.notas?.trim() || null : this.props.notas,
+      notas:
+        cambios.notas !== undefined
+          ? cambios.notas?.trim() || null
+          : this.props.notas,
     };
     validarEscalares(escalares);
-    return new RegistroDiario({ ...this.props, ...escalares, actualizadoEn: ahora });
+    return new RegistroDiario({
+      ...this.props,
+      ...escalares,
+      actualizadoEn: ahora,
+    });
   }
 
   /** Valida y construye una comida del diario (el repositorio la persiste). */
@@ -152,7 +165,9 @@ export class RegistroDiario {
   ): ComidaConsumida {
     const franja = datos.franja?.trim() ?? "";
     if (franja.length === 0) {
-      throw new ErrorValidacion("Indicá la franja de la comida (desayuno, almuerzo…).");
+      throw new ErrorValidacion(
+        "Indicá la franja de la comida (desayuno, almuerzo…).",
+      );
     }
     const descripcion = datos.descripcion?.trim() ?? "";
     if (descripcion.length === 0) {
@@ -180,7 +195,9 @@ export class RegistroDiario {
   ): ActividadFisica {
     const tipo = datos.tipo?.trim() ?? "";
     if (tipo.length === 0) {
-      throw new ErrorValidacion("Indicá el tipo de actividad (pesas, running…).");
+      throw new ErrorValidacion(
+        "Indicá el tipo de actividad (pesas, running…).",
+      );
     }
     if (
       !Number.isInteger(datos.duracionMinutos) ||
@@ -189,7 +206,10 @@ export class RegistroDiario {
     ) {
       throw new ErrorValidacion("La duración debe ser entre 1 y 1440 minutos.");
     }
-    if (datos.intensidad != null && !INTENSIDADES_ACTIVIDAD.includes(datos.intensidad)) {
+    if (
+      datos.intensidad != null &&
+      !INTENSIDADES_ACTIVIDAD.includes(datos.intensidad)
+    ) {
       throw new ErrorValidacion(`Intensidad desconocida: ${datos.intensidad}.`);
     }
     return {
@@ -235,7 +255,11 @@ function validarFecha(fecha: Date, ahora: Date): void {
   const limite =
     Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate()) +
     24 * 60 * 60 * 1000;
-  const dia = Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate());
+  const dia = Date.UTC(
+    fecha.getUTCFullYear(),
+    fecha.getUTCMonth(),
+    fecha.getUTCDate(),
+  );
   if (dia > limite) {
     throw new ErrorValidacion("La fecha del registro no puede ser futura.");
   }
@@ -246,14 +270,26 @@ function validarEscalares(datos: Partial<EscalaresDia>): void {
     throw new ErrorValidacion("El peso debe estar entre 20 y 400 kg.");
   }
   if (datos.aguaMl != null) {
-    if (!Number.isInteger(datos.aguaMl) || datos.aguaMl < 0 || datos.aguaMl > 10000) {
+    if (
+      !Number.isInteger(datos.aguaMl) ||
+      datos.aguaMl < 0 ||
+      datos.aguaMl > 10000
+    ) {
       throw new ErrorValidacion("El agua debe estar entre 0 y 10000 ml.");
     }
   }
-  if (datos.horasSueno != null && (datos.horasSueno < 0 || datos.horasSueno > 24)) {
+  if (
+    datos.horasSueno != null &&
+    (datos.horasSueno < 0 || datos.horasSueno > 24)
+  ) {
     throw new ErrorValidacion("Las horas de sueño deben estar entre 0 y 24.");
   }
-  if (datos.calidadSueno != null && !CALIDADES_SUENO.includes(datos.calidadSueno)) {
-    throw new ErrorValidacion(`Calidad de sueño desconocida: ${datos.calidadSueno}.`);
+  if (
+    datos.calidadSueno != null &&
+    !CALIDADES_SUENO.includes(datos.calidadSueno)
+  ) {
+    throw new ErrorValidacion(
+      `Calidad de sueño desconocida: ${datos.calidadSueno}.`,
+    );
   }
 }

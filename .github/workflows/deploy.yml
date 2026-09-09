@@ -1,36 +1,80 @@
-name: Deploy
+name: Deploy (manual)
 
-# Despliegue manual al VPS (Run workflow → botón). Para desplegar automáticamente
-# al mergear a main, descomentá el bloque `push` de abajo.
+# ============================================================================
+# Despliegue MANUAL. La vía normal es automática y vive en `ci.yml`:
+#
+#   merge a development → staging      (automático)
+#   merge a main        → producción   (con aprobación)
+#
+# Este workflow existe para lo que esa vía no cubre:
+#   - redesplegar sin un commit nuevo (p. ej. tras cambiar el .env del VPS),
+#   - volver atrás a un commit anterior (rollback),
+#   - desplegar cuando el CI está caído por algo ajeno al código.
+#
+# A diferencia del despliegue automático, acá NO hay red de seguridad: no se
+# verifica que el commit haya pasado el CI. Es una herramienta afilada, a
+# propósito.
+# ============================================================================
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [main]
+    inputs:
+      entorno:
+        description: "A dónde desplegar"
+        required: true
+        type: choice
+        options: [staging, produccion]
+        default: staging
+      referencia:
+        description: "Commit, tag o rama a desplegar (vacío = punta de la rama del servidor)"
+        required: false
+        type: string
 
-# Nunca dos despliegues a la vez.
+# Comparte grupo con el despliegue automático de ci.yml para el mismo entorno,
+# de modo que un deploy manual y uno automático nunca se pisen.
 concurrency:
-  group: deploy-produccion
+  group: deploy-${{ inputs.entorno == 'produccion' && 'main' || 'development' }}
   cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
-    name: Desplegar a producción (VPS)
+    name: Desplegar ${{ inputs.entorno }} (manual)
     runs-on: ubuntu-latest
-    # Requiere estos secrets del repo (Settings → Secrets and variables → Actions):
-    #   VPS_HOST        IP o dominio del VPS
-    #   VPS_USER        usuario SSH (con permiso para docker/compose)
-    #   VPS_SSH_KEY     clave privada SSH (la pública va en ~/.ssh/authorized_keys del VPS)
-    #   VPS_DEPLOY_PATH ruta del repo en el VPS (ej. /home/deploy/nutricionista-app)
+    # Toma los secrets del environment elegido: mismos nombres, distinto
+    # servidor y distinta clave SSH. `produccion` además pide aprobación si está
+    # configurada en Settings → Environments.
+    environment: ${{ inputs.entorno }}
+
     steps:
       - name: Conectar por SSH y desplegar
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          # `envs` pasa estas variables del runner al shell remoto; interpolar
+          # una entrada de texto libre directamente dentro del script permitiría
+          # inyectar comandos en el VPS.
+          envs: REFERENCIA,ENTORNO
           script: |
-            set -e
+            set -euo pipefail
             cd "${{ secrets.VPS_DEPLOY_PATH }}"
-            git pull --ff-only
-            # Reconstruye la imagen, aplica migraciones (servicio migrate) y reinicia app/worker.
-            ./scripts/desplegar.sh prod
+
+            git fetch --prune --tags origin
+            if [ -n "${REFERENCIA:-}" ]; then
+              echo "==> Desplegando referencia explícita: $REFERENCIA"
+              git checkout --detach "$REFERENCIA"
+            else
+              echo "==> Sin referencia: se usa lo que ya está en el servidor"
+            fi
+
+            if [ "$ENTORNO" = "produccion" ]; then
+              ./scripts/desplegar.sh prod
+            else
+              ./scripts/desplegar.sh staging
+            fi
+        env:
+          REFERENCIA: ${{ inputs.referencia }}
+          ENTORNO: ${{ inputs.entorno }}

@@ -1,0 +1,12 @@
+# Commits que no cambian logica y solo ensucian `git blame`.
+#
+# Uso puntual:
+#   git blame --ignore-revs-file .git-blame-ignore-revs <archivo>
+#
+# Uso permanente (recomendado, una vez por clon):
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# GitHub lo respeta automaticamente en la vista de blame.
+
+# style: aplicar prettier a todo el repositorio (460 archivos, 0 logica)
+24eedf3cfc842da576d64682af8e925976e88fa3

@@ -1,19 +1,33 @@
-import type { CrearReceta } from "@/dominio/casos-de-uso/recetas/CrearReceta";
-import type { ObtenerRecetas } from "@/dominio/casos-de-uso/recetas/ObtenerRecetas";
-import type { ObtenerRecetaPorId } from "@/dominio/casos-de-uso/recetas/ObtenerRecetaPorId";
-import type { ActualizarReceta } from "@/dominio/casos-de-uso/recetas/ActualizarReceta";
-import type { EliminarReceta } from "@/dominio/casos-de-uso/recetas/EliminarReceta";
-import type { AsignarRecetaAPaciente } from "@/dominio/casos-de-uso/recetas/AsignarRecetaAPaciente";
-import type { DesasignarRecetaDePaciente } from "@/dominio/casos-de-uso/recetas/DesasignarRecetaDePaciente";
-import type { ObtenerRecetasDelPaciente } from "@/dominio/casos-de-uso/recetas/ObtenerRecetasDelPaciente";
-import type { ObtenerPacientesDeReceta } from "@/dominio/casos-de-uso/recetas/ObtenerPacientesDeReceta";
+import type { CrearReceta } from "@/aplicacion/casos-de-uso/recetas/CrearReceta";
+import type { ObtenerRecetas } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetas";
+import type { ObtenerRecetasPaginado } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetasPaginado";
+import type { ObtenerRecetaPorId } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetaPorId";
+import type { ActualizarReceta } from "@/aplicacion/casos-de-uso/recetas/ActualizarReceta";
+import type { EliminarReceta } from "@/aplicacion/casos-de-uso/recetas/EliminarReceta";
+import type { EliminarArchivoDeReceta } from "@/aplicacion/casos-de-uso/recetas/EliminarArchivoDeReceta";
+import type { MarcarFotoPrincipal } from "@/aplicacion/casos-de-uso/recetas/MarcarFotoPrincipal";
+import type { AsignarRecetaAPaciente } from "@/aplicacion/casos-de-uso/recetas/AsignarRecetaAPaciente";
+import type { DesasignarRecetaDePaciente } from "@/aplicacion/casos-de-uso/recetas/DesasignarRecetaDePaciente";
+import type { ObtenerRecetasDelPaciente } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetasDelPaciente";
+import type { ObtenerPacientesDeReceta } from "@/aplicacion/casos-de-uso/recetas/ObtenerPacientesDeReceta";
+import type { MoverRecetaAGrupo } from "@/aplicacion/casos-de-uso/recetas/MoverRecetaAGrupo";
+import type { CrearGrupoReceta } from "@/aplicacion/casos-de-uso/grupos-receta/CrearGrupoReceta";
+import type { ActualizarGrupoReceta } from "@/aplicacion/casos-de-uso/grupos-receta/ActualizarGrupoReceta";
+import type { EliminarGrupoReceta } from "@/aplicacion/casos-de-uso/grupos-receta/EliminarGrupoReceta";
+import type { ObtenerGruposReceta } from "@/aplicacion/casos-de-uso/grupos-receta/ObtenerGruposReceta";
 import type { Receta } from "@/dominio/entidades/Receta";
 import type {
   CrearRecetaDto,
   ActualizarRecetaDto,
   FiltroRecetasDto,
+  ListarRecetasPaginadoDto,
+  RecetasPaginadas,
   AsignarRecetaDto,
   RecetaSalidaDto,
+  MoverRecetaDto,
+  GrupoRecetaDto,
+  ActualizarGrupoRecetaDto,
+  GrupoRecetaSalidaDto,
 } from "../dtos/receta.dto";
 
 /**
@@ -24,13 +38,21 @@ export class ServicioReceta {
   constructor(
     private readonly crearUC: CrearReceta,
     private readonly obtenerTodasUC: ObtenerRecetas,
+    private readonly obtenerPaginadoUC: ObtenerRecetasPaginado,
     private readonly obtenerPorIdUC: ObtenerRecetaPorId,
     private readonly actualizarUC: ActualizarReceta,
     private readonly eliminarUC: EliminarReceta,
+    private readonly eliminarArchivoUC: EliminarArchivoDeReceta,
+    private readonly marcarFotoPrincipalUC: MarcarFotoPrincipal,
     private readonly asignarUC: AsignarRecetaAPaciente,
     private readonly desasignarUC: DesasignarRecetaDePaciente,
     private readonly obtenerDelPacienteUC: ObtenerRecetasDelPaciente,
     private readonly obtenerPacientesUC: ObtenerPacientesDeReceta,
+    private readonly moverAGrupoUC: MoverRecetaAGrupo,
+    private readonly crearGrupoUC: CrearGrupoReceta,
+    private readonly actualizarGrupoUC: ActualizarGrupoReceta,
+    private readonly eliminarGrupoUC: EliminarGrupoReceta,
+    private readonly obtenerGruposUC: ObtenerGruposReceta,
   ) {}
 
   async crearReceta(datos: CrearRecetaDto): Promise<RecetaSalidaDto> {
@@ -43,6 +65,15 @@ export class ServicioReceta {
     return recetas.map(ServicioReceta.aSalida);
   }
 
+  /** Recetario paginado (trae solo la página pedida). */
+  async obtenerRecetasPaginado(
+    datos: ListarRecetasPaginadoDto,
+  ): Promise<RecetasPaginadas> {
+    const { items, total, paginas } =
+      await this.obtenerPaginadoUC.ejecutar(datos);
+    return { recetas: items.map(ServicioReceta.aSalida), total, paginas };
+  }
+
   async obtenerRecetaPorId(id: string): Promise<RecetaSalidaDto> {
     const receta = await this.obtenerPorIdUC.ejecutar(id);
     return ServicioReceta.aSalida(receta);
@@ -51,6 +82,26 @@ export class ServicioReceta {
   async actualizarReceta(datos: ActualizarRecetaDto): Promise<RecetaSalidaDto> {
     const receta = await this.actualizarUC.ejecutar(datos);
     return ServicioReceta.aSalida(receta);
+  }
+
+  /** Borra una foto o un documento adjunto y devuelve la receta ya sin él. */
+  async eliminarArchivoDeReceta(
+    recetaId: string,
+    archivoId: string,
+  ): Promise<RecetaSalidaDto> {
+    return ServicioReceta.aSalida(
+      await this.eliminarArchivoUC.ejecutar(recetaId, archivoId),
+    );
+  }
+
+  /** Elige la foto que representa la receta (null = la primera disponible). */
+  async marcarFotoPrincipal(
+    recetaId: string,
+    fotoId: string | null,
+  ): Promise<RecetaSalidaDto> {
+    return ServicioReceta.aSalida(
+      await this.marcarFotoPrincipalUC.ejecutar(recetaId, fotoId),
+    );
   }
 
   async eliminarReceta(id: string): Promise<void> {
@@ -65,13 +116,48 @@ export class ServicioReceta {
     await this.desasignarUC.ejecutar(datos);
   }
 
-  async obtenerRecetasDelPaciente(pacienteId: string): Promise<RecetaSalidaDto[]> {
+  async obtenerRecetasDelPaciente(
+    pacienteId: string,
+  ): Promise<RecetaSalidaDto[]> {
     const recetas = await this.obtenerDelPacienteUC.ejecutar(pacienteId);
     return recetas.map(ServicioReceta.aSalida);
   }
 
   async obtenerPacientesDeReceta(recetaId: string): Promise<string[]> {
     return this.obtenerPacientesUC.ejecutar(recetaId);
+  }
+
+  // --- Carpetas del recetario ---
+
+  /** Mueve una receta a una carpeta, o la saca (grupoId null). */
+  async moverRecetaAGrupo(datos: MoverRecetaDto): Promise<void> {
+    await this.moverAGrupoUC.ejecutar(datos);
+  }
+
+  async obtenerGrupos(): Promise<GrupoRecetaSalidaDto[]> {
+    const grupos = await this.obtenerGruposUC.ejecutar();
+    return grupos.map(({ grupo, cantidadRecetas }) => ({
+      ...grupo.aPrimitivos(),
+      cantidadRecetas,
+    }));
+  }
+
+  async crearGrupo(datos: GrupoRecetaDto): Promise<GrupoRecetaSalidaDto> {
+    const grupo = await this.crearGrupoUC.ejecutar(datos);
+    // Recién creada: vacía por definición, no hace falta ir a contarla.
+    return { ...grupo.aPrimitivos(), cantidadRecetas: 0 };
+  }
+
+  async actualizarGrupo(
+    datos: ActualizarGrupoRecetaDto,
+  ): Promise<GrupoRecetaSalidaDto> {
+    const grupo = await this.actualizarGrupoUC.ejecutar(datos);
+    // El total lo repone el listado, que se invalida junto con la mutación.
+    return { ...grupo.aPrimitivos(), cantidadRecetas: 0 };
+  }
+
+  async eliminarGrupo(id: string): Promise<void> {
+    await this.eliminarGrupoUC.ejecutar(id);
   }
 
   private static aSalida(receta: Receta): RecetaSalidaDto {

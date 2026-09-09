@@ -1,4 +1,4 @@
-import type { ObtenerCentroDeNotificaciones } from "@/dominio/casos-de-uso/notificaciones/ObtenerCentroDeNotificaciones";
+import type { ObtenerCentroDeNotificaciones } from "@/aplicacion/casos-de-uso/notificaciones/ObtenerCentroDeNotificaciones";
 import type { CentroNotificacionesDto } from "../dtos/notificaciones.dto";
 
 /**
@@ -7,7 +7,9 @@ import type { CentroNotificacionesDto } from "../dtos/notificaciones.dto";
  * avisos de correo). El read-model del dominio ya tiene la forma de salida.
  */
 export class ServicioNotificaciones {
-  constructor(private readonly obtenerCentroUC: ObtenerCentroDeNotificaciones) {}
+  constructor(
+    private readonly obtenerCentroUC: ObtenerCentroDeNotificaciones,
+  ) {}
 
   obtenerCentro(viewerId: string): Promise<CentroNotificacionesDto> {
     return this.obtenerCentroUC.ejecutar(viewerId);

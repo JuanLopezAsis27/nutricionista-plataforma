@@ -1,5 +1,4 @@
 import { crearRouter, nutricionistaProcedimiento } from "../trpc";
-import { aTRPCError } from "../errores-trpc";
 
 /**
  * Router del Centro de Notificaciones (solo NUTRICIONISTA): feed unificado de
@@ -9,10 +8,6 @@ import { aTRPCError } from "../errores-trpc";
  */
 export const routerNotificaciones = crearRouter({
   centro: nutricionistaProcedimiento.query(async ({ ctx }) => {
-    try {
-      return await ctx.servicios.notificaciones.obtenerCentro(ctx.usuario.id);
-    } catch (error) {
-      throw aTRPCError(error);
-    }
+    return await ctx.servicios.notificaciones.obtenerCentro(ctx.usuario.id);
   }),
 });

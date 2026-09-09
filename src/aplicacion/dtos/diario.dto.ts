@@ -61,6 +61,13 @@ export const rangoDiarioDto = z.object({
   hasta: z.coerce.date(),
 });
 
+export const paginaDiarioDto = z.object({
+  pacienteId: z.string().min(1),
+  pagina: z.number().int().min(1).default(1),
+  porPagina: z.number().int().min(1).max(60).default(10),
+});
+export type PaginaDiarioDto = z.infer<typeof paginaDiarioDto>;
+
 // --- Salidas --------------------------------------------------------------------
 
 export const comidaConsumidaSalidaDto = z.object({
@@ -97,6 +104,13 @@ export const registroDiarioSalidaDto = z.object({
   actualizadoEn: z.date(),
 });
 export type RegistroDiarioSalidaDto = z.infer<typeof registroDiarioSalidaDto>;
+
+/** Página de registros del diario, la más reciente primero. */
+export interface PaginaRegistrosDiarioDto {
+  items: RegistroDiarioSalidaDto[];
+  total: number;
+  paginas: number;
+}
 
 /** Indicadores de un día para pintar el calendario mensual. */
 export interface DiaCalendarioDto {

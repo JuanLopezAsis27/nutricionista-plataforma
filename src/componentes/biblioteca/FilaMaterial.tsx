@@ -14,11 +14,14 @@ interface Props {
 
 /**
  * Fila de un material: ícono por tipo, título, categoría/etiquetas y botón
- * de apertura (enlace externo o archivo vía URL firmada).
+ * de apertura (enlace externo, o archivo servido en línea por
+ * /api/archivos/[id]/ver).
  */
 export function FilaMaterial({ material, acciones }: Props) {
   const esEnlace = material.tipo === "ENLACE";
-  const href = esEnlace ? (material.url ?? "#") : `/api/archivos/${material.archivo?.id}`;
+  const href = esEnlace
+    ? (material.url ?? "#")
+    : `/api/archivos/${material.archivo?.id}/ver`;
   const Icono = esEnlace ? Link2 : FileText;
 
   return (
@@ -27,10 +30,14 @@ export function FilaMaterial({ material, acciones }: Props) {
       <div className="min-w-0 flex-1">
         <p className="font-medium leading-tight">{material.titulo}</p>
         {material.descripcion && (
-          <p className="truncate text-sm text-muted-foreground">{material.descripcion}</p>
+          <p className="truncate text-sm text-muted-foreground">
+            {material.descripcion}
+          </p>
         )}
         <div className="mt-1 flex flex-wrap gap-1">
-          {material.categoria && <Badge variant="secondary">{material.categoria}</Badge>}
+          {material.categoria && (
+            <Badge variant="secondary">{material.categoria}</Badge>
+          )}
           {material.etiquetas.slice(0, 4).map((etiqueta) => (
             <Badge key={etiqueta} variant="outline" className="text-xs">
               {etiqueta}

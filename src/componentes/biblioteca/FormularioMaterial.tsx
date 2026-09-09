@@ -22,13 +22,17 @@ import {
 } from "@/componentes/ui/form";
 import { Tabs, TabsList, TabsTrigger } from "@/componentes/ui/tabs";
 import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
+import { etiquetasEnTexto, partirEtiquetas } from "@/lib/validacionListas";
 
-const esquema = z.object({
+/** Esquema del formulario. Exportado para el test de coherencia con el DTO. */
+export const esquema = z.object({
   titulo: z.string().min(1, "El título es obligatorio").max(200),
   descripcion: z.string().max(2000),
   url: z.string().max(2000),
   categoria: z.string().max(80),
-  etiquetas: z.string().max(500),
+  // El DTO valida CADA etiqueta (max 60) y el total (max 30); acá solo se
+  // miraba el largo del textarea entero.
+  etiquetas: etiquetasEnTexto(500),
 });
 type DatosFormulario = z.infer<typeof esquema>;
 
@@ -45,8 +49,12 @@ export function FormularioMaterial({ materialInicial, onTerminado }: Props) {
   const { crear, actualizar } = useBiblioteca();
   const enviando = crear.isPending || actualizar.isPending;
 
-  const [tipo, setTipo] = useState<TipoMaterial>(materialInicial?.tipo ?? "ARCHIVO");
-  const [archivoSubido, setArchivoSubido] = useState<ArchivoSalidaDto | null>(null);
+  const [tipo, setTipo] = useState<TipoMaterial>(
+    materialInicial?.tipo ?? "ARCHIVO",
+  );
+  const [archivoSubido, setArchivoSubido] = useState<ArchivoSalidaDto | null>(
+    null,
+  );
 
   const form = useForm<DatosFormulario>({
     resolver: zodResolver(esquema),
@@ -65,14 +73,16 @@ export function FormularioMaterial({ materialInicial, onTerminado }: Props) {
       descripcion: datos.descripcion.trim() || null,
       url: tipo === "ENLACE" ? datos.url.trim() || null : null,
       categoria: datos.categoria.trim() || null,
-      etiquetas: datos.etiquetas
-        .split(",")
-        .map((etiqueta) => etiqueta.trim())
-        .filter(Boolean),
+      // El mismo helper que usa el esquema: si el corte cambiara solo acá, la
+      // validación estaría mirando una lista distinta de la que se envía.
+      etiquetas: partirEtiquetas(datos.etiquetas),
     };
 
     if (materialInicial) {
-      actualizar.mutate({ id: materialInicial.id, ...cuerpo }, { onSuccess: onTerminado });
+      actualizar.mutate(
+        { id: materialInicial.id, ...cuerpo },
+        { onSuccess: onTerminado },
+      );
     } else {
       crear.mutate(
         { tipo, ...cuerpo, archivoId: archivoSubido?.id ?? null },
@@ -86,7 +96,10 @@ export function FormularioMaterial({ materialInicial, onTerminado }: Props) {
       <form onSubmit={form.handleSubmit(alEnviar)} className="space-y-4">
         {/* Tipo (solo en alta) */}
         {!materialInicial && (
-          <Tabs value={tipo} onValueChange={(valor) => setTipo(valor as TipoMaterial)}>
+          <Tabs
+            value={tipo}
+            onValueChange={(valor) => setTipo(valor as TipoMaterial)}
+          >
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="ARCHIVO">
                 <FileText className="mr-1.5 h-4 w-4" /> Archivo
@@ -105,7 +118,10 @@ export function FormularioMaterial({ materialInicial, onTerminado }: Props) {
             <FormItem>
               <FormLabel>Título</FormLabel>
               <FormControl>
-                <Input placeholder="Guía de porciones con las manos" {...field} />
+                <Input
+                  placeholder="Guía de porciones con las manos"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -128,12 +144,13 @@ export function FormularioMaterial({ materialInicial, onTerminado }: Props) {
           />
         ) : materialInicial ? (
           <p className="text-sm text-muted-foreground">
-            Archivo: {materialInicial.archivo?.nombreOriginal ?? "—"} (no se cambia; creá un
-            material nuevo si necesitás otro archivo).
+            Archivo: {materialInicial.archivo?.nombreOriginal ?? "—"} (no se
+            cambia; creá un material nuevo si necesitás otro archivo).
           </p>
         ) : archivoSubido ? (
           <p className="rounded-md border p-2 text-sm">
-            Archivo listo: <span className="font-medium">{archivoSubido.nombreOriginal}</span>
+            Archivo listo:{" "}
+            <span className="font-medium">{archivoSubido.nombreOriginal}</span>
           </p>
         ) : (
           <SubidorArchivo
@@ -164,7 +181,10 @@ export function FormularioMaterial({ materialInicial, onTerminado }: Props) {
               <FormItem>
                 <FormLabel>Categoría (opcional)</FormLabel>
                 <FormControl>
-                  <Input placeholder="educación, recetas, hábitos…" {...field} />
+                  <Input
+                    placeholder="educación, recetas, hábitos…"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -186,14 +206,26 @@ export function FormularioMaterial({ materialInicial, onTerminado }: Props) {
         </div>
 
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onTerminado} disabled={enviando}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onTerminado}
+            disabled={enviando}
+          >
             Cancelar
           </Button>
           <Button
             type="submit"
-            disabled={enviando || (!materialInicial && tipo === "ARCHIVO" && !archivoSubido)}
+            disabled={
+              enviando ||
+              (!materialInicial && tipo === "ARCHIVO" && !archivoSubido)
+            }
           >
-            {enviando ? "Guardando…" : materialInicial ? "Guardar cambios" : "Agregar material"}
+            {enviando
+              ? "Guardando…"
+              : materialInicial
+                ? "Guardar cambios"
+                : "Agregar material"}
           </Button>
         </div>
       </form>

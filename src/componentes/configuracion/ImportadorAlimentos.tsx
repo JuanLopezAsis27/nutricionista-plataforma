@@ -2,15 +2,26 @@
 
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { FileSpreadsheet, CheckCircle2, Upload, Trash2 } from "lucide-react";
+import {
+  FileSpreadsheet,
+  CheckCircle2,
+  Upload,
+  Trash2,
+  FileDown,
+} from "lucide-react";
 import { useAlimentosPropios } from "@/lib/hooks/useAlimentosPropios";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
 
 /**
  * Importa un Excel/CSV de alimentos con sus macros. Si hay una lista cargada, la
- * búsqueda de ingredientes usa ESA lista y FatSecret queda desactivado.
+ * búsqueda de ingredientes usa ESA lista y no se consulta ninguna API externa.
  */
 export function ImportadorAlimentos() {
   const { estado, importar, importando, vaciar } = useAlimentosPropios();
@@ -24,9 +35,12 @@ export function ImportadorAlimentos() {
     setError(null);
     try {
       const importados = await importar(archivo);
-      toast.success(`${importados} alimentos importados. FatSecret queda desactivado.`);
+      toast.success(
+        `${importados} alimentos importados. La búsqueda usa solo tu lista.`,
+      );
     } catch (err) {
-      const mensaje = err instanceof Error ? err.message : "No se pudo importar.";
+      const mensaje =
+        err instanceof Error ? err.message : "No se pudo importar.";
       setError(mensaje);
       toast.error(mensaje);
     } finally {
@@ -39,7 +53,8 @@ export function ImportadorAlimentos() {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between gap-2 text-base">
           <span className="flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5 text-primary" /> Mis alimentos (Excel)
+            <FileSpreadsheet className="h-5 w-5 text-primary" /> Mis alimentos
+            (Excel)
           </span>
           {consulta.isLoading ? null : e?.activo ? (
             <span className="flex items-center gap-1 text-xs font-normal text-primary">
@@ -50,15 +65,25 @@ export function ImportadorAlimentos() {
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          Subí un <strong>Excel (.xlsx) o CSV</strong> con tus alimentos e insumos y sus macros.
-          Si cargás una lista, la búsqueda de ingredientes usa <strong>solo esa lista</strong> y
-          se <strong>desactiva FatSecret</strong> (no se consulta ninguna API externa).
+          Subí un <strong>Excel (.xlsx) o CSV</strong> con tus alimentos e
+          insumos y sus macros. Si cargás una lista, la búsqueda de ingredientes
+          usa <strong>solo esa lista</strong> y{" "}
+          <strong>no se consulta ninguna API externa</strong>.
         </p>
         <p className="text-xs text-muted-foreground">
-          Columnas esperadas (con encabezado, en cualquier orden): <code>Nombre</code>,{" "}
-          <code>Marca</code> (opcional), <code>Calorías</code>, <code>Proteínas</code>,{" "}
-          <code>Carbohidratos</code>, <code>Grasas</code>. Los valores se toman por 100 g.
+          Columnas esperadas (con encabezado, en cualquier orden):{" "}
+          <code>Nombre</code>, <code>Marca</code> (opcional),{" "}
+          <code>Calorías</code>, <code>Proteínas</code>,{" "}
+          <code>Carbohidratos</code>, <code>Grasas</code>. Los valores se toman
+          por 100 g.
         </p>
+
+        <Button variant="outline" size="sm" asChild>
+          <a href="/api/alimentos/plantilla" download>
+            <FileDown className="mr-1.5 h-4 w-4" />
+            Descargar modelo de Excel
+          </a>
+        </Button>
 
         {consulta.isLoading ? (
           <Skeleton className="h-10 w-full" />
@@ -68,8 +93,9 @@ export function ImportadorAlimentos() {
               <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 p-2 text-sm">
                 <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
                 <span>
-                  Tenés <strong>{e.cantidad}</strong> alimentos cargados. FatSecret está
-                  desactivado. Volvé a subir un archivo para reemplazar la lista.
+                  Tenés <strong>{e.cantidad}</strong> alimentos cargados. La
+                  búsqueda usa solo tu lista. Volvé a subir un archivo para
+                  reemplazarla.
                 </span>
               </div>
             )}
@@ -81,7 +107,9 @@ export function ImportadorAlimentos() {
               type="file"
               accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
               className="hidden"
-              onChange={(ev) => void alElegir(ev.target.files?.[0] ?? undefined)}
+              onChange={(ev) =>
+                void alElegir(ev.target.files?.[0] ?? undefined)
+              }
             />
             <div className="flex flex-wrap justify-end gap-2">
               {e?.activo && (
@@ -100,7 +128,11 @@ export function ImportadorAlimentos() {
                 onClick={() => inputRef.current?.click()}
               >
                 <Upload className="mr-1.5 h-4 w-4" />
-                {importando ? "Importando…" : e?.activo ? "Reemplazar lista" : "Subir Excel/CSV"}
+                {importando
+                  ? "Importando…"
+                  : e?.activo
+                    ? "Reemplazar lista"
+                    : "Subir Excel/CSV"}
               </Button>
             </div>
           </>

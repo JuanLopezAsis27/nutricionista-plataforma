@@ -3,15 +3,14 @@ import type {
   IRetroalimentacionInsightRepositorio,
   DatosRetroalimentacion,
 } from "@/dominio/repositorios/IRetroalimentacionInsightRepositorio";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /**
  * Repositorio Prisma de la retroalimentación de insights. Upsert por
  * (nutricionistaId, pacienteId, tipoInsight): el último voto reemplaza al
  * anterior. La extensión multi-inquilino setea/filtra `nutricionistaId`.
  */
-export class PrismaRepositorioRetroalimentacionInsight
-  implements IRetroalimentacionInsightRepositorio
-{
+export class PrismaRepositorioRetroalimentacionInsight implements IRetroalimentacionInsightRepositorio {
   constructor(private readonly prisma: PrismaClient) {}
 
   async registrar(datos: DatosRetroalimentacion): Promise<void> {
@@ -32,6 +31,7 @@ export class PrismaRepositorioRetroalimentacionInsight
       await this.prisma.retroalimentacionInsight.create({
         data: {
           id: crypto.randomUUID(),
+          nutricionistaId: inquilinoActual(),
           pacienteId: datos.pacienteId,
           tipoInsight: datos.tipoInsight,
           ...valores,

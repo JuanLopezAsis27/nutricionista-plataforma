@@ -15,23 +15,32 @@ import {
   DialogTitle,
 } from "@/componentes/ui/dialog";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
+import { ControlesPaginacion } from "@/componentes/comunes/ControlesPaginacion";
 import { FormularioMaterial } from "@/componentes/biblioteca/FormularioMaterial";
 import { CompartirMaterial } from "@/componentes/biblioteca/CompartirMaterial";
 import { FilaMaterial } from "@/componentes/biblioteca/FilaMaterial";
 
 export default function PaginaBiblioteca() {
-  const { listar, eliminar } = useBiblioteca();
+  const { listarPaginado, eliminar } = useBiblioteca();
 
   const [busqueda, setBusqueda] = useState("");
+  const [pagina, setPagina] = useState(1);
   const debounced = useDebounce(busqueda, 300);
-  const consulta = listar(debounced ? { texto: debounced } : undefined);
+  const consulta = listarPaginado({
+    texto: debounced || undefined,
+    pagina,
+    porPagina: 10,
+  });
 
   const [formAbierto, setFormAbierto] = useState(false);
-  const [materialEditar, setMaterialEditar] = useState<MaterialSalidaDto | null>(null);
-  const [materialCompartir, setMaterialCompartir] = useState<MaterialSalidaDto | null>(null);
-  const [materialEliminar, setMaterialEliminar] = useState<MaterialSalidaDto | null>(null);
+  const [materialEditar, setMaterialEditar] =
+    useState<MaterialSalidaDto | null>(null);
+  const [materialCompartir, setMaterialCompartir] =
+    useState<MaterialSalidaDto | null>(null);
+  const [materialEliminar, setMaterialEliminar] =
+    useState<MaterialSalidaDto | null>(null);
 
-  const materiales = consulta.data ?? [];
+  const materiales = consulta.data?.materiales ?? [];
 
   return (
     <div className="space-y-4">
@@ -42,7 +51,10 @@ export default function PaginaBiblioteca() {
             placeholder="Buscar material…"
             className="pl-8"
             value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            onChange={(e) => {
+              setBusqueda(e.target.value);
+              setPagina(1);
+            }}
           />
         </div>
         <Button
@@ -59,7 +71,9 @@ export default function PaginaBiblioteca() {
       {consulta.isLoading ? (
         <Skeleton className="h-48 w-full" />
       ) : consulta.isError ? (
-        <p className="text-sm text-destructive">No se pudo cargar la biblioteca.</p>
+        <p className="text-sm text-destructive">
+          No se pudo cargar la biblioteca.
+        </p>
       ) : materiales.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           {debounced
@@ -108,11 +122,19 @@ export default function PaginaBiblioteca() {
         </ul>
       )}
 
+      <ControlesPaginacion
+        pagina={pagina}
+        totalPaginas={consulta.data?.paginas ?? 1}
+        onCambiar={setPagina}
+      />
+
       {/* Alta / edición */}
       <Dialog open={formAbierto} onOpenChange={setFormAbierto}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{materialEditar ? "Editar material" : "Nuevo material"}</DialogTitle>
+            <DialogTitle>
+              {materialEditar ? "Editar material" : "Nuevo material"}
+            </DialogTitle>
           </DialogHeader>
           <FormularioMaterial
             materialInicial={materialEditar}
@@ -130,7 +152,9 @@ export default function PaginaBiblioteca() {
           <DialogHeader>
             <DialogTitle>Compartir «{materialCompartir?.titulo}»</DialogTitle>
           </DialogHeader>
-          {materialCompartir && <CompartirMaterial materialId={materialCompartir.id} />}
+          {materialCompartir && (
+            <CompartirMaterial materialId={materialCompartir.id} />
+          )}
         </DialogContent>
       </Dialog>
 
@@ -139,7 +163,9 @@ export default function PaginaBiblioteca() {
         abierto={Boolean(materialEliminar)}
         titulo="Eliminar material"
         descripcion={`¿Eliminar «${materialEliminar?.titulo}» de la biblioteca?${
-          materialEliminar?.tipo === "ARCHIVO" ? " Se borra también el archivo." : ""
+          materialEliminar?.tipo === "ARCHIVO"
+            ? " Se borra también el archivo."
+            : ""
         }`}
         cargando={eliminar.isPending}
         onCancelar={() => setMaterialEliminar(null)}

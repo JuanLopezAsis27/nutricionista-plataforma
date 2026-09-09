@@ -19,10 +19,13 @@ const suplementoBase = z
     activo: z.boolean().optional(),
     notas: z.string().max(1000).optional().nullable(),
   })
-  .refine((datos) => !datos.desde || !datos.hasta || datos.hasta >= datos.desde, {
-    message: "La fecha de fin no puede ser anterior a la de inicio",
-    path: ["hasta"],
-  });
+  .refine(
+    (datos) => !datos.desde || !datos.hasta || datos.hasta >= datos.desde,
+    {
+      message: "La fecha de fin no puede ser anterior a la de inicio",
+      path: ["hasta"],
+    },
+  );
 
 export const registrarSuplementoDto = z.intersection(
   suplementoBase,

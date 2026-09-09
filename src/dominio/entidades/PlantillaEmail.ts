@@ -1,4 +1,8 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
+import {
+  renderizarPlantilla,
+  renderizarPlantillaHtml,
+} from "../plantillas/renderizar";
 
 /**
  * Claves de las plantillas de sistema (sembradas, no borrables). El cron de
@@ -72,7 +76,8 @@ export class PlantillaEmail {
         "La clave debe ser un identificador en MAYÚSCULAS (ej. RECORDATORIO_TURNO).",
       );
     }
-    const { nombre, asunto, cuerpoHtml } = PlantillaEmail.validarContenido(datos);
+    const { nombre, asunto, cuerpoHtml } =
+      PlantillaEmail.validarContenido(datos);
 
     return new PlantillaEmail({
       id,
@@ -93,10 +98,16 @@ export class PlantillaEmail {
 
   /** Edita el contenido (nunca la clave ni `deSistema`); actualiza la fecha. */
   actualizar(
-    cambios: { nombre: string; asunto: string; cuerpoHtml: string; descripcion?: string | null },
+    cambios: {
+      nombre: string;
+      asunto: string;
+      cuerpoHtml: string;
+      descripcion?: string | null;
+    },
     ahora: Date = new Date(),
   ): PlantillaEmail {
-    const { nombre, asunto, cuerpoHtml } = PlantillaEmail.validarContenido(cambios);
+    const { nombre, asunto, cuerpoHtml } =
+      PlantillaEmail.validarContenido(cambios);
     return new PlantillaEmail({
       ...this.props,
       nombre,
@@ -111,17 +122,17 @@ export class PlantillaEmail {
    * Reemplaza los placeholders {{clave}} (con espacios opcionales) por los
    * valores provistos. Los placeholders sin valor se dejan intactos para que
    * el profesional detecte el error en la vista previa.
+   *
+   * El asunto es texto plano y va sin escapar; el cuerpo es HTML y los valores
+   * SÍ se escapan. La plantilla la escribe el profesional (contenido de
+   * confianza, con sus etiquetas), pero los valores sustituidos son datos —el
+   * nombre del paciente, por ejemplo— y sin escapar se inyectaban tal cual en
+   * un correo que sale hacia terceros.
    */
   renderizar(variables: Record<string, string>): EmailRenderizado {
-    const reemplazar = (texto: string): string =>
-      Object.entries(variables).reduce((acc, [clave, valor]) => {
-        const patron = new RegExp(`{{\\s*${clave}\\s*}}`, "g");
-        return acc.replace(patron, valor);
-      }, texto);
-
     return {
-      asunto: reemplazar(this.props.asunto),
-      html: reemplazar(this.props.cuerpoHtml),
+      asunto: renderizarPlantilla(this.props.asunto, variables),
+      html: renderizarPlantillaHtml(this.props.cuerpoHtml, variables),
     };
   }
 

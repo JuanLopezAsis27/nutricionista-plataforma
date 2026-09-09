@@ -24,7 +24,10 @@ export interface DatosEventoObjetivo {
 export interface IObjetivoRepositorio {
   crear(objetivo: Objetivo, evento: DatosEventoObjetivo): Promise<Objetivo>;
   /** Actualiza los escalares (las estrategias se gestionan aparte). */
-  actualizar(objetivo: Objetivo, evento: DatosEventoObjetivo): Promise<Objetivo>;
+  actualizar(
+    objetivo: Objetivo,
+    evento: DatosEventoObjetivo,
+  ): Promise<Objetivo>;
   eliminar(id: string): Promise<void>;
   obtenerPorId(id: string): Promise<Objetivo | null>;
   /** Objetivos del paciente (con estrategias), más recientes primero. */

@@ -1,0 +1,135 @@
+import type {
+  PrismaClient,
+  MensajeWhatsapp as MensajeFila,
+} from "@prisma/client";
+import type { IMensajeWhatsappRepositorio } from "@/dominio/repositorios/IMensajeWhatsappRepositorio";
+import { MensajeWhatsapp } from "@/dominio/entidades/MensajeWhatsapp";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+
+/**
+ * Implementación con Prisma del hilo de WhatsApp.
+ *
+ * No filtra por `nutricionistaId`: lo inyecta la extensión multi-inquilino,
+ * también en el webhook (que corre dentro de `ejecutarEnNutricionista`).
+ */
+export class PrismaRepositorioMensajeWhatsapp implements IMensajeWhatsappRepositorio {
+  constructor(private readonly prisma: PrismaClient) {}
+
+  async crear(mensaje: MensajeWhatsapp): Promise<MensajeWhatsapp> {
+    const d = mensaje.aPrimitivos();
+    const fila = await this.prisma.mensajeWhatsapp.create({
+      data: {
+        nutricionistaId: inquilinoActual(),
+        id: d.id,
+        pacienteId: d.pacienteId,
+        direccion: d.direccion,
+        telefono: d.telefono,
+        cuerpo: d.cuerpo,
+        idExterno: d.idExterno,
+        estado: d.estado,
+        error: d.error,
+        creadoEn: d.creadoEn,
+      },
+    });
+    return mapearMensajeWhatsapp(fila);
+  }
+
+  async actualizar(mensaje: MensajeWhatsapp): Promise<MensajeWhatsapp> {
+    const d = mensaje.aPrimitivos();
+    const fila = await this.prisma.mensajeWhatsapp.update({
+      where: { id: d.id },
+      data: { estado: d.estado, error: d.error },
+    });
+    return mapearMensajeWhatsapp(fila);
+  }
+
+  async obtenerPorIdExterno(
+    idExterno: string,
+  ): Promise<MensajeWhatsapp | null> {
+    const fila = await this.prisma.mensajeWhatsapp.findFirst({
+      where: { idExterno },
+    });
+    return fila ? mapearMensajeWhatsapp(fila) : null;
+  }
+
+  async listarPorPaciente(
+    pacienteId: string,
+    limite = 200,
+  ): Promise<MensajeWhatsapp[]> {
+    const filas = await this.prisma.mensajeWhatsapp.findMany({
+      where: { pacienteId },
+      orderBy: { creadoEn: "desc" },
+      take: limite,
+    });
+    // Se piden los últimos N y se devuelven en orden cronológico para el hilo.
+    return filas.reverse().map((fila) => mapearMensajeWhatsapp(fila));
+  }
+
+  async ultimoEntrante(pacienteId: string): Promise<MensajeWhatsapp | null> {
+    const fila = await this.prisma.mensajeWhatsapp.findFirst({
+      where: { pacienteId, direccion: "ENTRANTE" },
+      orderBy: { creadoEn: "desc" },
+    });
+    return fila ? mapearMensajeWhatsapp(fila) : null;
+  }
+
+  async ultimosPorPacientes(
+    pacienteIds: string[],
+  ): Promise<Map<string, MensajeWhatsapp>> {
+    return this.ultimosPor(pacienteIds, undefined);
+  }
+
+  async ultimosEntrantesPorPacientes(
+    pacienteIds: string[],
+  ): Promise<Map<string, MensajeWhatsapp>> {
+    return this.ultimosPor(pacienteIds, "ENTRANTE");
+  }
+
+  /**
+   * Último mensaje de cada paciente en UNA consulta.
+   *
+   * Se ordena descendente y se queda con el primero de cada paciente, en vez
+   * de hacer un `findFirst` por fila: la bandeja de seguimiento muestra
+   * decenas de conversaciones y esa diferencia es la que decide si la pantalla
+   * abre o se arrastra. El `take` acota lo que puede traer una conversación
+   * muy activa.
+   */
+  private async ultimosPor(
+    pacienteIds: string[],
+    direccion: "ENTRANTE" | "SALIENTE" | undefined,
+  ): Promise<Map<string, MensajeWhatsapp>> {
+    if (pacienteIds.length === 0) return new Map();
+
+    const filas = await this.prisma.mensajeWhatsapp.findMany({
+      where: {
+        pacienteId: { in: pacienteIds },
+        ...(direccion ? { direccion } : {}),
+      },
+      orderBy: { creadoEn: "desc" },
+      take: pacienteIds.length * 50,
+    });
+
+    const mapa = new Map<string, MensajeWhatsapp>();
+    for (const fila of filas) {
+      if (!mapa.has(fila.pacienteId)) {
+        mapa.set(fila.pacienteId, mapearMensajeWhatsapp(fila));
+      }
+    }
+    return mapa;
+  }
+}
+
+export function mapearMensajeWhatsapp(fila: MensajeFila): MensajeWhatsapp {
+  return MensajeWhatsapp.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    direccion: fila.direccion,
+    telefono: fila.telefono,
+    cuerpo: fila.cuerpo,
+    idExterno: fila.idExterno,
+    estado: fila.estado,
+    error: fila.error,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
+}

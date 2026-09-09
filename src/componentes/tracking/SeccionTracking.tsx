@@ -11,18 +11,37 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { TrendingUp, Target, UtensilsCrossed } from "lucide-react";
+import {
+  TrendingUp,
+  Target,
+  UtensilsCrossed,
+  Scale,
+  CalendarCheck,
+  type LucideIcon,
+} from "lucide-react";
 import { useTracking } from "@/lib/hooks/useTracking";
 import { formatearFecha, formatearNumero, hoyLocalISO } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
-import { Button } from "@/componentes/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 import { Skeleton } from "@/componentes/ui/skeleton";
+import { TEMAS_GRAFICO } from "@/componentes/estadisticas/paletaGraficos";
 import { MetricasDispositivo } from "./MetricasDispositivo";
+import { TarjetasHabitos } from "@/componentes/seguimiento/TarjetasHabitos";
 
 /**
- * Paletas por tema (mismas superficies validadas que GraficoEvolucion):
+ * Paletas por tema, validadas con el validador de dataviz contra las
+ * superficies reales de las cards (#FFFFFF claro / #1D1D20 oscuro):
  * coral para el peso, verde/rojo para cumplimiento.
+ *
+ * El peso de consulta usa el AZUL de `paletaGraficos` —el otro miembro de la
+ * categórica de dos series ya validada contra el coral— y se lee de ahí en vez
+ * de copiar el hex: dos copias del mismo color se desalinean en cuanto alguien
+ * ajusta un solo gráfico, que es la razón por la que esa paleta vive aparte.
  */
 const TEMAS = {
   light: {
@@ -53,13 +72,78 @@ const PERIODOS = [
   { dias: 90, etiqueta: "90 días" },
 ] as const;
 
+/** De dónde salió el peso que se está mirando. */
+type FuentePeso = "CONSULTA" | "DIARIO";
+
 /**
- * Sección de Tracking del paciente: evolución de peso, adherencia a los axiomas
- * (hábitos) y concordancia con el plan. Se usa tanto en el portal del paciente
- * (sin `pacienteId`) como en la ficha del nutricionista (con `pacienteId`).
+ * Las dos fuentes de peso, en el orden del selector. La de CONSULTA va primera
+ * y es la predeterminada: la balanza del consultorio es la misma en cada
+ * medición y la toma el profesional, así que es la serie sobre la que se
+ * decide. La de casa varía con la balanza, la hora y la ropa, y sirve para ver
+ * la tendencia entre consultas, no para comparar contra la anterior.
+ */
+const FUENTES_PESO = [
+  {
+    valor: "CONSULTA",
+    etiqueta: "En consulta",
+    detalle: "lo que se midió en el consultorio",
+  },
+  {
+    valor: "DIARIO",
+    etiqueta: "En el diario",
+    detalle: "lo que se registra en casa",
+  },
+] as const;
+
+/** La serie de peso con sus cifras, ya recortada a una fuente. */
+interface SeriePeso {
+  puntos: { fecha: Date; peso: number; fuente: FuentePeso }[];
+  inicial: number | null;
+  actual: number | null;
+  variacion: number | null;
+}
+
+/**
+ * Recorta la serie a una sola fuente y RECALCULA sus cifras.
+ *
+ * Inicial, actual y variación tienen que salir de los mismos puntos que se
+ * dibujan: una variación que arranca en la balanza de casa y termina en la del
+ * consultorio no mide el cambio del paciente, mide el cambio de balanza. Los
+ * puntos vienen del servidor ordenados por fecha, así que filtrar los mantiene
+ * ordenados.
+ */
+function filtrarPeso(peso: SeriePeso, fuente: FuentePeso): SeriePeso {
+  const puntos = peso.puntos.filter((p) => p.fuente === fuente);
+  const inicial = puntos[0]?.peso ?? null;
+  const actual = puntos[puntos.length - 1]?.peso ?? null;
+  return {
+    puntos,
+    inicial,
+    actual,
+    variacion:
+      inicial != null && actual != null
+        ? Math.round((actual - inicial) * 10) / 10
+        : null,
+  };
+}
+
+/**
+ * Sección de Progreso del paciente: el seguimiento del DÍA A DÍA — peso que se
+ * registra en casa, hábitos, adherencia a los axiomas y concordancia con el
+ * plan. Absorbió la vieja pestaña «Informes», que mostraba los mismos hábitos
+ * y la misma curva de peso con otro formato.
+ *
+ * Lo que NO va acá son las medidas de consulta: pliegues, perímetros,
+ * fraccionamiento en masas y somatotipo viven en la pestaña «Antropometría»,
+ * que es la única que los carga y los lee.
+ *
+ * Se usa en el portal del paciente (sin `pacienteId`) y en la ficha del
+ * nutricionista (con `pacienteId`); el resumen de hábitos solo aparece del
+ * lado del profesional, porque su endpoint es suyo.
  */
 export function SeccionTracking({ pacienteId }: { pacienteId?: string }) {
   const [dias, setDias] = useState<number>(30);
+  const [fuentePeso, setFuentePeso] = useState<FuentePeso>("CONSULTA");
   const { miTracking, dePaciente } = useTracking();
 
   const hasta = useMemo(() => new Date(hoyLocalISO()), []);
@@ -78,36 +162,125 @@ export function SeccionTracking({ pacienteId }: { pacienteId?: string }) {
   const consulta = esNutri ? consultaNutri : consultaMia;
   const datos = consulta.data;
 
+  // La cifra de arriba y la curva miran la MISMA fuente: dos números de peso
+  // distintos en la misma pantalla se leen como un error de la app.
+  const peso = useMemo(
+    () => (datos ? filtrarPeso(datos.peso, fuentePeso) : null),
+    [datos, fuentePeso],
+  );
+
+  // Promedio de cumplimiento de los axiomas que SÍ se miden: los informativos
+  // no tienen porcentaje, y contarlos como cero hundiría el número por tener
+  // recomendaciones cargadas.
+  const evaluables = (datos?.adherencia ?? []).filter(
+    (a) => a.porcentaje != null,
+  );
+  const cumplimiento =
+    evaluables.length > 0
+      ? Math.round(
+          evaluables.reduce((suma, a) => suma + (a.porcentaje ?? 0), 0) /
+            evaluables.length,
+        )
+      : null;
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-1.5">
+      {/* Selector de período: un solo control segmentado, no tres botones
+          sueltos. Son opciones excluyentes de lo mismo. */}
+      <div
+        className="inline-flex rounded-xl border bg-card p-1"
+        role="group"
+        aria-label="Período"
+      >
         {PERIODOS.map((p) => (
-          <Button
+          <button
             key={p.dias}
-            size="sm"
-            variant={p.dias === dias ? "default" : "outline"}
+            type="button"
+            aria-pressed={p.dias === dias}
             onClick={() => setDias(p.dias)}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              p.dias === dias
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
           >
             {p.etiqueta}
-          </Button>
+          </button>
         ))}
       </div>
 
-      {consulta.isLoading || !datos ? (
+      {consulta.isLoading || !datos || !peso ? (
         <div className="space-y-4">
+          <Skeleton className="h-20 w-full" />
           <Skeleton className="h-52 w-full" />
           <Skeleton className="h-40 w-full" />
         </div>
       ) : datos.diasConRegistro === 0 && datos.peso.puntos.length === 0 ? (
-        <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Todavía no hay registros en este período. Cargá tu peso, agua, sueño y comidas
-          para ver tu progreso acá.
-        </p>
+        <div className="rounded-xl border border-dashed p-8 text-center">
+          <TrendingUp className="mx-auto h-8 w-8 text-muted-foreground/40" />
+          <p className="pt-2 text-sm text-muted-foreground">
+            Todavía no hay registros en este período. Cargá tu peso, agua, sueño
+            y comidas para ver tu progreso acá.
+          </p>
+        </div>
       ) : (
         <>
-          <TarjetaPeso peso={datos.peso} />
+          {/* Las tres cifras del período, antes de cualquier gráfico: es lo que
+              se mira primero y lo que el resto de la pantalla desarrolla. */}
+          <div className="grid grid-cols-3 gap-2.5">
+            <Cifra
+              etiqueta="Variación de peso"
+              valor={
+                peso.variacion != null
+                  ? `${peso.variacion > 0 ? "+" : ""}${formatearNumero(peso.variacion)}`
+                  : "—"
+              }
+              unidad={peso.variacion != null ? "kg" : undefined}
+              tinte="bg-rose-500/10"
+              color="text-rose-600 dark:text-rose-400"
+              icono={Scale}
+            />
+            <Cifra
+              etiqueta="Días con registro"
+              valor={String(datos.diasConRegistro)}
+              unidad={`de ${dias}`}
+              tinte="bg-sky-500/10"
+              color="text-sky-600 dark:text-sky-400"
+              icono={CalendarCheck}
+            />
+            <Cifra
+              etiqueta="Cumplimiento"
+              valor={cumplimiento != null ? String(cumplimiento) : "—"}
+              unidad={cumplimiento != null ? "%" : undefined}
+              tinte="bg-emerald-500/10"
+              color="text-emerald-600 dark:text-emerald-400"
+              icono={Target}
+            />
+          </div>
+
+          {esNutri && (
+            <TarjetasHabitos
+              pacienteId={pacienteId}
+              desde={desde}
+              hasta={hasta}
+            />
+          )}
+          <TarjetaPeso
+            peso={peso}
+            fuente={fuentePeso}
+            onCambiarFuente={setFuentePeso}
+          />
           <TarjetaAdherencia adherencia={datos.adherencia} />
           <TarjetaConcordancia concordancia={datos.concordancia} />
+          {esNutri && (
+            <p className="text-xs text-muted-foreground">
+              La curva de peso muestra una fuente por vez: el peso de las
+              mediciones de consulta o el que el paciente carga en su diario. El
+              resto de las medidas de consulta —pliegues, perímetros, masas y
+              somatotipo— está en la pestaña «Antropometría».
+            </p>
+          )}
         </>
       )}
 
@@ -122,31 +295,111 @@ export function SeccionTracking({ pacienteId }: { pacienteId?: string }) {
   );
 }
 
+/** Una de las tres cifras del período, arriba de todo. */
+function Cifra({
+  etiqueta,
+  valor,
+  unidad,
+  tinte,
+  color,
+  icono: Icono,
+}: {
+  etiqueta: string;
+  valor: string;
+  unidad?: string;
+  tinte: string;
+  color: string;
+  icono: LucideIcon;
+}) {
+  return (
+    <div className="rounded-xl border bg-card p-3">
+      <span
+        className={cn(
+          "flex h-7 w-7 items-center justify-center rounded-lg",
+          tinte,
+        )}
+      >
+        <Icono className={cn("h-4 w-4", color)} />
+      </span>
+      <p className="pt-2 text-xl font-bold tabular-nums leading-none">
+        {valor}
+        {unidad && (
+          <span className="ml-1 text-xs font-normal text-muted-foreground">
+            {unidad}
+          </span>
+        )}
+      </p>
+      <p className="pt-1 text-xs leading-tight text-muted-foreground">
+        {etiqueta}
+      </p>
+    </div>
+  );
+}
+
 // --- Peso --------------------------------------------------------------------
 
+/**
+ * La curva de peso, de UNA fuente por vez.
+ *
+ * El peso llega de dos lados —lo que el paciente carga en su diario y lo que se
+ * mide en la consulta— y antes iban las dos juntas, cada una con su trazo. La
+ * balanza de casa a la mañana y la del consultorio a la tarde no miden lo
+ * mismo, así que un escalón entre un punto de una serie y el de la otra no es
+ * progreso: es el cambio de balanza. Superpuestas se seguían leyendo como una
+ * sola curva, así que ahora el selector deja ver una a la vez.
+ *
+ * Predeterminada, la de CONSULTA: es la que toma el profesional, siempre con la
+ * misma balanza y el mismo procedimiento, y es sobre la que se decide. La del
+ * diario está a un clic y sirve para la tendencia entre consultas.
+ *
+ * La serie llega ya filtrada y con sus cifras recalculadas (`filtrarPeso`); acá
+ * solo se dibuja. El color y el trazo se conservan por fuente —coral continuo
+ * el diario, azul punteado la consulta— para que cambiar de fuente se note aun
+ * sin mirar el selector.
+ */
 function TarjetaPeso({
   peso,
+  fuente,
+  onCambiarFuente,
 }: {
-  peso: {
-    puntos: { fecha: Date; peso: number; fuente: "DIARIO" | "CONSULTA" }[];
-    inicial: number | null;
-    actual: number | null;
-    variacion: number | null;
-  };
+  peso: SeriePeso;
+  fuente: FuentePeso;
+  onCambiarFuente: (fuente: FuentePeso) => void;
 }) {
   const { resolvedTheme } = useTheme();
   const [montado, setMontado] = useState(false);
   useEffect(() => setMontado(true), []);
-  const tema = resolvedTheme === "dark" ? TEMAS.dark : TEMAS.light;
+  const oscuro = resolvedTheme === "dark";
+  const tema = oscuro ? TEMAS.dark : TEMAS.light;
+  const esConsulta = fuente === "CONSULTA";
+  const color = esConsulta
+    ? oscuro
+      ? TEMAS_GRAFICO.dark.total
+      : TEMAS_GRAFICO.light.total
+    : tema.peso;
+  const descriptor = FUENTES_PESO.find((f) => f.valor === fuente)!;
 
-  const serie = peso.puntos.map((p) => ({ fecha: formatearFecha(p.fecha), valor: p.peso }));
+  // Una fila por punto, sin agrupar por fecha: dentro de una misma fuente hay
+  // como mucho un peso por día (`@@unique([pacienteId, fecha])` en las dos
+  // tablas), así que ninguna fecha se repite en el eje.
+  const serie = useMemo(
+    () =>
+      peso.puntos.map((punto) => ({
+        fecha: formatearFecha(punto.fecha),
+        peso: punto.peso,
+      })),
+    [peso.puntos],
+  );
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
+    <Card className="overflow-hidden">
+      <CardHeader className="space-y-3 border-b bg-rose-500/5 p-4">
         <CardTitle className="flex items-center justify-between gap-2 text-base">
           <span className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" /> Peso
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/10">
+              <TrendingUp className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+            </span>
+            Peso registrado
           </span>
           {peso.variacion != null && (
             <span
@@ -160,54 +413,146 @@ function TarjetaPeso({
             </span>
           )}
         </CardTitle>
+        {/* Mismo control segmentado que el período: son dos lecturas
+            excluyentes de lo mismo, no dos filtros que se acumulan. */}
+        <div
+          className="inline-flex rounded-lg border bg-card p-1"
+          role="group"
+          aria-label="Fuente del peso"
+        >
+          {FUENTES_PESO.map((f) => (
+            <button
+              key={f.valor}
+              type="button"
+              aria-pressed={f.valor === fuente}
+              onClick={() => onCambiarFuente(f.valor)}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                f.valor === fuente
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {f.etiqueta}
+            </button>
+          ))}
+        </div>
       </CardHeader>
-      <CardContent className="pl-0 pr-3">
-        {serie.length < 2 ? (
+      <CardContent className="py-4 pl-0 pr-3">
+        {peso.puntos.length < 2 ? (
           <p className="px-6 py-8 text-center text-sm text-muted-foreground">
-            Con dos o más registros de peso vas a ver la curva de evolución.
+            {peso.puntos.length === 0
+              ? esConsulta
+                ? "No hay mediciones de consulta en este período."
+                : "No hay pesos cargados en el diario en este período."
+              : "Con dos o más registros de esta fuente vas a ver la curva de evolución."}
           </p>
         ) : !montado ? null : (
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={serie} margin={{ top: 6, right: 12, bottom: 0, left: 0 }}>
-              <CartesianGrid stroke={tema.grilla} strokeWidth={1} vertical={false} />
-              <XAxis
-                dataKey="fecha"
-                tick={{ fill: tema.tinta, fontSize: 11 }}
-                tickLine={false}
-                axisLine={{ stroke: tema.grilla }}
+          <>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart
+                data={serie}
+                margin={{ top: 6, right: 12, bottom: 0, left: 0 }}
+              >
+                <CartesianGrid
+                  stroke={tema.grilla}
+                  strokeWidth={1}
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="fecha"
+                  tick={{ fill: tema.tinta, fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={{ stroke: tema.grilla }}
+                />
+                <YAxis
+                  domain={["auto", "auto"]}
+                  width={44}
+                  tick={{ fill: tema.tinta, fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip
+                  cursor={{ stroke: tema.tinta, strokeDasharray: "3 3" }}
+                  contentStyle={{
+                    backgroundColor: tema.fondoTooltip,
+                    border: `1px solid ${tema.bordeTooltip}`,
+                    borderRadius: 8,
+                    color: tema.texto,
+                    fontSize: 12,
+                  }}
+                  formatter={(valor) => [
+                    `${formatearNumero(valor as number)} kg`,
+                    descriptor.etiqueta,
+                  ]}
+                />
+                <Line
+                  name={fuente}
+                  type="monotone"
+                  dataKey="peso"
+                  stroke={color}
+                  strokeWidth={2}
+                  strokeDasharray={esConsulta ? "5 3" : undefined}
+                  dot={
+                    esConsulta
+                      ? {
+                          r: 5,
+                          fill: color,
+                          stroke: tema.fondoTooltip,
+                          strokeWidth: 1.5,
+                        }
+                      : { r: 3, fill: color, strokeWidth: 0 }
+                  }
+                  activeDot={{ r: esConsulta ? 7 : 5 }}
+                  isAnimationActive={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+
+            <div className="flex flex-wrap gap-x-4 gap-y-1 pl-6 pt-1">
+              <LeyendaFuente
+                color={color}
+                etiqueta={descriptor.etiqueta}
+                detalle={descriptor.detalle}
+                punteada={esConsulta}
               />
-              <YAxis
-                domain={["auto", "auto"]}
-                width={44}
-                tick={{ fill: tema.tinta, fontSize: 11 }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip
-                cursor={{ stroke: tema.tinta, strokeDasharray: "3 3" }}
-                contentStyle={{
-                  backgroundColor: tema.fondoTooltip,
-                  border: `1px solid ${tema.bordeTooltip}`,
-                  borderRadius: 8,
-                  color: tema.texto,
-                  fontSize: 12,
-                }}
-                formatter={(valor) => [`${formatearNumero(valor as number)} kg`, "Peso"]}
-              />
-              <Line
-                type="monotone"
-                dataKey="valor"
-                stroke={tema.peso}
-                strokeWidth={2}
-                dot={{ r: 3, fill: tema.peso, strokeWidth: 0 }}
-                activeDot={{ r: 5 }}
-                isAnimationActive={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+            </div>
+          </>
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/** Una entrada de la leyenda: su trazo —continuo o punteado— y qué representa. */
+function LeyendaFuente({
+  color,
+  etiqueta,
+  detalle,
+  punteada,
+}: {
+  color: string;
+  etiqueta: string;
+  detalle: string;
+  punteada?: boolean;
+}) {
+  return (
+    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true">
+        <line
+          x1="0"
+          y1="5"
+          x2="22"
+          y2="5"
+          stroke={color}
+          strokeWidth="2"
+          strokeDasharray={punteada ? "5 3" : undefined}
+        />
+        <circle cx="11" cy="5" r={punteada ? 4 : 3} fill={color} />
+      </svg>
+      <strong className="font-medium text-foreground">{etiqueta}</strong>
+      <span>· {detalle}</span>
+    </span>
   );
 }
 
@@ -227,19 +572,24 @@ function TarjetaAdherencia({
   }[];
 }) {
   return (
-    <Card>
-      <CardHeader className="pb-2">
+    <Card className="overflow-hidden">
+      <CardHeader className="border-b bg-emerald-500/5 p-4">
         <CardTitle className="flex items-center gap-2 text-base">
-          <Target className="h-5 w-5 text-primary" /> Hábitos y objetivos
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
+            <Target className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+          </span>
+          Hábitos y objetivos
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 p-4">
         {adherencia.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Todavía no hay objetivos de hábitos cargados.
           </p>
         ) : (
-          adherencia.map((a) => <FilaAdherencia key={a.axiomaId} adherencia={a} />)
+          adherencia.map((a) => (
+            <FilaAdherencia key={a.axiomaId} adherencia={a} />
+          ))
         )}
       </CardContent>
     </Card>
@@ -312,13 +662,16 @@ function TarjetaConcordancia({
   };
 }) {
   return (
-    <Card>
-      <CardHeader className="pb-2">
+    <Card className="overflow-hidden">
+      <CardHeader className="border-b bg-violet-500/5 p-4">
         <CardTitle className="flex items-center gap-2 text-base">
-          <UtensilsCrossed className="h-5 w-5 text-primary" /> Concordancia con el plan
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10">
+            <UtensilsCrossed className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+          </span>
+          Concordancia con el plan
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 p-4">
         {!c.tienePlan || c.franjasPlanificadas === 0 ? (
           <p className="text-sm text-muted-foreground">
             {c.tienePlan
@@ -338,7 +691,9 @@ function TarjetaConcordancia({
               <span
                 className={cn(
                   "font-semibold tabular-nums",
-                  (c.coberturaPromedio ?? 0) >= 60 ? "text-primary" : "text-destructive",
+                  (c.coberturaPromedio ?? 0) >= 60
+                    ? "text-primary"
+                    : "text-destructive",
                 )}
               >
                 {c.coberturaPromedio}%
@@ -351,9 +706,14 @@ function TarjetaConcordancia({
             <ul className="space-y-1.5 pt-1">
               {c.porFranja.map((f) => {
                 const pct =
-                  f.esperados > 0 ? Math.round((f.registrados / f.esperados) * 100) : 0;
+                  f.esperados > 0
+                    ? Math.round((f.registrados / f.esperados) * 100)
+                    : 0;
                 return (
-                  <li key={f.franja} className="flex items-center gap-2 text-xs">
+                  <li
+                    key={f.franja}
+                    className="flex items-center gap-2 text-xs"
+                  >
                     <span className="w-28 shrink-0 truncate text-muted-foreground">
                       {f.franja}
                     </span>
@@ -374,12 +734,21 @@ function TarjetaConcordancia({
 
 // --- Barra de progreso reutilizable ------------------------------------------
 
-function BarraProgreso({ porcentaje, bien }: { porcentaje: number; bien: boolean }) {
+function BarraProgreso({
+  porcentaje,
+  bien,
+}: {
+  porcentaje: number;
+  bien: boolean;
+}) {
   const ancho = Math.max(0, Math.min(100, porcentaje));
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
       <div
-        className={cn("h-full rounded-full transition-all", bien ? "bg-primary" : "bg-destructive")}
+        className={cn(
+          "h-full rounded-full transition-all",
+          bien ? "bg-primary" : "bg-destructive",
+        )}
         style={{ width: `${ancho}%` }}
       />
     </div>

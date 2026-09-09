@@ -23,7 +23,7 @@ export interface DatosNuevoAlimentoPropio {
 
 /**
  * Entidad de dominio AlimentoPropio: un alimento/insumo que el nutricionista
- * cargó desde su propia planilla, con macros por 100 g. Reemplaza a FatSecret
+ * cargó desde su propia planilla, con macros por 100 g. Reemplaza a la búsqueda externa
  * cuando el inquilino tiene una lista cargada. TypeScript puro (sin Prisma).
  *
  * Invariantes: nombre obligatorio; macros no negativas (si vienen).
@@ -51,6 +51,37 @@ export class AlimentoPropio {
     return new AlimentoPropio(props);
   }
 
+  /** Copia con los cambios aplicados y validados (id intacto). */
+  actualizar(cambios: Partial<DatosNuevoAlimentoPropio>): AlimentoPropio {
+    const fusionar = <T>(nuevo: T | undefined, actual: T): T =>
+      nuevo !== undefined ? nuevo : actual;
+
+    return AlimentoPropio.crear(
+      {
+        nombre: cambios.nombre ?? this.props.nombre,
+        marca: fusionar(cambios.marca, this.props.marca),
+        caloriasPor100: fusionar(
+          cambios.caloriasPor100,
+          this.props.caloriasPor100,
+        ),
+        proteinasPor100: fusionar(
+          cambios.proteinasPor100,
+          this.props.proteinasPor100,
+        ),
+        carbohidratosPor100: fusionar(
+          cambios.carbohidratosPor100,
+          this.props.carbohidratosPor100,
+        ),
+        grasasPor100: fusionar(cambios.grasasPor100, this.props.grasasPor100),
+      },
+      this.props.id,
+    );
+  }
+
+  get id(): string {
+    return this.props.id;
+  }
+
   /** Nombre en minúsculas/trim, para la búsqueda case-insensitive. */
   get nombreNormalizado(): string {
     return this.props.nombre.trim().toLowerCase();
@@ -66,7 +97,10 @@ function limpiarTexto(valor: string | null | undefined): string | null {
   return limpio === "" ? null : limpio;
 }
 
-function macro(valor: number | null | undefined, etiqueta: string): number | null {
+function macro(
+  valor: number | null | undefined,
+  etiqueta: string,
+): number | null {
   if (valor == null) return null;
   if (!Number.isFinite(valor) || valor < 0) {
     throw new ErrorValidacion(`El valor de ${etiqueta} no puede ser negativo.`);

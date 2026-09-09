@@ -22,6 +22,7 @@ export class AsistenteNutricionalClaude implements IAsistenteNutricional {
     pregunta: string,
     contexto: ContextoAsistente,
     herramientas: HerramientaAsistente[] = [],
+    previos: { rol: "usuario" | "asistente"; texto: string }[] = [],
   ): Promise<string> {
     const llm = await this.resolver.obtenerLLM();
     if (!llm) return this.respaldo.responder(pregunta, contexto, herramientas);
@@ -30,7 +31,10 @@ export class AsistenteNutricionalClaude implements IAsistenteNutricional {
       const porNombre = new Map(herramientas.map((h) => [h.nombre, h]));
       const texto = await llm.conversar({
         system: construirPrompt(contexto),
-        pregunta: pregunta.trim(),
+        mensajes: [
+          ...previos,
+          { rol: "usuario" as const, texto: pregunta.trim() },
+        ],
         maxTokens: 2048,
         herramientas: herramientas.map((h) => ({
           nombre: h.nombre,
@@ -43,7 +47,10 @@ export class AsistenteNutricionalClaude implements IAsistenteNutricional {
           return herramienta.ejecutar(args);
         },
       });
-      return texto || (await this.respaldo.responder(pregunta, contexto, herramientas));
+      return (
+        texto ||
+        (await this.respaldo.responder(pregunta, contexto, herramientas))
+      );
     } catch {
       return this.respaldo.responder(pregunta, contexto, herramientas);
     }
@@ -53,10 +60,16 @@ export class AsistenteNutricionalClaude implements IAsistenteNutricional {
 /** Arma el system prompt fundamentando la respuesta en el contexto del paciente. */
 function construirPrompt(contexto: ContextoAsistente): string {
   const objetivos =
-    contexto.objetivos.length > 0 ? contexto.objetivos.join(", ") : "ninguno cargado";
-  const plan = contexto.tienePlan ? "sí (usá la herramienta para ver el detalle)" : "no";
+    contexto.objetivos.length > 0
+      ? contexto.objetivos.join(", ")
+      : "ninguno cargado";
+  const plan = contexto.tienePlan
+    ? "sí (usá la herramienta para ver el detalle)"
+    : "no";
   const restricciones =
-    contexto.restricciones.length > 0 ? contexto.restricciones.join("; ") : "ninguna registrada";
+    contexto.restricciones.length > 0
+      ? contexto.restricciones.join("; ")
+      : "ninguna registrada";
   const recomendaciones =
     contexto.recomendacionesNutricionista.length > 0
       ? contexto.recomendacionesNutricionista.map((r) => `  • ${r}`).join("\n")

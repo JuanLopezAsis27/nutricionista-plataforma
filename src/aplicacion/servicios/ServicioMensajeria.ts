@@ -1,9 +1,9 @@
-import type { EnviarMensaje } from "@/dominio/casos-de-uso/mensajeria/EnviarMensaje";
-import type { ObtenerConversacionDePaciente } from "@/dominio/casos-de-uso/mensajeria/ObtenerConversacionDePaciente";
-import type { ListarMensajes } from "@/dominio/casos-de-uso/mensajeria/ListarMensajes";
-import type { ListarConversaciones } from "@/dominio/casos-de-uso/mensajeria/ListarConversaciones";
-import type { MarcarLeidos } from "@/dominio/casos-de-uso/mensajeria/MarcarLeidos";
-import type { ContarNoLeidos } from "@/dominio/casos-de-uso/mensajeria/ContarNoLeidos";
+import type { EnviarMensaje } from "@/aplicacion/casos-de-uso/mensajeria/EnviarMensaje";
+import type { ObtenerConversacionDePaciente } from "@/aplicacion/casos-de-uso/mensajeria/ObtenerConversacionDePaciente";
+import type { ListarMensajes } from "@/aplicacion/casos-de-uso/mensajeria/ListarMensajes";
+import type { ListarConversaciones } from "@/aplicacion/casos-de-uso/mensajeria/ListarConversaciones";
+import type { MarcarLeidos } from "@/aplicacion/casos-de-uso/mensajeria/MarcarLeidos";
+import type { ContarNoLeidos } from "@/aplicacion/casos-de-uso/mensajeria/ContarNoLeidos";
 import type { Mensaje } from "@/dominio/entidades/Mensaje";
 import type {
   MensajeSalidaDto,
@@ -31,7 +31,9 @@ export class ServicioMensajeria {
   ) {}
 
   async enviar(datos: RemitenteMensaje): Promise<MensajeSalidaDto> {
-    return ServicioMensajeria.aMensajeSalida(await this.enviarUC.ejecutar(datos));
+    return ServicioMensajeria.aMensajeSalida(
+      await this.enviarUC.ejecutar(datos),
+    );
   }
 
   /** Abre (o crea) la conversación del paciente y trae sus mensajes. */
@@ -39,12 +41,17 @@ export class ServicioMensajeria {
     const conversacion = await this.obtenerConversacionUC.ejecutar(pacienteId);
     const mensajes = await this.listarMensajesUC.ejecutar(conversacion.id);
     return {
-      conversacion: { id: conversacion.id, pacienteId: conversacion.pacienteId },
+      conversacion: {
+        id: conversacion.id,
+        pacienteId: conversacion.pacienteId,
+      },
       mensajes: mensajes.map(ServicioMensajeria.aMensajeSalida),
     };
   }
 
-  async listarConversaciones(viewerId: string): Promise<ResumenConversacionDto[]> {
+  async listarConversaciones(
+    viewerId: string,
+  ): Promise<ResumenConversacionDto[]> {
     return this.listarConversacionesUC.ejecutar(viewerId);
   }
 

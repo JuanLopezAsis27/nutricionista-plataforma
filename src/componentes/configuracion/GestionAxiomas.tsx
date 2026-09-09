@@ -103,8 +103,8 @@ export function GestionAxiomas() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Reglas sobre el comportamiento óptimo. Miden el progreso del paciente y, a futuro,
-          guían a la IA.
+          Reglas sobre el comportamiento óptimo. Miden el progreso del paciente
+          y, a futuro, guían a la IA.
         </p>
         <Button size="sm" onClick={() => setBorrador(borradorVacio())}>
           <Plus className="h-4 w-4" /> Nuevo
@@ -174,7 +174,8 @@ export function GestionAxiomas() {
             parametro: datos.parametro.trim(),
             operador: datos.operador,
             valor: datos.valor.trim() === "" ? null : Number(datos.valor),
-            valorMax: datos.valorMax.trim() === "" ? null : Number(datos.valorMax),
+            valorMax:
+              datos.valorMax.trim() === "" ? null : Number(datos.valorMax),
             unidad: datos.unidad.trim() || null,
             texto: datos.texto.trim(),
             activo: datos.activo,
@@ -198,7 +199,10 @@ export function GestionAxiomas() {
         onCancelar={() => setAEliminar(null)}
         onConfirmar={() =>
           aEliminar &&
-          eliminar.mutate({ id: aEliminar.id }, { onSuccess: () => setAEliminar(null) })
+          eliminar.mutate(
+            { id: aEliminar.id },
+            { onSuccess: () => setAEliminar(null) },
+          )
         }
       />
     </div>
@@ -221,9 +225,15 @@ function DialogoAxioma({
     <Dialog open onOpenChange={(abierto) => !abierto && onCerrar()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{borrador.id ? "Editar axioma" : "Nuevo axioma"}</DialogTitle>
+          <DialogTitle>
+            {borrador.id ? "Editar axioma" : "Nuevo axioma"}
+          </DialogTitle>
         </DialogHeader>
-        <FormularioAxioma inicial={borrador} guardando={guardando} onGuardar={onGuardar} />
+        <FormularioAxioma
+          inicial={borrador}
+          guardando={guardando}
+          onGuardar={onGuardar}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -251,7 +261,10 @@ function FormularioAxioma({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label>Ámbito</Label>
-          <Select value={b.ambito} onValueChange={(v) => setB({ ...b, ambito: v as Ambito })}>
+          <Select
+            value={b.ambito}
+            onValueChange={(v) => setB({ ...b, ambito: v as Ambito })}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -308,7 +321,9 @@ function FormularioAxioma({
       {numerico && (
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="valor">{b.operador === "ENTRE" ? "Mínimo" : "Valor"}</Label>
+            <Label htmlFor="valor">
+              {b.operador === "ENTRE" ? "Mínimo" : "Valor"}
+            </Label>
             <Input
               id="valor"
               type="number"
@@ -352,7 +367,10 @@ function FormularioAxioma({
       </label>
 
       <DialogFooter>
-        <Button disabled={!puedeGuardar || guardando} onClick={() => onGuardar(b)}>
+        <Button
+          disabled={!puedeGuardar || guardando}
+          onClick={() => onGuardar(b)}
+        >
           Guardar
         </Button>
       </DialogFooter>

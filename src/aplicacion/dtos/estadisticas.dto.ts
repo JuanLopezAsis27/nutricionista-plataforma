@@ -21,7 +21,10 @@ export const detalleEstadisticaDto = z
     desde: z.coerce.date(),
     hasta: z.coerce.date(),
   })
-  .refine((d) => d.hasta >= d.desde, { message: "El rango está invertido", path: ["hasta"] });
+  .refine((d) => d.hasta >= d.desde, {
+    message: "El rango está invertido",
+    path: ["hasta"],
+  });
 export type DetalleEstadisticaDto = z.infer<typeof detalleEstadisticaDto>;
 
 export const pacienteEstadisticaDto = z.object({
@@ -52,6 +55,17 @@ export const estadisticasSalidaDto = z.object({
       mes: z.string(),
       total: z.number(),
       completados: z.number(),
+    }),
+  ),
+  /** Corte por sede del período, de mayor a menor ingreso cobrado. */
+  porEstablecimiento: z.array(
+    z.object({
+      establecimientoId: z.string(),
+      nombre: z.string(),
+      turnos: z.number(),
+      completados: z.number(),
+      ingresoCobrado: z.number(),
+      ingresoPendiente: z.number(),
     }),
   ),
   diasAbandono: z.number(),

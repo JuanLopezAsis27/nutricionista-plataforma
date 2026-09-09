@@ -30,7 +30,9 @@ export function ObjetivosPaciente({ pacienteId }: { pacienteId: string }) {
   const objetivos = consulta.data ?? [];
   const porPrioridad = (a: ObjetivoSalidaDto, b: ObjetivoSalidaDto) =>
     ORDEN_PRIORIDAD[a.prioridad] - ORDEN_PRIORIDAD[b.prioridad];
-  const enCurso = objetivos.filter((o) => o.estado === "EN_CURSO").sort(porPrioridad);
+  const enCurso = objetivos
+    .filter((o) => o.estado === "EN_CURSO")
+    .sort(porPrioridad);
   const cerrados = objetivos.filter((o) => o.estado !== "EN_CURSO");
 
   return (
@@ -69,7 +71,10 @@ export function ObjetivosPaciente({ pacienteId }: { pacienteId: string }) {
           <DialogHeader>
             <DialogTitle>Nuevo objetivo</DialogTitle>
           </DialogHeader>
-          <FormularioObjetivo pacienteId={pacienteId} onTerminado={() => setNuevo(false)} />
+          <FormularioObjetivo
+            pacienteId={pacienteId}
+            onTerminado={() => setNuevo(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>

@@ -1,15 +1,23 @@
 import { z } from "zod";
-import { crearRouter, nutricionistaProcedimiento, protegidoProcedimiento } from "../trpc";
-import { aTRPCError } from "../errores-trpc";
-import { ErrorAccesoDenegado } from "@/dominio/errores/ErrorAccesoDenegado";
+import {
+  crearRouter,
+  nutricionistaProcedimiento,
+  protegidoProcedimiento,
+} from "../trpc";
+import { pacienteDeSesion } from "@/dominio/servicios/politicaAcceso";
 import {
   crearPlanDto,
   actualizarPlanDto,
   idPlanDto,
   filtroPlanesDto,
+  listarPlanesPaginadoDto,
   archivarPlanDto,
   crearDesdePlantillaDto,
   asignarPlanDto,
+  grupoPlanDto,
+  actualizarGrupoPlanDto,
+  idGrupoPlanDto,
+  moverPlanDto,
 } from "@/aplicacion/dtos/plan.dto";
 
 /**
@@ -19,119 +27,131 @@ import {
  * (obtenerMiPlan, con pacienteId tomado de la sesión).
  */
 export const routerPlanes = crearRouter({
+  // Lista completa (sin paginar): para selectores.
   obtenerTodos: nutricionistaProcedimiento
     .input(filtroPlanesDto)
     .query(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.plan.obtenerPlanes(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.plan.obtenerPlanes(input);
+    }),
+
+  // Listado paginado (10/página, server-side) para la página de planes.
+  listarPaginado: nutricionistaProcedimiento
+    .input(listarPlanesPaginadoDto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.plan.obtenerPlanesPaginado(input);
     }),
 
   obtenerPorId: nutricionistaProcedimiento
     .input(idPlanDto)
     .query(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.plan.obtenerPlanPorId(input.id);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.plan.obtenerPlanPorId(input.id);
     }),
 
   crear: nutricionistaProcedimiento
     .input(crearPlanDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.plan.crearPlan(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.plan.crearPlan(input);
     }),
 
   actualizar: nutricionistaProcedimiento
     .input(actualizarPlanDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.plan.actualizarPlan(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.plan.actualizarPlan(input);
     }),
 
   eliminar: nutricionistaProcedimiento
     .input(idPlanDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        await ctx.servicios.plan.eliminarPlan(input.id);
-        return { eliminado: true };
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      await ctx.servicios.plan.eliminarPlan(input.id);
+      return { eliminado: true };
     }),
 
   archivar: nutricionistaProcedimiento
     .input(archivarPlanDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        await ctx.servicios.plan.archivarPlan(input);
-        return { archivado: input.archivado };
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      await ctx.servicios.plan.archivarPlan(input);
+      return { archivado: input.archivado };
     }),
 
   crearDesdePlantilla: nutricionistaProcedimiento
     .input(crearDesdePlantillaDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.plan.crearPlanDesdePlantilla(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.plan.crearPlanDesdePlantilla(input);
     }),
 
   asignarAPaciente: nutricionistaProcedimiento
     .input(asignarPlanDto)
     .mutation(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.plan.asignarPlanAPaciente(input);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.plan.asignarPlanAPaciente(input);
     }),
 
   desasignarDePaciente: nutricionistaProcedimiento
     .input(z.object({ pacienteId: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      try {
-        await ctx.servicios.plan.desasignarPlanDePaciente(input.pacienteId);
-        return { desasignado: true };
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      await ctx.servicios.plan.desasignarPlanDePaciente(input.pacienteId);
+      return { desasignado: true };
     }),
 
   // El nutricionista consulta el plan activo de un paciente concreto.
   obtenerDelPaciente: nutricionistaProcedimiento
     .input(z.object({ pacienteId: z.string().min(1) }))
     .query(async ({ ctx, input }) => {
-      try {
-        return await ctx.servicios.plan.obtenerPlanDelPaciente(input.pacienteId);
-      } catch (error) {
-        throw aTRPCError(error);
-      }
+      return await ctx.servicios.plan.obtenerPlanDelPaciente(input.pacienteId);
+    }),
+
+  /** Pacientes que tienen o tuvieron este plan (con sus fechas). */
+  obtenerPacientesDePlan: nutricionistaProcedimiento
+    .input(idPlanDto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.plan.obtenerPacientesDePlan(input.id);
+    }),
+
+  /** Historial completo de planes de un paciente, incluido el vigente. */
+  obtenerHistorialDePaciente: nutricionistaProcedimiento
+    .input(z.object({ pacienteId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.plan.obtenerHistorialDePlanes(
+        input.pacienteId,
+      );
+    }),
+
+  /** Mueve un plan a una carpeta. Toca SOLO la carpeta, no el contenido. */
+  moverAGrupo: nutricionistaProcedimiento
+    .input(moverPlanDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.plan.moverPlanAGrupo(input);
+      return { movido: true };
+    }),
+
+  // --- Carpetas -------------------------------------------------------------
+
+  obtenerGrupos: nutricionistaProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.plan.obtenerGrupos();
+  }),
+
+  crearGrupo: nutricionistaProcedimiento
+    .input(grupoPlanDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.plan.crearGrupo(input);
+    }),
+
+  actualizarGrupo: nutricionistaProcedimiento
+    .input(actualizarGrupoPlanDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.plan.actualizarGrupo(input);
+    }),
+
+  eliminarGrupo: nutricionistaProcedimiento
+    .input(idGrupoPlanDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.plan.eliminarGrupo(input.id);
+      return { eliminado: true };
     }),
 
   // Portal: el paciente ve su plan activo (pacienteId de la sesión).
   obtenerMiPlan: protegidoProcedimiento.query(async ({ ctx }) => {
-    try {
-      if (!ctx.usuario.pacienteId) {
-        throw new ErrorAccesoDenegado("Tu usuario no tiene un paciente asociado.");
-      }
-      return await ctx.servicios.plan.obtenerPlanDelPaciente(ctx.usuario.pacienteId);
-    } catch (error) {
-      throw aTRPCError(error);
-    }
+    return await ctx.servicios.plan.obtenerPlanDelPaciente(
+      pacienteDeSesion(ctx.usuario),
+    );
   }),
 });

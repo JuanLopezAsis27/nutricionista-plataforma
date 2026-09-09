@@ -35,7 +35,11 @@ export interface PropiedadesSuplemento {
 export class Suplemento {
   private constructor(private readonly props: PropiedadesSuplemento) {}
 
-  static crear(datos: DatosNuevoSuplemento, id: string, ahora: Date = new Date()): Suplemento {
+  static crear(
+    datos: DatosNuevoSuplemento,
+    id: string,
+    ahora: Date = new Date(),
+  ): Suplemento {
     if (!datos.pacienteId?.trim()) {
       throw new ErrorValidacion("El suplemento debe pertenecer a un paciente.");
     }
@@ -44,7 +48,9 @@ export class Suplemento {
       throw new ErrorValidacion("El suplemento debe tener un nombre.");
     }
     if (datos.desde && datos.hasta && datos.hasta < datos.desde) {
-      throw new ErrorValidacion("La fecha de fin no puede ser anterior a la de inicio.");
+      throw new ErrorValidacion(
+        "La fecha de fin no puede ser anterior a la de inicio.",
+      );
     }
 
     return new Suplemento({
@@ -71,7 +77,10 @@ export class Suplemento {
       { ...cambios, pacienteId: this.props.pacienteId },
       this.props.id,
     );
-    return new Suplemento({ ...actualizado.props, creadoEn: this.props.creadoEn });
+    return new Suplemento({
+      ...actualizado.props,
+      creadoEn: this.props.creadoEn,
+    });
   }
 
   get id(): string {

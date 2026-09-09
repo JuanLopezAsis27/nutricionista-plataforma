@@ -9,7 +9,12 @@ import type { BloqueUsuario } from "./IProveedorLLM";
 const NOTA_IA =
   "Estimación aproximada con IA a partir de la foto. Ante dudas, confirmá con tu nutricionista.";
 
-const MIMES_VALIDOS = ["image/jpeg", "image/png", "image/gif", "image/webp"] as const;
+const MIMES_VALIDOS = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+] as const;
 type MimeImagen = (typeof MIMES_VALIDOS)[number];
 
 /** Esquema del JSON que debe devolver el modelo. */
@@ -67,7 +72,11 @@ export class AnalisisComidaIAClaude implements IAnalisisComidaIA {
       const usuario: BloqueUsuario[] = [];
       if (entrada.archivoClave) {
         const imagen = await this.descargarImagen(entrada.archivoClave);
-        usuario.push({ tipo: "imagen", base64: imagen.datosBase64, mimeType: imagen.mimeType });
+        usuario.push({
+          tipo: "imagen",
+          base64: imagen.datosBase64,
+          mimeType: imagen.mimeType,
+        });
       }
       usuario.push({ tipo: "texto", texto: instruccion(entrada.descripcion) });
 
@@ -80,7 +89,10 @@ export class AnalisisComidaIAClaude implements IAnalisisComidaIA {
 
       const datos = JSON.parse(texto) as Record<string, unknown>;
       return {
-        descripcion: campoTexto(datos.descripcion, entrada.descripcion?.trim() || "Comida"),
+        descripcion: campoTexto(
+          datos.descripcion,
+          entrada.descripcion?.trim() || "Comida",
+        ),
         porcionEstimada: campoTexto(datos.porcionEstimada, "1 porción"),
         calorias: numero(datos.calorias),
         proteinasG: numero(datos.proteinasG),
@@ -101,11 +113,17 @@ export class AnalisisComidaIAClaude implements IAnalisisComidaIA {
     const url = await this.almacenamiento.generarUrlLectura(clave, 120);
     const respuesta = await fetch(url);
     if (!respuesta.ok) {
-      throw new Error(`No se pudo leer la imagen del bucket (${respuesta.status}).`);
+      throw new Error(
+        `No se pudo leer la imagen del bucket (${respuesta.status}).`,
+      );
     }
     const bytes = Buffer.from(await respuesta.arrayBuffer());
-    const mime = respuesta.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
-    return { datosBase64: bytes.toString("base64"), mimeType: normalizarMime(mime) };
+    const mime =
+      respuesta.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
+    return {
+      datosBase64: bytes.toString("base64"),
+      mimeType: normalizarMime(mime),
+    };
   }
 }
 

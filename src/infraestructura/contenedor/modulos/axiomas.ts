@@ -1,9 +1,9 @@
 import type { IAxiomaRepositorio } from "@/dominio/repositorios/IAxiomaRepositorio";
-import { CrearAxioma } from "@/dominio/casos-de-uso/axiomas/CrearAxioma";
-import { ActualizarAxioma } from "@/dominio/casos-de-uso/axiomas/ActualizarAxioma";
-import { EliminarAxioma } from "@/dominio/casos-de-uso/axiomas/EliminarAxioma";
-import { ListarAxiomas } from "@/dominio/casos-de-uso/axiomas/ListarAxiomas";
-import { ListarAxiomasActivos } from "@/dominio/casos-de-uso/axiomas/ListarAxiomasActivos";
+import { CrearAxioma } from "@/aplicacion/casos-de-uso/axiomas/CrearAxioma";
+import { ActualizarAxioma } from "@/aplicacion/casos-de-uso/axiomas/ActualizarAxioma";
+import { EliminarAxioma } from "@/aplicacion/casos-de-uso/axiomas/EliminarAxioma";
+import { ListarAxiomas } from "@/aplicacion/casos-de-uso/axiomas/ListarAxiomas";
+import { ListarAxiomasActivos } from "@/aplicacion/casos-de-uso/axiomas/ListarAxiomasActivos";
 import { ServicioAxiomas } from "@/aplicacion/servicios/ServicioAxiomas";
 
 /** Arma el servicio de la Base de conocimiento (axiomas). */

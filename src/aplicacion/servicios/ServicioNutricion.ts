@@ -3,7 +3,10 @@ import type {
   CriterioAlimentos,
 } from "@/dominio/servicios/IProveedorDatosNutricionales";
 import type { ICredencialesIntegracionRepositorio } from "@/dominio/repositorios/ICredencialesIntegracionRepositorio";
-import type { AlimentoNutricionalSalidaDto, BuscarAlimentoDto } from "../dtos/nutricion.dto";
+import type {
+  AlimentoNutricionalSalidaDto,
+  BuscarAlimentoDto,
+} from "../dtos/nutricion.dto";
 
 /**
  * Servicio de aplicación de datos nutricionales: expone la búsqueda de
@@ -17,7 +20,9 @@ export class ServicioNutricion {
     private readonly credenciales: ICredencialesIntegracionRepositorio,
   ) {}
 
-  async buscarAlimento(datos: BuscarAlimentoDto): Promise<AlimentoNutricionalSalidaDto[]> {
+  async buscarAlimento(
+    datos: BuscarAlimentoDto,
+  ): Promise<AlimentoNutricionalSalidaDto[]> {
     const criterio = await this.resolverCriterio();
     return this.proveedor.buscar(datos.termino, datos.limite ?? 10, criterio);
   }

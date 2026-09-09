@@ -1,4 +1,9 @@
-import type { IProveedorLLM, OpcionesLLM, OpcionesConversacion } from "./IProveedorLLM";
+import type {
+  IProveedorLLM,
+  OpcionesLLM,
+  OpcionesConversacion,
+  EsfuerzoLLM,
+} from "./IProveedorLLM";
 import { ejecutarHerramientaSegura, parsearArgumentos } from "./herramientas";
 
 const URL = "https://openrouter.ai/api/v1/chat/completions";
@@ -21,26 +26,53 @@ interface RespuestaOpenRouter {
 /**
  * Proveedor LLM con OpenRouter (API compatible con OpenAI). Sirve muchos
  * modelos (`anthropic/claude-*`, `openai/gpt-*`, etc.) con una sola key. Usa el
- * formato de chat de OpenAI (sin thinking/effort; esos son de Anthropic).
+ * formato de chat de OpenAI: el `thinking` de Anthropic no existe acá, y el
+ * esfuerzo se pide con el parámetro unificado `reasoning`.
  */
 export class ProveedorLLMOpenRouter implements IProveedorLLM {
   constructor(
     private readonly apiKey: string,
-    private readonly modelo: string,
+    readonly modelo: string,
   ) {}
 
   async completar(opts: OpcionesLLM): Promise<string> {
-    const contenido = opts.usuario.map((b) =>
-      b.tipo === "texto"
-        ? { type: "text", text: b.texto }
-        : { type: "image_url", image_url: { url: `data:${b.mimeType};base64,${b.base64}` } },
-    );
+    const contenido = opts.usuario.map((b) => {
+      if (b.tipo === "texto") return { type: "text", text: b.texto };
+      if (b.tipo === "documento") {
+        return {
+          type: "file",
+          file: {
+            filename: "documento.pdf",
+            file_data: `data:${b.mimeType};base64,${b.base64}`,
+          },
+        };
+      }
+      return {
+        type: "image_url",
+        image_url: { url: `data:${b.mimeType};base64,${b.base64}` },
+      };
+    });
 
     // OpenRouter no soporta `response_format: json_object` en varios modelos
-    // (los de Anthropic lo rechazan con error) → NO lo mandamos. Reforzamos el
-    // formato por prompt y parseamos defensivamente la respuesta.
+    // (los de Anthropic lo rechazan con error) → NO lo mandamos. El formato se
+    // refuerza por prompt y la respuesta se parsea defensivamente.
+    //
+    // Va el esquema ENTERO, serializado. Antes iba solo la lista de claves de
+    // PRIMER NIVEL, y eso rompía toda extracción anidada: al modelo se le
+    // pedían "paciente, antropometria, alertas" sin decirle NUNCA qué campos
+    // van adentro de cada una, así que inventaba los nombres internos y el
+    // normalizador —que lee claves exactas— los descartaba en silencio. La
+    // ficha de un paciente volvía medio vacía sin ningún error a la vista.
     const system = opts.esquemaJson
-      ? `${opts.system}\nRespondé SOLO con un objeto JSON válido con exactamente estas claves: ${clavesDe(opts.esquemaJson.esquema).join(", ")}. Sin explicaciones ni markdown.`
+      ? [
+          opts.system,
+          "",
+          "Respondé SOLO con un objeto JSON válido que cumpla EXACTAMENTE este JSON Schema.",
+          "Usá los nombres de campo tal cual figuran acá, incluidos los de los objetos anidados.",
+          "Incluí todas las claves requeridas, con null cuando no haya dato. Sin explicaciones ni markdown.",
+          "",
+          JSON.stringify(opts.esquemaJson.esquema),
+        ].join("\n")
       : opts.system;
 
     const body: Record<string, unknown> = {
@@ -50,6 +82,7 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
         { role: "system", content: system },
         { role: "user", content: contenido },
       ],
+      ...razonamiento(opts.esfuerzo),
     };
 
     const respuesta = await fetch(URL, {
@@ -64,7 +97,9 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
     });
     if (!respuesta.ok) {
       const detalle = await respuesta.text().catch(() => "");
-      throw new Error(`OpenRouter respondió ${respuesta.status}. ${detalle.slice(0, 300)}`);
+      throw new Error(
+        `OpenRouter respondió ${respuesta.status}. ${detalle.slice(0, 300)}`,
+      );
     }
     const j = (await respuesta.json()) as RespuestaOpenRouter;
     if (j.error) throw new Error(j.error.message ?? "Error de OpenRouter.");
@@ -77,11 +112,18 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
   async conversar(opts: OpcionesConversacion): Promise<string> {
     const tools = opts.herramientas.map((h) => ({
       type: "function",
-      function: { name: h.nombre, description: h.descripcion, parameters: h.esquema },
+      function: {
+        name: h.nombre,
+        description: h.descripcion,
+        parameters: h.esquema,
+      },
     }));
     const messages: Array<Record<string, unknown>> = [
       { role: "system", content: opts.system },
-      { role: "user", content: opts.pregunta },
+      ...opts.mensajes.map((turno) => ({
+        role: turno.rol === "usuario" ? "user" : "assistant",
+        content: turno.texto,
+      })),
     ];
     const maxIteraciones = opts.maxIteraciones ?? 4;
 
@@ -92,6 +134,7 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
         messages,
         tools,
         tool_choice: "auto",
+        ...razonamiento(opts.esfuerzo),
       });
       const llamadas = msg.tool_calls ?? [];
       if (llamadas.length === 0) {
@@ -106,17 +149,27 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
           llamada.function?.name ?? "",
           parsearArgumentos(llamada.function?.arguments),
         );
-        messages.push({ role: "tool", tool_call_id: llamada.id, content: salida });
+        messages.push({
+          role: "tool",
+          tool_call_id: llamada.id,
+          content: salida,
+        });
       }
     }
 
     // Se agotaron las vueltas: una llamada final SIN herramientas para cerrar.
-    const cierre = await this.pedir({ model: this.modelo, max_tokens: opts.maxTokens, messages });
+    const cierre = await this.pedir({
+      model: this.modelo,
+      max_tokens: opts.maxTokens,
+      messages,
+    });
     return (cierre.content ?? "").trim();
   }
 
   /** POST a OpenRouter; devuelve el `message` de la primera choice. */
-  private async pedir(body: Record<string, unknown>): Promise<MensajeOpenRouter> {
+  private async pedir(
+    body: Record<string, unknown>,
+  ): Promise<MensajeOpenRouter> {
     const respuesta = await fetch(URL, {
       method: "POST",
       headers: {
@@ -129,7 +182,9 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
     });
     if (!respuesta.ok) {
       const detalle = await respuesta.text().catch(() => "");
-      throw new Error(`OpenRouter respondió ${respuesta.status}. ${detalle.slice(0, 300)}`);
+      throw new Error(
+        `OpenRouter respondió ${respuesta.status}. ${detalle.slice(0, 300)}`,
+      );
     }
     const j = (await respuesta.json()) as RespuestaOpenRouter;
     if (j.error) throw new Error(j.error.message ?? "Error de OpenRouter.");
@@ -137,16 +192,28 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
   }
 }
 
-function clavesDe(esquema: Record<string, unknown>): string[] {
-  const props = esquema.properties;
-  return props && typeof props === "object" ? Object.keys(props as Record<string, unknown>) : [];
+/**
+ * Esfuerzo de razonamiento, con el parámetro unificado de OpenRouter.
+ *
+ * Es el equivalente de `output_config.effort` de Anthropic. Los modelos que no
+ * razonan lo ignoran, así que mandarlo siempre es seguro; se omite en el nivel
+ * bajo para no cambiarle el comportamiento a lo que ya andaba.
+ */
+function razonamiento(
+  esfuerzo: EsfuerzoLLM | undefined,
+): Record<string, unknown> {
+  if (!esfuerzo || esfuerzo === "bajo") return {};
+  return { reasoning: { effort: esfuerzo === "alto" ? "high" : "medium" } };
 }
 
 /** Limpia la respuesta del modelo para quedarse solo con el objeto JSON. */
 function extraerJSON(texto: string): string {
   let s = texto.trim();
   if (s.startsWith("```")) {
-    s = s.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+    s = s
+      .replace(/^```(?:json)?/i, "")
+      .replace(/```$/, "")
+      .trim();
   }
   const inicio = s.indexOf("{");
   const fin = s.lastIndexOf("}");

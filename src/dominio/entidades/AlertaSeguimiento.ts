@@ -9,8 +9,13 @@ export const TIPOS_ALERTA_SEGUIMIENTO = [
 ] as const;
 export type TipoAlertaSeguimiento = (typeof TIPOS_ALERTA_SEGUIMIENTO)[number];
 
-export const ESTADOS_ALERTA_SEGUIMIENTO = ["PENDIENTE", "RESUELTA", "DESCARTADA"] as const;
-export type EstadoAlertaSeguimiento = (typeof ESTADOS_ALERTA_SEGUIMIENTO)[number];
+export const ESTADOS_ALERTA_SEGUIMIENTO = [
+  "PENDIENTE",
+  "RESUELTA",
+  "DESCARTADA",
+] as const;
+export type EstadoAlertaSeguimiento =
+  (typeof ESTADOS_ALERTA_SEGUIMIENTO)[number];
 
 /** Datos para generar una alerta nueva. */
 export interface DatosNuevaAlertaSeguimiento {
@@ -80,7 +85,10 @@ export class AlertaSeguimiento {
   }
 
   /** Marca la alerta como RESUELTA o DESCARTADA (inmutable). */
-  resolver(estado: Exclude<EstadoAlertaSeguimiento, "PENDIENTE">, ahora: Date = new Date()): AlertaSeguimiento {
+  resolver(
+    estado: Exclude<EstadoAlertaSeguimiento, "PENDIENTE">,
+    ahora: Date = new Date(),
+  ): AlertaSeguimiento {
     if (this.props.estado !== "PENDIENTE") {
       throw new ErrorValidacion("La alerta ya fue resuelta o descartada.");
     }
@@ -104,6 +112,9 @@ export class AlertaSeguimiento {
   }
 
   aPrimitivos(): PropiedadesAlertaSeguimiento {
-    return { ...this.props, datos: this.props.datos ? { ...this.props.datos } : null };
+    return {
+      ...this.props,
+      datos: this.props.datos ? { ...this.props.datos } : null,
+    };
   }
 }

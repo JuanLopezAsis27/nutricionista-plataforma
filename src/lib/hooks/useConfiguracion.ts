@@ -2,15 +2,16 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
 /** Encapsula las llamadas tRPC de la Configuración del consultorio. */
 export function useConfiguracion() {
-  const utils = trpc.useUtils();
+  const invalidar = useInvalidar();
 
   const guardar = trpc.configuracion.guardar.useMutation({
     onSuccess: () => {
       toast.success("Configuración guardada.");
-      void utils.configuracion.invalidate();
+      invalidar();
     },
     onError: (error) => toast.error(error.message),
   });

@@ -2,15 +2,24 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
 /** Encapsula las llamadas tRPC de las credenciales de integración. */
 export function useCredenciales() {
-  const utils = trpc.useUtils();
+  const invalidar = useInvalidar();
 
   const guardar = trpc.credenciales.guardar.useMutation({
     onSuccess: () => {
       toast.success("Credenciales guardadas.");
-      utils.credenciales.invalidate();
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const eliminar = trpc.credenciales.eliminar.useMutation({
+    onSuccess: () => {
+      toast.success("Credenciales eliminadas.");
+      invalidar();
     },
     onError: (error) => toast.error(error.message),
   });
@@ -18,5 +27,6 @@ export function useCredenciales() {
   return {
     estado: trpc.credenciales.estado.useQuery,
     guardar,
+    eliminar,
   };
 }

@@ -13,9 +13,13 @@ import {
   CalendarClock,
 } from "lucide-react";
 import type { ObjetivoSalidaDto } from "@/aplicacion/dtos/objetivo.dto";
-import type { EstadoObjetivo, EstadoEstrategia } from "@/dominio/entidades/Objetivo";
+import type {
+  EstadoObjetivo,
+  EstadoEstrategia,
+} from "@/dominio/entidades/Objetivo";
 import { useObjetivos } from "@/lib/hooks/useObjetivos";
-import { formatearFecha } from "@/lib/formato";
+import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
+import { formatearFecha, formatearNumero } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import {
   ETIQUETAS_PRIORIDAD,
@@ -28,7 +32,12 @@ import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { Badge } from "@/componentes/ui/badge";
 import { Skeleton } from "@/componentes/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -42,7 +51,12 @@ import { FormularioObjetivo } from "./FormularioObjetivo";
 /** Acción pendiente que exige motivo (cambio de estado de objetivo/estrategia). */
 type AccionConMotivo =
   | { tipo: "objetivo"; estado: EstadoObjetivo; titulo: string }
-  | { tipo: "estrategia"; estrategiaId: string; estado: EstadoEstrategia; titulo: string };
+  | {
+      tipo: "estrategia";
+      estrategiaId: string;
+      estado: EstadoEstrategia;
+      titulo: string;
+    };
 
 /** Tarjeta de un objetivo: estado, estrategias con motivo, historial. */
 export function TarjetaObjetivo({ objetivo }: { objetivo: ObjetivoSalidaDto }) {
@@ -89,7 +103,11 @@ export function TarjetaObjetivo({ objetivo }: { objetivo: ObjetivoSalidaDto }) {
 
   function agregar() {
     agregarEstrategia.mutate(
-      { objetivoId: objetivo.id, descripcion: nuevaDescripcion, motivo: nuevoMotivo },
+      {
+        objetivoId: objetivo.id,
+        descripcion: nuevaDescripcion,
+        motivo: nuevoMotivo,
+      },
       {
         onSuccess: () => {
           setNuevaDescripcion("");
@@ -111,7 +129,9 @@ export function TarjetaObjetivo({ objetivo }: { objetivo: ObjetivoSalidaDto }) {
             <Badge className={COLOR_PRIORIDAD[objetivo.prioridad]}>
               {ETIQUETAS_PRIORIDAD[objetivo.prioridad]}
             </Badge>
-            <Badge variant={objetivo.estado === "EN_CURSO" ? "secondary" : "outline"}>
+            <Badge
+              variant={objetivo.estado === "EN_CURSO" ? "secondary" : "outline"}
+            >
               {ETIQUETAS_ESTADO_OBJETIVO[objetivo.estado]}
             </Badge>
           </span>
@@ -130,6 +150,13 @@ export function TarjetaObjetivo({ objetivo }: { objetivo: ObjetivoSalidaDto }) {
       </CardHeader>
 
       <CardContent className="space-y-3">
+        {/* La meta medible que este plan persigue, si se vinculó una: el
+            progreso sale de las antropometrías, no de una autoevaluación. */}
+        <MetaVinculada
+          pacienteId={objetivo.pacienteId}
+          objetivoComposicionId={objetivo.objetivoComposicionId}
+        />
+
         {/* Estrategias */}
         {objetivo.estrategias.length > 0 && (
           <ul className="space-y-2">
@@ -140,7 +167,8 @@ export function TarjetaObjetivo({ objetivo }: { objetivo: ObjetivoSalidaDto }) {
                     <p
                       className={cn(
                         "font-medium",
-                        estrategia.estado === "DESCARTADA" && "line-through opacity-60",
+                        estrategia.estado === "DESCARTADA" &&
+                          "line-through opacity-60",
                       )}
                     >
                       {estrategia.descripcion}
@@ -151,7 +179,9 @@ export function TarjetaObjetivo({ objetivo }: { objetivo: ObjetivoSalidaDto }) {
                   </div>
                   <div className="flex items-center gap-1">
                     <Badge
-                      variant={estrategia.estado === "ACTIVA" ? "secondary" : "outline"}
+                      variant={
+                        estrategia.estado === "ACTIVA" ? "secondary" : "outline"
+                      }
                       className="text-xs"
                     >
                       {ETIQUETAS_ESTADO_ESTRATEGIA[estrategia.estado]}
@@ -302,11 +332,20 @@ export function TarjetaObjetivo({ objetivo }: { objetivo: ObjetivoSalidaDto }) {
               Reabrir
             </Button>
           )}
-          <Button variant="ghost" size="sm" onClick={() => setVerHistorial(true)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setVerHistorial(true)}
+          >
             <History className="h-4 w-4" />
             Historial
           </Button>
-          <Button variant="ghost" size="icon" title="Editar" onClick={() => setEditar(true)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Editar"
+            onClick={() => setEditar(true)}
+          >
             <Pencil className="h-4 w-4" />
           </Button>
           <Button
@@ -352,18 +391,23 @@ export function TarjetaObjetivo({ objetivo }: { objetivo: ObjetivoSalidaDto }) {
           {eventos.isLoading ? (
             <Skeleton className="h-32 w-full" />
           ) : (eventos.data ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground">Sin eventos registrados.</p>
+            <p className="text-sm text-muted-foreground">
+              Sin eventos registrados.
+            </p>
           ) : (
             <ol className="relative space-y-4 border-l pl-4">
               {eventos.data!.map((evento) => (
                 <li key={evento.id} className="relative">
                   <span className="absolute -left-[1.4rem] top-1.5 h-2.5 w-2.5 rounded-full bg-primary" />
                   <p className="text-xs text-muted-foreground">
-                    {formatearFecha(evento.creadoEn)} · {ETIQUETAS_EVENTO[evento.tipo]}
+                    {formatearFecha(evento.creadoEn)} ·{" "}
+                    {ETIQUETAS_EVENTO[evento.tipo]}
                   </p>
                   <p className="text-sm">{evento.detalle}</p>
                   {evento.motivo && (
-                    <p className="text-xs text-muted-foreground">Motivo: {evento.motivo}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Motivo: {evento.motivo}
+                    </p>
                   )}
                 </li>
               ))}
@@ -380,9 +424,82 @@ export function TarjetaObjetivo({ objetivo }: { objetivo: ObjetivoSalidaDto }) {
         cargando={eliminar.isPending}
         onCancelar={() => setConfirmarEliminar(false)}
         onConfirmar={() =>
-          eliminar.mutate({ id: objetivo.id }, { onSuccess: () => setConfirmarEliminar(false) })
+          eliminar.mutate(
+            { id: objetivo.id },
+            { onSuccess: () => setConfirmarEliminar(false) },
+          )
         }
       />
     </Card>
+  );
+}
+
+/**
+ * Progreso medido de la meta numérica asociada al plan.
+ *
+ * Es el punto del vínculo: el objetivo cualitativo dice qué se hace y por qué,
+ * y esta franja dice si está funcionando, con el número que salió del
+ * plicómetro. Sin vínculo no renderiza nada.
+ */
+function MetaVinculada({
+  pacienteId,
+  objetivoComposicionId,
+}: {
+  pacienteId: string;
+  objetivoComposicionId: string | null;
+}) {
+  const { obtenerComposicion } = useEvaluacion();
+  const composicion = obtenerComposicion(
+    { pacienteId },
+    { enabled: objetivoComposicionId != null },
+  );
+
+  if (objetivoComposicionId == null) return null;
+
+  const meta = composicion.data?.objetivos.find(
+    (o) => o.id === objetivoComposicionId,
+  );
+  if (!meta) return null;
+
+  const p = meta.proyeccion;
+  const unidad = p.unidad ? ` ${p.unidad}` : "";
+  const falta = p.brecha != null ? Math.abs(p.brecha) : null;
+
+  return (
+    <div className="rounded-md border bg-muted/30 p-3">
+      <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <Target className="h-3.5 w-3.5" /> Meta medida: {meta.descripcion}
+      </p>
+      <div className="mt-1.5 flex items-baseline justify-between gap-2 text-sm">
+        <span className="tabular-nums">
+          {formatearNumero(p.valorActual)}
+          {unidad}
+          <span className="mx-1 text-muted-foreground">→</span>
+          <span className="font-semibold">
+            {formatearNumero(p.valorObjetivo)}
+            {unidad}
+          </span>
+        </span>
+        {falta != null && falta > 0 && (
+          <span className="text-xs text-muted-foreground">
+            faltan{" "}
+            <span className="font-medium tabular-nums">
+              {formatearNumero(falta)}
+              {unidad}
+            </span>
+          </span>
+        )}
+      </div>
+      <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-primary transition-all"
+          style={{ width: `${p.progresoPorcentaje ?? 0}%` }}
+        />
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {formatearNumero(p.progresoPorcentaje)} % del camino, según las
+        antropometrías.
+      </p>
+    </div>
   );
 }

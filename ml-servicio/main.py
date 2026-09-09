@@ -19,6 +19,7 @@ Correr en local:
 """
 from __future__ import annotations
 
+import logging
 import os
 from typing import Literal, Optional
 
@@ -37,6 +38,16 @@ from pydantic import BaseModel
 from db import conexion
 from features import extraer
 from modelos import riesgo_abandono, score_adherencia, tendencia_peso
+
+# Los errores de este servicio van a stdout/stderr del contenedor, que es de
+# donde los toma `docker logs` (y, con la rotación configurada en el compose, el
+# agregador que se enchufe después). `LOG_LEVEL` permite subir a DEBUG sin tocar
+# el código.
+logging.basicConfig(
+    level=os.environ.get("LOG_LEVEL", "INFO"),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+log = logging.getLogger("ml-consultorio")
 
 app = FastAPI(title="ML consultorio", version="1.0.0")
 
@@ -113,6 +124,14 @@ def insights(req: InsightsRequest, _: None = Depends(verificar_token)) -> list[I
                 ]
             pacientes = extraer(conn, req.nutricionistaId)
     except Exception:  # noqa: BLE001 — degradación: nunca tiramos 500 al nutricionista
+        # SE REGISTRA ANTES DE TRAGARLO. La degradación elegante sin log volvía
+        # invisible cualquier desfase de esquema: durante semanas esta rama
+        # devolvió el mensaje de abajo porque la consulta pedía una columna
+        # eliminada por una migración, y desde afuera era idéntico a un Postgres
+        # caído. Un error que nadie ve es un error que nadie arregla.
+        log.exception(
+            "fallo al construir insights (nutricionistaId=%s)", req.nutricionistaId
+        )
         return [_info("No se pudo leer la base de datos en este momento. Reintentá más tarde.")]
 
     if not pacientes:

@@ -21,7 +21,10 @@ describe("AnalisisComidaIAHTTP", () => {
       confianza: 0.9,
       nota: "modelo real",
     }));
-    const adaptador = new AnalisisComidaIAHTTP(clienteMock(postar), new AnalisisComidaIAStub());
+    const adaptador = new AnalisisComidaIAHTTP(
+      clienteMock(postar),
+      new AnalisisComidaIAStub(),
+    );
 
     const r = await adaptador.analizar({ descripcion: "milanesa con puré" });
 
@@ -33,7 +36,10 @@ describe("AnalisisComidaIAHTTP", () => {
     const postar = vi.fn(async () => {
       throw new Error("ML caído");
     });
-    const adaptador = new AnalisisComidaIAHTTP(clienteMock(postar), new AnalisisComidaIAStub());
+    const adaptador = new AnalisisComidaIAHTTP(
+      clienteMock(postar),
+      new AnalisisComidaIAStub(),
+    );
 
     const r = await adaptador.analizar({ descripcion: "ensalada" });
 

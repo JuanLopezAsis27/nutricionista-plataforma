@@ -42,7 +42,9 @@ export class Laboratorio {
     ahora: Date = new Date(),
   ): Laboratorio {
     if (!datos.pacienteId?.trim()) {
-      throw new ErrorValidacion("El laboratorio debe pertenecer a un paciente.");
+      throw new ErrorValidacion(
+        "El laboratorio debe pertenecer a un paciente.",
+      );
     }
     const titulo = datos.titulo?.trim() ?? "";
     if (titulo.length === 0) {
@@ -110,7 +112,10 @@ export class Laboratorio {
   }
 
   aPrimitivos(): PropiedadesLaboratorio {
-    return { ...this.props, adjuntos: this.props.adjuntos.map((a) => ({ ...a })) };
+    return {
+      ...this.props,
+      adjuntos: this.props.adjuntos.map((a) => ({ ...a })),
+    };
   }
 }
 
@@ -118,8 +123,16 @@ function validarFecha(fecha: Date, ahora: Date): void {
   if (!(fecha instanceof Date) || Number.isNaN(fecha.getTime())) {
     throw new ErrorValidacion("La fecha del laboratorio no es válida.");
   }
-  const hoy = Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate());
-  const dia = Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate());
+  const hoy = Date.UTC(
+    ahora.getUTCFullYear(),
+    ahora.getUTCMonth(),
+    ahora.getUTCDate(),
+  );
+  const dia = Date.UTC(
+    fecha.getUTCFullYear(),
+    fecha.getUTCMonth(),
+    fecha.getUTCDate(),
+  );
   if (dia > hoy) {
     throw new ErrorValidacion("La fecha del laboratorio no puede ser futura.");
   }

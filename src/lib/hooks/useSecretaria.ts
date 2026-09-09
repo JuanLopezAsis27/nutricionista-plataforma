@@ -2,11 +2,12 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
-/** Encapsula las llamadas tRPC de Secretaría (plantillas y envíos). */
+/** Encapsula las llamadas tRPC de Secretaría (plantillas de email y envíos). */
 export function useSecretaria() {
   const utils = trpc.useUtils();
-  const invalidar = () => utils.secretaria.invalidate();
+  const invalidar = useInvalidar();
 
   const crearPlantilla = trpc.secretaria.crearPlantilla.useMutation({
     onSuccess: () => {
@@ -40,18 +41,6 @@ export function useSecretaria() {
     onError: (error) => toast.error(error.message),
   });
 
-  const enviarRecordatorios = trpc.secretaria.enviarRecordatorios.useMutation({
-    onSuccess: (r) => {
-      toast.success(
-        r.enviados > 0
-          ? `${r.enviados} recordatorio(s) enviado(s).`
-          : "No había recordatorios pendientes para mañana.",
-      );
-      invalidar();
-    },
-    onError: (error) => toast.error(error.message),
-  });
-
   return {
     utils,
     listarPlantillas: trpc.secretaria.listarPlantillas.useQuery,
@@ -60,6 +49,5 @@ export function useSecretaria() {
     actualizarPlantilla,
     eliminarPlantilla,
     enviarPrueba,
-    enviarRecordatorios,
   };
 }

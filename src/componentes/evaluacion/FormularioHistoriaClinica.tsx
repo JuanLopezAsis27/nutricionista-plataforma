@@ -1,91 +1,394 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { Plus, Trash2 } from "lucide-react";
+import type { CampoPersonalizadoHistoriaDto } from "@/aplicacion/dtos/evaluacion.dto";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
 import { Button } from "@/componentes/ui/button";
+import { Input } from "@/componentes/ui/input";
 import { Textarea } from "@/componentes/ui/textarea";
 import { Label } from "@/componentes/ui/label";
 import { Skeleton } from "@/componentes/ui/skeleton";
+import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
+import { SeccionDesplegable } from "@/componentes/comunes/SeccionDesplegable";
 import { formatearFecha } from "@/lib/formato";
+import { GestionAlertas } from "./AlertasPaciente";
+import { RevisionEvolucionesLeidas } from "./RevisionEvolucionesLeidas";
+import type { LecturaHistoriaClinicaDto } from "@/aplicacion/dtos/evaluacion.dto";
 
 const CAMPOS = [
   { nombre: "motivoConsulta", etiqueta: "Motivo de consulta" },
   { nombre: "diagnosticos", etiqueta: "Diagnósticos" },
-  { nombre: "medicacion", etiqueta: "Medicación" },
-  { nombre: "antecedentesPersonales", etiqueta: "Antecedentes personales" },
+  { nombre: "medicacion", etiqueta: "Medicación/suplementos" },
+  {
+    nombre: "antecedentesDigestivos",
+    etiqueta: "Antecedentes de enfermedades digestivas/deposiciones",
+  },
   { nombre: "antecedentesFamiliares", etiqueta: "Antecedentes familiares" },
-  { nombre: "habitos", etiqueta: "Hábitos (actividad, sueño, consumo)" },
+  { nombre: "entrenamientos", etiqueta: "Entrenamientos" },
+  { nombre: "descanso", etiqueta: "Descanso" },
+  { nombre: "habitos", etiqueta: "Hábitos y observaciones" },
   { nombre: "contexto", etiqueta: "Contexto (trabajo, horarios, entorno)" },
 ] as const;
 
 type NombreCampo = (typeof CAMPOS)[number]["nombre"];
 type DatosFormulario = Record<NombreCampo, string>;
 
-/** Formulario de historia clínica del paciente (upsert de los 7 campos). */
-export function FormularioHistoriaClinica({ pacienteId }: { pacienteId: string }) {
-  const { obtenerHistoria, guardarHistoria } = useEvaluacion();
+/** Prefijo de la clave de un campo suelto, cargado solo en este paciente. */
+const PREFIJO_SUELTO = "suelto-";
+
+/**
+ * Formulario de historia clínica del paciente.
+ *
+ * Además de los siete campos fijos muestra los personalizados, que son de dos
+ * clases y conviven a propósito:
+ *
+ * - Los **del consultorio** (Configuración → Historia clínica) aparecen en
+ *   todos los pacientes y son los que se pueden comparar entre fichas.
+ * - Los **sueltos** se agregan acá, valen solo para este paciente y sirven
+ *   para lo que aparece una vez y no justifica sumarlo a los 300 restantes.
+ *
+ * Los dos se guardan igual —clave, etiqueta y valor— así que un campo del
+ * consultorio que después se borre sigue mostrándose con su nombre.
+ */
+export function FormularioHistoriaClinica({
+  pacienteId,
+}: {
+  pacienteId: string;
+}) {
+  const {
+    obtenerHistoria,
+    guardarHistoria,
+    interpretarHistoriaDesdeArchivo,
+    obtenerCamposHistoria,
+  } = useEvaluacion();
   const historia = obtenerHistoria({ pacienteId });
+  const definidos = obtenerCamposHistoria();
 
   const form = useForm<DatosFormulario>({
-    defaultValues: Object.fromEntries(CAMPOS.map((c) => [c.nombre, ""])) as DatosFormulario,
+    defaultValues: Object.fromEntries(
+      CAMPOS.map((c) => [c.nombre, ""]),
+    ) as DatosFormulario,
   });
 
-  // Carga los valores cuando llega la historia (o cambia el paciente).
+  /**
+   * Los campos personalizados NO se copian a estado al llegar la query: se
+   * derivan de ella en cada render y el estado guarda solo lo que el
+   * profesional tocó (`ediciones`, `agregados`, `quitados`).
+   *
+   * Es la regla de las copias congeladas: un `setValores(...)` dentro de un
+   * effect deja la pantalla mostrando lo que había cuando se montó, y este
+   * componente muestra datos que él mismo modifica. Las claves son dinámicas
+   * —dependen de lo que el consultorio defina—, así que tampoco pueden vivir
+   * en react-hook-form como los siete fijos.
+   */
+  const [ediciones, setEdiciones] = useState<Record<string, string>>({});
+  const [agregados, setAgregados] = useState<
+    { clave: string; etiqueta: string }[]
+  >([]);
+  const [quitados, setQuitados] = useState<Set<string>>(new Set());
+  const [etiquetaNueva, setEtiquetaNueva] = useState("");
+
+  /**
+   * Las evoluciones que la IA encontró en el documento, esperando revisión.
+   *
+   * Viven acá y no en la sección de Evoluciones porque nacen de ESTA subida:
+   * el cuaderno del profesional suele ser un solo archivo con la ficha
+   * adelante y el seguimiento atrás, y se lee de una pasada.
+   */
+  const [evolucionesLeidas, setEvolucionesLeidas] = useState<
+    LecturaHistoriaClinicaDto["evoluciones"] | null
+  >(null);
+
+  // Los siete campos fijos sí van por react-hook-form, que necesita el reset.
   useEffect(() => {
-    if (historia.data) {
-      form.reset(
-        Object.fromEntries(
-          CAMPOS.map((c) => [c.nombre, historia.data?.[c.nombre] ?? ""]),
-        ) as DatosFormulario,
-      );
-    }
+    if (!historia.data) return;
+    form.reset(
+      Object.fromEntries(
+        CAMPOS.map((c) => [c.nombre, historia.data?.[c.nombre] ?? ""]),
+      ),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset solo al llegar datos
   }, [historia.data]);
+
+  const guardados = historia.data?.camposPersonalizados ?? [];
+  const valorGuardado = new Map(
+    guardados.map((campo) => [campo.clave, campo.valor]),
+  );
+  const valorDe = (clave: string) =>
+    ediciones[clave] ?? valorGuardado.get(clave) ?? "";
+
+  // Un campo guardado que ya no está definido por el consultorio se sigue
+  // mostrando: es información clínica escrita, y no puede desaparecer de la
+  // ficha porque alguien reordenó el formulario en Configuración.
+  const clavesDefinidas = new Set(
+    (definidos.data ?? []).map((campo) => campo.clave),
+  );
+  const sueltos = [
+    ...guardados
+      .filter((campo) => !clavesDefinidas.has(campo.clave))
+      .map((campo) => ({ clave: campo.clave, etiqueta: campo.etiqueta })),
+    ...agregados,
+  ].filter((campo) => !quitados.has(campo.clave));
 
   if (historia.isLoading) {
     return <Skeleton className="h-48 w-full" />;
   }
 
+  // Sube el documento y precarga el formulario con lo que la IA pudo leer.
+  // No guarda nada solo: el profesional revisa y aprieta "Guardar".
+  function alSubirDocumento(archivo: { id: string }) {
+    interpretarHistoriaDesdeArchivo.mutate(
+      { pacienteId, archivoId: archivo.id },
+      {
+        onSuccess: (lectura) => {
+          let algunCampo = false;
+          for (const campo of CAMPOS) {
+            const valor = lectura.campos[campo.nombre];
+            if (valor) {
+              form.setValue(campo.nombre, valor);
+              algunCampo = true;
+            }
+          }
+          // Las evoluciones NO se guardan solas: se muestran abajo para
+          // revisar y el profesional decide cuáles importar.
+          setEvolucionesLeidas(
+            lectura.evoluciones.length > 0 ? lectura.evoluciones : null,
+          );
+
+          const encontrado = [
+            algunCampo ? "campos de la historia" : null,
+            lectura.evoluciones.length > 0
+              ? `${lectura.evoluciones.length} ${lectura.evoluciones.length === 1 ? "evolución" : "evoluciones"}`
+              : null,
+          ].filter((parte) => parte !== null);
+
+          toast[encontrado.length > 0 ? "success" : "info"](
+            encontrado.length > 0
+              ? `La IA leyó ${encontrado.join(" y ")}. Revisá antes de guardar.`
+              : "La IA no encontró datos para completar en el documento.",
+          );
+        },
+      },
+    );
+  }
+
+  function agregarSuelto() {
+    const etiqueta = etiquetaNueva.trim();
+    if (!etiqueta) return;
+    setAgregados((previos) => [
+      ...previos,
+      {
+        clave: `${PREFIJO_SUELTO}${crypto.randomUUID().slice(0, 8)}`,
+        etiqueta,
+      },
+    ]);
+    setEtiquetaNueva("");
+  }
+
+  function quitarSuelto(clave: string) {
+    setAgregados((previos) => previos.filter((campo) => campo.clave !== clave));
+    setQuitados((previos) => new Set(previos).add(clave));
+    setEdiciones((previos) => {
+      const copia = { ...previos };
+      delete copia[clave];
+      return copia;
+    });
+  }
+
   function alEnviar(datos: DatosFormulario) {
+    const personalizados: CampoPersonalizadoHistoriaDto[] = [
+      ...(definidos.data ?? []).map((campo) => ({
+        clave: campo.clave,
+        etiqueta: campo.nombre,
+        valor: valorDe(campo.clave).trim(),
+      })),
+      ...sueltos.map((campo) => ({
+        clave: campo.clave,
+        etiqueta: campo.etiqueta,
+        valor: valorDe(campo.clave).trim(),
+      })),
+    ].filter((campo) => campo.valor.length > 0);
+
     guardarHistoria.mutate({
       pacienteId,
       ...Object.fromEntries(
         CAMPOS.map((c) => [c.nombre, datos[c.nombre].trim() || null]),
       ),
+      camposPersonalizados: personalizados,
     });
   }
 
+  const personalizados = [
+    ...(definidos.data ?? []).map((campo) => ({
+      clave: campo.clave,
+      etiqueta: campo.nombre,
+      ayuda: campo.descripcion,
+      suelto: false,
+    })),
+    ...sueltos.map((campo) => ({
+      clave: campo.clave,
+      etiqueta: campo.etiqueta,
+      ayuda: null,
+      suelto: true,
+    })),
+  ];
+
   return (
-    <form onSubmit={form.handleSubmit(alEnviar)} className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold">Historia clínica</h3>
-        {historia.data && (
-          <span className="text-xs text-muted-foreground">
-            Última actualización: {formatearFecha(historia.data.actualizadoEn)}
-          </span>
-        )}
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {CAMPOS.map((campo) => (
-          <div key={campo.nombre} className="space-y-2">
-            <Label htmlFor={campo.nombre}>{campo.etiqueta}</Label>
-            <Textarea
-              id={campo.nombre}
-              rows={3}
-              {...form.register(campo.nombre)}
-              placeholder="—"
+    <form onSubmit={form.handleSubmit(alEnviar)}>
+      <SeccionDesplegable
+        titulo="Historia clínica"
+        resumen={
+          historia.data
+            ? `actualizada el ${formatearFecha(historia.data.actualizadoEn)}`
+            : "sin cargar"
+        }
+      >
+        <div className="space-y-4">
+          <div className="space-y-2 rounded-md border p-3">
+            <p className="text-sm font-medium">Subir documento</p>
+            <p className="text-xs text-muted-foreground">
+              Subí el documento de historia clínica: una foto (JPG, PNG, WEBP),
+              un PDF, un Word (.docx) o un Excel (.xlsx). Queda guardado en la
+              ficha del paciente y la IA sugiere los campos de abajo{" "}
+              <span className="font-medium">
+                y las evoluciones de control que el documento traiga
+              </span>{" "}
+              (no se guarda nada solo: revisá y confirmá). El .doc viejo,
+              anterior a 2007, no se puede leer: guardalo como .docx o PDF.
+            </p>
+            <SubidorArchivo
+              contexto="paciente"
+              pacienteId={pacienteId}
+              accept="image/jpeg,image/png,image/webp,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              sinVistaPrevia
+              onSubido={alSubirDocumento}
             />
+            {interpretarHistoriaDesdeArchivo.isPending && (
+              <p className="text-xs text-muted-foreground">
+                Leyendo el documento… puede tardar si trae muchas consultas.
+              </p>
+            )}
           </div>
-        ))}
-      </div>
 
-      <div className="flex justify-end">
-        <Button type="submit" disabled={guardarHistoria.isPending}>
-          {guardarHistoria.isPending ? "Guardando…" : "Guardar historia clínica"}
-        </Button>
-      </div>
+          {evolucionesLeidas && (
+            <RevisionEvolucionesLeidas
+              pacienteId={pacienteId}
+              evoluciones={evolucionesLeidas}
+              onCerrar={() => setEvolucionesLeidas(null)}
+            />
+          )}
+
+          {/* Intolerancias y alergias viven dentro de la historia clínica:
+              son parte de "de dónde viene" el paciente, igual que el resto de
+              estos campos. */}
+          <GestionAlertas pacienteId={pacienteId} />
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {CAMPOS.map((campo) => (
+              <div key={campo.nombre} className="space-y-2">
+                <Label htmlFor={campo.nombre}>{campo.etiqueta}</Label>
+                <Textarea
+                  id={campo.nombre}
+                  rows={3}
+                  {...form.register(campo.nombre)}
+                  placeholder="—"
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-3 rounded-md border p-3">
+            <div>
+              <p className="text-sm font-medium">Campos personalizados</p>
+              <p className="text-xs text-muted-foreground">
+                Los definidos en Configuración aparecen en todos tus pacientes.
+                Los que agregues acá valen solo para esta ficha.
+              </p>
+            </div>
+
+            {personalizados.length > 0 && (
+              <div className="grid gap-4 md:grid-cols-2">
+                {personalizados.map((campo) => (
+                  <div key={campo.clave} className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label htmlFor={campo.clave}>{campo.etiqueta}</Label>
+                      {campo.suelto && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => quitarSuelto(campo.clave)}
+                          aria-label={`Quitar ${campo.etiqueta}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                    <Textarea
+                      id={campo.clave}
+                      rows={2}
+                      placeholder="—"
+                      value={valorDe(campo.clave)}
+                      onChange={(evento) =>
+                        setEdiciones((previos) => ({
+                          ...previos,
+                          [campo.clave]: evento.target.value,
+                        }))
+                      }
+                    />
+                    {campo.ayuda && (
+                      <p className="text-xs text-muted-foreground">
+                        {campo.ayuda}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-end gap-2">
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="campo-suelto-nuevo">
+                  Agregar un campo solo para este paciente
+                </Label>
+                <Input
+                  id="campo-suelto-nuevo"
+                  value={etiquetaNueva}
+                  maxLength={80}
+                  placeholder="Nombre del campo"
+                  onChange={(evento) => setEtiquetaNueva(evento.target.value)}
+                  onKeyDown={(evento) => {
+                    // Enter agrega el campo en vez de enviar la historia entera.
+                    if (evento.key === "Enter") {
+                      evento.preventDefault();
+                      agregarSuelto();
+                    }
+                  }}
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={agregarSuelto}
+                disabled={!etiquetaNueva.trim()}
+              >
+                <Plus className="mr-2 h-4 w-4" /> Agregar
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button type="submit" disabled={guardarHistoria.isPending}>
+              {guardarHistoria.isPending
+                ? "Guardando…"
+                : "Guardar historia clínica"}
+            </Button>
+          </div>
+        </div>
+      </SeccionDesplegable>
     </form>
   );
 }

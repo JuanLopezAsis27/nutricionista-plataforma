@@ -9,7 +9,13 @@ const metricaDia = z.object({
   pasos: z.number().int().min(0).max(200000).nullable().optional(),
   minutosActividad: z.number().int().min(0).max(1440).nullable().optional(),
   caloriasActivas: z.number().int().min(0).max(20000).nullable().optional(),
-  frecuenciaCardiacaReposo: z.number().int().min(0).max(250).nullable().optional(),
+  frecuenciaCardiacaReposo: z
+    .number()
+    .int()
+    .min(0)
+    .max(250)
+    .nullable()
+    .optional(),
   horasSueno: z.number().min(0).max(24).nullable().optional(),
 });
 
@@ -27,7 +33,9 @@ export type RangoMetricasDto = z.infer<typeof rangoMetricasDto>;
 export const rangoMetricasDePacienteDto = rangoMetricasDto.extend({
   pacienteId: z.string().min(1),
 });
-export type RangoMetricasDePacienteDto = z.infer<typeof rangoMetricasDePacienteDto>;
+export type RangoMetricasDePacienteDto = z.infer<
+  typeof rangoMetricasDePacienteDto
+>;
 
 export const fijarInclusionDto = z.object({
   fecha: z.coerce.date(),

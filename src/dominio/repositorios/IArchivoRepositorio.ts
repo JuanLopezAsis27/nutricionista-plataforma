@@ -10,6 +10,11 @@ export interface DuenoArchivo {
   comidaConsumidaId?: string;
   recetaId?: string;
   materialId?: string;
+  planId?: string;
+  /** Audio de una grabación de consulta. */
+  grabacionId?: string;
+  /** Foto de una evolución de control (1 a muchas). */
+  evolucionId?: string;
 }
 
 /**

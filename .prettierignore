@@ -1,0 +1,14 @@
+.next
+node_modules
+android
+ios
+public
+package-lock.json
+tsconfig.tsbuildinfo
+prisma/migrations
+
+# Documentacion: Prettier ensancha las tablas markdown hasta hacerlas
+# ilegibles en el fuente (se renderizan igual, pero no se pueden editar).
+audits
+docs
+*.md

@@ -19,7 +19,9 @@ export async function ejecutarHerramientaSegura(
 }
 
 /** Parsea de forma segura los argumentos JSON de una tool-call de OpenAI. */
-export function parsearArgumentos(crudo: string | undefined): Record<string, unknown> {
+export function parsearArgumentos(
+  crudo: string | undefined,
+): Record<string, unknown> {
   if (!crudo || crudo.trim() === "") return {};
   try {
     const v: unknown = JSON.parse(crudo);

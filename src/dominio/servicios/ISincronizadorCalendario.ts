@@ -2,6 +2,12 @@
 export interface DatosTurnoSync {
   id: string;
   pacienteId: string;
+  /**
+   * Dónde se atiende. Lo resuelve el sincronizador a nombre y dirección para
+   * el `location` del evento: con varias sedes, una invitación sin ubicación
+   * manda al paciente al consultorio equivocado.
+   */
+  establecimientoId: string;
   fecha: Date;
   hora: string; // HH:mm
   duracionMinutos: number;
@@ -9,9 +15,14 @@ export interface DatosTurnoSync {
 
 /**
  * Puerto de sincronización de turnos con un calendario externo (Google).
- * Lo invoca `ServicioTurno` de forma best-effort (nunca hace fallar la
- * operación del turno). La implementación es no-op si el nutricionista no tiene
- * Google conectado o si la integración no está configurada.
+ *
+ * Lo invoca `ServicioTurno` de forma best-effort: NUNCA hace fallar la
+ * operación del turno. Un turno tiene que quedar agendado aunque Google esté
+ * caído; el calendario es un recordatorio más, no la fuente de verdad.
+ *
+ * La implementación es no-op si el nutricionista no tiene Google conectado, si
+ * la integración no está configurada o si apagó el medio CALENDARIO en su
+ * configuración de recordatorios.
  */
 export interface ISincronizadorCalendario {
   alAgendar(turno: DatosTurnoSync): Promise<void>;

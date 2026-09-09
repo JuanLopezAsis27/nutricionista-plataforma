@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Bell, Check, X, RefreshCw, AlertTriangle, MessageSquare, Mail } from "lucide-react";
+import {
+  Bell,
+  Check,
+  X,
+  RefreshCw,
+  AlertTriangle,
+  MessageSquare,
+  Mail,
+} from "lucide-react";
 import type { NotificacionDto } from "@/aplicacion/dtos/notificaciones.dto";
 import { useNotificaciones } from "@/lib/hooks/useNotificaciones";
 import { useSeguimiento } from "@/lib/hooks/useSeguimiento";
@@ -57,7 +65,10 @@ export function CampanaNotificaciones() {
   /** Al abrir una notificación de mensaje, se marca leída (deja de figurar). */
   function abrirNotificacion(n: NotificacionDto) {
     if (n.tipo === "MENSAJE" && n.pacienteId) {
-      marcarLeidosDe.mutate({ pacienteId: n.pacienteId }, { onSuccess: refrescar });
+      marcarLeidosDe.mutate(
+        { pacienteId: n.pacienteId },
+        { onSuccess: refrescar },
+      );
     }
     setAbierto(false);
   }
@@ -87,7 +98,9 @@ export function CampanaNotificaciones() {
             size="sm"
             className="h-7 gap-1 text-xs text-muted-foreground"
             disabled={generarAlertas.isPending}
-            onClick={() => generarAlertas.mutate(undefined, { onSuccess: refrescar })}
+            onClick={() =>
+              generarAlertas.mutate(undefined, { onSuccess: refrescar })
+            }
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Revisar ahora
@@ -147,7 +160,9 @@ function FilaNotificacion({
           )}
         </p>
         <p className="truncate text-xs text-muted-foreground">{n.detalle}</p>
-        <p className="mt-0.5 text-[10px] text-muted-foreground">{fmtFecha.format(n.fecha)}</p>
+        <p className="mt-0.5 text-[10px] text-muted-foreground">
+          {fmtFecha.format(n.fecha)}
+        </p>
       </div>
     </>
   );

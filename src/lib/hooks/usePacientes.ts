@@ -2,6 +2,7 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useInvalidar } from "@/lib/hooks/useInvalidar";
 
 /**
  * Encapsula todas las llamadas tRPC de pacientes.
@@ -12,7 +13,7 @@ import { trpc } from "@/lib/trpc";
  */
 export function usePacientes() {
   const utils = trpc.useUtils();
-  const invalidar = () => utils.pacientes.invalidate();
+  const invalidar = useInvalidar();
 
   const crear = trpc.pacientes.crear.useMutation({
     onSuccess: () => {
@@ -38,6 +39,27 @@ export function usePacientes() {
     onError: (error) => toast.error(error.message),
   });
 
+  /**
+   * Lee la ficha subida. Sin `conToasts`: no persiste nada, así que no invalida
+   * caché ni anuncia un éxito genérico —el formulario avisa al precargar—.
+   */
+  const interpretarFicha = trpc.pacientes.interpretarFicha.useMutation({
+    onError: (error) => toast.error(error.message),
+  });
+
+  const crearDesdeFicha = trpc.pacientes.crearDesdeFicha.useMutation({
+    onSuccess: (resultado) => {
+      toast.success("Paciente creado a partir del documento.");
+      // Lo que no se pudo guardar se avisa uno por uno: el paciente YA existe
+      // y el profesional tiene que saber qué le falta cargar a mano.
+      for (const advertencia of resultado.advertencias) {
+        toast.warning(advertencia);
+      }
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
   return {
     utils,
     listar: trpc.pacientes.obtenerTodos.useQuery,
@@ -45,5 +67,7 @@ export function usePacientes() {
     crear,
     actualizar,
     eliminar,
+    interpretarFicha,
+    crearDesdeFicha,
   };
 }

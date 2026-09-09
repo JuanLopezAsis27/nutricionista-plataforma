@@ -1,4 +1,7 @@
-import type { IServicioEmail, MensajeEmail } from "@/dominio/servicios/IServicioEmail";
+import type {
+  IServicioEmail,
+  MensajeEmail,
+} from "@/dominio/servicios/IServicioEmail";
 import type { ICuentaConectadaRepositorio } from "@/dominio/repositorios/ICuentaConectadaRepositorio";
 import type { IProveedorGoogle } from "@/dominio/servicios/IProveedorGoogle";
 import { obtenerAccessTokenValido } from "./tokenGoogle";
@@ -21,7 +24,11 @@ export class ServicioEmailConGoogle implements IServicioEmail {
     try {
       const cuenta = await this.cuentas.obtener("GOOGLE");
       if (cuenta && cuenta.aPrimitivos().scopes.includes(SCOPE_GMAIL)) {
-        const token = await obtenerAccessTokenValido(cuenta, this.cuentas, this.proveedor);
+        const token = await obtenerAccessTokenValido(
+          cuenta,
+          this.cuentas,
+          this.proveedor,
+        );
         await this.proveedor.enviarEmail(token, {
           de: cuenta.emailCuenta,
           para: mensaje.para,

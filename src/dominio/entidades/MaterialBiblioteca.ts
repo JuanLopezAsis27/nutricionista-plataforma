@@ -70,7 +70,9 @@ export class MaterialBiblioteca {
     if (datos.tipo === "ENLACE") {
       url = datos.url?.trim() || null;
       if (!url || !PATRON_URL.test(url)) {
-        throw new ErrorValidacion("El enlace debe ser una URL válida (http/https).");
+        throw new ErrorValidacion(
+          "El enlace debe ser una URL válida (http/https).",
+        );
       }
     }
 
@@ -93,15 +95,24 @@ export class MaterialBiblioteca {
   }
 
   /** Versión actualizada e inmutable (preserva tipo, archivo y creadoEn). */
-  actualizar(cambios: CambiosMaterial, ahora: Date = new Date()): MaterialBiblioteca {
+  actualizar(
+    cambios: CambiosMaterial,
+    ahora: Date = new Date(),
+  ): MaterialBiblioteca {
     const actualizado = MaterialBiblioteca.crear(
       {
         tipo: this.props.tipo,
-        titulo: cambios.titulo !== undefined ? cambios.titulo : this.props.titulo,
+        titulo:
+          cambios.titulo !== undefined ? cambios.titulo : this.props.titulo,
         descripcion:
-          cambios.descripcion !== undefined ? cambios.descripcion : this.props.descripcion,
+          cambios.descripcion !== undefined
+            ? cambios.descripcion
+            : this.props.descripcion,
         url: cambios.url !== undefined ? cambios.url : this.props.url,
-        categoria: cambios.categoria !== undefined ? cambios.categoria : this.props.categoria,
+        categoria:
+          cambios.categoria !== undefined
+            ? cambios.categoria
+            : this.props.categoria,
         etiquetas: cambios.etiquetas ?? this.props.etiquetas,
       },
       this.props.id,

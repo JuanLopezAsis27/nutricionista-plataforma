@@ -1,14 +1,6 @@
 import { NextResponse } from "next/server";
-import { ErrorDominio, type CodigoErrorDominio } from "@/dominio/errores";
-
-/** Mapa código de dominio → status HTTP (para route handlers, no tRPC). */
-const MAPA_ESTADOS: Record<CodigoErrorDominio, number> = {
-  VALIDACION: 400,
-  NO_ENCONTRADO: 404,
-  CONFLICTO: 409,
-  ACCESO_DENEGADO: 403,
-  NO_AUTENTICADO: 401,
-};
+import { ErrorDominio } from "@/dominio/errores";
+import { MAPA_ESTADOS_HTTP } from "./mapaCodigos";
 
 /**
  * Convierte cualquier error en una respuesta JSON con el status apropiado.
@@ -18,7 +10,7 @@ export function aRespuestaError(error: unknown): NextResponse {
   if (error instanceof ErrorDominio) {
     return NextResponse.json(
       { error: error.message },
-      { status: MAPA_ESTADOS[error.codigo] },
+      { status: MAPA_ESTADOS_HTTP[error.codigo] },
     );
   }
   console.error("Error inesperado en route handler:", error);

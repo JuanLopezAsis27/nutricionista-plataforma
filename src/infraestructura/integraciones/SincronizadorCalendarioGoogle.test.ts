@@ -6,17 +6,28 @@ import type { DatosTurnoSync } from "@/dominio/servicios/ISincronizadorCalendari
 import {
   mockCuentaConectadaRepositorio,
   mockPacienteRepositorio,
+  mockConfiguracionRecordatoriosRepositorio,
+  mockEstablecimientoRepositorio,
   cuentaConectadaEjemplo,
   pacienteEjemplo,
-} from "@/dominio/casos-de-uso/_ayudas-test";
+} from "@/aplicacion/casos-de-uso/_ayudas-test";
 
-function proveedorMock(parcial: Partial<IProveedorGoogle> = {}): IProveedorGoogle {
+function proveedorMock(
+  parcial: Partial<IProveedorGoogle> = {},
+): IProveedorGoogle {
   return {
     urlConsentimiento: vi.fn(() => "url"),
     intercambiarCodigo: vi.fn(async () => ({
-      accessToken: "a", refreshToken: null, expiraEn: null, emailCuenta: "x@gmail.com", scopes: [],
+      accessToken: "a",
+      refreshToken: null,
+      expiraEn: null,
+      emailCuenta: "x@gmail.com",
+      scopes: [],
     })),
-    refrescarAccessToken: vi.fn(async () => ({ accessToken: "a2", expiraEn: null })),
+    refrescarAccessToken: vi.fn(async () => ({
+      accessToken: "a2",
+      expiraEn: null,
+    })),
     crearEvento: vi.fn(async () => "ev-1"),
     actualizarEvento: vi.fn(async () => {}),
     eliminarEvento: vi.fn(async () => {}),
@@ -39,6 +50,7 @@ function syncRepoMock(
 const turno: DatosTurnoSync = {
   id: "tur-1",
   pacienteId: "pac-1",
+  establecimientoId: "est-1",
   fecha: new Date("2026-08-10T00:00:00Z"),
   hora: "10:00",
   duracionMinutos: 30,
@@ -49,10 +61,16 @@ describe("SincronizadorCalendarioGoogle", () => {
     const crearEvento = vi.fn(async () => "ev-99");
     const guardar = vi.fn(async () => {});
     const sinc = new SincronizadorCalendarioGoogle(
-      mockCuentaConectadaRepositorio({ obtener: vi.fn(async () => cuentaConectadaEjemplo()) }),
+      mockCuentaConectadaRepositorio({
+        obtener: vi.fn(async () => cuentaConectadaEjemplo()),
+      }),
       syncRepoMock({ guardar }),
       proveedorMock({ crearEvento }),
-      mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => pacienteEjemplo()) }),
+      mockPacienteRepositorio({
+        obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+      }),
+      mockConfiguracionRecordatoriosRepositorio(),
+      mockEstablecimientoRepositorio(),
     );
 
     await sinc.alAgendar(turno);
@@ -70,6 +88,8 @@ describe("SincronizadorCalendarioGoogle", () => {
       syncRepoMock(),
       proveedorMock({ crearEvento }),
       mockPacienteRepositorio(),
+      mockConfiguracionRecordatoriosRepositorio(),
+      mockEstablecimientoRepositorio(),
     );
 
     await sinc.alAgendar(turno);
@@ -81,15 +101,21 @@ describe("SincronizadorCalendarioGoogle", () => {
     const eliminarEvento = vi.fn(async () => {});
     const eliminarPorTurno = vi.fn(async () => {});
     const sinc = new SincronizadorCalendarioGoogle(
-      mockCuentaConectadaRepositorio({ obtener: vi.fn(async () => cuentaConectadaEjemplo()) }),
+      mockCuentaConectadaRepositorio({
+        obtener: vi.fn(async () => cuentaConectadaEjemplo()),
+      }),
       syncRepoMock({
         obtenerPorTurno: vi.fn(async () => ({
-          cuentaId: "cta-1", turnoId: "tur-1", googleEventId: "ev-1",
+          cuentaId: "cta-1",
+          turnoId: "tur-1",
+          googleEventId: "ev-1",
         })),
         eliminarPorTurno,
       }),
       proveedorMock({ eliminarEvento }),
       mockPacienteRepositorio(),
+      mockConfiguracionRecordatoriosRepositorio(),
+      mockEstablecimientoRepositorio(),
     );
 
     await sinc.alCancelar("tur-1");
@@ -100,10 +126,20 @@ describe("SincronizadorCalendarioGoogle", () => {
 
   it("es best-effort: si Google falla, no propaga el error", async () => {
     const sinc = new SincronizadorCalendarioGoogle(
-      mockCuentaConectadaRepositorio({ obtener: vi.fn(async () => cuentaConectadaEjemplo()) }),
+      mockCuentaConectadaRepositorio({
+        obtener: vi.fn(async () => cuentaConectadaEjemplo()),
+      }),
       syncRepoMock(),
-      proveedorMock({ crearEvento: vi.fn(async () => { throw new Error("Google 500"); }) }),
-      mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => pacienteEjemplo()) }),
+      proveedorMock({
+        crearEvento: vi.fn(async () => {
+          throw new Error("Google 500");
+        }),
+      }),
+      mockPacienteRepositorio({
+        obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+      }),
+      mockConfiguracionRecordatoriosRepositorio(),
+      mockEstablecimientoRepositorio(),
     );
 
     await expect(sinc.alAgendar(turno)).resolves.toBeUndefined();

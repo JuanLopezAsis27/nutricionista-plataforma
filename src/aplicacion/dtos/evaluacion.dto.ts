@@ -3,6 +3,34 @@ import {
   TIPOS_ALERTA_ALIMENTARIA,
   SEVERIDADES_ALERTA,
 } from "@/dominio/entidades/AlertaAlimentaria";
+import { NIVELES_ACTIVIDAD } from "@/dominio/servicios/composicionCorporal";
+import { PROTOCOLOS_COMPOSICION } from "@/dominio/entidades/Antropometria";
+import { CAMPOS_PLANTILLA } from "@/dominio/entidades/PlantillaAntropometrica";
+import { MAXIMO_CAMPOS_EN_HISTORIA } from "@/dominio/entidades/HistoriaClinica";
+import {
+  CAMPOS_EVOLUCION,
+  MAXIMO_CAMPOS_EN_EVOLUCION,
+} from "@/dominio/entidades/Evolucion";
+import type {
+  AlcancePlantilla,
+  CampoPlantilla,
+} from "@/dominio/entidades/PlantillaAntropometrica";
+import type { ProtocoloComposicion } from "@/dominio/entidades/Antropometria";
+import type {
+  ResultadoComposicion,
+  SexoBiologico,
+  NivelActividad,
+} from "@/dominio/servicios/composicionCorporal";
+import { VARIABLES_COMPOSICION } from "@/dominio/entidades/ObjetivoComposicion";
+import type { VariableComposicion } from "@/dominio/entidades/ObjetivoComposicion";
+import { METODOS_GRASA } from "@/dominio/servicios/grasaPorPliegues";
+import type {
+  MetodoGrasa,
+  ProyeccionPliegues,
+} from "@/dominio/servicios/grasaPorPliegues";
+import { ESTADOS_OBJETIVO } from "@/dominio/entidades/Objetivo";
+import type { EstadoObjetivo } from "@/dominio/entidades/Objetivo";
+import type { ProyeccionObjetivo } from "@/dominio/servicios/proyeccionComposicion";
 
 /** DTOs de Evaluación Integral — esquemas Zod de entrada/salida. */
 
@@ -10,17 +38,39 @@ import {
 
 const campoTextoLargo = z.string().max(5000).optional().nullable();
 
+/**
+ * Valor de un campo personalizado dentro de la historia de UN paciente.
+ * Viaja con su etiqueta, no solo con la clave: así la historia se sigue
+ * leyendo aunque después se borre la definición del campo.
+ */
+export const campoPersonalizadoHistoriaDto = z.object({
+  clave: z.string().min(1).max(60),
+  etiqueta: z.string().min(1).max(80),
+  valor: z.string().max(5000),
+});
+export type CampoPersonalizadoHistoriaDto = z.infer<
+  typeof campoPersonalizadoHistoriaDto
+>;
+
 export const guardarHistoriaClinicaDto = z.object({
   pacienteId: z.string().min(1),
   motivoConsulta: campoTextoLargo,
   diagnosticos: campoTextoLargo,
   medicacion: campoTextoLargo,
-  antecedentesPersonales: campoTextoLargo,
+  antecedentesDigestivos: campoTextoLargo,
   antecedentesFamiliares: campoTextoLargo,
+  entrenamientos: campoTextoLargo,
+  descanso: campoTextoLargo,
   habitos: campoTextoLargo,
   contexto: campoTextoLargo,
+  camposPersonalizados: z
+    .array(campoPersonalizadoHistoriaDto)
+    .max(MAXIMO_CAMPOS_EN_HISTORIA)
+    .optional(),
 });
-export type GuardarHistoriaClinicaDto = z.infer<typeof guardarHistoriaClinicaDto>;
+export type GuardarHistoriaClinicaDto = z.infer<
+  typeof guardarHistoriaClinicaDto
+>;
 
 export const historiaClinicaSalidaDto = z.object({
   id: z.string(),
@@ -28,22 +78,231 @@ export const historiaClinicaSalidaDto = z.object({
   motivoConsulta: z.string().nullable(),
   diagnosticos: z.string().nullable(),
   medicacion: z.string().nullable(),
-  antecedentesPersonales: z.string().nullable(),
+  antecedentesDigestivos: z.string().nullable(),
   antecedentesFamiliares: z.string().nullable(),
+  entrenamientos: z.string().nullable(),
+  descanso: z.string().nullable(),
   habitos: z.string().nullable(),
   contexto: z.string().nullable(),
+  camposPersonalizados: z.array(campoPersonalizadoHistoriaDto),
   actualizadoEn: z.date(),
 });
 export type HistoriaClinicaSalidaDto = z.infer<typeof historiaClinicaSalidaDto>;
+
+export const interpretarHistoriaClinicaDto = z.object({
+  pacienteId: z.string().min(1),
+  archivoId: z.string().min(1),
+});
+export type InterpretarHistoriaClinicaDto = z.infer<
+  typeof interpretarHistoriaClinicaDto
+>;
+
+export const historiaClinicaSugeridaDto = z.object({
+  motivoConsulta: z.string().nullable(),
+  diagnosticos: z.string().nullable(),
+  medicacion: z.string().nullable(),
+  antecedentesDigestivos: z.string().nullable(),
+  antecedentesFamiliares: z.string().nullable(),
+  entrenamientos: z.string().nullable(),
+  descanso: z.string().nullable(),
+  habitos: z.string().nullable(),
+  contexto: z.string().nullable(),
+});
+export type HistoriaClinicaSugeridaDto = z.infer<
+  typeof historiaClinicaSugeridaDto
+>;
+
+// --- Evoluciones de control ---------------------------------------------------
+
+/**
+ * Valor de un campo personalizado dentro de UNA evolución. Viaja con su
+ * etiqueta por lo mismo que el de la historia clínica.
+ */
+export const campoPersonalizadoEvolucionDto = z.object({
+  clave: z.string().min(1).max(60),
+  etiqueta: z.string().min(1).max(80),
+  valor: z.string().max(2000),
+});
+export type CampoPersonalizadoEvolucionDto = z.infer<
+  typeof campoPersonalizadoEvolucionDto
+>;
+
+const campoEvolucionTexto = z.string().max(2000).optional().nullable();
+
+/** Los campos fijos salen de la entidad: sumar uno allá lo trae acá solo. */
+const camposEvolucionDto = z.object(
+  Object.fromEntries(
+    CAMPOS_EVOLUCION.map((campo) => [campo, campoEvolucionTexto]),
+  ) as Record<(typeof CAMPOS_EVOLUCION)[number], typeof campoEvolucionTexto>,
+);
+
+/**
+ * Lo que la IA leyó del documento: la historia clínica y las evoluciones de
+ * control que traiga. Nada de esto está persistido.
+ */
+export const lecturaHistoriaClinicaDto = z.object({
+  campos: historiaClinicaSugeridaDto,
+  evoluciones: z.array(
+    camposEvolucionDto.extend({
+      // La fecha viaja como ISO y no como Date: puede venir en null cuando
+      // el documento no fecha ese bloque, y quien la completa es el
+      // profesional en la pantalla de revisión.
+      fecha: z.string().nullable(),
+      camposPersonalizados: z.array(campoPersonalizadoEvolucionDto),
+    }),
+  ),
+});
+export type LecturaHistoriaClinicaDto = z.infer<
+  typeof lecturaHistoriaClinicaDto
+>;
+
+/** Ids de fotos ya subidas (módulo Archivos) que se vinculan al guardar. */
+const fotoIdsEvolucionDto = z.array(z.string().min(1)).max(20).optional();
+
+export const registrarEvolucionDto = camposEvolucionDto.extend({
+  pacienteId: z.string().min(1),
+  fecha: z.coerce.date(),
+  camposPersonalizados: z
+    .array(campoPersonalizadoEvolucionDto)
+    .max(MAXIMO_CAMPOS_EN_EVOLUCION)
+    .optional(),
+  fotoIds: fotoIdsEvolucionDto,
+});
+export type RegistrarEvolucionDto = z.infer<typeof registrarEvolucionDto>;
+
+export const actualizarEvolucionDto = camposEvolucionDto.extend({
+  id: z.string().min(1),
+  fecha: z.coerce.date().optional(),
+  camposPersonalizados: z
+    .array(campoPersonalizadoEvolucionDto)
+    .max(MAXIMO_CAMPOS_EN_EVOLUCION)
+    .optional(),
+  fotoIds: fotoIdsEvolucionDto,
+});
+export type ActualizarEvolucionDto = z.infer<typeof actualizarEvolucionDto>;
+
+export const idEvolucionDto = z.object({ id: z.string().min(1) });
+
+export const importarEvolucionesDto = z.object({
+  pacienteId: z.string().min(1),
+  evoluciones: z
+    .array(
+      camposEvolucionDto.extend({
+        fecha: z.coerce.date(),
+        camposPersonalizados: z
+          .array(campoPersonalizadoEvolucionDto)
+          .max(MAXIMO_CAMPOS_EN_EVOLUCION)
+          .optional(),
+      }),
+    )
+    .min(1, "No hay evoluciones para importar")
+    .max(60),
+});
+export type ImportarEvolucionesDto = z.infer<typeof importarEvolucionesDto>;
+
+/** Foto de una evolución, ya subida y vinculada. */
+export interface FotoEvolucionDto {
+  id: string;
+  nombreOriginal: string;
+  mimeType: string;
+}
+
+export interface EvolucionSalidaDto {
+  id: string;
+  pacienteId: string;
+  fecha: Date;
+  cumplimientoDieta: string | null;
+  entrenamiento: string | null;
+  deposiciones: string | null;
+  orina: string | null;
+  descanso: string | null;
+  indispuesta: string | null;
+  sePercibe: string | null;
+  camposPersonalizados: CampoPersonalizadoEvolucionDto[];
+  fotos: FotoEvolucionDto[];
+  creadoEn: Date;
+  actualizadoEn: Date;
+}
+
+/** Qué pasó con cada evolución del lote, para el resumen de la importación. */
+export interface ResultadoImportacionEvolucionesDto {
+  registradas: number;
+  resultados: {
+    fecha: Date;
+    estado: "REGISTRADA" | "DUPLICADA" | "RECHAZADA";
+    motivo: string | null;
+  }[];
+  /** Las evoluciones ya recargadas: la lista se repinta con lo importado. */
+  evoluciones: EvolucionSalidaDto[];
+}
+
+// --- Campos personalizados de las evoluciones (definidos por consultorio) ------
+
+export const guardarCampoEvolucionDto = z.object({
+  /** Sin id se crea; con id se renombra el existente (la clave no cambia). */
+  id: z.string().min(1).optional(),
+  nombre: z.string().min(1, "El nombre es obligatorio").max(80),
+  descripcion: z.string().max(300).optional().nullable(),
+  orden: z.number().int().min(0).max(999).optional(),
+});
+export type GuardarCampoEvolucionDto = z.infer<typeof guardarCampoEvolucionDto>;
+
+export const idCampoEvolucionDto = z.object({ id: z.string().min(1) });
+
+export const campoEvolucionSalidaDto = z.object({
+  id: z.string(),
+  clave: z.string(),
+  nombre: z.string(),
+  descripcion: z.string().nullable(),
+  orden: z.number(),
+});
+export type CampoEvolucionSalidaDto = z.infer<typeof campoEvolucionSalidaDto>;
+
+// --- Campos personalizados de la historia clínica (definidos por consultorio) --
+
+export const guardarCampoHistoriaClinicaDto = z.object({
+  /** Sin id se crea; con id se renombra el existente (la clave no cambia). */
+  id: z.string().min(1).optional(),
+  nombre: z.string().min(1, "El nombre es obligatorio").max(80),
+  descripcion: z.string().max(300).optional().nullable(),
+  orden: z.number().int().min(0).max(999).optional(),
+});
+export type GuardarCampoHistoriaClinicaDto = z.infer<
+  typeof guardarCampoHistoriaClinicaDto
+>;
+
+export const idCampoHistoriaClinicaDto = z.object({ id: z.string().min(1) });
+
+export const campoHistoriaClinicaSalidaDto = z.object({
+  id: z.string(),
+  clave: z.string(),
+  nombre: z.string(),
+  descripcion: z.string().nullable(),
+  orden: z.number(),
+});
+export type CampoHistoriaClinicaSalidaDto = z.infer<
+  typeof campoHistoriaClinicaSalidaDto
+>;
 
 // --- Antropometría ------------------------------------------------------------
 
 const pliegue = z.number().min(1).max(80).optional().nullable();
 const circunferencia = z.number().min(20).max(250).optional().nullable();
+const diametro = z.number().min(2).max(60).optional().nullable();
 
 export const medidasAntropometricasDto = z.object({
   pesoKg: z.number().min(20).max(400),
   tallaCm: z.number().min(100).max(250).optional().nullable(),
+  tallaSentadoCm: z.number().min(50).max(150).optional().nullable(),
+  nivelActividad: z.enum(NIVELES_ACTIVIDAD).optional().nullable(),
+  protocolo: z.enum(PROTOCOLOS_COMPOSICION).optional(),
+  metodoGrasa: z.enum(METODOS_GRASA).optional().nullable(),
+  diamBiacromial: diametro,
+  diamToraxTransverso: diametro,
+  diamToraxAnteroposterior: diametro,
+  diamBiiliocrestideo: diametro,
+  diamHumeral: diametro,
+  diamFemoral: diametro,
   pliegueTricipital: pliegue,
   pliegueSubescapular: pliegue,
   pliegueSupraespinal: pliegue,
@@ -52,13 +311,23 @@ export const medidasAntropometricasDto = z.object({
   plieguePantorrilla: pliegue,
   pliegueBicipital: pliegue,
   pliegueCrestaIliaca: pliegue,
+  plieguePectoral: pliegue,
+  pliegueAxilarMedio: pliegue,
+  pliegueLumbar: pliegue,
   circTorax: circunferencia,
   circCinturaMinima: circunferencia,
   circCinturaMaxima: circunferencia,
   circCadera: circunferencia,
   circBrazo: circunferencia,
   circBrazoContraido: circunferencia,
+  circCabeza: circunferencia,
+  circAntebrazo: circunferencia,
+  circMusloMaximo: circunferencia,
+  circMusloMedial: circunferencia,
+  circPantorrilla: circunferencia,
   kgGrasa: z.number().min(0).max(150).optional().nullable(),
+  fuerzaPresionDerecha: z.number().min(0).max(100).optional().nullable(),
+  fuerzaPresionIzquierda: z.number().min(0).max(100).optional().nullable(),
   observaciones: z.string().max(2000).optional().nullable(),
 });
 
@@ -66,7 +335,9 @@ export const registrarAntropometriaDto = medidasAntropometricasDto.extend({
   pacienteId: z.string().min(1),
   fecha: z.coerce.date(),
 });
-export type RegistrarAntropometriaDto = z.infer<typeof registrarAntropometriaDto>;
+export type RegistrarAntropometriaDto = z.infer<
+  typeof registrarAntropometriaDto
+>;
 
 export const actualizarAntropometriaDto = medidasAntropometricasDto
   .partial()
@@ -74,9 +345,64 @@ export const actualizarAntropometriaDto = medidasAntropometricasDto
     id: z.string().min(1),
     fecha: z.coerce.date().optional(),
   });
-export type ActualizarAntropometriaDto = z.infer<typeof actualizarAntropometriaDto>;
+export type ActualizarAntropometriaDto = z.infer<
+  typeof actualizarAntropometriaDto
+>;
 
 export const idAntropometriaDto = z.object({ id: z.string().min(1) });
+
+// --- Importación de mediciones desde una planilla ------------------------------
+
+export const interpretarMedicionesDto = z.object({
+  pacienteId: z.string().min(1),
+  archivoId: z.string().min(1),
+});
+export type InterpretarMedicionesDto = z.infer<typeof interpretarMedicionesDto>;
+
+/**
+ * Una medición leída de la planilla, tal como se la ofrece a la UI.
+ *
+ * Las medidas se validan con el mismo esquema que la carga a mano, salvo el
+ * peso y la fecha: la planilla puede no traerlos y la pantalla de revisión
+ * tiene que poder mostrar igual la columna para que el profesional la
+ * complete o la descarte. Al importar sí son obligatorios.
+ */
+export const medicionSugeridaDto = medidasAntropometricasDto.partial().extend({
+  fecha: z.string().nullable(),
+  pesoKg: z.number().min(20).max(400).nullable(),
+});
+export type MedicionSugeridaDto = z.infer<typeof medicionSugeridaDto>;
+
+export const medicionesSugeridasDto = z.object({
+  nombreEnPlanilla: z.string().nullable(),
+  mediciones: z.array(medicionSugeridaDto),
+});
+export type MedicionesSugeridasDto = z.infer<typeof medicionesSugeridasDto>;
+
+export const importarMedicionesDto = z.object({
+  pacienteId: z.string().min(1),
+  mediciones: z
+    .array(
+      medidasAntropometricasDto.extend({
+        fecha: z.coerce.date(),
+      }),
+    )
+    .min(1, "No hay mediciones para importar")
+    .max(60),
+});
+export type ImportarMedicionesDto = z.infer<typeof importarMedicionesDto>;
+
+/** Qué pasó con cada medición del lote, para el resumen de la importación. */
+export interface ResultadoImportacionDto {
+  registradas: number;
+  resultados: {
+    fecha: Date;
+    estado: "REGISTRADA" | "DUPLICADA" | "RECHAZADA";
+    motivo: string | null;
+  }[];
+  /** Evolución ya recalculada: la tabla se repinta con lo importado. */
+  evolucion: EvolucionAntropometricaDto;
+}
 
 /** Medición + derivados de la planilla, para la vista de evolución. */
 export interface MedicionEvolucionDto {
@@ -85,6 +411,16 @@ export interface MedicionEvolucionDto {
   fecha: Date;
   pesoKg: number;
   tallaCm: number | null;
+  tallaSentadoCm: number | null;
+  nivelActividad: NivelActividad | null;
+  protocolo: ProtocoloComposicion;
+  metodoGrasa: MetodoGrasa | null;
+  diamBiacromial: number | null;
+  diamToraxTransverso: number | null;
+  diamToraxAnteroposterior: number | null;
+  diamBiiliocrestideo: number | null;
+  diamHumeral: number | null;
+  diamFemoral: number | null;
   pliegueTricipital: number | null;
   pliegueSubescapular: number | null;
   pliegueSupraespinal: number | null;
@@ -93,13 +429,23 @@ export interface MedicionEvolucionDto {
   plieguePantorrilla: number | null;
   pliegueBicipital: number | null;
   pliegueCrestaIliaca: number | null;
+  plieguePectoral: number | null;
+  pliegueAxilarMedio: number | null;
+  pliegueLumbar: number | null;
   circTorax: number | null;
   circCinturaMinima: number | null;
   circCinturaMaxima: number | null;
   circCadera: number | null;
   circBrazo: number | null;
   circBrazoContraido: number | null;
+  circCabeza: number | null;
+  circAntebrazo: number | null;
+  circMusloMaximo: number | null;
+  circMusloMedial: number | null;
+  circPantorrilla: number | null;
   kgGrasa: number | null;
+  fuerzaPresionDerecha: number | null;
+  fuerzaPresionIzquierda: number | null;
   observaciones: string | null;
   creadoEn: Date;
   // Derivados (calculados por el dominio, nunca persistidos)
@@ -112,6 +458,102 @@ export interface EvolucionAntropometricaDto {
   mediciones: MedicionEvolucionDto[];
 }
 
+// --- Composición corporal -------------------------------------------------------
+
+/**
+ * Una medición con todo lo que el dominio derivó de ella. El `resultado` sale
+ * tal cual del servicio de dominio: los tipos de `composicionCorporal` son
+ * estructuras planas de números, seguras de cruzar la frontera de tRPC.
+ */
+export interface MedicionComposicionDto {
+  id: string;
+  fecha: Date;
+  observaciones: string | null;
+  nivelActividad: NivelActividad | null;
+  protocolo: ProtocoloComposicion;
+  /** Ecuación destacada; null = la primera que se pueda calcular. */
+  metodoGrasa: MetodoGrasa | null;
+  /** Edad del paciente el día de la medición. */
+  edadAnios: number | null;
+  medidas: MedicionEvolucionDto;
+  resultado: ResultadoComposicion;
+}
+
+/** Meta de composición + su proyección contra la serie histórica. */
+export interface ObjetivoComposicionDto {
+  id: string;
+  pacienteId: string;
+  variable: VariableComposicion;
+  /** Ecuación con la que se sigue la meta (solo en variables de grasa). */
+  metodoGrasa: MetodoGrasa | null;
+  /** Nombre de la meta ya compuesto: incluye la ecuación cuando la hay. */
+  descripcion: string;
+  valorObjetivo: number;
+  fechaObjetivo: Date | null;
+  estado: EstadoObjetivo;
+  notas: string | null;
+  creadoEn: Date;
+  proyeccion: ProyeccionObjetivo;
+  /** Pliegues proyectados para la meta; null si la variable no los define. */
+  proyeccionPliegues: ProyeccionPliegues | null;
+}
+
+/** Valor que hoy tiene una variable objetivable (de la última medición). */
+export interface ValorActualVariableDto {
+  variable: VariableComposicion;
+  metodoGrasa: MetodoGrasa | null;
+  valor: number;
+}
+
+/** Todo lo que consume el dashboard de composición corporal. */
+export interface ComposicionCorporalDto {
+  sexo: SexoBiologico | null;
+  fechaNacimiento: Date | null;
+  mediciones: MedicionComposicionDto[];
+  objetivos: ObjetivoComposicionDto[];
+  /** Punto de partida para plantear metas nuevas, por variable y ecuación. */
+  valoresActuales: ValorActualVariableDto[];
+}
+
+export const guardarObjetivoComposicionDto = z.object({
+  pacienteId: z.string().min(1),
+  variable: z.enum(VARIABLES_COMPOSICION),
+  metodoGrasa: z.enum(METODOS_GRASA).optional().nullable(),
+  valorObjetivo: z.number().finite(),
+  fechaObjetivo: z.coerce.date().optional().nullable(),
+  notas: z.string().max(1000).optional().nullable(),
+  estado: z.enum(ESTADOS_OBJETIVO).optional(),
+});
+export type GuardarObjetivoComposicionDto = z.infer<
+  typeof guardarObjetivoComposicionDto
+>;
+
+export const idObjetivoComposicionDto = z.object({ id: z.string().min(1) });
+
+// --- Plantillas de carga --------------------------------------------------------
+
+export const guardarPlantillaAntropometricaDto = z.object({
+  id: z.string().min(1).optional(),
+  nombre: z.string().min(1, "La plantilla necesita un nombre").max(80),
+  descripcion: z.string().max(500).optional().nullable(),
+  campos: z.array(z.enum(CAMPOS_PLANTILLA)).min(1, "Elegí al menos un campo"),
+});
+export type GuardarPlantillaAntropometricaDto = z.infer<
+  typeof guardarPlantillaAntropometricaDto
+>;
+
+export const idPlantillaAntropometricaDto = z.object({ id: z.string().min(1) });
+
+/** Plantilla + qué resultados habilita (lo calcula el dominio). */
+export interface PlantillaAntropometricaDto {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  campos: CampoPlantilla[];
+  alcance: AlcancePlantilla;
+  creadoEn: Date;
+}
+
 // --- Alertas alimentarias -----------------------------------------------------
 
 export const registrarAlertaAlimentariaDto = z.object({
@@ -121,7 +563,9 @@ export const registrarAlertaAlimentariaDto = z.object({
   severidad: z.enum(SEVERIDADES_ALERTA).optional(),
   notas: z.string().max(1000).optional().nullable(),
 });
-export type RegistrarAlertaAlimentariaDto = z.infer<typeof registrarAlertaAlimentariaDto>;
+export type RegistrarAlertaAlimentariaDto = z.infer<
+  typeof registrarAlertaAlimentariaDto
+>;
 
 export const actualizarAlertaAlimentariaDto = z.object({
   id: z.string().min(1),
@@ -130,7 +574,9 @@ export const actualizarAlertaAlimentariaDto = z.object({
   severidad: z.enum(SEVERIDADES_ALERTA).optional(),
   notas: z.string().max(1000).optional().nullable(),
 });
-export type ActualizarAlertaAlimentariaDto = z.infer<typeof actualizarAlertaAlimentariaDto>;
+export type ActualizarAlertaAlimentariaDto = z.infer<
+  typeof actualizarAlertaAlimentariaDto
+>;
 
 export const alertaAlimentariaSalidaDto = z.object({
   id: z.string(),
@@ -141,7 +587,9 @@ export const alertaAlimentariaSalidaDto = z.object({
   notas: z.string().nullable(),
   creadoEn: z.date(),
 });
-export type AlertaAlimentariaSalidaDto = z.infer<typeof alertaAlimentariaSalidaDto>;
+export type AlertaAlimentariaSalidaDto = z.infer<
+  typeof alertaAlimentariaSalidaDto
+>;
 
 // --- Laboratorios ---------------------------------------------------------------
 
@@ -183,4 +631,6 @@ export type LaboratorioSalidaDto = z.infer<typeof laboratorioSalidaDto>;
 
 // --- Comunes --------------------------------------------------------------------
 
-export const idPacienteEvaluacionDto = z.object({ pacienteId: z.string().min(1) });
+export const idPacienteEvaluacionDto = z.object({
+  pacienteId: z.string().min(1),
+});

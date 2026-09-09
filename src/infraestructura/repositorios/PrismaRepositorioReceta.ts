@@ -4,15 +4,23 @@ import type {
   FiltroRecetas,
 } from "@/dominio/repositorios/IRecetaRepositorio";
 import { Receta, type IngredienteDeReceta } from "@/dominio/entidades/Receta";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /** Fila de receta con sus fotos e ingredientes incluidos. */
 type RecetaConDetalle = Prisma.RecetaGetPayload<{
-  include: { fotos: true; ingredientes: true };
+  include: {
+    fotos: true;
+    ingredientes: true;
+    grupo: { select: { nombre: true } };
+  };
 }>;
 
 const INCLUIR = {
   fotos: true,
   ingredientes: { orderBy: { orden: "asc" } },
+  // El nombre de la carpeta viaja con la receta: la tarjeta lo muestra y sin
+  // esto haría una consulta por receta para pintar un rótulo.
+  grupo: { select: { nombre: true } },
 } satisfies Prisma.RecetaInclude;
 
 /** Decimal (o null) → number (o null). El Decimal nunca cruza a capas altas. */
@@ -23,6 +31,9 @@ function aNumero(valor: Prisma.Decimal | null): number | null {
 /** Datos de una fila de ingrediente a persistir (orden = posición en la lista). */
 function datosIngrediente(ing: IngredienteDeReceta, orden: number) {
   return {
+    // El ingrediente hereda el inquilino de su receta, pero lo lleva
+    // materializado para que la extensión pueda filtrarlo por id directo.
+    nutricionistaId: inquilinoActual(),
     nombre: ing.nombre,
     cantidadGramos: ing.cantidadGramos,
     caloriasPor100: ing.caloriasPor100,
@@ -44,33 +55,42 @@ function datosIngrediente(ing: IngredienteDeReceta, orden: number) {
 export class PrismaRepositorioReceta implements IRecetaRepositorio {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async crear(receta: Receta, fotoIds: string[]): Promise<Receta> {
+  async crear(receta: Receta, archivoIds: string[]): Promise<Receta> {
     const d = receta.aPrimitivos();
     const fila = await this.prisma.$transaction(async (tx) => {
       await tx.receta.create({
         data: {
           id: d.id,
+          nutricionistaId: inquilinoActual(),
           nombre: d.nombre,
           descripcion: d.descripcion,
           porciones: d.porciones,
           preparacion: d.preparacion,
           etiquetas: d.etiquetas,
+          enlaces: d.enlaces,
           calorias: d.calorias,
           proteinasG: d.proteinasG,
           carbohidratosG: d.carbohidratosG,
           grasasG: d.grasasG,
+          grupoId: d.grupoId,
           creadoEn: d.creadoEn,
           actualizadoEn: d.actualizadoEn,
           ingredientes: { create: d.ingredientes.map(datosIngrediente) },
         },
       });
-      await this.vincularFotos(tx, d.id, fotoIds);
-      return tx.receta.findUniqueOrThrow({ where: { id: d.id }, include: INCLUIR });
+      await this.vincularArchivos(tx, d.id, archivoIds);
+      return tx.receta.findUniqueOrThrow({
+        where: { id: d.id },
+        include: INCLUIR,
+      });
     });
-    return this.mapear(fila);
+    return mapearReceta(fila);
   }
 
-  async actualizar(receta: Receta, fotoIdsNuevos: string[]): Promise<Receta> {
+  async actualizar(
+    receta: Receta,
+    archivoIdsNuevos: string[],
+  ): Promise<Receta> {
     const d = receta.aPrimitivos();
     const fila = await this.prisma.$transaction(async (tx) => {
       await tx.receta.update({
@@ -81,18 +101,27 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
           porciones: d.porciones,
           preparacion: d.preparacion,
           etiquetas: d.etiquetas,
+          enlaces: d.enlaces,
           calorias: d.calorias,
           proteinasG: d.proteinasG,
           carbohidratosG: d.carbohidratosG,
           grasasG: d.grasasG,
+          grupoId: d.grupoId,
+          fotoPrincipalId: d.fotoPrincipalId,
           // Reemplaza la lista completa de ingredientes (agregado).
-          ingredientes: { deleteMany: {}, create: d.ingredientes.map(datosIngrediente) },
+          ingredientes: {
+            deleteMany: {},
+            create: d.ingredientes.map(datosIngrediente),
+          },
         },
       });
-      await this.vincularFotos(tx, d.id, fotoIdsNuevos);
-      return tx.receta.findUniqueOrThrow({ where: { id: d.id }, include: INCLUIR });
+      await this.vincularArchivos(tx, d.id, archivoIdsNuevos);
+      return tx.receta.findUniqueOrThrow({
+        where: { id: d.id },
+        include: INCLUIR,
+      });
     });
-    return this.mapear(fila);
+    return mapearReceta(fila);
   }
 
   async eliminar(id: string): Promise<void> {
@@ -106,10 +135,29 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
       where: { id },
       include: INCLUIR,
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearReceta(fila) : null;
   }
 
   async listar(filtro?: FiltroRecetas): Promise<Receta[]> {
+    const filas = await this.prisma.receta.findMany({
+      where: this.construirWhere(filtro),
+      include: INCLUIR,
+      orderBy: { nombre: "asc" },
+      skip: filtro?.desplazamiento,
+      take: filtro?.limite,
+    });
+    return filas.map((fila) => mapearReceta(fila));
+  }
+
+  contar(filtro?: FiltroRecetas): Promise<number> {
+    return this.prisma.receta.count({ where: this.construirWhere(filtro) });
+  }
+
+  async moverAGrupo(id: string, grupoId: string | null): Promise<void> {
+    await this.prisma.receta.update({ where: { id }, data: { grupoId } });
+  }
+
+  private construirWhere(filtro?: FiltroRecetas): Prisma.RecetaWhereInput {
     const where: Prisma.RecetaWhereInput = {};
     if (filtro?.texto) {
       where.OR = [
@@ -120,24 +168,33 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
     if (filtro?.etiqueta) {
       where.etiquetas = { has: filtro.etiqueta };
     }
-    const filas = await this.prisma.receta.findMany({
-      where,
-      include: INCLUIR,
-      orderBy: { nombre: "asc" },
-    });
-    return filas.map((fila) => this.mapear(fila));
+    // `null` es un filtro válido —las recetas SUELTAS— y distinto de "sin
+    // filtrar". Por eso se compara contra undefined y no con un `if (grupoId)`.
+    if (filtro?.grupoId !== undefined) {
+      where.grupoId = filtro.grupoId;
+    }
+    return where;
   }
 
-  async asignarAPaciente(recetaId: string, pacienteId: string, id: string): Promise<void> {
+  async asignarAPaciente(
+    recetaId: string,
+    pacienteId: string,
+    id: string,
+  ): Promise<void> {
     await this.prisma.asignacionReceta.upsert({
       where: { recetaId_pacienteId: { recetaId, pacienteId } },
-      create: { id, recetaId, pacienteId },
+      create: { id, nutricionistaId: inquilinoActual(), recetaId, pacienteId },
       update: {},
     });
   }
 
-  async desasignarDePaciente(recetaId: string, pacienteId: string): Promise<void> {
-    await this.prisma.asignacionReceta.deleteMany({ where: { recetaId, pacienteId } });
+  async desasignarDePaciente(
+    recetaId: string,
+    pacienteId: string,
+  ): Promise<void> {
+    await this.prisma.asignacionReceta.deleteMany({
+      where: { recetaId, pacienteId },
+    });
   }
 
   async listarPorPaciente(pacienteId: string): Promise<Receta[]> {
@@ -146,7 +203,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
       include: INCLUIR,
       orderBy: { nombre: "asc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearReceta(fila));
   }
 
   async listarPacientesAsignados(recetaId: string): Promise<string[]> {
@@ -158,48 +215,63 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
   }
 
   /** Vincula archivos ya subidos a la receta (fija su recetaId). */
-  private async vincularFotos(
+  private async vincularArchivos(
     tx: Prisma.TransactionClient,
     recetaId: string,
-    fotoIds: string[],
+    archivoIds: string[],
   ): Promise<void> {
-    if (fotoIds.length > 0) {
+    if (archivoIds.length > 0) {
       await tx.archivo.updateMany({
-        where: { id: { in: fotoIds } },
+        where: { id: { in: archivoIds } },
         data: { recetaId },
       });
     }
   }
+}
 
-  private mapear(fila: RecetaConDetalle): Receta {
-    return Receta.reconstruir({
-      id: fila.id,
-      nombre: fila.nombre,
-      descripcion: fila.descripcion,
-      porciones: fila.porciones,
-      preparacion: fila.preparacion,
-      ingredientes: fila.ingredientes.map((ing) => ({
-        nombre: ing.nombre,
-        cantidadGramos: aNumero(ing.cantidadGramos),
-        caloriasPor100: aNumero(ing.caloriasPor100),
-        proteinasPor100: aNumero(ing.proteinasPor100),
-        carbohidratosPor100: aNumero(ing.carbohidratosPor100),
-        grasasPor100: aNumero(ing.grasasPor100),
-        fuente: ing.fuente,
-        referenciaExterna: ing.referenciaExterna,
-      })),
-      etiquetas: fila.etiquetas,
-      calorias: fila.calorias,
-      proteinasG: aNumero(fila.proteinasG),
-      carbohidratosG: aNumero(fila.carbohidratosG),
-      grasasG: aNumero(fila.grasasG),
-      fotos: fila.fotos.map((foto) => ({
+export function mapearReceta(fila: RecetaConDetalle): Receta {
+  return Receta.reconstruir({
+    id: fila.id,
+    nombre: fila.nombre,
+    descripcion: fila.descripcion,
+    porciones: fila.porciones,
+    preparacion: fila.preparacion,
+    ingredientes: fila.ingredientes.map((ing) => ({
+      nombre: ing.nombre,
+      cantidadGramos: aNumero(ing.cantidadGramos),
+      caloriasPor100: aNumero(ing.caloriasPor100),
+      proteinasPor100: aNumero(ing.proteinasPor100),
+      carbohidratosPor100: aNumero(ing.carbohidratosPor100),
+      grasasPor100: aNumero(ing.grasasPor100),
+      fuente: ing.fuente,
+      referenciaExterna: ing.referenciaExterna,
+    })),
+    etiquetas: fila.etiquetas,
+    fotoPrincipalId: fila.fotoPrincipalId,
+    enlaces: fila.enlaces,
+    calorias: aNumero(fila.calorias),
+    proteinasG: aNumero(fila.proteinasG),
+    carbohidratosG: aNumero(fila.carbohidratosG),
+    grasasG: aNumero(fila.grasasG),
+    // Los archivos vinculados a la receta se separan por tipo: las imágenes
+    // son fotos; el resto (PDF, Word) son documentos adjuntos.
+    fotos: fila.fotos
+      .filter((a) => a.mimeType.startsWith("image/"))
+      .map((foto) => ({
         id: foto.id,
         nombreOriginal: foto.nombreOriginal,
         mimeType: foto.mimeType,
       })),
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+    documentos: fila.fotos
+      .filter((a) => !a.mimeType.startsWith("image/"))
+      .map((doc) => ({
+        id: doc.id,
+        nombreOriginal: doc.nombreOriginal,
+        mimeType: doc.mimeType,
+      })),
+    grupoId: fila.grupoId,
+    grupoNombre: fila.grupo?.nombre ?? null,
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }

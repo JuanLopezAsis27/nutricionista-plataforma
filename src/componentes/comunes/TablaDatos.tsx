@@ -48,7 +48,9 @@ export function TablaDatos<T>({
   onCambiarPagina,
 }: PropsTablaDatos<T>) {
   const hayPaginacion =
-    pagina !== undefined && totalPaginas !== undefined && onCambiarPagina !== undefined;
+    pagina !== undefined &&
+    totalPaginas !== undefined &&
+    onCambiarPagina !== undefined;
 
   return (
     <div className="space-y-4">
@@ -87,10 +89,15 @@ export function TablaDatos<T>({
               datos.map((fila) => (
                 <TableRow key={obtenerClave(fila)}>
                   {columnas.map((columna) => (
-                    <TableCell key={columna.clave} className={columna.className}>
+                    <TableCell
+                      key={columna.clave}
+                      className={columna.className}
+                    >
                       {columna.render
                         ? columna.render(fila)
-                        : String((fila as Record<string, unknown>)[columna.clave] ?? "—")}
+                        : aTexto(
+                            (fila as Record<string, unknown>)[columna.clave],
+                          )}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -125,4 +132,27 @@ export function TablaDatos<T>({
       )}
     </div>
   );
+}
+
+/**
+ * Valor de celda a texto, sin caer nunca en "[object Object]".
+ *
+ * Una columna sin `render` se dibuja tal cual, y `String()` sobre un objeto
+ * imprime "[object Object]" en la pantalla del profesional sin que nada falle.
+ * Ante un valor no imprimible se muestra el guion: es lo mismo que ya se hace
+ * con null, y deja claro que ahí falta un `render` en la definición de la
+ * columna.
+ */
+function aTexto(valor: unknown): string {
+  switch (typeof valor) {
+    case "string":
+      return valor;
+    case "number":
+    case "bigint":
+    case "boolean":
+      return valor.toString();
+    default:
+      // null, undefined, objetos, arrays, funciones y símbolos.
+      return "—";
+  }
 }

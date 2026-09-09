@@ -3,21 +3,21 @@ import type { IAlertaSeguimientoRepositorio } from "@/dominio/repositorios/IAler
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IRegistroDiarioRepositorio } from "@/dominio/repositorios/IRegistroDiarioRepositorio";
 import type { IAntropometriaRepositorio } from "@/dominio/repositorios/IAntropometriaRepositorio";
-import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
+import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
-import { RegistrarSuplemento } from "@/dominio/casos-de-uso/seguimiento/RegistrarSuplemento";
-import { ActualizarSuplemento } from "@/dominio/casos-de-uso/seguimiento/ActualizarSuplemento";
-import { EliminarSuplemento } from "@/dominio/casos-de-uso/seguimiento/EliminarSuplemento";
-import { ObtenerSuplementosDelPaciente } from "@/dominio/casos-de-uso/seguimiento/ObtenerSuplementosDelPaciente";
-import { GenerarAlertasDeSeguimiento } from "@/dominio/casos-de-uso/seguimiento/GenerarAlertasDeSeguimiento";
-import { ObtenerAlertasPendientes } from "@/dominio/casos-de-uso/seguimiento/ObtenerAlertasPendientes";
-import { ContarAlertasPendientes } from "@/dominio/casos-de-uso/seguimiento/ContarAlertasPendientes";
-import { ResolverAlerta } from "@/dominio/casos-de-uso/seguimiento/ResolverAlerta";
-import { ObtenerInformeProgreso } from "@/dominio/casos-de-uso/seguimiento/ObtenerInformeProgreso";
-import { ObtenerInformeHabitos } from "@/dominio/casos-de-uso/seguimiento/ObtenerInformeHabitos";
+import { RegistrarSuplemento } from "@/aplicacion/casos-de-uso/seguimiento/RegistrarSuplemento";
+import { ActualizarSuplemento } from "@/aplicacion/casos-de-uso/seguimiento/ActualizarSuplemento";
+import { EliminarSuplemento } from "@/aplicacion/casos-de-uso/seguimiento/EliminarSuplemento";
+import { ObtenerSuplementosDelPaciente } from "@/aplicacion/casos-de-uso/seguimiento/ObtenerSuplementosDelPaciente";
+import { GenerarAlertasDeSeguimiento } from "@/aplicacion/casos-de-uso/seguimiento/GenerarAlertasDeSeguimiento";
+import { ObtenerAlertasPendientes } from "@/aplicacion/casos-de-uso/seguimiento/ObtenerAlertasPendientes";
+import { ContarAlertasPendientes } from "@/aplicacion/casos-de-uso/seguimiento/ContarAlertasPendientes";
+import { ResolverAlerta } from "@/aplicacion/casos-de-uso/seguimiento/ResolverAlerta";
+import { ObtenerInformeProgreso } from "@/aplicacion/casos-de-uso/seguimiento/ObtenerInformeProgreso";
+import { ObtenerInformeHabitos } from "@/aplicacion/casos-de-uso/seguimiento/ObtenerInformeHabitos";
 import { ServicioSeguimiento } from "@/aplicacion/servicios/ServicioSeguimiento";
 
 /** Arma el servicio de Seguimiento (suplementos + alertas + informes). */
@@ -27,7 +27,7 @@ export function crearServicioSeguimiento(deps: {
   pacientes: IPacienteRepositorio;
   registros: IRegistroDiarioRepositorio;
   antropometrias: IAntropometriaRepositorio;
-  planes: IPlanRepositorio;
+  planes: IAsignacionPlanRepositorio;
   turnos: ITurnoRepositorio;
   usuarios: IUsuarioRepositorio;
   reloj: IRelojFecha;
@@ -49,7 +49,11 @@ export function crearServicioSeguimiento(deps: {
     new ObtenerAlertasPendientes(deps.alertas),
     new ContarAlertasPendientes(deps.alertas),
     new ResolverAlerta(deps.alertas),
-    new ObtenerInformeProgreso(deps.antropometrias, deps.registros, deps.pacientes),
+    new ObtenerInformeProgreso(
+      deps.antropometrias,
+      deps.registros,
+      deps.pacientes,
+    ),
     new ObtenerInformeHabitos(deps.registros, deps.pacientes),
     deps.usuarios,
     deps.bus,

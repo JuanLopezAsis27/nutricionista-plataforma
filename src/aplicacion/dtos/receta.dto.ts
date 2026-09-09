@@ -28,19 +28,58 @@ const recetaBase = z.object({
   preparacion: z.string().max(5000).optional().nullable(),
   ingredientes: z.array(ingredienteEntradaDto).max(100).optional(),
   etiquetas: z.array(z.string().max(60)).max(30).optional(),
+  enlaces: z
+    .array(z.string().url("Debe ser una URL válida").max(500))
+    .max(20)
+    .optional(),
   ...macros,
 });
 
+/**
+ * Portada elegida en el mismo guardado.
+ *
+ * Está en el alta y en la edición porque hasta que existió no había forma de
+ * elegir portada entre las fotos que se acababan de subir: `marcarFotoPrincipal`
+ * exige una foto YA vinculada, y las fotos nuevas se vinculan recién al
+ * guardar. El profesional tenía que guardar, reabrir y recién ahí elegir.
+ */
+const fotoPrincipalElegida = z.string().min(1).optional();
+
+/**
+ * Carpeta de la receta. Ausente = no tocar la que tenga (editar el nombre no
+ * puede sacarla de su carpeta); `null` = dejarla suelta.
+ */
+const carpetaElegida = z.string().min(1).nullable().optional();
+
 export const crearRecetaDto = recetaBase.extend({
   fotoIds: z.array(z.string().min(1)).max(10).optional(),
+  documentoIds: z.array(z.string().min(1)).max(10).optional(),
+  fotoPrincipalId: fotoPrincipalElegida,
+  grupoId: carpetaElegida,
 });
 export type CrearRecetaDto = z.infer<typeof crearRecetaDto>;
 
 export const actualizarRecetaDto = recetaBase.extend({
   id: z.string().min(1),
   fotoIdsNuevos: z.array(z.string().min(1)).max(10).optional(),
+  documentoIdsNuevos: z.array(z.string().min(1)).max(10).optional(),
+  fotoPrincipalId: fotoPrincipalElegida,
+  grupoId: carpetaElegida,
 });
 export type ActualizarRecetaDto = z.infer<typeof actualizarRecetaDto>;
+
+export const archivoDeRecetaDto = z.object({
+  recetaId: z.string().min(1),
+  archivoId: z.string().min(1),
+});
+export type ArchivoDeRecetaDto = z.infer<typeof archivoDeRecetaDto>;
+
+export const marcarFotoPrincipalDto = z.object({
+  recetaId: z.string().min(1),
+  /** null vuelve a la elección automática (la primera foto). */
+  fotoId: z.string().min(1).nullable(),
+});
+export type MarcarFotoPrincipalDto = z.infer<typeof marcarFotoPrincipalDto>;
 
 export const idRecetaDto = z.object({ id: z.string().min(1) });
 export type IdRecetaDto = z.infer<typeof idRecetaDto>;
@@ -49,9 +88,22 @@ export const filtroRecetasDto = z
   .object({
     texto: z.string().max(160).optional(),
     etiqueta: z.string().max(60).optional(),
+    /** null filtra las SUELTAS; ausente no filtra por carpeta. */
+    grupoId: z.string().min(1).nullable().optional(),
   })
   .optional();
 export type FiltroRecetasDto = z.infer<typeof filtroRecetasDto>;
+
+/** Listado paginado del recetario (10 por página por defecto). */
+export const listarRecetasPaginadoDto = z.object({
+  texto: z.string().max(160).optional(),
+  etiqueta: z.string().max(60).optional(),
+  /** null filtra las SUELTAS; ausente no filtra por carpeta. */
+  grupoId: z.string().min(1).nullable().optional(),
+  pagina: z.number().int().positive().default(1),
+  porPagina: z.number().int().positive().max(100).default(10),
+});
+export type ListarRecetasPaginadoDto = z.infer<typeof listarRecetasPaginadoDto>;
 
 export const asignarRecetaDto = z.object({
   recetaId: z.string().min(1),
@@ -64,6 +116,8 @@ const fotoRecetaSalidaDto = z.object({
   nombreOriginal: z.string(),
   mimeType: z.string(),
 });
+
+const documentoRecetaSalidaDto = fotoRecetaSalidaDto;
 
 const ingredienteSalidaDto = z.object({
   nombre: z.string(),
@@ -91,6 +145,7 @@ export const recetaSalidaDto = z.object({
   preparacion: z.string().nullable(),
   ingredientes: z.array(ingredienteSalidaDto),
   etiquetas: z.array(z.string()),
+  enlaces: z.array(z.string()),
   // Macros por porción (calculados de los ingredientes o cargados a mano).
   calorias: z.number().nullable(),
   proteinasG: z.number().nullable(),
@@ -101,7 +156,57 @@ export const recetaSalidaDto = z.object({
   /** true si los macros por porción salen del cálculo de ingredientes. */
   macrosCalculados: z.boolean(),
   fotos: z.array(fotoRecetaSalidaDto),
+  documentos: z.array(documentoRecetaSalidaDto),
+  /**
+   * La foto que representa la receta, ya resuelta por el dominio: si no hay
+   * una elegida, viene la primera disponible. La UI no repite ese fallback.
+   */
+  fotoPrincipalId: z.string().nullable(),
+  grupoId: z.string().nullable(),
+  /** Nombre de la carpeta, para mostrarlo sin una consulta aparte. */
+  grupoNombre: z.string().nullable(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
 });
 export type RecetaSalidaDto = z.infer<typeof recetaSalidaDto>;
+
+/** Resultado paginado del recetario. */
+export interface RecetasPaginadas {
+  recetas: RecetaSalidaDto[];
+  total: number;
+  paginas: number;
+}
+
+// --- Carpetas del recetario --------------------------------------------------
+
+export const grupoRecetaDto = z.object({
+  nombre: z.string().min(1, "La carpeta necesita un nombre").max(80),
+  descripcion: z.string().max(500).optional().nullable(),
+});
+export type GrupoRecetaDto = z.infer<typeof grupoRecetaDto>;
+
+export const actualizarGrupoRecetaDto = grupoRecetaDto.extend({
+  id: z.string().min(1),
+});
+export type ActualizarGrupoRecetaDto = z.infer<typeof actualizarGrupoRecetaDto>;
+
+export const idGrupoRecetaDto = z.object({ id: z.string().min(1) });
+export type IdGrupoRecetaDto = z.infer<typeof idGrupoRecetaDto>;
+
+export const grupoRecetaSalidaDto = z.object({
+  id: z.string(),
+  nombre: z.string(),
+  descripcion: z.string().nullable(),
+  /** Recetas adentro. */
+  cantidadRecetas: z.number(),
+  creadoEn: z.date(),
+  actualizadoEn: z.date(),
+});
+export type GrupoRecetaSalidaDto = z.infer<typeof grupoRecetaSalidaDto>;
+
+export const moverRecetaDto = z.object({
+  recetaId: z.string().min(1),
+  /** null saca la receta de la carpeta en la que esté. */
+  grupoId: z.string().min(1).nullable(),
+});
+export type MoverRecetaDto = z.infer<typeof moverRecetaDto>;

@@ -10,7 +10,9 @@ import { spawn } from "node:child_process";
 const STANDALONE = ".next/standalone";
 
 if (!existsSync(`${STANDALONE}/server.js`)) {
-  console.error('No existe .next/standalone/server.js. Corré "npm run build" primero.');
+  console.error(
+    'No existe .next/standalone/server.js. Corré "npm run build" primero.',
+  );
   process.exit(1);
 }
 
@@ -27,4 +29,6 @@ const args = [];
 if (existsSync(".env")) args.push("--env-file=.env");
 args.push(`${STANDALONE}/server.js`);
 
-spawn("node", args, { stdio: "inherit" }).on("exit", (codigo) => process.exit(codigo ?? 0));
+spawn("node", args, { stdio: "inherit" }).on("exit", (codigo) =>
+  process.exit(codigo ?? 0),
+);

@@ -33,7 +33,11 @@ export class AlmacenamientoMinIO implements IAlmacenamientoArchivos {
     });
   }
 
-  async subir(clave: string, contenido: Uint8Array, mimeType: string): Promise<void> {
+  async subir(
+    clave: string,
+    contenido: Uint8Array,
+    mimeType: string,
+  ): Promise<void> {
     await this.asegurarBucket();
     await this.cliente.send(
       new PutObjectCommand({
@@ -45,12 +49,24 @@ export class AlmacenamientoMinIO implements IAlmacenamientoArchivos {
     );
   }
 
-  async generarUrlLectura(clave: string, expiraEnSegundos: number): Promise<string> {
+  async generarUrlLectura(
+    clave: string,
+    expiraEnSegundos: number,
+  ): Promise<string> {
     return getSignedUrl(
       this.cliente,
       new GetObjectCommand({ Bucket: this.bucket, Key: clave }),
       { expiresIn: expiraEnSegundos },
     );
+  }
+
+  async descargar(clave: string): Promise<Uint8Array> {
+    const respuesta = await this.cliente.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: clave }),
+    );
+    // `transformToByteArray` es del SDK v3: junta el stream en memoria. Los
+    // objetos que se sirven así son PDFs de plan (25 MB tope), no video.
+    return respuesta.Body!.transformToByteArray();
   }
 
   async eliminar(clave: string): Promise<void> {
@@ -75,19 +91,39 @@ export class AlmacenamientoMinIO implements IAlmacenamientoArchivos {
       for (const objeto of respuesta.Contents ?? []) {
         if (objeto.Key) claves.push(objeto.Key);
       }
-      token = respuesta.IsTruncated ? respuesta.NextContinuationToken : undefined;
+      token = respuesta.IsTruncated
+        ? respuesta.NextContinuationToken
+        : undefined;
     } while (token);
 
     return claves;
   }
 
-  /** Crea el bucket la primera vez (idempotente; útil en desarrollo con MinIO). */
+  /**
+   * Crea el bucket la primera vez (idempotente; útil en desarrollo con MinIO).
+   *
+   * Crear buckets es una operación de ADMINISTRACIÓN, y en producción la app
+   * corre con una credencial acotada que no la tiene (ver docker-compose.prod.yml:
+   * el bucket lo crea el servicio `crear_bucket`, una sola vez, al arrancar).
+   * Por eso el fallo al crear no se propaga: con menos privilegios es el
+   * resultado ESPERADO, no un error, y dejarlo explotar rompería la subida en
+   * un despliegue correctamente endurecido.
+   *
+   * Si el bucket de verdad no existe, la operación que venga después falla con
+   * su propio error, que es el que describe el problema real.
+   */
   private async asegurarBucket(): Promise<void> {
     if (this.bucketAsegurado) return;
     try {
       await this.cliente.send(new HeadBucketCommand({ Bucket: this.bucket }));
     } catch {
-      await this.cliente.send(new CreateBucketCommand({ Bucket: this.bucket }));
+      try {
+        await this.cliente.send(
+          new CreateBucketCommand({ Bucket: this.bucket }),
+        );
+      } catch {
+        // Sin permiso de administración: es lo normal en producción.
+      }
     }
     this.bucketAsegurado = true;
   }

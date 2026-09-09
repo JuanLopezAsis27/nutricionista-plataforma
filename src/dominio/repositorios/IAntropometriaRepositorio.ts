@@ -9,5 +9,9 @@ export interface IAntropometriaRepositorio {
   /** Mediciones del paciente ordenadas por fecha ascendente. */
   listarPorPaciente(pacienteId: string): Promise<Antropometria[]>;
   /** ¿Existe otra medición del paciente en esa fecha? (excluirId para ediciones). */
-  existeEnFecha(pacienteId: string, fecha: Date, excluirId?: string): Promise<boolean>;
+  existeEnFecha(
+    pacienteId: string,
+    fecha: Date,
+    excluirId?: string,
+  ): Promise<boolean>;
 }

@@ -44,8 +44,8 @@ export function EnviarPruebaDialog({
         <DialogHeader>
           <DialogTitle>Enviar prueba</DialogTitle>
           <DialogDescription>
-            Se envía «{plantilla?.nombre}» con datos de ejemplo. En desarrollo lo ves en
-            Mailpit (localhost:8025).
+            Se envía «{plantilla?.nombre}» con datos de ejemplo. En desarrollo
+            lo ves en Mailpit (localhost:8025).
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
@@ -59,10 +59,17 @@ export function EnviarPruebaDialog({
           />
         </div>
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onCerrar} disabled={enviarPrueba.isPending}>
+          <Button
+            variant="outline"
+            onClick={onCerrar}
+            disabled={enviarPrueba.isPending}
+          >
             Cancelar
           </Button>
-          <Button onClick={enviar} disabled={enviarPrueba.isPending || !para.trim()}>
+          <Button
+            onClick={enviar}
+            disabled={enviarPrueba.isPending || !para.trim()}
+          >
             {enviarPrueba.isPending ? "Enviando…" : "Enviar prueba"}
           </Button>
         </div>

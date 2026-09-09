@@ -1,12 +1,12 @@
-import type { CrearObjetivo } from "@/dominio/casos-de-uso/objetivos/CrearObjetivo";
-import type { ActualizarObjetivo } from "@/dominio/casos-de-uso/objetivos/ActualizarObjetivo";
-import type { CambiarEstadoObjetivo } from "@/dominio/casos-de-uso/objetivos/CambiarEstadoObjetivo";
-import type { EliminarObjetivo } from "@/dominio/casos-de-uso/objetivos/EliminarObjetivo";
-import type { ObtenerObjetivosDePaciente } from "@/dominio/casos-de-uso/objetivos/ObtenerObjetivosDePaciente";
-import type { AgregarEstrategia } from "@/dominio/casos-de-uso/objetivos/AgregarEstrategia";
-import type { CambiarEstadoEstrategia } from "@/dominio/casos-de-uso/objetivos/CambiarEstadoEstrategia";
-import type { EliminarEstrategia } from "@/dominio/casos-de-uso/objetivos/EliminarEstrategia";
-import type { ObtenerHistorialObjetivo } from "@/dominio/casos-de-uso/objetivos/ObtenerHistorialObjetivo";
+import type { CrearObjetivo } from "@/aplicacion/casos-de-uso/objetivos/CrearObjetivo";
+import type { ActualizarObjetivo } from "@/aplicacion/casos-de-uso/objetivos/ActualizarObjetivo";
+import type { CambiarEstadoObjetivo } from "@/aplicacion/casos-de-uso/objetivos/CambiarEstadoObjetivo";
+import type { EliminarObjetivo } from "@/aplicacion/casos-de-uso/objetivos/EliminarObjetivo";
+import type { ObtenerObjetivosDePaciente } from "@/aplicacion/casos-de-uso/objetivos/ObtenerObjetivosDePaciente";
+import type { AgregarEstrategia } from "@/aplicacion/casos-de-uso/objetivos/AgregarEstrategia";
+import type { CambiarEstadoEstrategia } from "@/aplicacion/casos-de-uso/objetivos/CambiarEstadoEstrategia";
+import type { EliminarEstrategia } from "@/aplicacion/casos-de-uso/objetivos/EliminarEstrategia";
+import type { ObtenerHistorialObjetivo } from "@/aplicacion/casos-de-uso/objetivos/ObtenerHistorialObjetivo";
 import type { Objetivo } from "@/dominio/entidades/Objetivo";
 import type {
   CrearObjetivoDto,
@@ -41,12 +41,16 @@ export class ServicioObjetivo {
     return ServicioObjetivo.aSalida(objetivo);
   }
 
-  async actualizarObjetivo(datos: ActualizarObjetivoDto): Promise<ObjetivoSalidaDto> {
+  async actualizarObjetivo(
+    datos: ActualizarObjetivoDto,
+  ): Promise<ObjetivoSalidaDto> {
     const objetivo = await this.actualizarUC.ejecutar(datos);
     return ServicioObjetivo.aSalida(objetivo);
   }
 
-  async cambiarEstadoObjetivo(datos: CambiarEstadoObjetivoDto): Promise<ObjetivoSalidaDto> {
+  async cambiarEstadoObjetivo(
+    datos: CambiarEstadoObjetivoDto,
+  ): Promise<ObjetivoSalidaDto> {
     const objetivo = await this.cambiarEstadoUC.ejecutar(datos);
     return ServicioObjetivo.aSalida(objetivo);
   }
@@ -55,7 +59,9 @@ export class ServicioObjetivo {
     await this.eliminarUC.ejecutar(id);
   }
 
-  async obtenerObjetivosDePaciente(pacienteId: string): Promise<ObjetivoSalidaDto[]> {
+  async obtenerObjetivosDePaciente(
+    pacienteId: string,
+  ): Promise<ObjetivoSalidaDto[]> {
     const objetivos = await this.obtenerDePacienteUC.ejecutar(pacienteId);
     return objetivos.map(ServicioObjetivo.aSalida);
   }
@@ -64,7 +70,9 @@ export class ServicioObjetivo {
     await this.agregarEstrategiaUC.ejecutar(datos);
   }
 
-  async cambiarEstadoEstrategia(datos: CambiarEstadoEstrategiaDto): Promise<void> {
+  async cambiarEstadoEstrategia(
+    datos: CambiarEstadoEstrategiaDto,
+  ): Promise<void> {
     await this.cambiarEstadoEstrategiaUC.ejecutar(datos);
   }
 
@@ -72,7 +80,9 @@ export class ServicioObjetivo {
     await this.eliminarEstrategiaUC.ejecutar(datos);
   }
 
-  async obtenerHistorial(objetivoId: string): Promise<EventoObjetivoSalidaDto[]> {
+  async obtenerHistorial(
+    objetivoId: string,
+  ): Promise<EventoObjetivoSalidaDto[]> {
     return this.obtenerHistorialUC.ejecutar(objetivoId);
   }
 

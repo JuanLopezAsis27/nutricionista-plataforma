@@ -5,7 +5,12 @@ import { Bell, Check, X } from "lucide-react";
 import { useSeguimiento } from "@/lib/hooks/useSeguimiento";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 
 const MAXIMO_VISIBLE = 6;
 
@@ -60,7 +65,12 @@ export function PanelAlertas() {
                     className="h-8 w-8"
                     title="Marcar como resuelta"
                     disabled={resolverAlerta.isPending}
-                    onClick={() => resolverAlerta.mutate({ id: alerta.id, estado: "RESUELTA" })}
+                    onClick={() =>
+                      resolverAlerta.mutate({
+                        id: alerta.id,
+                        estado: "RESUELTA",
+                      })
+                    }
                   >
                     <Check className="h-4 w-4 text-primary" />
                   </Button>
@@ -71,7 +81,10 @@ export function PanelAlertas() {
                     title="Descartar"
                     disabled={resolverAlerta.isPending}
                     onClick={() =>
-                      resolverAlerta.mutate({ id: alerta.id, estado: "DESCARTADA" })
+                      resolverAlerta.mutate({
+                        id: alerta.id,
+                        estado: "DESCARTADA",
+                      })
                     }
                   >
                     <X className="h-4 w-4 text-muted-foreground" />

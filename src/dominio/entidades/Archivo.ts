@@ -13,6 +13,35 @@ const MIMES_DOCUMENTO = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ] as const;
 
+/**
+ * Planilla de cálculo. Solo `.xlsx`: el `.xls` binario anterior a 2007 no lo
+ * lee ninguna librería del proyecto, y aceptarlo sería subir un archivo que
+ * después no se puede interpretar.
+ *
+ * Va aparte de `MIMES_DOCUMENTO` a propósito: la planilla se acepta donde se
+ * la puede LEER —la ficha del paciente, de donde sale la importación de
+ * mediciones—, no como adjunto genérico de una receta o del recetario.
+ */
+const MIMES_PLANILLA = [
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+] as const;
+
+/**
+ * Audio de las grabaciones de consulta.
+ *
+ * `audio/webm` es lo que produce `MediaRecorder` en Chrome y Firefox;
+ * `audio/mp4` es lo que produce Safari, y los dos restantes cubren un archivo
+ * que alguien decida subir a mano. El navegador manda además el códec en el
+ * MIME (`audio/webm;codecs=opus`): el cliente lo recorta antes de subir, porque
+ * la lista blanca compara el string completo.
+ */
+const MIMES_AUDIO = [
+  "audio/webm",
+  "audio/mp4",
+  "audio/mpeg",
+  "audio/ogg",
+] as const;
+
 const MB = 1024 * 1024;
 
 /**
@@ -31,9 +60,17 @@ export const CONTEXTOS_ARCHIVO = {
     mimes: [...MIMES_IMAGEN],
     maxBytes: 10 * MB,
   },
+  /** Fotos de una evolución de control (1 a muchas, como las de receta). */
+  evolucion: {
+    prefijo: "evoluciones",
+    mimes: [...MIMES_IMAGEN],
+    maxBytes: 10 * MB,
+  },
   receta: {
     prefijo: "recetas",
-    mimes: [...MIMES_IMAGEN],
+    // Fotos (imágenes) y documentos adjuntos (PDF/Word) de la receta. Al leer,
+    // el repositorio los separa por MIME (imágenes = fotos; resto = documentos).
+    mimes: [...MIMES_IMAGEN, ...MIMES_DOCUMENTO],
     maxBytes: 10 * MB,
   },
   biblioteca: {
@@ -43,8 +80,30 @@ export const CONTEXTOS_ARCHIVO = {
   },
   paciente: {
     prefijo: "pacientes",
-    mimes: [...MIMES_DOCUMENTO, ...MIMES_IMAGEN],
+    mimes: [...MIMES_DOCUMENTO, ...MIMES_IMAGEN, ...MIMES_PLANILLA],
     maxBytes: 10 * MB,
+  },
+  // El plan armado afuera (Word, Canva) y subido tal cual. Solo PDF: es lo
+  // único que el paciente puede abrir en la app sin descargar nada ni tener
+  // Office instalado, y el punto de la función es que lo LEA acá adentro.
+  plan: {
+    prefijo: "planes",
+    mimes: ["application/pdf"],
+    maxBytes: 25 * MB,
+  },
+  /**
+   * Audio de una consulta grabada.
+   *
+   * El tope de 25 MB no es una precaución: es el límite de subida de la API de
+   * transcripción de OpenAI, y un audio más grande se subiría bien para fallar
+   * después, en el worker, cuando el profesional ya se fue. Con Opus a la tasa
+   * que usa el navegador son ~100 minutos, y una consulta más larga que eso se
+   * parte en varias grabaciones, que es algo que la función ya hace.
+   */
+  grabacion: {
+    prefijo: "grabaciones",
+    mimes: [...MIMES_AUDIO],
+    maxBytes: 25 * MB,
   },
 } as const;
 
@@ -89,7 +148,11 @@ export interface PropiedadesArchivo {
 export class Archivo {
   private constructor(private readonly props: PropiedadesArchivo) {}
 
-  static crear(datos: DatosNuevoArchivo, id: string, ahora: Date = new Date()): Archivo {
+  static crear(
+    datos: DatosNuevoArchivo,
+    id: string,
+    ahora: Date = new Date(),
+  ): Archivo {
     const nombreOriginal = datos.nombreOriginal?.trim() ?? "";
     if (nombreOriginal.length === 0) {
       throw new ErrorArchivoInvalido("El archivo debe tener un nombre.");
@@ -97,7 +160,9 @@ export class Archivo {
 
     const contexto = CONTEXTOS_ARCHIVO[datos.contexto];
     if (!contexto) {
-      throw new ErrorArchivoInvalido(`Contexto de archivo desconocido: ${datos.contexto}.`);
+      throw new ErrorArchivoInvalido(
+        `Contexto de archivo desconocido: ${datos.contexto}.`,
+      );
     }
 
     if (!(contexto.mimes as readonly string[]).includes(datos.mimeType)) {
@@ -111,7 +176,9 @@ export class Archivo {
     }
     if (datos.tamanoBytes > contexto.maxBytes) {
       const maxMb = Math.round(contexto.maxBytes / MB);
-      throw new ErrorArchivoInvalido(`El archivo supera el máximo de ${maxMb} MB.`);
+      throw new ErrorArchivoInvalido(
+        `El archivo supera el máximo de ${maxMb} MB.`,
+      );
     }
 
     return new Archivo({

@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -27,27 +23,13 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@/dominio/*": [
-        "./src/dominio/*"
-      ],
-      "@/aplicacion/*": [
-        "./src/aplicacion/*"
-      ],
-      "@/infraestructura/*": [
-        "./src/infraestructura/*"
-      ],
-      "@/servidor/*": [
-        "./src/servidor/*"
-      ],
-      "@/componentes/*": [
-        "./src/componentes/*"
-      ],
-      "@/lib/*": [
-        "./src/lib/*"
-      ]
+      "@/*": ["./src/*"],
+      "@/dominio/*": ["./src/dominio/*"],
+      "@/aplicacion/*": ["./src/aplicacion/*"],
+      "@/infraestructura/*": ["./src/infraestructura/*"],
+      "@/servidor/*": ["./src/servidor/*"],
+      "@/componentes/*": ["./src/componentes/*"],
+      "@/lib/*": ["./src/lib/*"]
     }
   },
   "include": [
@@ -57,7 +39,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

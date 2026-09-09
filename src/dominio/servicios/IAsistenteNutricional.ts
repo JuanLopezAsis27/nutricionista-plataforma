@@ -34,9 +34,15 @@ export interface HerramientaAsistente {
  * las `herramientas` y responde fundamentado. Degrada al stub si no hay IA.
  */
 export interface IAsistenteNutricional {
+  /**
+   * @param previos turnos anteriores del chat, del más viejo al más nuevo. El
+   *   asistente respondía cada pregunta aislada, así que un "¿y eso con qué lo
+   *   acompaño?" no tenía a qué referirse.
+   */
   responder(
     pregunta: string,
     contexto: ContextoAsistente,
     herramientas?: HerramientaAsistente[],
+    previos?: { rol: "usuario" | "asistente"; texto: string }[],
   ): Promise<string>;
 }

@@ -41,8 +41,18 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 
+# Python (servicio de ML)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
 # Volúmenes de Docker (datos de PostgreSQL)
 /datos-postgres
 
 .claude
-CLAUDE.md
+# Configuración local de Capacitor (URL del servidor de desarrollo)
+capacitor.config.local.ts

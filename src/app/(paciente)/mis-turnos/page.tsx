@@ -2,7 +2,12 @@
 
 import { useTurnos } from "@/lib/hooks/useTurnos";
 import { formatearFecha } from "@/lib/formato";
-import { Card, CardContent, CardHeader, CardTitle } from "@/componentes/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/componentes/ui/card";
 import { Skeleton } from "@/componentes/ui/skeleton";
 import { EstadoBadge } from "@/componentes/comunes/EstadoBadge";
 
@@ -22,7 +27,9 @@ export default function PaginaMisTurnos() {
           ))}
         </div>
       ) : turnos.isError ? (
-        <p className="text-sm text-destructive">No se pudieron cargar tus turnos.</p>
+        <p className="text-sm text-destructive">
+          No se pudieron cargar tus turnos.
+        </p>
       ) : (turnos.data ?? []).length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-muted-foreground">
@@ -34,7 +41,9 @@ export default function PaginaMisTurnos() {
           {turnos.data!.map((turno) => (
             <Card key={turno.id}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-base">{formatearFecha(turno.fecha)}</CardTitle>
+                <CardTitle className="text-base">
+                  {formatearFecha(turno.fecha)}
+                </CardTitle>
                 <EstadoBadge estado={turno.estado} />
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">

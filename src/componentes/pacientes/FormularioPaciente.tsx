@@ -5,7 +5,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { PacienteSalidaDto } from "@/aplicacion/dtos/paciente.dto";
+import {
+  passwordNuevaDto,
+  LARGO_MINIMO_PASSWORD,
+} from "@/aplicacion/dtos/password";
+import { SEXOS_BIOLOGICOS } from "@/dominio/servicios/composicionCorporal";
 import { usePacientes } from "@/lib/hooks/usePacientes";
+import { useEstablecimientos } from "@/lib/hooks/useEstablecimientos";
 import { aFechaISO } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
@@ -18,6 +24,59 @@ import {
   FormControl,
   FormMessage,
 } from "@/componentes/ui/form";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/componentes/ui/select";
+
+/**
+ * Esquema del formulario de paciente.
+ *
+ * Se extrae del componente y se exporta para poder verificar en un test que no
+ * diverge del DTO que valida el servidor (`crearPacienteConAccesoDto`).
+ *
+ * La contraseña usa `passwordNuevaDto`, la política única de la app, en vez de
+ * una regla propia. Antes había acá un `min(6, "Mínimo 6 caracteres")` mientras
+ * el servidor exigía 12 y rechazaba las obvias: el formulario aceptaba lo que
+ * la mutación después tiraba, y el nutricionista veía un error que su pantalla
+ * decía que no correspondía.
+ *
+ * @param editando al editar no se pide contraseña (no se cambia desde acá).
+ */
+export function crearEsquemaPaciente(editando: boolean) {
+  return z.object({
+    nombre: z.string().min(1, "El nombre es obligatorio"),
+    apellido: z.string().min(1, "El apellido es obligatorio"),
+    email: z.string().email("Email inválido"),
+    telefono: z.string().optional(),
+    fechaNacimiento: z.string().optional(),
+    sexo: z.enum([...SEXOS_BIOLOGICOS, SIN_SEXO]),
+    /** Id de la sede habitual, o SIN_SEDE. Ver el campo en el formulario. */
+    establecimientoHabitualId: z.string(),
+    notas: z.string().optional(),
+    password: editando ? z.string().optional() : passwordNuevaDto,
+  });
+}
+
+const ETIQUETAS_SEXO: Record<(typeof SEXOS_BIOLOGICOS)[number], string> = {
+  MASCULINO: "Masculino",
+  FEMENINO: "Femenino",
+};
+
+/** Valor del select cuando el sexo todavía no se cargó. */
+const SIN_SEXO = "SIN_DATO";
+
+/**
+ * Valor del select cuando no hay sede habitual.
+ *
+ * Existe porque «ninguna» es una respuesta válida y frecuente: el paciente que
+ * va indistintamente a las dos no tiene una sede habitual, y forzarlo a elegir
+ * una convertiría una preferencia en una pertenencia falsa.
+ */
+const SIN_SEDE = "SIN_SEDE";
 
 interface PropsFormularioPaciente {
   pacienteInicial?: PacienteSalidaDto | null;
@@ -25,27 +84,18 @@ interface PropsFormularioPaciente {
 }
 
 /** Formulario reutilizable para crear y editar pacientes. */
-export function FormularioPaciente({ pacienteInicial, onTerminado }: PropsFormularioPaciente) {
+export function FormularioPaciente({
+  pacienteInicial,
+  onTerminado,
+}: PropsFormularioPaciente) {
   const { crear, actualizar } = usePacientes();
+  const { listar: listarSedes } = useEstablecimientos();
+  const sedes = listarSedes().data ?? [];
   const editando = Boolean(pacienteInicial);
 
   // En el alta la contraseña es obligatoria (se crea la cuenta del paciente);
   // en la edición no se pide (no se cambia la contraseña acá).
-  const esquema = useMemo(
-    () =>
-      z.object({
-        nombre: z.string().min(1, "El nombre es obligatorio"),
-        apellido: z.string().min(1, "El apellido es obligatorio"),
-        email: z.string().email("Email inválido"),
-        telefono: z.string().optional(),
-        fechaNacimiento: z.string().optional(),
-        notas: z.string().optional(),
-        password: editando
-          ? z.string().optional()
-          : z.string().min(6, "Mínimo 6 caracteres"),
-      }),
-    [editando],
-  );
+  const esquema = useMemo(() => crearEsquemaPaciente(editando), [editando]);
   type DatosFormulario = z.infer<typeof esquema>;
 
   const form = useForm<DatosFormulario>({
@@ -56,6 +106,9 @@ export function FormularioPaciente({ pacienteInicial, onTerminado }: PropsFormul
       email: pacienteInicial?.email ?? "",
       telefono: pacienteInicial?.telefono ?? "",
       fechaNacimiento: aFechaISO(pacienteInicial?.fechaNacimiento),
+      sexo: pacienteInicial?.sexo ?? SIN_SEXO,
+      establecimientoHabitualId:
+        pacienteInicial?.establecimientoHabitualId ?? SIN_SEDE,
       notas: pacienteInicial?.notas ?? "",
       password: "",
     },
@@ -69,14 +122,27 @@ export function FormularioPaciente({ pacienteInicial, onTerminado }: PropsFormul
       apellido: datos.apellido,
       email: datos.email,
       telefono: datos.telefono?.trim() ? datos.telefono : null,
-      fechaNacimiento: datos.fechaNacimiento ? new Date(datos.fechaNacimiento) : null,
+      fechaNacimiento: datos.fechaNacimiento
+        ? new Date(datos.fechaNacimiento)
+        : null,
+      sexo: datos.sexo === SIN_SEXO ? null : datos.sexo,
+      establecimientoHabitualId:
+        datos.establecimientoHabitualId === SIN_SEDE
+          ? null
+          : datos.establecimientoHabitualId,
       notas: datos.notas?.trim() ? datos.notas : null,
     };
 
     if (pacienteInicial) {
-      actualizar.mutate({ id: pacienteInicial.id, ...base }, { onSuccess: onTerminado });
+      actualizar.mutate(
+        { id: pacienteInicial.id, ...base },
+        { onSuccess: onTerminado },
+      );
     } else {
-      crear.mutate({ ...base, password: datos.password ?? "" }, { onSuccess: onTerminado });
+      crear.mutate(
+        { ...base, password: datos.password ?? "" },
+        { onSuccess: onTerminado },
+      );
     }
   }
 
@@ -134,7 +200,13 @@ export function FormularioPaciente({ pacienteInicial, onTerminado }: PropsFormul
               <FormItem>
                 <FormLabel>Contraseña de acceso del paciente</FormLabel>
                 <FormControl>
-                  <Input type="text" placeholder="Mínimo 6 caracteres" {...field} />
+                  <Input
+                    type="text"
+                    // Derivado de la constante, no escrito a mano: el
+                    // placeholder anterior decía 6 y el servidor exigía 12.
+                    placeholder={`Mínimo ${LARGO_MINIMO_PASSWORD} caracteres`}
+                    {...field}
+                  />
                 </FormControl>
                 <p className="text-xs text-muted-foreground">
                   El paciente iniciará sesión con su email y esta contraseña.
@@ -176,6 +248,70 @@ export function FormularioPaciente({ pacienteInicial, onTerminado }: PropsFormul
 
         <FormField
           control={form.control}
+          name="sexo"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Sexo biológico</FormLabel>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value={SIN_SEXO}>Sin especificar</SelectItem>
+                  {SEXOS_BIOLOGICOS.map((sexo) => (
+                    <SelectItem key={sexo} value={sexo}>
+                      {ETIQUETAS_SEXO[sexo]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Lo usa la antropometría: el fraccionamiento en 5 masas, el peso
+                ideal y el metabolismo basal tienen constantes distintas por
+                sexo.
+              </p>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Con una sola sede no se pregunta: no hay preferencia que expresar. */}
+        {sedes.length > 1 && (
+          <FormField
+            control={form.control}
+            name="establecimientoHabitualId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Establecimiento habitual</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={SIN_SEDE}>Sin preferencia</SelectItem>
+                    {sedes.map((sede) => (
+                      <SelectItem key={sede.id} value={sede.id}>
+                        {sede.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Solo precarga el formulario de turno. El paciente puede
+                  atenderse en cualquier establecimiento.
+                </p>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        <FormField
+          control={form.control}
           name="notas"
           render={({ field }) => (
             <FormItem>
@@ -189,11 +325,20 @@ export function FormularioPaciente({ pacienteInicial, onTerminado }: PropsFormul
         />
 
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onTerminado} disabled={enviando}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onTerminado}
+            disabled={enviando}
+          >
             Cancelar
           </Button>
           <Button type="submit" disabled={enviando}>
-            {enviando ? "Guardando…" : editando ? "Guardar cambios" : "Crear paciente"}
+            {enviando
+              ? "Guardando…"
+              : editando
+                ? "Guardar cambios"
+                : "Crear paciente"}
           </Button>
         </div>
       </form>

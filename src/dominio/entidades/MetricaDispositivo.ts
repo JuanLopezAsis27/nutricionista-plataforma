@@ -1,7 +1,11 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
 
 /** Origen de una métrica de dispositivo (wearable). */
-export const FUENTES_METRICA = ["APPLE_WATCH", "HEALTH_CONNECT", "MANUAL"] as const;
+export const FUENTES_METRICA = [
+  "APPLE_WATCH",
+  "HEALTH_CONNECT",
+  "MANUAL",
+] as const;
 export type FuenteMetrica = (typeof FUENTES_METRICA)[number];
 
 export interface DatosMetricaDispositivo {
@@ -50,9 +54,21 @@ export class MetricaDispositivo {
       throw new ErrorValidacion("La métrica debe tener un paciente.");
     }
     const pasos = enteroNoNegativo(datos.pasos, "Los pasos", 200000);
-    const minutosActividad = enteroNoNegativo(datos.minutosActividad, "Los minutos de actividad", 1440);
-    const caloriasActivas = enteroNoNegativo(datos.caloriasActivas, "Las calorías activas", 20000);
-    const fc = enteroNoNegativo(datos.frecuenciaCardiacaReposo, "La frecuencia cardíaca", 250);
+    const minutosActividad = enteroNoNegativo(
+      datos.minutosActividad,
+      "Los minutos de actividad",
+      1440,
+    );
+    const caloriasActivas = enteroNoNegativo(
+      datos.caloriasActivas,
+      "Las calorías activas",
+      20000,
+    );
+    const fc = enteroNoNegativo(
+      datos.frecuenciaCardiacaReposo,
+      "La frecuencia cardíaca",
+      250,
+    );
     const horasSueno = horas(datos.horasSueno);
 
     return new MetricaDispositivo({

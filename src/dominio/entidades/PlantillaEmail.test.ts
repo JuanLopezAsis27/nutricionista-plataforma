@@ -7,7 +7,8 @@ describe("PlantillaEmail", () => {
     clave: "RECORDATORIO_TURNO",
     nombre: "Recordatorio",
     asunto: "Turno del {{fecha}}",
-    cuerpoHtml: "<p>Hola {{ paciente }}, te esperamos el {{fecha}} a las {{hora}}.</p>",
+    cuerpoHtml:
+      "<p>Hola {{ paciente }}, te esperamos el {{fecha}} a las {{hora}}.</p>",
   };
 
   it("reemplaza los placeholders (con espacios opcionales) al renderizar", () => {
@@ -19,7 +20,9 @@ describe("PlantillaEmail", () => {
     });
 
     expect(asunto).toBe("Turno del 27/07/2026");
-    expect(html).toBe("<p>Hola Ana García, te esperamos el 27/07/2026 a las 10:00.</p>");
+    expect(html).toBe(
+      "<p>Hola Ana García, te esperamos el 27/07/2026 a las 10:00.</p>",
+    );
   });
 
   it("deja intacto un placeholder sin valor provisto", () => {
@@ -29,12 +32,19 @@ describe("PlantillaEmail", () => {
   });
 
   it("normaliza la clave a mayúsculas y rechaza claves inválidas", () => {
-    expect(PlantillaEmail.crear({ ...base, clave: "bienvenida" }, "x").clave).toBe("BIENVENIDA");
-    expect(() => PlantillaEmail.crear({ ...base, clave: "1mala" }, "x")).toThrow(ErrorValidacion);
+    expect(
+      PlantillaEmail.crear({ ...base, clave: "bienvenida" }, "x").clave,
+    ).toBe("BIENVENIDA");
+    expect(() =>
+      PlantillaEmail.crear({ ...base, clave: "1mala" }, "x"),
+    ).toThrow(ErrorValidacion);
   });
 
   it("al actualizar preserva id, clave y deSistema", () => {
-    const plantilla = PlantillaEmail.crear({ ...base, deSistema: true }, "pla-1");
+    const plantilla = PlantillaEmail.crear(
+      { ...base, deSistema: true },
+      "pla-1",
+    );
     const editada = plantilla.actualizar({
       nombre: "Nuevo",
       asunto: "Nuevo asunto",
@@ -48,7 +58,11 @@ describe("PlantillaEmail", () => {
   });
 
   it("exige asunto y cuerpo no vacíos", () => {
-    expect(() => PlantillaEmail.crear({ ...base, asunto: "  " }, "x")).toThrow(ErrorValidacion);
-    expect(() => PlantillaEmail.crear({ ...base, cuerpoHtml: "" }, "x")).toThrow(ErrorValidacion);
+    expect(() => PlantillaEmail.crear({ ...base, asunto: "  " }, "x")).toThrow(
+      ErrorValidacion,
+    );
+    expect(() =>
+      PlantillaEmail.crear({ ...base, cuerpoHtml: "" }, "x"),
+    ).toThrow(ErrorValidacion);
   });
 });

@@ -1,62 +1,49 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/autenticacion/auth";
+import { usuarioDeSesion } from "@/lib/autenticacion/sesion";
 import { servicioArchivo } from "@/infraestructura/contenedor/contenedor";
 import { aRespuestaError } from "@/servidor/errores-http";
 import { conAlcanceDeSesion } from "@/servidor/alcanceRequest";
+import { responderArchivo } from "@/servidor/archivoHttp";
 
 export const runtime = "nodejs";
 
 type Parametros = { params: Promise<{ id: string }> };
 
 /**
- * GET /api/archivos/[id] — redirige (302) a una URL firmada de lectura.
+ * GET /api/archivos/[id] — DESCARGA el archivo (`Content-Disposition:
+ * attachment`), servido desde la app.
  *
- * Autorización: el nutricionista accede a todo; el paciente a lo que subió
- * él mismo y a lo que le fue compartido (la regla vive en el caso de uso
- * PuedeVerArchivoPaciente y se amplía fase a fase).
+ * Hermana de `/api/archivos/[id]/ver`, que sirve el mismo archivo EN LÍNEA.
+ * Lo único que las separa es esa cabecera; el porqué de servir los bytes en
+ * vez de redirigir a una URL firmada del bucket está en `servidor/archivoHttp`.
  */
-export function GET(_solicitud: Request, { params }: Parametros): Promise<NextResponse> {
-  return conAlcanceDeSesion(async () => {
-  const sesion = await auth();
-  if (!sesion?.user) {
-    return NextResponse.json({ error: "Necesitás iniciar sesión." }, { status: 401 });
-  }
-
-  try {
-    const { id } = await params;
-
-    if (sesion.user.rol !== "NUTRICIONISTA") {
-      const permitido = await servicioArchivo.puedeVerPaciente(id, {
-        usuarioId: sesion.user.id,
-        pacienteId: sesion.user.pacienteId,
-      });
-      if (!permitido) {
-        return NextResponse.json({ error: "No tenés acceso a este archivo." }, { status: 403 });
-      }
-    }
-
-    const { url } = await servicioArchivo.obtenerUrl(id, 60);
-    return NextResponse.redirect(url, 302);
-  } catch (error) {
-    return aRespuestaError(error);
-  }
-  });
+export function GET(
+  _solicitud: Request,
+  { params }: Parametros,
+): Promise<NextResponse> {
+  return responderArchivo(params, "attachment");
 }
 
 /** DELETE /api/archivos/[id] — elimina metadatos + objeto del bucket. */
-export function DELETE(_solicitud: Request, { params }: Parametros): Promise<NextResponse> {
+export function DELETE(
+  _solicitud: Request,
+  { params }: Parametros,
+): Promise<NextResponse> {
   return conAlcanceDeSesion(async () => {
-  const sesion = await auth();
-  if (!sesion?.user || sesion.user.rol !== "NUTRICIONISTA") {
-    return NextResponse.json({ error: "Acción exclusiva del nutricionista." }, { status: 403 });
-  }
+    const usuario = await usuarioDeSesion();
+    if (!usuario || usuario.rol !== "NUTRICIONISTA") {
+      return NextResponse.json(
+        { error: "Acción exclusiva del nutricionista." },
+        { status: 403 },
+      );
+    }
 
-  try {
-    const { id } = await params;
-    await servicioArchivo.eliminar(id);
-    return NextResponse.json({ eliminado: true });
-  } catch (error) {
-    return aRespuestaError(error);
-  }
+    try {
+      const { id } = await params;
+      await servicioArchivo().eliminar(id);
+      return NextResponse.json({ eliminado: true });
+    } catch (error) {
+      return aRespuestaError(error);
+    }
   });
 }

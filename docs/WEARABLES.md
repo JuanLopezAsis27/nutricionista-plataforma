@@ -32,6 +32,22 @@ Todo el backend ya está: entidad `MetricaDispositivo`, `metricas.importar` /
 `metricas.mias` / `metricas.fijarInclusion` (tRPC), la ruta REST
 `/api/metricas/importar` y la integración con el tracking.
 
+## La tarjeta dice «En desarrollo» hasta que el plugin exista
+
+Lo que falta es la punta nativa: sin el plugin de salud montado, nadie tiene
+datos acá, y la tarjeta se ve vacía para todo el mundo.
+
+Una tarjeta vacía y sin aviso se lee como «tu reloj no sincronizó» —un problema
+del paciente, que se va a ir a buscar el permiso que le falta— en vez de «esto
+todavía no existe». Por eso `MetricasDispositivo` lleva el rótulo **En
+desarrollo** y una línea que lo explica, del lado del paciente y del
+profesional.
+
+El rótulo se saca cuando el plugin esté andando, **no antes**: mientras la lista
+pueda estar vacía por una función que falta, decirlo es la única lectura
+correcta de esa tarjeta. Si algún día hay datos importados igual se listan
+debajo del aviso —la importación funciona—; lo que no está es quién la dispara.
+
 ## Montar el shell nativo
 
 ```bash
@@ -70,8 +86,10 @@ abrir/volver a la app y una vez por día:
 import { Health } from "capacitor-health"; // o el plugin que uses
 
 async function leerDia(fecha: Date) {
-  const desde = new Date(fecha); desde.setHours(0, 0, 0, 0);
-  const hasta = new Date(fecha); hasta.setHours(23, 59, 59, 999);
+  const desde = new Date(fecha);
+  desde.setHours(0, 0, 0, 0);
+  const hasta = new Date(fecha);
+  hasta.setHours(23, 59, 59, 999);
   const [pasos, sueno, actividad] = await Promise.all([
     Health.querySteps({ startDate: desde, endDate: hasta }),
     Health.querySleepHours({ startDate: desde, endDate: hasta }),
@@ -89,7 +107,8 @@ async function leerDia(fecha: Date) {
 export async function sincronizar(diasAtras = 7) {
   const dias = [];
   for (let i = 0; i < diasAtras; i++) {
-    const f = new Date(); f.setDate(f.getDate() - i);
+    const f = new Date();
+    f.setDate(f.getDate() - i);
     dias.push(await leerDia(f));
   }
   await fetch("/api/metricas/importar", {

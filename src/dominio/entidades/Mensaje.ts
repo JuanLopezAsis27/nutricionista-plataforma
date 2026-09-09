@@ -27,13 +27,19 @@ const LARGO_MAXIMO = 4000;
 export class Mensaje {
   private constructor(private readonly props: PropiedadesMensaje) {}
 
-  static crear(datos: DatosNuevoMensaje, id: string, ahora: Date = new Date()): Mensaje {
+  static crear(
+    datos: DatosNuevoMensaje,
+    id: string,
+    ahora: Date = new Date(),
+  ): Mensaje {
     const cuerpo = datos.cuerpo?.trim() ?? "";
     if (cuerpo.length === 0) {
       throw new ErrorValidacion("El mensaje no puede estar vacío.");
     }
     if (cuerpo.length > LARGO_MAXIMO) {
-      throw new ErrorValidacion(`El mensaje no puede superar ${LARGO_MAXIMO} caracteres.`);
+      throw new ErrorValidacion(
+        `El mensaje no puede superar ${LARGO_MAXIMO} caracteres.`,
+      );
     }
     if (!datos.conversacionId || !datos.autorId) {
       throw new ErrorValidacion("El mensaje debe tener conversación y autor.");

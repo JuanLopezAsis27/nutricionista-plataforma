@@ -1,9 +1,42 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
+import type {
+  MedidasComposicion,
+  NivelActividad,
+} from "../servicios/composicionCorporal";
+import { METODOS_GRASA, type MetodoGrasa } from "../servicios/grasaPorPliegues";
 
-/** Medidas crudas de una consulta (todas opcionales salvo el peso). */
+/**
+ * Modelo que el profesional destaca en la consulta. No restringe el cálculo:
+ * el dominio computa siempre los dos si las medidas alcanzan.
+ */
+export const PROTOCOLOS_COMPOSICION = [
+  "CINCO_COMPONENTES",
+  "DOS_COMPONENTES",
+] as const;
+export type ProtocoloComposicion = (typeof PROTOCOLOS_COMPOSICION)[number];
+
+/**
+ * Medidas crudas de una consulta (todas opcionales salvo el peso).
+ * Es el perfil ISAK completo de la planilla del profesional: cuantas más se
+ * carguen, más bloques puede calcular `composicionCorporal`.
+ */
 export interface MedidasAntropometricas {
   pesoKg: number;
   tallaCm: number | null;
+  tallaSentadoCm: number | null;
+  /** Nivel de actividad al momento de la medición (cambia entre consultas). */
+  nivelActividad: NivelActividad | null;
+  /** Modelo a destacar. No limita qué se calcula, solo qué se muestra primero. */
+  protocolo: ProtocoloComposicion;
+  /** Ecuación de pliegues destacada; null = la primera que se pueda calcular. */
+  metodoGrasa: MetodoGrasa | null;
+  // Diámetros óseos (cm)
+  diamBiacromial: number | null;
+  diamToraxTransverso: number | null;
+  diamToraxAnteroposterior: number | null;
+  diamBiiliocrestideo: number | null;
+  diamHumeral: number | null;
+  diamFemoral: number | null;
   // Pliegues (mm)
   pliegueTricipital: number | null;
   pliegueSubescapular: number | null;
@@ -13,6 +46,10 @@ export interface MedidasAntropometricas {
   plieguePantorrilla: number | null;
   pliegueBicipital: number | null;
   pliegueCrestaIliaca: number | null;
+  // Fuera del perfil ISAK; los piden Jackson & Pollock y Parrillo.
+  plieguePectoral: number | null;
+  pliegueAxilarMedio: number | null;
+  pliegueLumbar: number | null;
   // Circunferencias (cm)
   circTorax: number | null;
   circCinturaMinima: number | null;
@@ -20,8 +57,17 @@ export interface MedidasAntropometricas {
   circCadera: number | null;
   circBrazo: number | null;
   circBrazoContraido: number | null;
+  circCabeza: number | null;
+  circAntebrazo: number | null;
+  circMusloMaximo: number | null;
+  circMusloMedial: number | null;
+  circPantorrilla: number | null;
   /** Kg de grasa según la fórmula propia del profesional (se carga manualmente). */
   kgGrasa: number | null;
+  // Dinamometría manual (kg). No alimenta ninguna ecuación: se carga y se
+  // muestra tal cual, como kgGrasa.
+  fuerzaPresionDerecha: number | null;
+  fuerzaPresionIzquierda: number | null;
 }
 
 /** Datos para registrar una medición nueva. */
@@ -60,6 +106,9 @@ const CAMPOS_PLIEGUES = [
   "plieguePantorrilla",
   "pliegueBicipital",
   "pliegueCrestaIliaca",
+  "plieguePectoral",
+  "pliegueAxilarMedio",
+  "pliegueLumbar",
 ] as const satisfies readonly (keyof MedidasAntropometricas)[];
 
 const CAMPOS_CIRCUNFERENCIAS = [
@@ -69,6 +118,21 @@ const CAMPOS_CIRCUNFERENCIAS = [
   "circCadera",
   "circBrazo",
   "circBrazoContraido",
+  "circCabeza",
+  "circAntebrazo",
+  "circMusloMaximo",
+  "circMusloMedial",
+  "circPantorrilla",
+] as const satisfies readonly (keyof MedidasAntropometricas)[];
+
+/** Diámetros óseos: rango más estrecho que las circunferencias. */
+const CAMPOS_DIAMETROS = [
+  "diamBiacromial",
+  "diamToraxTransverso",
+  "diamToraxAnteroposterior",
+  "diamBiiliocrestideo",
+  "diamHumeral",
+  "diamFemoral",
 ] as const satisfies readonly (keyof MedidasAntropometricas)[];
 
 /** Los 6 pliegues que suma la planilla del profesional (ISAK). */
@@ -110,6 +174,16 @@ export class Antropometria {
       fecha: datos.fecha,
       pesoKg: datos.pesoKg,
       tallaCm: datos.tallaCm ?? null,
+      tallaSentadoCm: datos.tallaSentadoCm ?? null,
+      nivelActividad: datos.nivelActividad ?? null,
+      protocolo: datos.protocolo ?? "DOS_COMPONENTES",
+      metodoGrasa: datos.metodoGrasa ?? null,
+      diamBiacromial: datos.diamBiacromial ?? null,
+      diamToraxTransverso: datos.diamToraxTransverso ?? null,
+      diamToraxAnteroposterior: datos.diamToraxAnteroposterior ?? null,
+      diamBiiliocrestideo: datos.diamBiiliocrestideo ?? null,
+      diamHumeral: datos.diamHumeral ?? null,
+      diamFemoral: datos.diamFemoral ?? null,
       pliegueTricipital: datos.pliegueTricipital ?? null,
       pliegueSubescapular: datos.pliegueSubescapular ?? null,
       pliegueSupraespinal: datos.pliegueSupraespinal ?? null,
@@ -118,13 +192,23 @@ export class Antropometria {
       plieguePantorrilla: datos.plieguePantorrilla ?? null,
       pliegueBicipital: datos.pliegueBicipital ?? null,
       pliegueCrestaIliaca: datos.pliegueCrestaIliaca ?? null,
+      plieguePectoral: datos.plieguePectoral ?? null,
+      pliegueAxilarMedio: datos.pliegueAxilarMedio ?? null,
+      pliegueLumbar: datos.pliegueLumbar ?? null,
       circTorax: datos.circTorax ?? null,
       circCinturaMinima: datos.circCinturaMinima ?? null,
       circCinturaMaxima: datos.circCinturaMaxima ?? null,
       circCadera: datos.circCadera ?? null,
       circBrazo: datos.circBrazo ?? null,
       circBrazoContraido: datos.circBrazoContraido ?? null,
+      circCabeza: datos.circCabeza ?? null,
+      circAntebrazo: datos.circAntebrazo ?? null,
+      circMusloMaximo: datos.circMusloMaximo ?? null,
+      circMusloMedial: datos.circMusloMedial ?? null,
+      circPantorrilla: datos.circPantorrilla ?? null,
       kgGrasa: datos.kgGrasa ?? null,
+      fuerzaPresionDerecha: datos.fuerzaPresionDerecha ?? null,
+      fuerzaPresionIzquierda: datos.fuerzaPresionIzquierda ?? null,
       observaciones: datos.observaciones?.trim() || null,
       creadoEn: ahora,
     });
@@ -176,7 +260,9 @@ export class Antropometria {
    * Derivados por medición para la vista de evolución (como la planilla:
    * "KG BAJADOS" = peso anterior − peso actual). Ordena por fecha ascendente.
    */
-  static calcularDerivados(mediciones: readonly Antropometria[]): DerivadosMedicion[] {
+  static calcularDerivados(
+    mediciones: readonly Antropometria[],
+  ): DerivadosMedicion[] {
     const ordenadas = [...mediciones].sort(
       (a, b) => a.fecha.getTime() - b.fecha.getTime(),
     );
@@ -197,6 +283,48 @@ export class Antropometria {
     });
   }
 
+  /**
+   * Vista de la medición como entrada del cálculo de composición corporal.
+   * Traduce el vocabulario de la planilla al del modelo de Kerr; la cintura
+   * que entra al fraccionamiento es la MÍNIMA (es la que define el protocolo
+   * ISAK), no la máxima.
+   */
+  medidasComposicion(): MedidasComposicion {
+    const p = this.props;
+    return {
+      pesoKg: p.pesoKg,
+      tallaCm: p.tallaCm,
+      tallaSentadoCm: p.tallaSentadoCm,
+      diamBiacromial: p.diamBiacromial,
+      diamToraxTransverso: p.diamToraxTransverso,
+      diamToraxAnteroposterior: p.diamToraxAnteroposterior,
+      diamBiiliocrestideo: p.diamBiiliocrestideo,
+      diamHumeral: p.diamHumeral,
+      diamFemoral: p.diamFemoral,
+      circCabeza: p.circCabeza,
+      circBrazo: p.circBrazo,
+      circBrazoContraido: p.circBrazoContraido,
+      circAntebrazo: p.circAntebrazo,
+      circTorax: p.circTorax,
+      circCinturaMinima: p.circCinturaMinima,
+      circCadera: p.circCadera,
+      circMusloMaximo: p.circMusloMaximo,
+      circMusloMedial: p.circMusloMedial,
+      circPantorrilla: p.circPantorrilla,
+      pliegueTricipital: p.pliegueTricipital,
+      pliegueSubescapular: p.pliegueSubescapular,
+      pliegueSupraespinal: p.pliegueSupraespinal,
+      pliegueAbdominal: p.pliegueAbdominal,
+      pliegueMuslo: p.pliegueMuslo,
+      plieguePantorrilla: p.plieguePantorrilla,
+      pliegueBicipital: p.pliegueBicipital,
+      pliegueCrestaIliaca: p.pliegueCrestaIliaca,
+      plieguePectoral: p.plieguePectoral,
+      pliegueAxilarMedio: p.pliegueAxilarMedio,
+      pliegueLumbar: p.pliegueLumbar,
+    };
+  }
+
   get id(): string {
     return this.props.id;
   }
@@ -208,6 +336,15 @@ export class Antropometria {
   }
   get pesoKg(): number {
     return this.props.pesoKg;
+  }
+  get nivelActividad(): NivelActividad | null {
+    return this.props.nivelActividad;
+  }
+  get protocolo(): ProtocoloComposicion {
+    return this.props.protocolo;
+  }
+  get metodoGrasa(): MetodoGrasa | null {
+    return this.props.metodoGrasa;
   }
   get observaciones(): string | null {
     return this.props.observaciones;
@@ -225,22 +362,61 @@ function validarFecha(fecha: Date, ahora: Date): void {
   if (!(fecha instanceof Date) || Number.isNaN(fecha.getTime())) {
     throw new ErrorValidacion("La fecha de la medición no es válida.");
   }
-  const hoy = Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate());
-  const dia = Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate());
+  const hoy = Date.UTC(
+    ahora.getUTCFullYear(),
+    ahora.getUTCMonth(),
+    ahora.getUTCDate(),
+  );
+  const dia = Date.UTC(
+    fecha.getUTCFullYear(),
+    fecha.getUTCMonth(),
+    fecha.getUTCDate(),
+  );
   if (dia > hoy) {
     throw new ErrorValidacion("La fecha de la medición no puede ser futura.");
   }
 }
 
-function validarMedidas(datos: Partial<MedidasAntropometricas> & { pesoKg: number }): void {
+function validarMedidas(
+  datos: Partial<MedidasAntropometricas> & { pesoKg: number },
+): void {
   validarRango(datos.pesoKg, 20, 400, "El peso debe estar entre 20 y 400 kg.");
   if (datos.tallaCm != null) {
-    validarRango(datos.tallaCm, 100, 250, "La talla debe estar entre 100 y 250 cm.");
+    validarRango(
+      datos.tallaCm,
+      100,
+      250,
+      "La talla debe estar entre 100 y 250 cm.",
+    );
+  }
+  if (datos.tallaSentadoCm != null) {
+    validarRango(
+      datos.tallaSentadoCm,
+      50,
+      150,
+      "La talla sentado debe estar entre 50 y 150 cm.",
+    );
+  }
+  for (const campo of CAMPOS_DIAMETROS) {
+    const valor = datos[campo];
+    if (valor != null) {
+      validarRango(
+        valor,
+        2,
+        60,
+        `El diámetro debe estar entre 2 y 60 cm (${campo}).`,
+      );
+    }
   }
   for (const campo of CAMPOS_PLIEGUES) {
     const valor = datos[campo];
     if (valor != null) {
-      validarRango(valor, 1, 80, `El pliegue debe estar entre 1 y 80 mm (${campo}).`);
+      validarRango(
+        valor,
+        1,
+        80,
+        `El pliegue debe estar entre 1 y 80 mm (${campo}).`,
+      );
     }
   }
   for (const campo of CAMPOS_CIRCUNFERENCIAS) {
@@ -254,12 +430,47 @@ function validarMedidas(datos: Partial<MedidasAntropometricas> & { pesoKg: numbe
       );
     }
   }
+  if (
+    datos.protocolo != null &&
+    !PROTOCOLOS_COMPOSICION.includes(datos.protocolo)
+  ) {
+    throw new ErrorValidacion("El protocolo de la medición no es válido.");
+  }
+  if (datos.metodoGrasa != null && !METODOS_GRASA.includes(datos.metodoGrasa)) {
+    throw new ErrorValidacion("El método de estimación de grasa no es válido.");
+  }
   if (datos.kgGrasa != null) {
-    validarRango(datos.kgGrasa, 0, 150, "Los kg de grasa deben estar entre 0 y 150.");
+    validarRango(
+      datos.kgGrasa,
+      0,
+      150,
+      "Los kg de grasa deben estar entre 0 y 150.",
+    );
+  }
+  if (datos.fuerzaPresionDerecha != null) {
+    validarRango(
+      datos.fuerzaPresionDerecha,
+      0,
+      100,
+      "La fuerza de presión derecha debe estar entre 0 y 100 kg.",
+    );
+  }
+  if (datos.fuerzaPresionIzquierda != null) {
+    validarRango(
+      datos.fuerzaPresionIzquierda,
+      0,
+      100,
+      "La fuerza de presión izquierda debe estar entre 0 y 100 kg.",
+    );
   }
 }
 
-function validarRango(valor: number, min: number, max: number, mensaje: string): void {
+function validarRango(
+  valor: number,
+  min: number,
+  max: number,
+  mensaje: string,
+): void {
   if (!Number.isFinite(valor) || valor < min || valor > max) {
     throw new ErrorValidacion(mensaje);
   }

@@ -51,7 +51,11 @@ export function ToggleTema() {
             <DropdownMenuItem
               key={opcion.valor}
               onClick={() => setTheme(opcion.valor)}
-              className={theme === opcion.valor ? "bg-accent text-accent-foreground" : undefined}
+              className={
+                theme === opcion.valor
+                  ? "bg-accent text-accent-foreground"
+                  : undefined
+              }
             >
               <Icono className="h-4 w-4" />
               {opcion.etiqueta}

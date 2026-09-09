@@ -2,14 +2,15 @@ import type { PrismaClient, Prisma } from "@prisma/client";
 import type {
   IRegistroDiarioRepositorio,
   HijoDiario,
+  ResumenDiario,
 } from "@/dominio/repositorios/IRegistroDiarioRepositorio";
 import {
   RegistroDiario,
   type ComidaConsumida,
   type ActividadFisica,
-  type CalidadSueno,
-  type IntensidadActividad,
 } from "@/dominio/entidades/RegistroDiario";
+import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { soloFecha } from "./base/fechas";
 
 /** Fila del registro con hijos incluidos (foto solo como id). */
 type RegistroConHijos = Prisma.RegistroDiarioGetPayload<{
@@ -38,9 +39,10 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
     const datos = registro.aPrimitivos();
     const fila = await this.prisma.registroDiario.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         id: datos.id,
         pacienteId: datos.pacienteId,
-        fecha: this.soloFecha(datos.fecha),
+        fecha: soloFecha(datos.fecha),
         pesoKg: datos.pesoKg,
         aguaMl: datos.aguaMl,
         horasSueno: datos.horasSueno,
@@ -50,7 +52,7 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
       },
       include: INCLUIR_HIJOS,
     });
-    return this.mapear(fila);
+    return mapearRegistroDiario(fila);
   }
 
   async actualizarEscalares(registro: RegistroDiario): Promise<RegistroDiario> {
@@ -66,7 +68,7 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
       },
       include: INCLUIR_HIJOS,
     });
-    return this.mapear(fila);
+    return mapearRegistroDiario(fila);
   }
 
   async obtenerPorPacienteYFecha(
@@ -75,11 +77,11 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
   ): Promise<RegistroDiario | null> {
     const fila = await this.prisma.registroDiario.findUnique({
       where: {
-        pacienteId_fecha: { pacienteId, fecha: this.soloFecha(fecha) },
+        pacienteId_fecha: { pacienteId, fecha: soloFecha(fecha) },
       },
       include: INCLUIR_HIJOS,
     });
-    return fila ? this.mapear(fila) : null;
+    return fila ? mapearRegistroDiario(fila) : null;
   }
 
   async listarPorRango(
@@ -90,21 +92,84 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
     const filas = await this.prisma.registroDiario.findMany({
       where: {
         pacienteId,
-        fecha: { gte: this.soloFecha(desde), lte: this.soloFecha(hasta) },
+        fecha: { gte: soloFecha(desde), lte: soloFecha(hasta) },
       },
       include: INCLUIR_HIJOS,
       orderBy: { fecha: "asc" },
     });
-    return filas.map((fila) => this.mapear(fila));
+    return filas.map((fila) => mapearRegistroDiario(fila));
+  }
+
+  async listarPaginado(
+    pacienteId: string,
+    limite: number,
+    desplazamiento: number,
+  ): Promise<RegistroDiario[]> {
+    const filas = await this.prisma.registroDiario.findMany({
+      where: { pacienteId },
+      include: INCLUIR_HIJOS,
+      orderBy: { fecha: "desc" },
+      take: limite,
+      skip: desplazamiento,
+    });
+    return filas.map((fila) => mapearRegistroDiario(fila));
   }
 
   async contarRegistros(pacienteId: string): Promise<number> {
     return this.prisma.registroDiario.count({ where: { pacienteId } });
   }
 
-  async agregarComida(registroId: string, comida: ComidaConsumida): Promise<void> {
+  /**
+   * Tres consultas agregadas para TODOS los pacientes, en vez de dos por
+   * paciente. El filtro por inquilino lo agrega la extensión de Prisma.
+   */
+  async resumenPorPacienteEnRango(
+    desde: Date,
+    hasta: Date,
+  ): Promise<Map<string, ResumenDiario>> {
+    const rango = { gte: soloFecha(desde), lte: soloFecha(hasta) };
+
+    const [totales, conPeso, conActividad] = await Promise.all([
+      // Cuántos registros tiene cada paciente en toda su historia.
+      this.prisma.registroDiario.groupBy({
+        by: ["pacienteId"],
+        _count: { _all: true },
+      }),
+      // Quiénes registraron peso dentro del rango.
+      this.prisma.registroDiario.findMany({
+        where: { fecha: rango, pesoKg: { not: null } },
+        select: { pacienteId: true },
+        distinct: ["pacienteId"],
+      }),
+      // Quiénes cargaron alguna actividad dentro del rango.
+      this.prisma.registroDiario.findMany({
+        where: { fecha: rango, actividades: { some: {} } },
+        select: { pacienteId: true },
+        distinct: ["pacienteId"],
+      }),
+    ]);
+
+    const pesoDe = new Set(conPeso.map((r) => r.pacienteId));
+    const actividadDe = new Set(conActividad.map((r) => r.pacienteId));
+
+    const resumen = new Map<string, ResumenDiario>();
+    for (const fila of totales) {
+      resumen.set(fila.pacienteId, {
+        totalRegistros: fila._count._all,
+        registroPeso: pesoDe.has(fila.pacienteId),
+        huboActividad: actividadDe.has(fila.pacienteId),
+      });
+    }
+    return resumen;
+  }
+
+  async agregarComida(
+    registroId: string,
+    comida: ComidaConsumida,
+  ): Promise<void> {
     await this.prisma.comidaConsumida.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         id: comida.id,
         registroId,
         franja: comida.franja,
@@ -123,16 +188,28 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
   async obtenerComida(comidaId: string): Promise<HijoDiario | null> {
     const fila = await this.prisma.comidaConsumida.findUnique({
       where: { id: comidaId },
-      select: { id: true, registroId: true, registro: { select: { pacienteId: true } } },
+      select: {
+        id: true,
+        registroId: true,
+        registro: { select: { pacienteId: true } },
+      },
     });
     return fila
-      ? { id: fila.id, registroId: fila.registroId, pacienteId: fila.registro.pacienteId }
+      ? {
+          id: fila.id,
+          registroId: fila.registroId,
+          pacienteId: fila.registro.pacienteId,
+        }
       : null;
   }
 
-  async agregarActividad(registroId: string, actividad: ActividadFisica): Promise<void> {
+  async agregarActividad(
+    registroId: string,
+    actividad: ActividadFisica,
+  ): Promise<void> {
     await this.prisma.actividadFisica.create({
       data: {
+        nutricionistaId: inquilinoActual(),
         id: actividad.id,
         registroId,
         tipo: actividad.tipo,
@@ -151,48 +228,50 @@ export class PrismaRepositorioRegistroDiario implements IRegistroDiarioRepositor
   async obtenerActividad(actividadId: string): Promise<HijoDiario | null> {
     const fila = await this.prisma.actividadFisica.findUnique({
       where: { id: actividadId },
-      select: { id: true, registroId: true, registro: { select: { pacienteId: true } } },
+      select: {
+        id: true,
+        registroId: true,
+        registro: { select: { pacienteId: true } },
+      },
     });
     return fila
-      ? { id: fila.id, registroId: fila.registroId, pacienteId: fila.registro.pacienteId }
+      ? {
+          id: fila.id,
+          registroId: fila.registroId,
+          pacienteId: fila.registro.pacienteId,
+        }
       : null;
   }
+}
 
-  private soloFecha(fecha: Date): Date {
-    return new Date(
-      Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
-    );
-  }
-
-  private mapear(fila: RegistroConHijos): RegistroDiario {
-    return RegistroDiario.reconstruir({
-      id: fila.id,
-      pacienteId: fila.pacienteId,
-      fecha: fila.fecha,
-      pesoKg: fila.pesoKg === null ? null : fila.pesoKg.toNumber(),
-      aguaMl: fila.aguaMl,
-      horasSueno: fila.horasSueno === null ? null : fila.horasSueno.toNumber(),
-      calidadSueno: fila.calidadSueno as CalidadSueno | null,
-      notas: fila.notas,
-      comidas: fila.comidas.map((comida) => ({
-        id: comida.id,
-        franja: comida.franja,
-        hora: comida.hora,
-        descripcion: comida.descripcion,
-        porcion: comida.porcion,
-        fotoArchivoId: comida.foto?.id ?? null,
-        creadoEn: comida.creadoEn,
-      })),
-      actividades: fila.actividades.map((actividad) => ({
-        id: actividad.id,
-        tipo: actividad.tipo,
-        duracionMinutos: actividad.duracionMinutos,
-        intensidad: actividad.intensidad as IntensidadActividad | null,
-        notas: actividad.notas,
-        creadoEn: actividad.creadoEn,
-      })),
-      creadoEn: fila.creadoEn,
-      actualizadoEn: fila.actualizadoEn,
-    });
-  }
+export function mapearRegistroDiario(fila: RegistroConHijos): RegistroDiario {
+  return RegistroDiario.reconstruir({
+    id: fila.id,
+    pacienteId: fila.pacienteId,
+    fecha: fila.fecha,
+    pesoKg: fila.pesoKg === null ? null : fila.pesoKg.toNumber(),
+    aguaMl: fila.aguaMl,
+    horasSueno: fila.horasSueno === null ? null : fila.horasSueno.toNumber(),
+    calidadSueno: fila.calidadSueno,
+    notas: fila.notas,
+    comidas: fila.comidas.map((comida) => ({
+      id: comida.id,
+      franja: comida.franja,
+      hora: comida.hora,
+      descripcion: comida.descripcion,
+      porcion: comida.porcion,
+      fotoArchivoId: comida.foto?.id ?? null,
+      creadoEn: comida.creadoEn,
+    })),
+    actividades: fila.actividades.map((actividad) => ({
+      id: actividad.id,
+      tipo: actividad.tipo,
+      duracionMinutos: actividad.duracionMinutos,
+      intensidad: actividad.intensidad,
+      notas: actividad.notas,
+      creadoEn: actividad.creadoEn,
+    })),
+    creadoEn: fila.creadoEn,
+    actualizadoEn: fila.actualizadoEn,
+  });
 }
