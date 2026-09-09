@@ -212,6 +212,7 @@ export const servicioPlan = perezoso(() =>
     planes: nucleo.repositorioPlan(),
     pacientes: nucleo.repositorioPaciente(),
     grupos: nucleo.repositorioGrupoPlan(),
+    recetas: nucleo.repositorioReceta(),
   }),
 );
 

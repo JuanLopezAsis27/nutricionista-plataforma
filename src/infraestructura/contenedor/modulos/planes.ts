@@ -2,6 +2,7 @@ import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
 import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IGrupoPlanRepositorio } from "@/dominio/repositorios/IGrupoPlanRepositorio";
+import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositorio";
 import { CrearPlan } from "@/aplicacion/casos-de-uso/planes/CrearPlan";
 import { ObtenerPlanes } from "@/aplicacion/casos-de-uso/planes/ObtenerPlanes";
 import { ObtenerPlanesPaginado } from "@/aplicacion/casos-de-uso/planes/ObtenerPlanesPaginado";
@@ -15,6 +16,7 @@ import { DesasignarPlanDePaciente } from "@/aplicacion/casos-de-uso/planes/Desas
 import { ObtenerPlanDelPaciente } from "@/aplicacion/casos-de-uso/planes/ObtenerPlanDelPaciente";
 import { ObtenerPacientesDePlan } from "@/aplicacion/casos-de-uso/planes/ObtenerPacientesDePlan";
 import { ObtenerHistorialDePlanes } from "@/aplicacion/casos-de-uso/planes/ObtenerHistorialDePlanes";
+import { SincronizarRecetasDePlan } from "@/aplicacion/casos-de-uso/planes/SincronizarRecetasDePlan";
 import { MoverPlanAGrupo } from "@/aplicacion/casos-de-uso/planes/MoverPlanAGrupo";
 import { CrearGrupoPlan } from "@/aplicacion/casos-de-uso/grupos-plan/CrearGrupoPlan";
 import { ActualizarGrupoPlan } from "@/aplicacion/casos-de-uso/grupos-plan/ActualizarGrupoPlan";
@@ -29,6 +31,7 @@ export function crearServicioPlan(deps: {
   planes: IPlanRepositorio & IAsignacionPlanRepositorio;
   pacientes: IPacienteRepositorio;
   grupos: IGrupoPlanRepositorio;
+  recetas: IRecetaRepositorio;
 }): ServicioPlan {
   return new ServicioPlan(
     new CrearPlan(deps.planes),
@@ -44,6 +47,7 @@ export function crearServicioPlan(deps: {
     new ObtenerPlanDelPaciente(deps.planes),
     new ObtenerPacientesDePlan(deps.planes, deps.planes),
     new ObtenerHistorialDePlanes(deps.planes, deps.pacientes),
+    new SincronizarRecetasDePlan(deps.planes, deps.planes, deps.recetas),
     new MoverPlanAGrupo(deps.planes, deps.grupos),
     new CrearGrupoPlan(deps.grupos),
     new ActualizarGrupoPlan(deps.grupos),

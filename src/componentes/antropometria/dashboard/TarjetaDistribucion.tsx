@@ -6,12 +6,7 @@ import type {
 } from "@/dominio/servicios/composicionCorporal";
 import { formatearMedida } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/componentes/ui/card";
+import { SeccionDesplegable } from "@/componentes/comunes/SeccionDesplegable";
 import type { TemaComposicion } from "../paleta";
 import { FiguraTejidos } from "./FiguraTejidos";
 
@@ -45,16 +40,11 @@ export function TarjetaDistribucion({
   if (adiposa == null && muscular == null) return null;
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold">
-          Distribución adiposa y muscular{" "}
-          <span className="font-normal text-muted-foreground">
-            (dónde está, no cuánto hay)
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <SeccionDesplegable
+      titulo="Distribución adiposa y muscular"
+      resumen="dónde está, no cuánto hay"
+    >
+      <div className="space-y-6">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:items-center">
           {muscular != null ? (
             <BarrasPerimetros muscular={muscular} tema={tema} />
@@ -72,8 +62,8 @@ export function TarjetaDistribucion({
           <TablaAdiposa adiposa={adiposa} tema={tema} />
           <TablaMuscular muscular={muscular} tema={tema} />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </SeccionDesplegable>
   );
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -8,9 +9,11 @@ import {
   FileDown,
   Pill,
 } from "lucide-react";
+import type { RecetaSalidaDto } from "@/aplicacion/dtos/receta.dto";
 import { usePlanes } from "@/lib/hooks/usePlanes";
 import { usePlanesSemanales } from "@/lib/hooks/usePlanesSemanales";
 import { useSeguimiento } from "@/lib/hooks/useSeguimiento";
+import { useRecetas } from "@/lib/hooks/useRecetas";
 import { formatearFecha } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
@@ -20,17 +23,27 @@ import {
   CardHeader,
   CardTitle,
 } from "@/componentes/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/componentes/ui/dialog";
 import { EncabezadoPortal } from "@/componentes/layout/EncabezadoPortal";
 import { VistaPlan } from "@/componentes/planes/VistaPlan";
+import { VistaReceta } from "@/componentes/recetas/VistaReceta";
 
 /** Mi plan: plan nutricional activo + suplementación vigente, con PDF. */
 export default function PaginaMiPlan() {
   const { miPlan } = usePlanes();
   const { miPlanSemanal } = usePlanesSemanales();
   const { misSuplementos } = useSeguimiento();
+  const { misRecetas } = useRecetas();
   const consulta = miPlan();
   const semanal = miPlanSemanal();
   const suplementos = misSuplementos();
+  const recetas = misRecetas();
+  const [recetaVer, setRecetaVer] = useState<RecetaSalidaDto | null>(null);
 
   return (
     <div className="space-y-5">
@@ -82,7 +95,13 @@ export default function PaginaMiPlan() {
       {consulta.isLoading ? (
         <Skeleton className="h-64 w-full" />
       ) : consulta.data ? (
-        <VistaPlan plan={consulta.data} />
+        <VistaPlan
+          plan={consulta.data}
+          onVerReceta={(recetaId) => {
+            const receta = recetas.data?.find((r) => r.id === recetaId);
+            if (receta) setRecetaVer(receta);
+          }}
+        />
       ) : (
         <div className="rounded-xl border border-dashed p-10 text-center">
           <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -128,6 +147,18 @@ export default function PaginaMiPlan() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog
+        open={Boolean(recetaVer)}
+        onOpenChange={(abierto) => !abierto && setRecetaVer(null)}
+      >
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{recetaVer?.nombre}</DialogTitle>
+          </DialogHeader>
+          {recetaVer && <VistaReceta receta={recetaVer} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

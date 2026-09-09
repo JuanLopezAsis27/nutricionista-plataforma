@@ -326,6 +326,8 @@ export const medidasAntropometricasDto = z.object({
   circMusloMedial: circunferencia,
   circPantorrilla: circunferencia,
   kgGrasa: z.number().min(0).max(150).optional().nullable(),
+  fuerzaPresionDerecha: z.number().min(0).max(100).optional().nullable(),
+  fuerzaPresionIzquierda: z.number().min(0).max(100).optional().nullable(),
   observaciones: z.string().max(2000).optional().nullable(),
 });
 
@@ -442,6 +444,8 @@ export interface MedicionEvolucionDto {
   circMusloMedial: number | null;
   circPantorrilla: number | null;
   kgGrasa: number | null;
+  fuerzaPresionDerecha: number | null;
+  fuerzaPresionIzquierda: number | null;
   observaciones: string | null;
   creadoEn: Date;
   // Derivados (calculados por el dominio, nunca persistidos)

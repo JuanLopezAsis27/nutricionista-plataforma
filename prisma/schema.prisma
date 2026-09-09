@@ -1351,10 +1351,14 @@ model Antropometria {
   circMusloMedial    Decimal? @db.Decimal(5, 1)
   circPantorrilla    Decimal? @db.Decimal(5, 1)
 
-  kgGrasa       Decimal? @db.Decimal(5, 2)
-  observaciones String?
-  creadoEn      DateTime @default(now())
-  actualizadoEn DateTime @updatedAt
+  kgGrasa                Decimal? @db.Decimal(5, 2)
+  // Dinamometría manual (kg). No alimenta ninguna ecuación de composición;
+  // se registra y se muestra tal cual, como kgGrasa.
+  fuerzaPresionDerecha   Decimal? @db.Decimal(4, 1)
+  fuerzaPresionIzquierda Decimal? @db.Decimal(4, 1)
+  observaciones          String?
+  creadoEn               DateTime @default(now())
+  actualizadoEn          DateTime @updatedAt
 
   paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)

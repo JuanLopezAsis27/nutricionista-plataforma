@@ -36,8 +36,18 @@ import { formatearTamano } from "@/lib/formato";
  * «Mi plan» y «Mi semana» son dos vistas de lo que come, y que el almuerzo
  * cambiara de color entre una y otra rompe lo único que el color hace —ubicar
  * la franja sin leer—.
+ *
+ * `onVerReceta` es opcional: sin él, la receta de una opción es solo texto
+ * (dashboard/planes/[id] y la ficha del paciente no la pasan hoy). Quien la
+ * pasa decide qué significa "ver" —el portal abre el detalle en un diálogo—.
  */
-export function VistaPlan({ plan }: { plan: PlanSalidaDto }) {
+export function VistaPlan({
+  plan,
+  onVerReceta,
+}: {
+  plan: PlanSalidaDto;
+  onVerReceta?: (recetaId: string) => void;
+}) {
   const metas = [
     plan.caloriasMeta != null && {
       valor: `${plan.caloriasMeta} kcal`,
@@ -160,7 +170,17 @@ export function VistaPlan({ plan }: { plan: PlanSalidaDto }) {
                     {opcion.recetaNombre && (
                       <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
                         <BookOpen className="h-3.5 w-3.5" /> Receta:{" "}
-                        {opcion.recetaNombre}
+                        {opcion.recetaId && onVerReceta ? (
+                          <button
+                            type="button"
+                            onClick={() => onVerReceta(opcion.recetaId!)}
+                            className="font-medium text-foreground underline-offset-2 hover:text-primary hover:underline"
+                          >
+                            {opcion.recetaNombre}
+                          </button>
+                        ) : (
+                          opcion.recetaNombre
+                        )}
                         {opcion.recetaMacros &&
                           macrosReceta(opcion.recetaMacros) && (
                             <span className="text-muted-foreground/80">

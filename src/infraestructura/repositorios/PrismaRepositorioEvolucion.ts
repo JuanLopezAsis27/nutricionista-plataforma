@@ -11,10 +11,19 @@ import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
 
 /** Fila de evolución con sus fotos incluidas. */
 type EvolucionConFotos = Prisma.EvolucionGetPayload<{
-  include: { archivos: true };
+  include: { archivos: { orderBy: { creadoEn: "asc" } } };
 }>;
 
-const INCLUIR = { archivos: true } satisfies Prisma.EvolucionInclude;
+/**
+ * `fecha` es `@db.Date` (sin hora): dos evoluciones del mismo día son
+ * indistinguibles por fecha sola. Las fotos ordenan por `creadoEn` —el
+ * momento real en que se subieron— para que "antes y después" (y la galería
+ * de cada evolución) muestren siempre el orden en que se cargaron, no un
+ * orden físico de fila que Postgres no garantiza sin ORDER BY.
+ */
+const INCLUIR = {
+  archivos: { orderBy: { creadoEn: "asc" } },
+} satisfies Prisma.EvolucionInclude;
 
 /** Implementación con Prisma del repositorio de Evoluciones de control. */
 export class PrismaRepositorioEvolucion
@@ -50,11 +59,15 @@ export class PrismaRepositorioEvolucion
     return mapearEvolucionConFotos(fila);
   }
 
-  /** Descendente: la ficha muestra primero la última consulta. */
+  /**
+   * Descendente: la ficha muestra primero la última consulta.
+   * `creadoEn` desempata dos evoluciones del mismo día (`fecha` no tiene
+   * hora): sin esto, Postgres no garantiza un orden estable entre ellas.
+   */
   async listarPorPaciente(pacienteId: string): Promise<Evolucion[]> {
     const filas = await this.prisma.evolucion.findMany({
       where: { pacienteId },
-      orderBy: { fecha: "desc" },
+      orderBy: [{ fecha: "desc" }, { creadoEn: "desc" }],
       include: INCLUIR,
     });
     return filas.map(mapearEvolucionConFotos);

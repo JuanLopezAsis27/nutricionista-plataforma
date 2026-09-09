@@ -10,7 +10,9 @@ import {
   HelpCircle,
   LineChart,
   PieChart,
+  Ruler,
   Scale,
+  Shapes,
   Target,
   TrendingDown,
   TrendingUp,
@@ -19,6 +21,7 @@ import {
 } from "lucide-react";
 import type { ObjetivoComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
 import type { EstadoProyeccion } from "@/dominio/servicios/proyeccionComposicion";
+import type { RiesgoCinturaCadera } from "@/dominio/servicios/composicionCorporal";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
 import { formatearFecha, formatearMedida } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
@@ -34,8 +37,25 @@ import { DonutMasas } from "./DonutMasas";
 import { EvolucionMasas, EvolucionGrasa } from "./EvolucionMasas";
 import { TortaPlieguesProyectados } from "./TortaPlieguesProyectados";
 import { TortaMasasConObjetivos } from "./TortaMasasConObjetivos";
+import { Somatocarta, type PuntoSomatocarta } from "./Somatocarta";
+import { Fila } from "./dashboard/piezas";
 import { useTemaComposicion } from "./useTemaComposicion";
 import type { TemaComposicion } from "./paleta";
+
+const ETIQUETAS_RIESGO_CINTURA: Record<RiesgoCinturaCadera, string> = {
+  BAJO: "Riesgo bajo",
+  MODERADO: "Riesgo moderado",
+  ALTO: "Riesgo alto",
+  MUY_ALTO: "Riesgo muy alto",
+};
+
+/** Categorías OMS de IMC en adultos, la lectura que el paciente reconoce. */
+function categoriaImc(imc: number): string {
+  if (imc < 18.5) return "Bajo peso";
+  if (imc < 25) return "Peso normal";
+  if (imc < 30) return "Sobrepeso";
+  return "Obesidad";
+}
 
 /**
  * Estados de la marcha hacia la meta, contados para el paciente.
@@ -87,11 +107,13 @@ const ESTADOS: Record<
 /**
  * Portal del paciente: su composición corporal y sus objetivos, en lectura.
  *
- * Es una vista recortada a propósito. Quedan afuera el perfil Phantom, la
- * somatocarta, los índices técnicos y el control de calidad del
- * fraccionamiento: son herramientas de lectura profesional, y mostrarlas acá
- * sin quien las interprete confunde más de lo que informa. El paciente ve qué
- * midió, cómo viene y cuánto le falta.
+ * Es una vista recortada a propósito. Quedan afuera el perfil Phantom y el
+ * control de calidad del fraccionamiento: son herramientas de lectura
+ * profesional, y mostrarlas acá sin quien las interprete confunde más de lo
+ * que informa. El IMC, la sumatoria de pliegues, el índice cintura/cadera y
+ * el somatotipo sí se muestran —con su categoría o riesgo en palabras
+ * llanas—, porque son datos que el paciente reconoce y le sirve tener a mano
+ * entre consultas.
  */
 export function ComposicionPaciente() {
   const { miComposicion } = useEvaluacion();
@@ -142,6 +164,19 @@ export function ComposicionPaciente() {
     ) ?? resultado.grasaPorPliegues.resultados[0];
 
   const metodoSerie = grasa?.metodo ?? null;
+
+  const { indices } = resultado;
+  const hayIndices =
+    indices.imc != null ||
+    indices.indiceCinturaCadera != null ||
+    indices.sumatoria6Pliegues != null ||
+    indices.sumatoria8Pliegues != null;
+
+  const puntosSomatotipo: PuntoSomatocarta[] = mediciones.flatMap((m) =>
+    m.resultado.somatotipo
+      ? [{ fecha: m.fecha, somatotipo: m.resultado.somatotipo }]
+      : [],
+  );
 
   return (
     <div className="space-y-6">
@@ -221,6 +256,55 @@ export function ComposicionPaciente() {
         ) : null}
       </div>
 
+      {hayIndices && (
+        <Card className="overflow-hidden">
+          <CabeceraTarjeta
+            icono={Ruler}
+            titulo="Tus índices"
+            fondo="bg-indigo-500/5"
+            tinte="bg-indigo-500/10"
+            color="text-indigo-600 dark:text-indigo-400"
+          />
+          <CardContent className="p-4">
+            <dl className="divide-y text-sm">
+              {indices.imc != null && (
+                <Fila
+                  etiqueta="Índice de masa corporal (IMC)"
+                  valor={indices.imc}
+                  unidad="kg/m²"
+                  nota={categoriaImc(indices.imc)}
+                />
+              )}
+              {indices.indiceCinturaCadera != null && (
+                <Fila
+                  etiqueta="Índice cintura/cadera"
+                  valor={indices.indiceCinturaCadera}
+                  nota={
+                    indices.riesgoCinturaCadera
+                      ? ETIQUETAS_RIESGO_CINTURA[indices.riesgoCinturaCadera]
+                      : undefined
+                  }
+                />
+              )}
+              {indices.sumatoria6Pliegues != null && (
+                <Fila
+                  etiqueta="Sumatoria de 6 pliegues"
+                  valor={indices.sumatoria6Pliegues}
+                  unidad="mm"
+                />
+              )}
+              {indices.sumatoria8Pliegues != null && (
+                <Fila
+                  etiqueta="Sumatoria de 8 pliegues"
+                  valor={indices.sumatoria8Pliegues}
+                  unidad="mm"
+                />
+              )}
+            </dl>
+          </CardContent>
+        </Card>
+      )}
+
       {objetivos.length > 0 && (
         <section className="space-y-3">
           <h2 className="flex items-center gap-2 text-lg font-bold">
@@ -275,6 +359,21 @@ export function ComposicionPaciente() {
               anterior={anterior?.resultado.fraccionamiento ?? null}
               tema={tema}
             />
+          </CardContent>
+        </Card>
+      )}
+
+      {puntosSomatotipo.length > 0 && (
+        <Card className="overflow-hidden">
+          <CabeceraTarjeta
+            icono={Shapes}
+            titulo="Tu somatotipo"
+            fondo="bg-fuchsia-500/5"
+            tinte="bg-fuchsia-500/10"
+            color="text-fuchsia-600 dark:text-fuchsia-400"
+          />
+          <CardContent className="p-4">
+            <Somatocarta puntos={puntosSomatotipo} tema={tema} />
           </CardContent>
         </Card>
       )}

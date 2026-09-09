@@ -159,7 +159,7 @@ export function EvolucionesPaciente({ pacienteId }: { pacienteId: string }) {
                           <FotoConVisor
                             archivoId={foto.id}
                             alt={foto.nombreOriginal}
-                            className="h-20 w-full"
+                            className="aspect-square w-full"
                           />
                         </li>
                       ))}

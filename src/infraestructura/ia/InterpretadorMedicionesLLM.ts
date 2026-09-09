@@ -20,11 +20,17 @@ const textoONulo = { type: ["string", "null"] };
  * acá evita que el día que se sume una medida al modelo esta extracción se
  * quede sin ella en silencio.
  */
+const CAMPOS_MANUALES = [
+  "kgGrasa",
+  "fuerzaPresionDerecha",
+  "fuerzaPresionIzquierda",
+] as const;
+
 const PROPIEDADES_MEDICION: Record<string, unknown> = {
   fecha: textoONulo,
   pesoKg: numeroONulo,
-  kgGrasa: numeroONulo,
   observaciones: textoONulo,
+  ...Object.fromEntries(CAMPOS_MANUALES.map((campo) => [campo, numeroONulo])),
   ...Object.fromEntries(CAMPOS_PLANTILLA.map((campo) => [campo, numeroONulo])),
 };
 
@@ -62,8 +68,8 @@ Reglas:
 1. NO inventes NADA. Si una medida no está cargada para esa consulta, devolvé null. Es una planilla clínica: un número inventado termina en el historial de una persona real.
 2. NO calcules ni completes nada: no interpoles entre dos consultas, no promedies, no arrastres el valor de la consulta anterior a una columna vacía. Copiá solo lo que está escrito.
 3. Fechas SIEMPRE en formato ISO YYYY-MM-DD. En español se escribe DÍA/MES/AÑO, así que 03/11/2024 es el 2024-11-03. Si una columna no tiene fecha legible, devolvé fecha null igual (el profesional la completa); no la inventes ni la deduzcas de las otras.
-4. Unidades: peso en kg, tallas / perímetros / diámetros en cm, pliegues en mm, kgGrasa en kg. Si la planilla usa otra unidad, convertila.
-5. HAY VALORES QUE NO SE IMPORTAN porque el sistema los recalcula solo: la sumatoria de pliegues, los kg bajados (contra la consulta anterior o acumulados), el porcentaje de grasa, el IMC y cualquier otro derivado. Ignorá esas filas. La única excepción es kgGrasa, que sí se guarda cuando la planilla lo trae.
+4. Unidades: peso en kg, tallas / perímetros / diámetros en cm, pliegues en mm, kgGrasa y fuerza de presión (dinamometría manual) en kg. Si la planilla usa otra unidad, convertila.
+5. HAY VALORES QUE NO SE IMPORTAN porque el sistema los recalcula solo: la sumatoria de pliegues, los kg bajados (contra la consulta anterior o acumulados), el porcentaje de grasa, el IMC y cualquier otro derivado. Ignorá esas filas. Las excepciones son kgGrasa, fuerzaPresionDerecha y fuerzaPresionIzquierda, que sí se guardan cuando la planilla las trae.
 6. Una medida que la planilla anota UNA sola vez para todo el paciente —típicamente la talla— va repetida en TODAS las mediciones: es la misma persona.
 7. Si una columna no tiene peso, devolvela igual con pesoKg null; no la descartes por tu cuenta.
 8. Ordená las mediciones por fecha, de la más vieja a la más nueva.
@@ -76,7 +82,7 @@ CUIDADO CON LOS NOMBRES PARECIDOS, que son los que se confunden:
 - Las filas que empiezan con "P" suelen ser PLIEGUES (mm) y las que empiezan con "C", CIRCUNFERENCIAS (cm). La planilla puede aclararlo en una referencia al pie: leela.
 - "Tórax" como perímetro es circTorax; como diámetro es diamToraxTransverso o diamToraxAnteroposterior.
 
-Las medidas que se pueden importar son: ${medidas}. Además: pesoKg (peso en kg) y kgGrasa (kg de grasa que anote la planilla).`;
+Las medidas que se pueden importar son: ${medidas}. Además: pesoKg (peso en kg), kgGrasa (kg de grasa que anote la planilla), fuerzaPresionDerecha y fuerzaPresionIzquierda (dinamometría manual, en kg).`;
 }
 
 /**
@@ -177,7 +183,7 @@ function normalizarMedicion(cruda: unknown): MedicionSugerida[] {
     fecha: fechaIso(item.fecha),
     observaciones: texto(item.observaciones),
   };
-  for (const campo of [...CAMPOS_PLANTILLA, "kgGrasa"] as const) {
+  for (const campo of [...CAMPOS_PLANTILLA, ...CAMPOS_MANUALES] as const) {
     const valor = numero(item[campo]);
     if (valor !== null) {
       medidas[campo] = valor;
