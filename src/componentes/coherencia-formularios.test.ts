@@ -28,7 +28,10 @@ import { LARGO_MINIMO_PASSWORD } from "@/aplicacion/dtos/password";
 /** Contraseñas que la política vigente debe rechazar. */
 const RECHAZADAS = [
   ["corta", "abc123"],
-  ["de 11, justo debajo del mínimo", "a".repeat(11)],
+  // Justo debajo del mínimo, que hoy es 8. Sin caracteres repetidos a
+  // propósito: con "aaaaaaa" el rechazo vendría de la regla de las obvias y el
+  // caso dejaría de mirar el largo, que es lo que quiere mirar.
+  ["de 7, justo debajo del mínimo", "melon-5"],
   ["obvia de la lista", "contrasena123"],
   ["un solo carácter repetido", "aaaaaaaaaaaa"],
 ] as const;

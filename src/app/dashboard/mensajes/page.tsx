@@ -13,7 +13,8 @@ import { useMensajeria } from "@/lib/hooks/useMensajeria";
 import { cn } from "@/lib/utilidades";
 import { HiloMensajes } from "@/componentes/mensajeria/HiloMensajes";
 import { HiloWhatsapp } from "@/componentes/mensajeria/HiloWhatsapp";
-import { etiquetaRelativa, inicialesDe } from "@/componentes/mensajeria/chat";
+import { etiquetaRelativa } from "@/componentes/mensajeria/chat";
+import { AvatarPerfil } from "@/componentes/comunes/AvatarPerfil";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { Skeleton } from "@/componentes/ui/skeleton";
@@ -150,17 +151,17 @@ export default function PaginaMensajes() {
                             "bg-muted shadow-[inset_3px_0_0_0_hsl(var(--primary))]",
                         )}
                       >
-                        <span
+                        {/* Con foto se ve la cara; sin foto, las iniciales.
+                            El anillo marca los no leídos, que es lo que antes
+                            hacía el fondo del círculo de iniciales. */}
+                        <AvatarPerfil
+                          nombre={conversacion.pacienteNombre}
+                          fotoArchivoId={conversacion.pacienteFotoArchivoId}
                           className={cn(
-                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
-                            noLeidos
-                              ? "bg-primary/15 text-primary"
-                              : "bg-secondary text-secondary-foreground",
+                            "h-9 w-9",
+                            noLeidos && "ring-2 ring-primary ring-offset-1",
                           )}
-                          aria-hidden
-                        >
-                          {inicialesDe(conversacion.pacienteNombre)}
-                        </span>
+                        />
 
                         <div className="min-w-0 flex-1">
                           <p className="flex items-baseline justify-between gap-2">
@@ -240,12 +241,18 @@ export default function PaginaMensajes() {
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
 
-                <span
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground"
-                  aria-hidden
-                >
-                  {inicialesDe(seleccionada?.pacienteNombre ?? "?")}
-                </span>
+                <AvatarPerfil
+                  nombre={
+                    hilo.data?.contraparte.nombre ??
+                    seleccionada?.pacienteNombre ??
+                    "Paciente"
+                  }
+                  fotoArchivoId={
+                    hilo.data?.contraparte.fotoArchivoId ??
+                    seleccionada?.pacienteFotoArchivoId
+                  }
+                  className="h-8 w-8"
+                />
                 <p className="min-w-0 truncate font-medium">
                   {seleccionada?.pacienteNombre ?? "Paciente"}
                 </p>

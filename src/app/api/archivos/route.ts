@@ -17,8 +17,21 @@ export const runtime = "nodejs";
  *
  * Campos: archivo (File), contexto, titulo?, categoria?.
  * Autorización: el nutricionista puede subir en cualquier contexto; el
- * paciente solo fotos de sus comidas ("foto-comida", usado desde la Fase 2).
+ * paciente solo los suyos (ver CONTEXTOS_DEL_PACIENTE).
  */
+
+/**
+ * Los contextos que un usuario NO nutricionista puede subir.
+ *
+ * Es una lista blanca y no un `!==` suelto a propósito: cada contexto que se
+ * abre acá es una decisión de permisos, y la lista obliga a nombrarla.
+ *
+ *  - `foto-comida`: la foto del plato en su diario (Fase 2).
+ *  - `perfil`: su propia foto de perfil. No cuelga de ninguna ficha —la FK vive
+ *    en `usuarios.fotoPerfilId`— así que no hay dueño que un paciente pudiera
+ *    falsear mandando el id de otro.
+ */
+const CONTEXTOS_DEL_PACIENTE = new Set<string>(["foto-comida", "perfil"]);
 export function POST(request: Request): Promise<NextResponse> {
   return conAlcanceDeSesion(async () => {
     const usuario = await usuarioDeSesion();
@@ -59,7 +72,7 @@ export function POST(request: Request): Promise<NextResponse> {
 
       if (
         usuario.rol !== "NUTRICIONISTA" &&
-        datos.data.contexto !== "foto-comida"
+        !CONTEXTOS_DEL_PACIENTE.has(datos.data.contexto)
       ) {
         return NextResponse.json(
           { error: "No tenés permiso para subir archivos en este contexto." },
@@ -74,8 +87,15 @@ export function POST(request: Request): Promise<NextResponse> {
       // era una puerta abierta: mandando el id de OTRO paciente colgaba su subida
       // de una ficha ajena, que después el profesional ve como si fuera de esa
       // persona. Un paciente no elige dueño: el dueño es él, y sale de la sesión.
-      const pacienteDueno =
-        usuario.rol === "NUTRICIONISTA"
+      //
+      // La foto de perfil es la excepción y va SIN dueño: su FK vive del otro
+      // lado (`usuarios.fotoPerfilId`, migración 53). Colgarla del paciente la
+      // haría aparecer en "Archivos y registros" de su ficha, como si fuera un
+      // documento clínico que el profesional tiene que mirar.
+      const esFotoDePerfil = datos.data.contexto === "perfil";
+      const pacienteDueno = esFotoDePerfil
+        ? null
+        : usuario.rol === "NUTRICIONISTA"
           ? datos.data.pacienteId
           : usuario.pacienteId;
 

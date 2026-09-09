@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { User, LogOut } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/componentes/ui/avatar";
+import { AvatarPerfil } from "@/componentes/comunes/AvatarPerfil";
+import { usePerfil } from "@/lib/hooks/usePerfil";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -22,6 +24,7 @@ const TITULOS: { prefijo: string; titulo: string; exacto?: boolean }[] = [
   { prefijo: "/dashboard/planes", titulo: "Planes nutricionales" },
   { prefijo: "/dashboard/recetas", titulo: "Recetario" },
   { prefijo: "/dashboard/biblioteca", titulo: "Biblioteca" },
+  { prefijo: "/dashboard/mi-perfil", titulo: "Mi perfil" },
   { prefijo: "/dashboard", titulo: "Panel principal", exacto: true },
 ];
 
@@ -35,7 +38,8 @@ function tituloDeRuta(ruta: string): string {
 /** Barra superior con el título de la página y el menú del usuario. */
 export function BarraSuperior({ email }: { email: string }) {
   const ruta = usePathname();
-  const inicial = email.charAt(0).toUpperCase();
+  const { mio } = usePerfil();
+  const perfil = mio().data;
 
   return (
     // En móvil la barra del menú (SidebarNav) ya ocupa el tope; esta solo en md+.
@@ -46,17 +50,25 @@ export function BarraSuperior({ email }: { email: string }) {
         <CampanaNotificaciones />
         <ToggleTema />
         <DropdownMenu>
-          <DropdownMenuTrigger className="rounded-full outline-none focus:ring-2 focus:ring-ring">
-            <Avatar>
-              <AvatarFallback>{inicial}</AvatarFallback>
-            </Avatar>
+          <DropdownMenuTrigger
+            aria-label="Menú de la cuenta"
+            className="rounded-full outline-none focus:ring-2 focus:ring-ring"
+          >
+            {/* El nombre cae al email mientras la consulta vuelve: las
+                iniciales del email son mejor marcador que un círculo vacío. */}
+            <AvatarPerfil
+              nombre={perfil?.nombre ?? email}
+              fotoArchivoId={perfil?.fotoArchivoId}
+            />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel className="truncate">{email}</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem disabled>
-              <User className="h-4 w-4" />
-              Ver perfil
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/mi-perfil">
+                <User className="h-4 w-4" />
+                Ver perfil
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => signOut({ callbackUrl: "/login" })}

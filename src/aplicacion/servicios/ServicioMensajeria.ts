@@ -4,6 +4,7 @@ import type { ListarMensajes } from "@/aplicacion/casos-de-uso/mensajeria/Listar
 import type { ListarConversaciones } from "@/aplicacion/casos-de-uso/mensajeria/ListarConversaciones";
 import type { MarcarLeidos } from "@/aplicacion/casos-de-uso/mensajeria/MarcarLeidos";
 import type { ContarNoLeidos } from "@/aplicacion/casos-de-uso/mensajeria/ContarNoLeidos";
+import type { ObtenerContraparteDelHilo } from "@/aplicacion/casos-de-uso/mensajeria/ObtenerContraparteDelHilo";
 import type { Mensaje } from "@/dominio/entidades/Mensaje";
 import type {
   MensajeSalidaDto,
@@ -28,6 +29,7 @@ export class ServicioMensajeria {
     private readonly listarConversacionesUC: ListarConversaciones,
     private readonly marcarLeidosUC: MarcarLeidos,
     private readonly contarNoLeidosUC: ContarNoLeidos,
+    private readonly contraparteUC: ObtenerContraparteDelHilo,
   ) {}
 
   async enviar(datos: RemitenteMensaje): Promise<MensajeSalidaDto> {
@@ -36,15 +38,29 @@ export class ServicioMensajeria {
     );
   }
 
-  /** Abre (o crea) la conversación del paciente y trae sus mensajes. */
-  async abrirHilo(pacienteId: string): Promise<HiloSalidaDto> {
+  /**
+   * Abre (o crea) la conversación del paciente y trae sus mensajes.
+   *
+   * `viewerEsNutricionista` no elige QUÉ conversación se abre —esa la fija el
+   * `pacienteId` que el router resolvió de la sesión— sino a quién se muestra
+   * como interlocutor: el hilo es el mismo visto desde los dos lados, y cada
+   * lado tiene que ver la cara del otro.
+   */
+  async abrirHilo(
+    pacienteId: string,
+    viewerEsNutricionista: boolean,
+  ): Promise<HiloSalidaDto> {
     const conversacion = await this.obtenerConversacionUC.ejecutar(pacienteId);
-    const mensajes = await this.listarMensajesUC.ejecutar(conversacion.id);
+    const [mensajes, contraparte] = await Promise.all([
+      this.listarMensajesUC.ejecutar(conversacion.id),
+      this.contraparteUC.ejecutar(pacienteId, viewerEsNutricionista),
+    ]);
     return {
       conversacion: {
         id: conversacion.id,
         pacienteId: conversacion.pacienteId,
       },
+      contraparte,
       mensajes: mensajes.map(ServicioMensajeria.aMensajeSalida),
     };
   }

@@ -16,6 +16,7 @@ function resumenEjemplo(
     id: "conv-1",
     pacienteId: "pac-1",
     pacienteNombre: "Ana García",
+    pacienteFotoArchivoId: null,
     ultimoMensajeTexto: "Hola, tengo una duda",
     ultimoMensajeEn: new Date("2026-07-20T10:00:00Z"),
     noLeidos: 2,

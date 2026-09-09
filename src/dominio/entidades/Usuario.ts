@@ -31,6 +31,8 @@ export interface PropiedadesUsuario {
   pacienteId: string | null;
   nutricionistaId: string | null;
   activo: boolean;
+  /** Archivo del bucket que se muestra como foto de perfil; null si no eligió. */
+  fotoPerfilId: string | null;
   creadoEn: Date;
 }
 
@@ -71,6 +73,7 @@ export class Usuario {
       pacienteId: datos.pacienteId ?? null,
       nutricionistaId: datos.nutricionistaId ?? null,
       activo: datos.activo ?? true,
+      fotoPerfilId: null,
       creadoEn: ahora,
     });
   }
@@ -105,6 +108,17 @@ export class Usuario {
       );
     }
     return new Usuario({ ...this.props, passwordHash: nuevoHash });
+  }
+
+  /**
+   * Devuelve una copia con otra foto de perfil (o sin ninguna, con `null`).
+   *
+   * El archivo ya está subido cuando se llama: acá solo se guarda a cuál
+   * apunta la cuenta. Que exista y sea una imagen es asunto de `Archivo`, que
+   * lo valida contra la lista blanca de su contexto.
+   */
+  cambiarFotoPerfil(archivoId: string | null): Usuario {
+    return new Usuario({ ...this.props, fotoPerfilId: archivoId ?? null });
   }
 
   /** Garantiza que el rol y el pacienteId sean coherentes entre sí. */
@@ -151,6 +165,9 @@ export class Usuario {
   }
   get pacienteId(): string | null {
     return this.props.pacienteId;
+  }
+  get fotoPerfilId(): string | null {
+    return this.props.fotoPerfilId;
   }
   get creadoEn(): Date {
     return this.props.creadoEn;

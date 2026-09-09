@@ -43,6 +43,12 @@ const RONDAS = 12;
  * En producción exige que la variable esté definida y no sea trivial. Fuera de
  * producción cae al valor de ejemplo, que es lo que hace usable `npm run db:seed`
  * en una máquina de desarrollo recién clonada.
+ *
+ * El `minimo` que le pasan los llamadores NO es la política de contraseñas de
+ * la app (esa vive en `aplicacion/dtos/password.ts` y hoy son 8). Es un piso
+ * más alto y aparte, para las dos credenciales de arranque del sistema: las
+ * elige quien despliega, no un usuario, y son las únicas que existen antes de
+ * que haya nadie adentro.
  */
 function credencial(variable: string, porDefecto: string, minimo = 1): string {
   const valor = process.env[variable];

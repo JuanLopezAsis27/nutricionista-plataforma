@@ -22,6 +22,7 @@ sentado frente a una pantalla grande durante la consulta.
 | `/mis-turnos`      | Sus turnos                                           |
 | `/mensajes`        | El hilo con su nutricionista                         |
 | `/asistente`       | El asistente de IA                                   |
+| `/mi-perfil`       | Su foto y su contraseña (`docs/PERFIL.md`)           |
 
 Todas leen procedimientos «míos» (`miPlan`, `miDia`, `miTracking`,
 `obtenerMiPlanSemanal`…), que toman el paciente de la sesión con

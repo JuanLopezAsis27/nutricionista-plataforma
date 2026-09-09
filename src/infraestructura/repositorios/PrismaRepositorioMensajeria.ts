@@ -64,7 +64,15 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
       where: { ultimoMensajeEn: { not: null } },
       orderBy: { ultimoMensajeEn: "desc" },
       include: {
-        paciente: { select: { nombre: true, apellido: true } },
+        paciente: {
+          select: {
+            nombre: true,
+            apellido: true,
+            // La foto vive en la CUENTA del paciente, no en su ficha: un
+            // paciente sin portal no tiene dónde guardarla y va con `null`.
+            usuario: { select: { fotoPerfilId: true } },
+          },
+        },
         _count: {
           select: {
             mensajes: { where: { leidoEn: null, autorId: { not: viewerId } } },
@@ -77,6 +85,7 @@ export class PrismaRepositorioMensajeria implements IMensajeriaRepositorio {
       id: fila.id,
       pacienteId: fila.pacienteId,
       pacienteNombre: `${fila.paciente.nombre} ${fila.paciente.apellido}`,
+      pacienteFotoArchivoId: fila.paciente.usuario?.fotoPerfilId ?? null,
       ultimoMensajeTexto: fila.ultimoMensajeTexto,
       ultimoMensajeEn: fila.ultimoMensajeEn,
       noLeidos: fila._count.mensajes,

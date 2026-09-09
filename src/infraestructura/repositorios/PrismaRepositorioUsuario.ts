@@ -20,6 +20,10 @@ export class PrismaRepositorioUsuario implements IUsuarioRepositorio {
         pacienteId: datos.pacienteId,
         nutricionistaId: datos.nutricionistaId,
         activo: datos.activo,
+        // Va también en el `create` aunque al alta siempre sea null: un campo
+        // que solo se escribe en el `update` se pierde en silencio el día que
+        // alguien lo pueble al crear (así se perdió la modalidad del plan).
+        fotoPerfilId: datos.fotoPerfilId,
         creadoEn: datos.creadoEn,
       },
     });
@@ -36,6 +40,7 @@ export class PrismaRepositorioUsuario implements IUsuarioRepositorio {
         rol: datos.rol,
         pacienteId: datos.pacienteId,
         activo: datos.activo,
+        fotoPerfilId: datos.fotoPerfilId,
       },
     });
     return mapearUsuario(fila);
@@ -68,6 +73,18 @@ export class PrismaRepositorioUsuario implements IUsuarioRepositorio {
     });
     return fila ? mapearUsuario(fila) : null;
   }
+
+  async esFotoDePerfil(archivoId: string): Promise<boolean> {
+    // `findFirst` y no `count`: alcanza con que exista una. La extensión de
+    // inquilino acota la consulta al consultorio en curso, que es lo que hace
+    // que un paciente no pueda usar esto para leer la foto de un usuario de
+    // otro consultorio.
+    const fila = await this.prisma.usuario.findFirst({
+      where: { fotoPerfilId: archivoId },
+      select: { id: true },
+    });
+    return fila !== null;
+  }
 }
 
 /** Mapea una fila de Prisma a la entidad de dominio Usuario. */
@@ -80,6 +97,7 @@ export function mapearUsuario(fila: UsuarioFila): Usuario {
     pacienteId: fila.pacienteId,
     nutricionistaId: fila.nutricionistaId,
     activo: fila.activo,
+    fotoPerfilId: fila.fotoPerfilId,
     creadoEn: fila.creadoEn,
   });
 }

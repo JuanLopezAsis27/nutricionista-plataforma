@@ -10,11 +10,28 @@ describe("passwordNuevaDto", () => {
     );
   });
 
+  it("acepta justo el mínimo y rechaza un carácter menos", () => {
+    // El borde importa: el mínimo bajó de 12 a 8 y este es el test que dice
+    // cuál es el valor vigente sin tener que leer el DTO.
+    expect(LARGO_MINIMO_PASSWORD).toBe(8);
+    expect(passwordNuevaDto.safeParse("melon-58").success).toBe(true);
+    expect(passwordNuevaDto.safeParse("melon-5").success).toBe(false);
+  });
+
   it("rechaza por debajo del mínimo", () => {
     expect(passwordNuevaDto.safeParse("corta1").success).toBe(false);
     expect(
       passwordNuevaDto.safeParse("a".repeat(LARGO_MINIMO_PASSWORD - 1)).success,
     ).toBe(false);
+  });
+
+  it("rechaza las obvias que antes frenaba solo el largo", () => {
+    // Con el mínimo en 12, `password` y `12345678` no llegaban a la lista de
+    // prohibidas: los rechazaba el largo. Al bajar a 8 pasaron a ser válidas
+    // por forma, así que la lista tiene que nombrarlas.
+    expect(passwordNuevaDto.safeParse("password").success).toBe(false);
+    expect(passwordNuevaDto.safeParse("12345678").success).toBe(false);
+    expect(passwordNuevaDto.safeParse("Qwerty123").success).toBe(false);
   });
 
   it("rechaza por encima del máximo que bcrypt puede usar", () => {
