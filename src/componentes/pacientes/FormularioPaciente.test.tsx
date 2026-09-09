@@ -29,6 +29,7 @@ vi.mock("@/lib/hooks/useEstablecimientos", () => ({
 }));
 
 const { FormularioPaciente } = await import("./FormularioPaciente");
+const { LARGO_MINIMO_PASSWORD } = await import("@/aplicacion/dtos/password");
 
 describe("FormularioPaciente (alta)", () => {
   beforeEach(() => {
@@ -45,11 +46,13 @@ describe("FormularioPaciente (alta)", () => {
 
   it("muestra el mínimo real de la política en el placeholder", () => {
     // El placeholder decía "Mínimo 6 caracteres" mientras el servidor exigía
-    // 12. Ahora sale de la constante, así que no puede volver a desfasarse.
+    // otro número. Ahora sale de la constante, así que no puede volver a
+    // desfasarse; el test la lee de ahí en vez de repetir el número, que es lo
+    // que lo hizo fallar cuando la política pasó de 12 a 8.
     render(<FormularioPaciente onTerminado={vi.fn()} />);
 
     expect(
-      screen.getByPlaceholderText("Mínimo 12 caracteres"),
+      screen.getByPlaceholderText(`Mínimo ${LARGO_MINIMO_PASSWORD} caracteres`),
     ).toBeInTheDocument();
   });
 
@@ -60,14 +63,18 @@ describe("FormularioPaciente (alta)", () => {
     await completarBase(usuario);
     await usuario.type(
       screen.getByLabelText("Contraseña de acceso del paciente"),
-      "corta123",
+      "a".repeat(LARGO_MINIMO_PASSWORD - 1),
     );
     await usuario.click(screen.getByRole("button", { name: /guardar|crear/i }));
 
     // Lo que importa no es solo que se vea el error, sino que la mutación NO
     // salga: antes salía y el servidor la rechazaba.
     await waitFor(() => {
-      expect(screen.getByText(/al menos 12 caracteres/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          new RegExp(`al menos ${LARGO_MINIMO_PASSWORD} caracteres`, "i"),
+        ),
+      ).toBeInTheDocument();
     });
     expect(crear.mutate).not.toHaveBeenCalled();
   });

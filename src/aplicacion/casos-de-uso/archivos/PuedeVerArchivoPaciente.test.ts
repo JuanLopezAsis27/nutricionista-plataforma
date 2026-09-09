@@ -6,6 +6,7 @@ import {
   mockRecetaRepositorio,
   mockMaterialRepositorio,
   mockAsignacionPlanRepositorio,
+  mockUsuarioRepositorio,
   archivoEjemplo,
 } from "../_ayudas-test";
 
@@ -34,9 +35,50 @@ describe("PuedeVerArchivoPaciente", () => {
       mockRecetaRepositorio(),
       mockMaterialRepositorio(),
       mockAsignacionPlanRepositorio(),
+      mockUsuarioRepositorio(),
     );
 
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(true);
+  });
+
+  it("permite ver la foto de perfil de otra cuenta del consultorio", async () => {
+    // Es la foto del NUTRICIONISTA en el chat del portal: no la subió el
+    // paciente y no cuelga de ninguna receta, plan ni material, así que sin
+    // esta regla el avatar del profesional salía 403 y quedaba en iniciales.
+    const archivos = mockArchivoRepositorio({
+      obtenerPorId: vi.fn(async () => archivoSubidoPor("usu-nutri")),
+      obtenerDueno: vi.fn(async () => null),
+    });
+    const usuarios = mockUsuarioRepositorio({
+      esFotoDePerfil: vi.fn(async () => true),
+    });
+    const casoUso = new PuedeVerArchivoPaciente(
+      archivos,
+      mockRecetaRepositorio(),
+      mockMaterialRepositorio(),
+      mockAsignacionPlanRepositorio(),
+      usuarios,
+    );
+
+    expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(true);
+  });
+
+  it("niega un archivo huérfano ajeno que NO es foto de perfil", async () => {
+    // El contrapeso del caso anterior: "sin dueño" no puede volverse sinónimo
+    // de "visible". Solo pasa el que `esFotoDePerfil` reconoce.
+    const archivos = mockArchivoRepositorio({
+      obtenerPorId: vi.fn(async () => archivoSubidoPor("usu-nutri")),
+      obtenerDueno: vi.fn(async () => null),
+    });
+    const casoUso = new PuedeVerArchivoPaciente(
+      archivos,
+      mockRecetaRepositorio(),
+      mockMaterialRepositorio(),
+      mockAsignacionPlanRepositorio(),
+      mockUsuarioRepositorio(),
+    );
+
+    expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(false);
   });
 
   it("permite ver fotos de una receta compartida con el paciente", async () => {
@@ -52,6 +94,7 @@ describe("PuedeVerArchivoPaciente", () => {
       recetas,
       mockMaterialRepositorio(),
       mockAsignacionPlanRepositorio(),
+      mockUsuarioRepositorio(),
     );
 
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(true);
@@ -70,6 +113,7 @@ describe("PuedeVerArchivoPaciente", () => {
       recetas,
       mockMaterialRepositorio(),
       mockAsignacionPlanRepositorio(),
+      mockUsuarioRepositorio(),
     );
 
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(false);
@@ -88,6 +132,7 @@ describe("PuedeVerArchivoPaciente", () => {
       mockRecetaRepositorio(),
       materiales,
       mockAsignacionPlanRepositorio(),
+      mockUsuarioRepositorio(),
     );
 
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(true);
@@ -103,6 +148,7 @@ describe("PuedeVerArchivoPaciente", () => {
       mockRecetaRepositorio(),
       mockMaterialRepositorio(),
       mockAsignacionPlanRepositorio(),
+      mockUsuarioRepositorio(),
     );
 
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(false);
@@ -130,6 +176,7 @@ describe("PuedeVerArchivoPaciente", () => {
       mockRecetaRepositorio(),
       mockMaterialRepositorio(),
       planes,
+      mockUsuarioRepositorio(),
     );
 
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(true);
@@ -157,6 +204,7 @@ describe("PuedeVerArchivoPaciente", () => {
       mockRecetaRepositorio(),
       mockMaterialRepositorio(),
       planes,
+      mockUsuarioRepositorio(),
     );
 
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(false);
@@ -172,6 +220,7 @@ describe("PuedeVerArchivoPaciente", () => {
       mockRecetaRepositorio(),
       mockMaterialRepositorio(),
       mockAsignacionPlanRepositorio(),
+      mockUsuarioRepositorio(),
     );
 
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(false);

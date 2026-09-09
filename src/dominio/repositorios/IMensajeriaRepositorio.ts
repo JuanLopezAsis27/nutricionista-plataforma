@@ -6,6 +6,13 @@ export interface ResumenConversacion {
   id: string;
   pacienteId: string;
   pacienteNombre: string;
+  /**
+   * Foto de perfil del paciente (Archivo del bucket), o null.
+   *
+   * Viaja en el resumen y no en una consulta aparte porque la bandeja pinta
+   * decenas de filas: una query por avatar sería un N+1 contra `usuarios`.
+   */
+  pacienteFotoArchivoId: string | null;
   ultimoMensajeTexto: string | null;
   ultimoMensajeEn: Date | null;
   noLeidos: number;

@@ -2,7 +2,11 @@ import type {
   IMonitorErrores,
   ContextoError,
 } from "@/dominio/servicios/IMonitorErrores";
-import { describirError } from "./MonitorErroresConsola";
+import {
+  describirError,
+  truncarMensaje,
+  truncarStack,
+} from "./MonitorErroresConsola";
 
 /**
  * Monitor por webhook: hace POST del error a una URL configurada
@@ -22,7 +26,7 @@ export class MonitorErroresWebhook implements IMonitorErrores {
   capturar(error: unknown, contexto?: ContextoError): void {
     const { nombre, mensaje, stack } = describirError(error);
     const resumen =
-      `🐛 *${nombre}*: ${mensaje}` +
+      `🐛 *${nombre}*: ${truncarMensaje(mensaje)}` +
       (contexto?.origen ? ` · ${contexto.origen}` : "") +
       (contexto?.ruta ? ` · ${contexto.ruta}` : "") +
       ` · [${this.entorno}]`;
@@ -33,12 +37,12 @@ export class MonitorErroresWebhook implements IMonitorErrores {
       content: resumen,
       detalle: {
         nombre,
-        mensaje,
+        mensaje: truncarMensaje(mensaje),
         origen: contexto?.origen,
         ruta: contexto?.ruta,
         usuarioId: contexto?.usuarioId,
         extra: contexto?.extra,
-        stack: stack?.split("\n").slice(0, 8).join("\n"),
+        stack: truncarStack(stack),
         ts: new Date().toISOString(),
       },
     };

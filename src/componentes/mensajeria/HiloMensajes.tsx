@@ -32,6 +32,10 @@ interface MensajeEnRacha {
  *    la hora van solo en el último, que es cuando aportan.
  * 3. **Acuse de lectura.** `leidoEn` ya venía en el DTO y no se mostraba: el
  *    que escribe no sabía si del otro lado lo habían abierto.
+ *
+ * Con quién se está hablando NO es asunto de este componente: lo dice el
+ * encabezado que pone cada pantalla, con la foto de la contraparte que ya viene
+ * en el hilo (`hiloSalidaDto.contraparte`).
  */
 export function HiloMensajes({
   mensajes,
@@ -183,6 +187,15 @@ function SeparadorNuevos() {
   );
 }
 
+/**
+ * Una burbuja.
+ *
+ * SIN avatar, ni del lado propio ni del ajeno. Llegó a llevar la foto de la
+ * contraparte pegada a la cola de cada racha, y sobraba: el encabezado del
+ * cuadro ya dice con quién se está hablando, y en una conversación de dos
+ * repetir esa cara al pie de cada tanda solo agrega una columna de fotos que no
+ * desambigua nada. Quién habla lo marcan el lado y el color.
+ */
 function Burbuja({
   mensaje,
   mio,
