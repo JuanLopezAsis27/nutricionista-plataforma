@@ -146,8 +146,8 @@ sudo certbot --nginx -d TU_DOMINIO_REAL          # emite y renueva el certificad
 Verificá:
 
 ```bash
-docker compose -p nutri_prod -f docker-compose.prod.yml ps     # todo "Up"/"healthy"
-curl -I http://127.0.0.1:3000                                  # la app responde en localhost
+docker compose -p nutri_prod --env-file .env.produccion -f docker-compose.prod.yml ps     # todo "Up"/"healthy"
+curl -I http://127.0.0.1:3000                                                             # la app responde en localhost
 ```
 
 Entrá a `https://tudominio.com` (nginx + certbot ya resolvieron el certificado).
@@ -186,7 +186,7 @@ trabajos **en la misma base PostgreSQL** (no hace falta Redis).
 Ver los logs del worker:
 
 ```bash
-docker compose -p nutri_prod -f docker-compose.prod.yml logs -f worker
+docker compose -p nutri_prod --env-file .env.produccion -f docker-compose.prod.yml logs -f worker
 ```
 
 Si el worker se cae, `restart: unless-stopped` lo reinicia; los trabajos quedan
@@ -219,11 +219,11 @@ docker compose -p nutri_prod --env-file .env.produccion \
 
 ```bash
 # Si el dump está en OVH, bajalo primero al contenedor:
-docker compose -p nutri_prod -f docker-compose.prod.yml exec respaldo sh -c \
+docker compose -p nutri_prod --env-file .env.produccion -f docker-compose.prod.yml exec respaldo sh -c \
   'mc alias set ovh "$OVH_S3_ENDPOINT" "$OVH_S3_ACCESS_KEY" "$OVH_S3_SECRET_KEY" && \
    mc cp ovh/$OVH_S3_BUCKET/db/nutricionista-AAAAMMDD-HHMMSS.dump /respaldos/db/'
 # Restaurar:
-docker compose -p nutri_prod -f docker-compose.prod.yml exec respaldo \
+docker compose -p nutri_prod --env-file .env.produccion -f docker-compose.prod.yml exec respaldo \
   restaurar-db.sh /respaldos/db/nutricionista-AAAAMMDD-HHMMSS.dump
 ```
 
@@ -312,7 +312,7 @@ ssh -L 8025:localhost:8025 staging     # y abrí http://localhost:8025
 Para apagar solo el worker en staging:
 
 ```bash
-docker compose -p nutri_staging -f docker-compose.prod.yml stop worker
+docker compose -p nutri_staging --env-file .env.staging -f docker-compose.prod.yml stop worker
 ```
 
 ---

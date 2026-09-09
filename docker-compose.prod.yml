@@ -204,6 +204,14 @@ services:
       target: migrator
     environment:
       DATABASE_URL: ${DATABASE_URL}
+      # Solo los usa `npm run db:seed` (no las migraciones en sí). Sin esto,
+      # el contenedor no ve estas variables aunque estén en el .env del host,
+      # y la semilla aborta con "Falta SUPERADMIN_EMAIL" pese a que sí está
+      # definida ahí.
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-}
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:-}
+      SEED_EMAIL: ${SEED_EMAIL:-}
+      SEED_PASSWORD: ${SEED_PASSWORD:-}
     depends_on:
       postgres:
         condition: service_healthy
