@@ -1,0 +1,21 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "statusMessage": "Formateando con prettier y eslint…",
+            "command": "node -e 'let s=\"\";process.stdin.on(\"data\",d=>s+=d).on(\"end\",()=>{try{const j=JSON.parse(s);const f=(j.tool_response&&j.tool_response.filePath)||(j.tool_input&&j.tool_input.file_path);if(f)console.log(f)}catch(e){}})' | { read -r f; [ -n \"$f\" ] || exit 0; npx --no-install prettier --write --ignore-unknown \"$f\"; case \"$f\" in *.ts|*.tsx|*.js|*.jsx) npx --no-install eslint --fix \"$f\";; esac; } 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  }
+}

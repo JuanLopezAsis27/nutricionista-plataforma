@@ -1,5 +1,6 @@
 "use client";
 
+import { MapPin } from "lucide-react";
 import { useTurnos } from "@/lib/hooks/useTurnos";
 import { formatearFecha } from "@/lib/formato";
 import {
@@ -48,6 +49,16 @@ export default function PaginaMisTurnos() {
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
                 {turno.hora} hs · {turno.duracionMinutos} minutos
+                {turno.establecimientoNombre && (
+                  <p className="mt-1 flex items-start gap-1.5">
+                    <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>
+                      {turno.establecimientoNombre}
+                      {turno.establecimientoDireccion &&
+                        ` · ${turno.establecimientoDireccion}`}
+                    </span>
+                  </p>
+                )}
                 {turno.notas && <p className="mt-1">{turno.notas}</p>}
               </CardContent>
             </Card>

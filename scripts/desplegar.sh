@@ -12,7 +12,7 @@ case "$entorno" in
   prod)
     proyecto="nutri_prod"
     env_file=".env.produccion"
-    perfiles=(--profile respaldos)
+    perfiles=(--profile respaldos --profile ml)
     ;;
   staging)
     proyecto="nutri_staging"

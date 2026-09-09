@@ -32,5 +32,6 @@ export function crearServicioTurno(deps: {
     new RegistrarCobroTurno(deps.turnos),
     new EliminarTurno(deps.turnos, deps.sincronizador),
     deps.sincronizador,
+    deps.establecimientos,
   );
 }

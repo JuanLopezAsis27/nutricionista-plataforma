@@ -63,7 +63,7 @@ export default function PaginaIntegraciones() {
       </div>
 
       <Tabs defaultValue="google">
-        <TabsList>
+        <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="google">Google</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="ia">IA e ingredientes</TabsTrigger>

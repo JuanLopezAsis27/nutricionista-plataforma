@@ -195,7 +195,7 @@ export function CalendarioTurnos({
         )}
       </aside>
 
-      <div className="space-y-3">
+      <div className="min-w-0 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold capitalize">
             {rotuloDelRango(dias)}

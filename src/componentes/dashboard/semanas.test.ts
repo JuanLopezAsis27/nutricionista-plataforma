@@ -21,6 +21,8 @@ function turno(
     id: `t-${fecha}-${estado}`,
     pacienteId: "pac-1",
     establecimientoId: "est-1",
+    establecimientoNombre: "Sede 1",
+    establecimientoDireccion: null,
     fecha: new Date(fecha),
     hora: "10:00",
     duracionMinutos: 30,

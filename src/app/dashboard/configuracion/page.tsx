@@ -31,7 +31,7 @@ export default function PaginaConfiguracion() {
       </div>
 
       <Tabs defaultValue="general">
-        <TabsList>
+        <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="general">Membrete</TabsTrigger>
           <TabsTrigger value="establecimientos">Establecimientos</TabsTrigger>
           <TabsTrigger value="pdf">PDF del plan</TabsTrigger>

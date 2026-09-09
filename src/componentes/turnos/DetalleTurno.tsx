@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   Clock,
   DollarSign,
+  MapPin,
   Mic,
   Pencil,
   StickyNote,
@@ -114,6 +115,16 @@ export function DetalleTurno({
           <p className="pl-5 text-xs text-muted-foreground">
             {turno.hora} a {horaFin} · {turno.duracionMinutos} min
           </p>
+          {turno.establecimientoNombre && (
+            <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>
+                {turno.establecimientoNombre}
+                {turno.establecimientoDireccion &&
+                  ` · ${turno.establecimientoDireccion}`}
+              </span>
+            </p>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-0.5">
           <Button

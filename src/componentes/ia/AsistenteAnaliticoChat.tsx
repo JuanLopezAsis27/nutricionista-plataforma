@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Bot, Send, Plus, Trash2, MessageSquare } from "lucide-react";
+import {
+  Bot,
+  Send,
+  Plus,
+  Trash2,
+  MessageSquare,
+  ChevronDown,
+} from "lucide-react";
 import { useIA } from "@/lib/hooks/useIA";
 import {
   Card,
@@ -12,6 +19,13 @@ import {
 import { Textarea } from "@/componentes/ui/textarea";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/componentes/ui/dropdown-menu";
 import { PensandoAnimado } from "@/componentes/ia/PensandoAnimado";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { formatearFecha } from "@/lib/formato";
@@ -24,7 +38,7 @@ const SUGERENCIAS = [
 ];
 
 /**
- * Alto de las dos columnas, en una constante para que no se desincronicen.
+ * Alto del panel del chat.
  *
  * Se descuentan del viewport las 13rem que ocupa todo lo que hay encima en
  * escritorio: la barra superior (`h-16`), el padding de `<main>` (`p-6` arriba
@@ -97,79 +111,85 @@ export function AsistenteAnaliticoChat() {
     );
   }
 
-  return (
-    <div className="grid gap-4 lg:grid-cols-[240px_1fr]">
-      {/* --- Conversaciones guardadas --- */}
-      <Card className={`flex flex-col p-3 ${ALTO}`}>
-        <CardHeader className="p-2 pb-3">
-          <CardTitle className="flex items-center justify-between gap-2 text-sm">
-            Conversaciones
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => abrir(null)}
-              title="Conversación nueva"
-              aria-label="Conversación nueva"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="min-h-0 flex-1 overflow-y-auto p-0">
-          {listado.isLoading ? (
-            <Skeleton className="h-24 w-full" />
-          ) : (listado.data?.length ?? 0) === 0 ? (
-            <p className="px-2 py-4 text-xs text-muted-foreground">
-              Todavía no hay conversaciones guardadas.
-            </p>
-          ) : (
-            <ul className="space-y-1">
-              {listado.data?.map((c) => (
-                <li key={c.id} className="group flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => abrir(c.id)}
-                    className={`flex-1 truncate rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted ${
-                      c.id === conversacionId ? "bg-muted font-medium" : ""
-                    }`}
-                    title={c.titulo}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <MessageSquare className="h-3 w-3 shrink-0 text-muted-foreground" />
-                      <span className="truncate">{c.titulo}</span>
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {formatearFecha(c.actualizadoEn)} · {c.cantidadMensajes}{" "}
-                      mensajes
-                    </span>
-                  </button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="opacity-0 group-hover:opacity-100"
-                    onClick={() => setAEliminar(c.id)}
-                    aria-label={`Eliminar ${c.titulo}`}
-                  >
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+  const tituloActivo =
+    listado.data?.find((c) => c.id === conversacionId)?.titulo ?? null;
 
-      {/* --- El chat --- */}
+  return (
+    <div>
       <Card className={`flex flex-col p-3 ${ALTO}`}>
-        <CardHeader className="p-2 pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Bot className="h-5 w-5 text-primary" /> Asistente analítico
+        <CardHeader className="flex-row items-center justify-between gap-2 p-2 pb-3 space-y-0">
+          <CardTitle className="flex min-w-0 items-center gap-2 text-base">
+            <Bot className="h-5 w-5 shrink-0 text-primary" />
+            <span className="truncate">
+              {tituloActivo ?? "Asistente analítico"}
+            </span>
             {!activo && (
-              <span className="text-xs font-normal text-muted-foreground">
+              <span className="shrink-0 text-xs font-normal text-muted-foreground">
                 (demostración)
               </span>
             )}
           </CardTitle>
+
+          {/* --- Conversaciones guardadas, como menú desplegable --- */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline" className="shrink-0">
+                <MessageSquare className="h-4 w-4" />
+                Conversaciones
+                <ChevronDown className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="max-h-80 w-72 overflow-y-auto"
+            >
+              <DropdownMenuItem onSelect={() => abrir(null)}>
+                <Plus className="h-4 w-4" />
+                Conversación nueva
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {listado.isLoading ? (
+                <div className="p-2">
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              ) : (listado.data?.length ?? 0) === 0 ? (
+                <p className="px-2 py-3 text-xs text-muted-foreground">
+                  Todavía no hay conversaciones guardadas.
+                </p>
+              ) : (
+                listado.data?.map((c) => (
+                  <DropdownMenuItem
+                    key={c.id}
+                    onSelect={() => abrir(c.id)}
+                    className={`justify-between gap-2 ${
+                      c.id === conversacionId ? "bg-secondary" : ""
+                    }`}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm">{c.titulo}</span>
+                      <span className="block text-[10px] text-muted-foreground">
+                        {formatearFecha(c.actualizadoEn)} · {c.cantidadMensajes}{" "}
+                        mensajes
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      className="shrink-0 rounded-sm p-1 hover:bg-destructive/10"
+                      title={`Eliminar ${c.titulo}`}
+                      aria-label={`Eliminar ${c.titulo}`}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAEliminar(c.id);
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </button>
+                  </DropdownMenuItem>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col p-0">
           <div ref={hiloRef} className="flex-1 space-y-3 overflow-y-auto p-1">

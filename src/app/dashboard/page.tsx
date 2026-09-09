@@ -178,20 +178,20 @@ export default function PaginaDashboard() {
                 {turnosHoy.map((turno) => (
                   <li
                     key={turno.id}
-                    className="flex items-center justify-between gap-4 py-3"
+                    className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3"
                   >
-                    <div className="flex items-center gap-4">
-                      <span className="w-14 font-mono text-sm">
+                    <div className="flex min-w-0 items-center gap-4">
+                      <span className="w-14 shrink-0 font-mono text-sm">
                         {turno.hora}
                       </span>
                       <Link
                         href={`/dashboard/pacientes/${turno.pacienteId}`}
-                        className="font-medium hover:underline"
+                        className="truncate font-medium hover:underline"
                       >
                         {mapaPacientes.get(turno.pacienteId) ?? "Paciente"}
                       </Link>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex shrink-0 items-center gap-3">
                       <EstadoBadge estado={turno.estado} />
                       <SelectorEstado
                         estadoActual={turno.estado}
