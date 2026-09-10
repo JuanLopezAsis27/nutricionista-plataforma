@@ -12,6 +12,7 @@ const TIEMPO_LIMITE_MS = 45000;
 
 interface LlamadaHerramienta {
   id: string;
+  type: "function";
   function?: { name?: string; arguments?: string };
 }
 interface MensajeOpenRouter {
@@ -266,9 +267,13 @@ async function leerStream(
     }
     for (const [posicion, parcial] of (delta.tool_calls ?? []).entries()) {
       const indice = parcial.index ?? posicion;
-      const acumulada = llamadas.get(indice) ?? { id: "" };
+      const acumulada = llamadas.get(indice) ?? {
+        id: "",
+        type: "function" as const,
+      };
       llamadas.set(indice, {
         id: parcial.id ?? acumulada.id,
+        type: "function",
         function: {
           name: parcial.function?.name ?? acumulada.function?.name ?? "",
           arguments:

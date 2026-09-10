@@ -186,6 +186,7 @@ export function AsistenteAnaliticoChat() {
                       title={`Eliminar ${c.titulo}`}
                       aria-label={`Eliminar ${c.titulo}`}
                       onPointerDown={(e) => e.stopPropagation()}
+                      onPointerUp={(e) => e.stopPropagation()}
                       onClick={(e) => {
                         e.stopPropagation();
                         setAEliminar(c.id);
