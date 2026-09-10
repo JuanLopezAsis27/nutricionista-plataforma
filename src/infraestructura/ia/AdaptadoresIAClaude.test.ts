@@ -4,7 +4,13 @@ import { AnalisisComidaIAClaude } from "./AnalisisComidaIAClaude";
 import { AsistenteNutricionalStub } from "./AsistenteNutricionalStub";
 import { AnalisisComidaIAStub } from "./AnalisisComidaIAStub";
 import type { IResolvedorConfigIA } from "./ResolvedorConfigIA";
-import type { IProveedorLLM, OpcionesConversacion } from "./IProveedorLLM";
+import type {
+  IProveedorLLM,
+  OpcionesConversacion,
+  OpcionesLLM,
+} from "./IProveedorLLM";
+import type { AvanceIA } from "@/dominio/servicios/avanceIA";
+import { ErrorIA } from "@/dominio/errores/ErrorIA";
 import type {
   ContextoAsistente,
   HerramientaAsistente,
@@ -64,7 +70,12 @@ describe("AsistenteNutricionalClaude", () => {
     expect(respuesta.toLowerCase()).toContain("demostración");
   });
 
-  it("cae al stub si la IA falla (o rechaza)", async () => {
+  /**
+   * Antes esto devolvía el texto de demostración del stub: el paciente leía una
+   * respuesta inventada creyendo que era la del asistente, y ni él ni el
+   * profesional tenían señal de que la IA no había contestado.
+   */
+  it("propaga el error si la IA está configurada y falla", async () => {
     const completar = vi.fn(async () => {
       throw new Error("red caída");
     });
@@ -73,9 +84,39 @@ describe("AsistenteNutricionalClaude", () => {
       new AsistenteNutricionalStub(),
     );
 
-    const respuesta = await asistente.responder("¿Qué ceno?", CONTEXTO);
-    expect(respuesta).toContain("Ana");
-    expect(respuesta.toLowerCase()).toContain("demostración");
+    const fallo = await asistente
+      .responder("¿Qué ceno?", CONTEXTO)
+      .catch((e: unknown) => e);
+
+    expect(fallo).toBeInstanceOf(ErrorIA);
+    expect((fallo as ErrorIA).message).toContain("red caída");
+  });
+
+  it("emite el avance del modelo cuando se pide en vivo", async () => {
+    const conversar = vi.fn(async (opts: OpcionesConversacion) => {
+      opts.alAvanzar?.({ tipo: "texto", texto: "Comé " });
+      opts.alAvanzar?.({ tipo: "texto", texto: "verduras." });
+      return "Comé verduras.";
+    });
+    const asistente = new AsistenteNutricionalClaude(
+      resolverConLLM(conversar),
+      new AsistenteNutricionalStub(),
+    );
+    const avances: AvanceIA[] = [];
+
+    const respuesta = await asistente.responder(
+      "¿Qué ceno?",
+      CONTEXTO,
+      [],
+      [],
+      (avance) => avances.push(avance),
+    );
+
+    expect(avances).toEqual([
+      { tipo: "texto", texto: "Comé " },
+      { tipo: "texto", texto: "verduras." },
+    ]);
+    expect(respuesta).toBe("Comé verduras.");
   });
 
   it("ejecuta la herramienta que pide el modelo y usa su resultado", async () => {
@@ -149,7 +190,12 @@ describe("AnalisisComidaIAClaude", () => {
     expect(r.nota.toLowerCase()).toContain("demostración");
   });
 
-  it("cae al stub si la IA falla", async () => {
+  /**
+   * Este es el caso que hacía ver los macros de ejemplo como si fueran el
+   * análisis real de la foto: un modelo mal escrito en las credenciales o una
+   * clave vencida salían por acá disfrazados de resultado.
+   */
+  it("propaga el error si la IA está configurada y falla", async () => {
     const completar = vi.fn(async () => {
       throw new Error("visión caída");
     });
@@ -159,9 +205,37 @@ describe("AnalisisComidaIAClaude", () => {
       new AnalisisComidaIAStub(),
     );
 
-    const r = await adaptador.analizar({ descripcion: "ensalada" });
-    expect(r.confianza).toBe(0.4);
-    expect(r.nota.toLowerCase()).toContain("demostración");
+    const fallo = await adaptador
+      .analizar({ descripcion: "ensalada" })
+      .catch((e: unknown) => e);
+
+    expect(fallo).toBeInstanceOf(ErrorIA);
+    expect((fallo as ErrorIA).message).toContain("visión caída");
+  });
+
+  it("le manda la foto al modelo como bloque de imagen", async () => {
+    // La foto se baja del bucket por la URL firmada, así que el fetch es parte
+    // del camino que se está probando.
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(new Uint8Array([1, 2, 3]), {
+        headers: { "content-type": "image/jpeg" },
+      }),
+    );
+    const completar = vi.fn(async (_opts: OpcionesLLM) => jsonComida);
+    const adaptador = new AnalisisComidaIAClaude(
+      resolverConLLM(completar),
+      almacenamientoMock,
+      new AnalisisComidaIAStub(),
+    );
+
+    await adaptador.analizar({ archivoClave: "diario/arc-1.jpg" });
+
+    const opciones = completar.mock.calls[0]![0];
+    expect(opciones.usuario[0]).toMatchObject({
+      tipo: "imagen",
+      mimeType: "image/jpeg",
+    });
+    vi.restoreAllMocks();
   });
 
   it("acota la confianza al rango [0, 1]", async () => {

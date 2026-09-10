@@ -2,6 +2,13 @@
 
 import { useEffect, useRef, useState, type RefObject } from "react";
 
+/**
+ * Cuánto se puede estar despegado del fondo y seguir considerándose "abajo".
+ * Un renglón y monedas: alcanza para el redondeo del navegador sin tomar por
+ * abajo a alguien que subió a leer.
+ */
+const MARGEN_SEGUIMIENTO = 40;
+
 /** Un turno del chat, como se pinta en el hilo. */
 export interface TurnoChat {
   rol: "USUARIO" | "ASISTENTE";
@@ -33,6 +40,7 @@ export function useHiloDeChat({
   guardados,
   conversacionId,
   pendiente,
+  parcial,
 }: {
   /** Los turnos que ya devolvió el servidor, del más viejo al más nuevo. */
   guardados: TurnoChat[];
@@ -40,6 +48,12 @@ export function useHiloDeChat({
   conversacionId: string | null;
   /** Si hay una respuesta en curso (para bajar cuando aparece el «pensando»). */
   pendiente: boolean;
+  /**
+   * La respuesta que se está escribiendo, si el chat la muestra en vivo. Se usa
+   * SOLO como disparador del scroll: sin esto el texto crece por debajo del
+   * borde visible y hay que bajar a mano mientras el modelo escribe.
+   */
+  parcial?: string;
 }): {
   turnos: TurnoChat[];
   hiloRef: RefObject<HTMLDivElement | null>;
@@ -68,6 +82,25 @@ export function useHiloDeChat({
       behavior: cambioDeChat ? "auto" : "smooth",
     });
   }, [turnos.length, pendiente, conversacionId]);
+
+  /**
+   * El scroll mientras la respuesta se escribe, que es otro problema que el de
+   * arriba y por eso es otro efecto.
+   *
+   * Va SIN animación: una respuesta larga dispara esto decenas de veces por
+   * segundo, y encadenar scrolls suaves los pisa entre sí y se ve como un
+   * temblor. Y solo baja si ya estabas abajo: durante el stream es normal subir
+   * a releer algo, y arrastrar la vista al fondo en cada token haría imposible
+   * hacerlo.
+   */
+  useEffect(() => {
+    const hilo = hiloRef.current;
+    if (!hilo || !parcial) return;
+    const distanciaAlFondo =
+      hilo.scrollHeight - hilo.scrollTop - hilo.clientHeight;
+    if (distanciaAlFondo > MARGEN_SEGUIMIENTO) return;
+    hilo.scrollTop = hilo.scrollHeight;
+  }, [parcial]);
 
   return {
     turnos,

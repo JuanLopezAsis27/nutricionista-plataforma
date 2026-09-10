@@ -7,6 +7,7 @@ import type { IObjetivoRepositorio } from "@/dominio/repositorios/IObjetivoRepos
 import type { IAlertaAlimentariaRepositorio } from "@/dominio/repositorios/IAlertaAlimentariaRepositorio";
 import type { IAsistenteAnalitico } from "@/dominio/servicios/IAsistenteAnalitico";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
+import type { AlAvanzarIA } from "@/dominio/servicios/avanceIA";
 import type { IConversacionIARepositorio } from "@/dominio/repositorios/IConversacionIARepositorio";
 import { ConversacionIA } from "@/dominio/entidades/ConversacionIA";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
@@ -72,10 +73,10 @@ export class AnalizarConAsistente {
    * llamar al modelo y la respuesta después: si el modelo falla, lo que el
    * profesional escribió no se pierde.
    */
-  async ejecutar(datos: {
-    pregunta: string;
-    conversacionId?: string | null;
-  }): Promise<RespuestaAnalisis> {
+  async ejecutar(
+    datos: { pregunta: string; conversacionId?: string | null },
+    alAvanzar?: AlAvanzarIA,
+  ): Promise<RespuestaAnalisis> {
     const pregunta = datos.pregunta?.trim() ?? "";
     if (pregunta.length === 0) {
       throw new ErrorValidacion("La consulta no puede estar vacía.");
@@ -116,6 +117,7 @@ export class AnalizarConAsistente {
       ],
       this.construirHerramientas(),
       this.reloj.ahora(),
+      alAvanzar,
     );
 
     await this.conversaciones.agregarMensaje(conversacion.id, {

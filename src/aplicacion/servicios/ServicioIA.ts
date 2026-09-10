@@ -9,6 +9,7 @@ import type {
 } from "@/aplicacion/casos-de-uso/ia/GestionarConversacionesIA";
 import type { RegistrarRetroalimentacionInsight } from "@/aplicacion/casos-de-uso/ia/RegistrarRetroalimentacionInsight";
 import type { ConversacionIA } from "@/dominio/entidades/ConversacionIA";
+import type { AlAvanzarIA } from "@/dominio/servicios/avanceIA";
 import type {
   RespuestaAsistenteDto,
   RespuestaAnalisisDto,
@@ -57,15 +58,22 @@ export class ServicioIA {
     };
   }
 
-  /** Portal: una pregunta del paciente, dentro de su chat. */
+  /**
+   * Portal: una pregunta del paciente, dentro de su chat.
+   *
+   * `alAvanzar` lo pasa el procedimiento que transmite la respuesta en vivo; el
+   * que la devuelve de una sola vez lo omite y todo lo demás es idéntico.
+   */
   async preguntar(
     pacienteId: string,
     datos: { pregunta: string; conversacionId?: string | null },
+    alAvanzar?: AlAvanzarIA,
   ): Promise<RespuestaAsistenteDto> {
     return this.preguntarUC.ejecutar(
       pacienteId,
       datos.pregunta,
       datos.conversacionId,
+      alAvanzar,
     );
   }
 
@@ -106,11 +114,11 @@ export class ServicioIA {
   }
 
   /** Consulta analítica del nutricionista (con herramientas sobre la base). */
-  async analizar(datos: {
-    pregunta: string;
-    conversacionId?: string | null;
-  }): Promise<RespuestaAnalisisDto> {
-    return this.analizarConAsistenteUC.ejecutar(datos);
+  async analizar(
+    datos: { pregunta: string; conversacionId?: string | null },
+    alAvanzar?: AlAvanzarIA,
+  ): Promise<RespuestaAnalisisDto> {
+    return this.analizarConAsistenteUC.ejecutar(datos, alAvanzar);
   }
 
   /**

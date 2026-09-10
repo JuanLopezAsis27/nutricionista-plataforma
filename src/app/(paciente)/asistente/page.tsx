@@ -17,6 +17,7 @@ import {
 } from "@/componentes/ui/tabs";
 import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
 import { AsistentePacienteChat } from "@/componentes/ia/AsistentePacienteChat";
+import { AvisoIA } from "@/componentes/ia/AvisoIA";
 
 function BannerDemo() {
   return (
@@ -52,6 +53,7 @@ export default function PaginaAsistente() {
         </p>
       </div>
 
+      <AvisoIA audiencia="paciente" />
       {!asistenteActivo && <BannerDemo />}
 
       <Tabs defaultValue="chat">

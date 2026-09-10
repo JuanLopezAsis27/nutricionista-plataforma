@@ -9,6 +9,11 @@ Ventaja clave: **los cambios de la web salen al instante** (sin volver a pasar
 por las tiendas). Solo hace falta re-publicar en la tienda si cambiás algo
 **nativo** (config de Capacitor, plugins, íconos, versión).
 
+> Si lo único que buscás es tener la app con su ícono en el teléfono o en la PC,
+> **no hace falta pasar por las tiendas**: la web ya es una PWA instalable. Ver
+> `docs/PWA.md`. Este documento es para publicar en Play Store / App Store, que
+> es lo que hace falta para las integraciones nativas (wearables, push).
+
 ## Requisitos
 
 |             | iOS                          | Android                             |

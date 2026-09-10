@@ -9,6 +9,8 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 import { useIA } from "@/lib/hooks/useIA";
 import { formatearFecha } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
@@ -19,6 +21,8 @@ import { Skeleton } from "@/componentes/ui/skeleton";
 import { PensandoAnimado } from "@/componentes/ia/PensandoAnimado";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { useHiloDeChat, type TurnoChat } from "./hiloDeChat";
+import { useRespuestaEnVivo } from "./respuestaEnVivo";
+import { AvisoIABreve } from "./AvisoIA";
 
 const SUGERENCIAS = [
   "¿Qué puedo comer hoy a la tarde?",
@@ -52,7 +56,7 @@ const ALTO = "h-[calc(100vh-12rem)] min-h-[34rem]";
  */
 export function AsistentePacienteChat() {
   const {
-    preguntar,
+    utils,
     estado,
     misConversaciones,
     miConversacion,
@@ -76,10 +80,28 @@ export function AsistentePacienteChat() {
     rol: m.rol,
     contenido: m.contenido,
   }));
+
+  // La respuesta llega en fragmentos por SSE; `hilo` la recibe entera al final,
+  // que es la que queda guardada en el chat.
+  const enVivo = useRespuestaEnVivo({
+    suscribir: trpc.ia.preguntarEnVivo.useSubscription,
+    alTerminar: (respuesta) => {
+      setConversacionId(respuesta.conversacionId);
+      hilo.encolarRespuesta(respuesta.respuesta);
+      void utils.ia.misConversaciones.invalidate();
+      void utils.ia.miConversacion.invalidate({ id: respuesta.conversacionId });
+    },
+    alFallar: (mensaje) => {
+      hilo.descartarUltima();
+      toast.error(mensaje);
+    },
+  });
+
   const hilo = useHiloDeChat({
     guardados,
     conversacionId,
-    pendiente: preguntar.isPending,
+    pendiente: enVivo.enCurso,
+    parcial: enVivo.parcial,
   });
   const { turnos, hiloRef } = hilo;
 
@@ -92,19 +114,10 @@ export function AsistentePacienteChat() {
 
   function enviar(pregunta?: string) {
     const p = (pregunta ?? texto).trim();
-    if (!p || preguntar.isPending) return;
+    if (!p || enVivo.enCurso) return;
     setTexto("");
     hilo.encolarPregunta(p);
-    preguntar.mutate(
-      { pregunta: p, conversacionId },
-      {
-        onSuccess: (data) => {
-          setConversacionId(data.conversacionId);
-          hilo.encolarRespuesta(data.respuesta);
-        },
-        onError: () => hilo.descartarUltima(),
-      },
-    );
+    enVivo.enviar(p, conversacionId);
   }
 
   const listaDeChats = (
@@ -216,7 +229,7 @@ export function AsistentePacienteChat() {
           <div ref={hiloRef} className="flex-1 space-y-3 overflow-y-auto p-1">
             {abierta.isLoading && conversacionId ? (
               <Skeleton className="h-10 w-2/3" />
-            ) : turnos.length === 0 && !preguntar.isPending ? (
+            ) : turnos.length === 0 && !enVivo.enCurso ? (
               <div className="space-y-4 py-8 text-center">
                 <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
                   <Sparkles className="h-6 w-6 text-primary" />
@@ -260,8 +273,20 @@ export function AsistentePacienteChat() {
                 </div>
               ))
             )}
-            {preguntar.isPending && <PensandoAnimado />}
+            {/* La respuesta a medio escribir: misma burbuja que la final, así
+                no salta nada cuando termina de llegar. */}
+            {enVivo.parcial !== "" && (
+              <div className="flex justify-start">
+                <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-sm">
+                  {enVivo.parcial}
+                  <span className="ml-0.5 inline-block h-3.5 w-px animate-pulse bg-foreground align-middle" />
+                </div>
+              </div>
+            )}
+            {enVivo.enCurso && enVivo.parcial === "" && <PensandoAnimado />}
           </div>
+
+          <AvisoIABreve audiencia="paciente" className="mt-2" />
 
           <div className="mt-2 flex items-end gap-2 border-t pt-2">
             <Textarea
@@ -280,7 +305,7 @@ export function AsistentePacienteChat() {
             <Button
               size="icon"
               onClick={() => enviar()}
-              disabled={preguntar.isPending || texto.trim().length === 0}
+              disabled={enVivo.enCurso || texto.trim().length === 0}
               aria-label="Enviar"
             >
               <Send className="h-4 w-4" />

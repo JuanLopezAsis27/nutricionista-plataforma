@@ -9,7 +9,7 @@ import { useTurnos } from "@/lib/hooks/useTurnos";
 import { usePacientes } from "@/lib/hooks/usePacientes";
 import { useEstablecimientos } from "@/lib/hooks/useEstablecimientos";
 import { useSedeActiva } from "@/lib/hooks/useSedeActiva";
-import { coloresDeSedes } from "@/lib/sedes";
+import { coloresDeSedes, etiquetaSede } from "@/lib/sedes";
 import { formatearFecha, ETIQUETAS_ESTADO_TURNO } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
@@ -63,8 +63,12 @@ export default function PaginaTurnos() {
   const consultaSedes = listarSedes();
   const sedes = useMemo(() => consultaSedes.data ?? [], [consultaSedes.data]);
   const colores = useMemo(() => coloresDeSedes(sedes), [sedes]);
-  const nombreSede = (id: string): string =>
-    sedes.find((s) => s.id === id)?.nombre ?? "—";
+  // Nombre Y dirección: en la tabla el establecimiento se lee de un vistazo
+  // para saber a dónde va el paciente, y el nombre solo no lo dice.
+  const nombreSede = (id: string): string => {
+    const sede = sedes.find((s) => s.id === id);
+    return sede ? etiquetaSede(sede) : "—";
+  };
 
   const [vista, setVista] = useState<Vista>("calendario");
   const [filtroEstado, setFiltroEstado] = useState<EstadoTurno | "TODOS">(

@@ -9,6 +9,7 @@ import { useTurnos } from "@/lib/hooks/useTurnos";
 import { usePacientes } from "@/lib/hooks/usePacientes";
 import { useEstablecimientos } from "@/lib/hooks/useEstablecimientos";
 import { useSedeActiva } from "@/lib/hooks/useSedeActiva";
+import { etiquetaSede } from "@/lib/sedes";
 import type { EstablecimientoSalidaDto } from "@/aplicacion/dtos/establecimiento.dto";
 import { hoyArgentinaISO, horaArgentinaHHmm } from "@/lib/formato";
 import {
@@ -319,7 +320,7 @@ function FormularioTurnoInterno({
                   <SelectContent>
                     {sedes.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
-                        {s.nombre}
+                        {etiquetaSede(s)}
                       </SelectItem>
                     ))}
                   </SelectContent>

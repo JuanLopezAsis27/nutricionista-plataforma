@@ -1,3 +1,5 @@
+import { urlPublica } from "@/infraestructura/configuracion/urlPublica";
+
 /** Scopes que pide la app: crear/editar eventos de calendario y enviar emails. */
 export const SCOPES_GOOGLE = [
   "openid",
@@ -25,13 +27,11 @@ export function obtenerConfigGoogle(): ConfigGoogle | null {
   if (!clientId || !clientSecret || !process.env.TOKENS_SECRET) {
     return null;
   }
-  const base = (process.env.APP_URL ?? "http://localhost:3000").replace(
-    /\/$/,
-    "",
-  );
   return {
     clientId,
     clientSecret,
-    redirectUri: `${base}/api/integraciones/google/callback`,
+    // La MISMA resolución que usa la vuelta del callback: si las dos puntas no
+    // coinciden, el flujo se corta en el medio. Ver `urlPublica`.
+    redirectUri: `${urlPublica()}/api/integraciones/google/callback`,
   };
 }
