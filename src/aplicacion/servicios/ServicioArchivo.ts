@@ -88,6 +88,6 @@ export class ServicioArchivo {
   }
 
   private static aSalida(archivo: Archivo): ArchivoSalidaDto {
-    return archivo.aPrimitivos();
+    return { ...archivo.aPrimitivos(), contexto: archivo.contexto };
   }
 }

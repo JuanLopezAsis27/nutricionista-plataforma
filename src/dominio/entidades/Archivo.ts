@@ -113,6 +113,28 @@ export const CONTEXTOS_ARCHIVO_LISTA = Object.keys(
   CONTEXTOS_ARCHIVO,
 ) as ContextoArchivo[];
 
+/** Prefijo del bucket → contexto que lo genera (los prefijos son únicos). */
+const CONTEXTO_POR_PREFIJO = new Map<string, ContextoArchivo>(
+  CONTEXTOS_ARCHIVO_LISTA.map((contexto) => [
+    CONTEXTOS_ARCHIVO[contexto].prefijo,
+    contexto,
+  ]),
+);
+
+/**
+ * Contexto con el que se subió un archivo, deducido del prefijo de su clave.
+ *
+ * No hay columna `contexto` en la tabla, pero tampoco hace falta: `crear`
+ * arma la clave como `<prefijo>/<id>` y la clave no cambia nunca, así que el
+ * prefijo ES el contexto de origen. Sirve para que quien lista archivos de un
+ * paciente sepa de dónde salió cada uno —una foto que el paciente mandó a
+ * analizar no es lo mismo que un consentimiento que cargó el profesional—.
+ * `null` si la clave no arranca con un prefijo conocido.
+ */
+export function contextoDesdeClave(clave: string): ContextoArchivo | null {
+  return CONTEXTO_POR_PREFIJO.get(clave.split("/")[0] ?? "") ?? null;
+}
+
 /** Datos para registrar un archivo nuevo. */
 export interface DatosNuevoArchivo {
   nombreOriginal: string;
@@ -224,6 +246,11 @@ export class Archivo {
   }
   get creadoEn(): Date {
     return this.props.creadoEn;
+  }
+
+  /** Contexto de origen, deducido de la clave. Ver `contextoDesdeClave`. */
+  get contexto(): ContextoArchivo | null {
+    return contextoDesdeClave(this.props.clave);
   }
 
   aPrimitivos(): PropiedadesArchivo {
