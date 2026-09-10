@@ -65,6 +65,19 @@ const credencialesDto = z.object({
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  /**
+   * El logger por defecto de Auth.js vuelca el stack completo (y a veces un
+   * `[auth][details]` con JSON) por cada error, incluido `JWTSessionError`
+   * —que dispara con cualquier cookie de sesión vieja, cifrada con un
+   * `AUTH_SECRET` anterior (p. ej. después de rotarlo)— y es un caso
+   * esperado, no una falla. Una sola línea con nombre + mensaje alcanza para
+   * diagnosticar; el resto es ruido que tapa el log real.
+   */
+  logger: {
+    error(error) {
+      console.error(`[auth] ${error.name}: ${error.message}`);
+    },
+  },
   providers: [
     Credentials({
       credentials: {
