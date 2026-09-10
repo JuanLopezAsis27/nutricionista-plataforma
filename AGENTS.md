@@ -568,6 +568,12 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
 - Nunca usar `any`
 - Nunca guardar passwords en texto plano
 - Nunca poner secretos en el código, siempre variables de entorno
+- Nunca armar un redirect de un route handler con `new URL(ruta, request.url)`:
+  `NextResponse.redirect` manda un `Location` ABSOLUTO y `request.url` se arma
+  con la cabecera `Host` que le haya llegado al proceso, que detrás de un proxy
+  puede ser cualquier cosa —`0.0.0.0:3000` en Docker—. Va `urlApp()`. Pasó en la
+  vuelta del OAuth de Google: los tokens se guardaban bien y el navegador
+  aterrizaba igual en una dirección inexistente
 
 <!-- BEGIN:nextjs-agent-rules -->
 

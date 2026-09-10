@@ -64,7 +64,12 @@ import { EliminarAlimentoPropio } from "@/aplicacion/casos-de-uso/nutricion/Elim
 import { ListarAlimentosPropios } from "@/aplicacion/casos-de-uso/nutricion/ListarAlimentosPropios";
 
 // --- Reexportes del núcleo que consume la presentación --------------------------
-export { busEventos, proveedorGoogle, directorioWhatsapp } from "./nucleo";
+export {
+  busEventos,
+  proveedorGoogle,
+  directorioWhatsapp,
+  urlApp,
+} from "./nucleo";
 
 /** El repositorio de usuario se expone para la configuración de Auth.js. */
 export const repositorioUsuarioCompartido = nucleo.repositorioUsuario;

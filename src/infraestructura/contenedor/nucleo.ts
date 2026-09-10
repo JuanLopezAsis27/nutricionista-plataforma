@@ -14,6 +14,7 @@
  */
 
 import { perezoso } from "./perezoso";
+import { urlPublica } from "@/infraestructura/configuracion/urlPublica";
 
 import { PrismaClienteSingleton } from "@/infraestructura/repositorios/PrismaClienteSingleton";
 import { PrismaRepositorioPaciente } from "@/infraestructura/repositorios/PrismaRepositorioPaciente";
@@ -125,9 +126,8 @@ import { ProvisionadorNutricionista } from "@/infraestructura/aprovisionamiento/
 export const NOMBRE_PROFESIONAL =
   process.env.NOMBRE_PROFESIONAL ?? "Lic. López Asis Nicolás";
 
-/** URL pública de la app (la usan los enlaces de los emails). */
-export const urlApp = (): string =>
-  process.env.APP_URL ?? process.env.AUTH_URL ?? "http://localhost:3000";
+/** URL pública de la app (la usan los enlaces de los emails y el OAuth). */
+export const urlApp = (): string => urlPublica();
 
 // --- Cliente de base de datos --------------------------------------------------
 
