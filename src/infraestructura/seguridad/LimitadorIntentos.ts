@@ -21,7 +21,7 @@ export class LimitadorIntentos {
   private readonly estados = new Map<string, EstadoIntentos>();
 
   constructor(
-    private readonly maxIntentos = 5,
+    private readonly maxIntentos = 30,
     private readonly ventanaMs = 15 * 60 * 1000,
     private readonly bloqueoMs = 15 * 60 * 1000,
     private readonly ahora: () => number = () => Date.now(),
@@ -87,7 +87,7 @@ export class LimitadorIntentos {
 }
 
 /**
- * Instancia compartida para el login (módulo singleton). Máx. 5 fallos por
+ * Instancia compartida para el login (módulo singleton). Máx. 30 fallos por
  * ventana de 15 minutos → bloqueo de 15 minutos. Se aplica por IP y por email.
  */
 export const limitadorLogin = new LimitadorIntentos();
