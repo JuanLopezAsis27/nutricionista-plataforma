@@ -31,7 +31,7 @@
 # $binary_remote_addr y no $http_x_forwarded_for: la dirección real de la
 # conexión, que el cliente no puede falsear.
 # =============================================================================
-limit_req_zone $binary_remote_addr zone=autenticacion:10m rate=10r/m;
+limit_req_zone $binary_remote_addr zone=autenticacion:10m rate=60r/m;
 limit_req_zone $binary_remote_addr zone=general:10m rate=30r/s;
 
 # Al superar el límite, 429 (y no el 503 por defecto): es lo que corresponde y
@@ -106,14 +106,20 @@ server {
     }
 
     # Autenticación: el objetivo natural de la fuerza bruta y del bombardeo de
-    # correo. 10 por minuto por IP, con un colchón de 5 para no castigar el
-    # reintento legítimo de alguien que se equivocó de contraseña.
+    # correo. 60 por minuto por IP, con un colchón de 20.
+    #
+    # Cada intento de login real dispara varias requests a /api/auth (CSRF,
+    # callback, session), no una sola: con el límite anterior (10r/m, burst 5)
+    # un usuario se quedaba sin cupo —y nginx le devolvía 429— a los dos o
+    # tres intentos de contraseña, mucho antes de que el límite propio de la
+    # app (LimitadorIntentos, ver src/infraestructura/seguridad) entrara a
+    # jugar. La fuerza bruta sostenida la sigue frenando ese límite de la app.
     #
     # Cubre /api/auth/* (login de Auth.js). La recuperación de contraseña entra
     # por /api/trpc, así que además tiene su propio límite en la app
     # (LimitadorTasa) — acá no se puede distinguir un procedimiento de otro.
     location /api/auth {
-        limit_req zone=autenticacion burst=5 nodelay;
+        limit_req zone=autenticacion burst=20 nodelay;
 
         proxy_pass http://127.0.0.1:3001;
         proxy_http_version 1.1;
