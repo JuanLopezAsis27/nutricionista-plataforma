@@ -6,6 +6,7 @@ import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositor
 import type { IAlertaAlimentariaRepositorio } from "@/dominio/repositorios/IAlertaAlimentariaRepositorio";
 import type { IAxiomaRepositorio } from "@/dominio/repositorios/IAxiomaRepositorio";
 import type { IHistorialIARepositorio } from "@/dominio/repositorios/IHistorialIARepositorio";
+import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
 import type { IAsistenteNutricional } from "@/dominio/servicios/IAsistenteNutricional";
 import type { IAnalisisComidaIA } from "@/dominio/servicios/IAnalisisComidaIA";
 import type { IAnalisisPredictivo } from "@/dominio/servicios/IAnalisisPredictivo";
@@ -43,6 +44,8 @@ export function crearServicioIA(deps: {
   alertas: IAlertaAlimentariaRepositorio;
   axiomas: IAxiomaRepositorio;
   historial: IHistorialIARepositorio;
+  /** Traduce el archivoId de la foto a su clave en el bucket. */
+  archivos: IArchivoRepositorio;
   perfilesDeportivos: IPerfilDeportivoRepositorio;
   competencias: ICompetenciaRepositorio;
   asistente: IAsistenteNutricional;
@@ -68,7 +71,11 @@ export function crearServicioIA(deps: {
       deps.competencias,
       deps.reloj,
     ),
-    new AnalizarFotoDeComida(deps.analisisComida, deps.historial),
+    new AnalizarFotoDeComida(
+      deps.analisisComida,
+      deps.historial,
+      deps.archivos,
+    ),
     new ObtenerInsightsPredictivos(deps.analisisPredictivo),
     new AnalizarConAsistente(
       deps.pacientes,

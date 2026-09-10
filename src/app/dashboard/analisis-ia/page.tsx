@@ -6,6 +6,7 @@ import { Skeleton } from "@/componentes/ui/skeleton";
 import { AsistenteAnaliticoChat } from "@/componentes/ia/AsistenteAnaliticoChat";
 import { PanelKpisAnalisis } from "@/componentes/ia/PanelKpisAnalisis";
 import { ListaInsights } from "@/componentes/ia/ListaInsights";
+import { AvisoIA } from "@/componentes/ia/AvisoIA";
 
 export default function PaginaAnalisisIA() {
   const { insights, estado } = useIA();
@@ -23,6 +24,8 @@ export default function PaginaAnalisisIA() {
           Preguntá sobre tus datos y mirá análisis predictivos de tus pacientes.
         </p>
       </div>
+
+      <AvisoIA audiencia="profesional" />
 
       {/* Chat analítico: pregunta sobre pacientes, planes, recetas y turnos. */}
       <AsistenteAnaliticoChat />

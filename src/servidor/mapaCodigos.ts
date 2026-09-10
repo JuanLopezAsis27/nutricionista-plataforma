@@ -25,6 +25,7 @@ export const MAPA_CODIGOS_TRPC: Record<CodigoErrorDominio, TRPCError["code"]> =
     CONFLICTO: "CONFLICT",
     ACCESO_DENEGADO: "FORBIDDEN",
     NO_AUTENTICADO: "UNAUTHORIZED",
+    IA_NO_DISPONIBLE: "BAD_GATEWAY",
   };
 
 /** Código de dominio → status HTTP (route handlers: subida de archivos, PDF…). */
@@ -34,4 +35,5 @@ export const MAPA_ESTADOS_HTTP: Record<CodigoErrorDominio, number> = {
   CONFLICTO: 409,
   ACCESO_DENEGADO: 403,
   NO_AUTENTICADO: 401,
+  IA_NO_DISPONIBLE: 502,
 };

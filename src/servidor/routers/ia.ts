@@ -12,10 +12,12 @@ import {
 import {
   preguntarDto,
   analizarDto,
+  preguntarEnVivoDto,
   analizarComidaDto,
   feedbackInsightDto,
   idConversacionIADto,
 } from "@/aplicacion/dtos/ia.dto";
+import { iniciarFlujoIA } from "../flujoIA";
 
 /**
  * Cuota de uso de la IA.
@@ -67,6 +69,25 @@ export const routerIA = crearRouter({
       const pacienteId = pacienteDeSesion(ctx.usuario);
       verificarCuotaIA(pacienteId, ctx.usuario.nutricionistaId);
       return await ctx.servicios.ia.preguntar(pacienteId, input);
+    }),
+
+  /**
+   * La misma pregunta, transmitida mientras el modelo la escribe (SSE).
+   *
+   * Es un procedimiento aparte y no un modo de `preguntar` porque el transporte
+   * es otro: una mutation devuelve UNA respuesta y esto emite muchos eventos.
+   * Del lado del servidor hacen exactamente lo mismo —los dos turnos quedan
+   * guardados igual—, así que un cliente que no pueda mantener la conexión
+   * abierta sigue teniendo `preguntar` sin perder nada más que el vivo.
+   */
+  preguntarEnVivo: protegidoProcedimiento
+    .input(preguntarEnVivoDto)
+    .subscription(({ ctx, input }) => {
+      const pacienteId = pacienteDeSesion(ctx.usuario);
+      verificarCuotaIA(pacienteId, ctx.usuario.nutricionistaId);
+      return iniciarFlujoIA("ia.preguntarEnVivo", (alAvanzar) =>
+        ctx.servicios.ia.preguntar(pacienteId, input, alAvanzar),
+      );
     }),
 
   analizarFoto: protegidoProcedimiento
@@ -125,6 +146,15 @@ export const routerIA = crearRouter({
     .mutation(async ({ ctx, input }) => {
       return await ctx.servicios.ia.analizar(input);
     }),
+
+  /** La consulta analítica, transmitida mientras el modelo la escribe (SSE). */
+  analizarEnVivo: nutricionistaProcedimiento
+    .input(preguntarEnVivoDto)
+    .subscription(({ ctx, input }) =>
+      iniciarFlujoIA("ia.analizarEnVivo", (alAvanzar) =>
+        ctx.servicios.ia.analizar(input, alAvanzar),
+      ),
+    ),
 
   /** Los chats guardados del profesional con el asistente. */
   conversaciones: nutricionistaProcedimiento.query(async ({ ctx }) => {

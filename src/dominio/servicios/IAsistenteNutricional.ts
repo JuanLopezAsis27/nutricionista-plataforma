@@ -1,3 +1,5 @@
+import type { AlAvanzarIA } from "./avanceIA";
+
 /**
  * Contexto del paciente que se le pasa al asistente para fundamentar su
  * respuesta. Lo arma el caso de uso desde los repositorios. Las `restricciones`
@@ -39,10 +41,16 @@ export interface IAsistenteNutricional {
    *   asistente respondía cada pregunta aislada, así que un "¿y eso con qué lo
    *   acompaño?" no tenía a qué referirse.
    */
+  /**
+   * @param alAvanzar si se pasa, la respuesta se pide en stream y se va
+   *   emitiendo mientras el modelo la escribe. La devuelta al final es la misma
+   *   con o sin esto: es lo que se guarda en el chat.
+   */
   responder(
     pregunta: string,
     contexto: ContextoAsistente,
     herramientas?: HerramientaAsistente[],
     previos?: { rol: "usuario" | "asistente"; texto: string }[],
+    alAvanzar?: AlAvanzarIA,
   ): Promise<string>;
 }

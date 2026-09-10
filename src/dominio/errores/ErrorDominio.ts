@@ -9,7 +9,9 @@ export type CodigoErrorDominio =
   | "NO_ENCONTRADO"
   | "CONFLICTO"
   | "ACCESO_DENEGADO"
-  | "NO_AUTENTICADO";
+  | "NO_AUTENTICADO"
+  /** La IA está configurada pero el proveedor no pudo responder. */
+  | "IA_NO_DISPONIBLE";
 
 /**
  * Error base del dominio. Todo error de negocio extiende de esta clase,

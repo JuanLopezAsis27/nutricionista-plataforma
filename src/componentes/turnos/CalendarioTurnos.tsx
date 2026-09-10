@@ -5,7 +5,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { TurnoSalidaDto } from "@/aplicacion/dtos/turno.dto";
 import type { EstablecimientoSalidaDto } from "@/aplicacion/dtos/establecimiento.dto";
 import { useSedeActiva } from "@/lib/hooks/useSedeActiva";
-import { agendaUnificada, sedePorDiaDeLaSemana } from "@/lib/sedes";
+import {
+  agendaUnificada,
+  etiquetaSede,
+  sedePorDiaDeLaSemana,
+} from "@/lib/sedes";
 import { diaSemanaISO } from "@/lib/agenda";
 import { aFechaISO, hoyArgentinaISO, horaArgentinaHHmm } from "@/lib/formato";
 import { sumarDias, ventanaDeDias } from "@/lib/calendarioSemanal";
@@ -188,7 +192,7 @@ export function CalendarioTurnos({
                   className="h-2.5 w-2.5 shrink-0 rounded-full"
                   style={{ backgroundColor: colores.get(sede.id) }}
                 />
-                <span className="truncate">{sede.nombre}</span>
+                <span className="truncate">{etiquetaSede(sede)}</span>
               </li>
             ))}
           </ul>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/componentes/ui/dialog";
 import { cn } from "@/lib/utilidades";
 
@@ -10,13 +10,24 @@ interface PropsFotoConVisor {
   alt: string;
   /** Clases de la miniatura (tamaño, radio, etc). */
   className?: string;
+  /**
+   * Contenido opcional al lado de la miniatura (nombre, fecha) que forma parte
+   * del mismo disparador: en una lista de archivos, tocar la fila entera abre
+   * la foto, no solo el cuadradito.
+   */
+  children?: ReactNode;
 }
 
 /**
  * Miniatura de una foto que, al tocarla, se abre en grande DENTRO de la app
  * (un diálogo) en vez de una pestaña nueva del navegador.
  */
-export function FotoConVisor({ archivoId, alt, className }: PropsFotoConVisor) {
+export function FotoConVisor({
+  archivoId,
+  alt,
+  className,
+  children,
+}: PropsFotoConVisor) {
   const [abierta, setAbierta] = useState(false);
   const url = `/api/archivos/${archivoId}/ver`;
 
@@ -26,7 +37,10 @@ export function FotoConVisor({ archivoId, alt, className }: PropsFotoConVisor) {
         type="button"
         onClick={() => setAbierta(true)}
         aria-label={`Ver ${alt} en grande`}
-        className="block"
+        className={cn(
+          "block",
+          children && "flex min-w-0 flex-1 items-center gap-3 text-left",
+        )}
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- ruta dinámica autorizada, no optimizable */}
         <img
@@ -34,6 +48,7 @@ export function FotoConVisor({ archivoId, alt, className }: PropsFotoConVisor) {
           alt={alt}
           className={cn("rounded-md object-cover", className)}
         />
+        {children}
       </button>
 
       <Dialog open={abierta} onOpenChange={setAbierta}>

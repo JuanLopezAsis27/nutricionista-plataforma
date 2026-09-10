@@ -31,5 +31,7 @@ export const archivoSalidaDto = z.object({
   categoria: z.string().nullable(),
   subidoPorId: z.string().nullable(),
   creadoEn: z.date(),
+  /** Contexto de origen deducido de la clave (`null` si no se reconoce). */
+  contexto: contextoArchivoDto.nullable(),
 });
 export type ArchivoSalidaDto = z.infer<typeof archivoSalidaDto>;

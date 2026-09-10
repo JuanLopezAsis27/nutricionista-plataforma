@@ -4,6 +4,7 @@ import { usuarioDeSesion } from "@/lib/autenticacion/sesion";
 import {
   proveedorGoogle,
   servicioIntegraciones,
+  urlApp,
 } from "@/infraestructura/contenedor/contenedor";
 import { conAlcanceDeSesion } from "@/servidor/alcanceRequest";
 
@@ -14,14 +15,23 @@ export const runtime = "nodejs";
  * anti-CSRF, intercambia el código por tokens y los guarda (cifrados) para el
  * nutricionista de la sesión. Envuelto en `conAlcanceDeSesion` para persistir en
  * su inquilino.
+ *
+ * **El destino sale de `urlApp()` y NUNCA de `request.url`.** `NextResponse.
+ * redirect` manda un `Location` ABSOLUTO, así que el origen que se le pase es
+ * la dirección a la que termina yendo el navegador. Y `request.url` se arma con
+ * la cabecera `Host` que llegó al proceso: detrás de un proxy que no reenvíe el
+ * `Host` original —o apuntando a la dirección donde el contenedor escucha— eso
+ * es `0.0.0.0:3000`, que del lado del navegador no existe. El síntoma es feo
+ * porque llega tarde: los tokens ya se guardaron bien y la conexión con Google
+ * quedó hecha, pero la persona aterriza en una página que no carga y cree que
+ * falló. `urlApp()` es el origen público configurado, el mismo con el que se
+ * armó el `redirect_uri` que Google validó.
  */
 export function GET(request: Request): Promise<NextResponse> {
   return conAlcanceDeSesion(async () => {
     const usuario = await usuarioDeSesion();
     const volver = (q: string) =>
-      NextResponse.redirect(
-        new URL(`/dashboard/integraciones${q}`, request.url),
-      );
+      NextResponse.redirect(new URL(`/dashboard/integraciones${q}`, urlApp()));
 
     if (usuario?.rol !== "NUTRICIONISTA" || !proveedorGoogle()) {
       return volver("?error=no-disponible");

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { SidebarNav, type EnlaceNav } from "@/componentes/layout/SidebarNav";
 import { ToggleTema } from "@/componentes/comunes/ToggleTema";
+import { BotonInstalarHeader } from "@/componentes/pwa/BotonInstalarHeader";
 import { useMensajeria } from "@/lib/hooks/useMensajeria";
 
 /** Barra lateral del panel del nutricionista (colapsable, con menú móvil). */
@@ -83,7 +84,14 @@ export function BarraLateral({ email }: { email: string }) {
       enlaces={enlaces}
       email={email}
       claveAlmacen="sidebar-nutri-colapsada"
-      accionesMovil={<ToggleTema />}
+      // En escritorio el botón de instalar vive en la BarraSuperior, que en
+      // móvil está oculta: acá es el único lugar donde queda a mano.
+      accionesMovil={
+        <>
+          <BotonInstalarHeader />
+          <ToggleTema />
+        </>
+      }
     />
   );
 }

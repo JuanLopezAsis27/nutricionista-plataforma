@@ -81,6 +81,8 @@ describe("PreguntarAlAsistente", () => {
       ]),
       // Chat nuevo: no hay turnos anteriores que mandar.
       [],
+      // Sin transmisión en vivo: la respuesta se devuelve entera al final.
+      undefined,
     );
     expect(crear).toHaveBeenCalledOnce();
     // La pregunta se guarda antes de llamar al modelo y la respuesta después.
@@ -153,6 +155,7 @@ describe("PreguntarAlAsistente", () => {
         { rol: "usuario", texto: "¿Qué ceno?" },
         { rol: "asistente", texto: "Pollo al horno." },
       ],
+      undefined,
     );
   });
 

@@ -22,7 +22,7 @@ propios datos. Tres roles: SUPERADMIN, NUTRICIONISTA y PACIENTE.
   la misma PostgreSQL
 - MinIO / S3 para archivos, Nodemailer para email
 - Anthropic SDK (Claude) para IA, con degradación a stubs si no hay clave
-- Capacitor para la app Android
+- Capacitor para la app Android; además la web es una PWA instalable
 - Docker Compose para todo el stack
 
 ## Idioma
@@ -58,6 +58,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/WHATSAPP.md`           | Cloud API, plantillas de Meta, webhook                |
 | `docs/WEARABLES.md`          | Importación de métricas de dispositivos               |
 | `docs/MOBILE.md`             | La app Android con Capacitor                          |
+| `docs/PWA.md`                | Instalar la web como app; qué cachea el service worker |
 | `docs/DESPLIEGUE.md`         | Producción, respaldos y nginx                         |
 
 ## Arquitectura — Clean Architecture
@@ -593,6 +594,17 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   registro del diario del paciente
 - Nunca guardar passwords en texto plano
 - Nunca poner secretos en el código, siempre variables de entorno
+- Nunca armar un redirect de un route handler con `new URL(ruta, request.url)`:
+  `NextResponse.redirect` manda un `Location` ABSOLUTO y `request.url` se arma
+  con la cabecera `Host` que le haya llegado al proceso, que detrás de un proxy
+  puede ser cualquier cosa —`0.0.0.0:3000` en Docker—. Va `urlApp()`. Pasó en la
+  vuelta del OAuth de Google: los tokens se guardaban bien y el navegador
+  aterrizaba igual en una dirección inexistente
+- Nunca hacer que el service worker cachee páginas ni respuestas de `/api/*`
+  (`public/sw.js`): todas dependen de la sesión, y el Cache Storage NO se limpia
+  al cerrar sesión — la ficha de un paciente quedaría en el disco del dispositivo
+  para el que abra la app después. Solo se cachea `/_next/static/` y los íconos.
+  Por lo mismo no se usa `next-pwa`/Workbox, que precachean el shell entero
 
 <!-- BEGIN:nextjs-agent-rules -->
 

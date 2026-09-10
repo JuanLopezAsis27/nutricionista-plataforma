@@ -184,12 +184,27 @@ export function FormularioCredenciales() {
               id="modelo"
               placeholder={
                 esOpenRouter
-                  ? "anthropic/claude-opus-5 (por defecto). Ej: openai/gpt-4o, google/gemini-2.5-pro"
+                  ? "anthropic/claude-opus-5 (por defecto). Ej: openai/gpt-4o-mini, google/gemini-2.5-pro"
                   : "claude-opus-5 (por defecto). Ej: claude-sonnet-5, claude-haiku-4-5"
               }
               value={modelo}
               onChange={(ev) => setModelo(ev.target.value)}
             />
+            <p className="text-xs text-muted-foreground">
+              {esOpenRouter ? (
+                <>
+                  En OpenRouter los modelos se escriben{" "}
+                  <strong>proveedor/modelo</strong> (
+                  <code>openai/gpt-4o-mini</code>, no{" "}
+                  <code>openai-4o-mini</code>): con el nombre mal escrito la API
+                  rechaza todas las llamadas.
+                </>
+              ) : (
+                <>Va el nombre del modelo solo, sin el prefijo del proveedor.</>
+              )}{" "}
+              Tiene que ser un modelo <strong>con visión</strong>: el mismo se
+              usa para analizar la foto de la comida del paciente.
+            </p>
           </div>
           <div className="flex justify-end gap-2">
             <EliminarCredenciales

@@ -136,6 +136,26 @@ const config: NextConfig = {
             : []),
         ],
       },
+      /**
+       * El service worker no se cachea nunca.
+       *
+       * Es el único archivo del que el navegador puede quedarse con una copia
+       * vieja de forma permanente: si `sw.js` queda cacheado, la app sigue
+       * ejecutando la lógica de caché anterior después del despliegue y no hay
+       * manera de sacarla desde el servidor —el worker viejo se encarga de
+       * responder por sí mismo—. Con `max-age=0, must-revalidate` cada chequeo
+       * de actualización llega hasta el origen.
+       */
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+          {
+            key: "Content-Type",
+            value: "application/javascript; charset=utf-8",
+          },
+        ],
+      },
     ];
   },
 

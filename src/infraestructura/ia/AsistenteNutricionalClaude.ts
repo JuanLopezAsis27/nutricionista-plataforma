@@ -4,13 +4,20 @@ import type {
   HerramientaAsistente,
 } from "@/dominio/servicios/IAsistenteNutricional";
 import type { IResolvedorConfigIA } from "./ResolvedorConfigIA";
+import type { AlAvanzarIA } from "@/dominio/servicios/avanceIA";
+import { comoErrorIA } from "@/dominio/errores/ErrorIA";
 
 /**
  * Adaptador del asistente nutricional con IA (Claude directo u OpenRouter, según
  * lo que configuró el profesional). Resuelve el proveedor POR REQUEST y corre un
  * loop de herramientas: el modelo pide datos del paciente (plan, recetas,
- * objetivos, restricciones) para responder fundamentado. Si no hay clave, o la
- * API falla, DEGRADA al stub: el chat nunca rompe.
+ * objetivos, restricciones) para responder fundamentado.
+ *
+ * Degrada al stub SOLO si no hay clave configurada. Si la hay y la llamada
+ * falla, el error se propaga (mismo criterio que `AsistenteAnaliticoClaude`):
+ * antes cualquier excepción se tragaba y el paciente recibía el texto de
+ * demostración como si fuera la respuesta del asistente, sin que ni él ni el
+ * profesional tuvieran forma de notar que la IA no había contestado.
  */
 export class AsistenteNutricionalClaude implements IAsistenteNutricional {
   constructor(
@@ -23,13 +30,15 @@ export class AsistenteNutricionalClaude implements IAsistenteNutricional {
     contexto: ContextoAsistente,
     herramientas: HerramientaAsistente[] = [],
     previos: { rol: "usuario" | "asistente"; texto: string }[] = [],
+    alAvanzar?: AlAvanzarIA,
   ): Promise<string> {
     const llm = await this.resolver.obtenerLLM();
     if (!llm) return this.respaldo.responder(pregunta, contexto, herramientas);
 
+    const porNombre = new Map(herramientas.map((h) => [h.nombre, h]));
+    let texto: string;
     try {
-      const porNombre = new Map(herramientas.map((h) => [h.nombre, h]));
-      const texto = await llm.conversar({
+      texto = await llm.conversar({
         system: construirPrompt(contexto),
         mensajes: [
           ...previos,
@@ -46,14 +55,14 @@ export class AsistenteNutricionalClaude implements IAsistenteNutricional {
           if (!herramienta) return `No existe la herramienta "${nombre}".`;
           return herramienta.ejecutar(args);
         },
+        alAvanzar,
       });
-      return (
-        texto ||
-        (await this.respaldo.responder(pregunta, contexto, herramientas))
-      );
-    } catch {
-      return this.respaldo.responder(pregunta, contexto, herramientas);
+    } catch (error) {
+      throw comoErrorIA("La respuesta del asistente", error);
     }
+    // Una respuesta vacía no es un fallo del proveedor (el modelo puede cortar
+    // sin decir nada): ahí sí vale el stub antes que dejar el chat en blanco.
+    return texto || this.respaldo.responder(pregunta, contexto, herramientas);
   }
 }
 

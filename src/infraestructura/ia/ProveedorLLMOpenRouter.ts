@@ -5,12 +5,14 @@ import type {
   EsfuerzoLLM,
 } from "./IProveedorLLM";
 import { ejecutarHerramientaSegura, parsearArgumentos } from "./herramientas";
+import type { AlAvanzarIA } from "@/dominio/servicios/avanceIA";
 
 const URL = "https://openrouter.ai/api/v1/chat/completions";
 const TIEMPO_LIMITE_MS = 45000;
 
 interface LlamadaHerramienta {
   id: string;
+  type: "function";
   function?: { name?: string; arguments?: string };
 }
 interface MensajeOpenRouter {
@@ -20,6 +22,21 @@ interface MensajeOpenRouter {
 }
 interface RespuestaOpenRouter {
   choices?: Array<{ message?: MensajeOpenRouter }>;
+  error?: { message?: string };
+}
+
+/** Un trozo de la respuesta en stream (formato `chat.completion.chunk`). */
+interface TrozoOpenRouter {
+  choices?: Array<{
+    delta?: {
+      content?: string | null;
+      tool_calls?: Array<{
+        index?: number;
+        id?: string;
+        function?: { name?: string; arguments?: string };
+      }>;
+    };
+  }>;
   error?: { message?: string };
 }
 
@@ -128,14 +145,17 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
     const maxIteraciones = opts.maxIteraciones ?? 4;
 
     for (let i = 0; i < maxIteraciones; i++) {
-      const msg = await this.pedir({
-        model: this.modelo,
-        max_tokens: opts.maxTokens,
-        messages,
-        tools,
-        tool_choice: "auto",
-        ...razonamiento(opts.esfuerzo),
-      });
+      const msg = await this.pedir(
+        {
+          model: this.modelo,
+          max_tokens: opts.maxTokens,
+          messages,
+          tools,
+          tool_choice: "auto",
+          ...razonamiento(opts.esfuerzo),
+        },
+        opts.alAvanzar,
+      );
       const llamadas = msg.tool_calls ?? [];
       if (llamadas.length === 0) {
         return (msg.content ?? "").trim();
@@ -144,6 +164,12 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
       // El modelo pidió herramientas: ejecutamos y devolvemos cada resultado.
       messages.push(msg as Record<string, unknown>);
       for (const llamada of llamadas) {
+        // Este turno se descarta y se reemplaza por la llamada: quien pinta la
+        // respuesta en vivo tiene que borrar lo que ya mostró.
+        opts.alAvanzar?.({
+          tipo: "herramienta",
+          nombre: llamada.function?.name ?? "",
+        });
         const salida = await ejecutarHerramientaSegura(
           opts.ejecutar,
           llamada.function?.name ?? "",
@@ -158,18 +184,34 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
     }
 
     // Se agotaron las vueltas: una llamada final SIN herramientas para cerrar.
-    const cierre = await this.pedir({
-      model: this.modelo,
-      max_tokens: opts.maxTokens,
-      messages,
-    });
+    const cierre = await this.pedir(
+      { model: this.modelo, max_tokens: opts.maxTokens, messages },
+      opts.alAvanzar,
+    );
     return (cierre.content ?? "").trim();
   }
 
-  /** POST a OpenRouter; devuelve el `message` de la primera choice. */
+  /**
+   * Una vuelta de `messages`; en stream si hay quien escuche el avance.
+   *
+   * En los dos modos devuelve el mismo `message` reconstruido, así que el loop
+   * de herramientas de arriba no distingue uno del otro.
+   */
   private async pedir(
     body: Record<string, unknown>,
+    alAvanzar?: AlAvanzarIA,
   ): Promise<MensajeOpenRouter> {
+    const respuesta = await this.postear(
+      alAvanzar ? { ...body, stream: true } : body,
+    );
+    if (alAvanzar) return leerStream(respuesta, alAvanzar);
+
+    const j = (await respuesta.json()) as RespuestaOpenRouter;
+    if (j.error) throw new Error(j.error.message ?? "Error de OpenRouter.");
+    return j.choices?.[0]?.message ?? {};
+  }
+
+  private async postear(body: Record<string, unknown>): Promise<Response> {
     const respuesta = await fetch(URL, {
       method: "POST",
       headers: {
@@ -186,9 +228,114 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
         `OpenRouter respondió ${respuesta.status}. ${detalle.slice(0, 300)}`,
       );
     }
-    const j = (await respuesta.json()) as RespuestaOpenRouter;
-    if (j.error) throw new Error(j.error.message ?? "Error de OpenRouter.");
-    return j.choices?.[0]?.message ?? {};
+    return respuesta;
+  }
+}
+
+/**
+ * Reconstruye el mensaje a partir del stream SSE, emitiendo el texto al pasar.
+ *
+ * El formato de OpenAI parte TODO en deltas, también las llamadas a
+ * herramientas: el `name` llega en el primer trozo y los `arguments` en pedazos
+ * de JSON que hay que concatenar en orden por `index`. Por eso no alcanza con
+ * quedarse con el texto: si se descartaran los deltas de `tool_calls`, el loop
+ * de herramientas no vería nunca que el modelo pidió una y contestaría sin
+ * haber mirado los datos del paciente.
+ */
+async function leerStream(
+  respuesta: Response,
+  alAvanzar: AlAvanzarIA,
+): Promise<MensajeOpenRouter> {
+  const cuerpo = respuesta.body;
+  if (!cuerpo) throw new Error("OpenRouter no devolvió cuerpo.");
+
+  let contenido = "";
+  const llamadas = new Map<number, LlamadaHerramienta>();
+
+  for await (const dato of datosSSE(cuerpo)) {
+    const trozo = parsearTrozo(dato);
+    if (!trozo) continue;
+    if (trozo.error) {
+      throw new Error(trozo.error.message ?? "Error de OpenRouter.");
+    }
+    const delta = trozo.choices?.[0]?.delta;
+    if (!delta) continue;
+
+    if (delta.content) {
+      contenido += delta.content;
+      alAvanzar({ tipo: "texto", texto: delta.content });
+    }
+    for (const [posicion, parcial] of (delta.tool_calls ?? []).entries()) {
+      const indice = parcial.index ?? posicion;
+      const acumulada = llamadas.get(indice) ?? {
+        id: "",
+        type: "function" as const,
+      };
+      llamadas.set(indice, {
+        id: parcial.id ?? acumulada.id,
+        type: "function",
+        function: {
+          name: parcial.function?.name ?? acumulada.function?.name ?? "",
+          arguments:
+            (acumulada.function?.arguments ?? "") +
+            (parcial.function?.arguments ?? ""),
+        },
+      });
+    }
+  }
+
+  const mensaje: MensajeOpenRouter = { role: "assistant", content: contenido };
+  if (llamadas.size > 0) {
+    mensaje.tool_calls = [...llamadas.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([, llamada]) => llamada);
+  }
+  return mensaje;
+}
+
+/** Un trozo ilegible no tira la respuesta entera abajo: se saltea. */
+function parsearTrozo(dato: string): TrozoOpenRouter | null {
+  try {
+    return JSON.parse(dato) as TrozoOpenRouter;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Las cargas `data:` de un stream SSE, ya despegadas del protocolo.
+ *
+ * Se acumula por LÍNEAS y no por chunks de red: un evento llega partido a la
+ * mitad de su JSON tantas veces como el TCP quiera, así que lo que queda sin
+ * cerrar espera en `resto` al pedazo que lo completa.
+ */
+async function* datosSSE(
+  cuerpo: ReadableStream<Uint8Array>,
+): AsyncGenerator<string> {
+  const lector = cuerpo.getReader();
+  const decodificador = new TextDecoder();
+  let resto = "";
+
+  try {
+    for (;;) {
+      const { done, value } = await lector.read();
+      if (done) break;
+      resto += decodificador.decode(value, { stream: true });
+
+      let corte = resto.indexOf("\n");
+      while (corte !== -1) {
+        const linea = resto.slice(0, corte).trim();
+        resto = resto.slice(corte + 1);
+        corte = resto.indexOf("\n");
+
+        if (!linea.startsWith("data:")) continue;
+        const dato = linea.slice(5).trim();
+        if (dato === "" || dato === "[DONE]") continue;
+        yield dato;
+      }
+    }
+  } finally {
+    await lector.cancel().catch(() => {});
   }
 }
 
