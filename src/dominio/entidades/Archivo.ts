@@ -267,6 +267,8 @@ export class Archivo {
   /** Contexto de origen, deducido de la clave. Ver `contextoDesdeClave`. */
   get contexto(): ContextoArchivo | null {
     return contextoDesdeClave(this.props.clave);
+  }
+
   /**
    * ¿Se subió en este contexto?
    *
