@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { SidebarNav, type EnlaceNav } from "@/componentes/layout/SidebarNav";
 import { ToggleTema } from "@/componentes/comunes/ToggleTema";
+import { BotonInstalarHeader } from "@/componentes/pwa/BotonInstalarHeader";
 import { useMensajeria } from "@/lib/hooks/useMensajeria";
 
 /** Barra lateral del portal del paciente (colapsable, con menú móvil). */
@@ -53,8 +54,20 @@ export function BarraLateralPaciente({ email }: { email: string }) {
       enlaces={enlaces}
       email={email}
       claveAlmacen="sidebar-paciente-colapsada"
-      accionesMovil={<ToggleTema />}
-      pie={<ToggleTema />}
+      accionesMovil={
+        <>
+          <BotonInstalarHeader />
+          <ToggleTema />
+        </>
+      }
+      // El portal del paciente no tiene BarraSuperior: en escritorio el pie del
+      // sidebar es su único lugar fijo para acciones.
+      pie={
+        <>
+          <BotonInstalarHeader />
+          <ToggleTema />
+        </>
+      }
     />
   );
 }
