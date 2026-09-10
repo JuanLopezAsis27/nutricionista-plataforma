@@ -4,6 +4,8 @@ import type {
 } from "@/dominio/servicios/IAsistenteAnalitico";
 import type { HerramientaAsistente } from "@/dominio/servicios/IAsistenteNutricional";
 import type { IResolvedorConfigIA } from "./ResolvedorConfigIA";
+import type { AlAvanzarIA } from "@/dominio/servicios/avanceIA";
+import { comoErrorIA } from "@/dominio/errores/ErrorIA";
 
 const BASE = [
   "Sos el asistente analítico de un nutricionista, dentro de la app de su consultorio.",
@@ -65,31 +67,38 @@ export class AsistenteAnaliticoClaude implements IAsistenteAnalitico {
     mensajes: TurnoAsistente[],
     herramientas: HerramientaAsistente[],
     ahora: Date,
+    alAvanzar?: AlAvanzarIA,
   ): Promise<string> {
     const llm = await this.resolver.obtenerLLM();
     if (!llm) return this.respaldo.responder(mensajes, herramientas, ahora);
 
     const porNombre = new Map(herramientas.map((h) => [h.nombre, h]));
-    const texto = await llm.conversar({
-      system: construirSystem(ahora),
-      mensajes: mensajes.map((m) => ({ rol: m.rol, texto: m.texto.trim() })),
-      maxTokens: 4096,
-      // Analizar de verdad requiere encadenar herramientas (ubicar al paciente,
-      // traer su plan, mirar la agenda); con esfuerzo bajo el modelo contesta
-      // con la primera que llama.
-      esfuerzo: "medio",
-      herramientas: herramientas.map((h) => ({
-        nombre: h.nombre,
-        descripcion: h.descripcion,
-        esquema: h.esquema,
-      })),
-      ejecutar: async (nombre, args) => {
-        const herramienta = porNombre.get(nombre);
-        if (!herramienta) return `No existe la herramienta "${nombre}".`;
-        return herramienta.ejecutar(args);
-      },
-      maxIteraciones: 8,
-    });
+    let texto: string;
+    try {
+      texto = await llm.conversar({
+        system: construirSystem(ahora),
+        mensajes: mensajes.map((m) => ({ rol: m.rol, texto: m.texto.trim() })),
+        maxTokens: 4096,
+        // Analizar de verdad requiere encadenar herramientas (ubicar al
+        // paciente, traer su plan, mirar la agenda); con esfuerzo bajo el
+        // modelo contesta con la primera que llama.
+        esfuerzo: "medio",
+        herramientas: herramientas.map((h) => ({
+          nombre: h.nombre,
+          descripcion: h.descripcion,
+          esquema: h.esquema,
+        })),
+        ejecutar: async (nombre, args) => {
+          const herramienta = porNombre.get(nombre);
+          if (!herramienta) return `No existe la herramienta "${nombre}".`;
+          return herramienta.ejecutar(args);
+        },
+        maxIteraciones: 8,
+        alAvanzar,
+      });
+    } catch (error) {
+      throw comoErrorIA("El análisis con IA", error);
+    }
 
     if (!texto) {
       throw new Error(

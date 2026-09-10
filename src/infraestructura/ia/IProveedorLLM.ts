@@ -1,3 +1,5 @@
+import type { AlAvanzarIA } from "@/dominio/servicios/avanceIA";
+
 /**
  * Puerto de un proveedor de LLM, agnóstico al vendor. Lo implementan tanto el
  * adaptador de Anthropic (Claude directo) como el de OpenRouter (formato
@@ -68,6 +70,13 @@ export interface OpcionesConversacion {
   maxIteraciones?: number;
   /** Defecto: "bajo". */
   esfuerzo?: EsfuerzoLLM;
+  /**
+   * Si se pasa, el proveedor pide la respuesta EN STREAM y va emitiendo el
+   * texto a medida que llega, además de devolverlo entero al final. Sin esto,
+   * la llamada se hace de una sola vez (que es lo que necesitan los usos que
+   * no muestran nada en vivo: resúmenes, importaciones, trabajos del worker).
+   */
+  alAvanzar?: AlAvanzarIA;
 }
 
 export interface IProveedorLLM {

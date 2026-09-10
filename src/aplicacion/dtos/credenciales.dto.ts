@@ -24,21 +24,58 @@ export const criteriosIngredientesDto = z.object({
 });
 export type CriteriosIngredientesDto = z.infer<typeof criteriosIngredientesDto>;
 
-export const guardarCredencialesDto = z.object({
-  proveedorIA: z.enum(PROVEEDORES_IA).optional(),
-  anthropicApiKey: z.string().max(300).optional(),
-  anthropicModelo: z.string().max(120).optional(),
-  // WhatsApp Cloud API (Meta).
-  whatsappToken: z.string().max(500).optional(),
-  whatsappPhoneNumberId: z.string().max(60).optional(),
-  whatsappVerifyToken: z.string().max(200).optional(),
-  whatsappAppSecret: z.string().max(200).optional(),
-  // Voz a texto de las grabaciones de consulta.
-  proveedorTranscripcion: z.enum(PROVEEDORES_TRANSCRIPCION).optional(),
-  transcripcionApiKey: z.string().max(300).optional(),
-  transcripcionModelo: z.string().max(120).optional(),
-  criterios: criteriosIngredientesDto.optional(),
-});
+/**
+ * Un modelo de OpenRouter se nombra `proveedor/modelo` (`openai/gpt-4o-mini`,
+ * `anthropic/claude-opus-5`, `google/gemini-2.5-pro`). Escribirlo de otra forma
+ * —`openai-4o-mini`, `gpt-4o`— no es un modelo desconocido para OpenRouter: es
+ * un nombre inválido, y la API contesta 400 a TODAS las llamadas.
+ *
+ * Se valida al guardar porque el error aparecía lejísimos de acá: el chat y el
+ * análisis de foto se veían configurados («IA activa») y contestaban con los
+ * textos de demostración, sin nada que señalara la credencial.
+ */
+const MODELO_OPENROUTER = /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._:-]+$/;
+
+export const guardarCredencialesDto = z
+  .object({
+    proveedorIA: z.enum(PROVEEDORES_IA).optional(),
+    anthropicApiKey: z.string().max(300).optional(),
+    anthropicModelo: z.string().max(120).optional(),
+    // WhatsApp Cloud API (Meta).
+    whatsappToken: z.string().max(500).optional(),
+    whatsappPhoneNumberId: z.string().max(60).optional(),
+    whatsappVerifyToken: z.string().max(200).optional(),
+    whatsappAppSecret: z.string().max(200).optional(),
+    // Voz a texto de las grabaciones de consulta.
+    proveedorTranscripcion: z.enum(PROVEEDORES_TRANSCRIPCION).optional(),
+    transcripcionApiKey: z.string().max(300).optional(),
+    transcripcionModelo: z.string().max(120).optional(),
+    criterios: criteriosIngredientesDto.optional(),
+  })
+  .superRefine((datos, ctx) => {
+    const modelo = datos.anthropicModelo?.trim();
+    // Vacío = "dejalo como está" / "usá el de por defecto": no hay qué validar.
+    if (!modelo || !datos.proveedorIA) return;
+
+    if (datos.proveedorIA === "OPENROUTER" && !MODELO_OPENROUTER.test(modelo)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["anthropicModelo"],
+        message:
+          `"${modelo}" no es un modelo de OpenRouter. Se escriben como ` +
+          "proveedor/modelo, por ejemplo openai/gpt-4o-mini o anthropic/claude-opus-5.",
+      });
+    }
+    if (datos.proveedorIA === "ANTHROPIC" && modelo.includes("/")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["anthropicModelo"],
+        message:
+          `"${modelo}" es un nombre de OpenRouter. La API de Anthropic usa el ` +
+          "modelo solo, por ejemplo claude-opus-5.",
+      });
+    }
+  });
 export type GuardarCredencialesDto = z.infer<typeof guardarCredencialesDto>;
 
 /**

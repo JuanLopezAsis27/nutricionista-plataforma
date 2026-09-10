@@ -12,6 +12,7 @@ import type {
   HerramientaAsistente,
 } from "@/dominio/servicios/IAsistenteNutricional";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
+import type { AlAvanzarIA } from "@/dominio/servicios/avanceIA";
 import { ConversacionIA } from "@/dominio/entidades/ConversacionIA";
 import { ErrorPacienteNoEncontrado } from "@/dominio/errores/ErrorPacienteNoEncontrado";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
@@ -81,6 +82,7 @@ export class PreguntarAlAsistente {
     pacienteId: string,
     pregunta: string,
     conversacionId?: string | null,
+    alAvanzar?: AlAvanzarIA,
   ): Promise<RespuestaAsistente> {
     const texto = pregunta?.trim() ?? "";
     if (texto.length === 0) {
@@ -150,6 +152,7 @@ export class PreguntarAlAsistente {
           m.rol === "USUARIO" ? ("usuario" as const) : ("asistente" as const),
         texto: m.contenido,
       })),
+      alAvanzar,
     );
 
     await this.conversaciones.agregarMensaje(conversacion.id, {

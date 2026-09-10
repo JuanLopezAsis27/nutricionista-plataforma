@@ -7,6 +7,7 @@ import type {
 } from "./IProveedorLLM";
 import { extraerTexto } from "./respuestaClaude";
 import { ejecutarHerramientaSegura } from "./herramientas";
+import type { AlAvanzarIA } from "@/dominio/servicios/avanceIA";
 
 type MediaType = "image/jpeg" | "image/png" | "image/gif" | "image/webp";
 const MIMES: ReadonlyArray<string> = [
@@ -100,15 +101,18 @@ export class ProveedorLLMAnthropic implements IProveedorLLM {
     const maxIteraciones = opts.maxIteraciones ?? 4;
 
     for (let i = 0; i < maxIteraciones; i++) {
-      const respuesta = await this.cliente.messages.create({
-        model: this.modelo,
-        max_tokens: opts.maxTokens,
-        thinking: { type: "adaptive" },
-        output_config: { effort: EFFORT[opts.esfuerzo ?? "bajo"] },
-        system: opts.system,
-        messages,
-        tools,
-      });
+      const respuesta = await this.pedir(
+        {
+          model: this.modelo,
+          max_tokens: opts.maxTokens,
+          thinking: { type: "adaptive" },
+          output_config: { effort: EFFORT[opts.esfuerzo ?? "bajo"] },
+          system: opts.system,
+          messages,
+          tools,
+        },
+        opts.alAvanzar,
+      );
       if (respuesta.stop_reason === "refusal") {
         throw new Error("La IA rechazó la solicitud.");
       }
@@ -121,6 +125,9 @@ export class ProveedorLLMAnthropic implements IProveedorLLM {
       const resultados: Anthropic.Messages.ToolResultBlockParam[] = [];
       for (const bloque of respuesta.content) {
         if (bloque.type === "tool_use") {
+          // Este turno se descarta y se reemplaza por la llamada: quien pinta
+          // la respuesta en vivo tiene que borrar lo que ya mostró.
+          opts.alAvanzar?.({ tipo: "herramienta", nombre: bloque.name });
           const salida = await ejecutarHerramientaSegura(
             opts.ejecutar,
             bloque.name,
@@ -137,13 +144,37 @@ export class ProveedorLLMAnthropic implements IProveedorLLM {
     }
 
     // Se agotaron las vueltas: una llamada final SIN herramientas para cerrar.
-    const cierre = await this.cliente.messages.create({
-      model: this.modelo,
-      max_tokens: opts.maxTokens,
-      system: opts.system,
-      messages,
-    });
+    const cierre = await this.pedir(
+      {
+        model: this.modelo,
+        max_tokens: opts.maxTokens,
+        system: opts.system,
+        messages,
+      },
+      opts.alAvanzar,
+    );
     return extraerTexto(cierre);
+  }
+
+  /**
+   * Una vuelta de `messages`, en stream si hay quien escuche el avance.
+   *
+   * El SDK reconstruye el mensaje completo a partir de los eventos, así que el
+   * resto del loop (stop_reason, bloques `tool_use`) no cambia en nada según se
+   * haya pedido en stream o no: la única diferencia es que el texto se emite
+   * mientras llega en vez de aparecer entero al final.
+   */
+  private async pedir(
+    cuerpo: Anthropic.Messages.MessageCreateParamsNonStreaming,
+    alAvanzar?: AlAvanzarIA,
+  ): Promise<Anthropic.Messages.Message> {
+    if (!alAvanzar) return this.cliente.messages.create(cuerpo);
+
+    const flujo = this.cliente.messages.stream(cuerpo);
+    flujo.on("text", (fragmento) => {
+      if (fragmento) alAvanzar({ tipo: "texto", texto: fragmento });
+    });
+    return flujo.finalMessage();
   }
 }
 

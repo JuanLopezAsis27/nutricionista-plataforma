@@ -396,6 +396,7 @@ export const servicioIA = perezoso(() =>
     alertas: nucleo.repositorioAlertaAlimentaria(),
     axiomas: nucleo.repositorioAxioma(),
     historial: nucleo.repositorioHistorialIA(),
+    archivos: nucleo.repositorioArchivo(),
     perfilesDeportivos: nucleo.repositorioPerfilDeportivo(),
     competencias: nucleo.repositorioCompetencia(),
     asistente: nucleo.asistenteNutricional(),

@@ -4,7 +4,8 @@ import type {
   ResultadoAnalisisComida,
 } from "@/dominio/servicios/IAnalisisComidaIA";
 import type { IResolvedorConfigIA } from "./ResolvedorConfigIA";
-import type { BloqueUsuario } from "./IProveedorLLM";
+import type { BloqueUsuario, IProveedorLLM } from "./IProveedorLLM";
+import { comoErrorIA } from "@/dominio/errores/ErrorIA";
 
 const NOTA_IA =
   "Estimación aproximada con IA a partir de la foto. Ante dudas, confirmá con tu nutricionista.";
@@ -52,7 +53,15 @@ const SYSTEM_VISION = [
 /**
  * Adaptador de análisis de foto de comida con IA (visión). Descarga la imagen
  * del bucket, la envía al modelo (Claude u OpenRouter) junto con la descripción
- * y devuelve porción + macros estimados (JSON). Si algo falla, DEGRADA al stub.
+ * y devuelve porción + macros estimados (JSON).
+ *
+ * Degrada al respaldo SOLO si no hay IA configurada. Si la hay y la llamada
+ * falla, el error se propaga (mismo criterio que `AsistenteAnaliticoClaude`).
+ * Antes cualquier excepción se tragaba en un `catch` vacío y se devolvían los
+ * macros de demostración del stub: un modelo mal escrito en las credenciales,
+ * un 401 o una imagen que no se pudo bajar llegaban a la pantalla del paciente
+ * disfrazados de análisis, y no había forma —ni en la UI ni en los logs— de
+ * saber que la IA nunca había mirado la foto.
  */
 export class AnalisisComidaIAClaude implements IAnalisisComidaIA {
   constructor(
@@ -69,41 +78,48 @@ export class AnalisisComidaIAClaude implements IAnalisisComidaIA {
     if (!llm) return this.respaldo.analizar(entrada);
 
     try {
-      const usuario: BloqueUsuario[] = [];
-      if (entrada.archivoClave) {
-        const imagen = await this.descargarImagen(entrada.archivoClave);
-        usuario.push({
-          tipo: "imagen",
-          base64: imagen.datosBase64,
-          mimeType: imagen.mimeType,
-        });
-      }
-      usuario.push({ tipo: "texto", texto: instruccion(entrada.descripcion) });
-
-      const texto = await llm.completar({
-        system: SYSTEM_VISION,
-        usuario,
-        maxTokens: 1024,
-        esquemaJson: { nombre: "comida", esquema: ESQUEMA_COMIDA },
-      });
-
-      const datos = JSON.parse(texto) as Record<string, unknown>;
-      return {
-        descripcion: campoTexto(
-          datos.descripcion,
-          entrada.descripcion?.trim() || "Comida",
-        ),
-        porcionEstimada: campoTexto(datos.porcionEstimada, "1 porción"),
-        calorias: numero(datos.calorias),
-        proteinasG: numero(datos.proteinasG),
-        carbohidratosG: numero(datos.carbohidratosG),
-        grasasG: numero(datos.grasasG),
-        confianza: acotar(numero(datos.confianza), 0, 1),
-        nota: NOTA_IA,
-      };
-    } catch {
-      return this.respaldo.analizar(entrada);
+      return await this.analizarConIA(llm, entrada);
+    } catch (error) {
+      throw comoErrorIA("El análisis de la foto con IA", error);
     }
+  }
+
+  private async analizarConIA(
+    llm: IProveedorLLM,
+    entrada: { archivoClave?: string; descripcion?: string },
+  ): Promise<ResultadoAnalisisComida> {
+    const usuario: BloqueUsuario[] = [];
+    if (entrada.archivoClave) {
+      const imagen = await this.descargarImagen(entrada.archivoClave);
+      usuario.push({
+        tipo: "imagen",
+        base64: imagen.datosBase64,
+        mimeType: imagen.mimeType,
+      });
+    }
+    usuario.push({ tipo: "texto", texto: instruccion(entrada.descripcion) });
+
+    const texto = await llm.completar({
+      system: SYSTEM_VISION,
+      usuario,
+      maxTokens: 1024,
+      esquemaJson: { nombre: "comida", esquema: ESQUEMA_COMIDA },
+    });
+
+    const datos = parsear(texto);
+    return {
+      descripcion: campoTexto(
+        datos.descripcion,
+        entrada.descripcion?.trim() || "Comida",
+      ),
+      porcionEstimada: campoTexto(datos.porcionEstimada, "1 porción"),
+      calorias: numero(datos.calorias),
+      proteinasG: numero(datos.proteinasG),
+      carbohidratosG: numero(datos.carbohidratosG),
+      grasasG: numero(datos.grasasG),
+      confianza: acotar(numero(datos.confianza), 0, 1),
+      nota: NOTA_IA,
+    };
   }
 
   /** Descarga la imagen del bucket (URL firmada) y la devuelve en base64. */
@@ -127,17 +143,40 @@ export class AnalisisComidaIAClaude implements IAnalisisComidaIA {
   }
 }
 
+/**
+ * MIME de imagen que aceptan los modelos de visión.
+ *
+ * Se valida en vez de asumir JPEG ante lo desconocido: la app deja subir HEIC
+ * (lo que saca un iPhone por defecto) y ningún proveedor lo acepta. Rotularlo
+ * como `image/jpeg` no lo convierte en JPEG; solo cambia un error claro por uno
+ * del proveedor que no dice qué pasó.
+ */
+function normalizarMime(mime: string): MimeImagen {
+  if ((MIMES_VALIDOS as ReadonlyArray<string>).includes(mime)) {
+    return mime as MimeImagen;
+  }
+  throw new Error(
+    `La IA no puede leer imágenes ${mime || "de tipo desconocido"}. ` +
+      "Subí la foto en JPG, PNG o WEBP.",
+  );
+}
+
+/** Parsea el JSON del modelo con un error legible si no devolvió JSON. */
+function parsear(texto: string): Record<string, unknown> {
+  try {
+    return JSON.parse(texto) as Record<string, unknown>;
+  } catch {
+    throw new Error(
+      `La IA no devolvió el análisis en el formato esperado: ${texto.slice(0, 200)}`,
+    );
+  }
+}
+
 function instruccion(descripcion?: string): string {
   const contexto = descripcion?.trim()
     ? ` El paciente la describe así: "${descripcion.trim()}".`
     : "";
   return `Estimá los datos nutricionales de esta comida.${contexto}`;
-}
-
-function normalizarMime(mime: string): MimeImagen {
-  return (MIMES_VALIDOS as ReadonlyArray<string>).includes(mime)
-    ? (mime as MimeImagen)
-    : "image/jpeg";
 }
 
 function numero(valor: unknown): number {

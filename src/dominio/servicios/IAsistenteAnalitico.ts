@@ -1,4 +1,5 @@
 import type { HerramientaAsistente } from "./IAsistenteNutricional";
+import type { AlAvanzarIA } from "./avanceIA";
 
 /** Un turno ya dicho en la conversación con el asistente. */
 export interface TurnoAsistente {
@@ -25,5 +26,6 @@ export interface IAsistenteAnalitico {
     mensajes: TurnoAsistente[],
     herramientas: HerramientaAsistente[],
     ahora: Date,
+    alAvanzar?: AlAvanzarIA,
   ): Promise<string>;
 }

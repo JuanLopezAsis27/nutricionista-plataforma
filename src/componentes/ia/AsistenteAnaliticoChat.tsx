@@ -9,6 +9,8 @@ import {
   MessageSquare,
   ChevronDown,
 } from "lucide-react";
+import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 import { useIA } from "@/lib/hooks/useIA";
 import {
   Card,
@@ -30,6 +32,8 @@ import { PensandoAnimado } from "@/componentes/ia/PensandoAnimado";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { formatearFecha } from "@/lib/formato";
 import { useHiloDeChat, type TurnoChat } from "./hiloDeChat";
+import { useRespuestaEnVivo } from "./respuestaEnVivo";
+import { AvisoIABreve } from "./AvisoIA";
 
 const SUGERENCIAS = [
   "¿Qué pacientes tienen turno esta semana?",
@@ -58,13 +62,8 @@ const ALTO = "h-[calc(100vh-13rem)] min-h-[420px]";
  * pantalla se perdía todo lo analizado.
  */
 export function AsistenteAnaliticoChat() {
-  const {
-    analizar,
-    estado,
-    conversaciones,
-    conversacion,
-    eliminarConversacion,
-  } = useIA();
+  const { utils, estado, conversaciones, conversacion, eliminarConversacion } =
+    useIA();
   const activo = estado().data?.asistenteActivo ?? false;
   const listado = conversaciones();
 
@@ -81,10 +80,28 @@ export function AsistenteAnaliticoChat() {
     rol: m.rol,
     contenido: m.contenido,
   }));
+
+  // La respuesta llega en fragmentos por SSE; `hilo` la recibe entera al final,
+  // que es la que queda guardada en la conversación.
+  const enVivo = useRespuestaEnVivo({
+    suscribir: trpc.ia.analizarEnVivo.useSubscription,
+    alTerminar: (respuesta) => {
+      setConversacionId(respuesta.conversacionId);
+      hilo.encolarRespuesta(respuesta.respuesta);
+      void utils.ia.conversaciones.invalidate();
+      void utils.ia.conversacion.invalidate({ id: respuesta.conversacionId });
+    },
+    alFallar: (mensaje) => {
+      hilo.descartarUltima();
+      toast.error(mensaje);
+    },
+  });
+
   const hilo = useHiloDeChat({
     guardados,
     conversacionId,
-    pendiente: analizar.isPending,
+    pendiente: enVivo.enCurso,
+    parcial: enVivo.parcial,
   });
   const { turnos, hiloRef } = hilo;
 
@@ -96,19 +113,10 @@ export function AsistenteAnaliticoChat() {
 
   function enviar(pregunta?: string) {
     const p = (pregunta ?? texto).trim();
-    if (!p || analizar.isPending) return;
+    if (!p || enVivo.enCurso) return;
     setTexto("");
     hilo.encolarPregunta(p);
-    analizar.mutate(
-      { pregunta: p, conversacionId },
-      {
-        onSuccess: (data) => {
-          setConversacionId(data.conversacionId);
-          hilo.encolarRespuesta(data.respuesta);
-        },
-        onError: () => hilo.descartarUltima(),
-      },
-    );
+    enVivo.enviar(p, conversacionId);
   }
 
   const tituloActivo =
@@ -193,7 +201,7 @@ export function AsistenteAnaliticoChat() {
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col p-0">
           <div ref={hiloRef} className="flex-1 space-y-3 overflow-y-auto p-1">
-            {turnos.length === 0 && !analizar.isPending ? (
+            {turnos.length === 0 && !enVivo.enCurso ? (
               <div className="space-y-3 py-6 text-center">
                 <p className="text-sm text-muted-foreground">
                   Preguntá sobre tus pacientes, planes, recetas o turnos.
@@ -229,8 +237,20 @@ export function AsistenteAnaliticoChat() {
                 </div>
               ))
             )}
-            {analizar.isPending && <PensandoAnimado />}
+            {/* La respuesta a medio escribir: misma burbuja que la final, así
+                no salta nada cuando termina de llegar. */}
+            {enVivo.parcial !== "" && (
+              <div className="flex justify-start">
+                <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-sm">
+                  {enVivo.parcial}
+                  <span className="ml-0.5 inline-block h-3.5 w-px animate-pulse bg-foreground align-middle" />
+                </div>
+              </div>
+            )}
+            {enVivo.enCurso && enVivo.parcial === "" && <PensandoAnimado />}
           </div>
+
+          <AvisoIABreve audiencia="profesional" className="mt-2" />
 
           <div className="mt-2 flex items-end gap-2 border-t pt-2">
             <Textarea
@@ -249,7 +269,7 @@ export function AsistenteAnaliticoChat() {
             <Button
               size="icon"
               onClick={() => enviar()}
-              disabled={analizar.isPending || texto.trim().length === 0}
+              disabled={enVivo.enCurso || texto.trim().length === 0}
               aria-label="Enviar"
             >
               <Send className="h-4 w-4" />
