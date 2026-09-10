@@ -54,6 +54,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/GRABACIONES.md`        | Grabar la consulta, transcribirla y resumirla con IA  |
 | `docs/ARCHIVOS.md`           | Cómo llega al navegador un archivo del bucket         |
 | `docs/MENSAJERIA.md`         | La bandeja, el hilo y las piezas que comparten los canales |
+| `docs/PERFIL.md`             | Mi perfil: foto de la cuenta, cambio de contraseña y su política |
 | `docs/WHATSAPP.md`           | Cloud API, plantillas de Meta, webhook                |
 | `docs/WEARABLES.md`          | Importación de métricas de dispositivos               |
 | `docs/MOBILE.md`             | La app Android con Capacitor                          |
@@ -221,6 +222,20 @@ puede ser paciente de dos nutricionistas. Baja lógica con `archivadoEn`.
 Roles: SUPERADMIN | NUTRICIONISTA | PACIENTE. Si el rol es PACIENTE debe tener
 `pacienteId`; `nutricionistaId` indica a qué consultorio pertenece (null solo
 para SUPERADMIN).
+
+**No tiene nombre**: guarda credenciales y rol. El nombre del paciente vive en
+su ficha y el del profesional en `ConfiguracionConsultorio`, y "Mi perfil" los
+muestra pero no los edita (`docs/PERFIL.md`).
+
+La **foto de perfil** es `fotoPerfilId → Archivo` (migración 53), del lado de
+`usuarios` como el logo del membrete y no en el arco de dueños de `archivos`:
+una foto de perfil es algo que la cuenta TIENE, no un adjunto de la cuenta. Por
+eso es un archivo huérfano, y eso es legítimo.
+
+La **política de contraseñas** está en `aplicacion/dtos/password.ts`, una sola
+vez para los cuatro flujos que eligen una (alta de cuenta, alta de paciente,
+restablecimiento por email y cambio desde la sesión). Hoy son 8 caracteres
+mínimo, sin requisitos de composición y con una lista de obvias.
 
 ### Turno
 
@@ -567,6 +582,16 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
 - Nunca importar el contenedor desde un componente de UI (arrastra Prisma al
   bundle del navegador)
 - Nunca usar `any`
+- Nunca escribir un `min()` propio para una contraseña: va `passwordNuevaDto`.
+  El mínimo se lee de `LARGO_MINIMO_PASSWORD`, también en los tests y en los
+  placeholders. Cablear el número hizo fallar dos tests al bajarlo de 12 a 8, y
+  antes había dejado al formulario aceptando lo que el servidor rechazaba
+- Nunca colgar la foto de perfil de un dueño del arco de `archivos`: la FK vive
+  en `usuarios.fotoPerfilId`. Colgarla del paciente la hace aparecer en
+  "Archivos y registros" de su ficha, como si fuera un documento clínico
+- Nunca aceptar como foto de perfil un archivo de otro contexto: cambiar la foto
+  BORRA la anterior, y una foto de comida aceptada acá se lleva puesto un
+  registro del diario del paciente
 - Nunca guardar passwords en texto plano
 - Nunca poner secretos en el código, siempre variables de entorno
 - Nunca armar un redirect de un route handler con `new URL(ruta, request.url)`:

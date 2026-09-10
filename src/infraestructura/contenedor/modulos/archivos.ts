@@ -2,6 +2,7 @@ import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoReposit
 import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositorio";
 import type { IMaterialRepositorio } from "@/dominio/repositorios/IMaterialRepositorio";
 import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
+import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamientoArchivos";
 import { SubirArchivo } from "@/aplicacion/casos-de-uso/archivos/SubirArchivo";
 import { ObtenerUrlArchivo } from "@/aplicacion/casos-de-uso/archivos/ObtenerUrlArchivo";
@@ -18,6 +19,7 @@ export function crearServicioArchivo(deps: {
   recetas: IRecetaRepositorio;
   materiales: IMaterialRepositorio;
   planes: IAsignacionPlanRepositorio;
+  usuarios: IUsuarioRepositorio;
   almacenamiento: IAlmacenamientoArchivos;
 }): ServicioArchivo {
   return new ServicioArchivo(
@@ -32,6 +34,7 @@ export function crearServicioArchivo(deps: {
       deps.recetas,
       deps.materiales,
       deps.planes,
+      deps.usuarios,
     ),
   );
 }

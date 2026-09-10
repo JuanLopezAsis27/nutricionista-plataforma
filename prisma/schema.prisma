@@ -924,6 +924,11 @@ model Archivo {
   grabacion         GrabacionConsulta?         @relation("ArchivoDeGrabacion", fields: [grabacionId], references: [id], onDelete: Cascade)
   evolucion         Evolucion?                 @relation("ArchivosDeEvolucion", fields: [evolucionId], references: [id], onDelete: Cascade)
   configuraciones   ConfiguracionConsultorio[]
+  /// Contracara de `Usuario.fotoPerfil`: la cuenta que usa este archivo como
+  /// su foto. No es un dueño del arco exclusivo —igual que el logo del
+  /// membrete—, así que la foto de perfil es un archivo HUÉRFANO y eso es
+  /// legítimo (el CHECK admite `<= 1` dueño desde la migración 34).
+  perfilDe          Usuario[]                  @relation("FotoDePerfil")
   nutricionista     Nutricionista              @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@index([nutricionistaId, pacienteId])
@@ -1440,6 +1445,12 @@ model Usuario {
   nutricionistaId String?
   activo          Boolean    @default(true)
   pacienteId      String?    @unique
+  /// Foto de perfil: un Archivo del bucket, igual que el logo del membrete
+  /// (migración 53). La FK vive acá y no en `archivos` a propósito: el arco
+  /// exclusivo de dueños describe "de qué cosa es este archivo", y una foto de
+  /// perfil es algo que el usuario TIENE, no un adjunto de la cuenta. SetNull
+  /// para que borrar la foto deje la cuenta sin foto, no con un id inexistente.
+  fotoPerfilId    String?
   creadoEn        DateTime   @default(now())
 
   paciente Paciente? @relation(fields: [pacienteId], references: [id], onDelete: SetNull)
@@ -1447,8 +1458,13 @@ model Usuario {
   tokensRecuperacion    TokenRecuperacion[]
   recordatoriosWhatsapp RecordatorioWhatsapp[]
   nutricionista         Nutricionista?         @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  fotoPerfil            Archivo?               @relation("FotoDePerfil", fields: [fotoPerfilId], references: [id], onDelete: SetNull)
 
   @@index([nutricionistaId])
+  // Por este índice entra la pregunta "¿este archivo es la foto de perfil de
+  // alguien?", que es la que autoriza a un paciente a VER la foto de su
+  // nutricionista (ver PuedeVerArchivoPaciente).
+  @@index([nutricionistaId, fotoPerfilId])
   @@map("usuarios")
 }
 

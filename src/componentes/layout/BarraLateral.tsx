@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Sparkles,
   Settings,
+  UserRound,
 } from "lucide-react";
 import { SidebarNav, type EnlaceNav } from "@/componentes/layout/SidebarNav";
 import { ToggleTema } from "@/componentes/comunes/ToggleTema";
@@ -66,6 +67,14 @@ export function BarraLateral({ email }: { email: string }) {
       href: "/dashboard/configuracion",
       etiqueta: "Configuración",
       icono: Settings,
+    },
+    // También está en el menú del avatar de la barra superior, pero esa barra
+    // no se dibuja en móvil (`hidden … md:flex`): sin este enlace, desde el
+    // teléfono no había forma de llegar al perfil.
+    {
+      href: "/dashboard/mi-perfil",
+      etiqueta: "Mi perfil",
+      icono: UserRound,
     },
   ];
 

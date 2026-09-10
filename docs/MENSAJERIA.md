@@ -80,6 +80,62 @@ El divisor **«Mensajes nuevos»** se fija una sola vez al abrir, antes de marca
 los mensajes como leídos: si dependiera de `leidoEn`, desaparecería justo cuando
 sirve.
 
+## La cara del que está del otro lado
+
+La conversación muestra la **foto de perfil de la contraparte** (ver
+`PERFIL.md`), y sin foto cae a las iniciales. La caída vive en un solo
+componente, `comunes/AvatarPerfil`: la bandeja, el encabezado del hilo y la
+barra superior muestran lo mismo, y mientras cada una resolvía su propio círculo
+con iniciales, agregar la foto habría significado tocar tres lugares y
+olvidarse de alguno.
+
+**La foto va en el ENCABEZADO, no en cada burbuja.** Llegó a dibujarse también
+al pie de cada racha del otro lado, y sobraba: una conversación de esta app
+tiene exactamente dos extremos, así que el encabezado ya deja resuelto con quién
+se habla y repetir esa cara solo agrega una columna de fotos que no desambigua
+nada. Quién habla lo marcan el lado y el color de la burbuja. Por eso
+`HiloMensajes` no recibe la contraparte: la pinta cada pantalla en su
+encabezado.
+
+**Quién es «el otro» depende de quién mira.** El mismo hilo lo ven los dos
+extremos, así que la contraparte no se deduce en el cliente: la resuelve
+`ObtenerContraparteDelHilo` y viaja dentro de `hiloSalidaDto`. El único
+parámetro es el rol de quien abre —un hilo de esta app tiene exactamente dos
+extremos, así que no hace falta buscarla en la conversación—:
+
+| Mira          | La contraparte es | Nombre de                                      | Foto de                        |
+| ------------- | ----------------- | ---------------------------------------------- | ------------------------------ |
+| Nutricionista | El paciente       | `Paciente.nombreCompleto`                      | La cuenta del paciente         |
+| Paciente      | Su nutricionista  | `ConfiguracionConsultorio.nombreProfesional`   | La cuenta del profesional      |
+
+Tres decisiones que no se ven en el tipo:
+
+- **Va en el hilo y no en una query aparte.** El encabezado y las burbujas la
+  necesitan al mismo tiempo que los mensajes; pedirla por separado dibujaba el
+  chat completo y recién después le aparecía la cara al interlocutor.
+- **No es un dato de la conversación.** La foto vive en `usuarios` y el nombre
+  del profesional en la configuración: meterlo en el `include` de la
+  conversación habría atado la mensajería a dos tablas que no son suyas.
+- **Nunca lanza.** Si la ficha o la cuenta del otro extremo no aparecen,
+  devuelve un nombre de respaldo y sin foto. Un paciente sin portal no tiene
+  cuenta y por lo tanto no tiene dónde guardar una foto: va con iniciales. Un
+  chat que deja de abrirse porque falta un avatar es peor que uno con las
+  iniciales puestas.
+
+En la **bandeja** la foto viaja en `ResumenConversacion`
+(`pacienteFotoArchivoId`), dentro del mismo `include` que ya traía el nombre:
+una query por avatar sería un N+1 contra `usuarios` con decenas de filas en
+pantalla. El anillo de color marca los no leídos, que es lo que antes hacía el
+fondo del círculo de iniciales.
+
+El chat del **portal** ganó un encabezado con la cara y el nombre del
+profesional. Ahí no hay bandeja al lado —hay una sola conversación posible— así
+que sin eso nada en la pantalla decía con quién se está hablando.
+
+La pestaña Mensajes de la **ficha del paciente** (`MensajesDePaciente`) es la
+única que no lleva encabezado con foto, y no le hace falta: se está adentro de
+la ficha de esa persona, con su nombre arriba de todo.
+
 ### El autoscroll no interrumpe
 
 Al abrir, el hilo salta al fondo **sin animación**: el `scrollIntoView` suave

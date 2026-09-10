@@ -2,6 +2,7 @@ import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoReposit
 import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositorio";
 import type { IMaterialRepositorio } from "@/dominio/repositorios/IMaterialRepositorio";
 import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
+import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 
 /** Identidad del paciente que intenta leer el archivo. */
 export interface SolicitanteArchivo {
@@ -14,6 +15,7 @@ export interface SolicitanteArchivo {
  *
  * Reglas (se amplían fase a fase al sumar dueños):
  *  - siempre puede ver lo que subió él mismo (ej: fotos de su diario);
+ *  - puede ver la FOTO DE PERFIL de cualquier cuenta del consultorio;
  *  - puede ver las fotos de una receta que le fue compartida;
  *  - puede ver el archivo de un material de biblioteca que le fue compartido;
  *  - puede ver el PDF del plan que tiene asignado HOY.
@@ -21,6 +23,13 @@ export interface SolicitanteArchivo {
  * Lo del plan es deliberadamente el plan ACTIVO y no cualquiera que haya
  * tenido: el PDF es la indicación vigente, y dejar abierto el de un plan
  * finalizado es dejar al paciente siguiendo un plan que ya se cambió.
+ *
+ * La foto de perfil es la única regla que NO pasa por el arco de dueños: la
+ * foto de perfil es un archivo huérfano y la FK vive en `usuarios`
+ * (migración 53), así que se pregunta por el otro lado. El alcance de
+ * inquilino es lo que la acota: `esFotoDePerfil` solo ve las cuentas del
+ * consultorio en curso, y por eso el paciente ve la cara de SU nutricionista y
+ * no la de cualquier otro.
  *
  * El rol NUTRICIONISTA no pasa por acá (accede a todo).
  */
@@ -30,6 +39,7 @@ export class PuedeVerArchivoPaciente {
     private readonly recetas: IRecetaRepositorio,
     private readonly materiales: IMaterialRepositorio,
     private readonly planes: IAsignacionPlanRepositorio,
+    private readonly usuarios: IUsuarioRepositorio,
   ) {}
 
   async ejecutar(
@@ -40,6 +50,11 @@ export class PuedeVerArchivoPaciente {
     if (!archivo) return false;
 
     if (archivo.subidoPorId === solicitante.usuarioId) return true;
+
+    // Antes del corte por `pacienteId`: una foto de perfil es visible para
+    // cualquier usuario del consultorio, tenga ficha asociada o no.
+    if (await this.usuarios.esFotoDePerfil(archivoId)) return true;
+
     if (!solicitante.pacienteId) return false;
 
     const dueno = await this.archivos.obtenerDueno(archivoId);

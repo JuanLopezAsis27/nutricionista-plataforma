@@ -60,6 +60,22 @@ export const CONTEXTOS_ARCHIVO = {
     mimes: [...MIMES_IMAGEN],
     maxBytes: 10 * MB,
   },
+  /**
+   * Foto de perfil de una cuenta (nutricionista o paciente).
+   *
+   * El tope de 2 MB es el más bajo de todos los contextos y es a propósito: se
+   * dibuja a 40 px en el chat y a 128 px en "Mi perfil", así que un archivo más
+   * grande solo agrega bytes que viajan por Node en cada burbuja (los archivos
+   * se sirven desde la app, no desde el bucket; ver servidor/archivoHttp).
+   *
+   * No tiene dueño en el arco exclusivo de `archivos`: la FK vive del otro
+   * lado, en `usuarios.fotoPerfilId` (migración 53).
+   */
+  perfil: {
+    prefijo: "perfiles",
+    mimes: [...MIMES_IMAGEN],
+    maxBytes: 2 * MB,
+  },
   /** Fotos de una evolución de control (1 a muchas, como las de receta). */
   evolucion: {
     prefijo: "evoluciones",
@@ -251,6 +267,23 @@ export class Archivo {
   /** Contexto de origen, deducido de la clave. Ver `contextoDesdeClave`. */
   get contexto(): ContextoArchivo | null {
     return contextoDesdeClave(this.props.clave);
+  /**
+   * ¿Se subió en este contexto?
+   *
+   * El contexto no se persiste como columna: se derivó una vez, al crear, en el
+   * prefijo de la clave del bucket. Leerlo de vuelta desde ahí mantiene la
+   * derivación en un solo lugar —acá— en vez de repartir `clave.startsWith(...)`
+   * por los casos de uso que necesiten preguntarlo.
+   *
+   * Lo usa `CambiarFotoPerfil` para no aceptar como foto de perfil un archivo
+   * que en realidad es la foto de una comida del diario: son las dos imágenes
+   * que un paciente puede subir, y confundirlas haría que cambiar de foto
+   * borrara un registro del diario.
+   */
+  esDeContexto(contexto: ContextoArchivo): boolean {
+    return this.props.clave.startsWith(
+      `${CONTEXTOS_ARCHIVO[contexto].prefijo}/`,
+    );
   }
 
   aPrimitivos(): PropiedadesArchivo {

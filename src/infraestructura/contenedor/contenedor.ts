@@ -37,6 +37,7 @@ import { crearServicioSeguimiento } from "./modulos/seguimiento";
 import { crearServicioSecretaria } from "./modulos/secretaria";
 import { crearServicioEstadisticas } from "./modulos/estadisticas";
 import { crearServicioMensajeria } from "./modulos/mensajeria";
+import { crearServicioPerfil } from "./modulos/perfil";
 import { crearServicioNotificaciones } from "./modulos/notificaciones";
 import { crearServicioConfiguracion } from "./modulos/configuracion";
 import { crearServicioAxiomas } from "./modulos/axiomas";
@@ -157,6 +158,7 @@ export const servicioArchivo = perezoso(() =>
     recetas: nucleo.repositorioReceta(),
     materiales: nucleo.repositorioMaterial(),
     planes: nucleo.repositorioPlan(),
+    usuarios: nucleo.repositorioUsuario(),
     almacenamiento: nucleo.almacenamiento(),
   }),
 );
@@ -307,7 +309,27 @@ export const servicioMensajeria = perezoso(() =>
   crearServicioMensajeria({
     mensajeria: nucleo.repositorioMensajeria(),
     usuarios: nucleo.repositorioUsuario(),
+    pacientes: nucleo.repositorioPaciente(),
+    configuracion: nucleo.repositorioConfiguracion(),
     bus: nucleo.busEventos(),
+  }),
+);
+
+/**
+ * Mi perfil: la cuenta propia (foto y contraseña), para los dos roles.
+ *
+ * Toma el repositorio de pacientes y el de configuración porque el NOMBRE que
+ * muestra la pantalla no vive en `Usuario`: el del paciente está en su ficha y
+ * el del profesional en la configuración del consultorio.
+ */
+export const servicioPerfil = perezoso(() =>
+  crearServicioPerfil({
+    usuarios: nucleo.repositorioUsuario(),
+    pacientes: nucleo.repositorioPaciente(),
+    configuracion: nucleo.repositorioConfiguracion(),
+    archivos: nucleo.repositorioArchivo(),
+    almacenamiento: nucleo.almacenamiento(),
+    hasheador: nucleo.hasheador(),
   }),
 );
 

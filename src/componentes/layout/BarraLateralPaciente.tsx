@@ -13,6 +13,7 @@ import {
   PersonStanding,
   MessageSquare,
   Sparkles,
+  UserRound,
 } from "lucide-react";
 import { SidebarNav, type EnlaceNav } from "@/componentes/layout/SidebarNav";
 import { ToggleTema } from "@/componentes/comunes/ToggleTema";
@@ -46,6 +47,10 @@ export function BarraLateralPaciente({ email }: { email: string }) {
     { href: "/mi-material", etiqueta: "Mi material", icono: Library },
     { href: "/mis-turnos", etiqueta: "Mis turnos", icono: CalendarDays },
     { href: "/asistente", etiqueta: "Asistente IA", icono: Sparkles },
+    // Último de la lista: es lo de la cuenta, no del seguimiento. El portal no
+    // tiene barra superior con menú de usuario —esa es del panel del
+    // profesional— así que este enlace es la única puerta al perfil.
+    { href: "/mi-perfil", etiqueta: "Mi perfil", icono: UserRound },
   ];
 
   return (
