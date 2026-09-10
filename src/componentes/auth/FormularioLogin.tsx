@@ -47,29 +47,37 @@ export function FormularioLogin() {
 
   async function alEnviar(datos: DatosLogin) {
     setEnviando(true);
-    const resultado = await signIn("credentials", {
-      email: datos.email,
-      password: datos.password,
-      redirect: false,
-    });
+    try {
+      const resultado = await signIn("credentials", {
+        email: datos.email,
+        password: datos.password,
+        redirect: false,
+      });
 
-    if (!resultado || resultado.error) {
-      toast.error("Email o contraseña incorrectos.");
+      if (!resultado || resultado.error) {
+        toast.error("Email o contraseña incorrectos.");
+        return;
+      }
+
+      // Rutea según el rol del usuario autenticado.
+      const sesion = await getSession();
+      const rol = sesion?.user.rol;
+      const destino =
+        rol === "SUPERADMIN"
+          ? "/admin"
+          : rol === "NUTRICIONISTA"
+            ? "/dashboard"
+            : "/mi-inicio";
+      router.replace(destino);
+      router.refresh();
+    } catch {
+      // Si `signIn` lanza (error de red, o una respuesta no-JSON del
+      // callback, p. ej. un 500 del server) antes no se limpiaba `enviando`:
+      // el botón quedaba en "Ingresando…" para siempre y sin ningún aviso.
+      toast.error("No se pudo iniciar sesión. Probá de nuevo.");
+    } finally {
       setEnviando(false);
-      return;
     }
-
-    // Rutea según el rol del usuario autenticado.
-    const sesion = await getSession();
-    const rol = sesion?.user.rol;
-    const destino =
-      rol === "SUPERADMIN"
-        ? "/admin"
-        : rol === "NUTRICIONISTA"
-          ? "/dashboard"
-          : "/mi-inicio";
-    router.replace(destino);
-    router.refresh();
   }
 
   return (
