@@ -89,8 +89,14 @@ trap _al_salir EXIT
 echo "[respaldo] $(date '+%F %T') — iniciando"
 
 # 1. Volcado de la base en formato custom (comprimido, restaurable con pg_restore).
+#
+# `DATABASE_URL` es la misma que usa Prisma, con `?schema=public` al final.
+# libpq (lo que usa pg_dump) no reconoce `schema` como parámetro de query URI y
+# aborta con "invalid URI query parameter" — hay que cortarlo antes de pasarla.
+# El esquema `public` ya es el default de pg_dump, así que sacarlo no cambia
+# qué se respalda.
 archivo="$dir_db/nutricionista-$marca.dump"
-pg_dump --format=custom --no-owner --no-privileges --dbname="$DATABASE_URL" --file="$archivo"
+pg_dump --format=custom --no-owner --no-privileges --dbname="${DATABASE_URL%%\?*}" --file="$archivo"
 echo "[respaldo] dump creado: $archivo ($(du -h "$archivo" | cut -f1))"
 
 # 2. Cifrado del dump.

@@ -20,5 +20,9 @@ echo "[restaurar] ADVERTENCIA: se van a sobrescribir objetos de la base actual."
 echo "[restaurar] restaurando desde: $archivo"
 # --clean --if-exists: elimina y recrea los objetos; --no-owner/--no-privileges
 # evita problemas de roles entre entornos.
-pg_restore --clean --if-exists --no-owner --no-privileges --dbname="$DATABASE_URL" "$archivo"
+#
+# libpq no reconoce el `?schema=public` que trae `DATABASE_URL` (lo agrega
+# Prisma) como parámetro de query URI — hay que cortarlo, igual que en
+# respaldo.sh.
+pg_restore --clean --if-exists --no-owner --no-privileges --dbname="${DATABASE_URL%%\?*}" "$archivo"
 echo "[restaurar] completado."
