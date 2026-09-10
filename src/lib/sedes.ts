@@ -156,3 +156,17 @@ export function sedePorDiaDeLaSemana(
   }
   return porDia;
 }
+
+/**
+ * Cómo se nombra una sede en la agenda: nombre y dirección.
+ *
+ * El nombre solo («Consultorio centro») alcanza para distinguir una sede de
+ * otra, pero no dice DÓNDE queda, que es el dato que se necesita cuando se
+ * agenda un turno o se le confirma al paciente por teléfono. Se muestran los
+ * dos, y el nombre solo cuando la sede todavía no tiene dirección cargada.
+ */
+export function etiquetaSede(
+  sede: Pick<EstablecimientoSalidaDto, "nombre" | "direccion">,
+): string {
+  return sede.direccion ? `${sede.nombre} · ${sede.direccion}` : sede.nombre;
+}

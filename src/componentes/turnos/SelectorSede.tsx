@@ -3,7 +3,7 @@
 import { MapPin } from "lucide-react";
 import type { EstablecimientoSalidaDto } from "@/aplicacion/dtos/establecimiento.dto";
 import { useSedeActiva } from "@/lib/hooks/useSedeActiva";
-import { TODAS_LAS_SEDES } from "@/lib/sedes";
+import { etiquetaSede, TODAS_LAS_SEDES } from "@/lib/sedes";
 import {
   Select,
   SelectTrigger,
@@ -37,7 +37,7 @@ export function SelectorSede({
 
   return (
     <Select value={sedeActiva} onValueChange={elegirSede}>
-      <SelectTrigger className="w-52">
+      <SelectTrigger className="w-64">
         <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
         <SelectValue placeholder="Establecimiento" />
       </SelectTrigger>
@@ -51,7 +51,7 @@ export function SelectorSede({
                 className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: colores.get(sede.id) }}
               />
-              {sede.nombre}
+              <span className="truncate">{etiquetaSede(sede)}</span>
             </span>
           </SelectItem>
         ))}
