@@ -11,6 +11,7 @@ import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
 import type { IAsistenteNutricional } from "@/dominio/servicios/IAsistenteNutricional";
 import type { IAnalisisComidaIA } from "@/dominio/servicios/IAnalisisComidaIA";
 import type { IAnalisisPredictivo } from "@/dominio/servicios/IAnalisisPredictivo";
+import type { IEnlaceConfirmacionTurno } from "@/dominio/servicios/IEnlaceConfirmacionTurno";
 
 /**
  * Ayudas para los tests de casos de uso.
@@ -142,6 +143,17 @@ export function mockServicioEmail(
 ): IServicioEmail {
   return {
     enviar: vi.fn(async () => {}),
+    ...parcial,
+  };
+}
+
+export function mockEnlaceConfirmacionTurno(
+  parcial: Partial<IEnlaceConfirmacionTurno> = {},
+): IEnlaceConfirmacionTurno {
+  return {
+    generar: vi.fn(
+      (turnoId: string) => `https://app.test/confirmar-turno?token=${turnoId}`,
+    ),
     ...parcial,
   };
 }

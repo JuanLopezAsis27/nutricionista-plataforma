@@ -14,6 +14,7 @@ import type { IEmailEnviadoRepositorio } from "@/dominio/repositorios/IEmailEnvi
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
+import type { IEnlaceConfirmacionTurno } from "@/dominio/servicios/IEnlaceConfirmacionTurno";
 import { EnviarRecordatorioWhatsapp } from "@/aplicacion/casos-de-uso/recordatorios/EnviarRecordatorioWhatsapp";
 import { ObtenerConfiguracionRecordatorios } from "@/aplicacion/casos-de-uso/recordatorios/ObtenerConfiguracionRecordatorios";
 import { GuardarConfiguracionRecordatorios } from "@/aplicacion/casos-de-uso/recordatorios/GuardarConfiguracionRecordatorios";
@@ -57,6 +58,7 @@ export interface DepsRecordatorios {
   usuarios: IUsuarioRepositorio;
   bus: IBusEventos;
   nombreProfesional: string;
+  enlaceConfirmacionTurno: IEnlaceConfirmacionTurno;
 }
 
 /**
@@ -90,6 +92,7 @@ export function crearServicioRecordatorios(
     deps.configRecordatorios,
     deps.nombreProfesional,
     deps.establecimientos,
+    deps.enlaceConfirmacionTurno,
   );
 
   // Cada servicio recibe SOLO lo de su area. Antes era una lista plana de 17

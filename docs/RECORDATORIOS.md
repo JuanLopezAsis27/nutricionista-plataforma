@@ -207,6 +207,26 @@ Los dos últimos son del **paciente**, y son la mitad interesante:
 `FALLIDO` y `DESCARTADO` no son lo mismo: el primero es que Meta lo rechazó, el
 segundo es que el profesional decidió no mandarlo.
 
+## Confirmación desde el email
+
+El recordatorio por email de un turno `PENDIENTE` sale con un botón
+**Confirmar asistencia**. Va pegado al final del cuerpo, fuera de la
+plantilla, para que también lo tengan los consultorios que ya editaron la suya.
+
+El botón abre `/confirmar-turno?token=…`, una página pública. Al apretar
+"Confirmar mi asistencia" el turno pasa a `CONFIRMADO` (se ve en la agenda y en
+"Mis turnos") y el profesional recibe un email y un aviso en tiempo real.
+
+- **La página no confirma sola al abrirse.** Los filtros antispam y antivirus
+  visitan los enlaces antes que el paciente; si abrir confirmara, habría turnos
+  confirmados que nadie confirmó.
+- **El enlace es un token firmado** con `AUTH_SECRET` (consultorio, turno y
+  vencimiento), sin tabla propia. Vence al terminar el día del turno.
+- **Confirmar dos veces no avisa dos veces**, y un turno cancelado no se puede
+  confirmar.
+- Es independiente del `CONFIRMADO` de WhatsApp de la sección anterior: aquel
+  marca el recordatorio; este, el turno.
+
 ## Plantillas de WhatsApp: dos caras
 
 Una plantilla guarda **el texto** y, opcionalmente, **la plantilla aprobada en

@@ -68,6 +68,7 @@ import { PrismaRepositorioSincronizacionTurno } from "@/infraestructura/reposito
 import { BcryptHasheador } from "@/infraestructura/seguridad/BcryptHasheador";
 import { GeneradorTokensCrypto } from "@/infraestructura/seguridad/GeneradorTokensCrypto";
 import { CifradorTokens } from "@/infraestructura/seguridad/CifradorTokens";
+import { FirmaConfirmacionTurno } from "@/infraestructura/seguridad/FirmaConfirmacionTurno";
 import { AlmacenamientoMinIO } from "@/infraestructura/almacenamiento/AlmacenamientoMinIO";
 import { RelojSistema } from "@/infraestructura/fecha/RelojSistema";
 import { NodemailerServicioEmail } from "@/infraestructura/email/NodemailerServicioEmail";
@@ -128,6 +129,11 @@ export const NOMBRE_PROFESIONAL =
 
 /** URL pública de la app (la usan los enlaces de los emails y el OAuth). */
 export const urlApp = (): string => urlPublica();
+
+/** Firma y verifica los enlaces "Confirmar asistencia" de los recordatorios. */
+export const enlaceConfirmacionTurno = perezoso(
+  () => new FirmaConfirmacionTurno(process.env.AUTH_SECRET, urlPublica()),
+);
 
 // --- Cliente de base de datos --------------------------------------------------
 
