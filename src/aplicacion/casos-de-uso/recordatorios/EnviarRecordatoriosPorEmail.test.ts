@@ -9,6 +9,7 @@ import {
   mockPacienteRepositorio,
   mockEstablecimientoRepositorio,
   mockServicioEmail,
+  mockEnlaceConfirmacionTurno,
   mockReloj,
   plantillaEmailEjemplo,
   turnoEjemplo,
@@ -27,6 +28,7 @@ function armar(overrides: {
   const plantilla = plantillaEmailEjemplo();
   const enviar = vi.fn(async () => {});
   const registrar = vi.fn(async () => {});
+  const enlaces = mockEnlaceConfirmacionTurno();
 
   const uc = new EnviarRecordatoriosPorEmail(
     mockPlantillaEmailRepositorio({
@@ -51,8 +53,9 @@ function armar(overrides: {
     mockConfiguracionRecordatoriosRepositorio(),
     PROFESIONAL,
     mockEstablecimientoRepositorio(),
+    enlaces,
   );
-  return { uc, enviar, registrar };
+  return { uc, enviar, registrar, enlaces };
 }
 
 describe("EnviarRecordatoriosPorEmail", () => {
@@ -70,6 +73,41 @@ describe("EnviarRecordatoriosPorEmail", () => {
         para: "ana@mail.com",
         html: expect.stringContaining("Ana García"),
         asunto: expect.stringContaining("15/07/2026"),
+      }),
+    );
+  });
+
+  it("agrega el botón para confirmar asistencia a un turno pendiente", async () => {
+    const turno = turnoEjemplo({ fecha: MANANA });
+    const { uc, enviar, enlaces } = armar({ turnos: [turno] });
+
+    await uc.ejecutar();
+
+    // El enlace vence al terminar el día del turno.
+    expect(enlaces.generar).toHaveBeenCalledWith(
+      turno.id,
+      new Date("2026-07-16"),
+    );
+    expect(enviar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.stringContaining(
+          'href="https://app.test/confirmar-turno?token=tur-1"',
+        ),
+      }),
+    );
+  });
+
+  it("no agrega el botón si el turno ya está confirmado", async () => {
+    const turno = turnoEjemplo({ fecha: MANANA });
+    turno.cambiarEstado("CONFIRMADO");
+    const { uc, enviar, enlaces } = armar({ turnos: [turno] });
+
+    await uc.ejecutar();
+
+    expect(enlaces.generar).not.toHaveBeenCalled();
+    expect(enviar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.not.stringContaining("confirmar-turno"),
       }),
     );
   });
@@ -128,6 +166,7 @@ describe("EnviarRecordatoriosPorEmail", () => {
       mockConfiguracionRecordatoriosRepositorio(),
       PROFESIONAL,
       mockEstablecimientoRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
 
     const resultado = await uc.ejecutar();
@@ -149,6 +188,7 @@ describe("EnviarRecordatoriosPorEmail", () => {
       mockConfiguracionRecordatoriosRepositorio(),
       PROFESIONAL,
       mockEstablecimientoRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
 
     await expect(uc.ejecutar()).rejects.toBeInstanceOf(

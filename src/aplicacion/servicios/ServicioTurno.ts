@@ -6,6 +6,10 @@ import type { CancelarTurno } from "@/aplicacion/casos-de-uso/turnos/CancelarTur
 import type { ReprogramarTurno } from "@/aplicacion/casos-de-uso/turnos/ReprogramarTurno";
 import type { RegistrarCobroTurno } from "@/aplicacion/casos-de-uso/turnos/RegistrarCobroTurno";
 import type { EliminarTurno } from "@/aplicacion/casos-de-uso/turnos/EliminarTurno";
+import type {
+  ConfirmarAsistenciaTurno,
+  AsistenciaConfirmada,
+} from "@/aplicacion/casos-de-uso/turnos/ConfirmarAsistenciaTurno";
 import type { ISincronizadorCalendario } from "@/dominio/servicios/ISincronizadorCalendario";
 import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstablecimientoRepositorio";
 import type { Turno } from "@/dominio/entidades/Turno";
@@ -37,6 +41,7 @@ export class ServicioTurno {
     private readonly reprogramarUC: ReprogramarTurno,
     private readonly registrarCobroUC: RegistrarCobroTurno,
     private readonly eliminarUC: EliminarTurno,
+    private readonly confirmarAsistenciaUC: ConfirmarAsistenciaTurno,
     private readonly sincronizador: ISincronizadorCalendario,
     private readonly establecimientos: IEstablecimientoRepositorio,
   ) {}
@@ -88,6 +93,11 @@ export class ServicioTurno {
    */
   async eliminarTurno(id: string): Promise<void> {
     await this.eliminarUC.ejecutar(id);
+  }
+
+  /** El paciente confirma desde el enlace del recordatorio por email. */
+  async confirmarAsistencia(turnoId: string): Promise<AsistenciaConfirmada> {
+    return this.confirmarAsistenciaUC.ejecutar(turnoId);
   }
 
   async registrarCobroTurno(

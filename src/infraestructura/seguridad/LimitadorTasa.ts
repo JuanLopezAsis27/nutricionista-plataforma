@@ -128,3 +128,9 @@ export const limitadorIaPaciente = new LimitadorTasa(30, 60 * 60 * 1000);
  * repartido entre muchas cuentas de pacientes del mismo consultorio.
  */
 export const limitadorIaInquilino = new LimitadorTasa(300, 60 * 60 * 1000);
+
+/**
+ * Confirmación de turno desde el email: 20 por hora y por IP. Es pública, así
+ * que el tope evita que alguien pruebe enlaces a máxima velocidad.
+ */
+export const limitadorConfirmacionTurno = new LimitadorTasa(20, 60 * 60 * 1000);
