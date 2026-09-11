@@ -68,9 +68,9 @@ export function FormularioPdfPlan() {
       </CardHeader>
       <CardContent className="space-y-5">
         <p className="text-sm text-muted-foreground">
-          Personalizá cómo se ve el PDF que descargás e imprimís. El membrete
-          usa el nombre y la matrícula de la pestaña «Turnos y membrete». Los
-          cambios se aplican al descargar cualquier plan.
+          Personalizá cómo se ve el PDF que descargás e imprimís. El título del
+          encabezado es el nombre de la pestaña «Membrete». Los cambios se
+          aplican al descargar cualquier plan.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
