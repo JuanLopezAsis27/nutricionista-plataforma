@@ -1,17 +1,22 @@
-import { formatearFechaCorta } from "@/aplicacion/casos-de-uso/secretaria/variables";
+import { variablesEjemplo } from "@/aplicacion/casos-de-uso/secretaria/variables";
 import { escaparHtml } from "@/dominio/plantillas/renderizar";
 
 /**
- * Valores de ejemplo para la vista previa de plantillas en el cliente. Reflejan
- * los mismos placeholders que reemplaza el dominio al enviar.
+ * Valores de ejemplo para la vista previa de una plantilla en el cliente.
+ *
+ * Son los mismos del email de prueba (`variablesEjemplo`), que a su vez
+ * reflejan lo que reemplaza cada envío real según la plantilla: la bienvenida
+ * sus datos de acceso, el recordatorio su turno. Tener una lista propia acá
+ * era dejar que la vista previa y el envío divergieran sin que nadie lo note.
  */
-export function variablesEjemploCliente(): Record<string, string> {
-  return {
-    paciente: "Juan Pérez",
-    fecha: formatearFechaCorta(new Date()),
-    hora: "10:00",
-    profesional: "Lic. López Asis Nicolás",
-  };
+export function variablesEjemploCliente(
+  clavePlantilla?: string,
+): Record<string, string> {
+  return variablesEjemplo(
+    "Lic. López Asis Nicolás",
+    new Date(),
+    clavePlantilla,
+  );
 }
 
 /**

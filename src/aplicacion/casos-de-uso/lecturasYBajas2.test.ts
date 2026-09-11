@@ -13,6 +13,7 @@ import { Usuario } from "@/dominio/entidades/Usuario";
 import {
   formatearFechaCorta,
   variablesRecordatorio,
+  variablesBienvenida,
   variablesEjemplo,
 } from "./secretaria/variables";
 import {
@@ -52,6 +53,21 @@ describe("variables de plantilla", () => {
       nombreProfesional: "Lic. Marta",
     });
     const ejemplo = variablesEjemplo("Lic. Marta", new Date());
+
+    expect(Object.keys(reales).sort()).toEqual(Object.keys(ejemplo).sort());
+  });
+
+  it("las variables de la bienvenida y las de su ejemplo tienen las MISMAS claves", () => {
+    // Lo mismo para la bienvenida: la prueba de la plantilla tiene que
+    // reemplazar {{email}} y {{contrasena}} igual que el alta real, y un
+    // recordatorio no, porque su envío real no los tiene.
+    const reales = variablesBienvenida({
+      nombrePaciente: "Ana García",
+      nombreProfesional: "Lic. Marta",
+      email: "ana@ejemplo.test",
+      contrasena: "Clave-Segura-2026",
+    });
+    const ejemplo = variablesEjemplo("Lic. Marta", new Date(), "BIENVENIDA");
 
     expect(Object.keys(reales).sort()).toEqual(Object.keys(ejemplo).sort());
   });
@@ -100,6 +116,12 @@ describe("Secretaría — plantillas de email", () => {
 });
 
 describe("EnviarEmailDeBienvenida", () => {
+  const ANA = {
+    nombrePaciente: "Ana García",
+    email: "ana@ejemplo.test",
+    contrasena: "Clave-Segura-2026",
+  };
+
   it("no envía —ni falla— si el paciente no tiene email", async () => {
     // El email es opcional en el alta. Que un paciente sin correo haga fallar
     // la creación entera sería el peor intercambio posible.
@@ -110,7 +132,7 @@ describe("EnviarEmailDeBienvenida", () => {
       "Lic. Marta",
     );
 
-    expect(await caso.ejecutar("Ana", null)).toBe(false);
+    expect(await caso.ejecutar({ ...ANA, email: null })).toBe(false);
     expect(servicioEmail.enviar).not.toHaveBeenCalled();
   });
 
@@ -124,8 +146,36 @@ describe("EnviarEmailDeBienvenida", () => {
       "Lic. Marta",
     );
 
-    expect(await caso.ejecutar("Ana", "ana@ejemplo.test")).toBe(false);
+    expect(await caso.ejecutar(ANA)).toBe(false);
     expect(servicioEmail.enviar).not.toHaveBeenCalled();
+  });
+
+  it("puede llevar los datos de acceso: el email y la contraseña del alta", async () => {
+    // La contraseña solo existe en texto plano durante el alta —después queda
+    // hasheada—: la bienvenida es el único mensaje que puede llevarla. Va
+    // escapada como cualquier valor, así que llega tal cual se escribió.
+    const servicioEmail = mockServicioEmail();
+    const caso = new EnviarEmailDeBienvenida(
+      mockPlantillaEmailRepositorio({
+        obtenerPorClave: vi.fn(async () =>
+          plantillaEmailEjemplo({
+            asunto: "Bienvenida",
+            cuerpoHtml:
+              "<p>Usuario: {{email}} · Contraseña: {{ contrasena }}</p>",
+          }),
+        ),
+      }),
+      servicioEmail,
+      "Lic. Marta",
+    );
+
+    await caso.ejecutar({ ...ANA, contrasena: "Clave<&>2026" });
+
+    const [enviado] = (servicioEmail.enviar as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [{ html: string }];
+    expect(enviado.html).toBe(
+      "<p>Usuario: ana@ejemplo.test · Contraseña: Clave&lt;&amp;&gt;2026</p>",
+    );
   });
 
   it("envía con las variables reemplazadas cuando están las dos cosas", async () => {
@@ -143,7 +193,7 @@ describe("EnviarEmailDeBienvenida", () => {
       "Lic. Marta",
     );
 
-    expect(await caso.ejecutar("Ana García", "ana@ejemplo.test")).toBe(true);
+    expect(await caso.ejecutar(ANA)).toBe(true);
 
     const [enviado] = (servicioEmail.enviar as ReturnType<typeof vi.fn>).mock
       .calls[0] as [{ para: string; asunto: string; html: string }];

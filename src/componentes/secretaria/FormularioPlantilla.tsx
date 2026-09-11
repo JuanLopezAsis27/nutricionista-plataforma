@@ -9,6 +9,7 @@ import { useSecretaria } from "@/lib/hooks/useSecretaria";
 import {
   renderizarPlantillaCliente,
   renderizarHtmlCliente,
+  variablesEjemploCliente,
 } from "@/lib/plantillaPreview";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
@@ -62,6 +63,9 @@ export function FormularioPlantilla({
 
   const asunto = form.watch("asunto");
   const cuerpoHtml = form.watch("cuerpoHtml");
+  // La vista previa reemplaza lo mismo que el envío real de ESTA plantilla: la
+  // bienvenida, con usuario y contraseña de ejemplo; el resto, sin ellos.
+  const variables = variablesEjemploCliente(form.watch("clave").toUpperCase());
 
   function insertarPlaceholder(clave: string) {
     const actual = form.getValues("cuerpoHtml");
@@ -214,14 +218,17 @@ export function FormularioPlantilla({
             <div className="border-b bg-muted/40 px-3 py-2 text-sm">
               <span className="text-muted-foreground">Asunto: </span>
               <span className="font-medium">
-                {renderizarPlantillaCliente(asunto || "—")}
+                {renderizarPlantillaCliente(asunto || "—", variables)}
               </span>
             </div>
             <div
               className="max-h-72 overflow-y-auto bg-white p-3 text-sm text-black"
               // El HTML lo escribe el profesional (contenido de confianza).
               dangerouslySetInnerHTML={{
-                __html: renderizarHtmlCliente(cuerpoHtml || "<p>—</p>"),
+                __html: renderizarHtmlCliente(
+                  cuerpoHtml || "<p>—</p>",
+                  variables,
+                ),
               }}
             />
           </div>

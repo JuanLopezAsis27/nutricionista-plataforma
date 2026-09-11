@@ -48,10 +48,14 @@ export class ServicioPaciente {
     const paciente = await this.crearUC.ejecutar(datos);
     // Email de bienvenida best-effort: nunca hace fallar el alta del paciente.
     try {
-      await this.enviarBienvenidaUC.ejecutar(
-        paciente.nombreCompleto,
-        paciente.email,
-      );
+      await this.enviarBienvenidaUC.ejecutar({
+        nombrePaciente: paciente.nombreCompleto,
+        email: paciente.email,
+        // La contraseña en texto plano solo existe acá, durante el alta: la
+        // cuenta ya la guardó hasheada. Por eso la bienvenida es el único
+        // mensaje que puede llevarla.
+        contrasena: datos.password,
+      });
     } catch (error) {
       console.error(
         "[bienvenida] no se pudo enviar el email de bienvenida:",

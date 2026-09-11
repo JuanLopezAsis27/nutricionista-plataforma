@@ -33,7 +33,11 @@ export class EnviarEmailDePrueba {
     }
 
     const { asunto, html } = plantilla.renderizar(
-      variablesEjemplo(this.nombreProfesional, this.reloj.hoy()),
+      variablesEjemplo(
+        this.nombreProfesional,
+        this.reloj.hoy(),
+        plantilla.clave,
+      ),
     );
 
     await this.servicioEmail.enviar({

@@ -209,7 +209,9 @@ export function FormularioPaciente({
                   />
                 </FormControl>
                 <p className="text-xs text-muted-foreground">
-                  El paciente iniciará sesión con su email y esta contraseña.
+                  El paciente iniciará sesión con su email y esta contraseña. Si
+                  el email de bienvenida incluye los datos de acceso, se los
+                  mandamos por ahí.
                 </p>
                 <FormMessage />
               </FormItem>

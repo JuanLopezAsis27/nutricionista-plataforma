@@ -22,6 +22,16 @@ export const PLACEHOLDERS_PLANTILLA = [
   { clave: "fecha", descripcion: "Fecha del turno (ej. 27/07/2026)" },
   { clave: "hora", descripcion: "Hora del turno (ej. 10:00)" },
   { clave: "profesional", descripcion: "Nombre del profesional" },
+  {
+    clave: "email",
+    descripcion:
+      "Email con el que el paciente inicia sesión (solo en la bienvenida)",
+  },
+  {
+    clave: "contrasena",
+    descripcion:
+      "Contraseña de su cuenta, la que se cargó en el alta (solo en la bienvenida)",
+  },
 ] as const;
 
 /** Datos para crear/editar una plantilla de email. */
