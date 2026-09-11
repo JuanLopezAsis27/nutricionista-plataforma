@@ -8,7 +8,16 @@ import { FilaArchivo, aFichaArchivo } from "./FilaArchivo";
 import type { DatosFormulario } from "./esquema";
 
 /**
- * El archivo que ES el plan. Solo en modalidad PDF.
+ * PDF o Word: los dos formatos que el paciente puede leer adentro de la app
+ * (el Word se le muestra convertido, ver `VisorArchivo`).
+ */
+const ACEPTA_DOCUMENTO =
+  ".pdf,.doc,.docx,application/pdf,application/msword," +
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+/**
+ * El archivo que ES el plan. Solo en modalidad PDF (la del plan subido como
+ * archivo, sea PDF o Word).
  *
  * Recibe el `form` completo y no solo el `control` porque necesita
  * `setValue`: la ficha del archivo vive en estado del componente (para mostrar
@@ -32,7 +41,7 @@ export function SeccionArchivoPrincipal({
         <FormItem>
           <fieldset className="space-y-3 rounded-lg border p-4">
             <legend className="px-1 text-sm font-semibold">
-              El plan (PDF)
+              El plan (PDF o Word)
             </legend>
             <p className="text-sm text-muted-foreground">
               Este archivo ES el plan: es lo que el paciente ve al entrar a «Mi
@@ -52,7 +61,7 @@ export function SeccionArchivoPrincipal({
             ) : (
               <SubidorArchivo
                 contexto="plan"
-                accept="application/pdf"
+                accept={ACEPTA_DOCUMENTO}
                 onSubido={(archivo) => {
                   alCambiar(aFichaArchivo(archivo));
                   form.setValue("archivoPrincipalId", archivo.id, {
@@ -72,7 +81,7 @@ export function SeccionArchivoPrincipal({
 /**
  * Material de apoyo. Va en las DOS modalidades: acompaña al plan, no lo
  * reemplaza, y eso vale igual para un plan cargado en la app que para uno
- * subido en PDF.
+ * subido como archivo.
  */
 export function SeccionAdjuntos({
   esApp,
@@ -90,8 +99,8 @@ export function SeccionAdjuntos({
       </legend>
       <p className="text-sm text-muted-foreground">
         {esApp
-          ? "PDFs que acompañan al plan: la lista de compras, un instructivo, un recetario. El paciente los ve al final de su plan."
-          : "PDFs que acompañan al plan principal. El paciente los ve debajo del plan."}
+          ? "PDFs o documentos de Word que acompañan al plan: la lista de compras, un instructivo, un recetario. El paciente los ve al final de su plan."
+          : "PDFs o documentos de Word que acompañan al plan principal. El paciente los ve debajo del plan."}
       </p>
 
       {adjuntos.length > 0 && (
@@ -112,7 +121,7 @@ export function SeccionAdjuntos({
 
       <SubidorArchivo
         contexto="plan"
-        accept="application/pdf"
+        accept={ACEPTA_DOCUMENTO}
         onSubido={(archivo) => alCambiar([...adjuntos, aFichaArchivo(archivo)])}
       />
     </fieldset>

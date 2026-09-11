@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FileSpreadsheet, Plus, UserCog } from "lucide-react";
+import { Download, FileSpreadsheet, Plus, UserCog } from "lucide-react";
 import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
 import { formatearFecha } from "@/lib/formato";
@@ -154,7 +154,17 @@ export function SeccionComposicionCorporal({
           />
         </TabsContent>
 
-        <TabsContent value="mediciones" className="mt-4">
+        <TabsContent value="mediciones" className="mt-4 space-y-3">
+          {mediciones.length > 0 && (
+            <div className="flex justify-end">
+              <Button asChild size="sm" variant="outline">
+                <a href={`/api/pacientes/${pacienteId}/mediciones-excel`}>
+                  <Download className="h-4 w-4" />
+                  Descargar Excel
+                </a>
+              </Button>
+            </div>
+          )}
           <TarjetasMediciones
             pacienteId={pacienteId}
             mediciones={mediciones}

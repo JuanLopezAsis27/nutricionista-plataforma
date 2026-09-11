@@ -14,9 +14,24 @@ const MIMES_DOCUMENTO = [
 ] as const;
 
 /**
- * Planilla de cálculo. Solo `.xlsx`: el `.xls` binario anterior a 2007 no lo
- * lee ninguna librería del proyecto, y aceptarlo sería subir un archivo que
- * después no se puede interpretar.
+ * Documentos de Word: el `.docx` y el `.doc` binario anterior a 2007.
+ *
+ * El navegador no los dibuja: para leerlos adentro de la app se convierten a
+ * HTML en el servidor (`/api/archivos/<id>/html`), y quien los muestra usa
+ * esto para saber a qué ruta ir.
+ */
+const MIMES_WORD: readonly string[] = [
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+
+export function esDocumentoWord(mimeType: string): boolean {
+  return MIMES_WORD.includes(mimeType);
+}
+
+/**
+ * Planilla de cálculo: el `.xlsx` y el `.xls` binario anterior a 2007, que es
+ * el formato en el que siguen circulando las proformas de antropometría.
  *
  * Va aparte de `MIMES_DOCUMENTO` a propósito: la planilla se acepta donde se
  * la puede LEER —la ficha del paciente, de donde sale la importación de
@@ -100,12 +115,13 @@ export const CONTEXTOS_ARCHIVO = {
     mimes: [...MIMES_DOCUMENTO, ...MIMES_IMAGEN, ...MIMES_PLANILLA],
     maxBytes: 10 * MB,
   },
-  // El plan armado afuera (Word, Canva) y subido tal cual. Solo PDF: es lo
-  // único que el paciente puede abrir en la app sin descargar nada ni tener
-  // Office instalado, y el punto de la función es que lo LEA acá adentro.
+  // El plan armado afuera (Word, Canva) y subido tal cual: PDF o Word. El
+  // punto de la función es que el paciente lo LEA acá adentro, sin descargar
+  // nada ni tener Office instalado: el PDF lo dibuja el navegador y el Word se
+  // convierte a HTML en el servidor (ver `servidor/archivoHttp`).
   plan: {
     prefijo: "planes",
-    mimes: ["application/pdf"],
+    mimes: [...MIMES_DOCUMENTO],
     maxBytes: 25 * MB,
   },
   /**

@@ -15,7 +15,8 @@ import {
   CardTitle,
 } from "@/componentes/ui/card";
 import { Badge } from "@/componentes/ui/badge";
-import { VisorPdf } from "@/componentes/comunes/VisorPdf";
+import { VisorArchivo } from "@/componentes/comunes/VisorArchivo";
+import { rutaParaLeer } from "@/componentes/comunes/rutaParaLeer";
 import { formatearTamano } from "@/lib/formato";
 
 /**
@@ -23,10 +24,10 @@ import { formatearTamano } from "@/lib/formato";
  * Reutilizada en el detalle del plan, la ficha del paciente y el portal.
  *
  * Muestra lo que el plan ES, según su modalidad: el visor del archivo si es un
- * plan en PDF, las franjas si se cargó en la app. Los ANEXOS van al final en
- * los dos casos, como material de apoyo: nunca arriba, porque un anexo no es
- * el plan y ponerlo primero es exactamente lo que llevó a separar las dos
- * modalidades.
+ * plan subido (PDF o Word), las franjas si se cargó en la app. Los ANEXOS van
+ * al final en los dos casos, como material de apoyo: nunca arriba, porque un
+ * anexo no es el plan y ponerlo primero es exactamente lo que llevó a separar
+ * las dos modalidades.
  *
  * Que el visor viva acá y no en cada pantalla es lo que hace que el paciente lo
  * vea en «Mi plan» sin tocar esa página.
@@ -108,16 +109,16 @@ export function VistaPlan({
       )}
 
       {plan.archivoPrincipal && (
-        <VisorPdf
-          archivoId={plan.archivoPrincipal.id}
+        <VisorArchivo
+          archivo={plan.archivoPrincipal}
           titulo={plan.archivoPrincipal.nombreOriginal}
         />
       )}
 
       {plan.modalidad === "PDF" && !plan.archivoPrincipal && (
         <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Este plan está en PDF, pero el archivo ya no está disponible. Volvé a
-          subirlo desde la edición del plan.
+          Este plan es un archivo, pero ya no está disponible. Volvé a subirlo
+          desde la edición del plan.
         </p>
       )}
 
@@ -265,7 +266,7 @@ export function VistaPlan({
               {plan.adjuntos.map((adjunto) => (
                 <li key={adjunto.id} className="py-2 first:pt-0 last:pb-0">
                   <a
-                    href={`/api/archivos/${adjunto.id}/ver`}
+                    href={rutaParaLeer(adjunto)}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex max-w-full items-center gap-1.5 text-sm font-medium hover:text-primary"

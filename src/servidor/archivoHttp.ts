@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import { usuarioDeSesion } from "@/lib/autenticacion/sesion";
 import { servicioArchivo } from "@/infraestructura/contenedor/contenedor";
+import {
+  documentoWordAHtml,
+  paginaDocumentoIlegible,
+} from "@/infraestructura/documentos/documentoWordAHtml";
+import type { ArchivoConContenidoDto } from "@/aplicacion/servicios/ServicioArchivo";
+import { esDocumentoWord } from "@/dominio/entidades/Archivo";
 import { aRespuestaError } from "@/servidor/errores-http";
 import { conAlcanceDeSesion } from "@/servidor/alcanceRequest";
 
 /**
- * Servido de archivos del bucket, compartido por las dos rutas de lectura.
+ * Servido de archivos del bucket, compartido por las rutas de lectura.
  *
  * ## Por qué el contenido sale por acá y no por una redirección
  *
@@ -36,11 +42,14 @@ import { conAlcanceDeSesion } from "@/servidor/alcanceRequest";
  * bucket al navegador. Es asumible: el techo de subida son 25 MB y lo que se
  * sirve son fotos de recetas y PDFs de plan, no video.
  *
- * ## Qué cambia entre las dos rutas
+ * ## Qué cambia entre las rutas
  *
- * Solo el `Content-Disposition`: `inline` muestra, `attachment` ofrece guardar.
- * La AUTORIZACIÓN es la misma a propósito —son dos formas de leer el mismo
- * archivo, y si una fuera más permisiva sería la puerta de atrás de la otra—.
+ * `/api/archivos/[id]` ofrece guardar (`attachment`) y `/api/archivos/[id]/ver`
+ * muestra (`inline`). La tercera, `/api/archivos/[id]/html`, es para el Word:
+ * el navegador no lo dibuja, así que se convierte a HTML y se muestra eso. La
+ * AUTORIZACIÓN es la misma en las tres a propósito —son formas de leer el
+ * mismo archivo, y si una fuera más permisiva sería la puerta de atrás de las
+ * otras—.
  */
 export type DisposicionArchivo = "inline" | "attachment";
 
@@ -72,43 +81,28 @@ const CABECERAS_SEGURIDAD = {
 } as const;
 
 /**
- * Responde con el contenido del archivo, ya autorizado.
+ * Las del Word convertido a HTML: las mismas, más `sandbox`.
  *
- * El nutricionista accede a todo; el paciente a lo que subió él mismo y a lo
- * que le fue compartido (la regla vive en el caso de uso
- * `PuedeVerArchivoPaciente`).
+ * Acá sí se puede —no hay visor de PDF que se rompa— y es donde más sirve: la
+ * respuesta ES un documento HTML armado con lo que alguien subió. Bajo
+ * `sandbox` corre en un origen propio, sin scripts ni formularios, aunque la
+ * conversión dejara pasar algo.
  */
+const CABECERAS_SEGURIDAD_HTML = {
+  ...CABECERAS_SEGURIDAD,
+  "Content-Security-Policy": `sandbox; ${CABECERAS_SEGURIDAD["Content-Security-Policy"]}`,
+} as const;
+
+/** Responde con el contenido del archivo, tal cual y ya autorizado. */
 export function responderArchivo(
   idPromesa: Promise<{ id: string }>,
   disposicion: DisposicionArchivo,
 ): Promise<NextResponse> {
   return conAlcanceDeSesion(async () => {
-    const usuario = await usuarioDeSesion();
-    if (!usuario) {
-      return NextResponse.json(
-        { error: "Necesitás iniciar sesión." },
-        { status: 401 },
-      );
-    }
-
     try {
-      const { id } = await idPromesa;
-
-      if (usuario.rol !== "NUTRICIONISTA") {
-        const permitido = await servicioArchivo().puedeVerPaciente(id, {
-          usuarioId: usuario.id,
-          pacienteId: usuario.pacienteId,
-        });
-        if (!permitido) {
-          return NextResponse.json(
-            { error: "No tenés acceso a este archivo." },
-            { status: 403 },
-          );
-        }
-      }
-
-      const { archivo, contenido } =
-        await servicioArchivo().obtenerContenido(id);
+      const lectura = await leerConPermiso(idPromesa);
+      if (lectura instanceof NextResponse) return lectura;
+      const { archivo, contenido } = lectura;
 
       return new NextResponse(new Uint8Array(contenido), {
         headers: {
@@ -124,6 +118,92 @@ export function responderArchivo(
       return aRespuestaError(error);
     }
   });
+}
+
+/**
+ * Responde con un documento de Word convertido a una página HTML, para leerlo
+ * adentro de la app (el plan que se subió en Word).
+ */
+export function responderDocumentoComoHtml(
+  idPromesa: Promise<{ id: string }>,
+): Promise<NextResponse> {
+  return conAlcanceDeSesion(async () => {
+    try {
+      const lectura = await leerConPermiso(idPromesa);
+      if (lectura instanceof NextResponse) return lectura;
+      const { archivo, contenido } = lectura;
+
+      if (!esDocumentoWord(archivo.mimeType)) {
+        return NextResponse.json(
+          { error: "Este archivo no es un documento de Word." },
+          { status: 415 },
+        );
+      }
+
+      let html: string;
+      let estado = 200;
+      try {
+        html = await documentoWordAHtml(
+          contenido,
+          archivo.mimeType,
+          archivo.nombreOriginal,
+        );
+      } catch (error) {
+        // Un Word dañado o con contraseña. Se avisa ADENTRO del visor, que es
+        // donde la persona lo está mirando, en vez de dejarle un JSON de error.
+        console.error("[archivos] no se pudo convertir el Word:", error);
+        html = paginaDocumentoIlegible(archivo.nombreOriginal);
+        estado = 422;
+      }
+
+      return new NextResponse(html, {
+        status: estado,
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "private, max-age=60",
+          ...CABECERAS_SEGURIDAD_HTML,
+        },
+      });
+    } catch (error) {
+      return aRespuestaError(error);
+    }
+  });
+}
+
+/**
+ * El archivo y su contenido, si quien pide puede leerlo; si no, la respuesta
+ * de error.
+ *
+ * El nutricionista accede a todo; el paciente a lo que subió él mismo y a lo
+ * que le fue compartido (la regla vive en el caso de uso
+ * `PuedeVerArchivoPaciente`).
+ */
+async function leerConPermiso(
+  idPromesa: Promise<{ id: string }>,
+): Promise<ArchivoConContenidoDto | NextResponse> {
+  const usuario = await usuarioDeSesion();
+  if (!usuario) {
+    return NextResponse.json(
+      { error: "Necesitás iniciar sesión." },
+      { status: 401 },
+    );
+  }
+
+  const { id } = await idPromesa;
+  if (usuario.rol !== "NUTRICIONISTA") {
+    const permitido = await servicioArchivo().puedeVerPaciente(id, {
+      usuarioId: usuario.id,
+      pacienteId: usuario.pacienteId,
+    });
+    if (!permitido) {
+      return NextResponse.json(
+        { error: "No tenés acceso a este archivo." },
+        { status: 403 },
+      );
+    }
+  }
+
+  return await servicioArchivo().obtenerContenido(id);
 }
 
 /** Nombre apto para la cabecera: sin comillas, saltos ni caracteres raros. */

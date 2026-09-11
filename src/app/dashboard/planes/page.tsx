@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import type { PlanSalidaDto } from "@/aplicacion/dtos/plan.dto";
 import type { ModalidadPlan } from "@/dominio/entidades/PlanNutricional";
+import { esDocumentoWord } from "@/dominio/entidades/Archivo";
 import { usePlanes } from "@/lib/hooks/usePlanes";
 import { Button } from "@/componentes/ui/button";
 import { Badge } from "@/componentes/ui/badge";
@@ -113,7 +114,14 @@ export default function PaginaPlanes() {
         render: (plan) => (
           <span className="flex items-center gap-2">
             <span className="font-medium">{plan.nombre}</span>
-            {plan.modalidad === "PDF" && <Badge variant="secondary">PDF</Badge>}
+            {plan.modalidad === "PDF" && (
+              <Badge variant="secondary">
+                {plan.archivoPrincipal &&
+                esDocumentoWord(plan.archivoPrincipal.mimeType)
+                  ? "Word"
+                  : "PDF"}
+              </Badge>
+            )}
             {plan.archivado && <Badge variant="outline">Archivado</Badge>}
           </span>
         ),
@@ -262,7 +270,7 @@ export default function PaginaPlanes() {
                 onClick={() => abrirNuevo(false, "PDF")}
               >
                 <FileUp className="h-4 w-4" />
-                Subir plan en PDF
+                Subir plan (PDF o Word)
               </Button>
               <Button onClick={() => abrirNuevo(false, "APP")}>
                 <Plus className="h-4 w-4" />
@@ -318,7 +326,7 @@ export default function PaginaPlanes() {
                 : comoPlantilla
                   ? "Nueva plantilla"
                   : modalidadNueva === "PDF"
-                    ? "Subir plan en PDF"
+                    ? "Subir plan (PDF o Word)"
                     : "Nuevo plan"}
             </DialogTitle>
           </DialogHeader>

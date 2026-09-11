@@ -25,11 +25,19 @@ import {
 } from "@/aplicacion/servicios/evaluacion/resumenMedicion";
 
 interface PropsTarjetasMediciones {
-  pacienteId: string;
+  /**
+   * Paciente dueño de las mediciones, para el PDF de cada una. El portal no
+   * lo pasa: ahí el paciente sale de la sesión, nunca de la URL.
+   */
+  pacienteId?: string;
   /** Mediciones en orden cronológico ascendente (la última, al final). */
   mediciones: MedicionComposicionDto[];
-  onEditar: (medicion: MedicionComposicionDto) => void;
-  onEliminar: (medicion: MedicionComposicionDto) => void;
+  /**
+   * Sin estas dos las tarjetas son de solo lectura: así las ve el paciente en
+   * su portal, que consulta sus mediciones pero no las corrige ni las borra.
+   */
+  onEditar?: (medicion: MedicionComposicionDto) => void;
+  onEliminar?: (medicion: MedicionComposicionDto) => void;
 }
 
 /**
@@ -46,6 +54,8 @@ interface PropsTarjetasMediciones {
  *
  * La tarjeta muestra las cuatro cifras que se miran primero; el resto de la
  * planilla vive en la ficha, con la diferencia contra la consulta anterior.
+ * La usan el profesional, en la pestaña «Mediciones», y el paciente, en su
+ * portal y en solo lectura.
  */
 export function TarjetasMediciones({
   pacienteId,
@@ -103,14 +113,20 @@ export function TarjetasMediciones({
             <DetalleMedicion
               medicion={abierta}
               anterior={anteriorALaAbierta}
-              onEditar={(m) => {
-                setAbiertaId(null);
-                onEditar(m);
-              }}
-              onEliminar={(m) => {
-                setAbiertaId(null);
-                onEliminar(m);
-              }}
+              onEditar={
+                onEditar &&
+                ((m) => {
+                  setAbiertaId(null);
+                  onEditar(m);
+                })
+              }
+              onEliminar={
+                onEliminar &&
+                ((m) => {
+                  setAbiertaId(null);
+                  onEliminar(m);
+                })
+              }
             />
           )}
         </DialogContent>
@@ -120,13 +136,13 @@ export function TarjetasMediciones({
 }
 
 interface PropsTarjeta {
-  pacienteId: string;
+  pacienteId?: string;
   medicion: MedicionComposicionDto;
   anterior: MedicionComposicionDto | null;
   esUltima: boolean;
   onAbrir: () => void;
-  onEditar: (medicion: MedicionComposicionDto) => void;
-  onEliminar: (medicion: MedicionComposicionDto) => void;
+  onEditar?: (medicion: MedicionComposicionDto) => void;
+  onEliminar?: (medicion: MedicionComposicionDto) => void;
 }
 
 function TarjetaMedicion({
@@ -157,7 +173,7 @@ function TarjetaMedicion({
           title={`Descargar PDF de la medición del ${formatearFecha(medicion.fecha)}`}
         >
           <a
-            href={`/api/antropometria/${medicion.id}/pdf?paciente=${pacienteId}`}
+            href={`/api/antropometria/${medicion.id}/pdf${pacienteId ? `?paciente=${pacienteId}` : ""}`}
             target="_blank"
             rel="noreferrer"
             aria-label={`Descargar PDF de la medición del ${formatearFecha(medicion.fecha)}`}
@@ -165,24 +181,28 @@ function TarjetaMedicion({
             <FileDown className="h-3.5 w-3.5" />
           </a>
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          aria-label={`Editar la medición del ${formatearFecha(medicion.fecha)}`}
-          onClick={() => onEditar(medicion)}
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          aria-label={`Eliminar la medición del ${formatearFecha(medicion.fecha)}`}
-          onClick={() => onEliminar(medicion)}
-        >
-          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-        </Button>
+        {onEditar && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            aria-label={`Editar la medición del ${formatearFecha(medicion.fecha)}`}
+            onClick={() => onEditar(medicion)}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        )}
+        {onEliminar && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            aria-label={`Eliminar la medición del ${formatearFecha(medicion.fecha)}`}
+            onClick={() => onEliminar(medicion)}
+          >
+            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+          </Button>
+        )}
       </div>
 
       <button

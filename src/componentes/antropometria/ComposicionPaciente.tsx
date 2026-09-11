@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ChevronRight,
   CircleAlert,
+  ClipboardList,
   FileDown,
   HelpCircle,
   LineChart,
@@ -40,6 +41,7 @@ import { TortaMasasConObjetivos } from "./TortaMasasConObjetivos";
 import { Somatocarta, type PuntoSomatocarta } from "./Somatocarta";
 import { Fila } from "./dashboard/piezas";
 import { useTemaComposicion } from "./useTemaComposicion";
+import { TarjetasMediciones } from "./TarjetasMediciones";
 import type { TemaComposicion } from "./paleta";
 
 const ETIQUETAS_RIESGO_CINTURA: Record<RiesgoCinturaCadera, string> = {
@@ -105,7 +107,8 @@ const ESTADOS: Record<
 };
 
 /**
- * Portal del paciente: su composición corporal y sus objetivos, en lectura.
+ * Portal del paciente: su composición corporal, sus objetivos y cada una de
+ * sus mediciones, en lectura.
  *
  * Es una vista recortada a propósito. Quedan afuera el perfil Phantom y el
  * control de calidad del fraccionamiento: son herramientas de lectura
@@ -114,6 +117,11 @@ const ESTADOS: Record<
  * el somatotipo sí se muestran —con su categoría o riesgo en palabras
  * llanas—, porque son datos que el paciente reconoce y le sirve tener a mano
  * entre consultas.
+ *
+ * Al final van sus mediciones una por una, con la planilla de cada consulta:
+ * lo que se midió ese día y no solo lo que dio. Es la misma ficha que usa el
+ * profesional, sin editar ni borrar, y no le pide nada nuevo al servidor: las
+ * medidas ya vienen en `miComposicion`.
  */
 export function ComposicionPaciente() {
   const { miComposicion } = useEvaluacion();
@@ -402,6 +410,20 @@ export function ComposicionPaciente() {
           </CardContent>
         </Card>
       )}
+
+      <section className="space-y-3">
+        <h2 className="flex items-center gap-2 text-lg font-bold">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+            <ClipboardList className="h-4 w-4 text-primary" />
+          </span>
+          Tus mediciones
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Todas tus consultas, de la más reciente a la primera. Tocá una para
+          ver cada medida que se tomó ese día.
+        </p>
+        <TarjetasMediciones mediciones={mediciones} />
+      </section>
     </div>
   );
 }

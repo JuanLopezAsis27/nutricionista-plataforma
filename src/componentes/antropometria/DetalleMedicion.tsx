@@ -20,8 +20,9 @@ interface PropsDetalleMedicion {
   medicion: MedicionComposicionDto;
   /** La consulta inmediatamente anterior, para la columna de diferencia. */
   anterior: MedicionComposicionDto | null;
-  onEditar: (medicion: MedicionComposicionDto) => void;
-  onEliminar: (medicion: MedicionComposicionDto) => void;
+  /** Sin estas dos la ficha es de solo lectura: la del portal del paciente. */
+  onEditar?: (medicion: MedicionComposicionDto) => void;
+  onEliminar?: (medicion: MedicionComposicionDto) => void;
 }
 
 /**
@@ -71,25 +72,31 @@ export function DetalleMedicion({
               : "Primera medición del paciente"}
           </p>
         </div>
-        <div className="flex gap-1">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onEditar(medicion)}
-          >
-            <Pencil className="h-3.5 w-3.5" />
-            Editar
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-destructive hover:text-destructive"
-            onClick={() => onEliminar(medicion)}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Eliminar
-          </Button>
-        </div>
+        {(onEditar || onEliminar) && (
+          <div className="flex gap-1">
+            {onEditar && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEditar(medicion)}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Editar
+              </Button>
+            )}
+            {onEliminar && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={() => onEliminar(medicion)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Eliminar
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {medicion.observaciones && (
@@ -98,7 +105,9 @@ export function DetalleMedicion({
         </p>
       )}
 
-      <AvisoFaltantes faltantes={medicion.resultado.faltantes} />
+      {/* El aviso le dice a quien mide qué le faltó tomar: le sirve a quien
+          puede completar la medición, no al paciente que la consulta. */}
+      {onEditar && <AvisoFaltantes faltantes={medicion.resultado.faltantes} />}
 
       <div className="overflow-hidden rounded-md border">
         <table className="w-full text-sm">
