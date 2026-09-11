@@ -19,6 +19,7 @@ import {
   mockPlantillaEmailRepositorio,
   mockEmailEnviadoRepositorio,
   mockServicioEmail,
+  mockEnlaceConfirmacionTurno,
   mockReloj,
   plantillaEmailEjemplo,
 } from "../_ayudas-test";
@@ -89,6 +90,7 @@ function armar(horasEntreAvisos = 24) {
     mockConfiguracionRecordatoriosRepositorio(),
     "Lic. Nutrición",
     mockEstablecimientoRepositorio(),
+    mockEnlaceConfirmacionTurno(),
   );
   const recordatorios = repositorioEnMemoria();
   const proveedor = mockProveedorWhatsapp();
