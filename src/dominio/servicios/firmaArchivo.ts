@@ -92,6 +92,10 @@ const FIRMAS: Record<string, readonly Firma[]> = {
   "application/msword": [
     { desde: 0, bytes: [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1] },
   ],
+  // .xls (Excel 97-2003) es el mismo contenedor OLE2 que el .doc.
+  "application/vnd.ms-excel": [
+    { desde: 0, bytes: [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1] },
+  ],
   // .docx es un ZIP. Se aceptan las tres variantes de cabecera local de ZIP
   // (normal, vacío y "spanned"), que es lo que producen los distintos editores.
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [

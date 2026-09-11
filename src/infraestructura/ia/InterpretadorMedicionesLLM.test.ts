@@ -1,5 +1,11 @@
-import { describe, it, expect } from "vitest";
-import { normalizarMediciones } from "./InterpretadorMedicionesLLM";
+import { describe, it, expect, vi } from "vitest";
+import {
+  InterpretadorMedicionesLLM,
+  normalizarMediciones,
+} from "./InterpretadorMedicionesLLM";
+import type { IProveedorLLM } from "./IProveedorLLM";
+import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamientoArchivos";
+import { ErrorIA } from "@/dominio/errores/ErrorIA";
 
 describe("normalizarMediciones", () => {
   it("queda con las mediciones y las ordena por fecha", async () => {
@@ -77,5 +83,32 @@ describe("normalizarMediciones", () => {
   it("devuelve lista vacía si el modelo no mandó mediciones", async () => {
     expect(normalizarMediciones({}).mediciones).toEqual([]);
     expect(normalizarMediciones({}).nombreEnPlanilla).toBeNull();
+  });
+});
+
+describe("InterpretadorMedicionesLLM", () => {
+  it("si la lectura falla, a la pantalla llega el motivo y no un error inesperado", async () => {
+    // Antes la falla de una planilla larga (el JSON cortado por el tope)
+    // salía como un 500 genérico: no había forma de saber qué había pasado.
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const llm = {
+      completar: vi.fn(async () => {
+        throw new Error("La respuesta de la IA se cortó antes de terminar.");
+      }),
+    } as unknown as IProveedorLLM;
+    const almacenamiento = {
+      descargar: vi.fn(async () => new Uint8Array([1])),
+    } as unknown as IAlmacenamientoArchivos;
+    const interpretador = new InterpretadorMedicionesLLM(
+      { obtenerLLM: async () => llm },
+      almacenamiento,
+    );
+
+    const fallo = await interpretador
+      .interpretar({ clave: "pacientes/planilla.jpg", mimeType: "image/jpeg" })
+      .catch((error: unknown) => error);
+
+    expect(fallo).toBeInstanceOf(ErrorIA);
+    expect((fallo as ErrorIA).message).toContain("se cortó");
   });
 });

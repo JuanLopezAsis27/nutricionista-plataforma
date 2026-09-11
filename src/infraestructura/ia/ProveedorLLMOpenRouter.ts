@@ -9,6 +9,15 @@ import type { AlAvanzarIA } from "@/dominio/servicios/avanceIA";
 
 const URL = "https://openrouter.ai/api/v1/chat/completions";
 const TIEMPO_LIMITE_MS = 45000;
+/**
+ * Tope de `completar`, que es donde se lee un documento entero.
+ *
+ * Los 45 s de arriba alcanzan para una vuelta de conversación, no para leer
+ * una planilla de evolución con muchas consultas: son miles de tokens de
+ * respuesta y el pedido se abortaba a mitad de camino. Diez minutos es lo que
+ * espera por defecto el SDK de Anthropic.
+ */
+const TIEMPO_LIMITE_COMPLETAR_MS = 10 * 60_000;
 
 interface LlamadaHerramienta {
   id: string;
@@ -21,7 +30,10 @@ interface MensajeOpenRouter {
   tool_calls?: LlamadaHerramienta[];
 }
 interface RespuestaOpenRouter {
-  choices?: Array<{ message?: MensajeOpenRouter }>;
+  choices?: Array<{
+    message?: MensajeOpenRouter;
+    finish_reason?: string | null;
+  }>;
   error?: { message?: string };
 }
 
@@ -110,7 +122,7 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
         "X-Title": "Consultorio",
       },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(TIEMPO_LIMITE_MS),
+      signal: AbortSignal.timeout(TIEMPO_LIMITE_COMPLETAR_MS),
     });
     if (!respuesta.ok) {
       const detalle = await respuesta.text().catch(() => "");
@@ -120,7 +132,15 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
     }
     const j = (await respuesta.json()) as RespuestaOpenRouter;
     if (j.error) throw new Error(j.error.message ?? "Error de OpenRouter.");
-    const contenidoTexto = (j.choices?.[0]?.message?.content ?? "").trim();
+    const eleccion = j.choices?.[0];
+    // Un JSON cortado por el tope no se puede leer: se avisa con el motivo en
+    // vez de devolver medio objeto.
+    if (opts.esquemaJson && eleccion?.finish_reason === "length") {
+      throw new Error(
+        "La respuesta de la IA se cortó antes de terminar: el documento es demasiado largo para leerlo de una vez.",
+      );
+    }
+    const contenidoTexto = (eleccion?.message?.content ?? "").trim();
 
     // Si pedimos JSON, devolvemos solo el objeto (sin fences ```json ni texto extra).
     return opts.esquemaJson ? extraerJSON(contenidoTexto) : contenidoTexto;

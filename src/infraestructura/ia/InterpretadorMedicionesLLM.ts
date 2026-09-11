@@ -8,6 +8,7 @@ import {
   CAMPOS_PLANTILLA,
   ETIQUETAS_CAMPO_PLANTILLA,
 } from "@/dominio/entidades/PlantillaAntropometrica";
+import { comoErrorIA } from "@/dominio/errores/ErrorIA";
 import type { IResolvedorConfigIA } from "./ResolvedorConfigIA";
 import { leerDocumentoParaLLM } from "./documentoParaLLM";
 
@@ -64,6 +65,8 @@ Hoy es ${hoy}.
 
 CÓMO ESTÁ ARMADA LA PLANILLA. Casi siempre es una tabla donde cada COLUMNA es una consulta (encabezada por su fecha) y cada FILA es una medida (peso, cintura, un pliegue). Puede venir al revés —una fila por consulta y una columna por medida—: mirá dónde están las fechas para saber cuál de las dos es. Devolvé UN objeto por consulta, con todas las medidas de esa columna (o fila) juntas.
 
+PROFORMA DE UNA SOLA TOMA. La otra forma habitual es la proforma de antropometría (la hoja "Proc datos brutos"): una FILA por medida, con columnas "serie 1", "serie 2"… y una "mediana". Ahí las series son repeticiones de la MISMA medida en la MISMA consulta, no consultas distintas: es UNA sola medición, con la fecha que figure junto a "Fecha:" y el nombre junto a "Nombre:". El valor de cada medida es el de la columna "mediana"; si la mediana está vacía y hay una sola serie cargada, usá esa serie. Ignorá "desvio std" y "error %". El subtítulo de la sección (DIÁMETROS, PERÍMETROS, PLIEGUES CUTÁNEOS) define qué es cada fila, porque hay nombres repetidos: "Pantorrilla (máxima)" es circPantorrilla en perímetros y plieguePantorrilla en pliegues; "Muslo (medial)" de perímetros es circMusloMedial y "Muslo Medial" de pliegues es pliegueMuslo. "Peso Bruto" es pesoKg y "Brazo Flexionado en Tensión" es circBrazoContraido.
+
 Reglas:
 1. NO inventes NADA. Si una medida no está cargada para esa consulta, devolvé null. Es una planilla clínica: un número inventado termina en el historial de una persona real.
 2. NO calcules ni completes nada: no interpoles entre dos consultas, no promedies, no arrastres el valor de la consulta anterior a una columna vacía. Copiá solo lo que está escrito.
@@ -102,6 +105,21 @@ export class InterpretadorMedicionesLLM implements IInterpretadorMediciones {
     clave: string;
     mimeType: string;
   }): Promise<MedicionesSugeridas> {
+    try {
+      return await this.leer(archivo);
+    } catch (error) {
+      // Sin esto, cualquier falla —la IA sin configurar, un archivo que no se
+      // puede abrir, una respuesta cortada— llegaba a la pantalla como "error
+      // inesperado", y el profesional no tenía forma de saber si el problema
+      // era la planilla o la IA.
+      throw comoErrorIA("La lectura de la planilla", error);
+    }
+  }
+
+  private async leer(archivo: {
+    clave: string;
+    mimeType: string;
+  }): Promise<MedicionesSugeridas> {
     const llm = await this.resolvedor.obtenerLLM();
     if (!llm) {
       throw new Error(
@@ -124,9 +142,13 @@ export class InterpretadorMedicionesLLM implements IInterpretadorMediciones {
             "Extraé todas las mediciones antropométricas que figuren en esta planilla, una por consulta.",
         },
       ],
-      // Una serie de 10 consultas con 20 medidas cada una es una respuesta
-      // larga: con el tope de una ficha suelta, la última columna se cortaba.
-      maxTokens: 16000,
+      // El tope lo comparten el razonamiento y la respuesta, y cada consulta
+      // son ~300 tokens de JSON. Con 16k, en una planilla de muchas columnas
+      // el razonamiento se comía el resto, el JSON llegaba cortado y la
+      // pantalla mostraba un error inesperado. Se cobra lo que se usa, no el
+      // tope; el proveedor lo pide en stream para que no choque con el
+      // timeout HTTP.
+      maxTokens: 64000,
       // Mismo criterio que el resto de la extracción clínica: leer una
       // planilla y repartirla en columnas no es tarea de una sola pasada.
       esfuerzo: "alto",

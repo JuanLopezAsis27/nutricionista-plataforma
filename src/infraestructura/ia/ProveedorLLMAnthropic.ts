@@ -60,27 +60,41 @@ export class ProveedorLLMAnthropic implements IProveedorLLM {
       },
     );
 
-    const respuesta = await this.cliente.messages.create({
-      model: this.modelo,
-      max_tokens: opts.maxTokens,
-      thinking: { type: "adaptive" },
-      output_config: {
-        effort: EFFORT[opts.esfuerzo ?? "bajo"],
-        ...(opts.esquemaJson
-          ? {
-              format: {
-                type: "json_schema" as const,
-                schema: opts.esquemaJson.esquema,
-              },
-            }
-          : {}),
-      },
-      system: opts.system,
-      messages: [{ role: "user", content: contenido }],
-    });
+    // En stream aunque nadie mire el avance. Con un `max_tokens` alto —el que
+    // necesita leer una planilla de muchas consultas— el SDK no acepta la
+    // llamada de una sola vez: calcula que puede pasar los 10 minutos del
+    // timeout HTTP y la rechaza antes de mandarla. `finalMessage` devuelve el
+    // mismo mensaje que `create`.
+    const respuesta = await this.cliente.messages
+      .stream({
+        model: this.modelo,
+        max_tokens: opts.maxTokens,
+        thinking: { type: "adaptive" },
+        output_config: {
+          effort: EFFORT[opts.esfuerzo ?? "bajo"],
+          ...(opts.esquemaJson
+            ? {
+                format: {
+                  type: "json_schema" as const,
+                  schema: opts.esquemaJson.esquema,
+                },
+              }
+            : {}),
+        },
+        system: opts.system,
+        messages: [{ role: "user", content: contenido }],
+      })
+      .finalMessage();
 
     if (respuesta.stop_reason === "refusal") {
       throw new Error("La IA rechazó la solicitud.");
+    }
+    // Un JSON cortado por el tope no se puede leer. Se avisa acá, con el
+    // motivo, en vez de dejar que explote el `JSON.parse` de quien lo pidió.
+    if (respuesta.stop_reason === "max_tokens" && opts.esquemaJson) {
+      throw new Error(
+        "La respuesta de la IA se cortó antes de terminar: el documento es demasiado largo para leerlo de una vez.",
+      );
     }
     return extraerTexto(respuesta);
   }

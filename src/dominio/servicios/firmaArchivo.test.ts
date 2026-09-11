@@ -53,6 +53,13 @@ describe("contenidoCoincideConMime", () => {
     ).toBe(true);
   });
 
+  it("acepta un .xls (contenedor OLE2, el mismo del .doc)", () => {
+    const xls = bytes(0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 0x00);
+    expect(contenidoCoincideConMime(xls, "application/vnd.ms-excel")).toBe(
+      true,
+    );
+  });
+
   // --- Lo que hay que frenar ------------------------------------------------
 
   it("rechaza HTML disfrazado de PNG (el ataque que motivó esto)", () => {

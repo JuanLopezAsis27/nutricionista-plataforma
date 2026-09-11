@@ -45,6 +45,7 @@ const ETIQUETAS_MEDIDA: Record<CampoMedida, string> = {
 
 const ACEPTA_PLANILLA =
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx," +
+  "application/vnd.ms-excel,.xls," +
   "application/pdf,image/jpeg,image/png,image/webp";
 
 /**
@@ -182,10 +183,11 @@ export function ImportadorMediciones({
     return (
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          Subí la planilla de evolución del paciente: un Excel (.xlsx), un PDF o
-          una foto. La IA lee <span className="font-medium">todas</span> las
-          consultas que tenga cargadas —una columna por fecha— y las trae para
-          revisar. Nada se guarda hasta que confirmes.
+          Subí la planilla de evolución del paciente: un Excel (.xlsx o .xls),
+          un PDF o una foto. La IA lee{" "}
+          <span className="font-medium">todas</span> las consultas que tenga
+          cargadas —una columna por fecha— y las trae para revisar. Nada se
+          guarda hasta que confirmes.
         </p>
         <SubidorArchivo
           contexto="paciente"
@@ -203,7 +205,9 @@ export function ImportadorMediciones({
         <p className="text-[11px] text-muted-foreground">
           Las columnas sin peso no se importan: sin peso no hay medición. Lo que
           la planilla calcule sola (sumatoria de pliegues, kg bajados, % de
-          grasa) tampoco: eso lo recalcula el sistema con cada lectura.
+          grasa) tampoco: eso lo recalcula el sistema con cada lectura. De la
+          proforma de una toma (hoja «Proc datos brutos») se importa la mediana
+          de cada medida.
         </p>
       </div>
     );

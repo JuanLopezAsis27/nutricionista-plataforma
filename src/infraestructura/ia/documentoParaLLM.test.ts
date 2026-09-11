@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import JSZip from "jszip";
 import ExcelJS from "exceljs";
+import * as XLSX from "xlsx";
 import {
   leerDocumentoParaLLM,
   ErrorDocumentoNoInterpretable,
@@ -11,6 +12,7 @@ const MIME_DOCX =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 const MIME_XLSX =
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const MIME_XLS = "application/vnd.ms-excel";
 
 function almacenamientoCon(contenido: Uint8Array): IAlmacenamientoArchivos {
   return {
@@ -52,6 +54,19 @@ async function planillaCon(
   for (const fila of filas) hoja.addRow([...fila]);
   const buffer = await libro.xlsx.writeBuffer();
   return new Uint8Array(buffer);
+}
+
+/** Arma un .xls real (BIFF8, Excel 97-2003), con una hoja por entrada. */
+function xlsCon(hojas: Record<string, unknown[][]>): Uint8Array {
+  const libro = XLSX.utils.book_new();
+  for (const [nombre, filas] of Object.entries(hojas)) {
+    XLSX.utils.book_append_sheet(libro, XLSX.utils.aoa_to_sheet(filas), nombre);
+  }
+  const salida = XLSX.write(libro, {
+    bookType: "biff8",
+    type: "array",
+  }) as ArrayBuffer;
+  return new Uint8Array(salida);
 }
 
 describe("leerDocumentoParaLLM", () => {
@@ -156,13 +171,78 @@ describe("leerDocumentoParaLLM", () => {
     expect(texto).not.toContain("SUM");
   });
 
-  it("rechaza el .xls viejo explicando qué hacer", async () => {
-    await expect(
-      leerDocumentoParaLLM(almacenamientoCon(new Uint8Array([1])), {
-        clave: "pacientes/vieja.xls",
-        mimeType: "application/vnd.ms-excel",
-      }),
-    ).rejects.toThrow(/\.xlsx/);
+  it("lee un Excel .xls (97-2003) igual que un .xlsx", async () => {
+    // Las proformas de antropometría que circulan entre profesionales siguen
+    // siendo .xls: rechazarlo obligaba a abrir cada una y guardarla de nuevo.
+    const xls = xlsCon({ Evolución: [["Peso", 87.3]] });
+
+    const bloque = await leerDocumentoParaLLM(almacenamientoCon(xls), {
+      clave: "pacientes/vieja.xls",
+      mimeType: MIME_XLS,
+    });
+
+    expect(bloque.tipo).toBe("texto");
+    expect((bloque as { texto: string }).texto).toContain("B1: 87.3");
+  });
+
+  it("de la proforma de antropometría manda solo el primer cuadro de «Proc datos brutos»", async () => {
+    // El resto del libro se calcula a partir de ese cuadro (masas, somatotipo,
+    // la hoja de presentación) o son tablas de referencia por deporte:
+    // mandarlo es darle al modelo números que no son medidas del paciente.
+    const xls = xlsCon({
+      "Proc datos brutos": [
+        [
+          "",
+          "Deporte:",
+          "Ninguno",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "CODIGO",
+        ],
+        ["Nombre:", "Ana Pérez"],
+        ["Fecha:", "27/08/2026"],
+        [
+          "Variable",
+          "serie 1",
+          "serie 2",
+          "serie 3",
+          "serie 4",
+          "serie 5",
+          "mediana",
+          "desvio std",
+          "error %",
+        ],
+        ["DATOS BÁSICOS"],
+        ["Peso Bruto (Kg)", 70.4, 70.6, 70.5, "", "", 70.5, 0.1, 0.14],
+        [],
+        ["Suma 6 pliegues:", 999],
+      ],
+      Presentación: [["Peso", 111]],
+    });
+
+    const bloque = await leerDocumentoParaLLM(almacenamientoCon(xls), {
+      clave: "pacientes/antropogim.xls",
+      mimeType: MIME_XLS,
+    });
+
+    const texto = (bloque as { texto: string }).texto;
+    expect(texto).toContain("B2: Ana Pérez");
+    expect(texto).toContain("G6: 70.5");
+    // Lo que queda a la derecha del cuadro, lo que sigue al primer renglón
+    // vacío y las otras hojas no viajan.
+    expect(texto).not.toContain("CODIGO");
+    expect(texto).not.toContain("999");
+    expect(texto).not.toContain("Presentación");
   });
 
   it("rechaza un Word sin texto (escaneado dentro del documento)", async () => {

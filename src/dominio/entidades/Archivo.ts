@@ -24,6 +24,7 @@ const MIMES_DOCUMENTO = [
  */
 const MIMES_PLANILLA = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
 ] as const;
 
 /**
