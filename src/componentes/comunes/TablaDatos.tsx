@@ -31,6 +31,11 @@ interface PropsTablaDatos<T> {
   pagina?: number;
   totalPaginas?: number;
   onCambiarPagina?: (pagina: number) => void;
+  // Selección de filas por checkbox (opcional): pasando estas tres props
+  // aparece una columna de tilde a la izquierda, para acciones en lote.
+  seleccionados?: Set<string>;
+  onCambiarSeleccion?: (clave: string, marcado: boolean) => void;
+  onCambiarSeleccionTodos?: (marcado: boolean) => void;
 }
 
 /**
@@ -46,11 +51,22 @@ export function TablaDatos<T>({
   pagina,
   totalPaginas,
   onCambiarPagina,
+  seleccionados,
+  onCambiarSeleccion,
+  onCambiarSeleccionTodos,
 }: PropsTablaDatos<T>) {
   const hayPaginacion =
     pagina !== undefined &&
     totalPaginas !== undefined &&
     onCambiarPagina !== undefined;
+  const haySeleccion =
+    seleccionados !== undefined &&
+    onCambiarSeleccion !== undefined &&
+    onCambiarSeleccionTodos !== undefined;
+  const todosSeleccionados =
+    haySeleccion &&
+    datos.length > 0 &&
+    datos.every((fila) => seleccionados.has(obtenerClave(fila)));
 
   return (
     <div className="space-y-4">
@@ -58,6 +74,17 @@ export function TablaDatos<T>({
         <Table>
           <TableHeader>
             <TableRow>
+              {haySeleccion && (
+                <TableHead className="w-10">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-primary"
+                    checked={todosSeleccionados}
+                    onChange={(e) => onCambiarSeleccionTodos(e.target.checked)}
+                    aria-label="Seleccionar todos"
+                  />
+                </TableHead>
+              )}
               {columnas.map((columna) => (
                 <TableHead key={columna.clave} className={columna.className}>
                   {columna.encabezado}
@@ -69,6 +96,11 @@ export function TablaDatos<T>({
             {cargando ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
+                  {haySeleccion && (
+                    <TableCell>
+                      <Skeleton className="h-4 w-4" />
+                    </TableCell>
+                  )}
                   {columnas.map((columna) => (
                     <TableCell key={columna.clave}>
                       <Skeleton className="h-5 w-full" />
@@ -79,29 +111,45 @@ export function TablaDatos<T>({
             ) : datos.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={columnas.length}
+                  colSpan={columnas.length + (haySeleccion ? 1 : 0)}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {mensajeVacio}
                 </TableCell>
               </TableRow>
             ) : (
-              datos.map((fila) => (
-                <TableRow key={obtenerClave(fila)}>
-                  {columnas.map((columna) => (
-                    <TableCell
-                      key={columna.clave}
-                      className={columna.className}
-                    >
-                      {columna.render
-                        ? columna.render(fila)
-                        : aTexto(
-                            (fila as Record<string, unknown>)[columna.clave],
-                          )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+              datos.map((fila) => {
+                const clave = obtenerClave(fila);
+                return (
+                  <TableRow key={clave}>
+                    {haySeleccion && (
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 accent-primary"
+                          checked={seleccionados.has(clave)}
+                          onChange={(e) =>
+                            onCambiarSeleccion(clave, e.target.checked)
+                          }
+                          aria-label="Seleccionar fila"
+                        />
+                      </TableCell>
+                    )}
+                    {columnas.map((columna) => (
+                      <TableCell
+                        key={columna.clave}
+                        className={columna.className}
+                      >
+                        {columna.render
+                          ? columna.render(fila)
+                          : aTexto(
+                              (fila as Record<string, unknown>)[columna.clave],
+                            )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

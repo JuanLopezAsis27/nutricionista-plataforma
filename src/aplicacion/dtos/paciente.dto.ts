@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_PACIENTES_POR_LOTE } from "@/aplicacion/casos-de-uso/pacientes/EnviarBienvenidaMasiva";
 import { passwordNuevaDto } from "./password";
 import { SEXOS_BIOLOGICOS } from "@/dominio/servicios/composicionCorporal";
 import {
@@ -70,6 +71,8 @@ export const listarPacientesDto = z.object({
   porPagina: z.number().int().positive().max(100).default(10),
   /** Los archivados quedan fuera salvo que se pidan explícitamente. */
   incluirArchivados: z.boolean().default(false),
+  /** Filtra por si ya se le mandó (o no) el email de bienvenida. */
+  bienvenida: z.enum(["enviada", "no_enviada"]).optional(),
 });
 export type ListarPacientesDto = z.infer<typeof listarPacientesDto>;
 
@@ -87,6 +90,7 @@ export const pacienteSalidaDto = z.object({
   establecimientoHabitualId: z.string().nullable(),
   archivadoEn: z.date().nullable(),
   motivoArchivado: z.string().nullable(),
+  bienvenidaEnviadaEn: z.date().nullable(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
 });
@@ -98,6 +102,33 @@ export interface PacientesPaginados {
   total: number;
   paginas: number;
 }
+
+/** Envío manual de la bienvenida a una selección de pacientes. */
+export const enviarBienvenidaManualDto = z.object({
+  pacienteIds: z.array(z.string().min(1)).min(1).max(MAX_PACIENTES_POR_LOTE),
+  /** Insiste aunque ya se le haya enviado antes. */
+  forzar: z.boolean().optional(),
+});
+export type EnviarBienvenidaManualDto = z.infer<
+  typeof enviarBienvenidaManualDto
+>;
+
+export const detalleEnvioBienvenidaSalidaDto = z.object({
+  pacienteId: z.string(),
+  nombrePaciente: z.string(),
+  estado: z.enum(["ENVIADO", "OMITIDO", "FALLIDO"]),
+  motivo: z.string().nullable(),
+});
+
+export const resultadoEnvioBienvenidaSalidaDto = z.object({
+  enviados: z.number(),
+  omitidos: z.number(),
+  fallidos: z.number(),
+  detalles: z.array(detalleEnvioBienvenidaSalidaDto),
+});
+export type ResultadoEnvioBienvenidaSalidaDto = z.infer<
+  typeof resultadoEnvioBienvenidaSalidaDto
+>;
 
 // --- Alta desde un documento (ficha en PDF, Word o foto) ----------------------
 

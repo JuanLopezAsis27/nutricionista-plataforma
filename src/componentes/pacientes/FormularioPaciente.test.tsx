@@ -121,6 +121,7 @@ describe("FormularioPaciente (alta)", () => {
           notas: null,
           archivadoEn: null,
           motivoArchivado: null,
+          bienvenidaEnviadaEn: null,
           creadoEn: new Date(),
           actualizadoEn: new Date(),
         }}

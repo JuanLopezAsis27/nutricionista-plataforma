@@ -3,7 +3,11 @@ import type { ObtenerPacientes } from "@/aplicacion/casos-de-uso/pacientes/Obten
 import type { ObtenerPacientePorId } from "@/aplicacion/casos-de-uso/pacientes/ObtenerPacientePorId";
 import type { ActualizarPaciente } from "@/aplicacion/casos-de-uso/pacientes/ActualizarPaciente";
 import type { EliminarPaciente } from "@/aplicacion/casos-de-uso/pacientes/EliminarPaciente";
-import type { EnviarEmailDeBienvenida } from "@/aplicacion/casos-de-uso/pacientes/EnviarEmailDeBienvenida";
+import type { EnviarBienvenidaAlAlta } from "@/aplicacion/casos-de-uso/pacientes/EnviarBienvenidaAlAlta";
+import type {
+  EnviarBienvenidaMasiva,
+  ResultadoEnvioBienvenida,
+} from "@/aplicacion/casos-de-uso/pacientes/EnviarBienvenidaMasiva";
 import type { ArchivarPaciente } from "@/aplicacion/casos-de-uso/pacientes/ArchivarPaciente";
 import type { ReactivarPaciente } from "@/aplicacion/casos-de-uso/pacientes/ReactivarPaciente";
 import type { InterpretarFichaPaciente } from "@/aplicacion/casos-de-uso/pacientes/InterpretarFichaPaciente";
@@ -35,7 +39,8 @@ export class ServicioPaciente {
     private readonly obtenerPorIdUC: ObtenerPacientePorId,
     private readonly actualizarUC: ActualizarPaciente,
     private readonly eliminarUC: EliminarPaciente,
-    private readonly enviarBienvenidaUC: EnviarEmailDeBienvenida,
+    private readonly enviarBienvenidaUC: EnviarBienvenidaAlAlta,
+    private readonly enviarBienvenidaMasivaUC: EnviarBienvenidaMasiva,
     private readonly archivarUC: ArchivarPaciente,
     private readonly reactivarUC: ReactivarPaciente,
     private readonly interpretarFichaUC: InterpretarFichaPaciente,
@@ -49,8 +54,7 @@ export class ServicioPaciente {
     // Email de bienvenida best-effort: nunca hace fallar el alta del paciente.
     try {
       await this.enviarBienvenidaUC.ejecutar({
-        nombrePaciente: paciente.nombreCompleto,
-        email: paciente.email,
+        paciente,
         // La contraseña en texto plano solo existe acá, durante el alta: la
         // cuenta ya la guardó hasheada. Por eso la bienvenida es el único
         // mensaje que puede llevarla.
@@ -63,6 +67,14 @@ export class ServicioPaciente {
       );
     }
     return ServicioPaciente.aSalida(paciente);
+  }
+
+  /** Envío manual de la bienvenida a una selección de pacientes. */
+  async enviarBienvenidaManual(datos: {
+    pacienteIds: string[];
+    forzar?: boolean;
+  }): Promise<ResultadoEnvioBienvenida> {
+    return this.enviarBienvenidaMasivaUC.ejecutar(datos);
   }
 
   async obtenerPacientes(

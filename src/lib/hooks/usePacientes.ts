@@ -60,6 +60,35 @@ export function usePacientes() {
     onError: (error) => toast.error(error.message),
   });
 
+  const enviarBienvenidaManual =
+    trpc.pacientes.enviarBienvenidaManual.useMutation({
+      onSuccess: (resultado) => {
+        if (resultado.enviados > 0) {
+          toast.success(
+            `Bienvenida enviada a ${resultado.enviados} paciente${
+              resultado.enviados === 1 ? "" : "s"
+            }.`,
+          );
+        }
+        if (resultado.omitidos > 0) {
+          toast.info(
+            `${resultado.omitidos} paciente${
+              resultado.omitidos === 1 ? "" : "s"
+            } ya la tenía enviada.`,
+          );
+        }
+        if (resultado.fallidos > 0) {
+          toast.error(
+            `No se pudo enviar a ${resultado.fallidos} paciente${
+              resultado.fallidos === 1 ? "" : "s"
+            }.`,
+          );
+        }
+        invalidar();
+      },
+      onError: (error) => toast.error(error.message),
+    });
+
   return {
     utils,
     listar: trpc.pacientes.obtenerTodos.useQuery,
@@ -69,5 +98,6 @@ export function usePacientes() {
     eliminar,
     interpretarFicha,
     crearDesdeFicha,
+    enviarBienvenidaManual,
   };
 }

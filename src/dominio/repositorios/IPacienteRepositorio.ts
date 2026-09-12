@@ -7,6 +7,8 @@ export interface FiltroPacientes {
   desplazamiento?: number;
   /** Por defecto los listados solo traen pacientes vigentes (no archivados). */
   incluirArchivados?: boolean;
+  /** Filtra por si ya se le mandó (o no) el email de bienvenida. */
+  bienvenida?: "enviada" | "no_enviada";
 }
 
 /**

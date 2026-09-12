@@ -21,7 +21,6 @@ propios datos. Tres roles: SUPERADMIN, NUTRICIONISTA y PACIENTE.
 - pg-boss (cola de trabajos) y LISTEN/NOTIFY (bus de eventos SSE), ambos sobre
   la misma PostgreSQL
 - MinIO / S3 para archivos, Nodemailer para email
-- Anthropic SDK (Claude) para IA, con degradación a stubs si no hay clave
 - Capacitor para la app Android; además la web es una PWA instalable
 - Docker Compose para todo el stack
 

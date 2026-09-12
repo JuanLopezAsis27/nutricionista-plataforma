@@ -35,6 +35,7 @@ export class PrismaRepositorioConfiguracion implements IConfiguracionRepositorio
       pdfMostrarEquivalencias: d.pdfMostrarEquivalencias,
       pdfMostrarRecomendaciones: d.pdfMostrarRecomendaciones,
       whatsappPrefijoPais: d.whatsappPrefijoPais,
+      bienvenidaAutomaticaActiva: d.bienvenidaAutomaticaActiva,
     };
     // La config del inquilino es única; si ya existe se actualiza, si no se crea.
     const existente = await this.prisma.configuracionConsultorio.findFirst();
@@ -66,6 +67,7 @@ export function mapearConfiguracion(
     pdfMostrarEquivalencias: fila.pdfMostrarEquivalencias,
     pdfMostrarRecomendaciones: fila.pdfMostrarRecomendaciones,
     whatsappPrefijoPais: fila.whatsappPrefijoPais,
+    bienvenidaAutomaticaActiva: fila.bienvenidaAutomaticaActiva,
     creadoEn: fila.creadoEn,
     actualizadoEn: fila.actualizadoEn,
   });
