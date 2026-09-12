@@ -20,23 +20,34 @@ import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 /**
  * Quiénes tienen —o tuvieron— este plan.
  *
- * Muestra las asignaciones históricas y no solo las vigentes: un plan que se
- * usó y se dejó de usar sigue siendo un plan usado, y esconderlo haría pensar
- * que nunca se asignó (por ejemplo al ir a borrarlo).
+ * Por default muestra las asignaciones históricas y no solo las vigentes: un
+ * plan que se usó y se dejó de usar sigue siendo un plan usado, y esconderlo
+ * haría pensar que nunca se asignó (por ejemplo al ir a borrarlo).
+ *
+ * `soloActivas` corta esa lista a las vigentes. Lo usa el diálogo de "Asignar
+ * a paciente": ahí lo que importa es quién lo está siguiendo HOY —para no
+ * sumarlo de nuevo—, y el historial de finalizados es ruido en esa decisión.
  *
  * Finalizar desde acá es la contracara de asignar desde la ficha del plan: se
  * decide sobre el plan, y obligar a entrar a cada paciente para soltarlo era
  * el mismo viaje de ida y vuelta que ya se sacó en la asignación.
  */
-export function PacientesDelPlan({ planId }: { planId: string }) {
+export function PacientesDelPlan({
+  planId,
+  soloActivas,
+}: {
+  planId: string;
+  soloActivas?: boolean;
+}) {
   const { pacientesDelPlan, desasignar } = usePlanes();
   const consulta = pacientesDelPlan({ id: planId });
   const [finalizar, setFinalizar] = useState<AsignacionConPacienteDto | null>(
     null,
   );
 
-  const asignaciones = consulta.data ?? [];
-  const activas = asignaciones.filter((a) => a.activa);
+  const todas = consulta.data ?? [];
+  const asignaciones = soloActivas ? todas.filter((a) => a.activa) : todas;
+  const activas = todas.filter((a) => a.activa);
 
   return (
     <Card>
@@ -56,7 +67,9 @@ export function PacientesDelPlan({ planId }: { planId: string }) {
           <Skeleton className="h-20 w-full" />
         ) : asignaciones.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Todavía no se le asignó a nadie.
+            {soloActivas && todas.length > 0
+              ? "Nadie lo tiene vigente ahora mismo."
+              : "Todavía no se le asignó a nadie."}
           </p>
         ) : (
           <ul className="divide-y">

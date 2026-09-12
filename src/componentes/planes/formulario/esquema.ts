@@ -59,6 +59,8 @@ export const esquema = z
     grupoId: z.string(),
     /** Id del Archivo que ES el plan (modalidad PDF), o null. */
     archivoPrincipalId: z.string().nullable(),
+    /** Recetas vinculadas directamente al plan, sin franja (pensado para PDF). */
+    recetaIds: z.array(z.string()).max(50),
     equivalencias: z
       .array(
         z.object({

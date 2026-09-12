@@ -62,6 +62,11 @@ const planBase = z.object({
   archivoIds: z.array(z.string().min(1)).max(20).optional(),
   /** Cuál de ellos ES el plan. Solo en modalidad PDF. */
   archivoPrincipalId: z.string().min(1).nullable().optional(),
+  /**
+   * Recetas vinculadas directamente al plan, sin franja. Pensado para el plan
+   * PDF/Word, que no tiene franjas de las que colgarlas.
+   */
+  recetaIds: z.array(z.string().min(1)).max(50).optional(),
   ...metas,
 });
 
@@ -161,6 +166,52 @@ export const asignarPlanDto = z
   });
 export type AsignarPlanDto = z.infer<typeof asignarPlanDto>;
 
+/** Asignar el MISMO plan a varios pacientes a la vez, con el mismo período. */
+export const asignarPlanMultipleDto = z
+  .object({
+    planId: z.string().min(1),
+    pacienteIds: z
+      .array(z.string().min(1))
+      .min(1, "Elegí al menos un paciente"),
+    fechaInicio: z.coerce.date(),
+    fechaFin: z.coerce.date().optional().nullable(),
+  })
+  .refine((datos) => !datos.fechaFin || datos.fechaFin >= datos.fechaInicio, {
+    message: "La fecha de fin no puede ser anterior a la de inicio",
+    path: ["fechaFin"],
+  });
+export type AsignarPlanMultipleDto = z.infer<typeof asignarPlanMultipleDto>;
+
+/** Resultado de asignar a varios: quién sí y quién no (y por qué). */
+export const resultadoAsignacionMultipleDto = z.object({
+  pacienteId: z.string(),
+  asignado: z.boolean(),
+  error: z.string().nullable(),
+});
+export type ResultadoAsignacionMultipleDto = z.infer<
+  typeof resultadoAsignacionMultipleDto
+>;
+
+/**
+ * Crear un plan NUEVO ya asignado a un paciente, desde su ficha. Es
+ * `crearPlanDto` menos `esPlantilla`/`grupoId` (los decide el caso de uso: no
+ * es plantilla y la carpeta es la del paciente) más a quién y desde cuándo.
+ */
+export const crearPlanParaPacienteDto = planBase
+  .omit({ grupoId: true })
+  .extend({
+    pacienteId: z.string().min(1),
+    fechaInicio: z.coerce.date(),
+    fechaFin: z.coerce.date().optional().nullable(),
+  })
+  .refine((d) => contenidoDeLaApp(d), FALTA_COMIDA)
+  .refine((d) => contenidoDelPdf(d), FALTA_ARCHIVO)
+  .refine((datos) => !datos.fechaFin || datos.fechaFin >= datos.fechaInicio, {
+    message: "La fecha de fin no puede ser anterior a la de inicio",
+    path: ["fechaFin"],
+  });
+export type CrearPlanParaPacienteDto = z.infer<typeof crearPlanParaPacienteDto>;
+
 // --- Salida ------------------------------------------------------------------
 
 /** Ficha de un archivo del plan. Se abre por /api/archivos/<id>/ver. */
@@ -239,6 +290,10 @@ export const planSalidaDto = z.object({
   archivoPrincipal: archivoDelPlanDto.nullable(),
   /** Archivos que acompañan al plan sin reemplazarlo. */
   adjuntos: z.array(archivoDelPlanDto),
+  /** Recetas vinculadas directamente al plan, sin franja. */
+  recetasVinculadas: z.array(
+    z.object({ recetaId: z.string(), recetaNombre: z.string().nullable() }),
+  ),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
 });

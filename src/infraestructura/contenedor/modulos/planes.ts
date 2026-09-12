@@ -12,6 +12,8 @@ import { EliminarPlan } from "@/aplicacion/casos-de-uso/planes/EliminarPlan";
 import { ArchivarPlan } from "@/aplicacion/casos-de-uso/planes/ArchivarPlan";
 import { CrearPlanDesdePlantilla } from "@/aplicacion/casos-de-uso/planes/CrearPlanDesdePlantilla";
 import { AsignarPlanAPaciente } from "@/aplicacion/casos-de-uso/planes/AsignarPlanAPaciente";
+import { AsignarPlanAVariosPacientes } from "@/aplicacion/casos-de-uso/planes/AsignarPlanAVariosPacientes";
+import { CrearPlanParaPaciente } from "@/aplicacion/casos-de-uso/planes/CrearPlanParaPaciente";
 import { DesasignarPlanDePaciente } from "@/aplicacion/casos-de-uso/planes/DesasignarPlanDePaciente";
 import { ObtenerPlanDelPaciente } from "@/aplicacion/casos-de-uso/planes/ObtenerPlanDelPaciente";
 import { ObtenerPacientesDePlan } from "@/aplicacion/casos-de-uso/planes/ObtenerPacientesDePlan";
@@ -33,8 +35,14 @@ export function crearServicioPlan(deps: {
   grupos: IGrupoPlanRepositorio;
   recetas: IRecetaRepositorio;
 }): ServicioPlan {
+  const asignarUC = new AsignarPlanAPaciente(
+    deps.planes,
+    deps.planes,
+    deps.pacientes,
+  );
+  const crearUC = new CrearPlan(deps.planes);
   return new ServicioPlan(
-    new CrearPlan(deps.planes),
+    crearUC,
     new ObtenerPlanes(deps.planes),
     new ObtenerPlanesPaginado(deps.planes),
     new ObtenerPlanPorId(deps.planes),
@@ -42,7 +50,9 @@ export function crearServicioPlan(deps: {
     new EliminarPlan(deps.planes, deps.planes),
     new ArchivarPlan(deps.planes),
     new CrearPlanDesdePlantilla(deps.planes),
-    new AsignarPlanAPaciente(deps.planes, deps.planes, deps.pacientes),
+    asignarUC,
+    new AsignarPlanAVariosPacientes(asignarUC),
+    new CrearPlanParaPaciente(crearUC, asignarUC, deps.grupos, deps.pacientes),
     new DesasignarPlanDePaciente(deps.planes),
     new ObtenerPlanDelPaciente(deps.planes),
     new ObtenerPacientesDePlan(deps.planes, deps.planes),

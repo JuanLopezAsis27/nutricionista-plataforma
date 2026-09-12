@@ -38,12 +38,22 @@ export interface FiltroPlanes {
  * Las asignaciones plan⇄paciente vivían acá y se movieron a
  * `IAsignacionPlanRepositorio`: son otro agregado, con otro ciclo de vida, y
  * la mayoría de los consumidores necesitaba uno solo de los dos.
+ *
+ * `recetaIds` es el mismo patrón que `archivoIds` pero para las recetas
+ * vinculadas directamente al plan (sin franja): estado final, se reemplaza
+ * entero. A diferencia de un archivo, una receta que sale de la lista se
+ * DESVINCULA nomás —tiene dueño propio (el recetario) y sigue existiendo—.
  */
 export interface IPlanRepositorio {
-  crear(plan: PlanNutricional, archivoIds: string[]): Promise<PlanNutricional>;
+  crear(
+    plan: PlanNutricional,
+    archivoIds: string[],
+    recetaIds: string[],
+  ): Promise<PlanNutricional>;
   actualizar(
     plan: PlanNutricional,
     archivoIds: string[],
+    recetaIds: string[],
   ): Promise<PlanNutricional>;
   eliminar(id: string): Promise<void>;
   obtenerPorId(id: string): Promise<PlanNutricional | null>;

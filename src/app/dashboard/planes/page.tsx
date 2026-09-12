@@ -41,6 +41,7 @@ import {
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { FormularioPlan } from "@/componentes/planes/FormularioPlan";
 import { FormularioAsignacionPlan } from "@/componentes/planes/FormularioAsignacionPlan";
+import { PacientesDelPlan } from "@/componentes/planes/PacientesDelPlan";
 import { NavegadorCarpetas } from "@/componentes/planes/NavegadorCarpetas";
 import { MoverPlanACarpeta } from "@/componentes/planes/MoverPlanACarpeta";
 import { SeccionPlanesSemanales } from "@/componentes/planes-semanales/SeccionPlanesSemanales";
@@ -348,15 +349,22 @@ export default function PaginaPlanes() {
         open={Boolean(planAsignar)}
         onOpenChange={(abierto) => !abierto && setPlanAsignar(null)}
       >
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Asignar «{planAsignar?.nombre}»</DialogTitle>
           </DialogHeader>
           {planAsignar && (
-            <FormularioAsignacionPlan
-              planId={planAsignar.id}
-              onTerminado={() => setPlanAsignar(null)}
-            />
+            <div className="space-y-6">
+              <FormularioAsignacionPlan
+                planId={planAsignar.id}
+                onTerminado={() => setPlanAsignar(null)}
+              />
+              {/* Quiénes ya lo tienen: se ve acá mismo, sin ir a la ficha del
+                  plan, porque es lo primero que se quiere saber antes de
+                  sumar más pacientes. Solo los vigentes: un finalizado no es
+                  candidato a "ya lo tiene", es historial. */}
+              <PacientesDelPlan planId={planAsignar.id} soloActivas />
+            </div>
           )}
         </DialogContent>
       </Dialog>

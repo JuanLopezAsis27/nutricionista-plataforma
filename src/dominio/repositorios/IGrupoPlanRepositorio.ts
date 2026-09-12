@@ -29,4 +29,6 @@ export interface IGrupoPlanRepositorio {
   listar(): Promise<GrupoPlanConTotal[]>;
   /** ¿Ya hay una carpeta con ese nombre? `excluirId` la deja renombrarse a sí misma. */
   existeNombre(nombre: string, excluirId?: string): Promise<boolean>;
+  /** La carpeta de ESE paciente, si "crear plan desde su ficha" ya la armó. */
+  obtenerPorPaciente(pacienteId: string): Promise<GrupoPlan | null>;
 }

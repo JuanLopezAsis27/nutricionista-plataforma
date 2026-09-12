@@ -32,6 +32,11 @@ export class SincronizarRecetasDePlan {
         if (opcion.recetaId) recetaIds.add(opcion.recetaId);
       }
     }
+    // Las vinculadas directamente al plan (sin franja) son el único camino en
+    // un plan PDF/Word, que no tiene franjas de las que colgar una opción.
+    for (const vinculo of plan.recetasVinculadas) {
+      recetaIds.add(vinculo.recetaId);
+    }
     if (recetaIds.size === 0) return;
 
     const pacientesActivos = (

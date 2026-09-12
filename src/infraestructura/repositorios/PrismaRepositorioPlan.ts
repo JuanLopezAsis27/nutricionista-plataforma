@@ -51,6 +51,12 @@ const INCLUIR_HIJOS = {
       tamanoBytes: true,
     },
   },
+  // Recetas vinculadas directamente al plan (sin franja): solo el nombre, para
+  // mostrarlo sin una consulta aparte. Orden estable por fecha de vínculo.
+  recetasVinculadas: {
+    orderBy: { creadoEn: "asc" },
+    include: { receta: { select: { nombre: true } } },
+  },
 } satisfies Prisma.PlanNutricionalInclude;
 
 type PlanConHijos = Prisma.PlanNutricionalGetPayload<{
@@ -75,6 +81,7 @@ export class PrismaRepositorioPlan
   async crear(
     plan: PlanNutricional,
     archivoIds: string[],
+    recetaIds: string[],
   ): Promise<PlanNutricional> {
     const d = plan.aPrimitivos();
     // Las hijas del agregado llevan el inquilino materializado (migración 27).
@@ -139,6 +146,7 @@ export class PrismaRepositorioPlan
         },
       });
       await this.vincularArchivos(tx, d.id, archivoIds, d.archivoPrincipalId);
+      await this.vincularRecetas(tx, d.id, recetaIds);
       return tx.planNutricional.findUniqueOrThrow({
         where: { id: d.id },
         include: INCLUIR_HIJOS,
@@ -150,6 +158,7 @@ export class PrismaRepositorioPlan
   async actualizar(
     plan: PlanNutricional,
     archivoIds: string[],
+    recetaIds: string[],
   ): Promise<PlanNutricional> {
     const d = plan.aPrimitivos();
     // Las hijas del agregado llevan el inquilino materializado (migración 27).
@@ -213,12 +222,36 @@ export class PrismaRepositorioPlan
         },
       });
       await this.vincularArchivos(tx, d.id, archivoIds, d.archivoPrincipalId);
+      await this.vincularRecetas(tx, d.id, recetaIds);
       return tx.planNutricional.findUniqueOrThrow({
         where: { id: d.id },
         include: INCLUIR_HIJOS,
       });
     });
     return mapearPlan(fila);
+  }
+
+  /**
+   * Deja al plan con exactamente esas recetas vinculadas. A diferencia de un
+   * archivo, la que sale de la lista se DESVINCULA nomás: tiene dueño propio
+   * (el recetario) y sigue existiendo ahí.
+   */
+  private async vincularRecetas(
+    tx: Prisma.TransactionClient,
+    planId: string,
+    recetaIds: string[],
+  ): Promise<void> {
+    await tx.recetaDelPlan.deleteMany({ where: { planId } });
+    if (recetaIds.length > 0) {
+      await tx.recetaDelPlan.createMany({
+        data: recetaIds.map((recetaId) => ({
+          id: crypto.randomUUID(),
+          nutricionistaId: inquilinoActual(),
+          planId,
+          recetaId,
+        })),
+      });
+    }
   }
 
   /**
@@ -502,6 +535,10 @@ export function mapearPlan(fila: PlanConHijos): PlanNutricional {
       tamanoBytes: archivo.tamanoBytes,
     })),
     archivoPrincipalId: fila.archivoPrincipalId,
+    recetasVinculadas: fila.recetasVinculadas.map((vinculo) => ({
+      recetaId: vinculo.recetaId,
+      recetaNombre: vinculo.receta.nombre,
+    })),
     creadoEn: fila.creadoEn,
     actualizadoEn: fila.actualizadoEn,
   });

@@ -24,6 +24,7 @@ import {
   FormMessage,
 } from "@/componentes/ui/form";
 import { SelectorPaciente } from "@/componentes/pacientes/SelectorPaciente";
+import { SelectorPacientesMultiple } from "@/componentes/pacientes/SelectorPacientesMultiple";
 
 export const esquema = z
   .object({
@@ -38,6 +39,20 @@ export const esquema = z
   });
 type DatosFormulario = z.infer<typeof esquema>;
 
+export const esquemaMultiple = z
+  .object({
+    pacienteIds: z
+      .array(z.string().min(1))
+      .min(1, "Elegí al menos un paciente"),
+    fechaInicio: z.string().min(1, "Elegí la fecha de inicio"),
+    fechaFin: z.string().optional(),
+  })
+  .refine((d) => !d.fechaFin || d.fechaFin >= d.fechaInicio, {
+    message: "La fecha de fin no puede ser anterior a la de inicio",
+    path: ["fechaFin"],
+  });
+type DatosFormularioMultiple = z.infer<typeof esquemaMultiple>;
+
 interface Props {
   /** Plan prefijado (asignación desde la ficha del plan). Sin él se elige acá. */
   planId?: string;
@@ -47,18 +62,48 @@ interface Props {
 }
 
 /**
- * Formulario para asignar un plan a un paciente.
+ * Formulario para asignar un plan a uno o varios pacientes.
  *
- * Los dos extremos son opcionales porque se entra desde las dos puntas: desde
- * la ficha del plan (falta el paciente) y desde la ficha del paciente (falta
- * el plan). El lado que viene fijado no se muestra: cambiarlo ahí sería
- * asignar algo distinto de lo que dice la pantalla.
+ * Los dos extremos originales son opcionales porque se entra desde las dos
+ * puntas: desde la ficha del plan (falta el paciente) y desde la ficha del
+ * paciente (falta el plan). El lado que viene fijado no se muestra: cambiarlo
+ * ahí sería asignar algo distinto de lo que dice la pantalla.
+ *
+ * Desde la ficha del PLAN (planId fijo, sin paciente) se puede elegir MÁS DE
+ * uno: es una tanda ("asignarle este plan a estos cinco"), y forzar una
+ * asignación por vez ahí sería el mismo viaje de ida y vuelta que ya se sacó
+ * en el resto del módulo. Desde la ficha del PACIENTE el destino es él y nadie
+ * más: ahí no hay nada que multiplicar.
  */
 export function FormularioAsignacionPlan({
   planId,
   pacienteIdFijo,
   onTerminado,
 }: Props) {
+  if (planId && !pacienteIdFijo) {
+    return (
+      <FormularioAsignacionMultiple planId={planId} onTerminado={onTerminado} />
+    );
+  }
+
+  return (
+    <FormularioAsignacionUnica
+      planId={planId}
+      pacienteIdFijo={pacienteIdFijo}
+      onTerminado={onTerminado}
+    />
+  );
+}
+
+function FormularioAsignacionUnica({
+  planId,
+  pacienteIdFijo,
+  onTerminado,
+}: {
+  planId?: string;
+  pacienteIdFijo?: string;
+  onTerminado: () => void;
+}) {
   const { asignar, delPaciente, listar } = usePlanes();
 
   // Solo planes reales y vigentes: una plantilla no se asigna (se clona) y un
@@ -214,6 +259,110 @@ export function FormularioAsignacionPlan({
           </Button>
           <Button type="submit" disabled={asignar.isPending}>
             {asignar.isPending ? "Asignando…" : "Asignar plan"}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+}
+
+/**
+ * Desde la ficha del PLAN: elegir varios pacientes a la vez para el mismo
+ * plan y período. Cada asignación es independiente en el servidor —una que
+ * falle no aborta a las demás—, así que acá no hay advertencia de "reemplaza
+ * el plan activo" por paciente: son demasiados para leerla una por una, y el
+ * mensaje de éxito ya cuenta cuántas anduvieron.
+ */
+function FormularioAsignacionMultiple({
+  planId,
+  onTerminado,
+}: {
+  planId: string;
+  onTerminado: () => void;
+}) {
+  const { asignarAVarios } = usePlanes();
+
+  const form = useForm<DatosFormularioMultiple>({
+    resolver: zodResolver(esquemaMultiple),
+    defaultValues: {
+      pacienteIds: [],
+      fechaInicio: hoyISO(),
+      fechaFin: "",
+    },
+  });
+
+  function alEnviar(datos: DatosFormularioMultiple) {
+    asignarAVarios.mutate(
+      {
+        planId,
+        pacienteIds: datos.pacienteIds,
+        fechaInicio: new Date(datos.fechaInicio),
+        fechaFin: datos.fechaFin ? new Date(datos.fechaFin) : null,
+      },
+      { onSuccess: onTerminado },
+    );
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(alEnviar)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="pacienteIds"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Pacientes</FormLabel>
+              <FormControl>
+                <SelectorPacientesMultiple
+                  valores={field.value}
+                  onCambiar={field.onChange}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="fechaInicio"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Fecha de inicio</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="fechaFin"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Fecha de fin (opcional)</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onTerminado}
+            disabled={asignarAVarios.isPending}
+          >
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={asignarAVarios.isPending}>
+            {asignarAVarios.isPending ? "Asignando…" : "Asignar plan"}
           </Button>
         </div>
       </form>

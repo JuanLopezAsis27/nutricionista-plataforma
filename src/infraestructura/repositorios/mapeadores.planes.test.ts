@@ -88,6 +88,7 @@ describe("mapearPlan", () => {
         tamanoBytes: 1024,
       },
     ],
+    recetasVinculadas: [],
   } as unknown as Parameters<typeof mapearPlan>[0];
 
   it("copia los campos propios del plan", () => {
@@ -334,6 +335,7 @@ describe("mapearGrupoPlan", () => {
       nutricionistaId: "nutri-1",
       nombre: "Descenso",
       descripcion: "planes de descenso",
+      pacienteId: null,
       creadoEn: new Date("2026-01-01T00:00:00.000Z"),
       actualizadoEn: new Date("2026-01-02T00:00:00.000Z"),
     }).aPrimitivos();

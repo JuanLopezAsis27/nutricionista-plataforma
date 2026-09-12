@@ -33,6 +33,13 @@ export class PrismaRepositorioGrupoPlan
     return mapearGrupoPlan(fila);
   }
 
+  async obtenerPorPaciente(pacienteId: string): Promise<GrupoPlan | null> {
+    const fila = await this.prisma.grupoPlan.findUnique({
+      where: { pacienteId },
+    });
+    return fila ? mapearGrupoPlan(fila) : null;
+  }
+
   async listar(): Promise<GrupoPlanConTotal[]> {
     // Dos consultas y no una por carpeta: `_count` no sabe devolver el mismo
     // vínculo contado de dos maneras (planes y plantillas), y un `include` por
@@ -80,6 +87,7 @@ export function mapearGrupoPlan(fila: GrupoFila): GrupoPlan {
     id: fila.id,
     nombre: fila.nombre,
     descripcion: fila.descripcion,
+    pacienteId: fila.pacienteId,
     creadoEn: fila.creadoEn,
     actualizadoEn: fila.actualizadoEn,
   });
