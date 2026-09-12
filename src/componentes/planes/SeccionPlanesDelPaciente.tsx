@@ -9,7 +9,10 @@ import {
   Repeat,
   ClipboardList,
   CalendarRange,
+  Plus,
+  FileUp,
 } from "lucide-react";
+import type { ModalidadPlan } from "@/dominio/entidades/PlanNutricional";
 import { usePlanes } from "@/lib/hooks/usePlanes";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
@@ -27,6 +30,7 @@ import {
 } from "@/componentes/ui/dialog";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { VistaPlan } from "@/componentes/planes/VistaPlan";
+import { FormularioPlan } from "@/componentes/planes/FormularioPlan";
 import { FormularioAsignacionPlan } from "@/componentes/planes/FormularioAsignacionPlan";
 import { HistorialDePlanes } from "@/componentes/planes/HistorialDePlanes";
 import { PlanSemanalDelPaciente } from "@/componentes/planes-semanales/PlanSemanalDelPaciente";
@@ -57,6 +61,9 @@ export function SeccionPlanesDelPaciente({
   const plan = delPaciente({ pacienteId });
   const [asignarAbierto, setAsignarAbierto] = useState(false);
   const [confirmarDesasignar, setConfirmarDesasignar] = useState(false);
+  const [crearModalidad, setCrearModalidad] = useState<ModalidadPlan | null>(
+    null,
+  );
 
   return (
     <div className="space-y-4">
@@ -96,6 +103,22 @@ export function SeccionPlanesDelPaciente({
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={() => setCrearModalidad("APP")}
+                >
+                  <Plus className="h-4 w-4" />
+                  Crear plan nuevo
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCrearModalidad("PDF")}
+                >
+                  <FileUp className="h-4 w-4" />
+                  Subir plan (PDF o Word)
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setAsignarAbierto(true)}
                 >
                   <Repeat className="h-4 w-4" />
@@ -118,9 +141,25 @@ export function SeccionPlanesDelPaciente({
                 El paciente no tiene un plan activo asignado.
               </p>
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" onClick={() => setAsignarAbierto(true)}>
+                <Button size="sm" onClick={() => setCrearModalidad("APP")}>
+                  <Plus className="h-4 w-4" />
+                  Crear plan nuevo
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCrearModalidad("PDF")}
+                >
+                  <FileUp className="h-4 w-4" />
+                  Subir plan (PDF o Word)
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAsignarAbierto(true)}
+                >
                   <UserPlus className="h-4 w-4" />
-                  Asignar plan
+                  Asignar plan existente
                 </Button>
                 <Button asChild variant="outline" size="sm">
                   <Link href="/dashboard/planes">Ver planes</Link>
@@ -165,6 +204,28 @@ export function SeccionPlanesDelPaciente({
             pacienteIdFijo={pacienteId}
             onTerminado={() => setAsignarAbierto(false)}
           />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={crearModalidad !== null}
+        onOpenChange={(abierto) => !abierto && setCrearModalidad(null)}
+      >
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {crearModalidad === "PDF"
+                ? `Subir plan para ${nombre} ${apellido}`
+                : `Nuevo plan para ${nombre} ${apellido}`}
+            </DialogTitle>
+          </DialogHeader>
+          {crearModalidad && (
+            <FormularioPlan
+              modalidad={crearModalidad}
+              paraPaciente={{ pacienteId, nombre, apellido }}
+              onTerminado={() => setCrearModalidad(null)}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

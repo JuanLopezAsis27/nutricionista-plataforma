@@ -62,9 +62,12 @@ No es una columna con una ruta porque un plan no "tiene un path": tiene un
 Archivo, con su clave en el bucket, su MIME, su tamaño y su borrado compensado,
 que es lo que el módulo Archivos ya resuelve.
 
-El contexto de subida es `plan` (`CONTEXTOS_ARCHIVO`), prefijo `planes/`, **solo
-`application/pdf`**, 25 MB. Solo PDF porque el punto es que el paciente lo LEA
-adentro de la app: un `.docx` obligaría a descargarlo y a tener Office.
+El contexto de subida es `plan` (`CONTEXTOS_ARCHIVO`), prefijo `planes/`,
+**PDF o Word** (`.doc`/`.docx`), 25 MB. El punto es que el paciente lo LEA
+adentro de la app sin descargar nada ni tener Office instalado: el PDF lo
+dibuja el navegador tal cual, y el Word se convierte a HTML en el servidor
+(`/api/archivos/[id]/html`) — `VisorArchivo` decide a qué ruta ir según el
+MIME (`esDocumentoWord`, en `dominio/entidades/Archivo.ts`).
 
 **Se suben antes de que el plan exista** y se vinculan al guardarlo, igual que
 los adjuntos de una receta. Por eso el CHECK `archivos_un_solo_dueno` es `<= 1` y
@@ -95,6 +98,29 @@ con la foto de la receta (migración 35).
 
 Por eso el `INCLUIR_HIJOS` del repositorio trae los archivos con `orderBy`: sin
 él "el primero" cambia entre consultas y el fallback iría rotando solo.
+
+## Recetas vinculadas directamente al plan
+
+En modalidad APP, una receta se vincula a una OPCIÓN de una franja
+(`OpcionComida.recetaId`): "el Desayuno puede ser esto, o esta otra receta".
+Un plan PDF/Word no tiene franjas —el plan es el archivo—, así que no hay de
+dónde colgar esa relación. `RecetaDelPlan` (migración 56) es el vínculo
+directo plan↔receta, sin pasar por una franja ni un horario: recetas que
+acompañan al plan en general, no a una comida puntual.
+
+Es una tabla de vínculo pura —sin ella no queda nada que decir— y las dos FKs
+son CASCADE, igual que `AsignacionReceta`: borrar el plan o la receta se lleva
+el vínculo, no al otro lado.
+
+No se restringe por modalidad: un plan de la app puede sumarlas también, como
+agregado a las que ya tenga por opción (`FormularioPlan` solo las muestra en
+la rama PDF/Word, pero el dominio no las prohíbe en la otra). En la vista del
+plan salen en una tarjeta propia, debajo del visor o de las franjas, como el
+material adjunto: acompañan al plan, no lo reemplazan.
+
+`SincronizarRecetasDePlan` las suma a las de las opciones al calcular qué
+recetas le llegan a quien sigue el plan hoy: es el único camino para que un
+plan PDF comparta recetas con el paciente en absoluto.
 
 ## Cómo lo ve el paciente
 
@@ -177,13 +203,39 @@ Es una carpeta libre y no una categoría cerrada porque el criterio lo pone quie
 trabaja, y las dos formas responden a la misma necesidad: que la lista de planes
 deje de ser una sola bolsa cuando pasa de veinte.
 
-**No apunta al paciente** aunque el caso típico sea una carpeta por paciente.
-Atarla a un paciente la volvería otra cosa —sus planes ya se consultan por
-asignación— y dejaría afuera el resto de los criterios.
+**La mayoría SÍ apunta a un paciente** (`GrupoPlan.pacienteId`, migración 56),
+pero no por elección del sistema: es la carpeta que arma automáticamente
+"crear plan desde la ficha del paciente" (ver más abajo), y queda atada a él
+para poder reencontrarla la próxima vez sin adivinar por nombre —dos pacientes
+homónimos, o uno que cambia de apellido, la habrían dejado huérfana—. Una
+carpeta armada a mano ("Descenso", "Deportistas") simplemente no la tiene:
+sigue siendo libre, por objetivo, por población o por lo que el profesional
+decida.
 
 **Borrar la carpeta no borra los planes**: la FK es SET NULL y quedan sueltos.
 Una carpeta es cómo están ordenados, no de quién son; llevarse el contenido al
-tirar el rótulo sería una pérdida de datos disfrazada de organización.
+tirar el rótulo sería una pérdida de datos disfrazada de organización. Lo
+mismo si se borra el PACIENTE dueño de una carpeta automática: la FK
+`pacienteId` también es SET NULL, la carpeta y sus planes quedan, solo deja de
+estar atada a nadie.
+
+### Crear un plan desde la ficha del paciente
+
+`CrearPlanParaPaciente` es la manera corta de dar de alta un plan que nace
+YA asignado: arma o carga la carpeta del paciente, crea el plan ahí adentro
+(en cualquiera de las dos modalidades — cargado en la app o subiendo el
+PDF/Word) y lo asigna en el mismo paso. No es "crear" + "mover" + "asignar" a
+mano en la pantalla: son tres pasos con dos puntos donde un fallo a mitad de
+camino dejaría un plan sin asignar, o asignado pero suelto de la carpeta.
+
+La carpeta se busca por `GrupoPlan.pacienteId` y, si no existe, se crea con el
+nombre completo del paciente. Si ese nombre ya está tomado —una carpeta
+manual, u homónimos— se numera igual que el nombre de un plan clonado
+(«Julia Pérez (2)»): es un flujo sin campo de texto para el nombre de la
+carpeta, así que no hay dónde escribir uno distinto si choca.
+
+Los planes que se le creen DESPUÉS a ese mismo paciente por esta vía caen en
+la MISMA carpeta: se reencuentra por `pacienteId`, no por nombre de texto.
 
 ### Se navegan como directorios
 
@@ -291,6 +343,24 @@ En la pestaña "Plan actual" de la ficha hay tres acciones según el estado:
 "Cambiar" reusa el mismo diálogo: la advertencia de que el plan anterior se
 desactiva ya la trae el formulario.
 
+**Desde la ficha del PLAN se puede elegir más de un paciente.** El botón
+"Asignar a paciente" de `/dashboard/planes` abre el mismo `FormularioAsignacionPlan`,
+pero con el paciente sin fijar (`planId` fijo, sin `pacienteIdFijo`) pasa a un
+selector MÚLTIPLE: es una tanda ("asignarle este plan a estos cinco"), y forzar
+una asignación por vez ahí sería el mismo viaje de ida y vuelta que ya se sacó
+del resto del módulo. Cada asignación es independiente en el servidor
+(`AsignarPlanAVariosPacientes` reusa `AsignarPlanAPaciente` paciente por
+paciente): uno que falle —no existe, ya no aplica— no aborta a los demás, y el
+mensaje final cuenta cuántos anduvieron y cuántos no.
+
+Ese mismo diálogo muestra, debajo del formulario, la lista de **quiénes ya
+tienen asignado este plan** (`PacientesDelPlan`, la misma que
+`/dashboard/planes/[id]`): es lo primero que se quiere saber antes de sumar
+más pacientes, y pedirlo aparte hubiera sido otra ida y vuelta.
+
+Desde la ficha del PACIENTE, en cambio, el destino es él y nadie más: no hay
+selector múltiple ahí.
+
 ## Al tocar esto
 
 - Los archivos entran al modelo como `Archivo`, no como columnas. Si hace falta
@@ -313,3 +383,11 @@ desactiva ya la trae el formulario.
   pero no `crear`, y todos los planes en PDF nacían como planes de la app con el
   archivo colgado de anexo. El síntoma no fue un error sino un default correcto
   ganándole a un valor que nunca se mandó.
+- `IPlanRepositorio.crear`/`actualizar` reciben `recetaIds` como tercer
+  parámetro, con el mismo contrato que `archivoIds`: es el estado final, y lo
+  que no está en la lista se DESVINCULA (no se borra — una receta tiene dueño
+  propio, a diferencia de un archivo del plan).
+- `CrearPlanParaPaciente` y `AsignarPlanAVariosPacientes` reusan `CrearPlan` y
+  `AsignarPlanAPaciente` en vez de reimplementar la regla de "un plan activo
+  por paciente": si esa regla cambia, cambia en un solo lugar y los dos flujos
+  la heredan.

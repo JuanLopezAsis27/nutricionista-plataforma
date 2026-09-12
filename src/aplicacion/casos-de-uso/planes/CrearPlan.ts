@@ -33,7 +33,11 @@ export class CrearPlan {
       throw new ErrorPlanDuplicado(plan.nombre, plan.esPlantilla);
     }
 
-    return this.planes.crear(plan, idsDeArchivos(datos));
+    return this.planes.crear(
+      plan,
+      idsDeArchivos(datos),
+      plan.recetasVinculadas.map((r) => r.recetaId),
+    );
   }
 }
 

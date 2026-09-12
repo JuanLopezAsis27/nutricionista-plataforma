@@ -7,6 +7,8 @@ import type { EliminarPlan } from "@/aplicacion/casos-de-uso/planes/EliminarPlan
 import type { ArchivarPlan } from "@/aplicacion/casos-de-uso/planes/ArchivarPlan";
 import type { CrearPlanDesdePlantilla } from "@/aplicacion/casos-de-uso/planes/CrearPlanDesdePlantilla";
 import type { AsignarPlanAPaciente } from "@/aplicacion/casos-de-uso/planes/AsignarPlanAPaciente";
+import type { AsignarPlanAVariosPacientes } from "@/aplicacion/casos-de-uso/planes/AsignarPlanAVariosPacientes";
+import type { CrearPlanParaPaciente } from "@/aplicacion/casos-de-uso/planes/CrearPlanParaPaciente";
 import type { DesasignarPlanDePaciente } from "@/aplicacion/casos-de-uso/planes/DesasignarPlanDePaciente";
 import type { ObtenerPlanDelPaciente } from "@/aplicacion/casos-de-uso/planes/ObtenerPlanDelPaciente";
 import type { ObtenerPacientesDePlan } from "@/aplicacion/casos-de-uso/planes/ObtenerPacientesDePlan";
@@ -28,6 +30,9 @@ import type {
   ArchivarPlanDto,
   CrearDesdePlantillaDto,
   AsignarPlanDto,
+  AsignarPlanMultipleDto,
+  ResultadoAsignacionMultipleDto,
+  CrearPlanParaPacienteDto,
   PlanSalidaDto,
   AsignacionPlanSalidaDto,
   AsignacionConPacienteDto,
@@ -52,6 +57,8 @@ export class ServicioPlan {
     private readonly archivarUC: ArchivarPlan,
     private readonly desdePlantillaUC: CrearPlanDesdePlantilla,
     private readonly asignarUC: AsignarPlanAPaciente,
+    private readonly asignarVariosUC: AsignarPlanAVariosPacientes,
+    private readonly crearParaPacienteUC: CrearPlanParaPaciente,
     private readonly desasignarUC: DesasignarPlanDePaciente,
     private readonly obtenerDelPacienteUC: ObtenerPlanDelPaciente,
     private readonly pacientesDePlanUC: ObtenerPacientesDePlan,
@@ -119,6 +126,30 @@ export class ServicioPlan {
 
   async desasignarPlanDePaciente(pacienteId: string): Promise<void> {
     await this.desasignarUC.ejecutar(pacienteId);
+  }
+
+  /** Asigna el mismo plan a varios pacientes. Uno que falle no aborta al resto. */
+  async asignarPlanAVarios(
+    datos: AsignarPlanMultipleDto,
+  ): Promise<ResultadoAsignacionMultipleDto[]> {
+    const resultados = await this.asignarVariosUC.ejecutar(datos);
+    // El plan pudo traer recetas cargadas de antes: se sincroniza una vez acá
+    // y no adentro del caso de uso, que no sabe de este otro agregado.
+    await this.sincronizarRecetasUC.ejecutar(datos.planId);
+    return resultados.map(({ pacienteId, asignacion, error }) => ({
+      pacienteId,
+      asignado: asignacion !== null,
+      error,
+    }));
+  }
+
+  /** Crea un plan nuevo YA asignado a un paciente, desde su ficha. */
+  async crearPlanParaPaciente(
+    datos: CrearPlanParaPacienteDto,
+  ): Promise<PlanSalidaDto> {
+    const plan = await this.crearParaPacienteUC.ejecutar(datos);
+    await this.sincronizarRecetasUC.ejecutar(plan.id);
+    return ServicioPlan.aSalida(plan);
   }
 
   async obtenerPlanDelPaciente(

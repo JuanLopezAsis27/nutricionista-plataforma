@@ -44,6 +44,10 @@ export class ActualizarPlan {
       throw new ErrorPlanDuplicado(actualizado.nombre, actualizado.esPlantilla);
     }
 
-    return this.planes.actualizar(actualizado, idsDeArchivos(datos));
+    return this.planes.actualizar(
+      actualizado,
+      idsDeArchivos(datos),
+      actualizado.recetasVinculadas.map((r) => r.recetaId),
+    );
   }
 }

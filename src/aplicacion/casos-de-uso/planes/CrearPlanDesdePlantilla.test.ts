@@ -34,6 +34,32 @@ describe("CrearPlanDesdePlantilla", () => {
     expect(planes.crear).toHaveBeenCalledOnce();
   });
 
+  it("clona las recetas vinculadas directamente al plan", async () => {
+    const plantilla = planEjemplo(
+      { esPlantilla: true, recetaIds: ["rec-1", "rec-2"] },
+      "pla-plantilla",
+    );
+    const planes = mockPlanRepositorio({
+      obtenerPorId: vi.fn(async () => plantilla),
+    });
+    const casoUso = new CrearPlanDesdePlantilla(planes);
+
+    const clon = await casoUso.ejecutar({
+      planOrigenId: "pla-plantilla",
+      nombre: "Plan para Ana",
+    });
+
+    expect(clon.recetasVinculadas.map((r) => r.recetaId).sort()).toEqual([
+      "rec-1",
+      "rec-2",
+    ]);
+    expect(planes.crear).toHaveBeenCalledWith(
+      clon,
+      [],
+      expect.arrayContaining(["rec-1", "rec-2"]),
+    );
+  });
+
   it("lanza ErrorPlanNoEncontrado si la plantilla no existe", async () => {
     const planes = mockPlanRepositorio();
     const casoUso = new CrearPlanDesdePlantilla(planes);

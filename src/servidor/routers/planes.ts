@@ -14,6 +14,8 @@ import {
   archivarPlanDto,
   crearDesdePlantillaDto,
   asignarPlanDto,
+  asignarPlanMultipleDto,
+  crearPlanParaPacienteDto,
   grupoPlanDto,
   actualizarGrupoPlanDto,
   idGrupoPlanDto,
@@ -83,6 +85,20 @@ export const routerPlanes = crearRouter({
     .input(asignarPlanDto)
     .mutation(async ({ ctx, input }) => {
       return await ctx.servicios.plan.asignarPlanAPaciente(input);
+    }),
+
+  /** El mismo plan a varios pacientes. Uno que falle no aborta a los demás. */
+  asignarAVarios: nutricionistaProcedimiento
+    .input(asignarPlanMultipleDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.plan.asignarPlanAVarios(input);
+    }),
+
+  /** Crea un plan nuevo YA asignado a un paciente, desde su ficha. */
+  crearParaPaciente: nutricionistaProcedimiento
+    .input(crearPlanParaPacienteDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.plan.crearPlanParaPaciente(input);
     }),
 
   desasignarDePaciente: nutricionistaProcedimiento

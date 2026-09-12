@@ -344,6 +344,7 @@ export function mockGrupoPlanRepositorio(
     obtenerPorId: vi.fn(async () => null),
     listar: vi.fn(async () => []),
     existeNombre: vi.fn(async () => false),
+    obtenerPorPaciente: vi.fn(async () => null),
     ...parcial,
   };
 }

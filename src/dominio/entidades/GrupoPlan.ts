@@ -4,6 +4,11 @@ import { ErrorValidacion } from "../errores/ErrorValidacion";
 export interface DatosGrupoPlan {
   nombre: string;
   descripcion?: string | null;
+  /**
+   * Paciente dueño de la carpeta, si nació de "crear plan desde su ficha".
+   * Solo se manda al CREAR: renombrar no la desata de su paciente.
+   */
+  pacienteId?: string | null;
 }
 
 /** Estado completo de una carpeta persistida. */
@@ -11,6 +16,8 @@ export interface PropiedadesGrupoPlan {
   id: string;
   nombre: string;
   descripcion: string | null;
+  /** Null en una carpeta armada a mano. Ver `DatosGrupoPlan.pacienteId`. */
+  pacienteId: string | null;
   creadoEn: Date;
   actualizadoEn: Date;
 }
@@ -39,6 +46,7 @@ export class GrupoPlan {
       id,
       nombre: nombreValido(datos.nombre),
       descripcion: datos.descripcion?.trim() || null,
+      pacienteId: datos.pacienteId ?? null,
       creadoEn: ahora,
       actualizadoEn: ahora,
     });
@@ -63,6 +71,9 @@ export class GrupoPlan {
   }
   get nombre(): string {
     return this.props.nombre;
+  }
+  get pacienteId(): string | null {
+    return this.props.pacienteId;
   }
 
   aPrimitivos(): PropiedadesGrupoPlan {
