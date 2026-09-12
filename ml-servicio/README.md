@@ -42,8 +42,7 @@ severidad }` que el nutricionista ve en la pantalla de Análisis IA.
   sobre los últimos pesos (diario + antropometría). Da la **pendiente en kg/semana**,
   la **proyección a 30 días** y marca *estancado* si el cambio semanal es casi
   nulo sostenido (≥4 puntos, ≥3 semanas). Necesita ≥3 mediciones en ≥2 semanas.
-- **Resultado:** `Peso estable (~-0.03 kg/sem, 78.2 kg) hace varias semanas.
-  Considerar ajustar el plan.`
+- **Resultado:** `Peso estable (~-0.03 kg/sem, 78.2 kg) hace varias semanas.`
 
 Si no hay datos / no está configurada la réplica / falla la base, devuelve **200**
 con una tarjeta informativa (nunca un 500): la app muestra el mensaje en vez de
