@@ -44,8 +44,13 @@ export class CrearPlanDesdePlantilla {
       esPlantilla,
     });
     // Sin archivos: cada uno pertenece a UN plan y copiarlos del bucket sería
-    // otra función (ver PlanNutricional.clonar).
-    return this.planes.crear(clon, []);
+    // otra función (ver PlanNutricional.clonar). Las recetas vinculadas sí
+    // viajan: `clonar()` ya las trae en `recetaIds`.
+    return this.planes.crear(
+      clon,
+      [],
+      clon.recetasVinculadas.map((r) => r.recetaId),
+    );
   }
 
   /** El nombre que pidió el profesional, o el error si ya está tomado. */

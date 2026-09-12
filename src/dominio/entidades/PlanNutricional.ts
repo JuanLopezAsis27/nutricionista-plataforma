@@ -80,6 +80,17 @@ export interface ArchivoDelPlan {
   tamanoBytes: number;
 }
 
+/**
+ * Receta vinculada DIRECTAMENTE al plan, sin pasar por una franja. Es lo único
+ * que le puede acompañar recetas a un plan PDF: no tiene franjas de las que
+ * colgarlas vía `OpcionComida.recetaId`. El nombre lo completa el repositorio
+ * al leer, igual que `recetaNombre` en una opción.
+ */
+export interface RecetaDelPlan {
+  recetaId: string;
+  recetaNombre: string | null;
+}
+
 /** Estado completo de un plan persistido. */
 export interface PropiedadesPlan {
   id: string;
@@ -105,6 +116,8 @@ export interface PropiedadesPlan {
   archivos: ArchivoDelPlan[];
   /** Cuál de ellos ES el plan. Solo en modalidad PDF; null en modalidad APP. */
   archivoPrincipalId: string | null;
+  /** Recetas vinculadas directamente al plan, sin franja. Ver RecetaDelPlan. */
+  recetasVinculadas: RecetaDelPlan[];
   creadoEn: Date;
   actualizadoEn: Date;
 }
@@ -155,6 +168,12 @@ export interface DatosNuevoPlan {
    * prohibido en modalidad APP (ahí ningún anexo puede hacer de plan).
    */
   archivoPrincipalId?: string | null;
+  /**
+   * Recetas a vincular directamente al plan, sin franja. Pensado para el plan
+   * PDF/Word (no tiene franjas), pero no se restringe por modalidad: un plan
+   * de la app puede sumarlas igual, además de las que ya tenga por opción.
+   */
+  recetaIds?: string[];
 }
 
 /**
@@ -315,6 +334,11 @@ export class PlanNutricional {
       // los ids, y el principal es el único que la entidad necesita decidir.
       archivos: [],
       archivoPrincipalId,
+      // Ídem: al crear solo se conocen los ids, sin repetidos. El nombre lo
+      // completa el repositorio al leer.
+      recetasVinculadas: [...new Set(datos.recetaIds ?? [])].map(
+        (recetaId) => ({ recetaId, recetaNombre: null }),
+      ),
       creadoEn: ahora,
       actualizadoEn: ahora,
     });
@@ -409,6 +433,7 @@ export class PlanNutricional {
           tipo: r.tipo,
           texto: r.texto,
         })),
+        recetaIds: this.props.recetasVinculadas.map((r) => r.recetaId),
       },
       nuevoId,
       generarId,
@@ -439,6 +464,9 @@ export class PlanNutricional {
   }
   get archivos(): ReadonlyArray<ArchivoDelPlan> {
     return this.props.archivos;
+  }
+  get recetasVinculadas(): ReadonlyArray<RecetaDelPlan> {
+    return this.props.recetasVinculadas;
   }
 
   /**
@@ -476,6 +504,7 @@ export class PlanNutricional {
       equivalencias: this.props.equivalencias.map((e) => ({ ...e })),
       recomendaciones: this.props.recomendaciones.map((r) => ({ ...r })),
       archivos: this.props.archivos.map((a) => ({ ...a })),
+      recetasVinculadas: this.props.recetasVinculadas.map((r) => ({ ...r })),
     };
   }
 }

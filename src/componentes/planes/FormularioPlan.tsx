@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertTriangle } from "lucide-react";
 import type {
   PlanSalidaDto,
   ArchivoDelPlanDto,
@@ -10,8 +11,11 @@ import type {
 import type { ModalidadPlan } from "@/dominio/entidades/PlanNutricional";
 import { usePlanes } from "@/lib/hooks/usePlanes";
 import { useRecetas } from "@/lib/hooks/useRecetas";
+import { hoyISO } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
+import { Input } from "@/componentes/ui/input";
 import { Textarea } from "@/componentes/ui/textarea";
+import { Label } from "@/componentes/ui/label";
 import {
   Form,
   FormField,
@@ -35,6 +39,7 @@ import {
   SeccionAdjuntos,
 } from "./formulario/SeccionArchivos";
 import { SeccionComidas } from "./formulario/SeccionComidas";
+import { SeccionRecetasVinculadas } from "./formulario/SeccionRecetasVinculadas";
 import {
   SeccionEquivalencias,
   SeccionRecomendaciones,
@@ -59,6 +64,13 @@ interface PropsFormularioPlan {
    * al alta: en edición manda la del plan.
    */
   grupoIdInicial?: string | null;
+  /**
+   * Alta directa desde la ficha del paciente: crea el plan y lo deja
+   * asignado a él, en la carpeta con su nombre (creándola si hace falta). Solo
+   * aplica al alta —no tiene sentido editar un plan existente "para" un
+   * paciente distinto—.
+   */
+  paraPaciente?: { pacienteId: string; nombre: string; apellido: string };
   onTerminado: () => void;
 }
 
@@ -85,10 +97,25 @@ export function FormularioPlan({
   comoPlantilla,
   modalidad: modalidadProp,
   grupoIdInicial,
+  paraPaciente,
   onTerminado,
 }: PropsFormularioPlan) {
-  const { crear, actualizar, grupos: listarGrupos } = usePlanes();
+  const {
+    crear,
+    actualizar,
+    crearParaPaciente,
+    delPaciente,
+    grupos: listarGrupos,
+  } = usePlanes();
   const grupos = listarGrupos();
+  // La carpeta la decide el servidor (la del paciente): el selector no aplica.
+  const conCarpetaHabilitada = !paraPaciente;
+  const [fechaInicio, setFechaInicio] = useState(hoyISO());
+  const [fechaFin, setFechaFin] = useState("");
+  const planActivo = delPaciente(
+    { pacienteId: paraPaciente?.pacienteId ?? "" },
+    { enabled: Boolean(paraPaciente) },
+  );
   // La del plan que se edita gana siempre: la modalidad no se cambia editando.
   const modalidad: ModalidadPlan =
     planInicial?.modalidad ?? modalidadProp ?? "APP";
@@ -97,7 +124,8 @@ export function FormularioPlan({
   const esPlantilla = planInicial?.esPlantilla ?? comoPlantilla ?? false;
   const { listar: listarRecetas } = useRecetas();
   const recetas = listarRecetas(undefined);
-  const enviando = crear.isPending || actualizar.isPending;
+  const enviando =
+    crear.isPending || actualizar.isPending || crearParaPaciente.isPending;
 
   const form = useForm<DatosFormulario>({
     resolver: zodResolver(esquema),
@@ -131,6 +159,7 @@ export function FormularioPlan({
           modalidad: planInicial.modalidad,
           grupoId: planInicial.grupoId ?? SIN_CARPETA,
           archivoPrincipalId: planInicial.archivoPrincipal?.id ?? null,
+          recetaIds: planInicial.recetasVinculadas.map((r) => r.recetaId),
         }
       : {
           nombre: "",
@@ -149,6 +178,7 @@ export function FormularioPlan({
           // plantilla: esas no van a ninguna carpeta.
           grupoId: (comoPlantilla ? null : grupoIdInicial) ?? SIN_CARPETA,
           archivoPrincipalId: null,
+          recetaIds: [],
         },
   });
 
@@ -195,11 +225,24 @@ export function FormularioPlan({
         ...(datos.archivoPrincipalId ? [datos.archivoPrincipalId] : []),
         ...adjuntos.map((a) => a.id),
       ],
+      recetaIds: datos.recetaIds,
     };
 
     if (planInicial) {
       actualizar.mutate(
         { id: planInicial.id, ...cuerpo },
+        { onSuccess: onTerminado },
+      );
+    } else if (paraPaciente) {
+      const { grupoId: _grupoId, ...sinCarpeta } = cuerpo;
+      void _grupoId;
+      crearParaPaciente.mutate(
+        {
+          ...sinCarpeta,
+          pacienteId: paraPaciente.pacienteId,
+          fechaInicio: new Date(fechaInicio),
+          fechaFin: fechaFin ? new Date(fechaFin) : null,
+        },
         { onSuccess: onTerminado },
       );
     } else {
@@ -216,17 +259,61 @@ export function FormularioPlan({
         <SeccionDatosGenerales
           control={form.control}
           grupos={grupos.data ?? []}
-          conCarpeta={!esPlantilla}
+          conCarpeta={!esPlantilla && conCarpetaHabilitada}
         />
+
+        {paraPaciente && (
+          <div className="space-y-3 rounded-lg border p-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="plan-fecha-inicio">Fecha de inicio</Label>
+                <Input
+                  id="plan-fecha-inicio"
+                  type="date"
+                  value={fechaInicio}
+                  onChange={(e) => setFechaInicio(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="plan-fecha-fin">Fecha de fin (opcional)</Label>
+                <Input
+                  id="plan-fecha-fin"
+                  type="date"
+                  value={fechaFin}
+                  onChange={(e) => setFechaFin(e.target.value)}
+                />
+              </div>
+            </div>
+            {planActivo.data && (
+              <div className="flex items-start gap-2 rounded-md border border-yellow-300/60 bg-yellow-50 p-3 text-sm text-yellow-800 dark:border-yellow-500/30 dark:bg-yellow-500/10 dark:text-yellow-200">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  {paraPaciente.nombre} ya tiene un plan activo («
+                  {planActivo.data.nombre}»). Este plan nuevo lo va a
+                  reemplazar.
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         <SeccionMetasMacros control={form.control} />
 
         {!esApp && (
-          <SeccionArchivoPrincipal
-            form={form}
-            principal={principal}
-            alCambiar={setPrincipal}
-          />
+          <>
+            <SeccionArchivoPrincipal
+              form={form}
+              principal={principal}
+              alCambiar={setPrincipal}
+            />
+            <SeccionRecetasVinculadas
+              control={form.control}
+              recetas={(recetas.data ?? []).map((r) => ({
+                id: r.id,
+                nombre: r.nombre,
+              }))}
+            />
+          </>
         )}
 
         <SeccionAdjuntos
@@ -280,7 +367,9 @@ export function FormularioPlan({
               ? "Guardando…"
               : planInicial
                 ? "Guardar cambios"
-                : "Crear plan"}
+                : paraPaciente
+                  ? "Crear y asignar"
+                  : "Crear plan"}
           </Button>
         </div>
       </form>

@@ -59,6 +59,33 @@ export function usePlanes() {
     onError: (error) => toast.error(error.message),
   });
 
+  const asignarAVarios = trpc.planes.asignarAVarios.useMutation({
+    onSuccess: (resultados) => {
+      const asignados = resultados.filter((r) => r.asignado).length;
+      const fallidos = resultados.length - asignados;
+      if (asignados > 0) {
+        toast.success(
+          `Plan asignado a ${asignados} paciente${asignados > 1 ? "s" : ""}.`,
+        );
+      }
+      if (fallidos > 0) {
+        toast.error(
+          `No se pudo asignar a ${fallidos} paciente${fallidos > 1 ? "s" : ""}.`,
+        );
+      }
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const crearParaPaciente = trpc.planes.crearParaPaciente.useMutation({
+    onSuccess: () => {
+      toast.success("Plan creado y asignado al paciente.");
+      invalidar();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
   const mover = trpc.planes.moverAGrupo.useMutation({
     onSuccess: () => {
       toast.success("Plan movido.");
@@ -115,6 +142,8 @@ export function usePlanes() {
     archivar,
     crearDesdePlantilla,
     asignar,
+    asignarAVarios,
+    crearParaPaciente,
     desasignar,
     mover,
     crearGrupo,

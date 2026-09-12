@@ -122,6 +122,44 @@ export function VistaPlan({
         </p>
       )}
 
+      {/* Recetas vinculadas al plan (sin franja): el único camino en un plan
+          PDF/Word, que no tiene franjas de las que colgarlas. Va debajo del
+          visor, como el material adjunto: acompaña al plan, no lo reemplaza. */}
+      {plan.recetasVinculadas.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BookOpen className="h-4 w-4 text-muted-foreground" />
+              Recetas relacionadas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="flex flex-wrap gap-2">
+              {plan.recetasVinculadas.map((vinculo) =>
+                onVerReceta ? (
+                  <li key={vinculo.recetaId}>
+                    <button
+                      type="button"
+                      onClick={() => onVerReceta(vinculo.recetaId)}
+                      className="rounded-full border px-3 py-1 text-sm font-medium hover:border-primary hover:text-primary"
+                    >
+                      {vinculo.recetaNombre ?? "Receta"}
+                    </button>
+                  </li>
+                ) : (
+                  <li
+                    key={vinculo.recetaId}
+                    className="rounded-full border px-3 py-1 text-sm"
+                  >
+                    {vinculo.recetaNombre ?? "Receta"}
+                  </li>
+                ),
+              )}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="space-y-3">
         {plan.comidas.map((comida, indice) => {
           const estilo = estiloDeFranja(indice);

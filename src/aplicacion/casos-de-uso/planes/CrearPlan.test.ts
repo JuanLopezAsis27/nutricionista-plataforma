@@ -78,7 +78,7 @@ describe("CrearPlan", () => {
     expect(datos.comidas).toHaveLength(0);
     expect(datos.archivoPrincipalId).toBe("arc-plan");
     // El principal viaja en la lista a vincular aunque no venga en archivoIds.
-    expect(planes.crear).toHaveBeenCalledWith(plan, ["arc-plan"]);
+    expect(planes.crear).toHaveBeenCalledWith(plan, ["arc-plan"], []);
   });
 
   it("vincula los anexos junto al principal, sin repetirlo", async () => {
@@ -93,10 +93,11 @@ describe("CrearPlan", () => {
       archivoIds: ["arc-plan", "arc-compras"],
     });
 
-    expect(planes.crear).toHaveBeenCalledWith(plan, [
-      "arc-plan",
-      "arc-compras",
-    ]);
+    expect(planes.crear).toHaveBeenCalledWith(
+      plan,
+      ["arc-plan", "arc-compras"],
+      [],
+    );
   });
 
   it("un plan de la app lleva anexos sin archivo principal", async () => {
@@ -112,7 +113,30 @@ describe("CrearPlan", () => {
     const datos = plan.aPrimitivos();
     expect(datos.modalidad).toBe("APP");
     expect(datos.archivoPrincipalId).toBeNull();
-    expect(planes.crear).toHaveBeenCalledWith(plan, ["arc-compras"]);
+    expect(planes.crear).toHaveBeenCalledWith(plan, ["arc-compras"], []);
+  });
+
+  it("vincula recetas directamente al plan, sin repetidas", async () => {
+    const planes = mockPlanRepositorio();
+    const casoUso = new CrearPlan(planes);
+
+    const plan = await casoUso.ejecutar({
+      nombre: "Plan de Julia",
+      modalidad: "PDF",
+      comidas: [],
+      archivoPrincipalId: "arc-plan",
+      recetaIds: ["rec-1", "rec-2", "rec-1"],
+    });
+
+    expect(plan.recetasVinculadas.map((r) => r.recetaId).sort()).toEqual([
+      "rec-1",
+      "rec-2",
+    ]);
+    expect(planes.crear).toHaveBeenCalledWith(
+      plan,
+      ["arc-plan"],
+      expect.arrayContaining(["rec-1", "rec-2"]),
+    );
   });
 
   it("lanza ErrorValidacion si un plan en PDF no trae el archivo", async () => {

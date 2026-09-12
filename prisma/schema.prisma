@@ -353,6 +353,7 @@ model Nutricionista {
   opcionesComida       OpcionComida[]
   equivalenciasPlan    EquivalenciaPlan[]
   recomendacionesPlan  RecomendacionPlan[]
+  recetasDelPlan       RecetaDelPlan[]
   ingredientesReceta   IngredienteReceta[]
   estrategias          Estrategia[]
   historialObjetivos   HistorialObjetivo[]
@@ -483,6 +484,9 @@ model Paciente {
   metricasDispositivo     MetricaDispositivo[]
   mensajesWhatsapp        MensajeWhatsapp[]
   recordatoriosWhatsapp   RecordatorioWhatsapp[]
+  /// La carpeta de planes que se le auto-creó al pedir "crear plan para este
+  /// paciente" desde su ficha (migración 56). Null si nunca se usó ese flujo.
+  carpetaPlan             GrupoPlan?
   nutricionista           Nutricionista           @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
   // SetNull: archivar una sede no puede dejar fichas apuntando a un
   // establecimiento que ya no se ofrece. Perder la preferencia no rompe nada.
@@ -1526,6 +1530,8 @@ model Receta {
   comidasSemanales ComidaSemanal[]
   asignaciones     AsignacionReceta[]
   ingredientes     IngredienteReceta[]
+  /// Planes que la vinculan directamente (sin franja). Ver RecetaDelPlan.
+  vinculosPlan     RecetaDelPlan[]
   nutricionista    Nutricionista       @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
   /// Borrar la carpeta NO borra las recetas: quedan sueltas (ver migración 41).
   grupo            GrupoReceta?        @relation(fields: [grupoId], references: [id], onDelete: SetNull)
@@ -1634,6 +1640,10 @@ model PlanNutricional {
   equivalencias    EquivalenciaPlan[]
   recomendaciones  RecomendacionPlan[]
   asignaciones     AsignacionPlan[]
+  /// Recetas vinculadas DIRECTAMENTE al plan, sin pasar por una franja
+  /// (migración 56). Es lo único que le puede acompañar recetas a un plan PDF:
+  /// ese plan no tiene franjas de las que colgarlas.
+  recetasVinculadas RecetaDelPlan[]
   /// Archivos del plan: el principal y/o los anexos. La FK vive en `archivos`,
   /// como el resto de los dueños de archivo: el arco exclusivo se sostiene en
   /// una sola tabla.
@@ -1669,19 +1679,29 @@ model PlanNutricional {
 /// cosas son la misma necesidad —que la lista de planes deje de ser una sola
 /// bolsa cuando pasa de veinte—.
 ///
-/// No apunta al paciente aunque el caso típico sea una carpeta por paciente:
-/// atar la carpeta a un paciente la volvería otra cosa (sus planes ya se
-/// consultan por asignación) y dejaría afuera el resto de los criterios.
+/// La mayoría SÍ apunta a un paciente, pero no por elección del sistema: la
+/// carpeta que arma "crear plan desde la ficha del paciente" (migración 56)
+/// lleva su `pacienteId` para poder reencontrarla en la próxima creación sin
+/// adivinar por nombre. Una carpeta armada a mano ("Descenso", "Deportistas")
+/// simplemente no lo tiene. Que un plan "ya consulte por asignación" seguía
+/// siendo cierto para MIRAR quién tiene un plan; esto es para SABER en qué
+/// carpeta cae el próximo, que es una pregunta distinta.
 model GrupoPlan {
   id              String   @id @default(uuid(4))
   nutricionistaId String
   nombre          String
   descripcion     String?
+  /// La carpeta nació de "crear plan para este paciente" y es SUYA: el
+  /// siguiente plan que se le cree ahí va a parar. Null en una carpeta armada
+  /// a mano. SET NULL si el paciente se borra: la carpeta y sus planes quedan,
+  /// solo deja de ser "la carpeta de alguien".
+  pacienteId      String?  @unique
   creadoEn        DateTime @default(now())
   actualizadoEn   DateTime @updatedAt
 
   planes        PlanNutricional[]
   nutricionista Nutricionista     @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  paciente      Paciente?         @relation(fields: [pacienteId], references: [id], onDelete: SetNull)
 
   @@unique([nutricionistaId, nombre])
   @@map("grupos_plan")
@@ -1724,6 +1744,31 @@ model OpcionComida {
   @@index([nutricionistaId, comidaId])
   @@index([nutricionistaId, recetaId])
   @@map("opciones_comida")
+}
+
+/// Receta vinculada directamente a un plan, sin pasar por una franja
+/// (migración 56). Existe para el plan en PDF/Word: ES el archivo, no tiene
+/// comidas cargadas y por lo tanto ninguna franja de la que colgar una receta
+/// vía `OpcionComida.recetaId`. Un plan de la app puede usarla también, pero
+/// ahí es un agregado —sus recetas "reales" siguen siendo las de cada opción—.
+///
+/// Es una tabla de vínculo pura: sin ella no queda nada que decir, así que las
+/// dos FKs son CASCADE (igual que `AsignacionReceta`).
+model RecetaDelPlan {
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
+  planId          String
+  recetaId        String
+  creadoEn        DateTime @default(now())
+
+  plan          PlanNutricional @relation(fields: [planId], references: [id], onDelete: Cascade)
+  receta        Receta          @relation(fields: [recetaId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista   @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@unique([planId, recetaId])
+  @@index([nutricionistaId, planId])
+  @@index([nutricionistaId, recetaId])
+  @@map("recetas_del_plan")
 }
 
 /// Tabla de equivalencias del plan (porciones/reemplazos).
