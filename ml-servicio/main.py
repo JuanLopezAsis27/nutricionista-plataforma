@@ -189,7 +189,7 @@ def insights(req: InsightsRequest, _: None = Depends(verificar_token)) -> list[I
                     titulo=f"Estancamiento de peso: {p.nombre}",
                     detalle=(
                         f"Peso estable (~{t.slope_semana:+.2f} kg/sem, {t.peso_actual} kg) "
-                        f"hace varias semanas. Considerar ajustar el plan."
+                        f"hace varias semanas."
                     ),
                     severidad="INFO",
                     pacienteId=p.paciente_id,
