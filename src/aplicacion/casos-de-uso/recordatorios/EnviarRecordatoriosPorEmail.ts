@@ -12,6 +12,8 @@ import { ErrorPlantillaNoEncontrada } from "@/dominio/errores/ErrorPlantillaNoEn
 import type { Turno } from "@/dominio/entidades/Turno";
 import { variablesRecordatorio } from "../secretaria/variables";
 import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstablecimientoRepositorio";
+import type { IEnlaceConfirmacionTurno } from "@/dominio/servicios/IEnlaceConfirmacionTurno";
+import { escaparHtml } from "@/dominio/plantillas/renderizar";
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 const HORA_MS = 60 * 60 * 1000;
@@ -67,6 +69,8 @@ export class EnviarRecordatoriosPorEmail {
     private readonly nombreProfesional: string,
     /** Da {{establecimiento}} y {{direccion}} a la plantilla del email. */
     private readonly establecimientos: IEstablecimientoRepositorio,
+    /** Da el botón "Confirmar asistencia" de los turnos pendientes. */
+    private readonly enlaces: IEnlaceConfirmacionTurno,
   ) {}
 
   async ejecutar(): Promise<ResultadoRecordatoriosEmail> {
@@ -184,8 +188,25 @@ export class EnviarRecordatoriosPorEmail {
       }),
     );
 
+    // Fuera de la plantilla, para que también lo tengan las que ya se editaron.
+    const cuerpo =
+      turno.estado === "PENDIENTE"
+        ? html +
+          botonConfirmar(
+            // Vence al terminar el día del turno.
+            this.enlaces.generar(
+              turno.id,
+              new Date(turno.fecha.getTime() + DIA_MS),
+            ),
+          )
+        : html;
+
     try {
-      await this.servicioEmail.enviar({ para: paciente.email, asunto, html });
+      await this.servicioEmail.enviar({
+        para: paciente.email,
+        asunto,
+        html: cuerpo,
+      });
     } catch (error) {
       // No se registra: sin fila en `emails_enviados`, el próximo barrido lo
       // vuelve a intentar. Registrar el fallo lo daría por avisado para siempre.
@@ -234,4 +255,13 @@ function referenciaDe(turnoId: string, dias: number | null): string {
   // los encuentre.
   if (dias == null) return `${turnoId}:manual:${Date.now()}`;
   return dias === 1 ? turnoId : `${turnoId}:${dias}`;
+}
+
+function botonConfirmar(enlace: string): string {
+  return (
+    `<p style="margin:24px 0">` +
+    `<a href="${escaparHtml(enlace)}" style="display:inline-block;padding:12px 24px;` +
+    `background-color:#16a34a;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600">` +
+    `Confirmar asistencia</a></p>`
+  );
 }

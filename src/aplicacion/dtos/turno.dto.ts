@@ -32,6 +32,12 @@ export type ActualizarEstadoTurnoDto = z.infer<typeof actualizarEstadoTurnoDto>;
 export const cancelarTurnoDto = z.object({ id: z.string().min(1) });
 export type CancelarTurnoDto = z.infer<typeof cancelarTurnoDto>;
 
+/** Token firmado del enlace "Confirmar asistencia" del recordatorio. */
+export const confirmarAsistenciaDto = z.object({
+  token: z.string().min(1).max(1000),
+});
+export type ConfirmarAsistenciaDto = z.infer<typeof confirmarAsistenciaDto>;
+
 export const reprogramarTurnoDto = z.object({
   id: z.string().min(1),
   fecha: z.coerce.date(),

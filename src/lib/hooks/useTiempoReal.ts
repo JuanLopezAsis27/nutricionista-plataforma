@@ -47,6 +47,16 @@ export function useTiempoReal() {
           // Aviso de correo (recordatorios): refresca la campana del nutri.
           void utils.notificaciones.centro.invalidate();
           break;
+        case "turno.confirmado":
+          // Lo confirmó el paciente desde el email: la agenda tiene que mostrarlo ya.
+          invalidarTodo();
+          toast("Turno confirmado", {
+            description:
+              typeof evento.datos?.mensaje === "string"
+                ? evento.datos.mensaje
+                : undefined,
+          });
+          break;
         default:
           break;
       }

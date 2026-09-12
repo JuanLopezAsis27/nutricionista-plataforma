@@ -20,6 +20,7 @@ import {
   mockPlantillaEmailRepositorio,
   mockEmailEnviadoRepositorio,
   mockServicioEmail,
+  mockEnlaceConfirmacionTurno,
   plantillaEmailEjemplo,
 } from "../_ayudas-test";
 
@@ -104,6 +105,7 @@ function armar(
       }),
       "Lic. Nutrición",
       mockEstablecimientoRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     ),
     { ahora: () => AHORA, hoy: () => HOY },
     mockEstablecimientoRepositorio(),

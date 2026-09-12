@@ -70,6 +70,7 @@ export {
   proveedorGoogle,
   directorioWhatsapp,
   urlApp,
+  enlaceConfirmacionTurno,
 } from "./nucleo";
 
 /** El repositorio de usuario se expone para la configuración de Auth.js. */
@@ -134,6 +135,7 @@ export const servicioRecordatorios = perezoso(() =>
     usuarios: nucleo.repositorioUsuario(),
     bus: nucleo.busEventos(),
     nombreProfesional: nucleo.NOMBRE_PROFESIONAL,
+    enlaceConfirmacionTurno: nucleo.enlaceConfirmacionTurno(),
   }),
 );
 
@@ -149,6 +151,9 @@ export const servicioTurno = perezoso(() =>
     pacientes: nucleo.repositorioPaciente(),
     establecimientos: nucleo.repositorioEstablecimiento(),
     sincronizador: nucleo.sincronizadorCalendario(),
+    usuarios: nucleo.repositorioUsuario(),
+    servicioEmail: nucleo.servicioEmail(),
+    bus: nucleo.busEventos(),
   }),
 );
 

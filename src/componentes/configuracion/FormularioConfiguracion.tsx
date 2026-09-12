@@ -75,7 +75,8 @@ export function FormularioConfiguracion() {
             />
           </div>
           <p className="text-xs text-muted-foreground sm:col-span-2">
-            Se usa en el membrete del PDF del plan y en la firma de los emails.
+            Es el título del encabezado de los PDF descargables. Si lo dejás
+            vacío, dice «Consultorio de Nutrición».
           </p>
         </CardContent>
       </Card>

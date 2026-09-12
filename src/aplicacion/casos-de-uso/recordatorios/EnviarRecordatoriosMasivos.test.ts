@@ -21,6 +21,7 @@ import {
   mockPlantillaEmailRepositorio,
   mockEmailEnviadoRepositorio,
   mockServicioEmail,
+  mockEnlaceConfirmacionTurno,
   mockReloj,
   plantillaEmailEjemplo,
 } from "../_ayudas-test";
@@ -53,6 +54,7 @@ function armar(
     mockConfiguracionRecordatoriosRepositorio(),
     "Lic. Nutrición",
     mockEstablecimientoRepositorio(),
+    mockEnlaceConfirmacionTurno(),
   );
   const recordatorios = mockRecordatorioWhatsappRepositorio({
     porTurnos: vi.fn(async () => opciones.existentes ?? new Map()),
