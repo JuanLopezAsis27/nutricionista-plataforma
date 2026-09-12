@@ -261,7 +261,7 @@ function botonConfirmar(enlace: string): string {
   return (
     `<p style="margin:24px 0">` +
     `<a href="${escaparHtml(enlace)}" style="display:inline-block;padding:12px 24px;` +
-    `background-color:#16a34a;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600">` +
+    `background-color:#F4535E;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600">` +
     `Confirmar asistencia</a></p>`
   );
 }
