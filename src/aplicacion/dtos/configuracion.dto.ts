@@ -28,6 +28,7 @@ export const guardarConfiguracionDto = z.object({
     .regex(/^\d{1,4}$/, 'El prefijo debe ser solo dígitos, sin "+"')
     .nullable()
     .optional(),
+  bienvenidaAutomaticaActiva: z.boolean().optional(),
 });
 export type GuardarConfiguracionDto = z.infer<typeof guardarConfiguracionDto>;
 
@@ -44,6 +45,7 @@ export const configuracionSalidaDto = z.object({
   pdfMostrarEquivalencias: z.boolean(),
   pdfMostrarRecomendaciones: z.boolean(),
   whatsappPrefijoPais: z.string().nullable(),
+  bienvenidaAutomaticaActiva: z.boolean(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
 });

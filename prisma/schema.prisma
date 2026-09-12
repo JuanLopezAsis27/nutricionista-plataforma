@@ -447,6 +447,9 @@ model Paciente {
   /// "pacientes activos" era en realidad "pacientes totales").
   archivadoEn               DateTime?
   motivoArchivado           String?
+  /// Cuándo se le mandó el email de bienvenida (automático al alta o manual
+  /// desde el listado). Null = todavía no se le envió.
+  bienvenidaEnviadaEn       DateTime?
   /// Dónde SUELE atenderse. Es una preferencia, no una pertenencia: precarga
   /// el formulario de turno y ordena el listado, y nunca limita en qué
   /// establecimiento se le puede dar un turno. El lugar de la consulta vive en
@@ -2305,6 +2308,10 @@ model ConfiguracionConsultorio {
   // Meta aprobó, y eso no entra en un campo de texto suelto. Acá queda lo que
   // sí es del consultorio: cómo se canonizan los teléfonos a E.164.
   whatsappPrefijoPais       String? // prefijo internacional sin "+", ej "54"
+  /// Si al dar de alta un paciente sale, además, su email de bienvenida con
+  /// los datos de acceso. Apagarlo no borra el envío manual: solo el
+  /// automático del alta.
+  bienvenidaAutomaticaActiva Boolean      @default(true)
   creadoEn                  DateTime      @default(now())
   actualizadoEn             DateTime      @updatedAt
   nutricionista             Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)

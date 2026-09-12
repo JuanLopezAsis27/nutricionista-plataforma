@@ -53,6 +53,8 @@ export interface PropiedadesPaciente {
   /** Baja lógica: null = paciente vigente. */
   archivadoEn: Date | null;
   motivoArchivado: string | null;
+  /** Cuándo se le mandó el email de bienvenida. Null = todavía no se envió. */
+  bienvenidaEnviadaEn: Date | null;
   creadoEn: Date;
   actualizadoEn: Date;
 }
@@ -114,6 +116,7 @@ export class Paciente {
       establecimientoHabitualId: datos.establecimientoHabitualId ?? null,
       archivadoEn: null,
       motivoArchivado: null,
+      bienvenidaEnviadaEn: null,
       creadoEn: ahora,
       actualizadoEn: ahora,
     });
@@ -159,6 +162,16 @@ export class Paciente {
       creadoEn: this.props.creadoEn,
       archivadoEn: this.props.archivadoEn,
       motivoArchivado: this.props.motivoArchivado,
+      bienvenidaEnviadaEn: this.props.bienvenidaEnviadaEn,
+    });
+  }
+
+  /** Registra que se le mandó (o remandó) el email de bienvenida. */
+  marcarBienvenidaEnviada(ahora: Date = new Date()): Paciente {
+    return Paciente.reconstruir({
+      ...this.props,
+      bienvenidaEnviadaEn: ahora,
+      actualizadoEn: ahora,
     });
   }
 
@@ -237,6 +250,9 @@ export class Paciente {
   }
   get motivoArchivado(): string | null {
     return this.props.motivoArchivado ?? null;
+  }
+  get bienvenidaEnviadaEn(): Date | null {
+    return this.props.bienvenidaEnviadaEn ?? null;
   }
   get fechaNacimiento(): Date | null {
     return this.props.fechaNacimiento ?? null;

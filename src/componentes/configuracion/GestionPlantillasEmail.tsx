@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { PlantillaSalidaDto } from "@/aplicacion/dtos/secretaria.dto";
 import { CLAVE_RECORDATORIO_TURNO } from "@/dominio/entidades/PlantillaEmail";
 import { useSecretaria } from "@/lib/hooks/useSecretaria";
+import { useConfiguracion } from "@/lib/hooks/useConfiguracion";
 import { Button } from "@/componentes/ui/button";
 import { Badge } from "@/componentes/ui/badge";
 import { Skeleton } from "@/componentes/ui/skeleton";
@@ -37,6 +38,9 @@ import { EnviarPruebaDialog } from "@/componentes/secretaria/EnviarPruebaDialog"
 export function GestionPlantillasEmail() {
   const { listarPlantillas, eliminarPlantilla } = useSecretaria();
   const consulta = listarPlantillas();
+  const { obtener: obtenerConfiguracion, guardar: guardarConfiguracion } =
+    useConfiguracion();
+  const config = obtenerConfiguracion().data;
 
   const [formAbierto, setFormAbierto] = useState(false);
   const [editar, setEditar] = useState<PlantillaSalidaDto | null>(null);
@@ -49,6 +53,36 @@ export function GestionPlantillasEmail() {
 
   return (
     <div className="space-y-4">
+      <Card>
+        <CardContent className="flex items-center justify-between gap-4 pt-6">
+          <div>
+            <p className="text-sm font-medium">
+              Bienvenida automática al dar de alta un paciente
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Con esto activado, cada paciente nuevo recibe el email de
+              bienvenida con sus datos de acceso apenas se lo da de alta.
+              Desactivalo si preferís mandarla vos a mano desde el listado de
+              pacientes.
+            </p>
+          </div>
+          <label className="flex shrink-0 items-center gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-primary"
+              checked={config?.bienvenidaAutomaticaActiva ?? true}
+              disabled={!config || guardarConfiguracion.isPending}
+              onChange={(e) =>
+                guardarConfiguracion.mutate({
+                  bienvenidaAutomaticaActiva: e.target.checked,
+                })
+              }
+            />
+            Activa
+          </label>
+        </CardContent>
+      </Card>
+
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="max-w-2xl text-sm text-muted-foreground">
           Emails del consultorio: la bienvenida que recibe un paciente nuevo y

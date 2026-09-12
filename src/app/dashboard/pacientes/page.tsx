@@ -10,6 +10,7 @@ import {
   Search,
   FileUp,
   FileDown,
+  Send,
 } from "lucide-react";
 import type { PacienteSalidaDto } from "@/aplicacion/dtos/paciente.dto";
 import { usePacientes } from "@/lib/hooks/usePacientes";
@@ -17,6 +18,14 @@ import { useDebounce } from "@/lib/hooks/useDebounce";
 import { formatearFecha } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
+import { Badge } from "@/componentes/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/componentes/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -34,7 +43,7 @@ import { AltaPacienteDesdeDocumento } from "@/componentes/pacientes/AltaPaciente
 const POR_PAGINA = 10;
 
 export default function PaginaPacientes() {
-  const { listar, eliminar } = usePacientes();
+  const { listar, eliminar, enviarBienvenidaManual } = usePacientes();
 
   const [pagina, setPagina] = useState(1);
   const [busqueda, setBusqueda] = useState("");
@@ -46,12 +55,45 @@ export default function PaginaPacientes() {
   const [pacienteEliminar, setPacienteEliminar] =
     useState<PacienteSalidaDto | null>(null);
   const [documentoAbierto, setDocumentoAbierto] = useState(false);
+  const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
+  const [filtroBienvenida, setFiltroBienvenida] = useState<
+    "todos" | "enviada" | "no_enviada"
+  >("todos");
 
   const consulta = listar({
     pagina,
     porPagina: POR_PAGINA,
     busqueda: busquedaDebounced || undefined,
+    bienvenida: filtroBienvenida === "todos" ? undefined : filtroBienvenida,
   });
+  const pacientes = consulta.data?.pacientes ?? [];
+
+  function cambiarSeleccion(id: string, marcado: boolean) {
+    setSeleccionados((actual) => {
+      const nuevo = new Set(actual);
+      if (marcado) nuevo.add(id);
+      else nuevo.delete(id);
+      return nuevo;
+    });
+  }
+
+  function cambiarSeleccionTodos(marcado: boolean) {
+    setSeleccionados((actual) => {
+      const nuevo = new Set(actual);
+      for (const p of pacientes) {
+        if (marcado) nuevo.add(p.id);
+        else nuevo.delete(p.id);
+      }
+      return nuevo;
+    });
+  }
+
+  function enviarBienvenidaASeleccionados() {
+    enviarBienvenidaManual.mutate(
+      { pacienteIds: Array.from(seleccionados) },
+      { onSuccess: () => setSeleccionados(new Set()) },
+    );
+  }
 
   function abrirNuevo() {
     setPacienteEditar(null);
@@ -83,6 +125,18 @@ export default function PaginaPacientes() {
       clave: "fechaNacimiento",
       encabezado: "Nacimiento",
       render: (p) => formatearFecha(p.fechaNacimiento),
+    },
+    {
+      clave: "bienvenida",
+      encabezado: "Bienvenida",
+      render: (p) =>
+        p.bienvenidaEnviadaEn ? (
+          <Badge variant="secondary">
+            Enviada {formatearFecha(p.bienvenidaEnviadaEn)}
+          </Badge>
+        ) : (
+          <Badge variant="outline">No enviada</Badge>
+        ),
     },
     {
       clave: "acciones",
@@ -119,19 +173,47 @@ export default function PaginaPacientes() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nombre o email…"
-            className="pl-9"
-            value={busqueda}
-            onChange={(e) => {
-              setBusqueda(e.target.value);
+        <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative w-full sm:max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nombre o email…"
+              className="pl-9"
+              value={busqueda}
+              onChange={(e) => {
+                setBusqueda(e.target.value);
+                setPagina(1);
+              }}
+            />
+          </div>
+          <Select
+            value={filtroBienvenida}
+            onValueChange={(v) => {
+              setFiltroBienvenida(v as typeof filtroBienvenida);
               setPagina(1);
             }}
-          />
+          >
+            <SelectTrigger className="w-auto min-w-[13rem] sm:w-auto">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Bienvenida: todos</SelectItem>
+              <SelectItem value="enviada">Bienvenida enviada</SelectItem>
+              <SelectItem value="no_enviada">Bienvenida no enviada</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex flex-wrap gap-2">
+          {seleccionados.size > 0 && (
+            <Button
+              variant="outline"
+              onClick={enviarBienvenidaASeleccionados}
+              disabled={enviarBienvenidaManual.isPending}
+            >
+              <Send className="h-4 w-4" />
+              Enviar bienvenida ({seleccionados.size})
+            </Button>
+          )}
           <Button asChild variant="outline">
             <a
               href={`/api/pacientes/excel${
@@ -162,13 +244,16 @@ export default function PaginaPacientes() {
       ) : (
         <TablaDatos
           columnas={columnas}
-          datos={consulta.data?.pacientes ?? []}
+          datos={pacientes}
           obtenerClave={(p) => p.id}
           cargando={consulta.isLoading}
           mensajeVacio="No hay pacientes que coincidan con la búsqueda."
           pagina={pagina}
           totalPaginas={consulta.data?.paginas ?? 1}
           onCambiarPagina={setPagina}
+          seleccionados={seleccionados}
+          onCambiarSeleccion={cambiarSeleccion}
+          onCambiarSeleccionTodos={cambiarSeleccionTodos}
         />
       )}
 

@@ -26,6 +26,12 @@ export interface DatosConfiguracion {
   // lo que sí es del consultorio: cómo se canonizan los teléfonos.
   /** Prefijo internacional sin "+" para normalizar teléfonos locales, ej "54". */
   whatsappPrefijoPais: string | null;
+  /**
+   * Si el alta de un paciente nuevo manda, además, su email de bienvenida con
+   * los datos de acceso. Apagarlo no afecta el envío manual desde el listado
+   * de pacientes: solo el automático del alta.
+   */
+  bienvenidaAutomaticaActiva: boolean;
 }
 
 /** Estado completo persistido. */
@@ -64,6 +70,7 @@ export class ConfiguracionConsultorio {
       pdfMostrarEquivalencias: true,
       pdfMostrarRecomendaciones: true,
       whatsappPrefijoPais: null,
+      bienvenidaAutomaticaActiva: true,
       creadoEn: ahora,
       actualizadoEn: ahora,
     });
@@ -116,6 +123,10 @@ export class ConfiguracionConsultorio {
         cambios.whatsappPrefijoPais,
         this.props.whatsappPrefijoPais,
       ),
+      bienvenidaAutomaticaActiva: fusionar(
+        cambios.bienvenidaAutomaticaActiva,
+        this.props.bienvenidaAutomaticaActiva,
+      ),
     };
     validar(datos);
     return new ConfiguracionConsultorio({
@@ -130,6 +141,9 @@ export class ConfiguracionConsultorio {
   }
   get whatsappPrefijoPais(): string | null {
     return this.props.whatsappPrefijoPais;
+  }
+  get bienvenidaAutomaticaActiva(): boolean {
+    return this.props.bienvenidaAutomaticaActiva;
   }
 
   aPrimitivos(): PropiedadesConfiguracion {

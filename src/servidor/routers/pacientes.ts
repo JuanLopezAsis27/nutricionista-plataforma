@@ -7,6 +7,7 @@ import {
   archivarPacienteDto,
   interpretarFichaPacienteDto,
   crearPacienteDesdeFichaDto,
+  enviarBienvenidaManualDto,
 } from "@/aplicacion/dtos/paciente.dto";
 
 /**
@@ -84,5 +85,12 @@ export const routerPacientes = crearRouter({
     .mutation(async ({ ctx, input }) => {
       await ctx.servicios.paciente.eliminarPaciente(input.id);
       return { eliminado: true };
+    }),
+
+  /** Envío manual de la bienvenida a una selección de pacientes. */
+  enviarBienvenidaManual: nutricionistaProcedimiento
+    .input(enviarBienvenidaManualDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.paciente.enviarBienvenidaManual(input);
     }),
 });

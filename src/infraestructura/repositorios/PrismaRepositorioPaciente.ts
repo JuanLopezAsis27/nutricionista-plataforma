@@ -57,6 +57,7 @@ export class PrismaRepositorioPaciente implements IPacienteRepositorio {
         establecimientoHabitualId: datos.establecimientoHabitualId,
         archivadoEn: datos.archivadoEn,
         motivoArchivado: datos.motivoArchivado,
+        bienvenidaEnviadaEn: datos.bienvenidaEnviadaEn,
         actualizadoEn: datos.actualizadoEn,
       },
     });
@@ -113,6 +114,11 @@ export class PrismaRepositorioPaciente implements IPacienteRepositorio {
     if (!filtro.incluirArchivados) {
       where.archivadoEn = null;
     }
+    if (filtro.bienvenida === "enviada") {
+      where.bienvenidaEnviadaEn = { not: null };
+    } else if (filtro.bienvenida === "no_enviada") {
+      where.bienvenidaEnviadaEn = null;
+    }
     const termino = filtro.busqueda?.trim();
     if (termino) {
       where.OR = [
@@ -140,6 +146,7 @@ export function mapearPaciente(fila: PacienteFila): Paciente {
     establecimientoHabitualId: fila.establecimientoHabitualId,
     archivadoEn: fila.archivadoEn,
     motivoArchivado: fila.motivoArchivado,
+    bienvenidaEnviadaEn: fila.bienvenidaEnviadaEn,
     creadoEn: fila.creadoEn,
     actualizadoEn: fila.actualizadoEn,
   });

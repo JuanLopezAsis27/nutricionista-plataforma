@@ -17,6 +17,8 @@ import { ObtenerPacientePorId } from "@/aplicacion/casos-de-uso/pacientes/Obtene
 import { ActualizarPaciente } from "@/aplicacion/casos-de-uso/pacientes/ActualizarPaciente";
 import { EliminarPaciente } from "@/aplicacion/casos-de-uso/pacientes/EliminarPaciente";
 import { EnviarEmailDeBienvenida } from "@/aplicacion/casos-de-uso/pacientes/EnviarEmailDeBienvenida";
+import { EnviarBienvenidaAlAlta } from "@/aplicacion/casos-de-uso/pacientes/EnviarBienvenidaAlAlta";
+import { EnviarBienvenidaMasiva } from "@/aplicacion/casos-de-uso/pacientes/EnviarBienvenidaMasiva";
 import { ArchivarPaciente } from "@/aplicacion/casos-de-uso/pacientes/ArchivarPaciente";
 import { ReactivarPaciente } from "@/aplicacion/casos-de-uso/pacientes/ReactivarPaciente";
 import { InterpretarFichaPaciente } from "@/aplicacion/casos-de-uso/pacientes/InterpretarFichaPaciente";
@@ -50,17 +52,24 @@ export function crearServicioPaciente(deps: {
     deps.configuracion,
   );
 
+  const enviarEmailDeBienvenida = new EnviarEmailDeBienvenida(
+    deps.plantillas,
+    deps.servicioEmail,
+    deps.nombreProfesional,
+  );
+
   return new ServicioPaciente(
     crearPaciente,
     new ObtenerPacientes(deps.pacientes),
     new ObtenerPacientePorId(deps.pacientes),
     new ActualizarPaciente(deps.pacientes, deps.usuarios, deps.configuracion),
     new EliminarPaciente(deps.pacientes, deps.usuarios),
-    new EnviarEmailDeBienvenida(
-      deps.plantillas,
-      deps.servicioEmail,
-      deps.nombreProfesional,
+    new EnviarBienvenidaAlAlta(
+      deps.configuracion,
+      deps.pacientes,
+      enviarEmailDeBienvenida,
     ),
+    new EnviarBienvenidaMasiva(deps.pacientes, enviarEmailDeBienvenida),
     new ArchivarPaciente(deps.pacientes),
     new ReactivarPaciente(deps.pacientes),
     new InterpretarFichaPaciente(
