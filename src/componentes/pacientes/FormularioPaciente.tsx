@@ -54,8 +54,22 @@ export function crearEsquemaPaciente(editando: boolean) {
     telefono: z.string().optional(),
     fechaNacimiento: z.string().optional(),
     sexo: z.enum([...SEXOS_BIOLOGICOS, SIN_SEXO]),
-    /** Id de la sede habitual, o SIN_SEDE. Ver el campo en el formulario. */
-    establecimientoHabitualId: z.string(),
+    /**
+     * Id de la sede habitual, o SIN_SEDE. Ver el campo en el formulario.
+     *
+     * Es OPCIONAL, como en `crearPacienteDto`, y eso no es un detalle: este
+     * esquema lo comparten DOS formularios y solo uno dibuja el campo —el alta
+     * desde documento no lo muestra—. Mientras fue obligatorio, ahí llegaba
+     * `undefined`, Zod lo rechazaba y `handleSubmit` se negaba a llamar al
+     * envío. Como el campo no está en pantalla, tampoco había un
+     * `<FormMessage>` donde apareciera el motivo: el botón "Crear paciente"
+     * simplemente no hacía NADA, sin error en consola ni pedido en la red.
+     *
+     * Un campo que un consumidor no dibuja no puede ser obligatorio para él.
+     * `AltaPacienteDesdeDocumento` además pasa un `onInvalid` a `handleSubmit`,
+     * para que un rechazo así no vuelva a ser invisible.
+     */
+    establecimientoHabitualId: z.string().optional(),
     notas: z.string().optional(),
     password: editando ? z.string().optional() : passwordNuevaDto,
   });
@@ -127,6 +141,7 @@ export function FormularioPaciente({
         : null,
       sexo: datos.sexo === SIN_SEXO ? null : datos.sexo,
       establecimientoHabitualId:
+        !datos.establecimientoHabitualId ||
         datos.establecimientoHabitualId === SIN_SEDE
           ? null
           : datos.establecimientoHabitualId,

@@ -191,8 +191,20 @@ siempre.
 ## La sede habitual del paciente
 
 `Paciente.establecimientoHabitualId`, opcional y con FK SET NULL. Se elige en
-el formulario del paciente («Sin preferencia» es una respuesta válida y
-frecuente: quien va indistintamente a las dos no tiene una).
+**los dos formularios de alta** —el normal y el que precarga la IA desde un
+documento— y también al editar la ficha. «Sin preferencia» es una respuesta
+válida y frecuente: quien va indistintamente a las dos no tiene una.
+
+El selector **solo aparece si el consultorio tiene más de una sede**: con una
+sola no hay preferencia que expresar, y preguntarlo sería pedir una decisión que
+no existe. El criterio es el mismo en las dos pantallas.
+
+En el alta desde documento el campo **no sale del documento** y por eso arranca
+siempre en «Sin preferencia»: dónde se atiende alguien es una decisión del
+consultorio, no un dato de la ficha en papel. Ojo con eso al tocar ese
+formulario: su `form.reset()` pisa TODO al terminar de leer el documento, así
+que el valor hay que reponerlo ahí (si queda vacío, el envío se frena sin decir
+por qué — ver `docs/ERRORES.md`).
 
 Su ÚNICO efecto es precargar el formulario de turno al elegir al paciente. No
 filtra listados, no restringe dónde se le puede dar un turno, y si la sede se

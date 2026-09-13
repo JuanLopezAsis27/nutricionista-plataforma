@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { toast } from "sonner";
 import { FileText, Loader2, RotateCcw } from "lucide-react";
 import type { FichaPacienteSugeridaDto } from "@/aplicacion/dtos/paciente.dto";
 import { LARGO_MINIMO_PASSWORD } from "@/aplicacion/dtos/password";
 import { SEXOS_BIOLOGICOS } from "@/dominio/servicios/composicionCorporal";
 import { usePacientes } from "@/lib/hooks/usePacientes";
+import { useEstablecimientos } from "@/lib/hooks/useEstablecimientos";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { Textarea } from "@/componentes/ui/textarea";
@@ -32,6 +34,26 @@ import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
 import { crearEsquemaPaciente } from "./FormularioPaciente";
 
 const SIN_SEXO = "SIN_DATO";
+
+/**
+ * Valor del select cuando no hay sede habitual. Tiene que coincidir con el de
+ * `FormularioPaciente`: los dos mandan el mismo campo al mismo DTO, y el
+ * servidor lo traduce a `null`.
+ */
+const SIN_SEDE = "SIN_SEDE";
+
+/** Nombres de campo en castellano para el aviso de validación. */
+const ETIQUETAS_CAMPO: Record<string, string> = {
+  nombre: "Nombre",
+  apellido: "Apellido",
+  email: "Email",
+  password: "Contraseña de acceso",
+  telefono: "Teléfono",
+  fechaNacimiento: "Fecha de nacimiento",
+  sexo: "Sexo biológico",
+  notas: "Notas",
+  establecimientoHabitualId: "Sede habitual",
+};
 
 const ETIQUETAS_SEXO: Record<(typeof SEXOS_BIOLOGICOS)[number], string> = {
   MASCULINO: "Masculino",
@@ -72,6 +94,8 @@ export function AltaPacienteDesdeDocumento({
   onTerminado: () => void;
 }) {
   const { interpretarFicha, crearDesdeFicha } = usePacientes();
+  const { listar: listarSedes } = useEstablecimientos();
+  const sedes = listarSedes().data ?? [];
 
   const [archivoId, setArchivoId] = useState<string | null>(null);
   const [ficha, setFicha] = useState<FichaPacienteSugeridaDto | null>(null);
@@ -96,6 +120,7 @@ export function AltaPacienteDesdeDocumento({
       telefono: "",
       fechaNacimiento: "",
       sexo: SIN_SEXO,
+      establecimientoHabitualId: SIN_SEDE,
       notas: "",
       password: "",
     },
@@ -115,6 +140,11 @@ export function AltaPacienteDesdeDocumento({
             telefono: leida.paciente.telefono ?? "",
             fechaNacimiento: leida.paciente.fechaNacimiento ?? "",
             sexo: leida.paciente.sexo ?? SIN_SEXO,
+            // La sede no sale del documento: es una decisión del consultorio,
+            // no un dato de la ficha en papel. `reset` pisa TODO el formulario,
+            // así que si no se repone acá el campo queda vacío y el envío se
+            // frena sin decir por qué.
+            establecimientoHabitualId: SIN_SEDE,
             notas: leida.paciente.notas ?? "",
             password: "",
           });
@@ -124,6 +154,32 @@ export function AltaPacienteDesdeDocumento({
           setLabsDescartados(new Set());
         },
       },
+    );
+  }
+
+  /**
+   * Red de seguridad para la validación que no se ve.
+   *
+   * `handleSubmit` no llama al envío si el esquema rechaza algo, y si ese algo
+   * es un campo que este formulario NO dibuja, no hay ningún `<FormMessage>`
+   * donde aparezca el motivo: el botón queda muerto y no se entera nadie. Ya
+   * pasó con `establecimientoHabitualId` (ver `crearEsquemaPaciente`). Mostrar
+   * el campo y el motivo convierte un botón mudo en un error accionable.
+   */
+  function alInvalidar(errores: FieldErrors<DatosFormulario>) {
+    const entradas = Object.entries(errores);
+    const detalle = entradas
+      .map(([campo, error]) => {
+        const mensaje =
+          typeof error?.message === "string" ? error.message : "dato inválido";
+        return `${ETIQUETAS_CAMPO[campo] ?? campo}: ${mensaje}`;
+      })
+      .join(" · ");
+
+    toast.error(
+      detalle
+        ? `Revisá los datos antes de guardar — ${detalle}`
+        : "No se pudo guardar: hay datos inválidos en el formulario.",
     );
   }
 
@@ -148,6 +204,11 @@ export function AltaPacienteDesdeDocumento({
           ? new Date(datos.fechaNacimiento)
           : null,
         sexo: datos.sexo === SIN_SEXO ? null : datos.sexo,
+        establecimientoHabitualId:
+          !datos.establecimientoHabitualId ||
+          datos.establecimientoHabitualId === SIN_SEDE
+            ? null
+            : datos.establecimientoHabitualId,
         notas: datos.notas?.trim() ? datos.notas : null,
         historiaClinica: historia,
         alertas: ficha.alertas.filter(
@@ -196,7 +257,10 @@ export function AltaPacienteDesdeDocumento({
   // --- Paso 2: revisar y confirmar --------------------------------------------
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(alEnviar)} className="space-y-5">
+      <form
+        onSubmit={form.handleSubmit(alEnviar, alInvalidar)}
+        className="space-y-5"
+      >
         <div className="flex items-center justify-between gap-4 rounded-md border bg-muted/30 p-3">
           <p className="flex items-center gap-2 text-sm">
             <FileText className="h-4 w-4 shrink-0 text-primary" />
@@ -336,6 +400,41 @@ export function AltaPacienteDesdeDocumento({
             </FormItem>
           )}
         />
+
+        {/* Con una sola sede no se pregunta: no hay preferencia que expresar.
+            Mismo criterio que en el alta normal. */}
+        {sedes.length > 1 && (
+          <FormField
+            control={form.control}
+            name="establecimientoHabitualId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Establecimiento habitual</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={SIN_SEDE}>Sin preferencia</SelectItem>
+                    {sedes.map((sede) => (
+                      <SelectItem key={sede.id} value={sede.id}>
+                        {sede.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  El documento no trae esto: es una decisión del consultorio.
+                  Solo precarga el formulario de turno; el paciente puede
+                  atenderse en cualquier establecimiento.
+                </p>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={form.control}
