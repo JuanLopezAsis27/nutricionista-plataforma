@@ -51,14 +51,38 @@ export class ServicioPaciente {
     datos: CrearPacienteConAccesoDto,
   ): Promise<PacienteSalidaDto> {
     const paciente = await this.crearUC.ejecutar(datos);
-    // Email de bienvenida best-effort: nunca hace fallar el alta del paciente.
+    await this.darLaBienvenida(paciente, datos.password);
+    return ServicioPaciente.aSalida(paciente);
+  }
+
+  /**
+   * El email de bienvenida del alta, con la MISMA política para los dos
+   * caminos que crean un paciente (el formulario y la ficha en documento).
+   *
+   * Está en un método propio justamente por eso: mientras cada alta decidía por
+   * su cuenta, la que venía de un documento no mandaba nada, y el paciente se
+   * quedaba sin sus datos de acceso sin que nadie se enterara —el alta decía
+   * "creado" igual—. Quién recibe la bienvenida no puede depender de por qué
+   * pantalla entró el profesional.
+   *
+   * Es best-effort y nunca hace fallar el alta: el paciente ya está creado y su
+   * ficha no se puede perder porque el SMTP esté caído. Si no salió, queda el
+   * envío manual desde el listado.
+   *
+   * El interruptor del consultorio (`bienvenidaAutomaticaActiva`) lo respeta
+   * `EnviarBienvenidaAlAlta`, así que apagarlo sigue apagando las dos vías.
+   */
+  private async darLaBienvenida(
+    paciente: Paciente,
+    contrasena: string,
+  ): Promise<void> {
     try {
       await this.enviarBienvenidaUC.ejecutar({
         paciente,
         // La contraseña en texto plano solo existe acá, durante el alta: la
         // cuenta ya la guardó hasheada. Por eso la bienvenida es el único
         // mensaje que puede llevarla.
-        contrasena: datos.password,
+        contrasena,
       });
     } catch (error) {
       console.error(
@@ -66,7 +90,6 @@ export class ServicioPaciente {
         error,
       );
     }
-    return ServicioPaciente.aSalida(paciente);
   }
 
   /** Envío manual de la bienvenida a una selección de pacientes. */
@@ -167,8 +190,14 @@ export class ServicioPaciente {
       })),
     });
 
-    // El email de bienvenida lo manda `crearPaciente`; acá no, porque el alta
-    // desde ficha suele hacerse con el paciente sentado enfrente.
+    // La misma bienvenida que el alta por formulario. Antes acá no se mandaba
+    // —el razonamiento era que esta alta se hace con el paciente enfrente—,
+    // pero el resultado era que quien entraba por documento se quedaba sin sus
+    // datos de acceso y nadie lo notaba hasta que el paciente no podía entrar.
+    // Que se mande o no es del consultorio y se decide con el interruptor
+    // `bienvenidaAutomaticaActiva`, no del formulario que se haya usado.
+    await this.darLaBienvenida(paciente, datos.password);
+
     return { paciente: ServicioPaciente.aSalida(paciente), advertencias };
   }
 
