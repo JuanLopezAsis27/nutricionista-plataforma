@@ -5,6 +5,7 @@ import { ZodError } from "zod";
 import type { Contexto } from "./contexto";
 import { ErrorDominio } from "@/dominio/errores/ErrorDominio";
 import { monitorErrores } from "@/infraestructura/monitoreo/monitor";
+import { traducirErrorPrisma } from "@/infraestructura/persistencia/erroresPrisma";
 import { MAPA_CODIGOS_TRPC } from "./mapaCodigos";
 
 /**
@@ -78,6 +79,29 @@ const traducirErroresDominio = t.middleware(async ({ next, path, ctx }) => {
   // a la validación Zod. Eso es flujo esperado y no se toca.
   if (error.code !== "INTERNAL_SERVER_ERROR") {
     return resultado;
+  }
+
+  // Choque contra una restricción de la base (email repetido, FK que ya no
+  // está, registro borrado por otro). No es un `ErrorDominio`, así que sin esto
+  // salía por el genérico de abajo y el profesional leía "error inesperado"
+  // cuando el problema era un dato suyo que podía corregir.
+  //
+  // Se traduce Y se reporta igual: que un caso de uso deje llegar el choque
+  // hasta Postgres significa que le falta el chequeo explícito, que es el que
+  // puede dar el mensaje bueno ("ya tenés un paciente con ese email: …").
+  // Apagar el monitor acá escondería esa deuda.
+  const restriccion = traducirErrorPrisma(original);
+  if (restriccion) {
+    monitorErrores.capturar(original ?? error, {
+      origen: "trpc",
+      ruta: path,
+      usuarioId: ctx.usuario?.id,
+    });
+    throw new TRPCError({
+      code: MAPA_CODIGOS_TRPC[restriccion.codigo],
+      message: restriccion.message,
+      cause: restriccion,
+    });
   }
 
   monitorErrores.capturar(original ?? error, {

@@ -80,3 +80,66 @@ describe("CrearPaciente", () => {
     expect(repositorio.eliminar).toHaveBeenCalledOnce();
   });
 });
+
+describe("CrearPaciente — el email ya está en uso", () => {
+  function armar(
+    usuarios = mockUsuarioRepositorio(),
+    pacientes = mockPacienteRepositorio(),
+  ) {
+    return new CrearPaciente(
+      pacientes,
+      usuarios,
+      mockHasheador(),
+      mockConfiguracionRepositorio(),
+    );
+  }
+
+  it("si ya hay un paciente con ese email, lo nombra", async () => {
+    // El mensaje tiene que decir CON QUIÉN choca: sin eso el profesional no
+    // sabe si es la misma persona (y tiene que editarla) o un homónimo.
+    const caso = armar(
+      mockUsuarioRepositorio(),
+      mockPacienteRepositorio({
+        obtenerPorEmail: vi.fn(async () => pacienteEjemplo()),
+      }),
+    );
+
+    await expect(caso.ejecutar(datos)).rejects.toThrow(ErrorValidacion);
+    await caso.ejecutar(datos).catch((error: Error) => {
+      expect(error.message).toContain("ana@mail.com");
+      expect(error.message).toContain("editá su ficha");
+    });
+  });
+
+  it("si el email ya tiene cuenta en OTRO consultorio, lo explica sin delatarlo", async () => {
+    // Este era el caso que salía como "Ocurrió un error inesperado":
+    // `obtenerPorEmail` lleva el filtro de inquilino y no lo veía, así que el
+    // alta seguía y reventaba contra el índice único global de `usuarios`.
+    const caso = armar(
+      mockUsuarioRepositorio({
+        obtenerPorEmail: vi.fn(async () => null), // no es de este consultorio
+        emailYaRegistrado: vi.fn(async () => true), // pero existe en la plataforma
+      }),
+    );
+
+    await caso.ejecutar(datos).catch((error: Error) => {
+      expect(error).toBeInstanceOf(ErrorValidacion);
+      expect(error.message).toContain("ya tiene una cuenta en la plataforma");
+      // Y NO dice de quién es ni de qué consultorio: sería filtrar datos ajenos.
+      expect(error.message).not.toMatch(/consultorio de|pertenece a/i);
+    });
+  });
+
+  it("no crea el paciente si el email global está tomado", async () => {
+    const pacientes = mockPacienteRepositorio();
+    const caso = armar(
+      mockUsuarioRepositorio({ emailYaRegistrado: vi.fn(async () => true) }),
+      pacientes,
+    );
+
+    await caso.ejecutar(datos).catch(() => {});
+
+    // Se corta ANTES de escribir: si no, habría que compensar borrándolo.
+    expect(pacientes.crear).not.toHaveBeenCalled();
+  });
+});
