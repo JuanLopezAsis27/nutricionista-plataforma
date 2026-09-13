@@ -10,11 +10,13 @@ import {
 import { FormularioConfiguracion } from "@/componentes/configuracion/FormularioConfiguracion";
 import { GestionEstablecimientos } from "@/componentes/configuracion/GestionEstablecimientos";
 import { FormularioPdfPlan } from "@/componentes/configuracion/FormularioPdfPlan";
+import { FormularioEcuacionesGrasa } from "@/componentes/configuracion/FormularioEcuacionesGrasa";
 import { FormularioWhatsapp } from "@/componentes/configuracion/FormularioWhatsapp";
 import { GestionAxiomas } from "@/componentes/configuracion/GestionAxiomas";
 import { GestionPlantillasEmail } from "@/componentes/configuracion/GestionPlantillasEmail";
 import { GestionCamposHistoriaClinica } from "@/componentes/configuracion/GestionCamposHistoriaClinica";
 import { GestionCamposEvolucion } from "@/componentes/configuracion/GestionCamposEvolucion";
+import { FormularioDiarioIA } from "@/componentes/configuracion/FormularioDiarioIA";
 
 /** Configuración del consultorio: establecimientos, membrete y base de conocimiento. */
 export default function PaginaConfiguracion() {
@@ -35,6 +37,8 @@ export default function PaginaConfiguracion() {
           <TabsTrigger value="general">Membrete</TabsTrigger>
           <TabsTrigger value="establecimientos">Establecimientos</TabsTrigger>
           <TabsTrigger value="pdf">PDF del plan</TabsTrigger>
+          <TabsTrigger value="antropometria">Antropometría</TabsTrigger>
+          <TabsTrigger value="diario">Diario</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="emails">Plantillas de email</TabsTrigger>
           <TabsTrigger value="historia">Historia clínica</TabsTrigger>
@@ -52,6 +56,14 @@ export default function PaginaConfiguracion() {
 
         <TabsContent value="pdf">
           <FormularioPdfPlan />
+        </TabsContent>
+
+        <TabsContent value="antropometria">
+          <FormularioEcuacionesGrasa />
+        </TabsContent>
+
+        <TabsContent value="diario">
+          <FormularioDiarioIA />
         </TabsContent>
 
         <TabsContent value="whatsapp">

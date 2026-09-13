@@ -113,6 +113,12 @@ export const routerDiario = crearRouter({
       return { vinculada: true };
     }),
 
+  /** Si el consultorio tiene prendido el análisis automático de fotos. */
+  analisisAutomaticoActivo: protegidoProcedimiento.query(async ({ ctx }) => {
+    pacienteDeSesion(ctx.usuario);
+    return await ctx.servicios.diario.analisisAutomaticoActivo();
+  }),
+
   // --- Vistas del nutricionista ---------------------------------------------------
   obtenerRango: nutricionistaProcedimiento
     .input(rangoDiarioDto)

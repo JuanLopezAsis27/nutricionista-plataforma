@@ -41,7 +41,6 @@ function medidas(
     plieguePantorrilla: 9,
     pliegueBicipital: null,
     pliegueCrestaIliaca: null,
-    plieguePectoral: null,
     pliegueAxilarMedio: null,
     pliegueLumbar: null,
     ...cambios,

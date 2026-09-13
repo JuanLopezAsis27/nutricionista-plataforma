@@ -344,6 +344,26 @@ function porcentajeDe(
   }
 }
 
+/**
+ * Recorta un resultado a las ecuaciones que el nutricionista eligió mostrar.
+ *
+ * Es la única bisagra entre la configuración del consultorio y el cálculo: el
+ * dominio sigue calculando TODO lo que las medidas permitan, y esto oculta lo
+ * que no está marcado como visible, tanto en `resultados` como en
+ * `faltantes` — una ecuación oculta no debe aparecer ni con su valor ni como
+ * "falta tal medida".
+ */
+export function filtrarMetodosVisibles(
+  grasa: GrasaPorPliegues,
+  visibles: readonly MetodoGrasa[],
+): GrasaPorPliegues {
+  const permitido = new Set<string>(visibles);
+  return {
+    resultados: grasa.resultados.filter((r) => permitido.has(r.metodo)),
+    faltantes: grasa.faltantes.filter((f) => permitido.has(f.metodo)),
+  };
+}
+
 /** Siri (1961): convierte densidad corporal en porcentaje de grasa. */
 function siri(densidad: number): number {
   return 495 / densidad - 450;

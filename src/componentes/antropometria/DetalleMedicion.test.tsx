@@ -28,7 +28,7 @@ const MEDICION = {
     fraccionamiento: null,
     somatotipo: null,
     energia: null,
-    grasaPorPliegues: { resultados: [] },
+    grasaPorPliegues: { resultados: [], faltantes: [] },
     faltantes: [{ bloque: "SOMATOTIPO", campos: ["Diámetro humeral"] }],
   },
 } as unknown as MedicionComposicionDto;

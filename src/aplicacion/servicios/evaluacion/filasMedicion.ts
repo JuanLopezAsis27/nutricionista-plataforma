@@ -2,6 +2,7 @@ import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
 import {
   DEFINICIONES_METODO,
   METODOS_GRASA,
+  type MetodoGrasa,
 } from "@/dominio/servicios/grasaPorPliegues";
 
 /**
@@ -39,8 +40,12 @@ export interface Grupo {
  *
  * Son los números crudos, y por eso existe además de los gráficos: la paleta
  * en tema claro exige que el dato esté disponible sin depender del color.
+ *
+ * Los primeros cinco grupos son fijos; el de grasa por pliegues depende de
+ * qué ecuaciones dejó visibles la configuración del consultorio, así que se
+ * arma aparte en `construirGrupos`.
  */
-export const GRUPOS: Grupo[] = [
+const GRUPOS_FIJOS: Grupo[] = [
   {
     titulo: "Básicos",
     filas: [
@@ -123,7 +128,6 @@ export const GRUPOS: Grupo[] = [
         etiqueta: "Cresta ilíaca",
         valor: (m) => m.medidas.pliegueCrestaIliaca,
       },
-      { etiqueta: "Pectoral", valor: (m) => m.medidas.plieguePectoral },
       { etiqueta: "Axilar medio", valor: (m) => m.medidas.pliegueAxilarMedio },
       { etiqueta: "Lumbar", valor: (m) => m.medidas.pliegueLumbar },
       {
@@ -204,16 +208,54 @@ export const GRUPOS: Grupo[] = [
       { etiqueta: "Kg grasa (manual)", valor: (m) => m.medidas.kgGrasa },
     ],
   },
-  {
-    titulo: "Grasa por pliegues (2 componentes)",
-    // Una fila por ecuación: los valores de métodos distintos NO se comparan
-    // entre sí, se leen en paralelo sobre las mismas medidas.
-    filas: METODOS_GRASA.map((metodo) => ({
-      etiqueta: `${DEFINICIONES_METODO[metodo].etiqueta} (%)`,
-      valor: (m: MedicionComposicionDto) =>
-        m.resultado.grasaPorPliegues.resultados.find((r) => r.metodo === metodo)
-          ?.porcentajeGrasa ?? null,
-      derivada: true,
-    })),
-  },
 ];
+
+/**
+ * Qué ecuaciones dejó visibles la configuración, leído de la propia medición.
+ *
+ * El dominio evalúa siempre las 9 ecuaciones y clasifica cada una en
+ * `resultados` (se pudo calcular) o `faltantes` (falta alguna medida); una
+ * ecuación oculta por configuración no aparece en NINGUNA de las dos listas
+ * (`ObtenerComposicionCorporal` ya las filtró). Por eso la unión de ambas
+ * listas de una sola medición ES el conjunto de ecuaciones visibles, sin
+ * necesidad de leer la configuración aparte — lo que le sirve igual a la
+ * vista del profesional que a la del paciente, que no puede consultarla.
+ */
+export function metodosVisiblesDe(
+  medicion: MedicionComposicionDto,
+): MetodoGrasa[] {
+  const { resultados, faltantes } = medicion.resultado.grasaPorPliegues;
+  const vistos = new Set<MetodoGrasa>([
+    ...resultados.map((r) => r.metodo),
+    ...faltantes.map((f) => f.metodo),
+  ]);
+  return METODOS_GRASA.filter((metodo) => vistos.has(metodo));
+}
+
+/**
+ * Arma la planilla completa para las ecuaciones que la configuración del
+ * consultorio deja visibles. Una ecuación oculta no debe aparecer ni con su
+ * fila vacía: por eso el grupo de grasa se arma acá y no queda estático.
+ */
+export function construirGrupos(
+  metodosVisibles: readonly MetodoGrasa[],
+): Grupo[] {
+  return [
+    ...GRUPOS_FIJOS,
+    {
+      titulo: "Grasa por pliegues (2 componentes)",
+      // Una fila por ecuación: los valores de métodos distintos NO se comparan
+      // entre sí, se leen en paralelo sobre las mismas medidas.
+      filas: METODOS_GRASA.filter((metodo) =>
+        metodosVisibles.includes(metodo),
+      ).map((metodo) => ({
+        etiqueta: `${DEFINICIONES_METODO[metodo].etiqueta} (%)`,
+        valor: (m: MedicionComposicionDto) =>
+          m.resultado.grasaPorPliegues.resultados.find(
+            (r) => r.metodo === metodo,
+          )?.porcentajeGrasa ?? null,
+        derivada: true,
+      })),
+    },
+  ];
+}

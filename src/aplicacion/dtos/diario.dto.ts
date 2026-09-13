@@ -25,13 +25,19 @@ export type GuardarDiaDto = z.infer<typeof guardarDiaDto>;
 
 export const fechaDiaDto = z.object({ fecha: z.coerce.date() });
 
-export const agregarComidaDto = z.object({
-  fecha: z.coerce.date(),
-  franja: z.string().min(1, "Indicá la franja").max(50),
-  hora: horaHHmm.optional().nullable(),
-  descripcion: z.string().min(1, "Describí qué comiste").max(1000),
-  porcion: z.string().max(120).optional().nullable(),
-});
+export const agregarComidaDto = z
+  .object({
+    fecha: z.coerce.date(),
+    franja: z.string().min(1, "Indicá la franja").max(50),
+    hora: horaHHmm.optional().nullable(),
+    descripcion: z.string().max(1000).optional(),
+    porcion: z.string().max(120).optional().nullable(),
+    archivoId: z.string().optional().nullable(),
+  })
+  .refine((d) => (d.descripcion?.trim().length ?? 0) > 0 || !!d.archivoId, {
+    message: "Describí qué comiste o subí una foto.",
+    path: ["descripcion"],
+  });
 export type AgregarComidaDto = z.infer<typeof agregarComidaDto>;
 
 export const agregarActividadDto = z.object({

@@ -48,7 +48,6 @@ export const CAMPOS_PLANTILLA = [
   "plieguePantorrilla",
   "pliegueBicipital",
   "pliegueCrestaIliaca",
-  "plieguePectoral",
   "pliegueAxilarMedio",
   "pliegueLumbar",
 ] as const satisfies readonly (keyof MedidasAntropometricas)[];

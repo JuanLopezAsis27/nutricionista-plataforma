@@ -37,7 +37,6 @@ function medidas(
     plieguePantorrilla: null,
     pliegueBicipital: null,
     pliegueCrestaIliaca: null,
-    plieguePectoral: null,
     pliegueAxilarMedio: null,
     pliegueLumbar: null,
     ...cambios,
@@ -121,7 +120,7 @@ describe("distribución adiposa", () => {
     // La zona es anatómica: no depende de qué ecuación nombre el sitio.
     const d = calcular({
       ...SEIS_COMO_EL_PHANTOM,
-      plieguePectoral: 10,
+      pliegueAxilarMedio: 10,
       pliegueLumbar: 12,
       pliegueBicipital: 6,
       pliegueCrestaIliaca: 20,
@@ -130,7 +129,7 @@ describe("distribución adiposa", () => {
     const campos = (zona: string): (keyof MedidasComposicion)[] =>
       d.zonas.find((z) => z.zona === zona)!.sitios.map((s) => s.campo);
 
-    expect(campos("SUPERIOR")).toContain("plieguePectoral");
+    expect(campos("SUPERIOR")).toContain("pliegueAxilarMedio");
     expect(campos("SUPERIOR")).toContain("pliegueBicipital");
     expect(campos("CENTRAL")).toContain("pliegueLumbar");
     expect(campos("CENTRAL")).toContain("pliegueCrestaIliaca");

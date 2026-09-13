@@ -9,7 +9,10 @@ import {
 import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
 import type { ConfiguracionSalidaDto } from "@/aplicacion/dtos/configuracion.dto";
 import { DEFINICIONES_METODO } from "@/dominio/servicios/grasaPorPliegues";
-import { GRUPOS } from "@/aplicacion/servicios/evaluacion/filasMedicion";
+import {
+  construirGrupos,
+  metodosVisiblesDe,
+} from "@/aplicacion/servicios/evaluacion/filasMedicion";
 import { ETIQUETAS_PROTOCOLO } from "@/aplicacion/servicios/evaluacion/resumenMedicion";
 import {
   BarraApilada,
@@ -35,8 +38,9 @@ import {
  * Documento PDF de UNA medición antropométrica — el que se baja el paciente.
  *
  * La planilla que arma es la MISMA que la ficha en pantalla (`DetalleMedicion`):
- * lee `GRUPOS` de `filasMedicion.ts`, la única definición de la planilla. Así
- * el PDF nunca se desincroniza de lo que se ve al clickear una tarjeta — si se
+ * usa `construirGrupos` de `filasMedicion.ts`, la única definición de la
+ * planilla. Así el PDF nunca se desincroniza de lo que se ve al clickear una
+ * tarjeta — si se
  * agrega una medida al formulario, las tres vistas la muestran o ninguna.
  *
  * Antes de la planilla van los GRÁFICOS: cómo se reparte el peso y la
@@ -227,12 +231,14 @@ function MedicionAntropometricaPdf({
       ? DEFINICIONES_METODO[medicion.metodoGrasa].etiqueta
       : null;
 
-  const grupos = GRUPOS.map((grupo) => ({
-    ...grupo,
-    filas: grupo.filas.filter(
-      (fila) => fila.derivada || fila.valor(medicion) != null,
-    ),
-  })).filter((grupo) => grupo.filas.some((f) => f.valor(medicion) != null));
+  const grupos = construirGrupos(metodosVisiblesDe(medicion))
+    .map((grupo) => ({
+      ...grupo,
+      filas: grupo.filas.filter(
+        (fila) => fila.derivada || fila.valor(medicion) != null,
+      ),
+    }))
+    .filter((grupo) => grupo.filas.some((f) => f.valor(medicion) != null));
 
   // --- Datos de los gráficos ---
   const fraccionamiento = medicion.resultado.fraccionamiento;

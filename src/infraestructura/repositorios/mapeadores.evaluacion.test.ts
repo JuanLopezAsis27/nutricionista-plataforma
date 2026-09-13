@@ -44,7 +44,6 @@ describe("mapearAntropometria", () => {
     plieguePantorrilla: 15,
     pliegueBicipital: 16,
     pliegueCrestaIliaca: 17,
-    plieguePectoral: 30,
     pliegueAxilarMedio: 31,
     pliegueLumbar: 32,
     circTorax: 18,

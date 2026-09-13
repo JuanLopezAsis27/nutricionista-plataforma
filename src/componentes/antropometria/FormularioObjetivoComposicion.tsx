@@ -24,6 +24,7 @@ import {
   type MetodoGrasa,
 } from "@/dominio/servicios/grasaPorPliegues";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
+import { useConfiguracion } from "@/lib/hooks/useConfiguracion";
 import { aFechaISO, formatearMedida } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
@@ -87,6 +88,17 @@ export function FormularioObjetivoComposicion({
   const { guardarObjetivoComposicion } = useEvaluacion();
   const editando = Boolean(objetivoInicial);
 
+  // Solo se ofrecen las ecuaciones que la configuración del consultorio deja
+  // visibles; una meta vieja con una ecuación ahora oculta conserva su valor.
+  const { obtener: obtenerConfiguracion } = useConfiguracion();
+  const formulasVisibles =
+    obtenerConfiguracion().data?.formulasGrasaVisibles ?? METODOS_GRASA;
+  const metodosDelSelect = METODOS_GRASA.filter(
+    (metodo) =>
+      formulasVisibles.includes(metodo) ||
+      metodo === objetivoInicial?.metodoGrasa,
+  );
+
   /** ¿Esta combinación ya tiene meta (y no es la que se está editando)? */
   const ocupada = (
     variable: VariableComposicion,
@@ -111,7 +123,7 @@ export function FormularioObjetivoComposicion({
    */
   const disponibles = VARIABLES_COMPOSICION.filter((variable) =>
     exigeMetodoGrasa(variable)
-      ? METODOS_GRASA.some((metodo) => !ocupada(variable, metodo))
+      ? metodosDelSelect.some((metodo) => !ocupada(variable, metodo))
       : !ocupada(variable, null),
   );
 
@@ -266,7 +278,7 @@ export function FormularioObjetivoComposicion({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {METODOS_GRASA.map((metodo) => {
+                    {metodosDelSelect.map((metodo) => {
                       const yaTiene = ocupada(variable, metodo);
                       return (
                         <SelectItem

@@ -75,7 +75,6 @@ describe("alcanceDe", () => {
       ...SEIS_PLIEGUES,
       "pliegueBicipital",
       "pliegueCrestaIliaca",
-      "plieguePectoral",
       "pliegueAxilarMedio",
       "pliegueLumbar",
     ]);
@@ -105,7 +104,7 @@ describe("alcanceDe", () => {
 
   it("Jackson & Pollock y Parrillo ya no son ecuaciones que ninguna plantilla habilite", () => {
     // Se retiraron de la aplicación: ninguna combinación de campos, ni
-    // siquiera con pectoral/axilar medio/lumbar, las vuelve a habilitar.
+    // siquiera con axilar medio/lumbar, las vuelve a habilitar.
     const conTodo = alcanceDe(CAMPOS_PLANTILLA).metodosGrasa.map(
       (m) => m.metodo,
     );
@@ -114,8 +113,7 @@ describe("alcanceDe", () => {
     expect(conTodo).not.toContain("PARRILLO");
   });
 
-  it("pectoral, axilar medio y lumbar siguen siendo campos elegibles para una plantilla propia", () => {
-    expect(CAMPOS_PLANTILLA).toContain("plieguePectoral");
+  it("axilar medio y lumbar siguen siendo campos elegibles para una plantilla propia", () => {
     expect(CAMPOS_PLANTILLA).toContain("pliegueAxilarMedio");
     expect(CAMPOS_PLANTILLA).toContain("pliegueLumbar");
   });
@@ -156,7 +154,6 @@ describe("alcanceDe — coherencia con el cálculo real", () => {
       plieguePantorrilla: valor("plieguePantorrilla"),
       pliegueBicipital: valor("pliegueBicipital"),
       pliegueCrestaIliaca: valor("pliegueCrestaIliaca"),
-      plieguePectoral: valor("plieguePectoral"),
       pliegueAxilarMedio: valor("pliegueAxilarMedio"),
       pliegueLumbar: valor("pliegueLumbar"),
     };

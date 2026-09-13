@@ -1,4 +1,5 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
+import { METODOS_GRASA, type MetodoGrasa } from "../servicios/grasaPorPliegues";
 
 /**
  * Campos editables de la configuración del consultorio.
@@ -32,6 +33,18 @@ export interface DatosConfiguracion {
    * de pacientes: solo el automático del alta.
    */
   bienvenidaAutomaticaActiva: boolean;
+  /**
+   * Ecuaciones de grasa por pliegues que se muestran (dashboard, PDF y vista
+   * del paciente). No puede quedar vacía: una lista vacía dejaría la
+   * antropometría sin ningún % de grasa que mostrar.
+   */
+  formulasGrasaVisibles: MetodoGrasa[];
+  /**
+   * Si al subir una foto de comida en el diario se analiza sola con IA y
+   * completa descripción/porción. Apagado por defecto: cada análisis gasta
+   * cuota de IA del consultorio (la misma que el Asistente del paciente).
+   */
+  analisisFotoComidaAutomatico: boolean;
 }
 
 /** Estado completo persistido. */
@@ -71,6 +84,8 @@ export class ConfiguracionConsultorio {
       pdfMostrarRecomendaciones: true,
       whatsappPrefijoPais: null,
       bienvenidaAutomaticaActiva: true,
+      formulasGrasaVisibles: [...METODOS_GRASA],
+      analisisFotoComidaAutomatico: false,
       creadoEn: ahora,
       actualizadoEn: ahora,
     });
@@ -127,6 +142,14 @@ export class ConfiguracionConsultorio {
         cambios.bienvenidaAutomaticaActiva,
         this.props.bienvenidaAutomaticaActiva,
       ),
+      formulasGrasaVisibles: fusionar(
+        cambios.formulasGrasaVisibles,
+        this.props.formulasGrasaVisibles,
+      ),
+      analisisFotoComidaAutomatico: fusionar(
+        cambios.analisisFotoComidaAutomatico,
+        this.props.analisisFotoComidaAutomatico,
+      ),
     };
     validar(datos);
     return new ConfiguracionConsultorio({
@@ -144,6 +167,12 @@ export class ConfiguracionConsultorio {
   }
   get bienvenidaAutomaticaActiva(): boolean {
     return this.props.bienvenidaAutomaticaActiva;
+  }
+  get formulasGrasaVisibles(): MetodoGrasa[] {
+    return [...this.props.formulasGrasaVisibles];
+  }
+  get analisisFotoComidaAutomatico(): boolean {
+    return this.props.analisisFotoComidaAutomatico;
   }
 
   aPrimitivos(): PropiedadesConfiguracion {
@@ -167,5 +196,17 @@ function validar(d: DatosConfiguracion): void {
     throw new ErrorValidacion(
       'El prefijo de país debe ser solo dígitos, sin "+" (ej. 54).',
     );
+  }
+  if (d.formulasGrasaVisibles.length === 0) {
+    throw new ErrorValidacion(
+      "Tiene que quedar al menos una ecuación de grasa visible.",
+    );
+  }
+  if (
+    d.formulasGrasaVisibles.some(
+      (metodo) => !(METODOS_GRASA as readonly string[]).includes(metodo),
+    )
+  ) {
+    throw new ErrorValidacion("Hay una ecuación de grasa que ya no existe.");
   }
 }

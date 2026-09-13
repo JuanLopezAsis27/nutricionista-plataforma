@@ -111,9 +111,9 @@ export interface DistribucionCorporal {
 /**
  * Zona de cada pliegue.
  *
- * El eje es la ALTURA anatómica, no el protocolo: los tres sitios de fuera del
- * ISAK (pectoral, axilar medio y lumbar) entran igual, porque dónde está el
- * pliegue no depende de qué ecuación lo nombre.
+ * El eje es la ALTURA anatómica, no el protocolo: los sitios de fuera del ISAK
+ * (axilar medio y lumbar) entran igual, porque dónde está el pliegue no
+ * depende de qué ecuación lo nombre.
  *
  * El subescapular es SUPERIOR y no CENTRAL: la zona central es la cintura —lo
  * que se lee por riesgo cardiometabólico— y el tronco alto se mueve con el
@@ -126,7 +126,6 @@ const ZONA_DE_PLIEGUE: Partial<Record<keyof MedidasComposicion, ZonaAdiposa>> =
     pliegueTricipital: "SUPERIOR",
     pliegueBicipital: "SUPERIOR",
     pliegueSubescapular: "SUPERIOR",
-    plieguePectoral: "SUPERIOR",
     pliegueAxilarMedio: "SUPERIOR",
     pliegueSupraespinal: "CENTRAL",
     pliegueAbdominal: "CENTRAL",
