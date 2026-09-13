@@ -1344,9 +1344,8 @@ model Antropometria {
   plieguePantorrilla  Decimal? @db.Decimal(4, 1)
   pliegueBicipital    Decimal? @db.Decimal(4, 1)
   pliegueCrestaIliaca Decimal? @db.Decimal(4, 1)
-  // Fuera del perfil ISAK: los piden Jackson & Pollock (pectoral, axilar
-  // medio) y Parrillo (pectoral, lumbar). Ver migración 39.
-  plieguePectoral     Decimal? @db.Decimal(4, 1)
+  // Fuera del perfil ISAK: los pedían Jackson & Pollock y Parrillo (ya
+  // retirados). Ver migración 39; el pectoral se quitó en la 57.
   pliegueAxilarMedio  Decimal? @db.Decimal(4, 1)
   pliegueLumbar       Decimal? @db.Decimal(4, 1)
 
@@ -2357,6 +2356,13 @@ model ConfiguracionConsultorio {
   /// los datos de acceso. Apagarlo no borra el envío manual: solo el
   /// automático del alta.
   bienvenidaAutomaticaActiva Boolean      @default(true)
+  /// Qué ecuaciones de grasa por pliegues se muestran (dashboard, PDF, vista
+  /// del paciente). No puede quedar vacía: si no hay ninguna guardada, el
+  /// dominio asume las vigentes por defecto. Ver migración 57.
+  formulasGrasaVisibles     MetodoGrasa[] @default([YUHASZ_CARTER, YUHASZ_CARTER_KERR, FAULKNER, FAULKNER_KERR, WITHERS, DURNIN_WOMERSLEY])
+  /// Si una foto de comida del diario se analiza sola con IA al subirla.
+  /// Apagado por defecto: cada análisis gasta cuota de IA del consultorio.
+  analisisFotoComidaAutomatico Boolean    @default(false)
   creadoEn                  DateTime      @default(now())
   actualizadoEn             DateTime      @updatedAt
   nutricionista             Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
