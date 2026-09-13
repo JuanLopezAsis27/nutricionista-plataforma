@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { ConfirmarAsistenciaTurno } from "./ConfirmarAsistenciaTurno";
+import { EmitirNotificacion } from "../notificaciones/EmitirNotificacion";
+import type { Notificacion } from "@/dominio/entidades/Notificacion";
 import type { Turno } from "@/dominio/entidades/Turno";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
@@ -10,6 +12,8 @@ import {
   mockUsuarioRepositorio,
   mockServicioEmail,
   mockBusEventos,
+  mockNotificacionRepositorio,
+  mockReloj,
   turnoEjemplo,
   pacienteEjemplo,
   usuarioEjemplo,
@@ -21,6 +25,7 @@ function armar(
 ) {
   const actualizar = vi.fn(async (t: Turno) => t);
   const publicar = vi.fn(async () => {});
+  const notificaciones = mockNotificacionRepositorio();
   const uc = new ConfirmarAsistenciaTurno(
     mockTurnoRepositorio({
       obtenerPorId: vi.fn(async () => turno),
@@ -34,8 +39,9 @@ function armar(
     }),
     mockServicioEmail({ enviar }),
     mockBusEventos({ publicar }),
+    new EmitirNotificacion(notificaciones, mockReloj()),
   );
-  return { uc, actualizar, enviar, publicar };
+  return { uc, actualizar, enviar, publicar, notificaciones };
 }
 
 describe("ConfirmarAsistenciaTurno", () => {
@@ -110,5 +116,38 @@ describe("ConfirmarAsistenciaTurno", () => {
     });
     expect(actualizar).toHaveBeenCalledWith(turno);
     consola.mockRestore();
+  });
+});
+
+describe("ConfirmarAsistenciaTurno — notificación", () => {
+  it("deja una notificación persistida al confirmar", async () => {
+    // Hasta acá la confirmación se contaba solo por email y por el bus, y los
+    // dos son efímeros: el mail se pierde entre otros cincuenta y el evento
+    // solo llega a quien tenga la app abierta en ese momento.
+    const { uc, notificaciones } = armar(
+      turnoEjemplo({ fecha: new Date("2026-07-15"), hora: "10:00" }),
+    );
+
+    await uc.ejecutar("tur-1");
+
+    expect(notificaciones.crear).toHaveBeenCalledTimes(1);
+    const [creada] = (notificaciones.crear as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [Notificacion];
+    expect(creada.tipo).toBe("TURNO_CONFIRMADO");
+    expect(creada.detalle).toContain("10:00");
+    // Nace sin ver: es lo que la hace contar en el globo de la campana.
+    expect(creada.vistoEn).toBeNull();
+  });
+
+  it("abrir el enlace de nuevo no vuelve a notificar", async () => {
+    // Mismo criterio que el resto del aviso: el turno ya estaba confirmado, no
+    // pasó nada nuevo que contarle al profesional.
+    const turno = turnoEjemplo();
+    turno.cambiarEstado("CONFIRMADO");
+    const { uc, notificaciones } = armar(turno);
+
+    await uc.ejecutar("tur-1");
+
+    expect(notificaciones.crear).not.toHaveBeenCalled();
   });
 });

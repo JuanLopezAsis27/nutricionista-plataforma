@@ -5,10 +5,13 @@ import Link from "next/link";
 import {
   Bell,
   Check,
+  CheckCheck,
   X,
   RefreshCw,
   AlertTriangle,
   MessageSquare,
+  MessageCircle,
+  CalendarCheck,
   Mail,
 } from "lucide-react";
 import type { NotificacionDto } from "@/aplicacion/dtos/notificaciones.dto";
@@ -30,6 +33,8 @@ const ICONO: Record<NotificacionDto["tipo"], typeof Bell> = {
   ALERTA: AlertTriangle,
   MENSAJE: MessageSquare,
   CORREO: Mail,
+  WHATSAPP: MessageCircle,
+  TURNO: CalendarCheck,
 };
 
 const fmtFecha = new Intl.DateTimeFormat("es-AR", {
@@ -48,7 +53,7 @@ const fmtFecha = new Intl.DateTimeFormat("es-AR", {
 export function CampanaNotificaciones() {
   const [abierto, setAbierto] = useState(false);
   const utils = trpc.useUtils();
-  const { centro } = useNotificaciones();
+  const { centro, marcarVista } = useNotificaciones();
   const { resolverAlerta, generarAlertas } = useSeguimiento();
   const { marcarLeidosDe } = useMensajeria();
 
@@ -58,17 +63,28 @@ export function CampanaNotificaciones() {
 
   const refrescar = () => void utils.notificaciones.centro.invalidate();
 
+  /** Hay algo persistido sin ver: habilita el "marcar todas". */
+  const haySinVer = items.some((n) => n.vista === false);
+
   function resolver(alertaId: string, estado: "RESUELTA" | "DESCARTADA") {
     resolverAlerta.mutate({ id: alertaId, estado }, { onSuccess: refrescar });
   }
 
-  /** Al abrir una notificación de mensaje, se marca leída (deja de figurar). */
+  /**
+   * Abrir una notificación es también atenderla, y cada tipo se apaga distinto:
+   * un mensaje del chat se marca leído en la conversación, y una notificación
+   * persistida (WhatsApp, turno confirmado) se marca vista en su tabla. Las
+   * alertas no pasan por acá: se resuelven o se descartan con sus botones.
+   */
   function abrirNotificacion(n: NotificacionDto) {
     if (n.tipo === "MENSAJE" && n.pacienteId) {
       marcarLeidosDe.mutate(
         { pacienteId: n.pacienteId },
         { onSuccess: refrescar },
       );
+    }
+    if (n.notificacionId && n.vista === false) {
+      marcarVista.mutate({ id: n.notificacionId });
     }
     setAbierto(false);
   }
@@ -91,20 +107,35 @@ export function CampanaNotificaciones() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-96 max-w-[90vw]">
-        <DropdownMenuLabel className="flex items-center justify-between">
+        <DropdownMenuLabel className="flex items-center justify-between gap-1">
           Notificaciones
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 gap-1 text-xs text-muted-foreground"
-            disabled={generarAlertas.isPending}
-            onClick={() =>
-              generarAlertas.mutate(undefined, { onSuccess: refrescar })
-            }
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Revisar ahora
-          </Button>
+          <span className="flex items-center gap-0.5">
+            {haySinVer && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1 text-xs text-muted-foreground"
+                disabled={marcarVista.isPending}
+                title="Marcar todas como vistas"
+                onClick={() => marcarVista.mutate({})}
+              >
+                <CheckCheck className="h-3.5 w-3.5" />
+                Marcar vistas
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1 text-xs text-muted-foreground"
+              disabled={generarAlertas.isPending}
+              onClick={() =>
+                generarAlertas.mutate(undefined, { onSuccess: refrescar })
+              }
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Revisar ahora
+            </Button>
+          </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {items.length === 0 ? (
@@ -120,6 +151,11 @@ export function CampanaNotificaciones() {
                 resolviendo={resolverAlerta.isPending}
                 onResolver={resolver}
                 onNavegar={() => abrirNotificacion(n)}
+                onMarcarVista={
+                  n.notificacionId && n.vista === false
+                    ? () => marcarVista.mutate({ id: n.notificacionId! })
+                    : undefined
+                }
               />
             ))}
           </ul>
@@ -134,23 +170,31 @@ function FilaNotificacion({
   resolviendo,
   onResolver,
   onNavegar,
+  onMarcarVista,
 }: {
   notificacion: NotificacionDto;
   resolviendo: boolean;
   onResolver: (alertaId: string, estado: "RESUELTA" | "DESCARTADA") => void;
   onNavegar: () => void;
+  /** Solo en las persistidas que todavía no se vieron. */
+  onMarcarVista?: () => void;
 }) {
   const Icono = ICONO[n.tipo];
+  // Ya vista: se sigue mostrando (la campana es también el registro de lo que
+  // pasó) pero apagada, para que lo pendiente se distinga de un vistazo.
+  const apagada = n.vista === true;
 
   const cuerpo = (
     <>
       <Icono
         className={cn(
           "mt-0.5 h-4 w-4 shrink-0",
-          n.tipo === "CORREO" ? "text-muted-foreground" : "text-primary",
+          n.tipo === "CORREO" || apagada
+            ? "text-muted-foreground"
+            : "text-primary",
         )}
       />
-      <div className="min-w-0 flex-1">
+      <div className={cn("min-w-0 flex-1", apagada && "opacity-60")}>
         <p className="flex items-center gap-1.5 font-medium leading-snug">
           <span className="truncate">{n.titulo}</span>
           {n.noLeidos != null && n.noLeidos > 0 && (
@@ -195,6 +239,31 @@ function FilaNotificacion({
             <X className="h-4 w-4 text-muted-foreground" />
           </Button>
         </span>
+      </li>
+    );
+  }
+
+  // Las persistidas sin ver llevan su propio botón de "visto", para poder
+  // atenderlas sin tener que navegar a la pantalla que enlazan.
+  if (onMarcarVista) {
+    return (
+      <li className="flex items-start gap-2 pr-1 text-sm hover:bg-secondary/50">
+        <Link
+          href={n.enlace ?? "#"}
+          onClick={onNavegar}
+          className="flex min-w-0 flex-1 items-start gap-2 px-3 py-2"
+        >
+          {cuerpo}
+        </Link>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="mt-1 h-7 w-7 shrink-0"
+          title="Marcar como vista"
+          onClick={onMarcarVista}
+        >
+          <Check className="h-4 w-4 text-primary" />
+        </Button>
       </li>
     );
   }

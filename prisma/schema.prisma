@@ -301,6 +301,7 @@ model Nutricionista {
   perfilesDeportivos        PerfilDeportivo[]
   competencias              Competencia[]
   alertasSeguimiento        AlertaSeguimiento[]
+  notificaciones            Notificacion[]
   turnos                    Turno[]
   recordatoriosWhatsapp     RecordatorioWhatsapp[]
   plantillasWhatsapp        PlantillaWhatsapp[]
@@ -478,6 +479,7 @@ model Paciente {
   asignacionesMaterial    AsignacionMaterial[]
   suplementos             Suplemento[]
   alertasSeguimiento      AlertaSeguimiento[]
+  notificaciones          Notificacion[]
   conversacion            Conversacion?
   conversacionesIA        ConversacionIA[]
   analisisComida          AnalisisComida[]
@@ -598,6 +600,56 @@ model AlertaSeguimiento {
   @@index([nutricionistaId, estado])
   @@index([nutricionistaId, pacienteId, tipo, estado])
   @@map("alertas_seguimiento")
+}
+
+/// Qué originó una notificación del consultorio. Solo se agregan valores
+/// nuevos: una notificación vieja no puede cambiar de tipo.
+enum TipoNotificacion {
+  /// El paciente escribió por WhatsApp.
+  WHATSAPP_ENTRANTE
+  /// El paciente confirmó su turno desde el enlace del recordatorio.
+  TURNO_CONFIRMADO
+  /// El paciente escribió por el chat de la app.
+  MENSAJE_APP
+}
+
+/// Aviso persistido para el nutricionista, con estado de "visto".
+///
+/// El Centro de Notificaciones nació como un read-model puro: unía tres
+/// señales que YA vivían en su propia tabla y que ya tenían dónde apoyar su
+/// estado —una alerta se resuelve, un mensaje se lee, un correo falló—. Estas
+/// dos no tienen esa tabla: que el paciente confirme el turno no dejaba
+/// ningún registro (se mandaba un email y se perdía), y un WhatsApp entrante
+/// se guarda pero sin ninguna noción de leído.
+///
+/// Por eso existe esta tabla y no se estiró `AlertaSeguimiento`: aquella
+/// describe la ADHERENCIA del paciente (sin registrar peso, plan vencido) y la
+/// arma un barrido automático que puede volver a generarla. Estas son HECHOS
+/// puntuales que ya ocurrieron y no se regeneran. Mezclarlas habría hecho que
+/// el barrido tuviera que saber no tocarlas.
+model Notificacion {
+  id              String           @id @default(uuid(4))
+  nutricionistaId String
+  tipo            TipoNotificacion
+  titulo          String
+  detalle         String
+  /// A quién se refiere. Opcional: no toda notificación futura tendrá paciente.
+  pacienteId      String?
+  /// A dónde lleva al tocarla. Se guarda armado para que el feed no tenga que
+  /// saber construir rutas de cada tipo.
+  enlace          String?
+  /// Null mientras no se vio. Es lo que cuenta para el globo de la campana.
+  vistoEn         DateTime?
+  creadoEn        DateTime         @default(now())
+
+  paciente      Paciente?     @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  /// El índice del camino caliente: "las no vistas de este consultorio, las
+  /// más nuevas primero", que es exactamente lo que pide la campana.
+  @@index([nutricionistaId, vistoEn, creadoEn])
+  @@index([pacienteId])
+  @@map("notificaciones")
 }
 
 /// Cita agendada entre el nutricionista y un paciente.

@@ -32,6 +32,7 @@ export const MODELOS_INQUILINO = new Set<string>([
   "Usuario",
   "Suplemento",
   "AlertaSeguimiento",
+  "Notificacion",
   "Turno",
   "RegistroDiario",
   "HistoriaClinica",
