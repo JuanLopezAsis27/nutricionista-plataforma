@@ -1635,10 +1635,10 @@ model PlanNutricional {
   creadoEn           DateTime      @default(now())
   actualizadoEn      DateTime      @updatedAt
 
-  comidas          ComidaPlan[]
-  equivalencias    EquivalenciaPlan[]
-  recomendaciones  RecomendacionPlan[]
-  asignaciones     AsignacionPlan[]
+  comidas           ComidaPlan[]
+  equivalencias     EquivalenciaPlan[]
+  recomendaciones   RecomendacionPlan[]
+  asignaciones      AsignacionPlan[]
   /// Recetas vinculadas DIRECTAMENTE al plan, sin pasar por una franja
   /// (migración 56). Es lo único que le puede acompañar recetas a un plan PDF:
   /// ese plan no tiene franjas de las que colgarlas.
@@ -1646,17 +1646,17 @@ model PlanNutricional {
   /// Archivos del plan: el principal y/o los anexos. La FK vive en `archivos`,
   /// como el resto de los dueños de archivo: el arco exclusivo se sostiene en
   /// una sola tabla.
-  archivos         Archivo[]           @relation("ArchivosDelPlan")
+  archivos          Archivo[]           @relation("ArchivosDelPlan")
   /// Cuál de esos archivos ES el plan (modalidad PDF). FK con SET NULL: borrar
   /// el archivo deja el plan sin principal, no apuntando a un id inexistente.
-  archivoPrincipal Archivo?            @relation("ArchivoPrincipalPlan", fields: [archivoPrincipalId], references: [id], onDelete: SetNull)
-  nutricionista    Nutricionista       @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  archivoPrincipal  Archivo?            @relation("ArchivoPrincipalPlan", fields: [archivoPrincipalId], references: [id], onDelete: SetNull)
+  nutricionista     Nutricionista       @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
   // Plantilla de la que se clonó: FK real con SET NULL, para que borrar la
   // plantilla no deje ids colgando en los planes que salieron de ella.
-  planOrigen       PlanNutricional?    @relation("PlanClonado", fields: [planOrigenId], references: [id], onDelete: SetNull)
-  clones           PlanNutricional[]   @relation("PlanClonado")
+  planOrigen        PlanNutricional?    @relation("PlanClonado", fields: [planOrigenId], references: [id], onDelete: SetNull)
+  clones            PlanNutricional[]   @relation("PlanClonado")
   /// Borrar la carpeta NO borra los planes: quedan sueltos (ver migración 38).
-  grupo            GrupoPlan?          @relation(fields: [grupoId], references: [id], onDelete: SetNull)
+  grupo             GrupoPlan?          @relation(fields: [grupoId], references: [id], onDelete: SetNull)
 
   @@unique([nutricionistaId, id])
   /// El nombre identifica al plan para quien lo busca en una lista. Dos planes
@@ -2334,41 +2334,41 @@ enum OperadorAxioma {
 /// LUGAR, y con una sola copia no se podía decir "lunes y miércoles en el
 /// centro, martes y jueves en el barrio".
 model ConfiguracionConsultorio {
-  id                        String        @id @default(uuid(4))
-  nutricionistaId           String        @unique
-  nombreProfesional         String?
-  matricula                 String?
-  logoArchivoId             String?
+  id                           String        @id @default(uuid(4))
+  nutricionistaId              String        @unique
+  nombreProfesional            String?
+  matricula                    String?
+  logoArchivoId                String?
   // Apariencia del PDF del plan nutricional.
-  pdfColorPrimario          String? // hex, ej "#F4535E" (default: coral)
-  pdfSubtitulo              String? // bajo el nombre en el membrete
-  pdfPieTexto               String? // nota al pie / aclaración
-  pdfMostrarRecetas         Boolean       @default(true)
-  pdfMostrarMacros          Boolean       @default(true)
-  pdfMostrarEquivalencias   Boolean       @default(true)
-  pdfMostrarRecomendaciones Boolean       @default(true)
+  pdfColorPrimario             String? // hex, ej "#F4535E" (default: coral)
+  pdfSubtitulo                 String? // bajo el nombre en el membrete
+  pdfPieTexto                  String? // nota al pie / aclaración
+  pdfMostrarRecetas            Boolean       @default(true)
+  pdfMostrarMacros             Boolean       @default(true)
+  pdfMostrarEquivalencias      Boolean       @default(true)
+  pdfMostrarRecomendaciones    Boolean       @default(true)
   // Recordatorio de turno por WhatsApp. El TEXTO vive en `plantillas_whatsapp`
   // (migración 33): una plantilla tiene que poder corresponderse con la que
   // Meta aprobó, y eso no entra en un campo de texto suelto. Acá queda lo que
   // sí es del consultorio: cómo se canonizan los teléfonos a E.164.
-  whatsappPrefijoPais       String? // prefijo internacional sin "+", ej "54"
+  whatsappPrefijoPais          String? // prefijo internacional sin "+", ej "54"
   /// Si al dar de alta un paciente sale, además, su email de bienvenida con
   /// los datos de acceso. Apagarlo no borra el envío manual: solo el
   /// automático del alta.
-  bienvenidaAutomaticaActiva Boolean      @default(true)
+  bienvenidaAutomaticaActiva   Boolean       @default(true)
   /// Qué ecuaciones de grasa por pliegues se muestran (dashboard, PDF, vista
   /// del paciente). No puede quedar vacía: si no hay ninguna guardada, el
   /// dominio asume las vigentes por defecto. Ver migración 57.
-  formulasGrasaVisibles     MetodoGrasa[] @default([YUHASZ_CARTER, YUHASZ_CARTER_KERR, FAULKNER, FAULKNER_KERR, WITHERS, DURNIN_WOMERSLEY])
+  formulasGrasaVisibles        MetodoGrasa[] @default([YUHASZ_CARTER, YUHASZ_CARTER_KERR, FAULKNER, FAULKNER_KERR, WITHERS, DURNIN_WOMERSLEY])
   /// Si una foto de comida del diario se analiza sola con IA al subirla.
   /// Apagado por defecto: cada análisis gasta cuota de IA del consultorio.
-  analisisFotoComidaAutomatico Boolean    @default(false)
-  creadoEn                  DateTime      @default(now())
-  actualizadoEn             DateTime      @updatedAt
-  nutricionista             Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  analisisFotoComidaAutomatico Boolean       @default(false)
+  creadoEn                     DateTime      @default(now())
+  actualizadoEn                DateTime      @updatedAt
+  nutricionista                Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
   // El logo del membrete es un Archivo del bucket: FK real con SET NULL, así
   // borrarlo deja la configuración sin logo en vez de con un id inexistente.
-  logo                      Archivo?      @relation(fields: [logoArchivoId], references: [id], onDelete: SetNull)
+  logo                         Archivo?      @relation(fields: [logoArchivoId], references: [id], onDelete: SetNull)
 
   @@map("configuracion_consultorio")
 }
