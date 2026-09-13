@@ -46,8 +46,7 @@ export interface MedidasAntropometricas {
   plieguePantorrilla: number | null;
   pliegueBicipital: number | null;
   pliegueCrestaIliaca: number | null;
-  // Fuera del perfil ISAK; los piden Jackson & Pollock y Parrillo.
-  plieguePectoral: number | null;
+  // Fuera del perfil ISAK; los pedían Jackson & Pollock y Parrillo (ya retiradas).
   pliegueAxilarMedio: number | null;
   pliegueLumbar: number | null;
   // Circunferencias (cm)
@@ -106,7 +105,6 @@ const CAMPOS_PLIEGUES = [
   "plieguePantorrilla",
   "pliegueBicipital",
   "pliegueCrestaIliaca",
-  "plieguePectoral",
   "pliegueAxilarMedio",
   "pliegueLumbar",
 ] as const satisfies readonly (keyof MedidasAntropometricas)[];
@@ -192,7 +190,6 @@ export class Antropometria {
       plieguePantorrilla: datos.plieguePantorrilla ?? null,
       pliegueBicipital: datos.pliegueBicipital ?? null,
       pliegueCrestaIliaca: datos.pliegueCrestaIliaca ?? null,
-      plieguePectoral: datos.plieguePectoral ?? null,
       pliegueAxilarMedio: datos.pliegueAxilarMedio ?? null,
       pliegueLumbar: datos.pliegueLumbar ?? null,
       circTorax: datos.circTorax ?? null,
@@ -319,7 +316,6 @@ export class Antropometria {
       plieguePantorrilla: p.plieguePantorrilla,
       pliegueBicipital: p.pliegueBicipital,
       pliegueCrestaIliaca: p.pliegueCrestaIliaca,
-      plieguePectoral: p.plieguePectoral,
       pliegueAxilarMedio: p.pliegueAxilarMedio,
       pliegueLumbar: p.pliegueLumbar,
     };

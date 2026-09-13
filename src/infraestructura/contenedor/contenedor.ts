@@ -184,6 +184,7 @@ export const servicioEvaluacion = perezoso(() =>
     camposHistoria: nucleo.repositorioCampoHistoriaClinica(),
     evoluciones: nucleo.repositorioEvolucion(),
     camposEvolucion: nucleo.repositorioCampoEvolucion(),
+    configuracion: nucleo.repositorioConfiguracion(),
   }),
 );
 
@@ -193,6 +194,7 @@ export const servicioDiario = perezoso(() =>
     pacientes: nucleo.repositorioPaciente(),
     archivos: nucleo.repositorioArchivo(),
     almacenamiento: nucleo.almacenamiento(),
+    configuracion: nucleo.repositorioConfiguracion(),
   }),
 );
 

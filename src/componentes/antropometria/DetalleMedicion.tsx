@@ -11,7 +11,10 @@ import {
 } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import { Button } from "@/componentes/ui/button";
-import { GRUPOS } from "@/aplicacion/servicios/evaluacion/filasMedicion";
+import {
+  construirGrupos,
+  metodosVisiblesDe,
+} from "@/aplicacion/servicios/evaluacion/filasMedicion";
 import { AvisoFaltantes } from "./dashboard/AvisoFaltantes";
 import { signo } from "./dashboard/piezas";
 import { ETIQUETAS_PROTOCOLO } from "@/aplicacion/servicios/evaluacion/resumenMedicion";
@@ -44,12 +47,14 @@ export function DetalleMedicion({
   onEditar,
   onEliminar,
 }: PropsDetalleMedicion) {
-  const grupos = GRUPOS.map((grupo) => ({
-    ...grupo,
-    filas: grupo.filas.filter(
-      (fila) => fila.derivada || fila.valor(medicion) != null,
-    ),
-  })).filter((grupo) => grupo.filas.some((f) => f.valor(medicion) != null));
+  const grupos = construirGrupos(metodosVisiblesDe(medicion))
+    .map((grupo) => ({
+      ...grupo,
+      filas: grupo.filas.filter(
+        (fila) => fila.derivada || fila.valor(medicion) != null,
+      ),
+    }))
+    .filter((grupo) => grupo.filas.some((f) => f.valor(medicion) != null));
 
   const metodoDestacado =
     medicion.metodoGrasa != null

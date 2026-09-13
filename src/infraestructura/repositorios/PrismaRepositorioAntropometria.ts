@@ -111,7 +111,6 @@ export function mapearAntropometria(fila: AntropometriaFila): Antropometria {
     plieguePantorrilla: aNumero(fila.plieguePantorrilla),
     pliegueBicipital: aNumero(fila.pliegueBicipital),
     pliegueCrestaIliaca: aNumero(fila.pliegueCrestaIliaca),
-    plieguePectoral: aNumero(fila.plieguePectoral),
     pliegueAxilarMedio: aNumero(fila.pliegueAxilarMedio),
     pliegueLumbar: aNumero(fila.pliegueLumbar),
     circTorax: aNumero(fila.circTorax),

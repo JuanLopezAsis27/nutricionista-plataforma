@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { METODOS_GRASA } from "@/dominio/servicios/grasaPorPliegues";
 
 /**
  * DTOs de la Configuración del consultorio: lo que describe al PROFESIONAL.
@@ -29,6 +30,11 @@ export const guardarConfiguracionDto = z.object({
     .nullable()
     .optional(),
   bienvenidaAutomaticaActiva: z.boolean().optional(),
+  formulasGrasaVisibles: z
+    .array(z.enum(METODOS_GRASA))
+    .min(1, "Tiene que quedar al menos una ecuación de grasa visible.")
+    .optional(),
+  analisisFotoComidaAutomatico: z.boolean().optional(),
 });
 export type GuardarConfiguracionDto = z.infer<typeof guardarConfiguracionDto>;
 
@@ -46,6 +52,8 @@ export const configuracionSalidaDto = z.object({
   pdfMostrarRecomendaciones: z.boolean(),
   whatsappPrefijoPais: z.string().nullable(),
   bienvenidaAutomaticaActiva: z.boolean(),
+  formulasGrasaVisibles: z.array(z.enum(METODOS_GRASA)),
+  analisisFotoComidaAutomatico: z.boolean(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
 });

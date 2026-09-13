@@ -460,6 +460,14 @@ describe("mapearConfiguracion", () => {
     pdfMostrarEquivalencias: true,
     pdfMostrarRecomendaciones: false,
     whatsappPrefijoPais: "54",
+    formulasGrasaVisibles: [
+      "YUHASZ_CARTER",
+      "YUHASZ_CARTER_KERR",
+      "FAULKNER",
+      "FAULKNER_KERR",
+      "WITHERS",
+      "DURNIN_WOMERSLEY",
+    ],
     creadoEn: new Date("2026-01-01T00:00:00.000Z"),
     actualizadoEn: new Date("2026-01-01T00:00:00.000Z"),
   } as unknown as Parameters<typeof mapearConfiguracion>[0];

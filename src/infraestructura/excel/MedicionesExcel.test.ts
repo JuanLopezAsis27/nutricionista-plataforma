@@ -28,7 +28,7 @@ function medicion(
       fraccionamiento: null,
       somatotipo: null,
       energia: null,
-      grasaPorPliegues: { resultados: [] },
+      grasaPorPliegues: { resultados: [], faltantes: [] },
       faltantes: [],
     },
   } as unknown as MedicionComposicionDto;

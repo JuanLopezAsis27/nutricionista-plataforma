@@ -20,6 +20,7 @@ import {
 } from "@/dominio/entidades/Antropometria";
 import type { CampoPlantilla } from "@/dominio/entidades/PlantillaAntropometrica";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
+import { useConfiguracion } from "@/lib/hooks/useConfiguracion";
 import { aFechaISO, hoyISO, formatearMedida } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import { Button } from "@/componentes/ui/button";
@@ -72,10 +73,9 @@ const GRUPOS = [
         etiqueta: "Cresta ilíaca",
         paraMasas: false,
       },
-      // Fuera del perfil ISAK: los piden Jackson & Pollock (pectoral, axilar
-      // medio) y Parrillo (pectoral, lumbar). Van al final del grupo para no
-      // alterar el orden en que se carga la planilla de papel.
-      { nombre: "plieguePectoral", etiqueta: "Pectoral", paraMasas: false },
+      // Fuera del perfil ISAK: los pedían Jackson & Pollock y Parrillo (ya
+      // retiradas). Van al final del grupo para no alterar el orden en que se
+      // carga la planilla de papel.
       {
         nombre: "pliegueAxilarMedio",
         etiqueta: "Axilar medio",
@@ -225,6 +225,18 @@ export function FormularioMedicion({
   const { registrarAntropometria, actualizarAntropometria } = useEvaluacion();
   const editando = Boolean(medicionInicial);
   const medidas = medicionInicial?.medidas;
+
+  // Solo se ofrecen las ecuaciones que la configuración del consultorio deja
+  // visibles; una medición vieja que ya tenía destacada una que ahora está
+  // oculta conserva su valor (se agrega aparte para no perder la selección).
+  const { obtener: obtenerConfiguracion } = useConfiguracion();
+  const formulasVisibles =
+    obtenerConfiguracion().data?.formulasGrasaVisibles ?? METODOS_GRASA;
+  const metodosDelSelect = METODOS_GRASA.filter(
+    (metodo) =>
+      formulasVisibles.includes(metodo) ||
+      metodo === medicionInicial?.metodoGrasa,
+  );
 
   const form = useForm<DatosFormulario>({
     defaultValues: {
@@ -427,7 +439,7 @@ export function FormularioMedicion({
                 <SelectItem value={SIN_DATO}>
                   Automática (la primera disponible)
                 </SelectItem>
-                {METODOS_GRASA.map((metodo) => (
+                {metodosDelSelect.map((metodo) => (
                   <SelectItem key={metodo} value={metodo}>
                     {DEFINICIONES_METODO[metodo].etiqueta}
                   </SelectItem>

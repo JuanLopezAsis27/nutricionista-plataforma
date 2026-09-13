@@ -4,6 +4,7 @@ import type {
 } from "@prisma/client";
 import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
 import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
+import { esMetodoGrasaVigente } from "@/dominio/servicios/grasaPorPliegues";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /**
@@ -36,6 +37,8 @@ export class PrismaRepositorioConfiguracion implements IConfiguracionRepositorio
       pdfMostrarRecomendaciones: d.pdfMostrarRecomendaciones,
       whatsappPrefijoPais: d.whatsappPrefijoPais,
       bienvenidaAutomaticaActiva: d.bienvenidaAutomaticaActiva,
+      formulasGrasaVisibles: d.formulasGrasaVisibles,
+      analisisFotoComidaAutomatico: d.analisisFotoComidaAutomatico,
     };
     // La config del inquilino es única; si ya existe se actualiza, si no se crea.
     const existente = await this.prisma.configuracionConsultorio.findFirst();
@@ -68,6 +71,12 @@ export function mapearConfiguracion(
     pdfMostrarRecomendaciones: fila.pdfMostrarRecomendaciones,
     whatsappPrefijoPais: fila.whatsappPrefijoPais,
     bienvenidaAutomaticaActiva: fila.bienvenidaAutomaticaActiva,
+    // Filtra por si la fila arrastrara un método ya retirado: el enum de
+    // Postgres no se toca a propósito (ver el mismo criterio en el mapeador
+    // de Antropometria).
+    formulasGrasaVisibles:
+      fila.formulasGrasaVisibles.filter(esMetodoGrasaVigente),
+    analisisFotoComidaAutomatico: fila.analisisFotoComidaAutomatico,
     creadoEn: fila.creadoEn,
     actualizadoEn: fila.actualizadoEn,
   });

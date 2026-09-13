@@ -42,16 +42,16 @@ unidades imperiales: se convierte el peso a libras en vez de reexpresar la
 constante, para que el 27 siga siendo verificable de un vistazo contra la
 publicación.
 
-### Los tres sitios que el perfil ISAK no tiene
+### Los sitios que el perfil ISAK no tiene
 
-Migración 39. Jackson & Pollock de 7 pide **pectoral** y **axilar medio**;
-Parrillo pide **pectoral** y **lumbar**. No son sinónimos de ninguno de los
-ocho del ISAK: el pectoral va en la diagonal entre axila y pezón, el axilar
-medio sobre la línea axilar media a la altura del xifoides y el lumbar sobre
-los erectores, a la altura de la cresta ilíaca.
-
-La plantilla de fábrica «Jackson & Pollock + Parrillo (11 pliegues)» los suma a
-los ocho del ISAK y habilita todas las ecuaciones.
+Migración 39: Jackson & Pollock de 7 pedía **pectoral** y **axilar medio**;
+Parrillo pedía **pectoral** y **lumbar**. Ambas ecuaciones ya se retiraron de
+la aplicación (ver más abajo), y el pectoral se borró en la migración 57 por no
+tener ningún uso sin ellas. **Axilar medio** y **lumbar** quedan como campos
+elegibles para una plantilla propia, aunque hoy tampoco alimenten ninguna
+ecuación activa. No son sinónimos de ninguno de los ocho del ISAK: el axilar
+medio va sobre la línea axilar media a la altura del xifoides y el lumbar
+sobre los erectores, a la altura de la cresta ilíaca.
 
 ### El sitio «suprailíaco»
 
@@ -83,7 +83,7 @@ aporta a la Σ total de los pliegues medidos.
 
 | Zona     | Sitios ISAK                | Sitios de fuera del ISAK   |
 | -------- | -------------------------- | -------------------------- |
-| Superior | tricipital, subescapular   | bicipital, pectoral, axilar medio |
+| Superior | tricipital, subescapular   | bicipital, axilar medio    |
 | Central  | supraespinal, abdominal    | cresta ilíaca, lumbar      |
 | Inferior | muslo, pantorrilla         | —                          |
 

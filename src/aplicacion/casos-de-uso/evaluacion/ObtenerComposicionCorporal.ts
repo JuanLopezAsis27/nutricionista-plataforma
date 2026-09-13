@@ -1,6 +1,7 @@
 import type { IAntropometriaRepositorio } from "@/dominio/repositorios/IAntropometriaRepositorio";
 import type { IObjetivoComposicionRepositorio } from "@/dominio/repositorios/IObjetivoComposicionRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
+import type { ObtenerConfiguracion } from "@/aplicacion/casos-de-uso/configuracion/ObtenerConfiguracion";
 import type { Antropometria } from "@/dominio/entidades/Antropometria";
 import {
   VARIABLES_COMPOSICION,
@@ -18,6 +19,7 @@ import {
   type ResultadoComposicion,
   type SexoBiologico,
 } from "@/dominio/servicios/composicionCorporal";
+import { filtrarMetodosVisibles } from "@/dominio/servicios/grasaPorPliegues";
 import {
   proyectarObjetivo,
   proyectarPlieguesParaMeta,
@@ -79,6 +81,7 @@ export class ObtenerComposicionCorporal {
     private readonly antropometrias: IAntropometriaRepositorio,
     private readonly objetivos: IObjetivoComposicionRepositorio,
     private readonly pacientes: IPacienteRepositorio,
+    private readonly configuracion: ObtenerConfiguracion,
   ) {}
 
   async ejecutar(
@@ -90,10 +93,12 @@ export class ObtenerComposicionCorporal {
       throw new ErrorPacienteNoEncontrado(pacienteId);
     }
 
-    const [mediciones, objetivos] = await Promise.all([
+    const [mediciones, objetivos, config] = await Promise.all([
       this.antropometrias.listarPorPaciente(pacienteId),
       this.objetivos.listarPorPaciente(pacienteId),
+      this.configuracion.ejecutar(),
     ]);
+    const formulasVisibles = config.formulasGrasaVisibles;
 
     const { sexo, fechaNacimiento } = paciente.aPrimitivos();
     const analizadas: MedicionAnalizada[] = mediciones
@@ -103,14 +108,23 @@ export class ObtenerComposicionCorporal {
         // La edad se toma a la fecha de la medición, no la de hoy: un informe
         // de hace tres años tiene que seguir dando el mismo metabolismo basal.
         const edadAnios = edadEnFecha(fechaNacimiento, medicion.fecha);
+        const resultado = calcularComposicion(medicion.medidasComposicion(), {
+          sexo,
+          edadAnios,
+          nivelActividad: medicion.nivelActividad,
+        });
         return {
           medicion,
           edadAnios,
-          resultado: calcularComposicion(medicion.medidasComposicion(), {
-            sexo,
-            edadAnios,
-            nivelActividad: medicion.nivelActividad,
-          }),
+          resultado: {
+            ...resultado,
+            // Una ecuación que el nutricionista desmarcó se oculta siempre,
+            // incluso en mediciones viejas que ya la tenían calculada.
+            grasaPorPliegues: filtrarMetodosVisibles(
+              resultado.grasaPorPliegues,
+              formulasVisibles,
+            ),
+          },
         };
       });
 

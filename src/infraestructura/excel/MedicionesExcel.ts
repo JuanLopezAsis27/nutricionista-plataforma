@@ -1,7 +1,11 @@
 import ExcelJS from "exceljs";
 import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
 import type { PacienteSalidaDto } from "@/aplicacion/dtos/paciente.dto";
-import { GRUPOS } from "@/aplicacion/servicios/evaluacion/filasMedicion";
+import {
+  construirGrupos,
+  metodosVisiblesDe,
+} from "@/aplicacion/servicios/evaluacion/filasMedicion";
+import { METODOS_GRASA } from "@/dominio/servicios/grasaPorPliegues";
 import { ETIQUETAS_PROTOCOLO } from "@/aplicacion/servicios/evaluacion/resumenMedicion";
 
 const ETIQUETAS_SEXO: Record<string, string> = {
@@ -24,8 +28,8 @@ interface Columna {
  * Todas las mediciones antropométricas de un paciente en un Excel: una fila
  * por consulta, con su fecha y los datos del paciente.
  *
- * Las columnas de medidas salen de `GRUPOS`, la misma definición de la
- * planilla que usan la ficha de cada medición y su PDF: una medida que se sume
+ * Las columnas de medidas salen de `construirGrupos`, la misma definición de
+ * la planilla que usan la ficha de cada medición y su PDF: una medida que se sume
  * al formulario aparece acá sin tocar este archivo. Y como en la ficha, van
  * solo las que alguna consulta tiene cargadas: la planilla ISAK son decenas de
  * medidas y en consulta se toman unas pocas, así que las columnas vacías de
@@ -44,6 +48,13 @@ export async function generarExcelMediciones(datos: {
   mediciones: MedicionComposicionDto[];
 }): Promise<Uint8Array<ArrayBuffer>> {
   const { paciente, mediciones } = datos;
+
+  // Todas las mediciones comparten la configuración del consultorio: alcanza
+  // con leer la primera para saber qué ecuaciones dejó visibles.
+  const metodosVisibles = mediciones[0]
+    ? metodosVisiblesDe(mediciones[0])
+    : METODOS_GRASA;
+  const grupos = construirGrupos(metodosVisibles);
 
   const columnas: Columna[] = [
     {
@@ -85,7 +96,7 @@ export async function generarExcelMediciones(datos: {
       valor: () => paciente.fechaNacimiento,
       formato: FORMATO_FECHA,
     },
-    ...GRUPOS.flatMap((grupo) =>
+    ...grupos.flatMap((grupo) =>
       grupo.filas
         .filter((fila) => mediciones.some((m) => fila.valor(m) != null))
         .map((fila) => ({

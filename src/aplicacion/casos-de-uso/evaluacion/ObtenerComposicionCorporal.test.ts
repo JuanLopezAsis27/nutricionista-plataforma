@@ -1,14 +1,21 @@
 import { describe, it, expect, vi } from "vitest";
 import { ObtenerComposicionCorporal } from "./ObtenerComposicionCorporal";
+import { ObtenerConfiguracion } from "@/aplicacion/casos-de-uso/configuracion/ObtenerConfiguracion";
 import { ErrorPacienteNoEncontrado } from "@/dominio/errores/ErrorPacienteNoEncontrado";
 import {
   mockAntropometriaRepositorio,
   mockObjetivoComposicionRepositorio,
   mockPacienteRepositorio,
+  mockConfiguracionRepositorio,
   pacienteEjemplo,
   antropometriaEjemplo,
   objetivoComposicionEjemplo,
 } from "../_ayudas-test";
+
+/** Config por defecto (todas las ecuaciones visibles) para los casos de uso. */
+function configuracionEjemplo(): ObtenerConfiguracion {
+  return new ObtenerConfiguracion(mockConfiguracionRepositorio());
+}
 
 /** Medición con el perfil ISAK completo, para que el fraccionamiento salga. */
 function medicionCompleta(fecha: Date, pesoKg: number, id: string) {
@@ -49,6 +56,7 @@ describe("ObtenerComposicionCorporal", () => {
       mockAntropometriaRepositorio(),
       mockObjetivoComposicionRepositorio(),
       mockPacienteRepositorio(),
+      configuracionEjemplo(),
     );
     await expect(casoUso.ejecutar("no-existe")).rejects.toBeInstanceOf(
       ErrorPacienteNoEncontrado,
@@ -64,6 +72,7 @@ describe("ObtenerComposicionCorporal", () => {
       }),
       mockObjetivoComposicionRepositorio(),
       mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => PACIENTE) }),
+      configuracionEjemplo(),
     );
 
     const composicion = await casoUso.ejecutar("pac-1");
@@ -84,6 +93,7 @@ describe("ObtenerComposicionCorporal", () => {
       }),
       mockObjetivoComposicionRepositorio(),
       mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => PACIENTE) }),
+      configuracionEjemplo(),
     );
 
     const composicion = await casoUso.ejecutar("pac-1");
@@ -102,6 +112,7 @@ describe("ObtenerComposicionCorporal", () => {
       }),
       mockObjetivoComposicionRepositorio(),
       mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => PACIENTE) }),
+      configuracionEjemplo(),
     );
 
     const composicion = await casoUso.ejecutar("pac-1");
@@ -126,6 +137,7 @@ describe("ObtenerComposicionCorporal", () => {
         ]),
       }),
       mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => PACIENTE) }),
+      configuracionEjemplo(),
     );
 
     const composicion = await casoUso.ejecutar("pac-1", new Date("2026-02-15"));
@@ -159,6 +171,7 @@ describe("ObtenerComposicionCorporal", () => {
         ]),
       }),
       mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => PACIENTE) }),
+      configuracionEjemplo(),
     );
 
     const composicion = await casoUso.ejecutar("pac-1", new Date("2026-03-15"));
@@ -193,6 +206,7 @@ describe("ObtenerComposicionCorporal", () => {
         ]),
       }),
       mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => PACIENTE) }),
+      configuracionEjemplo(),
     );
 
     const composicion = await casoUso.ejecutar("pac-1", new Date("2026-02-15"));
@@ -224,6 +238,7 @@ describe("ObtenerComposicionCorporal", () => {
         ]),
       }),
       mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => PACIENTE) }),
+      configuracionEjemplo(),
     );
 
     const composicion = await casoUso.ejecutar("pac-1", new Date("2026-02-15"));
@@ -270,6 +285,7 @@ describe("ObtenerComposicionCorporal", () => {
         ]),
       }),
       mockPacienteRepositorio({ obtenerPorId: vi.fn(async () => PACIENTE) }),
+      configuracionEjemplo(),
     );
 
     const composicion = await casoUso.ejecutar("pac-1");
@@ -288,6 +304,7 @@ describe("ObtenerComposicionCorporal", () => {
       mockPacienteRepositorio({
         obtenerPorId: vi.fn(async () => pacienteEjemplo({ sexo: null })),
       }),
+      configuracionEjemplo(),
     );
 
     const composicion = await casoUso.ejecutar("pac-1");

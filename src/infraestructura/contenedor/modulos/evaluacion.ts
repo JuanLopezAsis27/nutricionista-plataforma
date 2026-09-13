@@ -12,6 +12,8 @@ import type { IInterpretadorMediciones } from "@/dominio/servicios/IInterpretado
 import type { ICampoHistoriaClinicaRepositorio } from "@/dominio/repositorios/ICampoHistoriaClinicaRepositorio";
 import type { IEvolucionRepositorio } from "@/dominio/repositorios/IEvolucionRepositorio";
 import type { ICampoEvolucionRepositorio } from "@/dominio/repositorios/ICampoEvolucionRepositorio";
+import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
+import { ObtenerConfiguracion } from "@/aplicacion/casos-de-uso/configuracion/ObtenerConfiguracion";
 import { GuardarHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/GuardarHistoriaClinica";
 import { ObtenerHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerHistoriaClinica";
 import { InterpretarHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/InterpretarHistoriaClinica";
@@ -69,6 +71,7 @@ export function crearServicioEvaluacion(deps: {
   camposHistoria: ICampoHistoriaClinicaRepositorio;
   evoluciones: IEvolucionRepositorio;
   camposEvolucion: ICampoEvolucionRepositorio;
+  configuracion: IConfiguracionRepositorio;
 }): ServicioEvaluacion {
   // Cada servicio recibe SOLO los casos de uso de su subdominio. Antes esto
   // era una sola lista de 20 argumentos posicionales, donde invertir dos del
@@ -106,6 +109,7 @@ export function crearServicioEvaluacion(deps: {
         deps.antropometrias,
         deps.objetivosComposicion,
         deps.pacientes,
+        new ObtenerConfiguracion(deps.configuracion),
       ),
       new GuardarObjetivoComposicion(deps.objetivosComposicion, deps.pacientes),
       new EliminarObjetivoComposicion(deps.objetivosComposicion),

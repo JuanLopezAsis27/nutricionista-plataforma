@@ -89,12 +89,10 @@ export interface MedidasComposicion {
   pliegueBicipital: number | null;
   pliegueCrestaIliaca: number | null;
   /**
-   * Sitios que NO son del perfil ISAK: los piden las ecuaciones de Jackson &
-   * Pollock (pectoral y axilar medio) y de Parrillo (pectoral y lumbar).
-   * No participan del fraccionamiento de Kerr ni del Phantom, que están
-   * definidos sobre el ISAK.
+   * Sitios que NO son del perfil ISAK: los pedían las ecuaciones de Jackson &
+   * Pollock y de Parrillo (ya retiradas). No participan del fraccionamiento
+   * de Kerr ni del Phantom, que están definidos sobre el ISAK.
    */
-  plieguePectoral: number | null;
   pliegueAxilarMedio: number | null;
   pliegueLumbar: number | null;
 }
