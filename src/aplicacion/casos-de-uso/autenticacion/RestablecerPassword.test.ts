@@ -5,6 +5,7 @@ import { TokenRecuperacion } from "@/dominio/entidades/TokenRecuperacion";
 import {
   mockUsuarioRepositorio,
   mockTokenRecuperacionRepositorio,
+  mockTokenRefrescoRepositorio,
   mockGeneradorTokens,
   mockHasheador,
   mockReloj,
@@ -47,14 +48,16 @@ function armar(
   const generador = mockGeneradorTokens();
   const hasheador = mockHasheador();
   const reloj = mockReloj(AHORA);
+  const tokensRefresco = mockTokenRefrescoRepositorio();
   const uc = new RestablecerPassword(
     usuarios,
     tokens,
     generador,
     hasheador,
     reloj,
+    tokensRefresco,
   );
-  return { uc, usuarios, tokens, generador, hasheador };
+  return { uc, usuarios, tokens, generador, hasheador, tokensRefresco };
 }
 
 describe("RestablecerPassword", () => {
@@ -99,5 +102,25 @@ describe("RestablecerPassword", () => {
       uc.ejecutar({ token: "x", nuevaPassword: "nuevaClave" }),
     ).rejects.toBeInstanceOf(ErrorTokenInvalido);
     expect(tokens.marcarUsado).not.toHaveBeenCalled();
+  });
+
+  it("echa a todos los dispositivos: revoca las sesiones persistentes", async () => {
+    // "Olvidé mi contraseña" es también el camino de quien sospecha que le
+    // entraron a la cuenta. El token de refresco del intruso no depende de la
+    // contraseña, así que si no se revoca acá, el restablecimiento no lo saca.
+    const { uc, tokensRefresco } = armar();
+    await uc.ejecutar({ token: "x", nuevaPassword: "nuevaClave" });
+    expect(tokensRefresco.revocarDeUsuario).toHaveBeenCalledWith(
+      "usr-1",
+      AHORA,
+    );
+  });
+
+  it("no revoca nada si el token de recuperación no sirve", async () => {
+    const { uc, tokensRefresco } = armar({ token: null });
+    await expect(
+      uc.ejecutar({ token: "x", nuevaPassword: "nuevaClave" }),
+    ).rejects.toBeInstanceOf(ErrorTokenInvalido);
+    expect(tokensRefresco.revocarDeUsuario).not.toHaveBeenCalled();
   });
 });

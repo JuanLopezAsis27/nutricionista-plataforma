@@ -21,6 +21,8 @@ import { PrismaRepositorioPaciente } from "@/infraestructura/repositorios/Prisma
 import { PrismaRepositorioTurno } from "@/infraestructura/repositorios/PrismaRepositorioTurno";
 import { PrismaRepositorioUsuario } from "@/infraestructura/repositorios/PrismaRepositorioUsuario";
 import { PrismaRepositorioTokenRecuperacion } from "@/infraestructura/repositorios/PrismaRepositorioTokenRecuperacion";
+import { PrismaRepositorioTokenRefresco } from "@/infraestructura/repositorios/PrismaRepositorioTokenRefresco";
+import { PrismaRepositorioNotificacion } from "@/infraestructura/repositorios/PrismaRepositorioNotificacion";
 import { PrismaRepositorioArchivo } from "@/infraestructura/repositorios/PrismaRepositorioArchivo";
 import { PrismaRepositorioHistoriaClinica } from "@/infraestructura/repositorios/PrismaRepositorioHistoriaClinica";
 import { PrismaRepositorioCampoHistoriaClinica } from "@/infraestructura/repositorios/PrismaRepositorioCampoHistoriaClinica";
@@ -130,6 +132,27 @@ export const NOMBRE_PROFESIONAL =
 /** URL pública de la app (la usan los enlaces de los emails y el OAuth). */
 export const urlApp = (): string => urlPublica();
 
+/**
+ * Cuánto dura la sesión persistente: el tiempo máximo que alguien puede pasar
+ * sin tipear su contraseña.
+ *
+ * No se confunde con `session.maxAge` de Auth.js (12 h), que es la vida del JWT
+ * y sigue siendo corta a propósito. Esto es la vida del token de refresco, que
+ * es revocable porque vive en la base. Ver `docs/SESIONES.md`.
+ */
+export const DIAS_SESION_PERSISTENTE = leerEnteroPositivo(
+  process.env.SESION_PERSISTENTE_DIAS,
+  30,
+);
+
+function leerEnteroPositivo(
+  valor: string | undefined,
+  porDefecto: number,
+): number {
+  const numero = Number(valor);
+  return Number.isInteger(numero) && numero > 0 ? numero : porDefecto;
+}
+
 /** Firma y verifica los enlaces "Confirmar asistencia" de los recordatorios. */
 export const enlaceConfirmacionTurno = perezoso(
   () => new FirmaConfirmacionTurno(process.env.AUTH_SECRET, urlPublica()),
@@ -152,6 +175,12 @@ export const repositorioUsuario = perezoso(
 );
 export const repositorioTokenRecuperacion = perezoso(
   () => new PrismaRepositorioTokenRecuperacion(prisma()),
+);
+export const repositorioTokenRefresco = perezoso(
+  () => new PrismaRepositorioTokenRefresco(prisma()),
+);
+export const repositorioNotificacion = perezoso(
+  () => new PrismaRepositorioNotificacion(prisma()),
 );
 export const repositorioArchivo = perezoso(
   () => new PrismaRepositorioArchivo(prisma()),

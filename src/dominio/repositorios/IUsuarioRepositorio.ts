@@ -12,6 +12,22 @@ export interface IUsuarioRepositorio {
   actualizar(usuario: Usuario): Promise<Usuario>;
   obtenerPorId(id: string): Promise<Usuario | null>;
   obtenerPorEmail(email: string): Promise<Usuario | null>;
+  /**
+   * ¿Ese email ya tiene una cuenta EN TODA la plataforma?
+   *
+   * `obtenerPorEmail` mira solo el consultorio en curso, porque la extensión de
+   * inquilino le agrega el filtro. Pero `usuarios.email` es único GLOBAL (una
+   * persona puede ser paciente de dos consultorios, y son dos fichas, pero una
+   * sola cuenta), así que ese chequeo dejaba pasar el alta y el choque aparecía
+   * recién en el índice de Postgres: un error que no es de dominio, que caía en
+   * el "Ocurrió un error inesperado" del middleware y que no le decía al
+   * profesional lo único que necesitaba saber —que tiene que usar otro email—.
+   *
+   * Devuelve un BOOLEANO y no el usuario a propósito, igual que
+   * `esFotoDePerfil`: quien pregunta necesita saber si el email está libre, no
+   * de quién es. Devolver la cuenta filtraría datos de otro consultorio.
+   */
+  emailYaRegistrado(email: string): Promise<boolean>;
   obtenerPorPacienteId(pacienteId: string): Promise<Usuario | null>;
   /** Usuarios con un rol dado (ej. los NUTRICIONISTA para notificarles). */
   listarPorRol(rol: RolUsuario): Promise<Usuario[]>;

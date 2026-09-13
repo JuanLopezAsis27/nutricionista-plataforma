@@ -5,7 +5,9 @@ import { ErrorUsuarioNoEncontrado } from "@/dominio/errores/ErrorUsuarioNoEncont
 import type { Usuario } from "@/dominio/entidades/Usuario";
 import {
   mockUsuarioRepositorio,
+  mockTokenRefrescoRepositorio,
   mockHasheador,
+  mockReloj,
   usuarioEjemplo,
 } from "../_ayudas-test";
 
@@ -26,7 +28,12 @@ describe("CambiarPassword", () => {
     const usuarios = mockUsuarioRepositorio({
       obtenerPorId: vi.fn(async () => USUARIO),
     });
-    const caso = new CambiarPassword(usuarios, mockHasheador());
+    const caso = new CambiarPassword(
+      usuarios,
+      mockHasheador(),
+      mockTokenRefrescoRepositorio(),
+      mockReloj(),
+    );
 
     await caso.ejecutar({
       usuarioId: "usr-1",
@@ -43,7 +50,12 @@ describe("CambiarPassword", () => {
     const usuarios = mockUsuarioRepositorio({
       obtenerPorId: vi.fn(async () => USUARIO),
     });
-    const caso = new CambiarPassword(usuarios, mockHasheador());
+    const caso = new CambiarPassword(
+      usuarios,
+      mockHasheador(),
+      mockTokenRefrescoRepositorio(),
+      mockReloj(),
+    );
 
     await expect(
       caso.ejecutar({
@@ -62,7 +74,12 @@ describe("CambiarPassword", () => {
     const usuarios = mockUsuarioRepositorio({
       obtenerPorId: vi.fn(async () => USUARIO),
     });
-    const caso = new CambiarPassword(usuarios, mockHasheador());
+    const caso = new CambiarPassword(
+      usuarios,
+      mockHasheador(),
+      mockTokenRefrescoRepositorio(),
+      mockReloj(),
+    );
 
     await caso.ejecutar({
       usuarioId: "usr-1",
@@ -73,8 +90,63 @@ describe("CambiarPassword", () => {
     expect(guardado(usuarios).passwordHash).not.toBe("melon-tractor-lunes");
   });
 
+  it("revoca las sesiones persistentes de todos los dispositivos", async () => {
+    // Si no, el cambio de contraseña no sirve para el caso que más importa:
+    // el token de refresco del intruso no depende de la contraseña y le
+    // seguiría abriendo la cuenta durante semanas.
+    const usuarios = mockUsuarioRepositorio({
+      obtenerPorId: vi.fn(async () => USUARIO),
+    });
+    const tokensRefresco = mockTokenRefrescoRepositorio();
+    const caso = new CambiarPassword(
+      usuarios,
+      mockHasheador(),
+      tokensRefresco,
+      mockReloj(),
+    );
+
+    await caso.ejecutar({
+      usuarioId: "usr-1",
+      passwordActual: "la-de-siempre",
+      passwordNueva: "melon-tractor-lunes",
+    });
+
+    expect(tokensRefresco.revocarDeUsuario).toHaveBeenCalledWith(
+      USUARIO.id,
+      expect.any(Date),
+    );
+  });
+
+  it("no revoca nada si la contraseña actual no coincide", async () => {
+    const usuarios = mockUsuarioRepositorio({
+      obtenerPorId: vi.fn(async () => USUARIO),
+    });
+    const tokensRefresco = mockTokenRefrescoRepositorio();
+    const caso = new CambiarPassword(
+      usuarios,
+      mockHasheador(),
+      tokensRefresco,
+      mockReloj(),
+    );
+
+    await expect(
+      caso.ejecutar({
+        usuarioId: "usr-1",
+        passwordActual: "la-que-me-parece",
+        passwordNueva: "melon-tractor-lunes",
+      }),
+    ).rejects.toThrow(ErrorPasswordIncorrecta);
+
+    expect(tokensRefresco.revocarDeUsuario).not.toHaveBeenCalled();
+  });
+
   it("falla si el usuario no existe", async () => {
-    const caso = new CambiarPassword(mockUsuarioRepositorio(), mockHasheador());
+    const caso = new CambiarPassword(
+      mockUsuarioRepositorio(),
+      mockHasheador(),
+      mockTokenRefrescoRepositorio(),
+      mockReloj(),
+    );
 
     await expect(
       caso.ejecutar({

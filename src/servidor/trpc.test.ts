@@ -7,6 +7,24 @@ vi.mock("@/infraestructura/monitoreo/monitor", () => ({
   monitorErrores: { capturar: (...args: unknown[]) => capturar(...args) },
 }));
 
+/**
+ * El traductor de errores de la base, doblado.
+ *
+ * Se dobla y no se usa el real porque el real importa Prisma, y Prisma no
+ * puede entrar en `src/servidor` (ver `arquitectura.test.ts`). Acá se verifica
+ * que el middleware lo CONSULTE y respete lo que devuelve; qué devuelve para
+ * cada código de Prisma es cosa de `erroresPrisma.test.ts`.
+ */
+vi.mock("@/infraestructura/persistencia/erroresPrisma", () => ({
+  traducirErrorPrisma: (error: unknown) =>
+    error instanceof Error && error.message.includes("Unique constraint")
+      ? {
+          codigo: "CONFLICTO",
+          message: "Ya existe un registro con ese email. Revisá los datos.",
+        }
+      : null,
+}));
+
 import { crearRouter, crearCallerFactory, publicoProcedimiento } from "./trpc";
 import { ErrorAccesoDenegado } from "@/dominio/errores/ErrorAccesoDenegado";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
@@ -49,6 +67,14 @@ const routerPrueba = crearRouter({
   conInput: publicoProcedimiento
     .input(z.object({ edad: z.number().int().positive() }))
     .query(({ input }) => input.edad),
+  restriccionBase: publicoProcedimiento.query(() => {
+    // Se imita el error crudo en vez de construir uno de Prisma: el ORM no
+    // puede importarse fuera de la infraestructura (`arquitectura.test.ts`),
+    // y lo que este archivo verifica es el CABLEADO del middleware. Que un
+    // P2002 real se traduzca a este mensaje lo cubre `erroresPrisma.test.ts`,
+    // que sí vive en infraestructura.
+    throw new Error("Unique constraint failed on the fields: (`email`)");
+  }),
   exitoso: publicoProcedimiento.query(() => "todo bien"),
   asincrono: publicoProcedimiento.query(async () => {
     await Promise.resolve();
@@ -161,5 +187,33 @@ describe("middleware de errores de tRPC", () => {
       const error = await errorDe(() => llamar.errorInesperado());
       expect((error.cause as Error).message).toContain("ECONNREFUSED");
     });
+  });
+});
+
+describe("traducción de errores de la base", () => {
+  beforeEach(() => capturar.mockClear());
+
+  it("un choque de índice único se explica en vez de salir como 500 genérico", async () => {
+    // Antes esto caía en el catch-all y el profesional leía «Ocurrió un error
+    // inesperado. Volvé a intentarlo en unos minutos.», que no le decía ni qué
+    // campo repitió ni que reintentar no iba a servir de nada.
+    await expect(llamar.restriccionBase()).rejects.toMatchObject({
+      code: "CONFLICT",
+    });
+
+    await llamar.restriccionBase().catch((error: TRPCError) => {
+      expect(error.message).toContain("email");
+      // Y el mensaje interno de la base no viaja al navegador.
+      expect(error.message).not.toContain("Unique constraint failed");
+    });
+  });
+
+  it("igual lo reporta al monitor: significa que falta un chequeo", async () => {
+    // Traducirlo mejora lo que ve el usuario, pero la explicación buena la da
+    // el caso de uso ("ya tenés un paciente con ese email: Juan Pérez").
+    // Apagar el monitor acá escondería esa deuda.
+    await llamar.restriccionBase().catch(() => {});
+
+    expect(capturar).toHaveBeenCalledTimes(1);
   });
 });

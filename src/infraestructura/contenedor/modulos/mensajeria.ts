@@ -3,6 +3,9 @@ import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioReposit
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
 import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
+import type { INotificacionRepositorio } from "@/dominio/repositorios/INotificacionRepositorio";
+import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
+import { EmitirNotificacion } from "@/aplicacion/casos-de-uso/notificaciones/EmitirNotificacion";
 import { ObtenerContraparteDelHilo } from "@/aplicacion/casos-de-uso/mensajeria/ObtenerContraparteDelHilo";
 import { EnviarMensaje } from "@/aplicacion/casos-de-uso/mensajeria/EnviarMensaje";
 import { ObtenerConversacionDePaciente } from "@/aplicacion/casos-de-uso/mensajeria/ObtenerConversacionDePaciente";
@@ -19,9 +22,19 @@ export function crearServicioMensajeria(deps: {
   pacientes: IPacienteRepositorio;
   configuracion: IConfiguracionRepositorio;
   bus: IBusEventos;
+  notificaciones: INotificacionRepositorio;
+  reloj: IRelojFecha;
 }): ServicioMensajeria {
   return new ServicioMensajeria(
-    new EnviarMensaje(deps.mensajeria, deps.usuarios, deps.bus),
+    new EnviarMensaje(
+      deps.mensajeria,
+      deps.usuarios,
+      deps.bus,
+      deps.pacientes,
+      // Que el mensaje del paciente quede en la campana y se pueda marcar
+      // visto, igual que un WhatsApp entrante.
+      new EmitirNotificacion(deps.notificaciones, deps.reloj),
+    ),
     new ObtenerConversacionDePaciente(deps.mensajeria),
     new ListarMensajes(deps.mensajeria),
     new ListarConversaciones(deps.mensajeria),

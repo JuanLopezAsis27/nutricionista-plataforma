@@ -4,6 +4,8 @@ import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfigur
 import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
 import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamientoArchivos";
 import type { IHasheadorContrasena } from "@/dominio/servicios/IHasheadorContrasena";
+import type { ITokenRefrescoRepositorio } from "@/dominio/repositorios/ITokenRefrescoRepositorio";
+import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import { ObtenerMiPerfil } from "@/aplicacion/casos-de-uso/perfil/ObtenerMiPerfil";
 import { CambiarFotoPerfil } from "@/aplicacion/casos-de-uso/perfil/CambiarFotoPerfil";
 import { CambiarPassword } from "@/aplicacion/casos-de-uso/perfil/CambiarPassword";
@@ -17,10 +19,17 @@ export function crearServicioPerfil(deps: {
   archivos: IArchivoRepositorio;
   almacenamiento: IAlmacenamientoArchivos;
   hasheador: IHasheadorContrasena;
+  tokensRefresco: ITokenRefrescoRepositorio;
+  reloj: IRelojFecha;
 }): ServicioPerfil {
   return new ServicioPerfil(
     new ObtenerMiPerfil(deps.usuarios, deps.pacientes, deps.configuracion),
     new CambiarFotoPerfil(deps.usuarios, deps.archivos, deps.almacenamiento),
-    new CambiarPassword(deps.usuarios, deps.hasheador),
+    new CambiarPassword(
+      deps.usuarios,
+      deps.hasheador,
+      deps.tokensRefresco,
+      deps.reloj,
+    ),
   );
 }

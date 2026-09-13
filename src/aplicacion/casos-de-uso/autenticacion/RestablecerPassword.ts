@@ -1,5 +1,6 @@
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { ITokenRecuperacionRepositorio } from "@/dominio/repositorios/ITokenRecuperacionRepositorio";
+import type { ITokenRefrescoRepositorio } from "@/dominio/repositorios/ITokenRefrescoRepositorio";
 import type { IGeneradorTokens } from "@/dominio/servicios/IGeneradorTokens";
 import type { IHasheadorContrasena } from "@/dominio/servicios/IHasheadorContrasena";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
@@ -18,6 +19,12 @@ export interface EntradaRestablecerPassword {
  * vencido. Si es válido, hashea la contraseña nueva, la guarda en el usuario y
  * marca el token como usado (un solo uso). Cualquier problema con el token se
  * reporta con el mismo error genérico (no filtra el motivo).
+ *
+ * Además **echa a todos los dispositivos**: revoca las sesiones persistentes
+ * del usuario. Este es el camino del "olvidé mi contraseña", que es también el
+ * que usa quien sospecha que le entraron a la cuenta; dejar viva la sesión
+ * persistente del intruso —que no necesita la contraseña nueva para nada—
+ * vaciaría de sentido el restablecimiento.
  */
 export class RestablecerPassword {
   constructor(
@@ -26,6 +33,7 @@ export class RestablecerPassword {
     private readonly generador: IGeneradorTokens,
     private readonly hasheador: IHasheadorContrasena,
     private readonly reloj: IRelojFecha,
+    private readonly tokensRefresco: ITokenRefrescoRepositorio,
   ) {}
 
   async ejecutar(entrada: EntradaRestablecerPassword): Promise<void> {
@@ -47,5 +55,8 @@ export class RestablecerPassword {
 
     // Consumir el token para que no pueda reutilizarse.
     await this.tokens.marcarUsado(registro.id, ahora);
+
+    // Y sacar de encima cualquier sesión persistente abierta (ver el encabezado).
+    await this.tokensRefresco.revocarDeUsuario(usuario.id, ahora);
   }
 }

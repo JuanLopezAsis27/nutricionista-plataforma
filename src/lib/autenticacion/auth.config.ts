@@ -1,4 +1,11 @@
+import { NextResponse } from "next/server";
 import type { NextAuthConfig } from "next-auth";
+
+import {
+  NOMBRE_COOKIE_REFRESCO,
+  RUTA_RENOVAR_SESION,
+  PARAMETRO_DESTINO,
+} from "./cookieRefresco";
 
 /**
  * Configuración base de Auth.js compatible con el Edge Runtime.
@@ -69,8 +76,27 @@ export const authConfig = {
     /**
      * Controla el acceso a las rutas desde el middleware.
      * Las rutas /dashboard/* y /mis-* exigen sesión iniciada.
+     *
+     * **Es también el disparador de la sesión persistente.** Si no hay sesión
+     * pero sí cookie de refresco, en vez de mandar al login se desvía a
+     * `/api/autenticacion/renovar`, que la canjea por una sesión nueva y
+     * devuelve a la persona a donde iba. Es el momento exacto en que hace
+     * falta: alguien que vuelve a la app después de más de 12 h y clava en el
+     * login sin ninguna razón que él pueda entender.
+     *
+     * Acá solo se mira si la cookie EXISTE. El middleware corre en el Edge
+     * Runtime, donde no hay Prisma ni `node:crypto`, así que validar es
+     * imposible; de eso se ocupa el route handler, que corre en Node. En el
+     * peor caso —una cookie vieja o inválida— se paga una redirección de más y
+     * se termina igual en el login, con la cookie ya borrada para que no se
+     * repita.
+     *
+     * `/api/*` está fuera del `matcher` del middleware (ver `proxy.ts`), así
+     * que el destino de la redirección no vuelve a pasar por acá y no hay
+     * riesgo de bucle.
      */
-    authorized({ auth, request: { nextUrl } }) {
+    authorized({ auth, request }) {
+      const { nextUrl } = request;
       const estaLogueado = !!auth?.user;
       const rutaProtegida =
         nextUrl.pathname.startsWith("/dashboard") ||
@@ -78,10 +104,21 @@ export const authConfig = {
         nextUrl.pathname.startsWith("/mis-") ||
         nextUrl.pathname.startsWith("/mi-");
 
-      if (rutaProtegida) {
-        return estaLogueado; // si no está logueado, redirige a /login
+      if (!rutaProtegida) return true;
+      if (estaLogueado) return true;
+
+      if (request.cookies.has(NOMBRE_COOKIE_REFRESCO)) {
+        const renovar = new URL(RUTA_RENOVAR_SESION, nextUrl.origin);
+        // A dónde volver: se manda solo la parte relativa, y el handler la
+        // vuelve a validar antes de usarla.
+        renovar.searchParams.set(
+          PARAMETRO_DESTINO,
+          `${nextUrl.pathname}${nextUrl.search}`,
+        );
+        return NextResponse.redirect(renovar);
       }
-      return true;
+
+      return false; // sin sesión ni cookie: al login
     },
   },
   // El array de proveedores se completa en auth.ts.

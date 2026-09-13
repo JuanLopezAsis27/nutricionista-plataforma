@@ -108,6 +108,8 @@ export const servicioWhatsapp = perezoso(() =>
     usuarios: nucleo.repositorioUsuario(),
     proveedor: nucleo.proveedorWhatsapp(),
     bus: nucleo.busEventos(),
+    notificaciones: nucleo.repositorioNotificacion(),
+    reloj: nucleo.reloj(),
   }),
 );
 
@@ -154,6 +156,8 @@ export const servicioTurno = perezoso(() =>
     usuarios: nucleo.repositorioUsuario(),
     servicioEmail: nucleo.servicioEmail(),
     bus: nucleo.busEventos(),
+    notificaciones: nucleo.repositorioNotificacion(),
+    reloj: nucleo.reloj(),
   }),
 );
 
@@ -319,6 +323,8 @@ export const servicioMensajeria = perezoso(() =>
     pacientes: nucleo.repositorioPaciente(),
     configuracion: nucleo.repositorioConfiguracion(),
     bus: nucleo.busEventos(),
+    notificaciones: nucleo.repositorioNotificacion(),
+    reloj: nucleo.reloj(),
   }),
 );
 
@@ -337,14 +343,17 @@ export const servicioPerfil = perezoso(() =>
     archivos: nucleo.repositorioArchivo(),
     almacenamiento: nucleo.almacenamiento(),
     hasheador: nucleo.hasheador(),
+    tokensRefresco: nucleo.repositorioTokenRefresco(),
+    reloj: nucleo.reloj(),
   }),
 );
 
 /** Centro de notificaciones: compone alertas, mensajería y correos (solo lectura). */
 export const servicioNotificaciones = perezoso(() =>
   crearServicioNotificaciones({
+    notificaciones: nucleo.repositorioNotificacion(),
+    reloj: nucleo.reloj(),
     alertas: nucleo.repositorioAlertaSeguimiento(),
-    mensajeria: nucleo.repositorioMensajeria(),
     emails: nucleo.repositorioEmailEnviado(),
   }),
 );
@@ -443,18 +452,20 @@ export const servicioIA = perezoso(() =>
 );
 
 /**
- * Autenticación: recuperación de contraseña (endpoints públicos, alcance
- * global). El enlace del email usa la URL pública de la app.
+ * Autenticación: recuperación de contraseña y sesiones persistentes (endpoints
+ * públicos, alcance global). El enlace del email usa la URL pública de la app.
  */
 export const servicioAutenticacion = perezoso(() =>
   crearServicioAutenticacion({
     usuarios: nucleo.repositorioUsuario(),
     tokens: nucleo.repositorioTokenRecuperacion(),
+    tokensRefresco: nucleo.repositorioTokenRefresco(),
     generador: nucleo.generadorTokens(),
     hasheador: nucleo.hasheador(),
     servicioEmail: nucleo.servicioEmail(),
     reloj: nucleo.reloj(),
     baseUrl: nucleo.urlApp(),
     nombreProfesional: nucleo.NOMBRE_PROFESIONAL,
+    diasSesionPersistente: nucleo.DIAS_SESION_PERSISTENTE,
   }),
 );

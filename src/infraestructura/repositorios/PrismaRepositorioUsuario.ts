@@ -1,6 +1,7 @@
 import type { PrismaClient, Usuario as UsuarioFila } from "@prisma/client";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import { Usuario, type RolUsuario } from "@/dominio/entidades/Usuario";
+import { ejecutarGlobal } from "@/infraestructura/multitenancy/contextoTenant";
 
 /**
  * Implementación con Prisma del repositorio de Usuario.
@@ -72,6 +73,25 @@ export class PrismaRepositorioUsuario implements IUsuarioRepositorio {
       where: { email: email.trim().toLowerCase() },
     });
     return fila ? mapearUsuario(fila) : null;
+  }
+
+  /**
+   * Pregunta por el email SIN el filtro de inquilino, porque la restricción que
+   * se está comprobando tampoco lo tiene: `usuarios.email` es único global.
+   *
+   * `ejecutarGlobal` acá es deliberado y no una fuga: lo único que cruza el
+   * límite es un booleano —ni la cuenta, ni el consultorio al que pertenece—,
+   * que es exactamente lo que hace falta para decidir si el email está libre.
+   * Ver el comentario de la interfaz.
+   */
+  async emailYaRegistrado(email: string): Promise<boolean> {
+    return ejecutarGlobal(async () => {
+      const fila = await this.prisma.usuario.findUnique({
+        where: { email: email.trim().toLowerCase() },
+        select: { id: true },
+      });
+      return fila !== null;
+    });
   }
 
   async esFotoDePerfil(archivoId: string): Promise<boolean> {
