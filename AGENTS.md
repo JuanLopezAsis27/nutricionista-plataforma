@@ -53,7 +53,10 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/GRABACIONES.md`        | Grabar la consulta, transcribirla y resumirla con IA  |
 | `docs/ARCHIVOS.md`           | Cómo llega al navegador un archivo del bucket         |
 | `docs/MENSAJERIA.md`         | La bandeja, el hilo y las piezas que comparten los canales |
+| `docs/NOTIFICACIONES.md`     | La campana: qué llega ahí y cómo se apaga cada cosa    |
+| `docs/ERRORES.md`            | Qué mensaje de error ve el usuario, y por qué          |
 | `docs/PERFIL.md`             | Mi perfil: foto de la cuenta, cambio de contraseña y su política |
+| `docs/SESIONES.md`           | Las dos credenciales: el JWT de 12 h y el refresco de 30 días |
 | `docs/WHATSAPP.md`           | Cloud API, plantillas de Meta, webhook                |
 | `docs/WEARABLES.md`          | Importación de métricas de dispositivos               |
 | `docs/MOBILE.md`             | La app Android con Capacitor                          |
@@ -446,6 +449,18 @@ La traducción a cada transporte vive una sola vez en `src/servidor/mapaCodigos.
 Agregar un `CodigoErrorDominio` rompe la compilación hasta traducirlo en ambos
 mapas.
 
+**Hay DOS bordes y tienen que decir lo mismo**: el middleware de tRPC y
+`servidor/errores-http.ts`, que es por donde salen los route handlers de
+`/api/*` —que no pasan por el middleware—. Lo que se agrega en uno va en el otro.
+
+Un choque contra una restricción de Postgres (email repetido, FK que ya no está)
+NO es un `ErrorDominio`: sin traducir cae en el genérico «Ocurrió un error
+inesperado», que para el usuario no dice nada. `traducirErrorPrisma`
+(`infraestructura/persistencia/`) lo vuelve legible en los dos bordes, y **igual
+lo reporta al monitor**: que llegue hasta la base significa que al caso de uso le
+falta el chequeo explícito, que es el único que puede dar el mensaje bueno. Ver
+`docs/ERRORES.md`.
+
 ## Autenticación y autorización
 
 - Auth.js v5 con CredentialsProvider; bcrypt para las contraseñas
@@ -454,6 +469,16 @@ mapas.
 - El contexto tRPC expone sesión, usuario, rol, servicios y bus de eventos
 - Cuatro niveles de procedimiento: `publicoProcedimiento`,
   `protegidoProcedimiento`, `nutricionistaProcedimiento`, `superadminProcedimiento`
+
+Conviven **DOS credenciales y no se mezclan**: el JWT de sesión dura 12 h y no
+se puede revocar (por eso es corto), y el **token de refresco** dura 30 días,
+vive en `tokens_refresco` y sí se revoca. El segundo solo sirve para emitir el
+primero sin pedir la contraseña; alargar el JWT "ya que estamos" devuelve el
+problema que el refresco vino a evitar. Rota en cada canje y, ante la
+reutilización de un token ya consumido, cae la **familia** entera. Lo dispara el
+callback `authorized` del middleware, que solo puede mirar si la cookie existe
+—corre en Edge—; valida `/api/autenticacion/renovar`, en Node. Ver
+`docs/SESIONES.md`.
 
 La autorización **a nivel de fila** ("un paciente solo ve lo suyo") NO se escribe
 a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
@@ -502,6 +527,19 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
 - Nunca importar desde capas externas hacia capas internas
 - Nunca poner lógica de negocio en los routers tRPC o en las páginas — incluida
   la autorización a nivel de fila, que va en `politicaAcceso`
+- Nunca dejar que el choque contra una restricción de la base haga de chequeo:
+  solo el caso de uso sabe con QUÉ chocó y puede decirlo («ya tenés un paciente
+  con ese email: Juan Pérez»). Y nunca apagar el monitor al traducir ese error,
+  que es la señal de que falta la validación
+- Nunca dejar obligatorio en un esquema de formulario COMPARTIDO un campo que
+  alguno de sus consumidores no dibuja: `handleSubmit` no llama al envío y, sin
+  `<FormMessage>` donde mostrarlo, el botón queda mudo —sin error en consola ni
+  pedido en la red—. Pasó con `establecimientoHabitualId` en el alta desde
+  documento. Los formularios con campos condicionales llevan `onInvalid`
+- Nunca hacer que el login distinga "contraseña incorrecta" de "ese email no
+  existe": es un enumerador de cuentas. Sí se distinguen el bloqueo por intentos
+  (no mira ninguna cuenta) y la cuenta desactivada (se informa DESPUÉS de
+  verificar la contraseña)
 - Nunca envolver un resolver de tRPC en `try/catch` para traducir errores: de eso
   se encarga el middleware, y hacerlo a mano apaga el monitoreo
 - Nunca consultar una tabla de inquilino sin alcance fijado
@@ -572,6 +610,16 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
 - Nunca comparar la fecha de un `Turno` contra una medianoche LOCAL: es un DATE
   a medianoche UTC, y al oeste de Greenwich los turnos de hoy quedan "antes de
   hoy". Va `IRelojFecha.hoy()`
+- Nunca filtrar una columna TIMESTAMP con `lte: hasta` en las estadísticas: el
+  `hasta` que mandan las pantallas es un DÍA (medianoche UTC), así que todo lo
+  que pasó HOY queda afuera. Con `Turno.fecha`, que es un DATE, `lte` está bien;
+  con `Paciente.creadoEn` va `finDelDia()`. Así estuvo "Pacientes nuevos", que
+  no contaba ninguna alta del día y al otro día aparecía sola — parecía un
+  problema del alta y era del filtro
+- Nunca decidir por formulario si un alta manda el email de bienvenida: la
+  política es del consultorio (`bienvenidaAutomaticaActiva`) y vive una sola vez
+  en `ServicioPaciente.darLaBienvenida`. El alta desde documento no la mandaba y
+  esos pacientes quedaban sin sus datos de acceso, sin ningún aviso
 - Nunca asumir que el modelo sabe qué día es: la fecha de hoy va en el prompt
 - Nunca tragarse con un `catch` vacío el fallo de una llamada de IA y devolver
   el stub: el error llega a la pantalla disfrazado de respuesta
@@ -592,6 +640,14 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   BORRA la anterior, y una foto de comida aceptada acá se lleva puesto un
   registro del diario del paciente
 - Nunca guardar passwords en texto plano
+- Nunca alargar `session.maxAge` para que la gente no vuelva a loguearse: ese
+  es el JWT y NO se puede revocar. Para eso está el token de refresco, que vive
+  en la base y se da de baja. Y nunca guardarlo en claro: va el SHA-256, como
+  el de recuperación
+- Nunca revocar solo el token de refresco reutilizado: cae la FAMILIA entera.
+  Revocar el presentado deja al ladrón con el que ya rotó, que es justamente el
+  que sirve. Y nunca renovar sin revalidar al usuario contra la base: una
+  cuenta dada de baja no puede resucitar su sesión con un token viejo
 - Nunca poner secretos en el código, siempre variables de entorno
 - Nunca armar un redirect de un route handler con `new URL(ruta, request.url)`:
   `NextResponse.redirect` manda un `Location` ABSOLUTO y `request.url` se arma

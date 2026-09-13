@@ -3,6 +3,8 @@ import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepos
 import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { ITokenRecuperacionRepositorio } from "@/dominio/repositorios/ITokenRecuperacionRepositorio";
+import type { ITokenRefrescoRepositorio } from "@/dominio/repositorios/ITokenRefrescoRepositorio";
+import type { INotificacionRepositorio } from "@/dominio/repositorios/INotificacionRepositorio";
 import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
 import type { IHistoriaClinicaRepositorio } from "@/dominio/repositorios/IHistoriaClinicaRepositorio";
 import type { ICampoHistoriaClinicaRepositorio } from "@/dominio/repositorios/ICampoHistoriaClinicaRepositorio";
@@ -56,6 +58,8 @@ import { ObjetivoComposicion } from "@/dominio/entidades/ObjetivoComposicion";
 import { Turno } from "@/dominio/entidades/Turno";
 import { Usuario } from "@/dominio/entidades/Usuario";
 import { TokenRecuperacion } from "@/dominio/entidades/TokenRecuperacion";
+import { TokenRefresco } from "@/dominio/entidades/TokenRefresco";
+import { Notificacion } from "@/dominio/entidades/Notificacion";
 import { Archivo } from "@/dominio/entidades/Archivo";
 import { HistoriaClinica } from "@/dominio/entidades/HistoriaClinica";
 import type { CampoHistoriaClinica } from "@/dominio/entidades/CampoHistoriaClinica";
@@ -150,6 +154,7 @@ export function mockUsuarioRepositorio(
     listarPorRol: vi.fn(async () => []),
     eliminarPorPacienteId: vi.fn(async () => {}),
     esFotoDePerfil: vi.fn(async () => false),
+    emailYaRegistrado: vi.fn(async () => false),
     ...parcial,
   };
 }
@@ -162,6 +167,20 @@ export function mockTokenRecuperacionRepositorio(
     obtenerPorHash: vi.fn(async () => null),
     marcarUsado: vi.fn(async () => {}),
     eliminarDeUsuario: vi.fn(async () => {}),
+    ...parcial,
+  };
+}
+
+export function mockTokenRefrescoRepositorio(
+  parcial: Partial<ITokenRefrescoRepositorio> = {},
+): ITokenRefrescoRepositorio {
+  return {
+    crear: vi.fn(async (t: TokenRefresco) => t),
+    obtenerPorHash: vi.fn(async () => null),
+    marcarUsado: vi.fn(async () => {}),
+    revocarFamilia: vi.fn(async () => {}),
+    revocarDeUsuario: vi.fn(async () => {}),
+    eliminarCaducados: vi.fn(async () => 0),
     ...parcial,
   };
 }
@@ -803,6 +822,22 @@ export function mockCampoEvolucionRepositorio(
     crear: vi.fn(async (c: CampoEvolucion) => c),
     actualizar: vi.fn(async (c: CampoEvolucion) => c),
     eliminar: vi.fn(async () => {}),
+    ...parcial,
+  };
+}
+
+export function mockNotificacionRepositorio(
+  parcial: Partial<INotificacionRepositorio> = {},
+): INotificacionRepositorio {
+  return {
+    crear: vi.fn(async (n: Notificacion) => n),
+    obtenerPorId: vi.fn(async () => null),
+    obtenerNoVistaDe: vi.fn(async () => null),
+    actualizar: vi.fn(async () => {}),
+    listarRecientes: vi.fn(async () => []),
+    contarNoVistas: vi.fn(async () => 0),
+    marcarVista: vi.fn(async () => {}),
+    marcarTodasVistas: vi.fn(async () => 0),
     ...parcial,
   };
 }
