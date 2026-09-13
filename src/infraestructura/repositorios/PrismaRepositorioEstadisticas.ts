@@ -13,7 +13,36 @@ import type {
  * Read model de estadísticas con Prisma. Todo son consultas de lectura
  * (count/groupBy/aggregate); ninguna entidad nueva. Decimal → number nunca
  * sale de infraestructura.
+ *
+ * ## `desde` y `hasta` son DÍAS, no instantes
+ *
+ * Los dos llegan como medianoche UTC (`new Date("2026-09-13")`), y significan
+ * "del día 1 al día 13, los dos incluidos". Eso obliga a filtrar distinto según
+ * el tipo de la columna, y confundirlo es el error que este archivo ya tuvo:
+ *
+ * - **`Turno.fecha` es un DATE**: la fila vale exactamente medianoche UTC, así
+ *   que `lte: hasta` incluye el día entero. Correcto tal cual.
+ * - **`Paciente.creadoEn` es un TIMESTAMP**: un alta de hoy a las 10:50 es
+ *   MAYOR que la medianoche de hoy, así que `lte: hasta` la deja afuera. El
+ *   síntoma era que un paciente recién creado no aparecía en "pacientes
+ *   nuevos" —ni en el número ni en el listado— hasta el día siguiente, y como
+ *   al otro día aparecía solo, parecía cosa del alta y no del filtro.
+ *
+ * Para los TIMESTAMP va `finDelDia(hasta)` como tope EXCLUSIVO.
  */
+
+const DIA_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * El instante en que termina el día `hasta`, como tope exclusivo (`lt`).
+ *
+ * Se suma un día en vez de restarle un milisegundo a la medianoche siguiente:
+ * `lt` del día siguiente no tiene borde que ajustar —no hay que adivinar la
+ * precisión de la columna— y en UTC no lo mueve ningún cambio de horario.
+ */
+export function finDelDia(hasta: Date): Date {
+  return new Date(hasta.getTime() + DIA_MS);
+}
 export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
   constructor(private readonly prisma: PrismaClient) {}
 
@@ -34,7 +63,10 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
       porEstablecimiento,
     ] = await Promise.all([
       this.prisma.paciente.count({ where: { archivadoEn: null } }),
-      this.prisma.paciente.count({ where: { creadoEn: rangoFecha } }),
+      // `creadoEn` es TIMESTAMP: el tope va al FIN del día (ver el encabezado).
+      this.prisma.paciente.count({
+        where: { creadoEn: { gte: desde, lt: finDelDia(hasta) } },
+      }),
       this.contarEnRiesgo(sinActividadDesde),
       this.turnosPorEstado(desde, hasta),
       this.sumarIngresos({ pagado: true, fecha: rangoFecha }),
@@ -134,7 +166,9 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
   ): Promise<PacienteEstadistica[]> {
     if (tipo === "NUEVOS") {
       const filas = await this.prisma.paciente.findMany({
-        where: { creadoEn: { gte: params.desde, lte: params.hasta } },
+        // Mismo tope que el contador de arriba: si no, el número y el listado
+        // que se abre al tocarlo dirían cosas distintas del mismo día.
+        where: { creadoEn: { gte: params.desde, lt: finDelDia(params.hasta) } },
         select: { id: true, nombre: true, apellido: true, creadoEn: true },
         orderBy: { creadoEn: "desc" },
       });

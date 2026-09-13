@@ -234,6 +234,20 @@ que el email de bienvenida en `ServicioPaciente.crearPaciente`.
 Al terminar, el documento leído se vincula a la ficha del paciente: es la fuente
 de lo que se cargó, y sin eso quedaría huérfano en el bucket hasta la limpieza.
 
+### El alta desde documento manda la bienvenida, como cualquier otra
+
+Durante un tiempo no la mandaba, y era a propósito: el razonamiento era que esta
+alta se hace con el paciente sentado enfrente. El problema es que decidirlo por
+formulario dejaba a esa persona **sin sus datos de acceso y sin que nadie se
+enterara** —el alta decía "creado" igual—, y el síntoma aparecía mucho después,
+cuando el paciente no podía entrar.
+
+Ahora las dos altas comparten `ServicioPaciente.darLaBienvenida`. Que la
+bienvenida salga o no es una decisión del CONSULTORIO y se controla con el
+interruptor `bienvenidaAutomaticaActiva` (`docs/PERFIL.md` y Configuración), no
+con la pantalla por la que entró el profesional. Sigue siendo best-effort: si el
+envío falla, el alta no se cae y queda el envío manual desde el listado.
+
 ## Dónde vive cada cosa
 
 | Pieza                                          | Qué hace                                        |

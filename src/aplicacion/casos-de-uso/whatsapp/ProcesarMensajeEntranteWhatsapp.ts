@@ -3,6 +3,7 @@ import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioReposit
 import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
 import type { ResolverPacientePorTelefono } from "./ResolverPacientePorTelefono";
 import type { RegistrarRespuestaDeRecordatorio } from "../recordatorios/RegistrarRespuestaDeRecordatorio";
+import type { EmitirNotificacion } from "../notificaciones/EmitirNotificacion";
 import { MensajeWhatsapp } from "@/dominio/entidades/MensajeWhatsapp";
 
 /** Mensaje entrante tal como lo entrega el webhook de Meta, ya desarmado. */
@@ -14,6 +15,18 @@ export interface MensajeEntranteWhatsapp {
   idExterno: string;
   /** Momento en que Meta lo recibió. */
   enviadoEn: Date;
+}
+
+/** Largo del adelanto del mensaje que se muestra en la campana. */
+const LARGO_RESUMEN = 120;
+
+/** El mensaje recortado para el feed, sin cortar a mitad de una palabra fea. */
+function resumir(cuerpo: string): string {
+  const limpio = cuerpo.replace(/\s+/g, " ").trim();
+  if (!limpio) return "(mensaje sin texto)";
+  return limpio.length <= LARGO_RESUMEN
+    ? limpio
+    : `${limpio.slice(0, LARGO_RESUMEN).trimEnd()}…`;
 }
 
 /** Qué se hizo con el mensaje: sirve para el log del webhook. */
@@ -40,6 +53,7 @@ export class ProcesarMensajeEntranteWhatsapp {
     private readonly usuarios: IUsuarioRepositorio,
     private readonly bus: IBusEventos,
     private readonly registrarRespuesta: RegistrarRespuestaDeRecordatorio,
+    private readonly emitirNotificacion: EmitirNotificacion,
   ) {}
 
   async ejecutar(entrante: MensajeEntranteWhatsapp): Promise<ResultadoIngesta> {
@@ -76,6 +90,23 @@ export class ProcesarMensajeEntranteWhatsapp {
       entrante.cuerpo,
       entrante.enviadoEn,
     );
+
+    // El aviso que queda: el bus de abajo solo llega a quien tiene la app
+    // abierta en ese instante, y un WhatsApp que entró a las 22:00 tiene que
+    // seguir estando a la mañana siguiente. Por eso además se persiste, con su
+    // estado de visto, igual que un mensaje del chat de la app.
+    await this.emitirNotificacion.ejecutar({
+      tipo: "WHATSAPP_ENTRANTE",
+      titulo: `${paciente.nombreCompleto} escribió por WhatsApp`,
+      detalle: resumir(entrante.cuerpo),
+      pacienteId: paciente.id,
+      enlace: `/dashboard/mensajes?paciente=${paciente.id}`,
+      // Se agrupa mientras no se vea, igual que el chat de la app. Por WhatsApp
+      // la gente escribe en ráfaga —una idea por mensaje—, así que sin esto diez
+      // mensajes de un minuto dejaban diez líneas idénticas en la campana y
+      // tapaban todo lo demás.
+      agruparMientrasNoSeVea: true,
+    });
 
     // El webhook corre fuera de cualquier request de la UI: el bus (pg_notify)
     // es lo que cruza procesos para que el hilo abierto se entere sin polling.

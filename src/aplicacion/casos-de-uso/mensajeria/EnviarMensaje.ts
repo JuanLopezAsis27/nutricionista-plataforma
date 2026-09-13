@@ -1,8 +1,22 @@
 import type { IMensajeriaRepositorio } from "@/dominio/repositorios/IMensajeriaRepositorio";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
+import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
+import type { EmitirNotificacion } from "../notificaciones/EmitirNotificacion";
 import { Conversacion } from "@/dominio/entidades/Conversacion";
 import { Mensaje } from "@/dominio/entidades/Mensaje";
+
+/** Largo del adelanto del mensaje que se muestra en la campana. */
+const LARGO_RESUMEN = 120;
+
+/** El mensaje recortado para el feed, sin cortar a mitad de una palabra fea. */
+function resumir(cuerpo: string): string {
+  const limpio = cuerpo.replace(/\s+/g, " ").trim();
+  if (!limpio) return "(mensaje sin texto)";
+  return limpio.length <= LARGO_RESUMEN
+    ? limpio
+    : `${limpio.slice(0, LARGO_RESUMEN).trimEnd()}…`;
+}
 
 /** Datos para enviar un mensaje. */
 export interface DatosEnviarMensaje {
@@ -25,6 +39,8 @@ export class EnviarMensaje {
     private readonly repositorio: IMensajeriaRepositorio,
     private readonly usuarios: IUsuarioRepositorio,
     private readonly bus: IBusEventos,
+    private readonly pacientes: IPacienteRepositorio,
+    private readonly emitirNotificacion: EmitirNotificacion,
   ) {}
 
   async ejecutar(datos: DatosEnviarMensaje): Promise<Mensaje> {
@@ -61,7 +77,44 @@ export class EnviarMensaje {
       });
     }
 
+    // Y dejarle el aviso al profesional, que es el que tiene campana. Solo
+    // cuando escribe el PACIENTE: avisarle al nutricionista de su propio
+    // mensaje no le dice nada que no sepa.
+    if (!datos.autorEsNutricionista) {
+      await this.avisarAlProfesional(datos, props.cuerpo);
+    }
+
     return mensaje;
+  }
+
+  /**
+   * El aviso que QUEDA.
+   *
+   * El evento del bus de arriba es efímero: solo llega a quien tenga la app
+   * abierta en ese momento. Antes, lo que sostenía este aviso en la campana era
+   * el contador de mensajes sin leer, así que abrir la conversación lo hacía
+   * desaparecer —y no quedaba manera de volver a verlo—. Persistirlo lo pone a
+   * la par de los otros dos avisos del paciente (WhatsApp y turno confirmado):
+   * se ve, queda marcado como visto y se puede volver a mirar.
+   *
+   * Se AGRUPA mientras no se vea: cinco mensajes seguidos dejan una sola línea,
+   * que es lo que mostraba el contador de no leídos.
+   */
+  private async avisarAlProfesional(
+    datos: DatosEnviarMensaje,
+    cuerpo: string,
+  ): Promise<void> {
+    const paciente = await this.pacientes.obtenerPorId(datos.pacienteId);
+    const nombre = paciente?.nombreCompleto ?? "Un paciente";
+
+    await this.emitirNotificacion.ejecutar({
+      tipo: "MENSAJE_APP",
+      titulo: `${nombre} te escribió`,
+      detalle: resumir(cuerpo),
+      pacienteId: datos.pacienteId,
+      enlace: `/dashboard/mensajes?paciente=${datos.pacienteId}`,
+      agruparMientrasNoSeVea: true,
+    });
   }
 
   private async destinatarios(datos: DatosEnviarMensaje): Promise<string[]> {

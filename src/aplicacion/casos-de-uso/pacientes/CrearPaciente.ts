@@ -37,12 +37,35 @@ export class CrearPaciente {
   async ejecutar(datos: DatosNuevoPacienteConAcceso): Promise<Paciente> {
     const email = datos.email.trim().toLowerCase();
 
-    // 1. El email debe ser único tanto en pacientes como en usuarios.
-    if (await this.repositorio.obtenerPorEmail(email)) {
-      throw new ErrorValidacion("Ya existe un paciente con ese email.");
+    // 1. El email debe estar libre. Son TRES preguntas distintas y cada una
+    //    merece su propia respuesta: lo que el profesional tiene que hacer a
+    //    continuación no es lo mismo en los tres casos.
+    const pacienteExistente = await this.repositorio.obtenerPorEmail(email);
+    if (pacienteExistente) {
+      throw new ErrorValidacion(
+        `Ya tenés un paciente con el email ${email}: ${pacienteExistente.nombreCompleto}. ` +
+          `Si es la misma persona, editá su ficha en vez de crear una nueva; si son distintas, usá otro email.`,
+      );
     }
+
+    // Del propio consultorio: puede ser el nutricionista o una cuenta cuya
+    // ficha de paciente ya se borró (la cuenta queda, el email sigue tomado).
     if (await this.usuarios.obtenerPorEmail(email)) {
-      throw new ErrorValidacion("Ya existe un usuario con ese email.");
+      throw new ErrorValidacion(
+        `El email ${email} ya está usado por otra cuenta de este consultorio. Elegí uno distinto para el paciente.`,
+      );
+    }
+
+    // Global: `usuarios.email` es único en toda la plataforma. Sin esta
+    // pregunta el alta seguía y reventaba contra el índice de Postgres, que no
+    // es un error de dominio y llegaba a pantalla como "error inesperado".
+    // El mensaje dice la restricción y qué hacer, pero NO de quién es la
+    // cuenta: eso sería filtrar datos de otro consultorio.
+    if (await this.usuarios.emailYaRegistrado(email)) {
+      throw new ErrorValidacion(
+        `El email ${email} ya tiene una cuenta en la plataforma. ` +
+          `Cada cuenta necesita un email propio, así que usá otro para este paciente.`,
+      );
     }
 
     // 2. Crear y persistir la ficha del paciente (valida invariantes).

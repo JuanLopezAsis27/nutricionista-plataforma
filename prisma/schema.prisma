@@ -301,6 +301,7 @@ model Nutricionista {
   perfilesDeportivos        PerfilDeportivo[]
   competencias              Competencia[]
   alertasSeguimiento        AlertaSeguimiento[]
+  notificaciones            Notificacion[]
   turnos                    Turno[]
   recordatoriosWhatsapp     RecordatorioWhatsapp[]
   plantillasWhatsapp        PlantillaWhatsapp[]
@@ -478,6 +479,7 @@ model Paciente {
   asignacionesMaterial    AsignacionMaterial[]
   suplementos             Suplemento[]
   alertasSeguimiento      AlertaSeguimiento[]
+  notificaciones          Notificacion[]
   conversacion            Conversacion?
   conversacionesIA        ConversacionIA[]
   analisisComida          AnalisisComida[]
@@ -598,6 +600,56 @@ model AlertaSeguimiento {
   @@index([nutricionistaId, estado])
   @@index([nutricionistaId, pacienteId, tipo, estado])
   @@map("alertas_seguimiento")
+}
+
+/// Qué originó una notificación del consultorio. Solo se agregan valores
+/// nuevos: una notificación vieja no puede cambiar de tipo.
+enum TipoNotificacion {
+  /// El paciente escribió por WhatsApp.
+  WHATSAPP_ENTRANTE
+  /// El paciente confirmó su turno desde el enlace del recordatorio.
+  TURNO_CONFIRMADO
+  /// El paciente escribió por el chat de la app.
+  MENSAJE_APP
+}
+
+/// Aviso persistido para el nutricionista, con estado de "visto".
+///
+/// El Centro de Notificaciones nació como un read-model puro: unía tres
+/// señales que YA vivían en su propia tabla y que ya tenían dónde apoyar su
+/// estado —una alerta se resuelve, un mensaje se lee, un correo falló—. Estas
+/// dos no tienen esa tabla: que el paciente confirme el turno no dejaba
+/// ningún registro (se mandaba un email y se perdía), y un WhatsApp entrante
+/// se guarda pero sin ninguna noción de leído.
+///
+/// Por eso existe esta tabla y no se estiró `AlertaSeguimiento`: aquella
+/// describe la ADHERENCIA del paciente (sin registrar peso, plan vencido) y la
+/// arma un barrido automático que puede volver a generarla. Estas son HECHOS
+/// puntuales que ya ocurrieron y no se regeneran. Mezclarlas habría hecho que
+/// el barrido tuviera que saber no tocarlas.
+model Notificacion {
+  id              String           @id @default(uuid(4))
+  nutricionistaId String
+  tipo            TipoNotificacion
+  titulo          String
+  detalle         String
+  /// A quién se refiere. Opcional: no toda notificación futura tendrá paciente.
+  pacienteId      String?
+  /// A dónde lleva al tocarla. Se guarda armado para que el feed no tenga que
+  /// saber construir rutas de cada tipo.
+  enlace          String?
+  /// Null mientras no se vio. Es lo que cuenta para el globo de la campana.
+  vistoEn         DateTime?
+  creadoEn        DateTime         @default(now())
+
+  paciente      Paciente?     @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  /// El índice del camino caliente: "las no vistas de este consultorio, las
+  /// más nuevas primero", que es exactamente lo que pide la campana.
+  @@index([nutricionistaId, vistoEn, creadoEn])
+  @@index([pacienteId])
+  @@map("notificaciones")
 }
 
 /// Cita agendada entre el nutricionista y un paciente.
@@ -1462,6 +1514,7 @@ model Usuario {
   paciente Paciente? @relation(fields: [pacienteId], references: [id], onDelete: SetNull)
 
   tokensRecuperacion    TokenRecuperacion[]
+  tokensRefresco        TokenRefresco[]
   recordatoriosWhatsapp RecordatorioWhatsapp[]
   nutricionista         Nutricionista?         @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
   fotoPerfil            Archivo?               @relation("FotoDePerfil", fields: [fotoPerfilId], references: [id], onDelete: SetNull)
@@ -1489,6 +1542,38 @@ model TokenRecuperacion {
 
   @@index([usuarioId])
   @@map("tokens_recuperacion")
+}
+
+/// Token de refresco: lo que permite emitir una sesión nueva sin volver a pedir
+/// la contraseña. Como el de recuperación, se guarda SOLO el hash (SHA-256) y
+/// tampoco es tabla de inquilino (los usuarios son globales y el flujo corre
+/// con alcance global, igual que el login).
+///
+/// Es de un solo uso y ROTA: cada renovación consume el token y emite otro. La
+/// `familia` es la cadena de rotaciones que nacen de un mismo login —lo que
+/// permite detectar la reutilización de un token ya consumido (señal de robo) y
+/// cortar la cadena entera, no solo el token presentado.
+model TokenRefresco {
+  id          String    @id @default(uuid(4))
+  usuarioId   String
+  /// Cadena de rotación: todos los tokens que descienden de un mismo login.
+  familia     String
+  tokenHash   String    @unique
+  expiraEn    DateTime
+  /// Cuándo se canjeó por una sesión nueva. Un token usado que vuelve a
+  /// presentarse es reutilización: se revoca la familia completa.
+  usadoEn     DateTime?
+  revocadoEn  DateTime?
+  /// User-Agent recortado del dispositivo que inició la sesión, para que el
+  /// profesional reconozca de dónde viene cada una.
+  dispositivo String?
+  creadoEn    DateTime  @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@index([familia])
+  @@map("tokens_refresco")
 }
 
 // ---------------------------------------------------------------------------
@@ -1635,10 +1720,10 @@ model PlanNutricional {
   creadoEn           DateTime      @default(now())
   actualizadoEn      DateTime      @updatedAt
 
-  comidas          ComidaPlan[]
-  equivalencias    EquivalenciaPlan[]
-  recomendaciones  RecomendacionPlan[]
-  asignaciones     AsignacionPlan[]
+  comidas           ComidaPlan[]
+  equivalencias     EquivalenciaPlan[]
+  recomendaciones   RecomendacionPlan[]
+  asignaciones      AsignacionPlan[]
   /// Recetas vinculadas DIRECTAMENTE al plan, sin pasar por una franja
   /// (migración 56). Es lo único que le puede acompañar recetas a un plan PDF:
   /// ese plan no tiene franjas de las que colgarlas.
@@ -1646,17 +1731,17 @@ model PlanNutricional {
   /// Archivos del plan: el principal y/o los anexos. La FK vive en `archivos`,
   /// como el resto de los dueños de archivo: el arco exclusivo se sostiene en
   /// una sola tabla.
-  archivos         Archivo[]           @relation("ArchivosDelPlan")
+  archivos          Archivo[]           @relation("ArchivosDelPlan")
   /// Cuál de esos archivos ES el plan (modalidad PDF). FK con SET NULL: borrar
   /// el archivo deja el plan sin principal, no apuntando a un id inexistente.
-  archivoPrincipal Archivo?            @relation("ArchivoPrincipalPlan", fields: [archivoPrincipalId], references: [id], onDelete: SetNull)
-  nutricionista    Nutricionista       @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  archivoPrincipal  Archivo?            @relation("ArchivoPrincipalPlan", fields: [archivoPrincipalId], references: [id], onDelete: SetNull)
+  nutricionista     Nutricionista       @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
   // Plantilla de la que se clonó: FK real con SET NULL, para que borrar la
   // plantilla no deje ids colgando en los planes que salieron de ella.
-  planOrigen       PlanNutricional?    @relation("PlanClonado", fields: [planOrigenId], references: [id], onDelete: SetNull)
-  clones           PlanNutricional[]   @relation("PlanClonado")
+  planOrigen        PlanNutricional?    @relation("PlanClonado", fields: [planOrigenId], references: [id], onDelete: SetNull)
+  clones            PlanNutricional[]   @relation("PlanClonado")
   /// Borrar la carpeta NO borra los planes: quedan sueltos (ver migración 38).
-  grupo            GrupoPlan?          @relation(fields: [grupoId], references: [id], onDelete: SetNull)
+  grupo             GrupoPlan?          @relation(fields: [grupoId], references: [id], onDelete: SetNull)
 
   @@unique([nutricionistaId, id])
   /// El nombre identifica al plan para quien lo busca en una lista. Dos planes
@@ -2334,41 +2419,41 @@ enum OperadorAxioma {
 /// LUGAR, y con una sola copia no se podía decir "lunes y miércoles en el
 /// centro, martes y jueves en el barrio".
 model ConfiguracionConsultorio {
-  id                        String        @id @default(uuid(4))
-  nutricionistaId           String        @unique
-  nombreProfesional         String?
-  matricula                 String?
-  logoArchivoId             String?
+  id                           String        @id @default(uuid(4))
+  nutricionistaId              String        @unique
+  nombreProfesional            String?
+  matricula                    String?
+  logoArchivoId                String?
   // Apariencia del PDF del plan nutricional.
-  pdfColorPrimario          String? // hex, ej "#F4535E" (default: coral)
-  pdfSubtitulo              String? // bajo el nombre en el membrete
-  pdfPieTexto               String? // nota al pie / aclaración
-  pdfMostrarRecetas         Boolean       @default(true)
-  pdfMostrarMacros          Boolean       @default(true)
-  pdfMostrarEquivalencias   Boolean       @default(true)
-  pdfMostrarRecomendaciones Boolean       @default(true)
+  pdfColorPrimario             String? // hex, ej "#F4535E" (default: coral)
+  pdfSubtitulo                 String? // bajo el nombre en el membrete
+  pdfPieTexto                  String? // nota al pie / aclaración
+  pdfMostrarRecetas            Boolean       @default(true)
+  pdfMostrarMacros             Boolean       @default(true)
+  pdfMostrarEquivalencias      Boolean       @default(true)
+  pdfMostrarRecomendaciones    Boolean       @default(true)
   // Recordatorio de turno por WhatsApp. El TEXTO vive en `plantillas_whatsapp`
   // (migración 33): una plantilla tiene que poder corresponderse con la que
   // Meta aprobó, y eso no entra en un campo de texto suelto. Acá queda lo que
   // sí es del consultorio: cómo se canonizan los teléfonos a E.164.
-  whatsappPrefijoPais       String? // prefijo internacional sin "+", ej "54"
+  whatsappPrefijoPais          String? // prefijo internacional sin "+", ej "54"
   /// Si al dar de alta un paciente sale, además, su email de bienvenida con
   /// los datos de acceso. Apagarlo no borra el envío manual: solo el
   /// automático del alta.
-  bienvenidaAutomaticaActiva Boolean      @default(true)
+  bienvenidaAutomaticaActiva   Boolean       @default(true)
   /// Qué ecuaciones de grasa por pliegues se muestran (dashboard, PDF, vista
   /// del paciente). No puede quedar vacía: si no hay ninguna guardada, el
   /// dominio asume las vigentes por defecto. Ver migración 57.
-  formulasGrasaVisibles     MetodoGrasa[] @default([YUHASZ_CARTER, YUHASZ_CARTER_KERR, FAULKNER, FAULKNER_KERR, WITHERS, DURNIN_WOMERSLEY])
+  formulasGrasaVisibles        MetodoGrasa[] @default([YUHASZ_CARTER, YUHASZ_CARTER_KERR, FAULKNER, FAULKNER_KERR, WITHERS, DURNIN_WOMERSLEY])
   /// Si una foto de comida del diario se analiza sola con IA al subirla.
   /// Apagado por defecto: cada análisis gasta cuota de IA del consultorio.
-  analisisFotoComidaAutomatico Boolean    @default(false)
-  creadoEn                  DateTime      @default(now())
-  actualizadoEn             DateTime      @updatedAt
-  nutricionista             Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  analisisFotoComidaAutomatico Boolean       @default(false)
+  creadoEn                     DateTime      @default(now())
+  actualizadoEn                DateTime      @updatedAt
+  nutricionista                Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
   // El logo del membrete es un Archivo del bucket: FK real con SET NULL, así
   // borrarlo deja la configuración sin logo en vez de con un id inexistente.
-  logo                      Archivo?      @relation(fields: [logoArchivoId], references: [id], onDelete: SetNull)
+  logo                         Archivo?      @relation(fields: [logoArchivoId], references: [id], onDelete: SetNull)
 
   @@map("configuracion_consultorio")
 }

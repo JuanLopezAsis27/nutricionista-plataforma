@@ -3,6 +3,7 @@ import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepos
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
+import type { EmitirNotificacion } from "../notificaciones/EmitirNotificacion";
 import type { Turno } from "@/dominio/entidades/Turno";
 import { ErrorTurnoNoEncontrado } from "@/dominio/errores/ErrorTurnoNoEncontrado";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
@@ -27,6 +28,7 @@ export class ConfirmarAsistenciaTurno {
     private readonly usuarios: IUsuarioRepositorio,
     private readonly servicioEmail: IServicioEmail,
     private readonly bus: IBusEventos,
+    private readonly emitirNotificacion: EmitirNotificacion,
   ) {}
 
   async ejecutar(turnoId: string): Promise<AsistenciaConfirmada> {
@@ -57,6 +59,19 @@ export class ConfirmarAsistenciaTurno {
     const nombre = paciente?.nombreCompleto ?? "Un paciente";
     const mensaje = `${nombre} confirmó su turno del ${fecha} a las ${turno.hora}.`;
     const pie = "El turno ya figura como confirmado en tu agenda.";
+
+    // El aviso que queda. Hasta acá la confirmación se contaba por email y por
+    // el bus, y los dos son efímeros: el mail se pierde entre otros cincuenta y
+    // el evento solo llega a quien tenga la app abierta justo en ese momento.
+    // Persistirlo es lo que hace que el profesional pueda verlo a la mañana
+    // siguiente y marcarlo como visto cuando lo atendió.
+    await this.emitirNotificacion.ejecutar({
+      tipo: "TURNO_CONFIRMADO",
+      titulo: `${nombre} confirmó su turno`,
+      detalle: `${fecha} a las ${turno.hora}. ${pie}`,
+      pacienteId: turno.pacienteId,
+      enlace: "/dashboard/turnos",
+    });
 
     for (const nutri of await this.usuarios.listarPorRol("NUTRICIONISTA")) {
       // La confirmación ya quedó guardada: un aviso que falla no la deshace

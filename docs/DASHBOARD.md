@@ -20,6 +20,23 @@ ACCIONABLE (lo que espera respuesta) sobre lo descriptivo (cuántas cosas hay).
 (pacientes y turnos). Solo dos bloques agregan una consulta —mensajes y el
 resumen del mes— y las dos ya existían para otras pantallas.
 
+### El rango del mes: `hasta` es un DÍA, no un instante
+
+`ResumenDelMes` pide `desde` = el 1 del mes y `hasta` = hoy, los dos como
+**medianoche UTC**, y significan días completos incluidos. Quien consulte esos
+valores tiene que interpretarlos así, y eso depende del tipo de la columna:
+
+- `Turno.fecha` es un DATE (medianoche UTC): `lte: hasta` incluye el día entero.
+- `Paciente.creadoEn` es un TIMESTAMP: un alta de hoy a las 10:50 es MAYOR que
+  la medianoche de hoy, así que `lte: hasta` la dejaba afuera.
+
+Por eso «Pacientes nuevos» no contaba ninguna alta del día en curso —ni el
+número ni el listado que se abre al tocarlo—, y al día siguiente aparecía sola.
+El tope para los TIMESTAMP sale de `finDelDia()` en
+`PrismaRepositorioEstadisticas`, que es exclusivo (`lt` de la medianoche
+siguiente). Si se agrega otra métrica sobre una columna de tipo TIMESTAMP, va
+con ese tope.
+
 ## Las métricas son cuatro y son las accionables
 
 `Pacientes activos`, `Turnos de hoy`, `Próximos (7 días)` y `Sin confirmar`.

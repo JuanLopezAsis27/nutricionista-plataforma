@@ -27,12 +27,35 @@ import {
   FormMessage,
 } from "@/componentes/ui/form";
 import { LogoConsultorio } from "@/componentes/marca/LogoConsultorio";
+import {
+  CODIGO_LOGIN_BLOQUEADO,
+  CODIGO_LOGIN_INACTIVA,
+} from "@/lib/autenticacion/codigosLogin";
 
 const esquemaLogin = z.object({
   email: z.string().email("Email inválido"),
   password: z.string().min(1, "La contraseña es obligatoria"),
 });
 type DatosLogin = z.infer<typeof esquemaLogin>;
+
+/**
+ * Traduce el motivo del rechazo a algo que se pueda leer y accionar.
+ *
+ * El `code` lo pone `authorize` y solo llega en los casos que no revelan si la
+ * cuenta existe (ver `auth.ts`). Sin `code` —contraseña incorrecta o email que
+ * no está— queda el mensaje de siempre, que es deliberadamente el MISMO para
+ * los dos: distinguirlos le diría a cualquiera qué emails tienen cuenta.
+ */
+function mensajeDeLogin(codigo: string | undefined): string {
+  switch (codigo) {
+    case CODIGO_LOGIN_BLOQUEADO:
+      return "Demasiados intentos fallidos. Por seguridad la cuenta quedó bloqueada un rato; esperá unos minutos y volvé a probar.";
+    case CODIGO_LOGIN_INACTIVA:
+      return "Tu cuenta está desactivada. Escribile a tu nutricionista para que vuelva a habilitarla.";
+    default:
+      return "Email o contraseña incorrectos.";
+  }
+}
 
 /** Formulario de inicio de sesión (email + password). */
 export function FormularioLogin() {
@@ -55,7 +78,7 @@ export function FormularioLogin() {
       });
 
       if (!resultado || resultado.error) {
-        toast.error("Email o contraseña incorrectos.");
+        toast.error(mensajeDeLogin(resultado?.code));
         return;
       }
 

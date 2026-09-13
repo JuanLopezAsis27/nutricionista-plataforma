@@ -1,5 +1,7 @@
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
+import type { ITokenRefrescoRepositorio } from "@/dominio/repositorios/ITokenRefrescoRepositorio";
 import type { IHasheadorContrasena } from "@/dominio/servicios/IHasheadorContrasena";
+import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import { ErrorUsuarioNoEncontrado } from "@/dominio/errores/ErrorUsuarioNoEncontrado";
 import { ErrorPasswordIncorrecta } from "@/dominio/errores/ErrorPasswordIncorrecta";
 
@@ -33,6 +35,8 @@ export class CambiarPassword {
   constructor(
     private readonly usuarios: IUsuarioRepositorio,
     private readonly hasheador: IHasheadorContrasena,
+    private readonly tokensRefresco: ITokenRefrescoRepositorio,
+    private readonly reloj: IRelojFecha,
   ) {}
 
   async ejecutar(entrada: EntradaCambiarPassword): Promise<void> {
@@ -51,5 +55,16 @@ export class CambiarPassword {
 
     const hash = await this.hasheador.hashear(entrada.passwordNueva);
     await this.usuarios.actualizar(usuario.cambiarPassword(hash));
+
+    // Cambiar la contraseña cierra las sesiones persistentes de TODOS los
+    // dispositivos, este incluido. Dejarlas vivas convertiría el cambio en un
+    // trámite decorativo para el caso que más importa —"creo que alguien entró
+    // a mi cuenta"—: el token de refresco que ya tenga el otro no depende de la
+    // contraseña y le seguiría abriendo la puerta durante semanas.
+    //
+    // Que el propio dispositivo tenga que volver a entrar es el costo, y es el
+    // comportamiento que ya espera cualquiera que cambió una contraseña en otro
+    // lado.
+    await this.tokensRefresco.revocarDeUsuario(usuario.id, this.reloj.ahora());
   }
 }

@@ -5,6 +5,9 @@ import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioReposit
 import type { ISincronizadorCalendario } from "@/dominio/servicios/ISincronizadorCalendario";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
+import type { INotificacionRepositorio } from "@/dominio/repositorios/INotificacionRepositorio";
+import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
+import { EmitirNotificacion } from "@/aplicacion/casos-de-uso/notificaciones/EmitirNotificacion";
 import { AgendarTurno } from "@/aplicacion/casos-de-uso/turnos/AgendarTurno";
 import { ObtenerTurnos } from "@/aplicacion/casos-de-uso/turnos/ObtenerTurnos";
 import { ObtenerTurnosPorPaciente } from "@/aplicacion/casos-de-uso/turnos/ObtenerTurnosPorPaciente";
@@ -25,6 +28,8 @@ export function crearServicioTurno(deps: {
   usuarios: IUsuarioRepositorio;
   servicioEmail: IServicioEmail;
   bus: IBusEventos;
+  notificaciones: INotificacionRepositorio;
+  reloj: IRelojFecha;
 }): ServicioTurno {
   // CancelarTurno compone ActualizarEstadoTurno: comparten instancia.
   const actualizarEstadoTurno = new ActualizarEstadoTurno(deps.turnos);
@@ -44,6 +49,9 @@ export function crearServicioTurno(deps: {
       deps.usuarios,
       deps.servicioEmail,
       deps.bus,
+      // Que la confirmación quede en la campana y se pueda marcar vista: el
+      // email se pierde entre otros y el evento del bus es efímero.
+      new EmitirNotificacion(deps.notificaciones, deps.reloj),
     ),
     deps.sincronizador,
     deps.establecimientos,

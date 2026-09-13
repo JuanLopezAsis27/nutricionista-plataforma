@@ -1,0 +1,14 @@
+-- Migración 61 — El chat de la app también deja notificación persistida
+--
+-- Hasta acá, que un paciente escribiera por el chat de la app se mostraba en la
+-- campana como un ítem DERIVADO de "conversaciones con mensajes sin leer". Eso
+-- tiene una consecuencia que se ve al usarlo: apenas se abre la conversación el
+-- ítem DESAPARECE, porque lo que lo sostenía era el contador de no leídos.
+--
+-- Las otras dos señales del paciente —WhatsApp entrante y turno confirmado—
+-- quedan en la lista marcadas como vistas. Dos mensajes del mismo paciente, uno
+-- por cada canal, se comportaban distinto en la misma campana.
+--
+-- Con un tipo propio, el mensaje de la app pasa a ser un HECHO persistido como
+-- los otros: se ve, queda, y se puede volver a mirar.
+ALTER TYPE "TipoNotificacion" ADD VALUE 'MENSAJE_APP';
