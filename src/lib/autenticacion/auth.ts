@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
@@ -11,6 +11,13 @@ import {
   RONDAS_BCRYPT,
   necesitaRehash,
 } from "@/infraestructura/seguridad/BcryptHasheador";
+import {
+  abrirSesionPersistente,
+  renovarDesdeCookie,
+  cerrarSesionPersistente,
+} from "./sesionPersistente";
+import { ID_PROVEEDOR_REFRESCO } from "./cookieRefresco";
+import { CODIGO_LOGIN_BLOQUEADO, CODIGO_LOGIN_INACTIVA } from "./codigosLogin";
 
 /**
  * IP de origen de la request.
@@ -63,6 +70,21 @@ const credencialesDto = z.object({
   password: z.string().min(1),
 });
 
+/**
+ * Error de login que sí lleva un motivo.
+ *
+ * `authorize` no puede devolver un mensaje: o hay usuario o hay `null`, y
+ * `null` sale siempre como el mismo `CredentialsSignin`. El `code` de un error
+ * propio es el único canal que llega hasta el formulario. Los motivos
+ * declarados —y por qué solo esos dos— están en `codigosLogin.ts`.
+ */
+class ErrorLoginConMotivo extends CredentialsSignin {
+  constructor(codigo: string) {
+    super();
+    this.code = codigo;
+  }
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   /**
@@ -101,14 +123,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           limitadorLogin.estaBloqueada(claveIp).bloqueada ||
           limitadorLogin.estaBloqueada(claveEmail).bloqueada
         ) {
-          return null;
+          // Con motivo: el bloqueo no dice nada de ninguna cuenta y, sin
+          // saberlo, la persona sigue probando contra una puerta trabada.
+          throw new ErrorLoginConMotivo(CODIGO_LOGIN_BLOQUEADO);
         }
 
         // El login busca por email GLOBALMENTE (aún no hay inquilino resuelto).
         const usuario = await ejecutarGlobal(() =>
           repositorioUsuarioCompartido().obtenerPorEmail(email),
         );
-        if (!usuario || !usuario.activo) {
+        if (!usuario) {
           limitadorLogin.registrarFallo(claveIp);
           limitadorLogin.registrarFallo(claveEmail);
           return null;
@@ -119,6 +143,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           limitadorLogin.registrarFallo(claveIp);
           limitadorLogin.registrarFallo(claveEmail);
           return null;
+        }
+
+        // La baja se informa recién ACÁ, con la contraseña ya verificada.
+        // Antes se miraba junto con la existencia del usuario, así que daba lo
+        // mismo: las dos salían como "credenciales incorrectas" y alguien dado
+        // de baja se quedaba probando contraseñas que estaban bien. Moverlo
+        // después del `compare` es lo que permite decirle la verdad sin
+        // confirmarle a un desconocido que la cuenta existe.
+        if (!usuario.activo) {
+          limitadorLogin.registrarFallo(claveIp);
+          limitadorLogin.registrarFallo(claveEmail);
+          throw new ErrorLoginConMotivo(CODIGO_LOGIN_INACTIVA);
         }
 
         // Login correcto: limpiar los contadores de esta IP/email.
@@ -146,6 +182,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
         }
 
+        // Abrir la sesión persistente: es el único momento en que se probó la
+        // contraseña, así que es cuando corresponde entregar la credencial que
+        // evita volver a pedirla. No puede hacer fallar el login (ver ahí).
+        await abrirSesionPersistente(usuario.id, peticion);
+
         // El objeto devuelto alimenta el callback jwt (ver auth.config.ts).
         return {
           id: usuario.id,
@@ -156,5 +197,40 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         };
       },
     }),
+
+    /**
+     * Sesión persistente: emite una sesión a partir de la cookie de refresco,
+     * sin contraseña. Lo invoca el route handler `/api/autenticacion/renovar`
+     * (ver `cookieRefresco.ts` sobre por qué es un provider aparte).
+     *
+     * No declara `credentials`: todo lo que necesita viaja en una cookie
+     * httpOnly que el cliente no puede leer ni fabricar. Un formulario vacío es
+     * justamente lo que se quiere —no hay ningún dato del usuario en el que
+     * confiar—.
+     */
+    Credentials({
+      id: ID_PROVEEDOR_REFRESCO,
+      name: "Sesión persistente",
+      credentials: {},
+      async authorize(_credenciales, peticion) {
+        // Valida, rota la cookie y devuelve quién es; `null` si no sirve.
+        return await renovarDesdeCookie(peticion);
+      },
+    }),
   ],
+
+  events: {
+    /**
+     * Cerrar sesión tiene que llevarse puesto el token de refresco.
+     *
+     * Sin esto, "Cerrar sesión" borraría el JWT y dejaría viva la cookie de
+     * refresco: la siguiente navegación a una ruta protegida la canjearía por
+     * una sesión nueva y la persona volvería a estar adentro sin haber tipeado
+     * nada. El botón parecería roto, y en una computadora compartida sería
+     * bastante peor que eso.
+     */
+    async signOut() {
+      await cerrarSesionPersistente();
+    },
+  },
 });

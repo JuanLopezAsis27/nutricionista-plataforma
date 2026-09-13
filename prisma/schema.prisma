@@ -1462,6 +1462,7 @@ model Usuario {
   paciente Paciente? @relation(fields: [pacienteId], references: [id], onDelete: SetNull)
 
   tokensRecuperacion    TokenRecuperacion[]
+  tokensRefresco        TokenRefresco[]
   recordatoriosWhatsapp RecordatorioWhatsapp[]
   nutricionista         Nutricionista?         @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
   fotoPerfil            Archivo?               @relation("FotoDePerfil", fields: [fotoPerfilId], references: [id], onDelete: SetNull)
@@ -1489,6 +1490,38 @@ model TokenRecuperacion {
 
   @@index([usuarioId])
   @@map("tokens_recuperacion")
+}
+
+/// Token de refresco: lo que permite emitir una sesión nueva sin volver a pedir
+/// la contraseña. Como el de recuperación, se guarda SOLO el hash (SHA-256) y
+/// tampoco es tabla de inquilino (los usuarios son globales y el flujo corre
+/// con alcance global, igual que el login).
+///
+/// Es de un solo uso y ROTA: cada renovación consume el token y emite otro. La
+/// `familia` es la cadena de rotaciones que nacen de un mismo login —lo que
+/// permite detectar la reutilización de un token ya consumido (señal de robo) y
+/// cortar la cadena entera, no solo el token presentado.
+model TokenRefresco {
+  id          String    @id @default(uuid(4))
+  usuarioId   String
+  /// Cadena de rotación: todos los tokens que descienden de un mismo login.
+  familia     String
+  tokenHash   String    @unique
+  expiraEn    DateTime
+  /// Cuándo se canjeó por una sesión nueva. Un token usado que vuelve a
+  /// presentarse es reutilización: se revoca la familia completa.
+  usadoEn     DateTime?
+  revocadoEn  DateTime?
+  /// User-Agent recortado del dispositivo que inició la sesión, para que el
+  /// profesional reconozca de dónde viene cada una.
+  dispositivo String?
+  creadoEn    DateTime  @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@index([familia])
+  @@map("tokens_refresco")
 }
 
 // ---------------------------------------------------------------------------

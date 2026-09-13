@@ -119,6 +119,21 @@ quien pide el cambio ya está autenticado y no le falta ningún permiso, se
 equivocó al tipear un campo. El formulario lo cuelga debajo de ese input en vez
 de mostrarlo como un toast.
 
+### Cambiar la contraseña echa a todos los dispositivos
+
+El cambio revoca **todas** las sesiones persistentes de la cuenta, la del
+dispositivo desde el que se hace incluida (ver `docs/SESIONES.md`).
+
+Es deliberado y es por el caso que más importa: quien cambia la contraseña
+porque sospecha que le entraron a la cuenta no gana nada si el token de refresco
+del otro le sigue abriendo la puerta durante semanas — ese token no depende de
+la contraseña y no se entera de que cambió. Tener que volver a entrar en el
+propio teléfono es el costo, y es lo que ya espera cualquiera que cambió una
+contraseña en otro lado.
+
+Lo mismo hace el restablecimiento por email, que es el otro camino que usa quien
+sospecha algo.
+
 ### El formulario no tiene esquema propio
 
 `FormularioPassword` usa `cambiarPasswordDto` directamente como resolver. En
