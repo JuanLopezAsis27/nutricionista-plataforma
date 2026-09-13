@@ -37,8 +37,10 @@ export interface ComidaConsumida {
 export interface DatosNuevaComidaConsumida {
   franja: string;
   hora?: string | null;
-  descripcion: string;
+  descripcion?: string;
   porcion?: string | null;
+  /** Foto ya subida al crear la comida (id de Archivo); null si no hay. */
+  archivoId?: string | null;
 }
 
 /** Actividad física registrada en el diario (hijo del agregado). */
@@ -170,8 +172,9 @@ export class RegistroDiario {
       );
     }
     const descripcion = datos.descripcion?.trim() ?? "";
-    if (descripcion.length === 0) {
-      throw new ErrorValidacion("Describí qué comiste.");
+    const archivoId = datos.archivoId?.trim() || null;
+    if (descripcion.length === 0 && !archivoId) {
+      throw new ErrorValidacion("Describí qué comiste o subí una foto.");
     }
     if (datos.hora && !PATRON_HORA.test(datos.hora)) {
       throw new ErrorValidacion("La hora debe tener formato HH:mm.");
@@ -182,7 +185,7 @@ export class RegistroDiario {
       hora: datos.hora ?? null,
       descripcion,
       porcion: datos.porcion?.trim() || null,
-      fotoArchivoId: null,
+      fotoArchivoId: archivoId,
       creadoEn: ahora,
     };
   }

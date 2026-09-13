@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import {
   GlassWater,
   Scale,
@@ -9,6 +10,8 @@ import {
   Dumbbell,
   Trash2,
   Camera,
+  Loader2,
+  X,
   NotebookPen,
   Plus,
   Check,
@@ -22,6 +25,8 @@ import {
   type IntensidadActividad,
 } from "@/dominio/entidades/RegistroDiario";
 import { useDiario } from "@/lib/hooks/useDiario";
+import { useIA } from "@/lib/hooks/useIA";
+import { useSubirArchivo } from "@/lib/hooks/useSubirArchivo";
 import { formatearFechaLarga } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import { Button } from "@/componentes/ui/button";
@@ -43,7 +48,7 @@ import {
   SelectItem,
 } from "@/componentes/ui/select";
 import { FotoConVisor } from "@/componentes/comunes/FotoConVisor";
-import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
+import type { ArchivoSalidaDto } from "@/aplicacion/dtos/archivo.dto";
 import {
   VasosDeAgua,
   textoDeAgua,
@@ -89,12 +94,15 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
     agregarActividad,
     eliminarActividad,
     agregarFotoComida,
+    analisisAutomaticoActivo,
   } = useDiario();
+  const { analizarFoto } = useIA();
 
   // "YYYY-MM-DD" → Date a medianoche UTC (así lo persiste la columna @db.Date).
   const fecha = new Date(fechaISO);
   const dia = miDia({ fecha });
   const registro = dia.data;
+  const analisisActivo = analisisAutomaticoActivo().data ?? false;
 
   // Escalares (controlados; se re-cargan al cambiar de día)
   const [peso, setPeso] = useState("");
@@ -108,7 +116,7 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
   const [horaComida, setHoraComida] = useState("");
   const [descripcionComida, setDescripcionComida] = useState("");
   const [porcionComida, setPorcionComida] = useState("");
-  const [fotoPara, setFotoPara] = useState<string | null>(null);
+  const [fotoNueva, setFotoNueva] = useState<ArchivoSalidaDto | null>(null);
 
   // Alta de actividad
   const [tipoActividad, setTipoActividad] = useState("");
@@ -123,7 +131,6 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
     );
     setCalidadSueno(registro?.calidadSueno ?? "");
     setNotas(registro?.notas ?? "");
-    setFotoPara(null);
   }, [registro, fechaISO]);
 
   if (dia.isLoading) {
@@ -149,6 +156,30 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
     });
   }
 
+  /**
+   * La foto se sube inmediatamente al elegirla; si el análisis automático
+   * está prendido, dispara además el análisis con IA y completa descripción y
+   * porción si todavía están vacías (el paciente las ve y puede corregirlas
+   * antes de guardar: la IA nunca escribe algo que no se muestre primero).
+   */
+  function alSubirFotoComida(archivo: ArchivoSalidaDto) {
+    setFotoNueva(archivo);
+    if (!analisisActivo) return;
+    analizarFoto.mutate(
+      { archivoId: archivo.id },
+      {
+        onSuccess: (resultado) => {
+          setDescripcionComida(
+            (actual) => actual.trim() || resultado.descripcion,
+          );
+          setPorcionComida(
+            (actual) => actual.trim() || resultado.porcionEstimada,
+          );
+        },
+      },
+    );
+  }
+
   function registrarComida() {
     agregarComida.mutate(
       {
@@ -157,12 +188,14 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
         hora: horaComida || null,
         descripcion: descripcionComida,
         porcion: porcionComida.trim() || null,
+        archivoId: fotoNueva?.id ?? null,
       },
       {
         onSuccess: () => {
           setDescripcionComida("");
           setHoraComida("");
           setPorcionComida("");
+          setFotoNueva(null);
         },
       },
     );
@@ -369,11 +402,13 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
                       </span>
                     )}
                   </p>
-                  <p className="whitespace-pre-wrap pt-0.5 text-muted-foreground">
-                    {comida.descripcion}
-                  </p>
+                  {comida.descripcion && (
+                    <p className="whitespace-pre-wrap pt-0.5 text-muted-foreground">
+                      {comida.descripcion}
+                    </p>
+                  )}
                 </div>
-                <span className="flex shrink-0 items-center gap-0.5">
+                <span className="flex shrink-0 items-center gap-1">
                   {comida.fotoArchivoId ? (
                     <FotoConVisor
                       archivoId={comida.fotoArchivoId}
@@ -381,16 +416,15 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
                       className="h-9 w-9"
                     />
                   ) : (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Agregar foto"
-                      onClick={() =>
-                        setFotoPara(fotoPara === comida.id ? null : comida.id)
+                    <BotonFotoComida
+                      archivo={null}
+                      onSubido={(archivo) =>
+                        agregarFotoComida.mutate({
+                          comidaId: comida.id,
+                          archivoId: archivo.id,
+                        })
                       }
-                    >
-                      <Camera className="h-4 w-4" />
-                    </Button>
+                    />
                   )}
                   <Button
                     variant="ghost"
@@ -402,20 +436,6 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
                   </Button>
                 </span>
               </div>
-              {fotoPara === comida.id && (
-                <SubidorArchivo
-                  className="mt-2"
-                  contexto="foto-comida"
-                  accept="image/*"
-                  onSubido={(archivo) => {
-                    agregarFotoComida.mutate({
-                      comidaId: comida.id,
-                      archivoId: archivo.id,
-                    });
-                    setFotoPara(null);
-                  }}
-                />
-              )}
             </div>
           ))}
 
@@ -455,10 +475,28 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
               value={descripcionComida}
               onChange={(e) => setDescripcionComida(e.target.value)}
             />
+            <div className="flex items-center gap-2">
+              <BotonFotoComida
+                archivo={fotoNueva}
+                analizando={analizarFoto.isPending}
+                onSubido={alSubirFotoComida}
+                onQuitar={() => setFotoNueva(null)}
+              />
+              <p className="text-xs text-muted-foreground">
+                {analizarFoto.isPending
+                  ? "Analizando la foto con IA…"
+                  : fotoNueva
+                    ? "Foto lista. Podés guardar solo con la foto."
+                    : "Foto (opcional): podés cargar la comida solo con ella."}
+              </p>
+            </div>
             <div className="flex justify-end">
               <Button
                 onClick={registrarComida}
-                disabled={agregarComida.isPending || !descripcionComida.trim()}
+                disabled={
+                  agregarComida.isPending ||
+                  (!descripcionComida.trim() && !fotoNueva)
+                }
               >
                 <Plus className="h-4 w-4" />
                 Agregar
@@ -556,6 +594,100 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+/**
+ * Botón de cámara para subir la foto de una comida: abre el selector nativo
+ * (que en el celular ofrece cámara o galería con `accept="image/*"`) y sube
+ * apenas se elige, sin un paso de "confirmar" aparte.
+ *
+ * Sin foto muestra el ícono; con foto, la miniatura (mismo `FotoConVisor` que
+ * usa una comida ya guardada) con una `X` para sacarla, si `onQuitar` viene.
+ */
+function BotonFotoComida({
+  archivo,
+  analizando = false,
+  onSubido,
+  onQuitar,
+}: {
+  archivo: ArchivoSalidaDto | null;
+  /** Se está analizando esta foto con IA: se ve un spinner sobre la miniatura. */
+  analizando?: boolean;
+  onSubido: (archivo: ArchivoSalidaDto) => void;
+  /** Si se puede sacar la foto elegida (no aplica a una ya guardada). */
+  onQuitar?: () => void;
+}) {
+  const entradaRef = useRef<HTMLInputElement>(null);
+  const { subir, subiendo } = useSubirArchivo();
+
+  async function elegir(archivoElegido: File) {
+    try {
+      const subido = await subir(archivoElegido, { contexto: "foto-comida" });
+      onSubido(subido);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "No se pudo subir la foto.",
+      );
+    }
+  }
+
+  const ocupado = subiendo || analizando;
+
+  return (
+    <div className="relative inline-flex">
+      {archivo ? (
+        <>
+          <FotoConVisor
+            archivoId={archivo.id}
+            alt="Foto de la comida"
+            className="h-11 w-11"
+          />
+          {ocupado && (
+            <span className="absolute inset-0 flex items-center justify-center rounded-md bg-background/70">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            </span>
+          )}
+          {onQuitar && !ocupado && (
+            <button
+              type="button"
+              aria-label="Quitar foto"
+              onClick={onQuitar}
+              className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
+            >
+              <X className="h-2.5 w-2.5" />
+            </button>
+          )}
+        </>
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Agregar foto"
+          disabled={subiendo}
+          onClick={() => entradaRef.current?.click()}
+        >
+          {subiendo ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Camera className="h-4 w-4" />
+          )}
+        </Button>
+      )}
+
+      <input
+        ref={entradaRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const archivoElegido = e.target.files?.[0];
+          if (archivoElegido) void elegir(archivoElegido);
+          e.target.value = "";
+        }}
+      />
     </div>
   );
 }

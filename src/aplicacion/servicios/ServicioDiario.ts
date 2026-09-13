@@ -8,6 +8,7 @@ import type { EliminarComidaDiario } from "@/aplicacion/casos-de-uso/diario/Elim
 import type { AgregarActividadDiario } from "@/aplicacion/casos-de-uso/diario/AgregarActividadDiario";
 import type { EliminarActividadDiario } from "@/aplicacion/casos-de-uso/diario/EliminarActividadDiario";
 import type { AgregarFotoComida } from "@/aplicacion/casos-de-uso/diario/AgregarFotoComida";
+import type { ObtenerConfiguracion } from "@/aplicacion/casos-de-uso/configuracion/ObtenerConfiguracion";
 import type { RegistroDiario } from "@/dominio/entidades/RegistroDiario";
 import type { ParametrosPagina } from "@/aplicacion/casos-de-uso/_paginacion";
 import type {
@@ -36,6 +37,7 @@ export class ServicioDiario {
     private readonly agregarActividadUC: AgregarActividadDiario,
     private readonly eliminarActividadUC: EliminarActividadDiario,
     private readonly agregarFotoUC: AgregarFotoComida,
+    private readonly configuracionUC: ObtenerConfiguracion,
   ) {}
 
   async guardarDia(
@@ -133,6 +135,12 @@ export class ServicioDiario {
     archivoId: string,
   ): Promise<void> {
     await this.agregarFotoUC.ejecutar(pacienteId, comidaId, archivoId);
+  }
+
+  /** Si el consultorio tiene prendido el análisis automático de fotos. */
+  async analisisAutomaticoActivo(): Promise<boolean> {
+    const config = await this.configuracionUC.ejecutar();
+    return config.analisisFotoComidaAutomatico;
   }
 
   private static aSalida(registro: RegistroDiario): RegistroDiarioSalidaDto {

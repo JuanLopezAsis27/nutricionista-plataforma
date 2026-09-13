@@ -2,6 +2,8 @@ import type { IRegistroDiarioRepositorio } from "@/dominio/repositorios/IRegistr
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
 import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamientoArchivos";
+import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
+import { ObtenerConfiguracion } from "@/aplicacion/casos-de-uso/configuracion/ObtenerConfiguracion";
 import { GuardarDia } from "@/aplicacion/casos-de-uso/diario/GuardarDia";
 import { ObtenerDia } from "@/aplicacion/casos-de-uso/diario/ObtenerDia";
 import { ObtenerCalendarioDiario } from "@/aplicacion/casos-de-uso/diario/ObtenerCalendarioDiario";
@@ -20,6 +22,7 @@ export function crearServicioDiario(deps: {
   pacientes: IPacienteRepositorio;
   archivos: IArchivoRepositorio;
   almacenamiento: IAlmacenamientoArchivos;
+  configuracion: IConfiguracionRepositorio;
 }): ServicioDiario {
   return new ServicioDiario(
     new GuardarDia(deps.registros, deps.pacientes),
@@ -27,7 +30,7 @@ export function crearServicioDiario(deps: {
     new ObtenerCalendarioDiario(deps.registros),
     new ObtenerRegistrosEnRango(deps.registros, deps.pacientes),
     new ObtenerRegistrosPaginados(deps.registros, deps.pacientes),
-    new AgregarComidaDiario(deps.registros, deps.pacientes),
+    new AgregarComidaDiario(deps.registros, deps.pacientes, deps.archivos),
     new EliminarComidaDiario(
       deps.registros,
       deps.archivos,
@@ -36,5 +39,6 @@ export function crearServicioDiario(deps: {
     new AgregarActividadDiario(deps.registros, deps.pacientes),
     new EliminarActividadDiario(deps.registros),
     new AgregarFotoComida(deps.registros, deps.archivos, deps.almacenamiento),
+    new ObtenerConfiguracion(deps.configuracion),
   );
 }

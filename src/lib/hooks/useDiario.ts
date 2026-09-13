@@ -43,6 +43,7 @@ export function useDiario() {
     agregarFotoComida: trpc.diario.agregarFotoComida.useMutation(
       conToasts("Foto vinculada."),
     ),
+    analisisAutomaticoActivo: trpc.diario.analisisAutomaticoActivo.useQuery,
     // Vista del nutricionista
     obtenerRango: trpc.diario.obtenerRango.useQuery,
     obtenerPaginado: trpc.diario.obtenerPaginado.useQuery,
