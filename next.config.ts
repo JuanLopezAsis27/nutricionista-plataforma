@@ -32,8 +32,8 @@ function politicaCsp(): string {
     "font-src 'self' data:",
     // Mismo origen alcanza: tRPC y el stream SSE de tiempo real salen de acá.
     "connect-src 'self'",
-    // El visor de PDF (VisorPdf.tsx) embebe /api/archivos/<id>/ver, que es
-    // del mismo origen justamente para no depender de otro dominio.
+    // El visor de archivos (VisorArchivo.tsx) embebe /api/archivos/<id>/ver,
+    // que es del mismo origen justamente para no depender de otro dominio.
     "frame-src 'self'",
     // 'self' y no 'none': la respuesta del archivo TIENE que poder ser embebida
     // por la propia app, o el visor de PDF queda en blanco.

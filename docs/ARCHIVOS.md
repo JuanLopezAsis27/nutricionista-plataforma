@@ -83,10 +83,43 @@ necesita y no debe depender de que nadie afloje la configuración general.
 - `Cache-Control: private`: es contenido clínico de un paciente y no puede
   quedar en una caché compartida.
 
+## No todos los navegadores dibujan un PDF
+
+**Chrome en Android no trae visor de PDF embebido**, y el WebView donde corre la
+app de la tienda tampoco (`docs/MOBILE.md`). Ahí el `<iframe>` del plan no
+quedaba vacío: mostraba el cartel de error del propio navegador, adentro de la
+pantalla del plan y sin más salida a la vista que un botón chico arriba. Es el
+«no se ve el PDF en algunos celulares».
+
+**No se puede detectar cuando pasa: hay que preguntar antes.** El `onError` de
+un `<iframe>` es del ELEMENTO —se dispara si el frame no carga—, y acá el frame
+carga perfecto; lo que falla es el visor de adentro, que no avisa nada hacia
+afuera. Por eso el estado de fallo que tenía `VisorArchivo` no se activaba
+nunca.
+
+`componentes/comunes/soportePdf.ts` hace la pregunta, en este orden:
+
+1. `navigator.pdfViewerEnabled` — la propiedad estándar y la respuesta directa
+   donde existe. En Chrome de Android devuelve `false`.
+2. `navigator.mimeTypes["application/pdf"]` — la misma pregunta, como se hacía
+   antes de que existiera la propiedad.
+3. La plataforma del user agent: sí en escritorio, no en un teléfono.
+
+Cuando la respuesta es que no, `VisorArchivo` no embebe: ofrece el archivo para
+abrir o guardar, con los botones grandes y el motivo dicho. Abrirlo funciona
+—el sistema lo entrega a la app de PDF que la persona ya tiene—; lo que no
+funciona es dibujarlo adentro.
+
+El Word no pasa por esto: se sirve ya convertido a HTML (`/html`), que cualquier
+navegador dibuja.
+
 ## Al tocar esto
 
 - Un `<img>`, un `<iframe>` o un «abrir en una pestaña» van siempre a
   `/api/archivos/<id>/ver`. `/api/archivos/<id>` es para bajar.
+- **Un PDF embebido va detrás de `useNavegadorDibujaPdf`**, con una salida
+  visible cuando el navegador no lo dibuja. Un `<iframe>` de PDF suelto es una
+  pantalla de error en la mitad de los teléfonos.
 - Nunca apuntar un recurso de la app a una URL firmada del bucket: es otro
   origen y queda a merced de sus cabeceras, cuando llega.
 - Si algún día hace falta que el bucket sirva directo (archivos grandes,
