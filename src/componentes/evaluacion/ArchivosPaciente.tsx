@@ -10,6 +10,7 @@ import { Button } from "@/componentes/ui/button";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
 import { FotoConVisor } from "@/componentes/comunes/FotoConVisor";
+import { avisarError } from "@/lib/errores";
 
 /**
  * Grupos en los que se parte la lista, en orden de aparición.
@@ -47,7 +48,7 @@ export function ArchivosPaciente({ pacienteId }: { pacienteId: string }) {
       toast.success("Archivo eliminado.");
       void utils.archivos.obtenerDePaciente.invalidate({ pacienteId });
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const [eliminando, setEliminando] = useState<ArchivoSalidaDto | null>(null);

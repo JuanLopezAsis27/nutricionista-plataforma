@@ -9,7 +9,6 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useIA } from "@/lib/hooks/useIA";
 import { formatearFecha } from "@/lib/formato";
@@ -23,6 +22,7 @@ import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { useHiloDeChat, type TurnoChat } from "./hiloDeChat";
 import { useRespuestaEnVivo } from "./respuestaEnVivo";
 import { AvisoIABreve } from "./AvisoIA";
+import { avisarError } from "@/lib/errores";
 
 const SUGERENCIAS = [
   "¿Qué puedo comer hoy a la tarde?",
@@ -93,7 +93,7 @@ export function AsistentePacienteChat() {
     },
     alFallar: (mensaje) => {
       hilo.descartarUltima();
-      toast.error(mensaje);
+      avisarError(mensaje);
     },
   });
 

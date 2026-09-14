@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /**
  * Encapsula todas las llamadas tRPC de la Evaluación Integral
@@ -20,7 +21,7 @@ export function useEvaluacion() {
       toast.success(mensaje);
       void invalidar();
     },
-    onError: (error: { message: string }) => toast.error(error.message),
+    onError: (error: { message: string }) => avisarError(error),
   });
 
   return {
@@ -34,7 +35,7 @@ export function useEvaluacion() {
     // toast de éxito genérico. El propio formulario avisa al precargar.
     interpretarHistoriaDesdeArchivo:
       trpc.evaluacion.interpretarHistoriaDesdeArchivo.useMutation({
-        onError: (error) => toast.error(error.message),
+        onError: (error) => avisarError(error),
       }),
     // Campos personalizados de la historia clínica (del consultorio)
     obtenerCamposHistoria: trpc.evaluacion.obtenerCamposHistoria.useQuery,
@@ -65,7 +66,7 @@ export function useEvaluacion() {
     // afuera es justamente lo que hay que decir de una importación.
     importarEvoluciones: trpc.evaluacion.importarEvoluciones.useMutation({
       onSuccess: () => void invalidar(),
-      onError: (error) => toast.error(error.message),
+      onError: (error) => avisarError(error),
     }),
     // Campos personalizados de las evoluciones (del consultorio)
     obtenerCamposEvolucion: trpc.evaluacion.obtenerCamposEvolucion.useQuery,
@@ -93,13 +94,13 @@ export function useEvaluacion() {
     // se leyó y el profesional decide qué importar.
     interpretarMedicionesDesdeArchivo:
       trpc.evaluacion.interpretarMedicionesDesdeArchivo.useMutation({
-        onError: (error) => toast.error(error.message),
+        onError: (error) => avisarError(error),
       }),
     // El toast lo arma el llamador: cuántas entraron y cuántas quedaron
     // afuera es justamente lo que hay que decir de una importación.
     importarMediciones: trpc.evaluacion.importarMediciones.useMutation({
       onSuccess: () => void invalidar(),
-      onError: (error) => toast.error(error.message),
+      onError: (error) => avisarError(error),
     }),
     // Composición corporal
     obtenerComposicion: trpc.evaluacion.obtenerComposicion.useQuery,

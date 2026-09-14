@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import {
   GlassWater,
   Scale,
@@ -49,6 +48,7 @@ import {
 } from "@/componentes/ui/select";
 import { FotoConVisor } from "@/componentes/comunes/FotoConVisor";
 import type { ArchivoSalidaDto } from "@/aplicacion/dtos/archivo.dto";
+import { avisarError } from "@/lib/errores";
 import {
   VasosDeAgua,
   textoDeAgua,
@@ -627,9 +627,7 @@ function BotonFotoComida({
       const subido = await subir(archivoElegido, { contexto: "foto-comida" });
       onSubido(subido);
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "No se pudo subir la foto.",
-      );
+      avisarError(error, "No se pudo subir la foto.");
     }
   }
 

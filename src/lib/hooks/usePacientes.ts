@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /**
  * Encapsula todas las llamadas tRPC de pacientes.
@@ -20,7 +21,7 @@ export function usePacientes() {
       toast.success("Paciente creado correctamente.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const actualizar = trpc.pacientes.actualizar.useMutation({
@@ -28,7 +29,7 @@ export function usePacientes() {
       toast.success("Paciente actualizado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const eliminar = trpc.pacientes.eliminar.useMutation({
@@ -36,7 +37,7 @@ export function usePacientes() {
       toast.success("Paciente eliminado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   /**
@@ -44,7 +45,7 @@ export function usePacientes() {
    * caché ni anuncia un éxito genérico —el formulario avisa al precargar—.
    */
   const interpretarFicha = trpc.pacientes.interpretarFicha.useMutation({
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const crearDesdeFicha = trpc.pacientes.crearDesdeFicha.useMutation({
@@ -57,7 +58,7 @@ export function usePacientes() {
       }
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const enviarBienvenidaManual =
@@ -86,7 +87,7 @@ export function usePacientes() {
         }
         invalidar();
       },
-      onError: (error) => toast.error(error.message),
+      onError: (error) => avisarError(error),
     });
 
   return {

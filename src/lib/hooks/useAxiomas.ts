@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /** Encapsula las llamadas tRPC de la Base de conocimiento (axiomas). */
 export function useAxiomas() {
@@ -13,7 +14,7 @@ export function useAxiomas() {
       toast.success("Axioma creado.");
       void invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const actualizar = trpc.axiomas.actualizar.useMutation({
@@ -21,7 +22,7 @@ export function useAxiomas() {
       toast.success("Axioma actualizado.");
       void invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const eliminar = trpc.axiomas.eliminar.useMutation({
@@ -29,7 +30,7 @@ export function useAxiomas() {
       toast.success("Axioma eliminado.");
       void invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   return {

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utilidades";
 import { Button } from "@/componentes/ui/button";
 import { useSubirArchivo, type DatosSubida } from "@/lib/hooks/useSubirArchivo";
 import type { ArchivoSalidaDto } from "@/aplicacion/dtos/archivo.dto";
+import { avisarError } from "@/lib/errores";
 
 interface PropsSubidor {
   /** Contexto de subida (define tipos permitidos y prefijo en el bucket). */
@@ -76,9 +77,7 @@ export function SubidorArchivo({
       toast.success(`"${archivo.name}" subido correctamente.`);
     } catch (error) {
       setVistaPrevia(null);
-      toast.error(
-        error instanceof Error ? error.message : "No se pudo subir el archivo.",
-      );
+      avisarError(error, "No se pudo subir el archivo.");
     }
   }
 

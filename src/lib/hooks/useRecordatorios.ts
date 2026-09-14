@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /** Encapsula las llamadas tRPC de Recordatorios de turno. */
 export function useRecordatorios() {
@@ -15,7 +16,7 @@ export function useRecordatorios() {
         toast.success("Configuración de recordatorios guardada.");
         invalidar();
       },
-      onError: (error) => toast.error(error.message),
+      onError: (error) => avisarError(error),
     });
 
   const crearPlantilla = trpc.recordatorios.crearPlantilla.useMutation({
@@ -23,7 +24,7 @@ export function useRecordatorios() {
       toast.success("Plantilla creada.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const actualizarPlantilla =
@@ -32,7 +33,7 @@ export function useRecordatorios() {
         toast.success("Plantilla guardada.");
         invalidar();
       },
-      onError: (error) => toast.error(error.message),
+      onError: (error) => avisarError(error),
     });
 
   const eliminarPlantilla = trpc.recordatorios.eliminarPlantilla.useMutation({
@@ -40,7 +41,7 @@ export function useRecordatorios() {
       toast.success("Plantilla eliminada.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const enviarMasivo = trpc.recordatorios.enviarMasivo.useMutation({
@@ -60,7 +61,7 @@ export function useRecordatorios() {
       else toast.success(mensaje);
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const enviarProgramados = trpc.recordatorios.enviarProgramados.useMutation({
@@ -90,7 +91,7 @@ export function useRecordatorios() {
       }
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const enviarIndividual = trpc.recordatorios.enviarIndividual.useMutation({
@@ -105,7 +106,7 @@ export function useRecordatorios() {
       else toast.success("Recordatorio enviado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const confirmarEnvio = trpc.recordatorios.confirmarEnvio.useMutation({
@@ -117,7 +118,7 @@ export function useRecordatorios() {
       );
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   return {

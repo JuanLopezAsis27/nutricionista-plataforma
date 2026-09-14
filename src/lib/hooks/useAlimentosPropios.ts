@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /**
  * Hook de los alimentos propios (Excel de macros). La importación masiva va
@@ -26,7 +27,7 @@ export function useAlimentosPropios() {
       toast.success("Alimento agregado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const actualizar = trpc.nutricion.actualizarAlimentoPropio.useMutation({
@@ -34,7 +35,7 @@ export function useAlimentosPropios() {
       toast.success("Alimento actualizado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const eliminar = trpc.nutricion.eliminarAlimentoPropio.useMutation({
@@ -42,7 +43,7 @@ export function useAlimentosPropios() {
       toast.success("Alimento eliminado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   async function importar(archivo: File): Promise<number> {

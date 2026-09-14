@@ -2,6 +2,7 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { avisarError } from "@/lib/errores";
 
 /**
  * Encapsula las llamadas tRPC del módulo de IA (asistente, comida, insights).
@@ -15,7 +16,7 @@ export function useIA() {
   const utils = trpc.useUtils();
 
   const analizarFoto = trpc.ia.analizarFoto.useMutation({
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const eliminarConversacion = trpc.ia.eliminarConversacion.useMutation({
@@ -23,7 +24,7 @@ export function useIA() {
       toast.success("Conversación eliminada.");
       void utils.ia.conversaciones.invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const eliminarMiConversacion = trpc.ia.eliminarMiConversacion.useMutation({
@@ -31,11 +32,11 @@ export function useIA() {
       toast.success("Chat eliminado.");
       void utils.ia.misConversaciones.invalidate();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const feedbackInsight = trpc.ia.feedbackInsight.useMutation({
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   return {

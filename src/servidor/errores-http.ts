@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { ZodError } from "zod";
 import { ErrorDominio } from "@/dominio/errores";
 import { monitorErrores } from "@/infraestructura/monitoreo/monitor";
 import { traducirErrorPrisma } from "@/infraestructura/persistencia/erroresPrisma";
 import { MAPA_ESTADOS_HTTP } from "./mapaCodigos";
+import { mensajeDesdeZod } from "./mensajeZod";
 
 /**
  * Convierte cualquier error en una respuesta JSON con el status apropiado.
@@ -23,6 +25,15 @@ export function aRespuestaError(error: unknown): NextResponse {
     return NextResponse.json(
       { error: error.message },
       { status: MAPA_ESTADOS_HTTP[error.codigo] },
+    );
+  }
+
+  // Lo que llegó no cumple el esquema. Mismo trato que en tRPC: el problema
+  // dicho en castellano, nunca el JSON de los issues. Ver `mensajeZod.ts`.
+  if (error instanceof ZodError) {
+    return NextResponse.json(
+      { error: mensajeDesdeZod(error) },
+      { status: 400 },
     );
   }
 

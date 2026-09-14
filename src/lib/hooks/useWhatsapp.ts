@@ -1,8 +1,8 @@
 "use client";
 
-import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /**
  * Encapsula las llamadas tRPC del CHAT de WhatsApp con un paciente.
@@ -15,7 +15,7 @@ export function useWhatsapp() {
 
   const enviarMensaje = trpc.whatsapp.enviarMensaje.useMutation({
     onSuccess: () => invalidar(),
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   return {

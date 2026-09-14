@@ -84,6 +84,73 @@ mensaje. Distinguirlos permitiría averiguar qué emails están registrados.
 El canal es el `code` de un `CredentialsSignin` propio: Auth.js no deja devolver
 un mensaje desde `authorize`.
 
+## La validación de Zod, dicha en castellano
+
+El `message` de un `TRPCError` de validación de input **es el
+`JSON.stringify` de los issues de Zod**. Eso viajaba tal cual al navegador y el
+hook lo tiraba a un toast: al importar una planilla con once consultas, once
+issues iguales producían un cartel de ochenta líneas
+(`[{"code":"too_small","minimum":20,"type":"number",…}]`) que tapaba media
+pantalla y no nombraba ni una vez la medida que había que corregir.
+
+`servidor/mensajeZod.ts` lo traduce, y lo usan **los dos bordes**: el middleware
+de tRPC y `errores-http.ts`. Tres decisiones dan forma al mensaje:
+
+- **Se agrupa por campo, no por issue.** Once mediciones con el mismo perímetro
+  fuera de rango son UN problema repetido once veces.
+- **Se nombra el campo como lo ve el usuario** (`circPantorrilla` → «Perímetro
+  de pantorrilla», vía `ETIQUETAS_CAMPO_PLANTILLA`). El nombre de la columna no
+  está escrito en ninguna pantalla.
+- **Se corta en tres campos** y el resto se cuenta. Un mensaje que no entra en
+  un toast no se lee.
+
+El resultado del caso de arriba es una línea:
+«Perímetro de pantorrilla» tiene que ser 20 o más (en 11 mediciones).
+
+El `cause` se conserva: es lo que lee el `errorFormatter` para mandar
+`zodError` al cliente, que es con lo que los formularios marcan cada campo.
+
+### Un mensaje escrito por nosotros gana
+
+`.min(1, "No hay mediciones para importar")` ya dice lo que hay que decir. El
+traductor solo reemplaza los mensajes **por defecto de Zod**, que son los que
+están en inglés; los reconoce por cómo arrancan.
+
+## El rango del lote lo aplica el DOMINIO, no el esquema
+
+El caso que originó lo anterior tenía un segundo problema, más grave que el
+mensaje: `ImportarMediciones` está escrito para **no ser todo-o-nada** —una
+medida fuera de rango se informa como RECHAZADA y las demás entran—, pero eso
+nunca se ejecutaba. Zod validaba el input ANTES, y un solo perímetro mal leído
+por la IA tiraba abajo las once mediciones de la planilla.
+
+La regla que salió de ahí: **el esquema de un LOTE no repite los rangos de la
+entidad**. En `evaluacion.dto.ts` hay dos formas de acotar una medida
+(`FormaDeAcotar`): `ACOTADA` para la carga de UNA medición, donde el rango en el
+esquema es lo que frena al formulario, y `LIBRE` para el lote, donde el rango lo
+aplica `Antropometria.crear` fila por fila. Lo que el esquema del lote sigue
+exigiendo es lo que hace a la IDENTIDAD de una medición: fecha y peso.
+
+Los mensajes de la entidad también nombran la medida como se la ve
+(«Pliegue tricipital debe estar entre 1 y 80 mm»), porque son los que aparecen
+en el resumen de la importación.
+
+## El toast: lo que el usuario ve
+
+`lib/errores.ts` es el único lugar por donde un error se convierte en un toast
+(`avisarError`). Antes cada hook hacía `toast.error(error.message)`, y eso
+confía en que el `message` sea presentable, cosa que no siempre es cierta: un
+`fetch` suelto, una librería o un error de red del navegador traen lo que
+traen. Dos reglas:
+
+- **Nunca un volcado.** Lo que parece JSON o rastro de pila se reemplaza por un
+  mensaje genérico: no dice nada que el usuario pueda usar y tapa la pantalla.
+- **Nunca más largo que un toast** (220 caracteres). El detalle completo ya está
+  en el monitor del servidor.
+
+Dura 7 segundos y no 4 como el resto: un error hay que alcanzar a leerlo y, a
+diferencia de un «guardado», no se deduce de lo que quedó en pantalla.
+
 ## Los formularios: el error que no se ve
 
 El peor error es el que no aparece. `handleSubmit` de react-hook-form **no llama
@@ -112,6 +179,11 @@ que se agregue). Dos reglas que salieron de ahí:
   trae nombres de tabla, de columna y a veces el host y el puerto de la base.
 - **Nunca agregar un caso al middleware de tRPC sin agregarlo a
   `errores-http.ts`**, y al revés.
+- **Nunca dejar que el `message` de un `ZodError` llegue al usuario**: es el
+  volcado de los issues, no una frase.
+- **Nunca repetir en el esquema de un LOTE los rangos que ya valida la
+  entidad**: convierte en todo-o-nada una importación que está escrita para
+  resolver fila por fila.
 - **Nunca hacer que el login distinga "contraseña incorrecta" de "ese email no
   existe"**: es un enumerador de cuentas.
 - **Nunca importar Prisma en `src/servidor` para testear la traducción**: el

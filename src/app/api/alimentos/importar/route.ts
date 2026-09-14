@@ -4,6 +4,7 @@ import { servicioAlimentosPropios } from "@/infraestructura/contenedor/contenedo
 import { parsearPlanillaAlimentos } from "@/infraestructura/nutricion/parsearPlanillaAlimentos";
 import { importarAlimentosDto } from "@/aplicacion/dtos/alimentoPropio.dto";
 import { aRespuestaError } from "@/servidor/errores-http";
+import { mensajeDesdeZod } from "@/servidor/mensajeZod";
 import { conAlcanceDeSesion } from "@/servidor/alcanceRequest";
 
 // La subida del Excel va por route handler (multipart), nunca por tRPC.
@@ -51,8 +52,7 @@ export function POST(request: Request): Promise<NextResponse> {
       if (!validado.success) {
         return NextResponse.json(
           {
-            error: "La planilla tiene valores inválidos.",
-            detalles: validado.error.flatten(),
+            error: `La planilla tiene valores inválidos. ${mensajeDesdeZod(validado.error)}`,
           },
           { status: 400 },
         );

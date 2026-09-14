@@ -286,49 +286,79 @@ export type CampoHistoriaClinicaSalidaDto = z.infer<
 
 // --- Antropometría ------------------------------------------------------------
 
-const pliegue = z.number().min(1).max(80).optional().nullable();
-const circunferencia = z.number().min(20).max(250).optional().nullable();
-const diametro = z.number().min(2).max(60).optional().nullable();
+/**
+ * Cómo se acota una medida numérica en el esquema.
+ *
+ * Hay dos maneras, y la diferencia es de quién es el trabajo de rechazar un
+ * valor fuera de rango:
+ *
+ * - `ACOTADA` para la carga de UNA medición: el rango en el esquema es lo que
+ *   hace que el formulario no mande un pliegue de 800 mm.
+ * - `LIBRE` para el LOTE de la importación, donde el rango en el esquema
+ *   rompía lo que la función promete. `ImportarMediciones` resuelve cada fila
+ *   por separado y devuelve cuáles entraron y cuáles no, pero eso nunca
+ *   llegaba a ejecutarse: Zod validaba el input ANTES y un solo perímetro mal
+ *   leído por la IA tiraba abajo las once mediciones de la planilla, con un
+ *   mensaje que era el volcado de los issues. Acá el rango lo sigue aplicando
+ *   `Antropometria.crear` —la misma regla, en el dominio— y el resultado es
+ *   una fila RECHAZADA con su motivo, no un lote perdido.
+ */
+type FormaDeAcotar = (minimo: number, maximo: number) => z.ZodNumber;
 
-export const medidasAntropometricasDto = z.object({
-  pesoKg: z.number().min(20).max(400),
-  tallaCm: z.number().min(100).max(250).optional().nullable(),
-  tallaSentadoCm: z.number().min(50).max(150).optional().nullable(),
-  nivelActividad: z.enum(NIVELES_ACTIVIDAD).optional().nullable(),
-  protocolo: z.enum(PROTOCOLOS_COMPOSICION).optional(),
-  metodoGrasa: z.enum(METODOS_GRASA).optional().nullable(),
-  diamBiacromial: diametro,
-  diamToraxTransverso: diametro,
-  diamToraxAnteroposterior: diametro,
-  diamBiiliocrestideo: diametro,
-  diamHumeral: diametro,
-  diamFemoral: diametro,
-  pliegueTricipital: pliegue,
-  pliegueSubescapular: pliegue,
-  pliegueSupraespinal: pliegue,
-  pliegueAbdominal: pliegue,
-  pliegueMuslo: pliegue,
-  plieguePantorrilla: pliegue,
-  pliegueBicipital: pliegue,
-  pliegueCrestaIliaca: pliegue,
-  pliegueAxilarMedio: pliegue,
-  pliegueLumbar: pliegue,
-  circTorax: circunferencia,
-  circCinturaMinima: circunferencia,
-  circCinturaMaxima: circunferencia,
-  circCadera: circunferencia,
-  circBrazo: circunferencia,
-  circBrazoContraido: circunferencia,
-  circCabeza: circunferencia,
-  circAntebrazo: circunferencia,
-  circMusloMaximo: circunferencia,
-  circMusloMedial: circunferencia,
-  circPantorrilla: circunferencia,
-  kgGrasa: z.number().min(0).max(150).optional().nullable(),
-  fuerzaPresionDerecha: z.number().min(0).max(100).optional().nullable(),
-  fuerzaPresionIzquierda: z.number().min(0).max(100).optional().nullable(),
-  observaciones: z.string().max(2000).optional().nullable(),
-});
+const ACOTADA: FormaDeAcotar = (minimo, maximo) =>
+  z.number().min(minimo).max(maximo);
+const LIBRE: FormaDeAcotar = () => z.number().finite();
+
+function construirMedidas(acotar: FormaDeAcotar) {
+  const pliegue = acotar(1, 80).optional().nullable();
+  const circunferencia = acotar(20, 250).optional().nullable();
+  const diametro = acotar(2, 60).optional().nullable();
+
+  return z.object({
+    pesoKg: acotar(20, 400),
+    tallaCm: acotar(100, 250).optional().nullable(),
+    tallaSentadoCm: acotar(50, 150).optional().nullable(),
+    nivelActividad: z.enum(NIVELES_ACTIVIDAD).optional().nullable(),
+    protocolo: z.enum(PROTOCOLOS_COMPOSICION).optional(),
+    metodoGrasa: z.enum(METODOS_GRASA).optional().nullable(),
+    diamBiacromial: diametro,
+    diamToraxTransverso: diametro,
+    diamToraxAnteroposterior: diametro,
+    diamBiiliocrestideo: diametro,
+    diamHumeral: diametro,
+    diamFemoral: diametro,
+    pliegueTricipital: pliegue,
+    pliegueSubescapular: pliegue,
+    pliegueSupraespinal: pliegue,
+    pliegueAbdominal: pliegue,
+    pliegueMuslo: pliegue,
+    plieguePantorrilla: pliegue,
+    pliegueBicipital: pliegue,
+    pliegueCrestaIliaca: pliegue,
+    pliegueAxilarMedio: pliegue,
+    pliegueLumbar: pliegue,
+    circTorax: circunferencia,
+    circCinturaMinima: circunferencia,
+    circCinturaMaxima: circunferencia,
+    circCadera: circunferencia,
+    circBrazo: circunferencia,
+    circBrazoContraido: circunferencia,
+    circCabeza: circunferencia,
+    circAntebrazo: circunferencia,
+    circMusloMaximo: circunferencia,
+    circMusloMedial: circunferencia,
+    circPantorrilla: circunferencia,
+    kgGrasa: acotar(0, 150).optional().nullable(),
+    fuerzaPresionDerecha: acotar(0, 100).optional().nullable(),
+    fuerzaPresionIzquierda: acotar(0, 100).optional().nullable(),
+    observaciones: z.string().max(2000).optional().nullable(),
+  });
+}
+
+export const medidasAntropometricasDto = construirMedidas(ACOTADA);
+
+/** Las mismas medidas sin rango: el del LOTE. Ver `FormaDeAcotar`. */
+const medidasDeLoteDto = construirMedidas(LIBRE);
 
 export const registrarAntropometriaDto = medidasAntropometricasDto.extend({
   pacienteId: z.string().min(1),
@@ -382,7 +412,7 @@ export const importarMedicionesDto = z.object({
   pacienteId: z.string().min(1),
   mediciones: z
     .array(
-      medidasAntropometricasDto.extend({
+      medidasDeLoteDto.extend({
         fecha: z.coerce.date(),
       }),
     )
