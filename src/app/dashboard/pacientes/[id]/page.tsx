@@ -35,7 +35,7 @@ import { GrabacionesConsulta } from "@/componentes/turnos/GrabacionesConsulta";
 import { BadgesAlertas } from "@/componentes/evaluacion/AlertasPaciente";
 import { FormularioHistoriaClinica } from "@/componentes/evaluacion/FormularioHistoriaClinica";
 import { EvolucionesPaciente } from "@/componentes/evaluacion/EvolucionesPaciente";
-import { ComparadorFotosEvolucion } from "@/componentes/evaluacion/ComparadorFotosEvolucion";
+import { FotosProgreso } from "@/componentes/evaluacion/FotosProgreso";
 import { ListaLaboratorios } from "@/componentes/evaluacion/ListaLaboratorios";
 import { ArchivosPaciente } from "@/componentes/evaluacion/ArchivosPaciente";
 import { DiarioPacienteVista } from "@/componentes/diario/DiarioPacienteVista";
@@ -188,7 +188,7 @@ export default function PaginaDetallePaciente() {
           </div>
           <FormularioHistoriaClinica pacienteId={id} />
           <EvolucionesPaciente pacienteId={id} />
-          <ComparadorFotosEvolucion pacienteId={id} />
+          <FotosProgreso pacienteId={id} />
           <ListaLaboratorios pacienteId={id} />
           <ArchivosPaciente pacienteId={id} />
         </TabsContent>

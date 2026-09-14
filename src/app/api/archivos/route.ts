@@ -60,6 +60,7 @@ export function POST(request: Request): Promise<NextResponse> {
         titulo: formulario.get("titulo") ?? null,
         categoria: formulario.get("categoria") ?? null,
         pacienteId: formulario.get("pacienteId") ?? null,
+        fechaProgreso: formulario.get("fechaProgreso") ?? null,
       });
       if (!datos.success) {
         // El mensaje sale del mismo traductor que usan tRPC y el resto de los
@@ -117,6 +118,7 @@ export function POST(request: Request): Promise<NextResponse> {
         titulo: datos.data.titulo,
         categoria: datos.data.categoria,
         subidoPorId: usuario.id,
+        fechaProgreso: datos.data.fechaProgreso,
         dueno: pacienteDueno ? { pacienteId: pacienteDueno } : undefined,
       });
 

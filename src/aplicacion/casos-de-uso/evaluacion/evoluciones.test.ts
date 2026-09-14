@@ -8,7 +8,6 @@ import { ErrorEvolucionDuplicada } from "@/dominio/errores/ErrorEvolucionDuplica
 import { ErrorEvolucionNoEncontrada } from "@/dominio/errores/ErrorEvolucionNoEncontrada";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 import {
-  mockArchivoRepositorio,
   mockEvolucionRepositorio,
   mockPacienteRepositorio,
   pacienteEjemplo,
@@ -32,11 +31,7 @@ const CONSULTA_2 = {
 describe("RegistrarEvolucion", () => {
   it("registra la evolución de la consulta", async () => {
     const evoluciones = mockEvolucionRepositorio();
-    const casoUso = new RegistrarEvolucion(
-      evoluciones,
-      pacientes(),
-      mockArchivoRepositorio(),
-    );
+    const casoUso = new RegistrarEvolucion(evoluciones, pacientes());
 
     const evolucion = await casoUso.ejecutar({
       pacienteId: "pac-1",
@@ -51,7 +46,6 @@ describe("RegistrarEvolucion", () => {
     const casoUso = new RegistrarEvolucion(
       mockEvolucionRepositorio(),
       mockPacienteRepositorio(),
-      mockArchivoRepositorio(),
     );
     await expect(
       casoUso.ejecutar({ pacienteId: "pac-1", ...CONSULTA_1 }),
@@ -64,36 +58,12 @@ describe("RegistrarEvolucion", () => {
     const evoluciones = mockEvolucionRepositorio({
       existeEnFecha: vi.fn(async () => true),
     });
-    const casoUso = new RegistrarEvolucion(
-      evoluciones,
-      pacientes(),
-      mockArchivoRepositorio(),
-    );
+    const casoUso = new RegistrarEvolucion(evoluciones, pacientes());
 
     await expect(
       casoUso.ejecutar({ pacienteId: "pac-1", ...CONSULTA_1 }),
     ).rejects.toBeInstanceOf(ErrorEvolucionDuplicada);
     expect(evoluciones.crear).not.toHaveBeenCalled();
-  });
-
-  it("vincula las fotos ya subidas a la evolución recién creada", async () => {
-    const evoluciones = mockEvolucionRepositorio();
-    const archivos = mockArchivoRepositorio();
-    const casoUso = new RegistrarEvolucion(evoluciones, pacientes(), archivos);
-
-    const evolucion = await casoUso.ejecutar({
-      pacienteId: "pac-1",
-      ...CONSULTA_1,
-      fotoIds: ["foto-1", "foto-2"],
-    });
-
-    expect(archivos.vincularDueno).toHaveBeenCalledTimes(2);
-    expect(archivos.vincularDueno).toHaveBeenCalledWith("foto-1", {
-      evolucionId: evolucion.id,
-    });
-    expect(archivos.vincularDueno).toHaveBeenCalledWith("foto-2", {
-      evolucionId: evolucion.id,
-    });
   });
 });
 
@@ -110,10 +80,7 @@ describe("ActualizarEvolucion", () => {
     const evoluciones = mockEvolucionRepositorio({
       obtenerPorId: vi.fn(async () => existente()),
     });
-    const casoUso = new ActualizarEvolucion(
-      evoluciones,
-      mockArchivoRepositorio(),
-    );
+    const casoUso = new ActualizarEvolucion(evoluciones);
 
     const editada = await casoUso.ejecutar("evo-1", { descanso: "8 hs." });
 
@@ -122,10 +89,7 @@ describe("ActualizarEvolucion", () => {
   });
 
   it("rechaza si la evolución no existe", async () => {
-    const casoUso = new ActualizarEvolucion(
-      mockEvolucionRepositorio(),
-      mockArchivoRepositorio(),
-    );
+    const casoUso = new ActualizarEvolucion(mockEvolucionRepositorio());
     await expect(
       casoUso.ejecutar("evo-1", { descanso: "8 hs." }),
     ).rejects.toBeInstanceOf(ErrorEvolucionNoEncontrada);
@@ -138,10 +102,7 @@ describe("ActualizarEvolucion", () => {
       obtenerPorId: vi.fn(async () => existente()),
       existeEnFecha: vi.fn(async (_id, _fecha, excluirId) => excluirId == null),
     });
-    const casoUso = new ActualizarEvolucion(
-      evoluciones,
-      mockArchivoRepositorio(),
-    );
+    const casoUso = new ActualizarEvolucion(evoluciones);
 
     await expect(
       casoUso.ejecutar("evo-1", { descanso: "8 hs." }),
@@ -151,24 +112,6 @@ describe("ActualizarEvolucion", () => {
       CONSULTA_1.fecha,
       "evo-1",
     );
-  });
-
-  it("vincula las fotos nuevas y no toca las que ya tenía", async () => {
-    const evoluciones = mockEvolucionRepositorio({
-      obtenerPorId: vi.fn(async () => existente()),
-    });
-    const archivos = mockArchivoRepositorio();
-    const casoUso = new ActualizarEvolucion(evoluciones, archivos);
-
-    await casoUso.ejecutar("evo-1", {
-      descanso: "8 hs.",
-      fotoIds: ["foto-nueva"],
-    });
-
-    expect(archivos.vincularDueno).toHaveBeenCalledOnce();
-    expect(archivos.vincularDueno).toHaveBeenCalledWith("foto-nueva", {
-      evolucionId: "evo-1",
-    });
   });
 });
 

@@ -141,6 +141,44 @@ Una evolución **sin fecha** llega igual a la revisión, desmarcada: descartarla
 perdería una consulta que el documento sí traía, y la fecha la completa el
 profesional.
 
+## Fotos: antes y después
+
+Es una sección propia de la pestaña Evaluación (`FotosProgreso`), y las fotos
+son **del paciente**, no de una evolución.
+
+Hasta la migración 63 colgaban de una evolución de control (la FK
+`archivos.evolucionId`, migración 51) y eso ataba dos cosas que no van juntas:
+
+- Para guardar una foto había que **escribir una evolución**. Una foto se saca
+  en la consulta aunque esa consulta no se anote, y la evolución tiene su propio
+  invariante (al menos un campo con contenido), así que no había dónde ponerla.
+- La línea de tiempo solo podía mostrar **las fechas que tuvieran evolución
+  escrita**: lo que no se anotó, no existía.
+
+Ahora la foto es un archivo del paciente —el mismo dueño que los documentos de
+la ficha— con dos cosas que la distinguen:
+
+| Qué | Para qué |
+| --- | --- |
+| contexto `progreso` (prefijo `evoluciones/` en el bucket) | la separa de un consentimiento o un estudio: `ArchivosPaciente` la deja fuera de su lista porque tiene esta sección |
+| `archivos.fechaProgreso` (DATE) | **qué día muestra la foto**, que no es `creadoEn`: una foto de hace seis meses se sube hoy y va en su lugar de la línea de tiempo |
+
+El prefijo del bucket sigue siendo `evoluciones/` a propósito: las fotos que ya
+estaban tienen esa clave, la clave **no se reescribe nunca** (es de donde se
+deduce el contexto de origen) y renombrar objetos del bucket dentro de una
+migración es un paso que puede fallar a la mitad. La migración 63 mueve las
+fotos que ya existían al paciente copiándoles la fecha de su evolución: sin eso
+se ordenarían por el día en que se subieron, no por el que muestran.
+
+La sección tiene **las dos cosas a la vez**, que antes eran solo la segunda:
+
+- **La línea de tiempo**: TODAS las fotos, en orden, con su fecha. Antes se
+  veían dos y solo dos —las de los selectores—, así que no había forma de mirar
+  el recorrido completo, que es lo que se muestra en la consulta.
+- **La comparación**: dos de esas fotos lado a lado. Arranca con la primera
+  contra la última y cada foto de la línea de tiempo se manda a cualquiera de
+  los dos lugares.
+
 ## Campos personalizados
 
 Hay **dos listas** —una para la historia clínica y otra para las evoluciones—

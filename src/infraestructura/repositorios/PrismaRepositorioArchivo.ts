@@ -29,7 +29,6 @@ export class PrismaRepositorioArchivo
         materialId: dueno?.materialId ?? null,
         planId: dueno?.planId ?? null,
         grabacionId: dueno?.grabacionId ?? null,
-        evolucionId: dueno?.evolucionId ?? null,
       },
     });
     return mapearArchivo(fila);
@@ -45,7 +44,6 @@ export class PrismaRepositorioArchivo
         materialId: dueno.materialId,
         planId: dueno.planId,
         grabacionId: dueno.grabacionId,
-        evolucionId: dueno.evolucionId,
       },
       orderBy: { creadoEn: "desc" },
     });
@@ -63,7 +61,6 @@ export class PrismaRepositorioArchivo
         materialId: dueno.materialId ?? null,
         planId: dueno.planId ?? null,
         grabacionId: dueno.grabacionId ?? null,
-        evolucionId: dueno.evolucionId ?? null,
       },
     });
   }
@@ -79,7 +76,6 @@ export class PrismaRepositorioArchivo
         materialId: true,
         planId: true,
         grabacionId: true,
-        evolucionId: true,
       },
     });
     if (!fila) return null;
@@ -91,7 +87,6 @@ export class PrismaRepositorioArchivo
       materialId: fila.materialId ?? undefined,
       planId: fila.planId ?? undefined,
       grabacionId: fila.grabacionId ?? undefined,
-      evolucionId: fila.evolucionId ?? undefined,
     };
   }
 
@@ -117,6 +112,7 @@ export function mapearArchivo(fila: ArchivoFila): Archivo {
     titulo: fila.titulo,
     categoria: fila.categoria,
     subidoPorId: fila.subidoPorId,
+    fechaProgreso: fila.fechaProgreso,
     creadoEn: fila.creadoEn,
   });
 }

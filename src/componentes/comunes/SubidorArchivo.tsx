@@ -20,6 +20,8 @@ interface PropsSubidor {
   categoria?: string;
   /** Vincula el archivo directamente a un paciente (ficha → Archivos). */
   pacienteId?: string;
+  /** Qué día muestra la foto (contexto `progreso`), como "2026-03-10". */
+  fechaProgreso?: string;
   /**
    * El llamador ya muestra por su cuenta lo que se subió (una lista, una
    * galería) y no quiere además la vista previa del subidor.
@@ -47,6 +49,7 @@ export function SubidorArchivo({
   titulo,
   categoria,
   pacienteId,
+  fechaProgreso,
   sinVistaPrevia = false,
   className,
 }: PropsSubidor) {
@@ -71,6 +74,7 @@ export function SubidorArchivo({
         titulo,
         categoria,
         pacienteId,
+        fechaProgreso,
       });
       onSubido(subido);
       if (sinVistaPrevia) setVistaPrevia(null);
