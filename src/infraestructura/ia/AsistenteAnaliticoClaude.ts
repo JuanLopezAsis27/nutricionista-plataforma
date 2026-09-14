@@ -6,44 +6,25 @@ import type { HerramientaAsistente } from "@/dominio/servicios/IAsistenteNutrici
 import type { IResolvedorConfigIA } from "./ResolvedorConfigIA";
 import type { AlAvanzarIA } from "@/dominio/servicios/avanceIA";
 import { comoErrorIA } from "@/dominio/errores/ErrorIA";
-
-const BASE = [
-  "Sos el asistente analítico de un nutricionista, dentro de la app de su consultorio.",
-  "Ayudás a analizar los datos de su práctica: pacientes, planes, recetas y turnos.",
-  "",
-  "Tenés herramientas para leer los datos reales. USALAS antes de responder (no inventes",
-  "datos ni pacientes). Flujo típico: primero `listar_pacientes` para ubicar id, después",
-  "`datos_de_paciente` para el detalle. Para la agenda, `proximos_turnos`. Para el contenido",
-  "de un plan (sus comidas y opciones), `detalle_de_plan` con el id que da `listar_planes`.",
-  "",
-  "Reglas:",
-  "- Respondé en español rioplatense, preciso y conciso; usá listas/tablas cuando ayude.",
-  "- Son DATOS DE SALUD, sensibles: analizalos solo para el profesional, no los expongas fuera.",
-  "- Toda proyección o estimación aclarala como tal; no des diagnósticos médicos.",
-  "- Si te falta un dato, decilo o pedí precisión, en vez de suponer.",
-  "- Estás en una conversación: los mensajes anteriores son contexto y podés referirte a ellos.",
-];
+import type { IPromptsIA } from "@/dominio/servicios/promptsIA";
+import { PromptsIAPorDefecto } from "@/dominio/servicios/promptsIA";
 
 /**
- * System prompt con la fecha de hoy adentro.
+ * El system prompt sale del catálogo (o de lo que haya escrito el consultorio
+ * en Integraciones → IA), y la app le inyecta la fecha de hoy.
  *
- * Un modelo NO sabe qué día es. Sin esto no podía responder «¿qué turnos tengo
+ * Un modelo NO sabe qué día es. Sin eso no podía responder «¿qué turnos tengo
  * hoy?» por más que la herramienta le devolviera los turnos con su fecha: no
  * tenía contra qué compararlas, y contestaba que no había ninguno.
  */
-function construirSystem(ahora: Date): string {
-  const fecha = ahora.toISOString().slice(0, 10);
-  const diaSemana = new Intl.DateTimeFormat("es-AR", {
-    weekday: "long",
-    timeZone: "UTC",
-  }).format(ahora);
-  return [
-    ...BASE,
-    "",
-    `Hoy es ${diaSemana} ${fecha} (formato ISO YYYY-MM-DD). Las fechas que devuelven las`,
-    "herramientas vienen en ese mismo formato: compará contra esta para saber qué es hoy,",
-    "mañana o esta semana.",
-  ].join("\n");
+function variablesDeFecha(ahora: Date): Record<string, string> {
+  return {
+    fecha: ahora.toISOString().slice(0, 10),
+    diaSemana: new Intl.DateTimeFormat("es-AR", {
+      weekday: "long",
+      timeZone: "UTC",
+    }).format(ahora),
+  };
 }
 
 /**
@@ -61,6 +42,7 @@ export class AsistenteAnaliticoClaude implements IAsistenteAnalitico {
   constructor(
     private readonly resolver: IResolvedorConfigIA,
     private readonly respaldo: IAsistenteAnalitico,
+    private readonly prompts: IPromptsIA = new PromptsIAPorDefecto(),
   ) {}
 
   async responder(
@@ -76,7 +58,10 @@ export class AsistenteAnaliticoClaude implements IAsistenteAnalitico {
     let texto: string;
     try {
       texto = await llm.conversar({
-        system: construirSystem(ahora),
+        system: await this.prompts.obtener(
+          "ASISTENTE_ANALITICO",
+          variablesDeFecha(ahora),
+        ),
         mensajes: mensajes.map((m) => ({ rol: m.rol, texto: m.texto.trim() })),
         maxTokens: 4096,
         // Analizar de verdad requiere encadenar herramientas (ubicar al

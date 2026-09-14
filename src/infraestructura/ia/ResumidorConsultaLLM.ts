@@ -5,6 +5,8 @@ import type {
 } from "@/dominio/servicios/IResumidorConsulta";
 import type { IResolvedorConfigIA } from "./ResolvedorConfigIA";
 import { ResumidorConsultaStub } from "./ResumidorConsultaStub";
+import type { IPromptsIA } from "@/dominio/servicios/promptsIA";
+import { PromptsIAPorDefecto } from "@/dominio/servicios/promptsIA";
 
 /**
  * Cuánta transcripción entra al prompt.
@@ -16,28 +18,6 @@ import { ResumidorConsultaStub } from "./ResumidorConsultaStub";
  * final, que es donde están el motivo de consulta y las indicaciones.
  */
 const MAX_CARACTERES = 120_000;
-
-const SYSTEM = `Sos el asistente de un consultorio de nutrición. Recibís la transcripción automática de una consulta y devolvés un resumen para la ficha del paciente.
-
-Reglas, en orden de importancia:
-
-1. NO inventes nada. Si un dato no está en la transcripción, no aparece en el resumen. No completes pesos, medidas, dosis ni fechas "razonables": si algo se dijo a medias, escribilo a medias.
-2. La transcripción es automática y tiene errores. Si un número o un nombre propio no se entiende, escribilo como viene y agregá "(sin confirmar)". Nunca lo corrijas por lo que parecería.
-3. No diagnostiques ni recomiendes nada que el profesional no haya dicho. No sos el nutricionista: sos quien toma nota.
-4. Escribí en español rioplatense, en tercera persona y en pasado, sin saludos ni cierres.
-
-Formato de salida, en Markdown, salteando la sección que no tenga contenido:
-
-## Motivo de consulta
-## Lo que trajo el paciente
-(síntomas, adherencia al plan, cambios desde la última consulta, contexto)
-## Mediciones y datos mencionados
-(lista; cada dato como se dijo)
-## Indicaciones del profesional
-## Acordado para la próxima
-(tareas, controles, fecha si se mencionó)
-
-Al final, si algo quedó inaudible o ambiguo, agregá una sección "## Para chequear" con esos puntos. Si no quedó nada, omitila.`;
 
 /**
  * Resumidor de consultas sobre el proveedor de LLM del inquilino.
@@ -54,7 +34,10 @@ Al final, si algo quedó inaudible o ambiguo, agregá una sección "## Para cheq
 export class ResumidorConsultaLLM implements IResumidorConsulta {
   private readonly stub = new ResumidorConsultaStub();
 
-  constructor(private readonly resolvedor: IResolvedorConfigIA) {}
+  constructor(
+    private readonly resolvedor: IResolvedorConfigIA,
+    private readonly prompts: IPromptsIA = new PromptsIAPorDefecto(),
+  ) {}
 
   async resumir(
     tramos: TramoConsulta[],
@@ -82,7 +65,7 @@ export class ResumidorConsultaLLM implements IResumidorConsulta {
       .join("\n\n");
 
     const texto = await llm.completar({
-      system: SYSTEM,
+      system: await this.prompts.obtener("RESUMEN_CONSULTA"),
       usuario: [
         {
           tipo: "texto",

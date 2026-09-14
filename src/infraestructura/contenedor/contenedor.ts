@@ -49,6 +49,7 @@ import { crearServicioAutenticacion } from "./modulos/autenticacion";
 import { crearServicioDeportivo } from "./modulos/deportivo";
 import { crearServicioNutricion } from "./modulos/nutricion";
 import { crearServicioCredenciales } from "./modulos/credenciales";
+import { crearServicioPromptsIA } from "./modulos/promptsIA";
 
 import { ServicioIntegraciones } from "@/aplicacion/servicios/ServicioIntegraciones";
 import { ObtenerCuentaGoogle } from "@/aplicacion/casos-de-uso/integraciones/ObtenerCuentaGoogle";
@@ -400,6 +401,13 @@ export const servicioDeportivo = perezoso(() =>
 export const servicioCredenciales = perezoso(() =>
   crearServicioCredenciales({
     credenciales: nucleo.repositorioCredenciales(),
+  }),
+);
+
+/** System prompts personalizables de cada funcionalidad de IA. */
+export const servicioPromptsIA = perezoso(() =>
+  crearServicioPromptsIA({
+    prompts: nucleo.repositorioPromptIA(),
   }),
 );
 

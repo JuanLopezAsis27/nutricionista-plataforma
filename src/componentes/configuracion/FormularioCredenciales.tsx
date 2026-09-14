@@ -20,6 +20,7 @@ import { Button } from "@/componentes/ui/button";
 import { Label } from "@/componentes/ui/label";
 import { Skeleton } from "@/componentes/ui/skeleton";
 import { EliminarCredenciales } from "./EliminarCredenciales";
+import { PromptsIA } from "./PromptsIA";
 import {
   Select,
   SelectTrigger,
@@ -223,6 +224,9 @@ export function FormularioCredenciales() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Instrucciones (system prompts) de cada funcionalidad de IA */}
+      <PromptsIA />
 
       {/* Voz a texto */}
       <Card>

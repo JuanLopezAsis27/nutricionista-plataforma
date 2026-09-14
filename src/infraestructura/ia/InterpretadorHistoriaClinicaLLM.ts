@@ -13,6 +13,8 @@ import {
 } from "@/dominio/entidades/Evolucion";
 import type { IResolvedorConfigIA } from "./ResolvedorConfigIA";
 import { leerDocumentoParaLLM } from "./documentoParaLLM";
+import type { IPromptsIA } from "@/dominio/servicios/promptsIA";
+import { PromptsIAPorDefecto } from "@/dominio/servicios/promptsIA";
 
 const CAMPOS = [
   "motivoConsulta",
@@ -70,59 +72,36 @@ function esquemaLectura(
   };
 }
 
-function construirSystem(
+/**
+ * Los datos que la app inyecta en el system prompt de esta lectura: la fecha de
+ * hoy, los campos de evolución que trae la app y los propios del consultorio.
+ *
+ * Los campos se derivan del código y del alta del profesional en vez de ir
+ * escritos en el prompt: así dar de alta un campo nuevo alcanza para que la
+ * extracción lo busque. El texto alrededor sí es editable desde
+ * Integraciones → IA.
+ */
+function variablesDeHistoria(
   camposEvolucion: CampoEvolucionPedido[],
   hoy: string,
-): string {
-  const fijos = CAMPOS_EVOLUCION.map(
-    (campo) => `${campo} (${ETIQUETAS_EVOLUCION[campo]})`,
-  ).join(", ");
-
-  const extra =
-    camposEvolucion.length > 0
-      ? "\n\nEl consultorio además sigue estos campos propios en cada evolución. Completalos usando EXACTAMENTE estas claves:\n" +
-        camposEvolucion
-          .map(
-            (campo) =>
-              `- ${campo.clave}: ${campo.etiqueta}` +
-              (campo.descripcion ? ` (${campo.descripcion})` : ""),
-          )
-          .join("\n")
-      : "";
-
-  return `Sos el asistente de un consultorio de nutrición. Recibís un documento clínico (una ficha, un informe, un cuaderno de seguimiento, algo escrito a mano o impreso, o el texto de un Word) y extraés SOLO lo que está escrito ahí.
-
-Hoy es ${hoy}.
-
-El documento puede traer DOS cosas, y casi siempre trae las dos: la HISTORIA CLÍNICA del paciente (una vez, describe de dónde viene) y sus EVOLUCIONES de control (una por consulta, describen cómo viene). Extraé las dos.
-
-Reglas generales:
-1. NO inventes ni completes nada que no esté en el documento. Si un campo no aparece, devolvé null. Es una ficha clínica: un dato inventado termina en la historia de una persona real.
-2. No diagnostiques ni agregues interpretación clínica propia: transcribí y organizá lo que ya está escrito.
-3. Respondé en español, con el texto de cada campo breve y legible (no copies saltos de línea raros del original).
-
-HISTORIA CLÍNICA — un solo bloque, con los campos: motivo de consulta, diagnósticos, medicación/suplementos, antecedentes de enfermedades digestivas/deposiciones, antecedentes familiares, entrenamientos, descanso, hábitos y observaciones, y contexto (trabajo, horarios, entorno).
-
-EVOLUCIONES — UNA POR CONSULTA. Se reconocen porque el documento las encabeza con una FECHA y debajo repite siempre los mismos rótulos. Por ejemplo:
-
-    12/07/2024
-    Cumplimiento dieta: 50%. 10 días no respeto por viaje.
-    Entrenamiento: 3 veces pesas. Mejoro las cargas.
-    Deposiciones: normales o constipada.
-    Orina: clarito. Si toma agua, pero podría mejorar. No tiene calambres.
-    Descanso: 7 hs.
-    Indispuesta: no.
-    Se percibe: igual. No tomo nada nuevo.
-
-Eso es UNA evolución. Si abajo hay otra fecha con los mismos rótulos, es OTRA: devolvé un objeto por cada una y NO las mezcles.
-
-Reglas de las evoluciones:
-4. Copiá el texto del campo TAL CUAL, entero. "50%. 10 días no respeto por viaje" va completo: el porcentaje solo perdería el motivo, que es la mitad del dato. No lo resumas ni lo pases a un número.
-5. Fechas SIEMPRE en formato ISO YYYY-MM-DD. En español se escribe DÍA/MES/AÑO, así que 12/07/2024 es el 2024-07-12, no el 2024-12-07. Si un bloque no tiene fecha legible, devolvé fecha null igual; no la inventes ni la deduzcas de los bloques vecinos.
-6. Un rótulo que el documento trae y no corresponde a ningún campo conocido NO se fuerza dentro de otro: se ignora, salvo que coincida con alguno de los campos propios del consultorio de más abajo.
-7. Si el documento no tiene ninguna evolución, devolvé la lista vacía. Un bloque de la historia clínica NO es una evolución.
-
-Los campos fijos de una evolución son: ${fijos}.${extra}`;
+): Record<string, string> {
+  return {
+    hoy,
+    camposFijos: CAMPOS_EVOLUCION.map(
+      (campo) => `${campo} (${ETIQUETAS_EVOLUCION[campo]})`,
+    ).join(", "),
+    camposPersonalizados:
+      camposEvolucion.length > 0
+        ? "\n\nEl consultorio además sigue estos campos propios en cada evolución. Completalos usando EXACTAMENTE estas claves:\n" +
+          camposEvolucion
+            .map(
+              (campo) =>
+                `- ${campo.clave}: ${campo.etiqueta}` +
+                (campo.descripcion ? ` (${campo.descripcion})` : ""),
+            )
+            .join("\n")
+        : "",
+  };
 }
 
 /**
@@ -142,6 +121,7 @@ export class InterpretadorHistoriaClinicaLLM implements IInterpretadorHistoriaCl
   constructor(
     private readonly resolvedor: IResolvedorConfigIA,
     private readonly almacenamiento: IAlmacenamientoArchivos,
+    private readonly prompts: IPromptsIA = new PromptsIAPorDefecto(),
   ) {}
 
   async interpretar(
@@ -161,9 +141,12 @@ export class InterpretadorHistoriaClinicaLLM implements IInterpretadorHistoriaCl
     );
 
     const texto = await llm.completar({
-      system: construirSystem(
-        camposEvolucion,
-        new Date().toISOString().slice(0, 10),
+      system: await this.prompts.obtener(
+        "HISTORIA_CLINICA",
+        variablesDeHistoria(
+          camposEvolucion,
+          new Date().toISOString().slice(0, 10),
+        ),
       ),
       usuario: [
         bloqueArchivo,
