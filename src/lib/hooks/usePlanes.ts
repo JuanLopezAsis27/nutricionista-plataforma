@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /** Encapsula las llamadas tRPC de planes nutricionales. */
 export function usePlanes() {
@@ -14,7 +15,7 @@ export function usePlanes() {
       toast.success("Plan creado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const actualizar = trpc.planes.actualizar.useMutation({
@@ -22,7 +23,7 @@ export function usePlanes() {
       toast.success("Plan actualizado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const eliminar = trpc.planes.eliminar.useMutation({
@@ -30,7 +31,7 @@ export function usePlanes() {
       toast.success("Plan eliminado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const archivar = trpc.planes.archivar.useMutation({
@@ -40,7 +41,7 @@ export function usePlanes() {
       );
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const crearDesdePlantilla = trpc.planes.crearDesdePlantilla.useMutation({
@@ -48,7 +49,7 @@ export function usePlanes() {
       toast.success("Plan creado desde la plantilla.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const asignar = trpc.planes.asignarAPaciente.useMutation({
@@ -56,7 +57,7 @@ export function usePlanes() {
       toast.success("Plan asignado al paciente.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const asignarAVarios = trpc.planes.asignarAVarios.useMutation({
@@ -75,7 +76,7 @@ export function usePlanes() {
       }
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const crearParaPaciente = trpc.planes.crearParaPaciente.useMutation({
@@ -83,7 +84,7 @@ export function usePlanes() {
       toast.success("Plan creado y asignado al paciente.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const mover = trpc.planes.moverAGrupo.useMutation({
@@ -91,7 +92,7 @@ export function usePlanes() {
       toast.success("Plan movido.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const crearGrupo = trpc.planes.crearGrupo.useMutation({
@@ -99,7 +100,7 @@ export function usePlanes() {
       toast.success("Carpeta creada.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const actualizarGrupo = trpc.planes.actualizarGrupo.useMutation({
@@ -107,7 +108,7 @@ export function usePlanes() {
       toast.success("Carpeta actualizada.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const eliminarGrupo = trpc.planes.eliminarGrupo.useMutation({
@@ -115,7 +116,7 @@ export function usePlanes() {
       toast.success("Carpeta eliminada. Sus planes quedaron sin carpeta.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const desasignar = trpc.planes.desasignarDePaciente.useMutation({
@@ -123,7 +124,7 @@ export function usePlanes() {
       toast.success("Plan finalizado para el paciente.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   return {

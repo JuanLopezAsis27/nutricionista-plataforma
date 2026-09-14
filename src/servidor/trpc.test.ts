@@ -159,6 +159,23 @@ describe("middleware de errores de tRPC", () => {
       expect(error.cause).toBeInstanceOf(ZodError);
       expect(capturar).not.toHaveBeenCalled();
     });
+
+    it("la validación Zod sale explicada, no como el volcado de los issues", async () => {
+      // El mensaje que traía tRPC era el `JSON.stringify` de los issues, y era
+      // lo que el usuario leía en el toast. Ver `mensajeZod.ts`.
+      // @ts-expect-error se pasa un input inválido a propósito.
+      const error = await errorDe(() => llamar.conInput({ edad: "treinta" }));
+
+      expect(error.message).not.toContain("invalid_type");
+      expect(error.message).not.toContain('"path"');
+      expect(error.message).toContain("Edad");
+    });
+
+    it("el errorFormatter sigue recibiendo el ZodError para marcar los campos", async () => {
+      // @ts-expect-error se pasa un input inválido a propósito.
+      const error = await errorDe(() => llamar.conInput({ edad: "treinta" }));
+      expect((error.cause as ZodError).issues).toHaveLength(1);
+    });
   });
 
   describe("errores inesperados", () => {

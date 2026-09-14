@@ -3,6 +3,7 @@ import { usuarioDeSesion } from "@/lib/autenticacion/sesion";
 import { servicioMetricas } from "@/infraestructura/contenedor/contenedor";
 import { importarMetricasDto } from "@/aplicacion/dtos/metricas.dto";
 import { aRespuestaError } from "@/servidor/errores-http";
+import { mensajeDesdeZod } from "@/servidor/mensajeZod";
 import { conAlcanceDeSesion } from "@/servidor/alcanceRequest";
 
 export const runtime = "nodejs";
@@ -35,7 +36,7 @@ export function POST(request: Request): Promise<NextResponse> {
       const cuerpo = importarMetricasDto.safeParse(await request.json());
       if (!cuerpo.success) {
         return NextResponse.json(
-          { error: "Datos inválidos.", detalles: cuerpo.error.flatten() },
+          { error: mensajeDesdeZod(cuerpo.error) },
           { status: 400 },
         );
       }

@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /** Encapsula las llamadas tRPC del recetario. */
 export function useRecetas() {
@@ -14,7 +15,7 @@ export function useRecetas() {
       toast.success("Receta creada.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const actualizar = trpc.recetas.actualizar.useMutation({
@@ -22,7 +23,7 @@ export function useRecetas() {
       toast.success("Receta actualizada.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const eliminar = trpc.recetas.eliminar.useMutation({
@@ -30,7 +31,7 @@ export function useRecetas() {
       toast.success("Receta eliminada.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const eliminarArchivo = trpc.recetas.eliminarArchivo.useMutation({
@@ -38,7 +39,7 @@ export function useRecetas() {
       toast.success("Archivo borrado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const marcarFotoPrincipal = trpc.recetas.marcarFotoPrincipal.useMutation({
@@ -46,7 +47,7 @@ export function useRecetas() {
       toast.success("Foto principal actualizada.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const asignar = trpc.recetas.asignarAPaciente.useMutation({
@@ -54,7 +55,7 @@ export function useRecetas() {
       toast.success("Receta compartida con el paciente.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const desasignar = trpc.recetas.desasignarDePaciente.useMutation({
@@ -62,7 +63,7 @@ export function useRecetas() {
       toast.success("Receta quitada del paciente.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const mover = trpc.recetas.moverAGrupo.useMutation({
@@ -70,7 +71,7 @@ export function useRecetas() {
       toast.success("Receta movida.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const crearGrupo = trpc.recetas.crearGrupo.useMutation({
@@ -78,7 +79,7 @@ export function useRecetas() {
       toast.success("Carpeta creada.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const actualizarGrupo = trpc.recetas.actualizarGrupo.useMutation({
@@ -86,7 +87,7 @@ export function useRecetas() {
       toast.success("Carpeta actualizada.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const eliminarGrupo = trpc.recetas.eliminarGrupo.useMutation({
@@ -94,7 +95,7 @@ export function useRecetas() {
       toast.success("Carpeta eliminada. Sus recetas quedaron sin carpeta.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   return {

@@ -48,7 +48,12 @@ export default function PaginaMisTurnos() {
                 <EstadoBadge estado={turno.estado} />
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
-                {turno.hora} hs · {turno.duracionMinutos} minutos
+                {/* Sin la duración: cuánto dura el turno es un dato de la
+                    AGENDA del profesional —con él arma la grilla y calcula
+                    cuántos entran—, no algo que el paciente tenga que saber
+                    para ir. Dicho acá, además, se lee como una promesa de
+                    cuánto va a durar la consulta. */}
+                {turno.hora} hs
                 {turno.establecimientoNombre && (
                   <p className="mt-1 flex items-start gap-1.5">
                     <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />

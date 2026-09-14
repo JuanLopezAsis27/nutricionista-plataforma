@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /** Encapsula las llamadas tRPC de la biblioteca de materiales. */
 export function useBiblioteca() {
@@ -14,7 +15,7 @@ export function useBiblioteca() {
       toast.success("Material agregado a la biblioteca.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const actualizar = trpc.biblioteca.actualizar.useMutation({
@@ -22,7 +23,7 @@ export function useBiblioteca() {
       toast.success("Material actualizado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const eliminar = trpc.biblioteca.eliminar.useMutation({
@@ -30,7 +31,7 @@ export function useBiblioteca() {
       toast.success("Material eliminado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const asignar = trpc.biblioteca.asignarAPaciente.useMutation({
@@ -38,7 +39,7 @@ export function useBiblioteca() {
       toast.success("Material compartido con el paciente.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const desasignar = trpc.biblioteca.desasignarDePaciente.useMutation({
@@ -46,7 +47,7 @@ export function useBiblioteca() {
       toast.success("Material quitado del paciente.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   return {

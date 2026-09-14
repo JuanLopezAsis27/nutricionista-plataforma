@@ -2,6 +2,7 @@
 
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { avisarError } from "@/lib/errores";
 
 /** Encapsula las llamadas tRPC del SuperAdmin (cuentas de nutricionista). */
 export function useSuperAdmin() {
@@ -13,12 +14,12 @@ export function useSuperAdmin() {
       toast.success("Cuenta de nutricionista creada.");
       void invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const cambiarEstado = trpc.superadmin.cambiarEstado.useMutation({
     onSuccess: () => void invalidar(),
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   return {

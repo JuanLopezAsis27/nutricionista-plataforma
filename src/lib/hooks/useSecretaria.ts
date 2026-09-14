@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /** Encapsula las llamadas tRPC de Secretaría (plantillas de email y envíos). */
 export function useSecretaria() {
@@ -14,7 +15,7 @@ export function useSecretaria() {
       toast.success("Plantilla creada.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const actualizarPlantilla = trpc.secretaria.actualizarPlantilla.useMutation({
@@ -22,7 +23,7 @@ export function useSecretaria() {
       toast.success("Plantilla guardada.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const eliminarPlantilla = trpc.secretaria.eliminarPlantilla.useMutation({
@@ -30,7 +31,7 @@ export function useSecretaria() {
       toast.success("Plantilla eliminada.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const enviarPrueba = trpc.secretaria.enviarPrueba.useMutation({
@@ -38,7 +39,7 @@ export function useSecretaria() {
       toast.success(`Email de prueba enviado a ${r.para}.`);
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   return {

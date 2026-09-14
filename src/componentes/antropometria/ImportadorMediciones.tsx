@@ -165,11 +165,18 @@ export function ImportadorMediciones({
               `${resultado.registradas} mediciones importadas al historial.`,
             );
           } else {
+            // Se nombran las tres primeras y se cuentan las demás: el aviso
+            // con las veinte fechas y sus motivos tapaba media pantalla, y el
+            // detalle completo está en la tabla, que sigue abierta.
+            const primeras = afuera
+              .slice(0, 3)
+              .map((item) => `${formatearFecha(item.fecha)}: ${item.motivo}`)
+              .join(" · ");
+            const resto =
+              afuera.length > 3 ? ` Y ${afuera.length - 3} más.` : "";
             toast.warning(
-              `${resultado.registradas} importadas. ${afuera.length} quedaron afuera: ${afuera
-                .map((item) => `${formatearFecha(item.fecha)} (${item.motivo})`)
-                .join("; ")}`,
-              { duration: 12000 },
+              `${resultado.registradas} importadas, ${afuera.length} afuera. ${primeras}${resto}`,
+              { duration: 10000 },
             );
           }
           onTerminado();

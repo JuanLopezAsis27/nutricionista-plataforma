@@ -40,13 +40,6 @@ export interface CampoPersonalizadoEvolucion {
 /** Tope de campos personalizados en una misma evolución. */
 export const MAXIMO_CAMPOS_EN_EVOLUCION = 60;
 
-/** Resumen de una foto de la evolución (lo completa el repositorio). */
-export interface FotoEvolucion {
-  id: string;
-  nombreOriginal: string;
-  mimeType: string;
-}
-
 /** Datos para crear o actualizar una evolución. */
 export interface DatosNuevaEvolucion extends Partial<CamposEvolucion> {
   pacienteId: string;
@@ -60,7 +53,6 @@ export interface PropiedadesEvolucion extends CamposEvolucion {
   pacienteId: string;
   fecha: Date;
   camposPersonalizados: CampoPersonalizadoEvolucion[];
-  fotos: FotoEvolucion[];
   creadoEn: Date;
   actualizadoEn: Date;
 }
@@ -137,9 +129,6 @@ export class Evolucion {
       fecha: datos.fecha,
       ...campos,
       camposPersonalizados: personalizados,
-      // Las fotos no viajan por acá: se vinculan aparte (módulo Archivos)
-      // después de crear la evolución, igual que las fotos de una receta.
-      fotos: [],
       creadoEn: ahora,
       actualizadoEn: ahora,
     });
@@ -149,11 +138,7 @@ export class Evolucion {
     return new Evolucion(props);
   }
 
-  /**
-   * Versión actualizada e inmutable (revalida, preserva id, creadoEn y fotos).
-   * Las fotos no pasan por acá: se agregan y se borran contra el módulo
-   * Archivos, no reescribiendo la evolución entera.
-   */
+  /** Versión actualizada e inmutable (revalida, preserva id y creadoEn). */
   actualizar(
     cambios: Partial<Omit<DatosNuevaEvolucion, "pacienteId">>,
     ahora: Date = new Date(),
@@ -171,7 +156,6 @@ export class Evolucion {
     );
     return new Evolucion({
       ...actualizada.props,
-      fotos: this.props.fotos,
       creadoEn: this.props.creadoEn,
     });
   }
@@ -188,15 +172,11 @@ export class Evolucion {
   get camposPersonalizados(): CampoPersonalizadoEvolucion[] {
     return [...this.props.camposPersonalizados];
   }
-  get fotos(): FotoEvolucion[] {
-    return [...this.props.fotos];
-  }
 
   aPrimitivos(): PropiedadesEvolucion {
     return {
       ...this.props,
       camposPersonalizados: [...this.props.camposPersonalizados],
-      fotos: [...this.props.fotos],
     };
   }
 }

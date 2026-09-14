@@ -1,8 +1,8 @@
 "use client";
 
-import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /** Encapsula las llamadas tRPC de mensajería (nutri y portal). */
 export function useMensajeria() {
@@ -11,12 +11,12 @@ export function useMensajeria() {
 
   const enviarA = trpc.mensajeria.enviarA.useMutation({
     onSuccess: () => invalidar(),
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const enviar = trpc.mensajeria.enviar.useMutation({
     onSuccess: () => invalidar(),
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const marcarLeidosDe = trpc.mensajeria.marcarLeidosDe.useMutation({

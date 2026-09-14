@@ -18,6 +18,7 @@ import {
 } from "@/componentes/ui/card";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
+import { mensajeDeError } from "@/lib/errores";
 
 /**
  * Importa un Excel/CSV de alimentos con sus macros. Si hay una lista cargada, la
@@ -39,8 +40,7 @@ export function ImportadorAlimentos() {
         `${importados} alimentos importados. La búsqueda usa solo tu lista.`,
       );
     } catch (err) {
-      const mensaje =
-        err instanceof Error ? err.message : "No se pudo importar.";
+      const mensaje = mensajeDeError(err, "No se pudo importar.");
       setError(mensaje);
       toast.error(mensaje);
     } finally {

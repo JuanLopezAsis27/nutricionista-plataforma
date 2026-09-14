@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /**
  * Encapsula las llamadas tRPC de los establecimientos.
@@ -19,7 +20,7 @@ export function useEstablecimientos() {
       toast.success(mensaje);
       invalidar();
     },
-    onError: (error: { message: string }) => toast.error(error.message),
+    onError: (error: { message: string }) => avisarError(error),
   });
 
   return {

@@ -7,6 +7,7 @@ import {
 import { subirArchivoDto } from "@/aplicacion/dtos/archivo.dto";
 import type { ContextoArchivo } from "@/dominio/entidades/Archivo";
 import { aRespuestaError } from "@/servidor/errores-http";
+import { mensajeDesdeZod } from "@/servidor/mensajeZod";
 import { conAlcanceDeSesion } from "@/servidor/alcanceRequest";
 
 // La subida de archivos va por route handler (multipart), nunca por tRPC.
@@ -59,13 +60,13 @@ export function POST(request: Request): Promise<NextResponse> {
         titulo: formulario.get("titulo") ?? null,
         categoria: formulario.get("categoria") ?? null,
         pacienteId: formulario.get("pacienteId") ?? null,
+        fechaProgreso: formulario.get("fechaProgreso") ?? null,
       });
       if (!datos.success) {
+        // El mensaje sale del mismo traductor que usan tRPC y el resto de los
+        // route handlers: el cliente lo muestra tal cual en un toast.
         return NextResponse.json(
-          {
-            error: "Datos de subida inválidos.",
-            detalles: datos.error.flatten(),
-          },
+          { error: mensajeDesdeZod(datos.error) },
           { status: 400 },
         );
       }
@@ -117,6 +118,7 @@ export function POST(request: Request): Promise<NextResponse> {
         titulo: datos.data.titulo,
         categoria: datos.data.categoria,
         subidoPorId: usuario.id,
+        fechaProgreso: datos.data.fechaProgreso,
         dueno: pacienteDueno ? { pacienteId: pacienteDueno } : undefined,
       });
 

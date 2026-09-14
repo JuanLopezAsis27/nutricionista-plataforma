@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /**
  * Encapsula todas las llamadas tRPC de turnos.
@@ -18,7 +19,7 @@ export function useTurnos() {
       toast.success("Turno agendado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const actualizarEstado = trpc.turnos.actualizarEstado.useMutation({
@@ -26,7 +27,7 @@ export function useTurnos() {
       toast.success("Estado del turno actualizado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const cancelar = trpc.turnos.cancelar.useMutation({
@@ -34,7 +35,7 @@ export function useTurnos() {
       toast.success("Turno cancelado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   /**
@@ -46,7 +47,7 @@ export function useTurnos() {
       toast.success("Turno borrado de la agenda.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const reprogramar = trpc.turnos.reprogramar.useMutation({
@@ -54,7 +55,7 @@ export function useTurnos() {
       toast.success("Turno reprogramado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const registrarCobro = trpc.turnos.registrarCobro.useMutation({
@@ -62,7 +63,7 @@ export function useTurnos() {
       toast.success("Cobro actualizado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   return {

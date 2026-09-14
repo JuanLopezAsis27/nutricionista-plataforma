@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /** Encapsula las llamadas tRPC de seguimiento (suplementos, alertas, informes). */
 export function useSeguimiento() {
@@ -14,7 +15,7 @@ export function useSeguimiento() {
       toast.success("Suplemento indicado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const actualizarSuplemento =
@@ -23,7 +24,7 @@ export function useSeguimiento() {
         toast.success("Suplemento actualizado.");
         invalidar();
       },
-      onError: (error) => toast.error(error.message),
+      onError: (error) => avisarError(error),
     });
 
   const eliminarSuplemento = trpc.seguimiento.eliminarSuplemento.useMutation({
@@ -31,12 +32,12 @@ export function useSeguimiento() {
       toast.success("Suplemento eliminado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const resolverAlerta = trpc.seguimiento.resolverAlerta.useMutation({
     onSuccess: () => invalidar(),
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const generarAlertas = trpc.seguimiento.generarAlertas.useMutation({
@@ -48,7 +49,7 @@ export function useSeguimiento() {
       );
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   return {
