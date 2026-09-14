@@ -36,7 +36,8 @@ comer y a registrar lo del día, así que el orden de la pantalla es ese:
 
 1. **Encabezado** — la fecha, el saludo y el próximo turno. El turno está acá,
    en una línea, y ya no en una tarjeta propia: es un dato que se mira de
-   reojo, y una card entera lo ponía al mismo nivel que el plan del día.
+   reojo, y una card entera lo ponía al mismo nivel que el plan del día. Se
+   muestra **el día y la hora, no la duración** (ver abajo).
 2. **Accesos rápidos** — ocho baldosas a los destinos del portal. Cada una
    lleva **su** color, siempre el mismo: en una grilla de ocho baldosas
    idénticas hay que leer las ocho etiquetas para encontrar una, y esto se abre
@@ -51,6 +52,20 @@ comer y a registrar lo del día, así que el orden de la pantalla es ese:
    tomó: no hay meta de hidratación en el sistema, y poner un denominador
    inventado sería mostrarle un objetivo que nadie le fijó.
 5. **Objetivos en curso**, si tiene.
+
+## El turno se le muestra sin la duración
+
+`/mi-inicio` y `/mis-turnos` dicen el día, la hora y dónde. **No dicen cuántos
+minutos dura**, aunque el dato viaja en el DTO y la agenda del profesional lo
+muestre.
+
+La duración es un dato de la AGENDA: con él se arma la grilla semanal y se
+calcula cuántos turnos entran en una tarde. Al paciente no le cambia nada de lo
+que tiene que hacer —ir tal día a tal hora— y además se lee como una promesa de
+cuánto va a durar la consulta, que es justo lo que no conviene prometer.
+
+Sigue estando en el dashboard (`DetalleTurno`, la grilla, el Excel), que es
+donde el dato es de quien lo mira.
 
 ## Las pantallas se reconocen antes de leerse
 

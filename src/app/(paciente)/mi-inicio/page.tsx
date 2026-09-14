@@ -121,13 +121,7 @@ export default function PaginaMiInicio() {
       <Encabezado
         fecha={hoy}
         proximoTurno={
-          proximo
-            ? {
-                fecha: proximo.fecha,
-                hora: proximo.hora,
-                duracionMinutos: proximo.duracionMinutos,
-              }
-            : null
+          proximo ? { fecha: proximo.fecha, hora: proximo.hora } : null
         }
         cargandoTurno={turnos.isLoading}
       />
@@ -195,11 +189,9 @@ function Encabezado({
   cargandoTurno,
 }: {
   fecha: Date;
-  proximoTurno: {
-    fecha: Date | string;
-    hora: string;
-    duracionMinutos: number;
-  } | null;
+  // Sin la duración: es un dato de la AGENDA del profesional, no del paciente.
+  // Ver `mis-turnos`.
+  proximoTurno: { fecha: Date | string; hora: string } | null;
   cargandoTurno: boolean;
 }) {
   // El saludo depende de la hora del que mira, y el servidor no la conoce
@@ -243,7 +235,7 @@ function Encabezado({
                 {formatearFechaLarga(proximoTurno.fecha)}
               </span>
               <span className="block text-xs tabular-nums text-muted-foreground">
-                {proximoTurno.hora} · {proximoTurno.duracionMinutos} min
+                {proximoTurno.hora} hs
               </span>
             </span>
             <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
