@@ -311,6 +311,7 @@ model Nutricionista {
   metricasDispositivo       MetricaDispositivo[]
   credenciales              CredencialProveedor[]
   preferencias              PreferenciasIntegracion[]
+  promptsIA                 PromptIA[]
   retroalimentaciones       RetroalimentacionInsight[]
   alimentosPropios          AlimentoPropio[]
   historiasClinicas         HistoriaClinica[]
@@ -1113,6 +1114,26 @@ model PreferenciasIntegracion {
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@map("preferencias_integracion")
+}
+
+/// System prompt propio del consultorio para una funcionalidad de IA.
+/// Solo existe la fila de lo que el profesional REESCRIBIÓ: lo que nunca tocó
+/// usa el texto de fábrica del catálogo (dominio/servicios/promptsIA), y así
+/// una mejora de redacción en una versión nueva de la app le llega igual.
+/// `clave` es una de CLAVES_PROMPT_IA; va como texto y no como enum de Postgres
+/// porque la lista la manda el catálogo del código y sumar una funcionalidad de
+/// IA no debería exigir una migración.
+model PromptIA {
+  nutricionistaId String
+  clave           String
+  texto           String
+  creadoEn        DateTime @default(now())
+  actualizadoEn   DateTime @updatedAt
+
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@id([nutricionistaId, clave])
+  @@map("prompts_ia")
 }
 
 /// Corrección del profesional sobre un insight predictivo (👍 útil / 👎 no).

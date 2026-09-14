@@ -64,6 +64,7 @@ import { PrismaRepositorioMetricaDispositivo } from "@/infraestructura/repositor
 import { PrismaRepositorioAlimentoPropio } from "@/infraestructura/repositorios/PrismaRepositorioAlimentoPropio";
 import { PrismaRepositorioRetroalimentacionInsight } from "@/infraestructura/repositorios/PrismaRepositorioRetroalimentacionInsight";
 import { PrismaRepositorioCredenciales } from "@/infraestructura/repositorios/PrismaRepositorioCredenciales";
+import { PrismaRepositorioPromptIA } from "@/infraestructura/repositorios/PrismaRepositorioPromptIA";
 import { PrismaRepositorioCuentaConectada } from "@/infraestructura/repositorios/PrismaRepositorioCuentaConectada";
 import { PrismaRepositorioSincronizacionTurno } from "@/infraestructura/repositorios/PrismaRepositorioSincronizacionTurno";
 
@@ -89,6 +90,7 @@ import { InterpretadorHistoriaClinicaLLM } from "@/infraestructura/ia/Interpreta
 import { InterpretadorFichaPacienteLLM } from "@/infraestructura/ia/InterpretadorFichaPacienteLLM";
 import { InterpretadorMedicionesLLM } from "@/infraestructura/ia/InterpretadorMedicionesLLM";
 import { ResolvedorConfigIA } from "@/infraestructura/ia/ResolvedorConfigIA";
+import { ResolvedorPromptsIA } from "@/infraestructura/ia/ResolvedorPromptsIA";
 import { ResolvedorTranscripcion } from "@/infraestructura/ia/ResolvedorTranscripcion";
 import { ResumidorConsultaLLM } from "@/infraestructura/ia/ResumidorConsultaLLM";
 import { obtenerConfigML } from "@/infraestructura/ml/configML";
@@ -341,6 +343,18 @@ const resolvedorIA = perezoso(
   () => new ResolvedorConfigIA(repositorioCredenciales()),
 );
 
+/**
+ * System prompts propios del consultorio (Integraciones → IA), o los de fábrica
+ * si no escribió ninguno. Lo consumen los siete adaptadores de IA.
+ */
+export const repositorioPromptIA = perezoso(
+  () => new PrismaRepositorioPromptIA(prisma()),
+);
+
+const promptsIA = perezoso(
+  () => new ResolvedorPromptsIA(repositorioPromptIA()),
+);
+
 /** ¿Hay alguna clave de IA disponible (del profesional o del entorno)? */
 export const tieneIA = (): Promise<boolean> => resolvedorIA().tieneIA();
 
@@ -358,7 +372,7 @@ export const transcriptorAudio = perezoso(
 
 /** Resume la consulta con el MISMO proveedor de LLM que el resto de la app. */
 export const resumidorConsulta = perezoso(
-  () => new ResumidorConsultaLLM(resolvedorIA()),
+  () => new ResumidorConsultaLLM(resolvedorIA(), promptsIA()),
 );
 
 /**
@@ -396,13 +410,18 @@ export const asistenteNutricional = perezoso(
     new AsistenteNutricionalClaude(
       resolvedorIA(),
       new AsistenteNutricionalStub(),
+      promptsIA(),
     ),
 );
 
 /** Asistente analítico del nutricionista (chat sobre los datos del consultorio). */
 export const asistenteAnalitico = perezoso(
   () =>
-    new AsistenteAnaliticoClaude(resolvedorIA(), new AsistenteAnaliticoStub()),
+    new AsistenteAnaliticoClaude(
+      resolvedorIA(),
+      new AsistenteAnaliticoStub(),
+      promptsIA(),
+    ),
 );
 
 export const analisisComidaIA = perezoso(() => {
@@ -410,17 +429,32 @@ export const analisisComidaIA = perezoso(() => {
   const respaldo: IAnalisisComidaIA = cliente
     ? new AnalisisComidaIAHTTP(cliente, new AnalisisComidaIAStub())
     : new AnalisisComidaIAStub();
-  return new AnalisisComidaIAClaude(resolvedorIA(), almacenamiento(), respaldo);
+  return new AnalisisComidaIAClaude(
+    resolvedorIA(),
+    almacenamiento(),
+    respaldo,
+    promptsIA(),
+  );
 });
 
 /** Sugiere los campos de la historia clínica a partir del documento subido. */
 export const interpretadorHistoriaClinica = perezoso(
-  () => new InterpretadorHistoriaClinicaLLM(resolvedorIA(), almacenamiento()),
+  () =>
+    new InterpretadorHistoriaClinicaLLM(
+      resolvedorIA(),
+      almacenamiento(),
+      promptsIA(),
+    ),
 );
 
 /** Lee la ficha de un paciente nuevo (PDF, Word o foto) para precargar el alta. */
 export const interpretadorFichaPaciente = perezoso(
-  () => new InterpretadorFichaPacienteLLM(resolvedorIA(), almacenamiento()),
+  () =>
+    new InterpretadorFichaPacienteLLM(
+      resolvedorIA(),
+      almacenamiento(),
+      promptsIA(),
+    ),
 );
 
 /**
@@ -428,7 +462,12 @@ export const interpretadorFichaPaciente = perezoso(
  * TODAS las mediciones que trae, para importar la serie histórica de una vez.
  */
 export const interpretadorMediciones = perezoso(
-  () => new InterpretadorMedicionesLLM(resolvedorIA(), almacenamiento()),
+  () =>
+    new InterpretadorMedicionesLLM(
+      resolvedorIA(),
+      almacenamiento(),
+      promptsIA(),
+    ),
 );
 
 /** El análisis predictivo del nutricionista lo sirve el ML. */

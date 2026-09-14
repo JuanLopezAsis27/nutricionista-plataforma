@@ -50,6 +50,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/ANTROPOMETRIA.md`      | Ecuaciones de grasa, distribución y sitios de pliegue |
 | `docs/HISTORIA-CLINICA.md`   | Evoluciones, campos personalizados y el alta por documento |
 | `docs/ASISTENTE-IA.md`       | El chat analítico: herramientas, contexto e historial |
+| `docs/PROMPTS-IA.md`         | Los siete system prompts, sus marcadores y cómo se personalizan |
 | `docs/GRABACIONES.md`        | Grabar la consulta, transcribirla y resumirla con IA  |
 | `docs/ARCHIVOS.md`           | Cómo llega al navegador un archivo del bucket         |
 | `docs/MENSAJERIA.md`         | La bandeja, el hilo y las piezas que comparten los canales |

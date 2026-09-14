@@ -6,6 +6,8 @@ import type {
 import type { IResolvedorConfigIA } from "./ResolvedorConfigIA";
 import type { AlAvanzarIA } from "@/dominio/servicios/avanceIA";
 import { comoErrorIA } from "@/dominio/errores/ErrorIA";
+import type { IPromptsIA } from "@/dominio/servicios/promptsIA";
+import { PromptsIAPorDefecto } from "@/dominio/servicios/promptsIA";
 
 /**
  * Adaptador del asistente nutricional con IA (Claude directo u OpenRouter, según
@@ -23,6 +25,7 @@ export class AsistenteNutricionalClaude implements IAsistenteNutricional {
   constructor(
     private readonly resolver: IResolvedorConfigIA,
     private readonly respaldo: IAsistenteNutricional,
+    private readonly prompts: IPromptsIA = new PromptsIAPorDefecto(),
   ) {}
 
   async responder(
@@ -39,7 +42,10 @@ export class AsistenteNutricionalClaude implements IAsistenteNutricional {
     let texto: string;
     try {
       texto = await llm.conversar({
-        system: construirPrompt(contexto),
+        system: await this.prompts.obtener(
+          "ASISTENTE_PACIENTE",
+          variablesDelPaciente(contexto),
+        ),
         mensajes: [
           ...previos,
           { rol: "usuario" as const, texto: pregunta.trim() },
@@ -66,47 +72,35 @@ export class AsistenteNutricionalClaude implements IAsistenteNutricional {
   }
 }
 
-/** Arma el system prompt fundamentando la respuesta en el contexto del paciente. */
-function construirPrompt(contexto: ContextoAsistente): string {
-  const objetivos =
-    contexto.objetivos.length > 0
-      ? contexto.objetivos.join(", ")
-      : "ninguno cargado";
-  const plan = contexto.tienePlan
-    ? "sí (usá la herramienta para ver el detalle)"
-    : "no";
-  const restricciones =
-    contexto.restricciones.length > 0
-      ? contexto.restricciones.join("; ")
-      : "ninguna registrada";
-  const recomendaciones =
-    contexto.recomendacionesNutricionista.length > 0
-      ? contexto.recomendacionesNutricionista.map((r) => `  • ${r}`).join("\n")
-      : "  • (ninguna cargada)";
-
-  return [
-    `Sos el asistente nutricional de la app de un consultorio, hablando con el/la paciente ${contexto.nombrePaciente}.`,
-    "",
-    "Contexto del paciente:",
-    `- Objetivos en curso: ${objetivos}`,
-    `- Plan activo asignado: ${plan}`,
-    `- Restricciones alimentarias (alergias/intolerancias): ${restricciones}`,
-    "",
-    "Indicaciones del nutricionista (SON REGLAS: nunca las contradigas):",
-    recomendaciones,
-    "",
-    "Herramientas: tenés herramientas para consultar los datos reales del paciente",
-    "(su plan, sus recetas asignadas, sus objetivos y sus restricciones). USALAS cuando",
-    "la pregunta sea sobre su plan, comidas o recetas, en vez de inventar o generalizar.",
-    "",
-    "Reglas de conducta:",
-    "- Respondé en español rioplatense, claro, cálido y breve.",
-    "- RESPETÁ SIEMPRE las restricciones alimentarias: nunca sugieras algo que las viole.",
-    "- No das diagnósticos médicos ni indicás medicación, y no cambiás el plan del paciente.",
-    "- Toda estimación (calorías, cantidades) aclarala como aproximada, no como un valor exacto.",
-    "- Para decisiones clínicas o cambios de plan, indicá que consulte con su nutricionista",
-    "  (puede escribirle desde la sección Mensajes).",
-    "- Si preguntan algo ajeno a la nutrición/hábitos, redirigí amablemente. Ante una urgencia",
-    "  médica, indicá consultar a un profesional de inmediato.",
-  ].join("\n");
+/**
+ * Los datos de ESE paciente, para los `{{marcadores}}` del system prompt.
+ *
+ * El prompt en sí sale del catálogo (o de lo que haya escrito el consultorio en
+ * Integraciones → IA); lo que se arma acá es el contexto que lo funda: sin
+ * esto el asistente le contestaría a cualquiera lo mismo, sin saber sus
+ * objetivos ni —lo que importa de verdad— sus alergias.
+ */
+function variablesDelPaciente(
+  contexto: ContextoAsistente,
+): Record<string, string> {
+  return {
+    nombrePaciente: contexto.nombrePaciente,
+    objetivos:
+      contexto.objetivos.length > 0
+        ? contexto.objetivos.join(", ")
+        : "ninguno cargado",
+    plan: contexto.tienePlan
+      ? "sí (usá la herramienta para ver el detalle)"
+      : "no",
+    restricciones:
+      contexto.restricciones.length > 0
+        ? contexto.restricciones.join("; ")
+        : "ninguna registrada",
+    recomendaciones:
+      contexto.recomendacionesNutricionista.length > 0
+        ? contexto.recomendacionesNutricionista
+            .map((r) => `  • ${r}`)
+            .join("\n")
+        : "  • (ninguna cargada)",
+  };
 }

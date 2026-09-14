@@ -14,6 +14,9 @@ imposible de responder aunque la herramienta devolviera los turnos con su
 fecha: no tenía contra qué compararlas. Ahora el system prompt lleva la fecha
 de hoy y el formato en que vienen las de las herramientas.
 
+Ese system prompt es **editable** desde Integraciones → IA; la fecha entra por
+un marcador que la app completa en cada llamada. Ver `docs/PROMPTS-IA.md`.
+
 ### 2. Los turnos de hoy se filtraban solos
 
 `Turno.fecha` es un DATE que llega como **medianoche UTC**. El filtro comparaba

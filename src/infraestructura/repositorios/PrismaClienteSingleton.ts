@@ -68,6 +68,7 @@ export const MODELOS_INQUILINO = new Set<string>([
   "MetricaDispositivo",
   "CredencialProveedor",
   "PreferenciasIntegracion",
+  "PromptIA",
   "AlimentoPropio",
   "RetroalimentacionInsight",
   "RecordatorioWhatsapp",
