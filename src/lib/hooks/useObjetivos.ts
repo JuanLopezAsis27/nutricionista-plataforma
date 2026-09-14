@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /** Encapsula las llamadas tRPC de objetivos y estrategias. */
 export function useObjetivos() {
@@ -14,7 +15,7 @@ export function useObjetivos() {
       toast.success("Objetivo creado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const actualizar = trpc.objetivos.actualizar.useMutation({
@@ -22,7 +23,7 @@ export function useObjetivos() {
       toast.success("Objetivo actualizado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const cambiarEstado = trpc.objetivos.cambiarEstado.useMutation({
@@ -30,7 +31,7 @@ export function useObjetivos() {
       toast.success("Estado del objetivo actualizado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const eliminar = trpc.objetivos.eliminar.useMutation({
@@ -38,7 +39,7 @@ export function useObjetivos() {
       toast.success("Objetivo eliminado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const agregarEstrategia = trpc.objetivos.agregarEstrategia.useMutation({
@@ -46,7 +47,7 @@ export function useObjetivos() {
       toast.success("Estrategia agregada.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const cambiarEstadoEstrategia =
@@ -55,7 +56,7 @@ export function useObjetivos() {
         toast.success("Estado de la estrategia actualizado.");
         invalidar();
       },
-      onError: (error) => toast.error(error.message),
+      onError: (error) => avisarError(error),
     });
 
   const eliminarEstrategia = trpc.objetivos.eliminarEstrategia.useMutation({
@@ -63,7 +64,7 @@ export function useObjetivos() {
       toast.success("Estrategia eliminada.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   return {

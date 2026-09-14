@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /** Encapsula las llamadas tRPC del módulo deportivo (perfil + competencias). */
 export function useDeportivo() {
@@ -13,7 +14,7 @@ export function useDeportivo() {
       toast.success("Perfil deportivo guardado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const crearCompetencia = trpc.deportivo.crearCompetencia.useMutation({
@@ -21,7 +22,7 @@ export function useDeportivo() {
       toast.success("Competencia agregada.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const actualizarCompetencia =
@@ -30,7 +31,7 @@ export function useDeportivo() {
         toast.success("Competencia actualizada.");
         invalidar();
       },
-      onError: (error) => toast.error(error.message),
+      onError: (error) => avisarError(error),
     });
 
   const eliminarCompetencia = trpc.deportivo.eliminarCompetencia.useMutation({
@@ -38,7 +39,7 @@ export function useDeportivo() {
       toast.success("Competencia eliminada.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   return {

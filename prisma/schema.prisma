@@ -964,8 +964,12 @@ model Archivo {
   planId            String?
   /// Audio de una grabación de consulta (1 a 1). Ver GrabacionConsulta.
   grabacionId       String? @unique
-  /// Fotos de una evolución de control (1 a muchas). Ver migración 51.
-  evolucionId       String?
+
+  /// Fecha que representa la foto en la línea de tiempo de "antes y después",
+  /// que NO es `creadoEn`: una foto de hace seis meses se sube hoy. Que esté
+  /// cargada es lo que distingue una foto de progreso del resto de los
+  /// archivos del paciente. Ver migración 63.
+  fechaProgreso DateTime? @db.Date
 
   paciente          Paciente?                  @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
   laboratorio       Laboratorio?               @relation(fields: [laboratorioId], references: [id], onDelete: Cascade)
@@ -982,7 +986,6 @@ model Archivo {
   /// dos cosas: estar adjunto al plan y SER el plan.
   planPrincipalDe   PlanNutricional[]          @relation("ArchivoPrincipalPlan")
   grabacion         GrabacionConsulta?         @relation("ArchivoDeGrabacion", fields: [grabacionId], references: [id], onDelete: Cascade)
-  evolucion         Evolucion?                 @relation("ArchivosDeEvolucion", fields: [evolucionId], references: [id], onDelete: Cascade)
   configuraciones   ConfiguracionConsultorio[]
   /// Contracara de `Usuario.fotoPerfil`: la cuenta que usa este archivo como
   /// su foto. No es un dueño del arco exclusivo —igual que el logo del
@@ -995,7 +998,7 @@ model Archivo {
   @@index([nutricionistaId, laboratorioId])
   @@index([nutricionistaId, recetaId])
   @@index([nutricionistaId, planId])
-  @@index([nutricionistaId, evolucionId])
+  @@index([nutricionistaId, pacienteId, fechaProgreso])
   @@map("archivos")
 }
 
@@ -1305,9 +1308,6 @@ model Evolucion {
 
   paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
-  /// Fotos de esta evolución (1 a muchas). La FK vive en `archivos`, como el
-  /// resto de los dueños de archivo. Ver migración 51.
-  archivos      Archivo[]     @relation("ArchivosDeEvolucion")
 
   @@unique([pacienteId, fecha])
   @@index([pacienteId, fecha])

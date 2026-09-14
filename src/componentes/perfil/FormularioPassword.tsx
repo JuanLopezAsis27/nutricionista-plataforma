@@ -21,6 +21,7 @@ import {
   type CambiarPasswordDto,
 } from "@/aplicacion/dtos/perfil.dto";
 import { LARGO_MINIMO_PASSWORD } from "@/aplicacion/dtos/password";
+import { mensajeDeError } from "@/lib/errores";
 
 /** Campo cuyo error de servidor se pinta debajo del input que hay que corregir. */
 const CAMPO_POR_MENSAJE: { patron: RegExp; campo: keyof CambiarPasswordDto }[] =
@@ -61,10 +62,10 @@ export function FormularioPassword() {
       form.reset();
       toast.success("Listo, tu contraseña quedó actualizada.");
     } catch (error) {
-      const mensaje =
-        error instanceof Error
-          ? error.message
-          : "No se pudo cambiar la contraseña.";
+      const mensaje = mensajeDeError(
+        error,
+        "No se pudo cambiar la contraseña.",
+      );
       const destino = CAMPO_POR_MENSAJE.find((r) => r.patron.test(mensaje));
       if (destino) {
         form.setError(destino.campo, { message: mensaje });

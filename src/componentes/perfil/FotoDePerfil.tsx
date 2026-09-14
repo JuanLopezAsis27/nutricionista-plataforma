@@ -8,6 +8,7 @@ import { AvatarPerfil } from "@/componentes/comunes/AvatarPerfil";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { useSubirArchivo } from "@/lib/hooks/useSubirArchivo";
 import { usePerfil } from "@/lib/hooks/usePerfil";
+import { avisarError } from "@/lib/errores";
 
 /** Lo que el input acepta; coincide con la lista blanca del contexto `perfil`. */
 const IMAGENES_ACEPTADAS = "image/jpeg,image/png,image/webp,image/heic";
@@ -47,9 +48,7 @@ export function FotoDePerfil({
       await cambiarFoto.mutateAsync({ archivoId: subido.id });
       toast.success("Listo, actualizamos tu foto.");
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "No se pudo cambiar la foto.",
-      );
+      avisarError(error, "No se pudo cambiar la foto.");
     }
   }
 

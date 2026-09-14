@@ -58,22 +58,6 @@ export function TarjetaIndices({
             etiqueta="Índice adiposo/muscular"
             valor={indices.indiceAdiposoMuscular}
           />
-          <Fila
-            etiqueta="Índice córmico"
-            valor={indices.indiceCormico}
-            unidad="%"
-            nota="Talla sentado / talla"
-          />
-          <Fila
-            etiqueta="Superficie corporal"
-            valor={indices.superficieCorporalM2}
-            unidad="m²"
-            nota="Du Bois, 1916"
-          />
-          <Fila
-            etiqueta="Índice muscular/lastre"
-            valor={indices.indiceMuscularLastre}
-          />
         </dl>
       </CardContent>
     </Card>

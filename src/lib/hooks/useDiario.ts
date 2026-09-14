@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /**
  * Encapsula las llamadas tRPC del diario del paciente (portal) y la lectura
@@ -17,7 +18,7 @@ export function useDiario() {
       if (mensaje) toast.success(mensaje);
       void invalidar();
     },
-    onError: (error: { message: string }) => toast.error(error.message),
+    onError: (error: { message: string }) => avisarError(error),
   });
 
   return {

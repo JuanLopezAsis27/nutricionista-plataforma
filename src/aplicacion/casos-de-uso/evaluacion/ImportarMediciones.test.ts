@@ -71,7 +71,10 @@ describe("ImportarMediciones", () => {
 
     expect(resultado.registradas).toBe(1);
     expect(resultado.resultados[1]).toMatchObject({ estado: "RECHAZADA" });
-    expect(resultado.resultados[1]?.motivo).toContain("pliegue");
+    // El motivo nombra la medida como se la ve en la tabla de revisión, no
+    // como se llama la columna: es lo que el profesional tiene que ir a buscar.
+    expect(resultado.resultados[1]?.motivo).toContain("Pliegue tricipital");
+    expect(resultado.resultados[1]?.motivo).not.toContain("pliegueTricipital");
   });
 
   it("rechaza el lote entero si el paciente no existe", async () => {

@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /** Encapsula las llamadas tRPC de planes semanales de referencia. */
 export function usePlanesSemanales() {
@@ -14,7 +15,7 @@ export function usePlanesSemanales() {
       toast.success("Plan semanal creado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const actualizar = trpc.planesSemanales.actualizar.useMutation({
@@ -22,7 +23,7 @@ export function usePlanesSemanales() {
       toast.success("Plan semanal actualizado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const eliminar = trpc.planesSemanales.eliminar.useMutation({
@@ -30,7 +31,7 @@ export function usePlanesSemanales() {
       toast.success("Plan semanal eliminado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const asignar = trpc.planesSemanales.asignarAPaciente.useMutation({
@@ -38,7 +39,7 @@ export function usePlanesSemanales() {
       toast.success("Plan semanal asignado al paciente.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const desasignar = trpc.planesSemanales.desasignarDePaciente.useMutation({
@@ -46,7 +47,7 @@ export function usePlanesSemanales() {
       toast.success("Plan semanal finalizado para el paciente.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   return {

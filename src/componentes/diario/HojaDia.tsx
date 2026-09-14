@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import {
   GlassWater,
   Scale,
@@ -49,6 +48,7 @@ import {
 } from "@/componentes/ui/select";
 import { FotoConVisor } from "@/componentes/comunes/FotoConVisor";
 import type { ArchivoSalidaDto } from "@/aplicacion/dtos/archivo.dto";
+import { avisarError } from "@/lib/errores";
 import {
   VasosDeAgua,
   textoDeAgua,
@@ -475,10 +475,11 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
               value={descripcionComida}
               onChange={(e) => setDescripcionComida(e.target.value)}
             />
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
               <BotonFotoComida
                 archivo={fotoNueva}
                 analizando={analizarFoto.isPending}
+                grande
                 onSubido={alSubirFotoComida}
                 onQuitar={() => setFotoNueva(null)}
               />
@@ -605,16 +606,26 @@ export function HojaDia({ fechaISO }: { fechaISO: string }) {
  *
  * Sin foto muestra el ícono; con foto, la miniatura (mismo `FotoConVisor` que
  * usa una comida ya guardada) con una `X` para sacarla, si `onQuitar` viene.
+ *
+ * Tiene dos tamaños porque lo usa en dos lugares que no pesan lo mismo. En una
+ * comida YA guardada es un retoque y va junto al de borrar, chico. En el
+ * formulario de carga es **una de las dos formas de cargar la comida** —se
+ * puede guardar solo con la foto—, y ahí un ícono fantasma del tamaño de un
+ * ícono de borrar no se ve en un teléfono: va `grande`, con su rótulo y el
+ * ancho completo.
  */
 function BotonFotoComida({
   archivo,
   analizando = false,
+  grande = false,
   onSubido,
   onQuitar,
 }: {
   archivo: ArchivoSalidaDto | null;
   /** Se está analizando esta foto con IA: se ve un spinner sobre la miniatura. */
   analizando?: boolean;
+  /** Tamaño de "acción principal", para el formulario de carga. */
+  grande?: boolean;
   onSubido: (archivo: ArchivoSalidaDto) => void;
   /** Si se puede sacar la foto elegida (no aplica a una ya guardada). */
   onQuitar?: () => void;
@@ -627,22 +638,25 @@ function BotonFotoComida({
       const subido = await subir(archivoElegido, { contexto: "foto-comida" });
       onSubido(subido);
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "No se pudo subir la foto.",
-      );
+      avisarError(error, "No se pudo subir la foto.");
     }
   }
 
   const ocupado = subiendo || analizando;
 
   return (
-    <div className="relative inline-flex">
+    <div
+      className={cn(
+        "relative inline-flex",
+        grande && !archivo && "w-full sm:w-auto",
+      )}
+    >
       {archivo ? (
         <>
           <FotoConVisor
             archivoId={archivo.id}
             alt="Foto de la comida"
-            className="h-11 w-11"
+            className={grande ? "h-20 w-20" : "h-11 w-11"}
           />
           {ocupado && (
             <span className="absolute inset-0 flex items-center justify-center rounded-md bg-background/70">
@@ -654,12 +668,32 @@ function BotonFotoComida({
               type="button"
               aria-label="Quitar foto"
               onClick={onQuitar}
-              className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
+              className={cn(
+                "absolute -right-1.5 -top-1.5 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground",
+                grande ? "h-6 w-6" : "h-4 w-4",
+              )}
             >
-              <X className="h-2.5 w-2.5" />
+              <X className={grande ? "h-3.5 w-3.5" : "h-2.5 w-2.5"} />
             </button>
           )}
         </>
+      ) : grande ? (
+        <Button
+          type="button"
+          variant="outline"
+          disabled={subiendo}
+          onClick={() => entradaRef.current?.click()}
+          className="h-16 w-full flex-col gap-1 sm:h-20 sm:w-28"
+        >
+          {subiendo ? (
+            <Loader2 className="h-6 w-6 animate-spin" />
+          ) : (
+            <Camera className="h-6 w-6" />
+          )}
+          <span className="text-xs font-medium">
+            {subiendo ? "Subiendo…" : "Sacar foto"}
+          </span>
+        </Button>
       ) : (
         <Button
           type="button"

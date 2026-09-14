@@ -10,6 +10,7 @@ import { Button } from "@/componentes/ui/button";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
 import { FotoConVisor } from "@/componentes/comunes/FotoConVisor";
+import { avisarError } from "@/lib/errores";
 
 /**
  * Grupos en los que se parte la lista, en orden de aparición.
@@ -47,12 +48,18 @@ export function ArchivosPaciente({ pacienteId }: { pacienteId: string }) {
       toast.success("Archivo eliminado.");
       void utils.archivos.obtenerDePaciente.invalidate({ pacienteId });
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const [eliminando, setEliminando] = useState<ArchivoSalidaDto | null>(null);
 
-  const todos = archivos.data ?? [];
+  // Las fotos de progreso cuelgan del paciente igual que un consentimiento,
+  // pero tienen su propia sección ("Fotos: antes y después") con su línea de
+  // tiempo y su comparación. Listarlas también acá sería mostrar dos veces lo
+  // mismo, en un lugar donde no se pueden mirar en orden.
+  const todos = (archivos.data ?? []).filter(
+    (archivo) => archivo.contexto !== "progreso",
+  );
   const conocidos = GRUPOS.map((grupo) => ({
     ...grupo,
     archivos: todos.filter((archivo) => archivo.contexto === grupo.contexto),

@@ -9,7 +9,6 @@ import {
   MessageSquare,
   ChevronDown,
 } from "lucide-react";
-import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useIA } from "@/lib/hooks/useIA";
 import {
@@ -34,6 +33,7 @@ import { formatearFecha } from "@/lib/formato";
 import { useHiloDeChat, type TurnoChat } from "./hiloDeChat";
 import { useRespuestaEnVivo } from "./respuestaEnVivo";
 import { AvisoIABreve } from "./AvisoIA";
+import { avisarError } from "@/lib/errores";
 
 const SUGERENCIAS = [
   "¿Qué pacientes tienen turno esta semana?",
@@ -93,7 +93,7 @@ export function AsistenteAnaliticoChat() {
     },
     alFallar: (mensaje) => {
       hilo.descartarUltima();
-      toast.error(mensaje);
+      avisarError(mensaje);
     },
   });
 

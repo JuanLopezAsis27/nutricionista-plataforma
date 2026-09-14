@@ -7,7 +7,6 @@ import { ArrowLeft, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { toast } from "sonner";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import {
@@ -28,6 +27,7 @@ import {
 import { LogoConsultorio } from "@/componentes/marca/LogoConsultorio";
 import { useAutenticacion } from "@/lib/hooks/useAutenticacion";
 import { passwordNuevaDto } from "@/aplicacion/dtos/password";
+import { avisarError } from "@/lib/errores";
 
 /**
  * Esquema del formulario. Se exporta para poder verificar en un test que no
@@ -72,11 +72,7 @@ export function FormularioRestablecer({ token }: { token: string }) {
       setListo(true);
       setTimeout(() => router.replace("/login"), 2500);
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "No se pudo restablecer la contraseña.",
-      );
+      avisarError(error, "No se pudo restablecer la contraseña.");
     }
   }
 

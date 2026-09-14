@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /** Encapsula las llamadas tRPC de las métricas de dispositivo (wearables). */
 export function useMetricas() {
@@ -13,12 +14,12 @@ export function useMetricas() {
       toast.success(`${r.importadas} día(s) sincronizados.`);
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const fijarInclusion = trpc.metricas.fijarInclusion.useMutation({
     onSuccess: invalidar,
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   return {

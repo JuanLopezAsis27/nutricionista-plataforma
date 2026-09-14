@@ -858,22 +858,6 @@ function DashboardComposicionPdf({
             etiqueta="Índice adiposo/muscular"
             valor={resultado.indices.indiceAdiposoMuscular}
           />
-          <FilaIndice
-            etiqueta="Índice córmico"
-            valor={resultado.indices.indiceCormico}
-            unidad="%"
-            nota="Talla sentado / talla"
-          />
-          <FilaIndice
-            etiqueta="Superficie corporal"
-            valor={resultado.indices.superficieCorporalM2}
-            unidad="m²"
-            nota="Du Bois, 1916"
-          />
-          <FilaIndice
-            etiqueta="Índice muscular/lastre"
-            valor={resultado.indices.indiceMuscularLastre}
-          />
         </View>
 
         {/* Energía */}

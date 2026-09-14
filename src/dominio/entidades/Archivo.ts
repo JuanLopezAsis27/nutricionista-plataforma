@@ -92,8 +92,19 @@ export const CONTEXTOS_ARCHIVO = {
     mimes: [...MIMES_IMAGEN],
     maxBytes: 2 * MB,
   },
-  /** Fotos de una evolución de control (1 a muchas, como las de receta). */
-  evolucion: {
+  /**
+   * Foto de progreso del paciente: la que se compara en "antes y después".
+   *
+   * Colgaba de una evolución de control (contexto `evolucion`, migración 51) y
+   * eso ataba la foto a que la consulta estuviera ESCRITA. Ahora es del
+   * paciente y lleva su propia fecha (`fechaProgreso`), que es lo que la ubica
+   * en la línea de tiempo. Ver migración 63.
+   *
+   * El prefijo sigue siendo `evoluciones` a propósito: las fotos que ya
+   * estaban tienen esa clave y la clave no se reescribe nunca (es de dónde se
+   * deduce el contexto de origen, no una etiqueta que se corrija después).
+   */
+  progreso: {
     prefijo: "evoluciones",
     mimes: [...MIMES_IMAGEN],
     maxBytes: 10 * MB,
@@ -177,6 +188,8 @@ export interface DatosNuevoArchivo {
   titulo?: string | null;
   categoria?: string | null;
   subidoPorId?: string | null;
+  /** Solo para el contexto `progreso`. Ver `PropiedadesArchivo`. */
+  fechaProgreso?: Date | null;
 }
 
 /** Estado completo de un archivo persistido. */
@@ -189,6 +202,12 @@ export interface PropiedadesArchivo {
   titulo: string | null;
   categoria: string | null;
   subidoPorId: string | null;
+  /**
+   * Qué día muestra la foto, que NO es `creadoEn`: una foto de hace seis meses
+   * se sube hoy y tiene que ubicarse en su lugar de la línea de tiempo de
+   * "antes y después". Null en todo lo que no es una foto de progreso.
+   */
+  fechaProgreso: Date | null;
   creadoEn: Date;
 }
 
@@ -245,6 +264,7 @@ export class Archivo {
       titulo: datos.titulo?.trim() || null,
       categoria: datos.categoria?.trim() || null,
       subidoPorId: datos.subidoPorId ?? null,
+      fechaProgreso: datos.fechaProgreso ?? null,
       creadoEn: ahora,
     });
   }
@@ -276,6 +296,9 @@ export class Archivo {
   }
   get subidoPorId(): string | null {
     return this.props.subidoPorId;
+  }
+  get fechaProgreso(): Date | null {
+    return this.props.fechaProgreso;
   }
   get creadoEn(): Date {
     return this.props.creadoEn;

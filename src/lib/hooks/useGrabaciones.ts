@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
+import { avisarError } from "@/lib/errores";
 
 /**
  * Cada cuánto se relee mientras hay una transcripción en curso.
@@ -24,7 +25,7 @@ export function useGrabaciones() {
       toast.success("Grabación guardada. Se está transcribiendo…");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const eliminar = trpc.grabaciones.eliminar.useMutation({
@@ -32,7 +33,7 @@ export function useGrabaciones() {
       toast.success("Grabación eliminada.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const reintentar = trpc.grabaciones.reintentar.useMutation({
@@ -40,7 +41,7 @@ export function useGrabaciones() {
       toast.success("Se volvió a encolar la transcripción.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   const regenerarResumen = trpc.grabaciones.regenerarResumen.useMutation({
@@ -48,7 +49,7 @@ export function useGrabaciones() {
       toast.success("Resumen regenerado.");
       invalidar();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   /**

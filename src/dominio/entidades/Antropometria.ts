@@ -4,6 +4,7 @@ import type {
   NivelActividad,
 } from "../servicios/composicionCorporal";
 import { METODOS_GRASA, type MetodoGrasa } from "../servicios/grasaPorPliegues";
+import { ETIQUETAS_CAMPO_PLANTILLA } from "./PlantillaAntropometrica";
 
 /**
  * Modelo que el profesional destaca en la consulta. No restringe el cálculo:
@@ -373,6 +374,22 @@ function validarFecha(fecha: Date, ahora: Date): void {
   }
 }
 
+/**
+ * Nombre de la medida como aparece en pantalla, para los mensajes de error.
+ *
+ * Antes el motivo del rechazo decía `(circPantorrilla)`, que es el nombre de
+ * la columna y no está escrito en ninguna pantalla. Cuando el profesional lee
+ * por qué una fila de la planilla quedó afuera, tiene que poder buscar esa
+ * medida en la tabla de revisión.
+ */
+function etiquetaDeMedida(campo: keyof MedidasAntropometricas): string {
+  return (
+    ETIQUETAS_CAMPO_PLANTILLA[
+      campo as keyof typeof ETIQUETAS_CAMPO_PLANTILLA
+    ] ?? campo
+  );
+}
+
 function validarMedidas(
   datos: Partial<MedidasAntropometricas> & { pesoKg: number },
 ): void {
@@ -400,7 +417,7 @@ function validarMedidas(
         valor,
         2,
         60,
-        `El diámetro debe estar entre 2 y 60 cm (${campo}).`,
+        `${etiquetaDeMedida(campo)} debe estar entre 2 y 60 cm.`,
       );
     }
   }
@@ -411,7 +428,7 @@ function validarMedidas(
         valor,
         1,
         80,
-        `El pliegue debe estar entre 1 y 80 mm (${campo}).`,
+        `${etiquetaDeMedida(campo)} debe estar entre 1 y 80 mm.`,
       );
     }
   }
@@ -422,7 +439,7 @@ function validarMedidas(
         valor,
         20,
         250,
-        `La circunferencia debe estar entre 20 y 250 cm (${campo}).`,
+        `${etiquetaDeMedida(campo)} debe estar entre 20 y 250 cm.`,
       );
     }
   }

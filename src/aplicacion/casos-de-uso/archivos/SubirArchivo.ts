@@ -16,6 +16,8 @@ export interface DatosSubirArchivo {
   titulo?: string | null;
   categoria?: string | null;
   subidoPorId?: string | null;
+  /** Qué día muestra la foto (contexto `progreso`). Ver `Archivo`. */
+  fechaProgreso?: Date | null;
   /** Dueño directo (ej. archivos de la ficha del paciente). Los adjuntos de
    *  laboratorio se suben sin dueño y se vinculan al registrar el estudio. */
   dueno?: DuenoArchivo;
@@ -54,6 +56,7 @@ export class SubirArchivo {
         titulo: datos.titulo,
         categoria: datos.categoria,
         subidoPorId: datos.subidoPorId,
+        fechaProgreso: datos.fechaProgreso,
       },
       crypto.randomUUID(),
     );

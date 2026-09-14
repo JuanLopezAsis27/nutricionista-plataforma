@@ -9,22 +9,6 @@ import type { CampoPersonalizadoEvolucion } from "@/dominio/entidades/Evolucion"
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
 
-/** Fila de evolución con sus fotos incluidas. */
-type EvolucionConFotos = Prisma.EvolucionGetPayload<{
-  include: { archivos: { orderBy: { creadoEn: "asc" } } };
-}>;
-
-/**
- * `fecha` es `@db.Date` (sin hora): dos evoluciones del mismo día son
- * indistinguibles por fecha sola. Las fotos ordenan por `creadoEn` —el
- * momento real en que se subieron— para que "antes y después" (y la galería
- * de cada evolución) muestren siempre el orden en que se cargaron, no un
- * orden físico de fila que Postgres no garantiza sin ORDER BY.
- */
-const INCLUIR = {
-  archivos: { orderBy: { creadoEn: "asc" } },
-} satisfies Prisma.EvolucionInclude;
-
 /** Implementación con Prisma del repositorio de Evoluciones de control. */
 export class PrismaRepositorioEvolucion
   extends RepositorioPrismaBase<EvolucionFila, Evolucion>
@@ -40,9 +24,8 @@ export class PrismaRepositorioEvolucion
         nutricionistaId: inquilinoActual(),
         ...escribibles(evolucion),
       },
-      include: INCLUIR,
     });
-    return mapearEvolucionConFotos(fila);
+    return mapearEvolucion(fila);
   }
 
   async actualizar(evolucion: Evolucion): Promise<Evolucion> {
@@ -54,9 +37,8 @@ export class PrismaRepositorioEvolucion
     const fila = await this.prisma.evolucion.update({
       where: { id: evolucion.id },
       data: cambios,
-      include: INCLUIR,
     });
-    return mapearEvolucionConFotos(fila);
+    return mapearEvolucion(fila);
   }
 
   /**
@@ -68,9 +50,8 @@ export class PrismaRepositorioEvolucion
     const filas = await this.prisma.evolucion.findMany({
       where: { pacienteId },
       orderBy: [{ fecha: "desc" }, { creadoEn: "desc" }],
-      include: INCLUIR,
     });
-    return filas.map(mapearEvolucionConFotos);
+    return filas.map(mapearEvolucion);
   }
 
   async existeEnFecha(
@@ -135,24 +116,8 @@ export function mapearEvolucion(fila: EvolucionFila): Evolucion {
     indispuesta: fila.indispuesta,
     sePercibe: fila.sePercibe,
     camposPersonalizados: leerCamposPersonalizados(fila.camposPersonalizados),
-    // Sin `include: { archivos: true }` (el `mapear` genérico de la base) no
-    // hay cómo saber las fotos: se listan aparte cuando hacen falta.
-    fotos: [],
     creadoEn: fila.creadoEn,
     actualizadoEn: fila.actualizadoEn,
-  });
-}
-
-/** Igual que `mapearEvolucion`, más las fotos ya incluidas en la consulta. */
-function mapearEvolucionConFotos(fila: EvolucionConFotos): Evolucion {
-  const evolucion = mapearEvolucion(fila);
-  return Evolucion.reconstruir({
-    ...evolucion.aPrimitivos(),
-    fotos: fila.archivos.map((archivo) => ({
-      id: archivo.id,
-      nombreOriginal: archivo.nombreOriginal,
-      mimeType: archivo.mimeType,
-    })),
   });
 }
 

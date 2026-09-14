@@ -11,6 +11,12 @@ export interface DatosSubida {
   categoria?: string;
   /** Vincula el archivo directamente a un paciente (ficha → Archivos). */
   pacienteId?: string;
+  /**
+   * Qué día muestra la foto (contexto `progreso`), como "2026-03-10". No es
+   * cuándo se sube: una foto de hace seis meses se carga hoy y va en su lugar
+   * de la línea de tiempo de "antes y después".
+   */
+  fechaProgreso?: string;
 }
 
 /**
@@ -32,6 +38,8 @@ export function useSubirArchivo() {
       if (datos.titulo) formulario.append("titulo", datos.titulo);
       if (datos.categoria) formulario.append("categoria", datos.categoria);
       if (datos.pacienteId) formulario.append("pacienteId", datos.pacienteId);
+      if (datos.fechaProgreso)
+        formulario.append("fechaProgreso", datos.fechaProgreso);
 
       const respuesta = await fetch("/api/archivos", {
         method: "POST",

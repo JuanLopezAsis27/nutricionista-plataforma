@@ -1,7 +1,7 @@
 "use client";
 
-import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { avisarError } from "@/lib/errores";
 
 /**
  * Encapsula el Centro de Notificaciones del nutricionista: un único feed con
@@ -21,7 +21,7 @@ export function useNotificaciones() {
    */
   const marcarVista = trpc.notificaciones.marcarVista.useMutation({
     onSuccess: () => void utils.notificaciones.centro.invalidate(),
-    onError: (error) => toast.error(error.message),
+    onError: (error) => avisarError(error),
   });
 
   return {

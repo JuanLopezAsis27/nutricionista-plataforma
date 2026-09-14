@@ -7,6 +7,7 @@ import { ErrorDominio } from "@/dominio/errores/ErrorDominio";
 import { monitorErrores } from "@/infraestructura/monitoreo/monitor";
 import { traducirErrorPrisma } from "@/infraestructura/persistencia/erroresPrisma";
 import { MAPA_CODIGOS_TRPC } from "./mapaCodigos";
+import { mensajeDesdeZod } from "./mensajeZod";
 
 /**
  * Inicialización de tRPC con el contexto de la aplicación.
@@ -51,9 +52,12 @@ const t = initTRPC.context<Contexto>().create({
  * Hace tres cosas, en este orden:
  *   1. ErrorDominio  → TRPCError con el código semántico correcto. El original
  *      queda como `cause`, que es lo que lee el errorFormatter.
- *   2. TRPCError con código propio → pasa tal cual: es flujo esperado (401/403
- *      de los procedimientos, BAD_REQUEST de la validación Zod del input).
- *   3. Cualquier otro error → se reporta al monitor y se reemplaza por un
+ *   2. ZodError (la validación del input) → BAD_REQUEST con el problema dicho
+ *      en castellano. Sin esto el `message` es el `JSON.stringify` de los
+ *      issues, que es lo que el usuario terminaba leyendo en un toast.
+ *   3. TRPCError con código propio → pasa tal cual: es flujo esperado (401/403
+ *      de los procedimientos).
+ *   4. Cualquier otro error → se reporta al monitor y se reemplaza por un
  *      INTERNAL_SERVER_ERROR con un mensaje genérico. El mensaje explícito es
  *      la parte que sanea: sin él tRPC usa el de la `cause` y filtra el detalle
  *      interno al cliente.
@@ -74,9 +78,21 @@ const traducirErroresDominio = t.middleware(async ({ next, path, ctx }) => {
     });
   }
 
+  // El input no pasó el esquema. tRPC ya puso el BAD_REQUEST, pero su mensaje
+  // es el JSON crudo de los issues: acá se reemplaza por la frase legible. El
+  // `cause` se conserva porque es lo que lee el errorFormatter para mandar
+  // `zodError` al cliente (los formularios lo usan para marcar cada campo).
+  if (original instanceof ZodError) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: mensajeDesdeZod(original),
+      cause: original,
+    });
+  }
+
   // Un código distinto de INTERNAL_SERVER_ERROR solo aparece cuando alguien lo
-  // eligió: los TRPCError de los procedimientos y el BAD_REQUEST que tRPC pone
-  // a la validación Zod. Eso es flujo esperado y no se toca.
+  // eligió: los TRPCError de los procedimientos. Eso es flujo esperado y no se
+  // toca.
   if (error.code !== "INTERNAL_SERVER_ERROR") {
     return resultado;
   }
