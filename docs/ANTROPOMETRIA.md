@@ -262,6 +262,23 @@ exige y una columna con dos pliegues sueltos no se puede registrar. Las que no
 tienen fecha sí llegan a la revisión, desmarcadas, para que el profesional la
 complete.
 
+## Qué índices se muestran, y cuáles no
+
+La tarjeta «Índices» (`TarjetaIndices`) y su gemela del PDF
+(`DashboardComposicionPdf`) muestran los mismos y **en el mismo orden**: IMC,
+cintura/cadera con su riesgo, Σ de pliegues, músculo/óseo y adiposo/muscular.
+
+`calcularIndices` computa además **índice córmico**, **superficie corporal**
+(Du Bois) e **índice muscular/lastre**, que salieron de las dos vistas porque
+no se usan en la consulta: ninguno cambia una conducta ni entra en un objetivo,
+y en una tarjeta que se lee de un vistazo cada fila de más cuesta.
+
+Siguen calculándose —son baratos, están cubiertos por tests y el cálculo es la
+referencia contra la planilla del profesional—: lo que se sacó es la fila de la
+pantalla y la del PDF. Volver a mostrarlos es agregar una `Fila` en cada uno de
+los dos archivos; sacar solo uno de los dos deja la pantalla y el PDF diciendo
+cosas distintas de la misma medición.
+
 ## Layout del dashboard
 
 El perfil Phantom crece con la cantidad de medidas cargadas y con el ISAK
