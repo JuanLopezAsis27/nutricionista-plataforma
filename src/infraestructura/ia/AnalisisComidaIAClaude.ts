@@ -6,6 +6,8 @@ import type {
 import type { IResolvedorConfigIA } from "./ResolvedorConfigIA";
 import type { BloqueUsuario, IProveedorLLM } from "./IProveedorLLM";
 import { comoErrorIA } from "@/dominio/errores/ErrorIA";
+import type { IPromptsIA } from "@/dominio/servicios/promptsIA";
+import { PromptsIAPorDefecto } from "@/dominio/servicios/promptsIA";
 
 const NOTA_IA =
   "Estimación aproximada con IA a partir de la foto. Ante dudas, confirmá con tu nutricionista.";
@@ -42,14 +44,6 @@ const ESQUEMA_COMIDA = {
   ],
 };
 
-const SYSTEM_VISION = [
-  "Estimás los datos nutricionales de una comida a partir de una foto y/o una descripción.",
-  "Devolvés SOLO el JSON pedido: una descripción breve de la comida, la porción estimada y",
-  "los macros (calorías, proteínas, carbohidratos y grasas en gramos) de la porción visible.",
-  "Sé honesto con la confianza (0 a 1): más baja si la foto es ambigua o falta información.",
-  "Es una estimación aproximada, no un valor exacto. Respondé en español.",
-].join(" ");
-
 /**
  * Adaptador de análisis de foto de comida con IA (visión). Descarga la imagen
  * del bucket, la envía al modelo (Claude u OpenRouter) junto con la descripción
@@ -68,6 +62,7 @@ export class AnalisisComidaIAClaude implements IAnalisisComidaIA {
     private readonly resolver: IResolvedorConfigIA,
     private readonly almacenamiento: IAlmacenamientoArchivos,
     private readonly respaldo: IAnalisisComidaIA,
+    private readonly prompts: IPromptsIA = new PromptsIAPorDefecto(),
   ) {}
 
   async analizar(entrada: {
@@ -100,7 +95,7 @@ export class AnalisisComidaIAClaude implements IAnalisisComidaIA {
     usuario.push({ tipo: "texto", texto: instruccion(entrada.descripcion) });
 
     const texto = await llm.completar({
-      system: SYSTEM_VISION,
+      system: await this.prompts.obtener("ANALISIS_COMIDA"),
       usuario,
       maxTokens: 1024,
       esquemaJson: { nombre: "comida", esquema: ESQUEMA_COMIDA },

@@ -24,6 +24,7 @@ import { routerAxiomas } from "./routers/axiomas";
 import { routerTracking } from "./routers/tracking";
 import { routerMetricas } from "./routers/metricas";
 import { routerCredenciales } from "./routers/credenciales";
+import { routerPromptsIA } from "./routers/promptsIA";
 import { routerSuperAdmin } from "./routers/superadmin";
 import { routerIntegraciones } from "./routers/integraciones";
 import { routerIA } from "./routers/ia";
@@ -63,6 +64,7 @@ export const routerApp = crearRouter({
   tracking: routerTracking,
   metricas: routerMetricas,
   credenciales: routerCredenciales,
+  promptsIA: routerPromptsIA,
   superadmin: routerSuperAdmin,
   integraciones: routerIntegraciones,
   ia: routerIA,

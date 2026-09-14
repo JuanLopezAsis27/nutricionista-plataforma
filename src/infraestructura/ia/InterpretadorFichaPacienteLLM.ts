@@ -24,6 +24,8 @@ import { SEXOS_BIOLOGICOS } from "@/dominio/servicios/composicionCorporal";
 import { derivarClave } from "@/dominio/servicios/claveCampo";
 import type { IResolvedorConfigIA } from "./ResolvedorConfigIA";
 import { leerDocumentoParaLLM } from "./documentoParaLLM";
+import type { IPromptsIA } from "@/dominio/servicios/promptsIA";
+import { PromptsIAPorDefecto } from "@/dominio/servicios/promptsIA";
 
 const CAMPOS_HISTORIA = [
   "motivoConsulta",
@@ -157,47 +159,34 @@ function esquemaFicha(
   };
 }
 
-function construirSystem(campos: CampoPersonalizadoPedido[]): string {
-  const extra =
-    campos.length > 0
-      ? "\n\nEl consultorio ademas sigue estos campos propios. Completá «camposPersonalizados» usando EXACTAMENTE estas claves:\n" +
-        campos
-          .map(
-            (campo) =>
-              `- ${campo.clave}: ${campo.etiqueta}` +
-              (campo.descripcion ? ` (${campo.descripcion})` : ""),
-          )
-          .join("\n")
-      : "\n\nEl consultorio no tiene campos propios definidos: devolvé «camposPersonalizados» como objeto vacío.";
-
-  const medidas = CAMPOS_PLANTILLA.map(
-    (campo) => `${campo} (${ETIQUETAS_CAMPO_PLANTILLA[campo]})`,
-  ).join(", ");
-
-  return `Sos el asistente de un consultorio de nutrición. Recibís la ficha de un paciente (una planilla, una historia clínica, un informe: escaneada, en PDF o el texto de un Word) y extraés TODOS los datos que estén escritos ahí, para dar de alta al paciente sin tipearlo a mano.
-
-Reglas:
-1. NO inventes NADA. Si un dato no está en el documento, devolvé null (o una lista vacía). Es una ficha clínica: un dato inventado termina en la historia de una persona real.
-2. No diagnostiques ni interpretes: transcribí y ordená lo que ya está escrito.
-3. Fechas SIEMPRE en formato ISO YYYY-MM-DD. Si solo hay año, o la fecha es ilegible, devolvé null. Ojo con el formato del documento: en español la fecha se escribe DÍA/MES/AÑO, así que 03/11/1985 es el 1985-11-03, no el 1985-03-11.
-4. Medidas antropométricas en sus unidades: peso en kg, tallas y perímetros en cm, pliegues en mm. Si el documento usa otra unidad, convertila. Si no hay peso, devolvé antropometria en null: sin peso no hay medición.
-5. Las alertas son SOLO alergias, intolerancias y restricciones alimentarias. tipo: ALERGIA, INTOLERANCIA o RESTRICCION. severidad: LEVE, MODERADA o SEVERA (si no está indicada, poné MODERADA).
-6. Los laboratorios son estudios de análisis mencionados en el documento: un título corto y, en notas, los valores que figuren.
-7. El email tiene que estar escrito literalmente en el documento. NUNCA lo deduzcas del nombre.
-8. Respondé en español.
-
-NOMBRE Y APELLIDO van SEPARADOS, y la ficha casi nunca los separa por vos:
-- "Apellido y Nombre: Pérez Gómez, Ana María" → apellido "Pérez Gómez", nombre "Ana María". Lo que va antes de la coma es el APELLIDO.
-- Cuando el rótulo dice "Apellido y Nombre" o "Apellido, Nombre" y no hay coma, el apellido va PRIMERO: "Pérez Gómez Ana María" → apellido "Pérez Gómez", nombre "Ana María".
-- Cuando el rótulo dice solo "Nombre", "Paciente" o "Nombre completo", el orden habitual es nombre primero: "Ana María Pérez Gómez" → nombre "Ana María", apellido "Pérez Gómez".
-- Si hay campos separados ("Nombre:" y "Apellido:"), respetalos tal cual y no reordenes nada.
-- Nunca dejes el nombre completo en un solo campo con el otro en null: si solo hay una palabra, va en nombre y apellido queda null.
-
-SEXO: devolvé exactamente MASCULINO o FEMENINO. La ficha lo escribe de muchas formas y TODAS estas cuentan: "M", "Masc", "Masculino", "Varón", "Hombre", "H" → MASCULINO; "F", "Fem", "Femenino", "Mujer" → FEMENINO. Si no figura, o dice otra cosa, devolvé null.
-
-OTROS DATOS: todo lo demás que la ficha traiga sobre el paciente y no entre en ninguno de los campos de arriba va en "otrosDatos", como pares de etiqueta y valor. Por ejemplo: obra social, número de afiliado, DNI, ocupación, domicilio, teléfono alternativo, contacto de emergencia, objetivo del tratamiento, cómo llegó al consultorio, o cualquier rótulo propio de esa planilla. Usá como etiqueta el rótulo tal como aparece en el documento. Es preferible que un dato caiga acá a que se pierda: no descartes nada que esté escrito en la ficha.
-
-Las medidas antropométricas que se pueden leer son: ${medidas}.${extra}`;
+/**
+ * Los datos que la app inyecta en el system prompt de esta lectura: la lista de
+ * medidas que sabe guardar y los campos propios del consultorio.
+ *
+ * Se derivan del código y no se escriben en el prompt para que el día que se
+ * sume una medida al modelo, o el profesional dé de alta un campo nuevo, la
+ * extracción no se quede sin ellos en silencio. El texto alrededor sí es
+ * editable desde Integraciones → IA.
+ */
+function variablesDeFicha(
+  campos: CampoPersonalizadoPedido[],
+): Record<string, string> {
+  return {
+    medidas: CAMPOS_PLANTILLA.map(
+      (campo) => `${campo} (${ETIQUETAS_CAMPO_PLANTILLA[campo]})`,
+    ).join(", "),
+    camposPersonalizados:
+      campos.length > 0
+        ? "\n\nEl consultorio ademas sigue estos campos propios. Completá «camposPersonalizados» usando EXACTAMENTE estas claves:\n" +
+          campos
+            .map(
+              (campo) =>
+                `- ${campo.clave}: ${campo.etiqueta}` +
+                (campo.descripcion ? ` (${campo.descripcion})` : ""),
+            )
+            .join("\n")
+        : "\n\nEl consultorio no tiene campos propios definidos: devolvé «camposPersonalizados» como objeto vacío.",
+  };
 }
 
 /**
@@ -213,6 +202,7 @@ export class InterpretadorFichaPacienteLLM implements IInterpretadorFichaPacient
   constructor(
     private readonly resolvedor: IResolvedorConfigIA,
     private readonly almacenamiento: IAlmacenamientoArchivos,
+    private readonly prompts: IPromptsIA = new PromptsIAPorDefecto(),
   ) {}
 
   async interpretar(
@@ -232,7 +222,10 @@ export class InterpretadorFichaPacienteLLM implements IInterpretadorFichaPacient
     );
 
     const texto = await llm.completar({
-      system: construirSystem(camposPersonalizados),
+      system: await this.prompts.obtener(
+        "FICHA_PACIENTE",
+        variablesDeFicha(camposPersonalizados),
+      ),
       usuario: [
         bloqueArchivo,
         {

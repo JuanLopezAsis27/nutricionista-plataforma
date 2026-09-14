@@ -11,6 +11,8 @@ import {
 import { comoErrorIA } from "@/dominio/errores/ErrorIA";
 import type { IResolvedorConfigIA } from "./ResolvedorConfigIA";
 import { leerDocumentoParaLLM } from "./documentoParaLLM";
+import type { IPromptsIA } from "@/dominio/servicios/promptsIA";
+import { PromptsIAPorDefecto } from "@/dominio/servicios/promptsIA";
 
 const numeroONulo = { type: ["number", "null"] };
 const textoONulo = { type: ["string", "null"] };
@@ -54,38 +56,21 @@ const ESQUEMA_MEDICIONES = {
   },
 };
 
-function construirSystem(hoy: string): string {
-  const medidas = CAMPOS_PLANTILLA.map(
-    (campo) => `${campo} (${ETIQUETAS_CAMPO_PLANTILLA[campo]})`,
-  ).join(", ");
-
-  return `Sos el asistente de un consultorio de nutrición. Recibís la planilla de evolución de UN paciente y extraés TODAS las mediciones antropométricas que estén cargadas ahí, una por consulta, para importarlas sin tipearlas a mano.
-
-Hoy es ${hoy}.
-
-CÓMO ESTÁ ARMADA LA PLANILLA. Casi siempre es una tabla donde cada COLUMNA es una consulta (encabezada por su fecha) y cada FILA es una medida (peso, cintura, un pliegue). Puede venir al revés —una fila por consulta y una columna por medida—: mirá dónde están las fechas para saber cuál de las dos es. Devolvé UN objeto por consulta, con todas las medidas de esa columna (o fila) juntas.
-
-PROFORMA DE UNA SOLA TOMA. La otra forma habitual es la proforma de antropometría (la hoja "Proc datos brutos"): una FILA por medida, con columnas "serie 1", "serie 2"… y una "mediana". Ahí las series son repeticiones de la MISMA medida en la MISMA consulta, no consultas distintas: es UNA sola medición, con la fecha que figure junto a "Fecha:" y el nombre junto a "Nombre:". El valor de cada medida es el de la columna "mediana"; si la mediana está vacía y hay una sola serie cargada, usá esa serie. Ignorá "desvio std" y "error %". El subtítulo de la sección (DIÁMETROS, PERÍMETROS, PLIEGUES CUTÁNEOS) define qué es cada fila, porque hay nombres repetidos: "Pantorrilla (máxima)" es circPantorrilla en perímetros y plieguePantorrilla en pliegues; "Muslo (medial)" de perímetros es circMusloMedial y "Muslo Medial" de pliegues es pliegueMuslo. "Peso Bruto" es pesoKg y "Brazo Flexionado en Tensión" es circBrazoContraido.
-
-Reglas:
-1. NO inventes NADA. Si una medida no está cargada para esa consulta, devolvé null. Es una planilla clínica: un número inventado termina en el historial de una persona real.
-2. NO calcules ni completes nada: no interpoles entre dos consultas, no promedies, no arrastres el valor de la consulta anterior a una columna vacía. Copiá solo lo que está escrito.
-3. Fechas SIEMPRE en formato ISO YYYY-MM-DD. En español se escribe DÍA/MES/AÑO, así que 03/11/2024 es el 2024-11-03. Si una columna no tiene fecha legible, devolvé fecha null igual (el profesional la completa); no la inventes ni la deduzcas de las otras.
-4. Unidades: peso en kg, tallas / perímetros / diámetros en cm, pliegues en mm, kgGrasa y fuerza de presión (dinamometría manual) en kg. Si la planilla usa otra unidad, convertila.
-5. HAY VALORES QUE NO SE IMPORTAN porque el sistema los recalcula solo: la sumatoria de pliegues, los kg bajados (contra la consulta anterior o acumulados), el porcentaje de grasa, el IMC y cualquier otro derivado. Ignorá esas filas. Las excepciones son kgGrasa, fuerzaPresionDerecha y fuerzaPresionIzquierda, que sí se guardan cuando la planilla las trae.
-6. Una medida que la planilla anota UNA sola vez para todo el paciente —típicamente la talla— va repetida en TODAS las mediciones: es la misma persona.
-7. Si una columna no tiene peso, devolvela igual con pesoKg null; no la descartes por tu cuenta.
-8. Ordená las mediciones por fecha, de la más vieja a la más nueva.
-9. En "observaciones" va SOLO lo que la planilla anote por escrito para esa consulta (un comentario, una aclaración). Si no hay nada, null.
-10. En "nombreEnPlanilla" va el nombre del paciente tal como figura en la planilla, si figura. Si no, null. Respondé en español.
-
-CUIDADO CON LOS NOMBRES PARECIDOS, que son los que se confunden:
-- "Cintura mínima" y "cintura máxima" son perímetros DISTINTOS. Si la planilla dice solo "cintura", va en circCinturaMinima.
-- "Brazo" es circBrazo (relajado); "brazo contraído" o "flexionado" es circBrazoContraido.
-- Las filas que empiezan con "P" suelen ser PLIEGUES (mm) y las que empiezan con "C", CIRCUNFERENCIAS (cm). La planilla puede aclararlo en una referencia al pie: leela.
-- "Tórax" como perímetro es circTorax; como diámetro es diamToraxTransverso o diamToraxAnteroposterior.
-
-Las medidas que se pueden importar son: ${medidas}. Además: pesoKg (peso en kg), kgGrasa (kg de grasa que anote la planilla), fuerzaPresionDerecha y fuerzaPresionIzquierda (dinamometría manual, en kg).`;
+/**
+ * Los datos que la app inyecta en el system prompt de esta lectura: la fecha de
+ * hoy y la lista de medidas que sabe importar.
+ *
+ * La lista se deriva de `CAMPOS_PLANTILLA` en vez de ir escrita en el prompt
+ * para que el día que se sume una medida al modelo, esta importación no se
+ * quede sin ella. El texto alrededor sí es editable desde Integraciones → IA.
+ */
+function variablesDeMediciones(hoy: string): Record<string, string> {
+  return {
+    hoy,
+    medidas: CAMPOS_PLANTILLA.map(
+      (campo) => `${campo} (${ETIQUETAS_CAMPO_PLANTILLA[campo]})`,
+    ).join(", "),
+  };
 }
 
 /**
@@ -99,6 +84,7 @@ export class InterpretadorMedicionesLLM implements IInterpretadorMediciones {
   constructor(
     private readonly resolvedor: IResolvedorConfigIA,
     private readonly almacenamiento: IAlmacenamientoArchivos,
+    private readonly prompts: IPromptsIA = new PromptsIAPorDefecto(),
   ) {}
 
   async interpretar(archivo: {
@@ -133,7 +119,10 @@ export class InterpretadorMedicionesLLM implements IInterpretadorMediciones {
     );
 
     const texto = await llm.completar({
-      system: construirSystem(new Date().toISOString().slice(0, 10)),
+      system: await this.prompts.obtener(
+        "MEDICIONES",
+        variablesDeMediciones(new Date().toISOString().slice(0, 10)),
+      ),
       usuario: [
         bloqueArchivo,
         {
