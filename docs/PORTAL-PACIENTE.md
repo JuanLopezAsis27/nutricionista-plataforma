@@ -121,6 +121,17 @@ que hace fácil perder lo escrito, así que el botón **avisa cuándo hay algo s
 guardar** y se apaga cuando no: es el único lugar del portal donde escribir no
 alcanza.
 
+### La foto de la comida es una forma de cargarla, no un adorno
+
+Una comida se puede guardar **solo con la foto** —la IA la describe (ver
+`docs/DASHBOARD.md`)—, así que en el formulario de carga el botón de la cámara
+es una de las dos entradas principales, no un retoque. Ahí va grande y con
+rótulo, del ancho de la pantalla en el teléfono: como ícono fantasma del tamaño
+del de borrar, en un celular directamente no se veía.
+
+El mismo botón, en una comida YA guardada, sigue siendo chico: ahí sí es un
+retoque y convive con el de borrar (`BotonFotoComida`, prop `grande`).
+
 ## La curva de peso muestra una fuente por vez
 
 `SeccionTracking` es la misma pieza en el portal y en la ficha del profesional,
