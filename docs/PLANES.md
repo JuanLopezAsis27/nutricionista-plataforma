@@ -139,6 +139,13 @@ la rama PDF/Word, pero el dominio no las prohíbe en la otra). En la vista del
 plan salen en una tarjeta propia, debajo del visor o de las franjas, como el
 material adjunto: acompañan al plan, no lo reemplazan.
 
+Cada una **lleva a la receta**: a `/dashboard/recetas/[id]` desde la ficha del
+plan y desde la pestaña "Plan actual" del paciente, y a `/mis-recetas/[id]`
+desde «Mi plan». Antes era el nombre en texto plano de este lado y un diálogo
+del otro, así que para ver la receta de un plan había que ir al recetario a
+buscarla a mano. `onVerReceta` sigue siendo opcional —sin él la receta es solo
+texto— y quien la pasa decide a dónde lleva.
+
 `SincronizarRecetasDePlan` las suma a las de las opciones al calcular qué
 recetas le llegan a quien sigue el plan hoy: es el único camino para que un
 plan PDF comparta recetas con el paciente en absoluto.
