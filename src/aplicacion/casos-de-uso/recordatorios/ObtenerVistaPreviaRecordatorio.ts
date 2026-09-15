@@ -4,11 +4,14 @@ import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfigur
 import type { IPlantillaWhatsappRepositorio } from "@/dominio/repositorios/IPlantillaWhatsappRepositorio";
 import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstablecimientoRepositorio";
 import type { IProveedorWhatsapp } from "@/dominio/servicios/IProveedorWhatsapp";
+import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
 import { ErrorTurnoNoEncontrado } from "@/dominio/errores/ErrorTurnoNoEncontrado";
 import { ErrorPacienteNoEncontrado } from "@/dominio/errores/ErrorPacienteNoEncontrado";
 import { ErrorPlantillaWhatsappNoEncontrada } from "@/dominio/errores/ErrorPlantillaWhatsappNoEncontrada";
 import { armarRecordatorio } from "./armadoRecordatorio";
+
+const DIA_MS = 24 * 60 * 60 * 1000;
 
 /** Lo que ve el profesional antes de mandar el recordatorio de un turno. */
 export interface VistaPreviaRecordatorio {
@@ -46,6 +49,7 @@ export class ObtenerVistaPreviaRecordatorio {
     private readonly plantillas: IPlantillaWhatsappRepositorio,
     private readonly proveedor: IProveedorWhatsapp,
     private readonly establecimientos: IEstablecimientoRepositorio,
+    private readonly reloj: IRelojFecha,
   ) {}
 
   async ejecutar(
@@ -60,9 +64,16 @@ export class ObtenerVistaPreviaRecordatorio {
     if (!paciente) {
       throw new ErrorPacienteNoEncontrado(turno.pacienteId);
     }
+    // Sin plantilla elegida a mano, la del día que realmente falta gana sobre
+    // la predeterminada —el mismo criterio que usa el envío, para que la
+    // vista previa muestre EXACTAMENTE lo que después sale—.
+    const diasFaltantes = Math.round(
+      (turno.fecha.getTime() - this.reloj.hoy().getTime()) / DIA_MS,
+    );
     const plantilla = plantillaId
       ? await this.plantillas.obtenerPorId(plantillaId)
-      : await this.plantillas.obtenerPredeterminada();
+      : ((await this.plantillas.obtenerPorDia(diasFaltantes)) ??
+        (await this.plantillas.obtenerPredeterminada()));
     if (!plantilla) {
       throw new ErrorPlantillaWhatsappNoEncontrada(
         plantillaId ?? "predeterminada",

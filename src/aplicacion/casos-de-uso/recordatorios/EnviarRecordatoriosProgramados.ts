@@ -154,6 +154,17 @@ export class EnviarRecordatoriosProgramados {
     const fechas = escalones.map(
       (dias) => new Date(hoy.getTime() + dias * DIA_MS),
     );
+    // Plantilla propia por escalón, si hay una; la predeterminada es el
+    // fallback de los días sin texto asignado.
+    const plantillasPorDia = new Map(
+      await Promise.all(
+        escalones.map(
+          async (dias) =>
+            [dias, await this.plantillas.obtenerPorDia(dias)] as const,
+        ),
+      ),
+    );
+
     const turnos = await this.turnos.listarEntreFechas(
       fechas.reduce((a, b) => (a <= b ? a : b)),
       fechas.reduce((a, b) => (a >= b ? a : b)),
@@ -190,6 +201,8 @@ export class EnviarRecordatoriosProgramados {
     let fallidos = 0;
 
     for (const dias of escalones) {
+      // El texto propio del escalón, si tiene uno asignado; si no, el general.
+      const plantillaDelDia = plantillasPorDia.get(dias) ?? plantilla;
       const objetivo = new Date(hoy.getTime() + dias * DIA_MS).getTime();
       for (const turno of turnos.filter((t) => mismaFecha(t, objetivo))) {
         if (!cachePacientes.has(turno.pacienteId)) {
@@ -207,7 +220,7 @@ export class EnviarRecordatoriosProgramados {
         const resultado = await this.enviarUno.ejecutar({
           turno,
           paciente,
-          plantilla,
+          plantilla: plantillaDelDia,
           configuracion: config,
           establecimiento: sedes.get(turno.establecimientoId) ?? null,
           diasAntes: dias,

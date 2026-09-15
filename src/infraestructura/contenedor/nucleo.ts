@@ -58,6 +58,7 @@ import { PrismaRepositorioNutricionista } from "@/infraestructura/repositorios/P
 import { PrismaRepositorioRecordatorioWhatsapp } from "@/infraestructura/repositorios/PrismaRepositorioRecordatorioWhatsapp";
 import { PrismaRepositorioMensajeWhatsapp } from "@/infraestructura/repositorios/PrismaRepositorioMensajeWhatsapp";
 import { PrismaRepositorioPlantillaWhatsapp } from "@/infraestructura/repositorios/PrismaRepositorioPlantillaWhatsapp";
+import { PrismaRepositorioPlantillaEmailRecordatorio } from "@/infraestructura/repositorios/PrismaRepositorioPlantillaEmailRecordatorio";
 import { PrismaRepositorioConfiguracionRecordatorios } from "@/infraestructura/repositorios/PrismaRepositorioConfiguracionRecordatorios";
 import { PrismaRepositorioAxioma } from "@/infraestructura/repositorios/PrismaRepositorioAxioma";
 import { PrismaRepositorioMetricaDispositivo } from "@/infraestructura/repositorios/PrismaRepositorioMetricaDispositivo";
@@ -292,6 +293,9 @@ export const repositorioMensajeWhatsapp = perezoso(
 );
 export const repositorioPlantillaWhatsapp = perezoso(
   () => new PrismaRepositorioPlantillaWhatsapp(prisma()),
+);
+export const repositorioPlantillaEmailRecordatorio = perezoso(
+  () => new PrismaRepositorioPlantillaEmailRecordatorio(prisma()),
 );
 export const repositorioConfiguracionRecordatorios = perezoso(
   () => new PrismaRepositorioConfiguracionRecordatorios(prisma()),
@@ -582,6 +586,7 @@ export const provisionadorNutricionista = perezoso(
       repositorioPlantillaEmail(),
       repositorioAxioma(),
       repositorioPlantillaWhatsapp(),
+      repositorioPlantillaEmailRecordatorio(),
       repositorioConfiguracionRecordatorios(),
     ),
 );

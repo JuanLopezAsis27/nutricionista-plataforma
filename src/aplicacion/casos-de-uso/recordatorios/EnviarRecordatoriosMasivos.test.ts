@@ -18,12 +18,12 @@ import {
   pacienteEjemplo,
   plantillaWhatsappEjemplo,
   configuracionRecordatoriosEjemplo,
-  mockPlantillaEmailRepositorio,
+  mockPlantillaEmailRecordatorioRepositorio,
   mockEmailEnviadoRepositorio,
   mockServicioEmail,
   mockEnlaceConfirmacionTurno,
   mockReloj,
-  plantillaEmailEjemplo,
+  plantillaEmailRecordatorioEjemplo,
 } from "../_ayudas-test";
 
 function armar(
@@ -32,6 +32,10 @@ function armar(
     paciente?: ReturnType<typeof pacienteEjemplo> | null;
     existentes?: Map<string, RecordatorioWhatsapp[]>;
     plantilla?: ReturnType<typeof plantillaWhatsappEjemplo> | null;
+    plantillaPorDia?: (
+      dias: number,
+    ) => ReturnType<typeof plantillaWhatsappEjemplo> | null;
+    plantillaPorId?: ReturnType<typeof plantillaWhatsappEjemplo> | null;
     whatsappActivo?: boolean;
     emailActivo?: boolean;
   } = {},
@@ -39,8 +43,10 @@ function armar(
   const turnos = opciones.turnos ?? { "tur-1": turnoEjemplo({}, "tur-1") };
   const enviarEmail = vi.fn(async () => {});
   const emailPorTurno = new EnviarRecordatoriosPorEmail(
-    mockPlantillaEmailRepositorio({
-      obtenerPorClave: vi.fn(async () => plantillaEmailEjemplo()),
+    mockPlantillaEmailRecordatorioRepositorio({
+      obtenerPredeterminada: vi.fn(async () =>
+        plantillaEmailRecordatorioEjemplo(),
+      ),
     }),
     mockEmailEnviadoRepositorio(),
     mockTurnoRepositorio(),
@@ -78,6 +84,10 @@ function armar(
           ? plantillaWhatsappEjemplo()
           : opciones.plantilla,
       ),
+      obtenerPorDia: vi.fn(async (dias: number) =>
+        opciones.plantillaPorDia ? opciones.plantillaPorDia(dias) : null,
+      ),
+      obtenerPorId: vi.fn(async () => opciones.plantillaPorId ?? null),
     }),
     mockConfiguracionRecordatoriosRepositorio({
       obtener: vi.fn(async () =>
@@ -91,6 +101,7 @@ function armar(
     new EnviarRecordatorioWhatsapp(recordatorios, proveedor),
     emailPorTurno,
     mockEstablecimientoRepositorio(),
+    mockReloj(),
   );
   return { caso, recordatorios, proveedor, enviarEmail };
 }
@@ -218,6 +229,75 @@ describe("EnviarRecordatoriosMasivos", () => {
 
     expect(enviarEmail).toHaveBeenCalledTimes(2);
     expect(resultado.emailsEnviados).toBe(2);
+  });
+
+  // El bug reportado: mandar desde "Enviar recordatorios" no respetaba las
+  // plantillas asignadas por día, y siempre salía el texto genérico.
+  it("usa la plantilla del día que corresponde, aunque el envío sea manual", async () => {
+    const plantillaGeneral = plantillaWhatsappEjemplo(
+      { cuerpo: "Mensaje general" },
+      "pla-general",
+    );
+    const plantillaDeTresDias = plantillaWhatsappEjemplo(
+      {
+        cuerpo: "Todavía a tiempo, {{paciente}}",
+        diasAntes: 3,
+        predeterminada: false,
+      },
+      "pla-3dias",
+    );
+    // "hoy" del reloj de ejemplo es 2026-07-14; el turno cae 3 días después.
+    const turnoATresDias = turnoEjemplo(
+      { fecha: new Date("2026-07-17") },
+      "tur-1",
+    );
+    const { caso, proveedor } = armar({
+      turnos: { "tur-1": turnoATresDias },
+      plantilla: plantillaGeneral,
+      plantillaPorDia: (dias) => (dias === 3 ? plantillaDeTresDias : null),
+    });
+
+    await caso.ejecutar({ turnoIds: ["tur-1"], usuarioId: "usr-1" });
+
+    expect(proveedor.preparar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        texto: expect.stringContaining("Todavía a tiempo"),
+      }),
+    );
+  });
+
+  // Elegir la plantilla a mano en la consola es una decisión deliberada: no
+  // la puede pisar la que tenga asignado el día.
+  it("una plantilla elegida a mano gana aunque el día tenga una propia", async () => {
+    const elegida = plantillaWhatsappEjemplo(
+      { cuerpo: "Elegida a mano" },
+      "pla-elegida",
+    );
+    const plantillaDeTresDias = plantillaWhatsappEjemplo(
+      { cuerpo: "No debería salir esta", diasAntes: 3 },
+      "pla-3dias",
+    );
+    const turnoATresDias = turnoEjemplo(
+      { fecha: new Date("2026-07-17") },
+      "tur-1",
+    );
+    const { caso, proveedor } = armar({
+      turnos: { "tur-1": turnoATresDias },
+      plantillaPorDia: (dias) => (dias === 3 ? plantillaDeTresDias : null),
+      plantillaPorId: elegida,
+    });
+
+    await caso.ejecutar({
+      turnoIds: ["tur-1"],
+      usuarioId: "usr-1",
+      plantillaId: "pla-elegida",
+    });
+
+    expect(proveedor.preparar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        texto: expect.stringContaining("Elegida a mano"),
+      }),
+    );
   });
 
   it("omite al paciente sin teléfono en vez de cortar el lote", async () => {

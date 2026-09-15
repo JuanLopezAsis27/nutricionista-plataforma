@@ -33,6 +33,9 @@ export const NOMBRE_PLANTILLA_POR_DEFECTO = "Recordatorio de turno";
 /** Meta admite hasta 10 parámetros posicionales en el cuerpo de una plantilla. */
 export const MAX_VARIABLES_META = 10;
 
+/** Anticipación máxima admitida para `diasAntes`, en días (ver ConfiguracionRecordatorios). */
+export const MAX_DIAS_ANTES_PLANTILLA = 60;
+
 /** Campos editables de una plantilla de recordatorio por WhatsApp. */
 export interface DatosPlantillaWhatsapp {
   nombre: string;
@@ -42,6 +45,13 @@ export interface DatosPlantillaWhatsapp {
   idiomaMeta: string;
   /** Placeholders en el ORDEN de los {{1}}, {{2}}… del cuerpo aprobado. */
   variablesMeta: VariableRecordatorio[];
+  /**
+   * Escalón de "días antes" al que corresponde este texto (3, 1, …). null =
+   * sin día asignado: candidata a predeterminada, pero no el texto fijo de
+   * ningún escalón. Asignarla a un día libera ese día de cualquier otra
+   * plantilla que lo tuviera: cada escalón tiene UN texto.
+   */
+  diasAntes: number | null;
   predeterminada: boolean;
   activa: boolean;
 }
@@ -109,6 +119,10 @@ export class PlantillaWhatsapp {
           : this.props.claveMeta,
       idiomaMeta: cambios.idiomaMeta ?? this.props.idiomaMeta,
       variablesMeta: cambios.variablesMeta ?? this.props.variablesMeta,
+      diasAntes:
+        cambios.diasAntes !== undefined
+          ? cambios.diasAntes
+          : this.props.diasAntes,
       predeterminada: cambios.predeterminada ?? this.props.predeterminada,
       activa: cambios.activa ?? this.props.activa,
     });
@@ -126,6 +140,16 @@ export class PlantillaWhatsapp {
     return new PlantillaWhatsapp({
       ...this.props,
       predeterminada: false,
+      actualizadoEn: ahora,
+    });
+  }
+
+  /** Libera su día (al asignárselo a otra plantilla). */
+  liberarDia(ahora: Date = new Date()): PlantillaWhatsapp {
+    if (this.props.diasAntes == null) return this;
+    return new PlantillaWhatsapp({
+      ...this.props,
+      diasAntes: null,
       actualizadoEn: ahora,
     });
   }
@@ -155,6 +179,9 @@ export class PlantillaWhatsapp {
   }
   get variablesMeta(): VariableRecordatorio[] {
     return [...this.props.variablesMeta];
+  }
+  get diasAntes(): number | null {
+    return this.props.diasAntes;
   }
   get activa(): boolean {
     return this.props.activa;
@@ -201,6 +228,16 @@ function validar(d: DatosPlantillaWhatsapp): void {
   if (d.claveMeta != null && !/^[a-z0-9_]{1,512}$/.test(d.claveMeta)) {
     throw new ErrorValidacion(
       "El nombre de la plantilla en Meta solo admite minúsculas, números y guión bajo.",
+    );
+  }
+  if (
+    d.diasAntes != null &&
+    (!Number.isInteger(d.diasAntes) ||
+      d.diasAntes < 0 ||
+      d.diasAntes > MAX_DIAS_ANTES_PLANTILLA)
+  ) {
+    throw new ErrorValidacion(
+      `El día asignado debe ser un entero de 0 a ${MAX_DIAS_ANTES_PLANTILLA}.`,
     );
   }
   if (d.variablesMeta.length > MAX_VARIABLES_META) {

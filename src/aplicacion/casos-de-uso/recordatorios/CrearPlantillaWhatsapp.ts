@@ -2,6 +2,7 @@ import type { IPlantillaWhatsappRepositorio } from "@/dominio/repositorios/IPlan
 import type { DatosPlantillaWhatsapp } from "@/dominio/entidades/PlantillaWhatsapp";
 import { PlantillaWhatsapp } from "@/dominio/entidades/PlantillaWhatsapp";
 import { desmarcarOtrasPredeterminadas } from "./predeterminada";
+import { liberarDiaDeOtras } from "./diaAsignado";
 
 /**
  * Caso de uso: crear una plantilla de recordatorio por WhatsApp.
@@ -21,6 +22,14 @@ export class CrearPlantillaWhatsapp {
 
     if (predeterminada) {
       await desmarcarOtrasPredeterminadas(this.plantillas, existentes, null);
+    }
+    if (datos.diasAntes != null) {
+      await liberarDiaDeOtras(
+        this.plantillas,
+        existentes,
+        datos.diasAntes,
+        null,
+      );
     }
     return this.plantillas.crear(
       PlantillaWhatsapp.crear(

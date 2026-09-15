@@ -132,7 +132,7 @@ export const servicioRecordatorios = perezoso(() =>
     cuentas: nucleo.repositorioCuentaConectada(),
     proveedor: nucleo.proveedorWhatsapp(),
     reloj: nucleo.reloj(),
-    plantillasEmail: nucleo.repositorioPlantillaEmail(),
+    plantillasEmailRecordatorio: nucleo.repositorioPlantillaEmailRecordatorio(),
     emailsEnviados: nucleo.repositorioEmailEnviado(),
     servicioEmail: nucleo.servicioEmail(),
     usuarios: nucleo.repositorioUsuario(),

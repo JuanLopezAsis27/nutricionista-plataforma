@@ -32,6 +32,7 @@ export { ErrorConversacionNoEncontrada } from "./ErrorConversacionNoEncontrada";
 export { ErrorAxiomaNoEncontrado } from "./ErrorAxiomaNoEncontrado";
 export { ErrorRecordatorioNoEncontrado } from "./ErrorRecordatorioNoEncontrado";
 export { ErrorPlantillaWhatsappNoEncontrada } from "./ErrorPlantillaWhatsappNoEncontrada";
+export { ErrorPlantillaEmailRecordatorioNoEncontrada } from "./ErrorPlantillaEmailRecordatorioNoEncontrada";
 export { ErrorTurnoFueraDeAtencion } from "./ErrorTurnoFueraDeAtencion";
 export { ErrorEstablecimientoNoEncontrado } from "./ErrorEstablecimientoNoEncontrado";
 export { ErrorPlanDuplicado } from "./ErrorPlanDuplicado";

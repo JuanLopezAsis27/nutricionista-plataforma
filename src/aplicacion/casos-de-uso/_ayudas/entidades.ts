@@ -91,6 +91,12 @@ import {
   CUERPO_RECORDATORIO_POR_DEFECTO,
 } from "@/dominio/entidades/PlantillaWhatsapp";
 import {
+  PlantillaEmailRecordatorio,
+  type DatosPlantillaEmailRecordatorio,
+  ASUNTO_RECORDATORIO_POR_DEFECTO,
+  CUERPO_RECORDATORIO_EMAIL_POR_DEFECTO,
+} from "@/dominio/entidades/PlantillaEmailRecordatorio";
+import {
   AxiomaNutricional,
   type DatosNuevoAxioma,
 } from "@/dominio/entidades/AxiomaNutricional";
@@ -650,8 +656,29 @@ export function plantillaWhatsappEjemplo(
       claveMeta: null,
       idiomaMeta: "es_AR",
       variablesMeta: ["paciente", "fecha", "hora", "profesional"],
+      diasAntes: null,
       predeterminada: true,
       activa: true,
+      ...cambios,
+    },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function plantillaEmailRecordatorioEjemplo(
+  cambios: Partial<DatosPlantillaEmailRecordatorio> = {},
+  id = "pla-er-1",
+): PlantillaEmailRecordatorio {
+  return PlantillaEmailRecordatorio.crear(
+    {
+      nombre: "Recordatorio de turno",
+      asunto: ASUNTO_RECORDATORIO_POR_DEFECTO,
+      cuerpoHtml: CUERPO_RECORDATORIO_EMAIL_POR_DEFECTO,
+      diasAntes: null,
+      predeterminada: true,
+      activa: true,
+      incluirBotonConfirmacion: true,
       ...cambios,
     },
     id,

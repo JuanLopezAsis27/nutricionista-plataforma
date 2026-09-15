@@ -37,7 +37,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/componentes/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/componentes/ui/select";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
+import { DIAS_OFRECIDOS, etiquetaDiasAntes } from "./ConfiguracionMedios";
+
+/** Valor del selector de día: el Select de shadcn no admite `null` como value. */
+const SIN_DIA = "sin-dia";
 
 /** Plantillas del recordatorio por WhatsApp. */
 export function GestionPlantillas() {
@@ -58,8 +69,10 @@ export function GestionPlantillas() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <p className="max-w-2xl text-sm text-muted-foreground">
-          El texto con el que sale el recordatorio. La plantilla predeterminada
-          es la que usa el envío automático.
+          El texto con el que sale el recordatorio. Cada una puede asignarse a
+          un día de anticipación —para decir algo distinto "3 días antes" que "1
+          día antes"—; la predeterminada es la que usa el envío automático en
+          los días sin una propia, y siempre los envíos manuales.
         </p>
         <Button
           onClick={() => {
@@ -85,6 +98,11 @@ export function GestionPlantillas() {
               <CardHeader className="pb-2">
                 <CardTitle className="flex flex-wrap items-center gap-2 text-base">
                   {plantilla.nombre}
+                  {plantilla.diasAntes != null && (
+                    <Badge variant="secondary">
+                      {etiquetaDiasAntes(plantilla.diasAntes)}
+                    </Badge>
+                  )}
                   {plantilla.predeterminada && (
                     <Badge>
                       <Star className="mr-1 h-3 w-3" /> Predeterminada
@@ -209,6 +227,7 @@ function FormularioPlantillaWhatsapp({
   const [variables, setVariables] = useState<VariableRecordatorio[]>([
     ...VARIABLES_RECORDATORIO,
   ]);
+  const [diasAntes, setDiasAntes] = useState<number | null>(null);
   const [predeterminada, setPredeterminada] = useState(false);
   const [activa, setActiva] = useState(true);
 
@@ -219,6 +238,7 @@ function FormularioPlantillaWhatsapp({
     setClaveMeta(inicial.claveMeta ?? "");
     setIdiomaMeta(inicial.idiomaMeta);
     setVariables(inicial.variablesMeta);
+    setDiasAntes(inicial.diasAntes);
     setPredeterminada(inicial.predeterminada);
     setActiva(inicial.activa);
   }, [inicial]);
@@ -236,6 +256,7 @@ function FormularioPlantillaWhatsapp({
       claveMeta: claveMeta.trim() || null,
       idiomaMeta,
       variablesMeta: variables,
+      diasAntes,
       predeterminada,
       activa,
     };
@@ -364,6 +385,32 @@ function FormularioPlantillaWhatsapp({
             </div>
           </div>
         )}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Día asignado</Label>
+        <Select
+          value={diasAntes == null ? SIN_DIA : String(diasAntes)}
+          onValueChange={(v) => setDiasAntes(v === SIN_DIA ? null : Number(v))}
+        >
+          <SelectTrigger className="w-56">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={SIN_DIA}>
+              Sin día (predeterminada / manual)
+            </SelectItem>
+            {DIAS_OFRECIDOS.map((dias) => (
+              <SelectItem key={dias} value={String(dias)}>
+                {etiquetaDiasAntes(dias)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          El barrido automático usa esta plantilla para ese escalón. Asignarla
+          se la saca a cualquier otra que la tuviera.
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-5">

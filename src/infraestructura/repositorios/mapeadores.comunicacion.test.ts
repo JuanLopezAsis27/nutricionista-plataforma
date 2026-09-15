@@ -205,6 +205,7 @@ describe("mapearPlantillaWhatsapp", () => {
       claveMeta: "recordatorio_24h",
       idiomaMeta: "es_AR",
       variablesMeta: ["nombrePaciente", "fechaTurno"],
+      diasAntes: null,
       predeterminada: true,
       activa: false,
       creadoEn: new Date("2026-01-01T00:00:00.000Z"),

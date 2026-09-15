@@ -94,6 +94,42 @@ pase la zona, y `TZ` en el `.env` no alcanza: afecta a `Date` dentro del
 proceso, no al planificador, que calcula la próxima corrida en la base. Sin eso
 un cron escrito como «las 7 de la mañana» corría a las 4 hora local.
 
+## Un mensaje por escalón, no uno solo para todos
+
+Cada escalón de `whatsappDiasAntes` / `emailDiasAntes` puede tener su propio
+texto. Antes había UN solo mensaje por medio y salía igual sin importar cuántos
+días faltaran; ahora una plantilla se puede etiquetar con un día concreto —"3
+días antes", "1 día antes"— y el barrido usa esa para ese escalón. Sirve para
+decir cosas distintas según la urgencia: "todavía estás a tiempo de
+reprogramar" a los 3 días, "es mañana" al día siguiente.
+
+- **WhatsApp** — Recordatorios → Plantillas → cada plantilla tiene un selector
+  de "Día asignado". Es la misma lista de `PlantillaWhatsapp` que ya existía;
+  se le sumó el campo.
+- **Email** — dejó de ser una plantilla fija (`RECORDATORIO_TURNO`, una fila).
+  Ahora es una lista igual a la de WhatsApp (`PlantillaEmailRecordatorio`),
+  editable en la misma pestaña.
+
+**La predeterminada es el fallback**, no una plantilla más: el escalón que NO
+tiene una propia usa la predeterminada. Por eso sigue habiendo exactamente una
+por medio y no se puede borrar (hay que marcar otra primero, igual que antes).
+
+**El envío MANUAL también respeta el día**, aunque no corresponda a ningún
+escalón programado: si el turno cae justo a "3 días" y hay una plantilla
+para ese día, es esa la que sale desde Recordatorios → Enviar (consola
+masiva, "Editar y enviar" de un turno suelto, y su vista previa) — no solo
+desde el barrido automático. `diasAntes` en el registro sigue siendo `null`
+para un envío manual (así funciona la protección por margen de horas, no la
+de escalón), pero el TEXTO se elige por la fecha real del turno. Lo único que
+lo anula es elegir una plantilla a mano en el selector de la consola: ahí la
+decisión ya la tomó el profesional y gana pase lo que pase con la fecha.
+
+**Asignar un día se lo saca a quien lo tenía.** Dos plantillas con el mismo
+día dejarían al barrido eligiendo cualquiera de las dos, así que guardar una
+plantilla con `diasAntes: 3` libera ese 3 de cualquier otra que lo tuviera. Es
+la misma regla —y el mismo motivo— que ya regía para "predeterminada": mover
+la etiqueta en vez de permitir el duplicado.
+
 ## Dónde terminan los emails (la trampa de desarrollo)
 
 El `docker-compose` de desarrollo levanta **Mailpit** y `SMTP_HOST` apunta ahí
@@ -209,9 +245,15 @@ segundo es que el profesional decidió no mandarlo.
 
 ## Confirmación desde el email
 
-El recordatorio por email de un turno `PENDIENTE` sale con un botón
+El recordatorio por email de un turno `PENDIENTE` puede salir con un botón
 **Confirmar asistencia**. Va pegado al final del cuerpo, fuera de la
 plantilla, para que también lo tengan los consultorios que ya editaron la suya.
+
+**Es una decisión por plantilla, no un agregado fijo** (`incluirBotonConfirmacion`,
+tildado por defecto). Con varios mensajes por escalón, no todos tienen por qué
+pedir confirmación: el de "3 días antes" puede ser solo informativo, y el de
+"1 día antes" sí pedirla. Se edita en Recordatorios → Plantillas, junto al
+resto del texto de cada una.
 
 El botón abre `/confirmar-turno?token=…`, una página pública. Al apretar
 "Confirmar mi asistencia" el turno pasa a `CONFIRMADO` (se ve en la agenda y en

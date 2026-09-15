@@ -1,4 +1,4 @@
-import type { IPlantillaEmailRepositorio } from "@/dominio/repositorios/IPlantillaEmailRepositorio";
+import type { IPlantillaEmailRecordatorioRepositorio } from "@/dominio/repositorios/IPlantillaEmailRecordatorioRepositorio";
 import type { IEmailEnviadoRepositorio } from "@/dominio/repositorios/IEmailEnviadoRepositorio";
 import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
@@ -7,13 +7,15 @@ import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import { EmailEnviado } from "@/dominio/entidades/EmailEnviado";
 import { ConfiguracionRecordatorios } from "@/dominio/entidades/ConfiguracionRecordatorios";
-import { CLAVE_RECORDATORIO_TURNO } from "@/dominio/entidades/PlantillaEmail";
-import { ErrorPlantillaNoEncontrada } from "@/dominio/errores/ErrorPlantillaNoEncontrada";
+import { ErrorPlantillaEmailRecordatorioNoEncontrada } from "@/dominio/errores/ErrorPlantillaEmailRecordatorioNoEncontrada";
 import type { Turno } from "@/dominio/entidades/Turno";
 import { variablesRecordatorio } from "../secretaria/variables";
 import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstablecimientoRepositorio";
 import type { IEnlaceConfirmacionTurno } from "@/dominio/servicios/IEnlaceConfirmacionTurno";
 import { escaparHtml } from "@/dominio/plantillas/renderizar";
+
+/** Clave de auditoría de los emails de recordatorio (independiente de qué plantilla se usó). */
+const CLAVE_RECORDATORIO_TURNO = "RECORDATORIO_TURNO";
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 const HORA_MS = 60 * 60 * 1000;
@@ -26,6 +28,13 @@ export interface OpcionesEnvioManual {
   horasEntreAvisos?: number;
   /** Momento de la corrida, compartido por todo el lote. */
   ahora?: Date;
+  /**
+   * Días reales que faltan para el turno, para elegir la plantilla del
+   * escalón que corresponda aunque el envío sea manual (`diasAntes` sigue en
+   * null: gobierna la idempotencia, no el texto). Sin esto —el barrido
+   * programado no lo pasa— se usa `diasAntes`.
+   */
+  diasParaPlantilla?: number | null;
 }
 
 /** Resumen del barrido de recordatorios. */
@@ -59,7 +68,7 @@ export interface ResultadoRecordatoriosEmail {
  */
 export class EnviarRecordatoriosPorEmail {
   constructor(
-    private readonly plantillas: IPlantillaEmailRepositorio,
+    private readonly plantillas: IPlantillaEmailRecordatorioRepositorio,
     private readonly emails: IEmailEnviadoRepositorio,
     private readonly turnos: ITurnoRepositorio,
     private readonly pacientes: IPacienteRepositorio,
@@ -82,11 +91,11 @@ export class EnviarRecordatoriosPorEmail {
       return { enviados: 0, omitidos: 0, fallidos: 0 };
     }
 
-    const plantilla = await this.plantillas.obtenerPorClave(
-      CLAVE_RECORDATORIO_TURNO,
-    );
-    if (!plantilla) {
-      throw new ErrorPlantillaNoEncontrada(CLAVE_RECORDATORIO_TURNO);
+    // Falla rápido si no hay ni siquiera una predeterminada: sin eso, un
+    // escalón sin plantilla propia se queda sin texto para mandar.
+    const predeterminada = await this.plantillas.obtenerPredeterminada();
+    if (!predeterminada) {
+      throw new ErrorPlantillaEmailRecordatorioNoEncontrada("predeterminada");
     }
 
     const hoy = this.reloj.hoy();
@@ -164,11 +173,22 @@ export class EnviarRecordatoriosPorEmail {
       return "SIN_EMAIL";
     }
 
-    const plantilla = await this.plantillas.obtenerPorClave(
-      CLAVE_RECORDATORIO_TURNO,
-    );
+    // El escalón con plantilla propia usa SU texto; sin una para ese día se
+    // usa la predeterminada. En un envío manual `diasAntes` es null (así
+    // funciona la idempotencia por margen), pero el turno igual tiene una
+    // fecha real: `diasParaPlantilla` es lo que decide el TEXTO en ese caso,
+    // para que "3 días antes" y "1 día antes" digan lo que corresponde aunque
+    // el profesional los mande a mano y no por el barrido.
+    const diaPlantilla =
+      opciones.diasParaPlantilla !== undefined
+        ? opciones.diasParaPlantilla
+        : diasAntes;
+    const plantilla =
+      (diaPlantilla != null
+        ? await this.plantillas.obtenerPorDia(diaPlantilla)
+        : null) ?? (await this.plantillas.obtenerPredeterminada());
     if (!plantilla) {
-      throw new ErrorPlantillaNoEncontrada(CLAVE_RECORDATORIO_TURNO);
+      throw new ErrorPlantillaEmailRecordatorioNoEncontrada("predeterminada");
     }
 
     // La sede del turno: con varios consultorios, un recordatorio que no dice
@@ -189,8 +209,10 @@ export class EnviarRecordatoriosPorEmail {
     );
 
     // Fuera de la plantilla, para que también lo tengan las que ya se editaron.
+    // Es una decisión POR PLANTILLA: no todo mensaje de recordatorio tiene
+    // sentido que pida confirmar (ver `incluirBotonConfirmacion`).
     const cuerpo =
-      turno.estado === "PENDIENTE"
+      turno.estado === "PENDIENTE" && plantilla.incluirBotonConfirmacion
         ? html +
           botonConfirmar(
             // Vence al terminar el día del turno.

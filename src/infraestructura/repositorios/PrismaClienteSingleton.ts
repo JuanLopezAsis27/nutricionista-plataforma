@@ -73,6 +73,7 @@ export const MODELOS_INQUILINO = new Set<string>([
   "RetroalimentacionInsight",
   "RecordatorioWhatsapp",
   "PlantillaWhatsapp",
+  "PlantillaEmailRecordatorio",
   "ConfiguracionRecordatorios",
   "MensajeWhatsapp",
   "PlanSemanal",

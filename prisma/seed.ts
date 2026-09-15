@@ -152,18 +152,6 @@ async function sembrarNutricionista(): Promise<string | null> {
 
 const PLANTILLAS_SISTEMA = [
   {
-    clave: "RECORDATORIO_TURNO",
-    nombre: "Recordatorio de turno",
-    asunto: "Recordatorio de tu turno del {{fecha}}",
-    descripcion: "Se envía automáticamente el día previo a cada turno.",
-    cuerpoHtml: `<div style="font-family:sans-serif;color:#222;line-height:1.5">
-  <p>Hola <strong>{{paciente}}</strong>,</p>
-  <p>Te recordamos tu turno para el <strong>{{fecha}}</strong> a las <strong>{{hora}}</strong>.</p>
-  <p>Si no podés asistir, avisanos con anticipación para reprogramarlo.</p>
-  <p>Saludos,<br/>{{profesional}}</p>
-</div>`,
-  },
-  {
     clave: "BIENVENIDA",
     nombre: "Bienvenida al paciente",
     asunto: "¡Bienvenido/a, {{paciente}}!",

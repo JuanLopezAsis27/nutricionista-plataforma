@@ -12,7 +12,7 @@ import { ConfiguracionMedios } from "@/componentes/recordatorios/ConfiguracionMe
 import { GestionPlantillas } from "@/componentes/recordatorios/GestionPlantillas";
 import { BandejaSeguimiento } from "@/componentes/recordatorios/BandejaSeguimiento";
 import { HistorialEmails } from "@/componentes/recordatorios/HistorialEmails";
-import { PlantillaEmailRecordatorio } from "@/componentes/recordatorios/PlantillaEmailRecordatorio";
+import { GestionPlantillasEmailRecordatorio } from "@/componentes/recordatorios/GestionPlantillasEmailRecordatorio";
 
 /**
  * Recordatorios de turno: la ÚNICA pantalla de la tarea de avisar.
@@ -60,7 +60,7 @@ export default function PaginaRecordatorios() {
         </TabsContent>
         <TabsContent value="plantillas" className="mt-4 space-y-6">
           <GestionPlantillas />
-          <PlantillaEmailRecordatorio />
+          <GestionPlantillasEmailRecordatorio />
         </TabsContent>
       </Tabs>
     </div>

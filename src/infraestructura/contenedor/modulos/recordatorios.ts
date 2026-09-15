@@ -9,7 +9,7 @@ import type { IMensajeWhatsappRepositorio } from "@/dominio/repositorios/IMensaj
 import type { ICuentaConectadaRepositorio } from "@/dominio/repositorios/ICuentaConectadaRepositorio";
 import type { IProveedorWhatsapp } from "@/dominio/servicios/IProveedorWhatsapp";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
-import type { IPlantillaEmailRepositorio } from "@/dominio/repositorios/IPlantillaEmailRepositorio";
+import type { IPlantillaEmailRecordatorioRepositorio } from "@/dominio/repositorios/IPlantillaEmailRecordatorioRepositorio";
 import type { IEmailEnviadoRepositorio } from "@/dominio/repositorios/IEmailEnviadoRepositorio";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
@@ -22,6 +22,10 @@ import { ListarPlantillasWhatsapp } from "@/aplicacion/casos-de-uso/recordatorio
 import { CrearPlantillaWhatsapp } from "@/aplicacion/casos-de-uso/recordatorios/CrearPlantillaWhatsapp";
 import { ActualizarPlantillaWhatsapp } from "@/aplicacion/casos-de-uso/recordatorios/ActualizarPlantillaWhatsapp";
 import { EliminarPlantillaWhatsapp } from "@/aplicacion/casos-de-uso/recordatorios/EliminarPlantillaWhatsapp";
+import { ListarPlantillasEmailRecordatorio } from "@/aplicacion/casos-de-uso/recordatorios/ListarPlantillasEmailRecordatorio";
+import { CrearPlantillaEmailRecordatorio } from "@/aplicacion/casos-de-uso/recordatorios/CrearPlantillaEmailRecordatorio";
+import { ActualizarPlantillaEmailRecordatorio } from "@/aplicacion/casos-de-uso/recordatorios/ActualizarPlantillaEmailRecordatorio";
+import { EliminarPlantillaEmailRecordatorio } from "@/aplicacion/casos-de-uso/recordatorios/EliminarPlantillaEmailRecordatorio";
 import { ListarTurnosParaRecordar } from "@/aplicacion/casos-de-uso/recordatorios/ListarTurnosParaRecordar";
 import { EnviarRecordatoriosMasivos } from "@/aplicacion/casos-de-uso/recordatorios/EnviarRecordatoriosMasivos";
 import { EnviarRecordatoriosProgramados } from "@/aplicacion/casos-de-uso/recordatorios/EnviarRecordatoriosProgramados";
@@ -33,6 +37,7 @@ import { EnviarRecordatoriosPorEmail } from "@/aplicacion/casos-de-uso/recordato
 import { ServicioRecordatorios } from "@/aplicacion/servicios/ServicioRecordatorios";
 import { ServicioConfiguracionRecordatorios } from "@/aplicacion/servicios/recordatorios/ServicioConfiguracionRecordatorios";
 import { ServicioPlantillasWhatsapp } from "@/aplicacion/servicios/recordatorios/ServicioPlantillasWhatsapp";
+import { ServicioPlantillasEmailRecordatorio } from "@/aplicacion/servicios/recordatorios/ServicioPlantillasEmailRecordatorio";
 import { ServicioEnvioRecordatorios } from "@/aplicacion/servicios/recordatorios/ServicioEnvioRecordatorios";
 import { ServicioSeguimientoRecordatorios } from "@/aplicacion/servicios/recordatorios/ServicioSeguimientoRecordatorios";
 
@@ -51,8 +56,10 @@ export interface DepsRecordatorios {
   proveedor: IProveedorWhatsapp;
   reloj: IRelojFecha;
   // El medio email: comparte la política, así que su envío se arma acá y no
-  // en Secretaría, que conserva solo el TEXTO de la plantilla.
-  plantillasEmail: IPlantillaEmailRepositorio;
+  // en Secretaría, que conserva solo el TEXTO de las plantillas propias
+  // (bienvenida y demás). Las del recordatorio viven en este módulo, junto a
+  // las de WhatsApp: son dos vías del mismo aviso.
+  plantillasEmailRecordatorio: IPlantillaEmailRecordatorioRepositorio;
   emailsEnviados: IEmailEnviadoRepositorio;
   servicioEmail: IServicioEmail;
   usuarios: IUsuarioRepositorio;
@@ -83,7 +90,7 @@ export function crearServicioRecordatorios(
   // Una sola instancia del envío por email: la comparten el barrido automático
   // y la consola manual, que tienen que mandar exactamente lo mismo.
   const enviarEmail = new EnviarRecordatoriosPorEmail(
-    deps.plantillasEmail,
+    deps.plantillasEmailRecordatorio,
     deps.emailsEnviados,
     deps.turnos,
     deps.pacientes,
@@ -110,6 +117,14 @@ export function crearServicioRecordatorios(
       new ActualizarPlantillaWhatsapp(deps.plantillas),
       new EliminarPlantillaWhatsapp(deps.plantillas),
     ),
+    new ServicioPlantillasEmailRecordatorio(
+      new ListarPlantillasEmailRecordatorio(deps.plantillasEmailRecordatorio),
+      new CrearPlantillaEmailRecordatorio(deps.plantillasEmailRecordatorio),
+      new ActualizarPlantillaEmailRecordatorio(
+        deps.plantillasEmailRecordatorio,
+      ),
+      new EliminarPlantillaEmailRecordatorio(deps.plantillasEmailRecordatorio),
+    ),
     new ServicioEnvioRecordatorios(
       new ListarTurnosParaRecordar(
         deps.turnos,
@@ -128,6 +143,7 @@ export function crearServicioRecordatorios(
         enviarUno,
         enviarEmail,
         deps.establecimientos,
+        deps.reloj,
       ),
       new EnviarRecordatoriosProgramados(
         deps.turnos,
@@ -148,6 +164,7 @@ export function crearServicioRecordatorios(
         deps.plantillas,
         deps.proveedor,
         deps.establecimientos,
+        deps.reloj,
       ),
       deps.usuarios,
       deps.bus,

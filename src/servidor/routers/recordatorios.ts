@@ -4,6 +4,9 @@ import {
   guardarPlantillaWhatsappDto,
   actualizarPlantillaWhatsappDto,
   idPlantillaWhatsappDto,
+  guardarPlantillaEmailRecordatorioDto,
+  actualizarPlantillaEmailRecordatorioDto,
+  idPlantillaEmailRecordatorioDto,
   listarTurnosParaRecordarDto,
   enviarRecordatoriosMasivosDto,
   listarSeguimientoDto,
@@ -51,6 +54,32 @@ export const routerRecordatorios = crearRouter({
     .input(idPlantillaWhatsappDto)
     .mutation(async ({ ctx, input }) => {
       await ctx.servicios.recordatorios.plantillas.eliminar(input.id);
+      return { eliminada: true };
+    }),
+
+  // --- Plantillas de email (una por escalón de anticipación) ---------------
+  listarPlantillasEmail: nutricionistaProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.recordatorios.plantillasEmail.listar();
+  }),
+
+  crearPlantillaEmail: nutricionistaProcedimiento
+    .input(guardarPlantillaEmailRecordatorioDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.recordatorios.plantillasEmail.crear(input);
+    }),
+
+  actualizarPlantillaEmail: nutricionistaProcedimiento
+    .input(actualizarPlantillaEmailRecordatorioDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.recordatorios.plantillasEmail.actualizar(
+        input,
+      );
+    }),
+
+  eliminarPlantillaEmail: nutricionistaProcedimiento
+    .input(idPlantillaEmailRecordatorioDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.recordatorios.plantillasEmail.eliminar(input.id);
       return { eliminada: true };
     }),
 
