@@ -17,11 +17,11 @@ import {
   pacienteEjemplo,
   plantillaWhatsappEjemplo,
   configuracionRecordatoriosEjemplo,
-  mockPlantillaEmailRepositorio,
+  mockPlantillaEmailRecordatorioRepositorio,
   mockEmailEnviadoRepositorio,
   mockServicioEmail,
   mockEnlaceConfirmacionTurno,
-  plantillaEmailEjemplo,
+  plantillaEmailRecordatorioEjemplo,
 } from "../_ayudas-test";
 
 // El reloj de las ayudas fija "hoy"; acá interesa la hora, porque el barrido
@@ -40,6 +40,9 @@ function armar(
     turnos?: ReturnType<typeof turnoEjemplo>[];
     existentes?: Map<string, RecordatorioWhatsapp[]>;
     plantilla?: ReturnType<typeof plantillaWhatsappEjemplo> | null;
+    plantillaPorDia?: (
+      dias: number,
+    ) => ReturnType<typeof plantillaWhatsappEjemplo> | null;
   } = {},
 ) {
   const enviarEmail = vi.fn(async () => {});
@@ -63,6 +66,9 @@ function armar(
           ? plantillaWhatsappEjemplo()
           : opciones.plantilla,
       ),
+      obtenerPorDia: vi.fn(async (dias: number) =>
+        opciones.plantillaPorDia ? opciones.plantillaPorDia(dias) : null,
+      ),
     }),
     mockConfiguracionRecordatoriosRepositorio({
       obtener: vi.fn(
@@ -78,8 +84,10 @@ function armar(
     recordatorios,
     new EnviarRecordatorioWhatsapp(recordatorios, proveedor),
     new EnviarRecordatoriosPorEmail(
-      mockPlantillaEmailRepositorio({
-        obtenerPorClave: vi.fn(async () => plantillaEmailEjemplo()),
+      mockPlantillaEmailRecordatorioRepositorio({
+        obtenerPredeterminada: vi.fn(async () =>
+          plantillaEmailRecordatorioEjemplo(),
+        ),
       }),
       mockEmailEnviadoRepositorio(),
       mockTurnoRepositorio({
@@ -130,6 +138,40 @@ describe("EnviarRecordatoriosProgramados", () => {
       .mocked(recordatorios.registrar)
       .mock.calls.map(([r]) => r.aPrimitivos().diasAntes);
     expect(escalones.sort()).toEqual([1, 3]);
+  });
+
+  // El escalón con plantilla propia usa SU texto; el que no tiene, la
+  // predeterminada. Es la razón de ser de la feature: poder decir algo
+  // distinto "3 días antes" que "1 día antes".
+  it("usa la plantilla propia del escalón cuando hay una asignada a ese día", async () => {
+    const plantillaGeneral = plantillaWhatsappEjemplo(
+      { cuerpo: "Mensaje general" },
+      "pla-general",
+    );
+    const plantillaDeUnDia = plantillaWhatsappEjemplo(
+      {
+        cuerpo: "Es mañana, {{paciente}}",
+        diasAntes: 1,
+        predeterminada: false,
+      },
+      "pla-1dia",
+    );
+    const { caso, proveedor } = armar({
+      plantilla: plantillaGeneral,
+      plantillaPorDia: (dias) => (dias === 1 ? plantillaDeUnDia : null),
+      turnos: [
+        turnoEjemplo({ fecha: enDias(3) }, "tur-3"),
+        turnoEjemplo({ fecha: enDias(1) }, "tur-1"),
+      ],
+    });
+
+    await caso.ejecutar();
+
+    const mensajes = vi
+      .mocked(proveedor.preparar)
+      .mock.calls.map(([datos]) => datos.texto);
+    expect(mensajes).toContain("Mensaje general"); // el de 3 días, sin plantilla propia
+    expect(mensajes.some((m) => m.startsWith("Es mañana"))).toBe(true);
   });
 
   // Un turno dentro de la ventana pero en otro día no le corresponde a ningún

@@ -7,7 +7,9 @@ import {
   VARIABLES_RECORDATORIO,
   MAX_LARGO_CUERPO_PLANTILLA,
   MAX_VARIABLES_META,
+  MAX_DIAS_ANTES_PLANTILLA,
 } from "@/dominio/entidades/PlantillaWhatsapp";
+import { MAX_DIAS_ANTES_PLANTILLA_EMAIL } from "@/dominio/entidades/PlantillaEmailRecordatorio";
 import {
   MAX_AVISOS_POR_MEDIO,
   MAX_DIAS_ANTES,
@@ -92,6 +94,14 @@ export const guardarPlantillaWhatsappDto = z.object({
     .array(variableRecordatorioDto)
     .max(MAX_VARIABLES_META)
     .optional(),
+  /** Escalón de "días antes" al que corresponde este texto; null = sin día asignado. */
+  diasAntes: z
+    .number()
+    .int()
+    .min(0)
+    .max(MAX_DIAS_ANTES_PLANTILLA)
+    .nullable()
+    .optional(),
   predeterminada: z.boolean().optional(),
   activa: z.boolean().optional(),
 });
@@ -115,6 +125,7 @@ export const plantillaWhatsappSalidaDto = z.object({
   claveMeta: z.string().nullable(),
   idiomaMeta: z.string(),
   variablesMeta: z.array(variableRecordatorioDto),
+  diasAntes: z.number().nullable(),
   predeterminada: z.boolean(),
   activa: z.boolean(),
   /** Puede salir sola por la Cloud API fuera de la ventana de 24 h. */
@@ -124,6 +135,56 @@ export const plantillaWhatsappSalidaDto = z.object({
 });
 export type PlantillaWhatsappSalidaDto = z.infer<
   typeof plantillaWhatsappSalidaDto
+>;
+
+/** ---- Plantillas de recordatorio por email ---- */
+
+export const guardarPlantillaEmailRecordatorioDto = z.object({
+  nombre: z.string().min(1, "Poné un nombre.").max(80),
+  asunto: z.string().min(1, "Escribí el asunto.").max(200),
+  cuerpoHtml: z.string().min(1, "Escribí el mensaje."),
+  /** Escalón de "días antes" al que corresponde este texto; null = sin día asignado. */
+  diasAntes: z
+    .number()
+    .int()
+    .min(0)
+    .max(MAX_DIAS_ANTES_PLANTILLA_EMAIL)
+    .nullable()
+    .optional(),
+  predeterminada: z.boolean().optional(),
+  activa: z.boolean().optional(),
+  incluirBotonConfirmacion: z.boolean().optional(),
+});
+export type GuardarPlantillaEmailRecordatorioDto = z.infer<
+  typeof guardarPlantillaEmailRecordatorioDto
+>;
+
+export const actualizarPlantillaEmailRecordatorioDto =
+  guardarPlantillaEmailRecordatorioDto
+    .partial()
+    .extend({ id: z.string().min(1) });
+export type ActualizarPlantillaEmailRecordatorioDto = z.infer<
+  typeof actualizarPlantillaEmailRecordatorioDto
+>;
+
+export const idPlantillaEmailRecordatorioDto = z.object({
+  id: z.string().min(1),
+});
+
+export const plantillaEmailRecordatorioSalidaDto = z.object({
+  id: z.string(),
+  nombre: z.string(),
+  asunto: z.string(),
+  cuerpoHtml: z.string(),
+  diasAntes: z.number().nullable(),
+  predeterminada: z.boolean(),
+  activa: z.boolean(),
+  incluirBotonConfirmacion: z.boolean(),
+  creadoEn: z.date(),
+  actualizadoEn: z.date(),
+});
+export type PlantillaEmailRecordatorioSalidaDto = z.infer<
+  typeof plantillaEmailRecordatorioSalidaDto
 >;
 
 /** ---- Consola de envío ---- */

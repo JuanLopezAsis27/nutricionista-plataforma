@@ -44,6 +44,7 @@ describe("CrearPlantillaWhatsapp", () => {
       claveMeta: null,
       idiomaMeta: "es_AR",
       variablesMeta: [],
+      diasAntes: null,
       predeterminada: false,
       activa: true,
     });
@@ -65,6 +66,7 @@ describe("CrearPlantillaWhatsapp", () => {
       claveMeta: null,
       idiomaMeta: "es_AR",
       variablesMeta: [],
+      diasAntes: null,
       predeterminada: false,
       activa: true,
     });
@@ -89,6 +91,7 @@ describe("CrearPlantillaWhatsapp", () => {
       claveMeta: null,
       idiomaMeta: "es_AR",
       variablesMeta: [],
+      diasAntes: null,
       predeterminada: true,
       activa: true,
     });
@@ -98,6 +101,53 @@ describe("CrearPlantillaWhatsapp", () => {
       .mock.calls[0] as [PlantillaWhatsapp];
     expect(desmarcada.aPrimitivos().id).toBe("pla-vieja");
     expect(desmarcada.aPrimitivos().predeterminada).toBe(false);
+  });
+
+  it("asignarle un día a la nueva se lo saca a la que lo tenía", async () => {
+    // Cada escalón tiene UN texto: dos plantillas con el mismo día dejarían
+    // al barrido eligiendo cualquiera de las dos.
+    const conElDia = plantilla({ diasAntes: 3 }, "pla-3dias");
+    const repositorio = mockPlantillaWhatsappRepositorio({
+      listar: vi.fn(async () => [conElDia]),
+    });
+    const caso = new CrearPlantillaWhatsapp(repositorio);
+
+    await caso.ejecutar({
+      nombre: "Nueva",
+      cuerpo: "Hola",
+      claveMeta: null,
+      idiomaMeta: "es_AR",
+      variablesMeta: [],
+      diasAntes: 3,
+      predeterminada: false,
+      activa: true,
+    });
+
+    const [liberada] = (repositorio.actualizar as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [PlantillaWhatsapp];
+    expect(liberada.aPrimitivos().id).toBe("pla-3dias");
+    expect(liberada.aPrimitivos().diasAntes).toBeNull();
+  });
+
+  it("dos plantillas con días distintos no se tocan entre sí", async () => {
+    const conOtroDia = plantilla({ diasAntes: 1 }, "pla-1dia");
+    const repositorio = mockPlantillaWhatsappRepositorio({
+      listar: vi.fn(async () => [conOtroDia]),
+    });
+    const caso = new CrearPlantillaWhatsapp(repositorio);
+
+    await caso.ejecutar({
+      nombre: "Nueva",
+      cuerpo: "Hola",
+      claveMeta: null,
+      idiomaMeta: "es_AR",
+      variablesMeta: [],
+      diasAntes: 3,
+      predeterminada: false,
+      activa: true,
+    });
+
+    expect(repositorio.actualizar).not.toHaveBeenCalled();
   });
 });
 
@@ -135,6 +185,23 @@ describe("ActualizarPlantillaWhatsapp", () => {
     // La última escritura es la de la plantilla editada, ya predeterminada.
     expect(desmarcadas.at(-1)?.id).toBe("pla-1");
     expect(desmarcadas.at(-1)?.predeterminada).toBe(true);
+  });
+
+  it("al asignarle un día se lo saca a la otra que lo tenía, no a sí misma", async () => {
+    const editada = plantilla({ diasAntes: null }, "pla-1");
+    const otra = plantilla({ diasAntes: 3 }, "pla-2");
+    const repositorio = mockPlantillaWhatsappRepositorio({
+      obtenerPorId: vi.fn(async () => editada),
+      listar: vi.fn(async () => [editada, otra]),
+    });
+    const caso = new ActualizarPlantillaWhatsapp(repositorio);
+
+    await caso.ejecutar("pla-1", { diasAntes: 3 });
+
+    const [liberada] = (repositorio.actualizar as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [PlantillaWhatsapp];
+    expect(liberada.aPrimitivos().id).toBe("pla-2");
+    expect(liberada.aPrimitivos().diasAntes).toBeNull();
   });
 
   it("un cambio que no toca `predeterminada` no desmarca nada", async () => {

@@ -39,6 +39,13 @@ export class PrismaRepositorioPlantillaWhatsapp
     return fila ? mapearPlantillaWhatsapp(fila) : null;
   }
 
+  async obtenerPorDia(diasAntes: number): Promise<PlantillaWhatsapp | null> {
+    const fila = await this.prisma.plantillaWhatsapp.findFirst({
+      where: { diasAntes, activa: true },
+    });
+    return fila ? mapearPlantillaWhatsapp(fila) : null;
+  }
+
   async crear(plantilla: PlantillaWhatsapp): Promise<PlantillaWhatsapp> {
     const d = plantilla.aPrimitivos();
     const fila = await this.prisma.plantillaWhatsapp.create({
@@ -50,6 +57,7 @@ export class PrismaRepositorioPlantillaWhatsapp
         claveMeta: d.claveMeta,
         idiomaMeta: d.idiomaMeta,
         variablesMeta: d.variablesMeta,
+        diasAntes: d.diasAntes,
         predeterminada: d.predeterminada,
         activa: d.activa,
         creadoEn: d.creadoEn,
@@ -68,6 +76,7 @@ export class PrismaRepositorioPlantillaWhatsapp
         claveMeta: d.claveMeta,
         idiomaMeta: d.idiomaMeta,
         variablesMeta: d.variablesMeta,
+        diasAntes: d.diasAntes,
         predeterminada: d.predeterminada,
         activa: d.activa,
       },
@@ -90,6 +99,7 @@ export function mapearPlantillaWhatsapp(
     claveMeta: fila.claveMeta,
     idiomaMeta: fila.idiomaMeta,
     variablesMeta: fila.variablesMeta as VariableRecordatorio[],
+    diasAntes: fila.diasAntes,
     predeterminada: fila.predeterminada,
     activa: fila.activa,
     creadoEn: fila.creadoEn,
