@@ -296,54 +296,55 @@ model Nutricionista {
 
   // Tablas de inquilino. Esta lista es la contraparte de MODELOS_INQUILINO en
   // PrismaClienteSingleton: si aparece acá, la extensión debe filtrarla.
-  pacientes                 Paciente[]
-  suplementos               Suplemento[]
-  perfilesDeportivos        PerfilDeportivo[]
-  competencias              Competencia[]
-  alertasSeguimiento        AlertaSeguimiento[]
-  notificaciones            Notificacion[]
-  turnos                    Turno[]
-  recordatoriosWhatsapp     RecordatorioWhatsapp[]
-  plantillasWhatsapp        PlantillaWhatsapp[]
-  configuracionRecordatorio ConfiguracionRecordatorios?
-  mensajesWhatsapp          MensajeWhatsapp[]
-  registrosDiarios          RegistroDiario[]
-  metricasDispositivo       MetricaDispositivo[]
-  credenciales              CredencialProveedor[]
-  preferencias              PreferenciasIntegracion[]
-  promptsIA                 PromptIA[]
-  retroalimentaciones       RetroalimentacionInsight[]
-  alimentosPropios          AlimentoPropio[]
-  historiasClinicas         HistoriaClinica[]
-  camposHistoriaClinica     CampoHistoriaClinica[]
-  evoluciones               Evolucion[]
-  camposEvolucion           CampoEvolucion[]
-  conversacionesIA          ConversacionIA[]
-  mensajesIA                MensajeIA[]
-  alertasAlimentarias       AlertaAlimentaria[]
-  laboratorios              Laboratorio[]
-  antropometrias            Antropometria[]
-  objetivosComposicion      ObjetivoComposicion[]
-  plantillasAntropometricas PlantillaAntropometrica[]
-  usuarios                  Usuario[]
-  recetas                   Receta[]
-  planesNutricionales       PlanNutricional[]
-  gruposPlan                GrupoPlan[]
-  gruposReceta              GrupoReceta[]
-  grabacionesConsulta       GrabacionConsulta[]
-  resumenesConsulta         ResumenConsulta[]
-  objetivos                 Objetivo[]
-  materialesBiblioteca      MaterialBiblioteca[]
-  plantillasEmail           PlantillaEmail[]
-  emailsEnviados            EmailEnviado[]
-  cuentasConectadas         CuentaConectada[]
-  sincronizacionesTurno     SincronizacionTurno[]
-  conversaciones            Conversacion[]
-  analisisComida            AnalisisComida[]
-  configuraciones           ConfiguracionConsultorio[]
-  axiomasNutricionales      AxiomaNutricional[]
-  planesSemanales           PlanSemanal[]
-  establecimientos          Establecimiento[]
+  pacientes                   Paciente[]
+  suplementos                 Suplemento[]
+  perfilesDeportivos          PerfilDeportivo[]
+  competencias                Competencia[]
+  alertasSeguimiento          AlertaSeguimiento[]
+  notificaciones              Notificacion[]
+  turnos                      Turno[]
+  recordatoriosWhatsapp       RecordatorioWhatsapp[]
+  plantillasWhatsapp          PlantillaWhatsapp[]
+  plantillasEmailRecordatorio PlantillaEmailRecordatorio[]
+  configuracionRecordatorio   ConfiguracionRecordatorios?
+  mensajesWhatsapp            MensajeWhatsapp[]
+  registrosDiarios            RegistroDiario[]
+  metricasDispositivo         MetricaDispositivo[]
+  credenciales                CredencialProveedor[]
+  preferencias                PreferenciasIntegracion[]
+  promptsIA                   PromptIA[]
+  retroalimentaciones         RetroalimentacionInsight[]
+  alimentosPropios            AlimentoPropio[]
+  historiasClinicas           HistoriaClinica[]
+  camposHistoriaClinica       CampoHistoriaClinica[]
+  evoluciones                 Evolucion[]
+  camposEvolucion             CampoEvolucion[]
+  conversacionesIA            ConversacionIA[]
+  mensajesIA                  MensajeIA[]
+  alertasAlimentarias         AlertaAlimentaria[]
+  laboratorios                Laboratorio[]
+  antropometrias              Antropometria[]
+  objetivosComposicion        ObjetivoComposicion[]
+  plantillasAntropometricas   PlantillaAntropometrica[]
+  usuarios                    Usuario[]
+  recetas                     Receta[]
+  planesNutricionales         PlanNutricional[]
+  gruposPlan                  GrupoPlan[]
+  gruposReceta                GrupoReceta[]
+  grabacionesConsulta         GrabacionConsulta[]
+  resumenesConsulta           ResumenConsulta[]
+  objetivos                   Objetivo[]
+  materialesBiblioteca        MaterialBiblioteca[]
+  plantillasEmail             PlantillaEmail[]
+  emailsEnviados              EmailEnviado[]
+  cuentasConectadas           CuentaConectada[]
+  sincronizacionesTurno       SincronizacionTurno[]
+  conversaciones              Conversacion[]
+  analisisComida              AnalisisComida[]
+  configuraciones             ConfiguracionConsultorio[]
+  axiomasNutricionales        AxiomaNutricional[]
+  planesSemanales             PlanSemanal[]
+  establecimientos            Establecimiento[]
 
   // Hijas del agregado: heredan el inquilino de su padre, pero lo llevan
   // materializado para que la extensión pueda filtrarlas por id directo.
@@ -846,9 +847,14 @@ model PlantillaWhatsapp {
   claveMeta       String?
   idiomaMeta      String   @default("es_AR")
   variablesMeta   String[]
-  /// La que se ofrece por defecto en la consola y la que usa el barrido. Una
-  /// sola por consultorio: al marcar una, el caso de uso desmarca la anterior
-  /// en la misma operación.
+  /// Escalón de "días antes" al que corresponde este texto (3, 1, …). NULL =
+  /// sin día asignado: candidata a predeterminada, pero no el texto fijo de
+  /// ningún escalón en particular.
+  diasAntes       Int?
+  /// La que se ofrece por defecto en la consola y la que usa el barrido
+  /// cuando el escalón que le toca no tiene una plantilla propia. Una sola
+  /// por consultorio: al marcar una, el caso de uso desmarca la anterior en
+  /// la misma operación.
   predeterminada  Boolean  @default(false)
   activa          Boolean  @default(true)
   creadoEn        DateTime @default(now())
@@ -859,6 +865,42 @@ model PlantillaWhatsapp {
 
   @@unique([nutricionistaId, nombre])
   @@map("plantillas_whatsapp")
+}
+
+/// Los textos del recordatorio por EMAIL, uno por escalón de anticipación
+/// (espejo de `PlantillaWhatsapp`, que ya resolvía lo mismo para WhatsApp).
+/// Reemplaza a la fila única `PlantillaEmail{clave: RECORDATORIO_TURNO}`: un
+/// solo texto para "3 días antes" y "1 día antes" no dejaba decir cosas
+/// distintas ("todavía estás a tiempo de reprogramar" vs. "es mañana").
+model PlantillaEmailRecordatorio {
+  id                       String   @id @default(uuid(4))
+  nutricionistaId          String
+  nombre                   String
+  asunto                   String
+  cuerpoHtml               String
+  /// Escalón de "días antes" al que corresponde este texto. NULL = sin día
+  /// asignado: candidata a predeterminada, pero no el texto fijo de ningún
+  /// escalón en particular.
+  diasAntes                Int?
+  /// La que se ofrece por defecto y la que usa el barrido cuando el escalón
+  /// que le toca no tiene una plantilla propia, y siempre en los envíos
+  /// manuales. Una sola por consultorio: al marcar una, el caso de uso
+  /// desmarca la anterior en la misma operación.
+  predeterminada           Boolean  @default(false)
+  activa                   Boolean  @default(true)
+  /// Si este mensaje suma el botón "Confirmar asistencia" (solo aplica a
+  /// turnos PENDIENTE; ver EnviarRecordatoriosPorEmail). Antes salía siempre;
+  /// pasa a ser una decisión por plantilla porque no todo mensaje de
+  /// recordatorio tiene sentido que lo pida —un aviso de "es mañana" sí, uno
+  /// más informativo de "3 días antes" puede no quererlo—.
+  incluirBotonConfirmacion Boolean  @default(true)
+  creadoEn                 DateTime @default(now())
+  actualizadoEn            DateTime @updatedAt
+
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@unique([nutricionistaId, nombre])
+  @@map("plantillas_email_recordatorio")
 }
 
 /// Qué medios de recordatorio están activos y cuándo salen. UNA FILA POR
@@ -2208,8 +2250,9 @@ model AsignacionPlan {
 
 /// Plantilla de email editable por el profesional, con placeholders
 /// {{paciente}}, {{fecha}}, {{hora}}… que los casos de uso reemplazan al
-/// enviar. `clave` identifica plantillas de sistema (RECORDATORIO_TURNO,
-/// BIENVENIDA), sembradas y no borrables.
+/// enviar. `clave` identifica plantillas de sistema (BIENVENIDA), sembradas y
+/// no borrables. El recordatorio de turno NO vive acá: es
+/// `PlantillaEmailRecordatorio`, que admite varias (una por escalón).
 model PlantillaEmail {
   id              String        @id @default(uuid(4))
   nutricionistaId String

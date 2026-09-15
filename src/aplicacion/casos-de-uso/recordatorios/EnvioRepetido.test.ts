@@ -16,12 +16,12 @@ import {
   pacienteEjemplo,
   plantillaWhatsappEjemplo,
   configuracionRecordatoriosEjemplo,
-  mockPlantillaEmailRepositorio,
+  mockPlantillaEmailRecordatorioRepositorio,
   mockEmailEnviadoRepositorio,
   mockServicioEmail,
   mockEnlaceConfirmacionTurno,
   mockReloj,
-  plantillaEmailEjemplo,
+  plantillaEmailRecordatorioEjemplo,
 } from "../_ayudas-test";
 
 /**
@@ -75,8 +75,10 @@ function repositorioEnMemoria(): IRecordatorioWhatsappRepositorio & {
 function armar(horasEntreAvisos = 24) {
   const enviarEmail = vi.fn(async () => {});
   const emailPorTurno = new EnviarRecordatoriosPorEmail(
-    mockPlantillaEmailRepositorio({
-      obtenerPorClave: vi.fn(async () => plantillaEmailEjemplo()),
+    mockPlantillaEmailRecordatorioRepositorio({
+      obtenerPredeterminada: vi.fn(async () =>
+        plantillaEmailRecordatorioEjemplo(),
+      ),
     }),
     mockEmailEnviadoRepositorio(),
     mockTurnoRepositorio(),
@@ -116,6 +118,7 @@ function armar(horasEntreAvisos = 24) {
     new EnviarRecordatorioWhatsapp(recordatorios, proveedor),
     emailPorTurno,
     mockEstablecimientoRepositorio(),
+    mockReloj(),
   );
   return { caso, recordatorios };
 }

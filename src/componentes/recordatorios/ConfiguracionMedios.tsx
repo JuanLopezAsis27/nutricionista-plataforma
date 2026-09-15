@@ -31,8 +31,12 @@ import {
   SelectValue,
 } from "@/componentes/ui/select";
 
-/** Anticipaciones que se ofrecen; la lista tapa los casos reales de consultorio. */
-const DIAS_OFRECIDOS = [0, 1, 2, 3, 5, 7, 14];
+/**
+ * Anticipaciones que se ofrecen; la lista tapa los casos reales de
+ * consultorio. Se exporta porque las plantillas (WhatsApp y email) asignan su
+ * texto a uno de estos mismos días.
+ */
+export const DIAS_OFRECIDOS = [0, 1, 2, 3, 5, 7, 14];
 /** Avisos del evento de calendario, en minutos antes del turno. */
 const AVISOS_CALENDARIO = [
   { minutos: 2880, etiqueta: "2 días antes" },
@@ -145,9 +149,8 @@ export function ConfiguracionMedios() {
         onAutomatico={(v) => cambiar("emailAutomatico", v)}
         aviso={
           <>
-            Usa la plantilla{" "}
-            <span className="font-mono">RECORDATORIO_TURNO</span>, que se edita
-            en la pestaña Plantillas de esta misma pantalla.
+            Usa la plantilla que asignaste a cada día en la pestaña Plantillas;
+            el escalón sin una propia usa la predeterminada.
           </>
         }
       >
@@ -304,6 +307,13 @@ export function ConfiguracionMedios() {
   );
 }
 
+/** Cómo se nombra un escalón de anticipación en toda la pantalla de Recordatorios. */
+export function etiquetaDiasAntes(dias: number): string {
+  if (dias === 0) return "El mismo día";
+  if (dias === 1) return "1 día antes";
+  return `${dias} días antes`;
+}
+
 /** El `horaEnvio` guardado puede traer minutos; el selector ofrece horas en punto. */
 function horaEnPunto(hora: string): string {
   return `${hora.slice(0, 2)}:00`;
@@ -412,11 +422,7 @@ function SelectorDias({
                 )
               }
             >
-              {dias === 0
-                ? "El mismo día"
-                : dias === 1
-                  ? "1 día antes"
-                  : `${dias} días antes`}
+              {etiquetaDiasAntes(dias)}
             </Pastilla>
           );
         })}

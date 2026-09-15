@@ -18,6 +18,7 @@ import {
   mockEstablecimientoRepositorio,
   mockMaterialRepositorio,
   mockMetricaDispositivoRepositorio,
+  mockReloj,
   pacienteEjemplo,
   turnoEjemplo,
   plantillaWhatsappEjemplo,
@@ -148,6 +149,7 @@ describe("ObtenerVistaPreviaRecordatorio", () => {
       }),
       mockProveedorWhatsapp({ modoActual: vi.fn(async () => "API" as const) }),
       mockEstablecimientoRepositorio(),
+      mockReloj(),
     );
   }
 
@@ -171,6 +173,48 @@ describe("ObtenerVistaPreviaRecordatorio", () => {
     );
   });
 
+  // La vista previa tiene que mostrar EXACTAMENTE lo que después sale: si el
+  // turno cae en un día con plantilla propia, es esa la que se ve, no la
+  // predeterminada.
+  it("sin plantilla elegida, usa la del día que corresponde al turno", async () => {
+    const general = plantillaWhatsappEjemplo(
+      { cuerpo: "Mensaje general" },
+      "pla-general",
+    );
+    const deTresDias = plantillaWhatsappEjemplo(
+      { cuerpo: "Todavía a tiempo", diasAntes: 3, predeterminada: false },
+      "pla-3dias",
+    );
+    const caso = new ObtenerVistaPreviaRecordatorio(
+      mockTurnoRepositorio({
+        obtenerPorId: vi.fn(async () =>
+          turnoEjemplo({ fecha: new Date("2026-07-17") }),
+        ),
+      }),
+      mockPacienteRepositorio({
+        obtenerPorId: vi.fn(async () =>
+          pacienteEjemplo({ telefono: "1155554444" }),
+        ),
+      }),
+      mockConfiguracionRepositorio({
+        obtener: vi.fn(async () => ConfiguracionConsultorio.porDefecto()),
+      }),
+      mockPlantillaWhatsappRepositorio({
+        obtenerPredeterminada: vi.fn(async () => general),
+        obtenerPorDia: vi.fn(async (dias: number) =>
+          dias === 3 ? deTresDias : null,
+        ),
+      }),
+      mockProveedorWhatsapp(),
+      mockEstablecimientoRepositorio(),
+      mockReloj(),
+    );
+
+    const vista = await caso.ejecutar("tur-1");
+
+    expect(vista.mensaje).toContain("Todavía a tiempo");
+  });
+
   it("falla si el turno no existe", async () => {
     const caso = new ObtenerVistaPreviaRecordatorio(
       mockTurnoRepositorio({ obtenerPorId: vi.fn(async () => null) }),
@@ -179,6 +223,7 @@ describe("ObtenerVistaPreviaRecordatorio", () => {
       mockPlantillaWhatsappRepositorio(),
       mockProveedorWhatsapp(),
       mockEstablecimientoRepositorio(),
+      mockReloj(),
     );
 
     await expect(caso.ejecutar("tur-inexistente")).rejects.toThrow();

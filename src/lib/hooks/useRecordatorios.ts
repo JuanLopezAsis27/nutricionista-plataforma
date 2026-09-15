@@ -44,6 +44,33 @@ export function useRecordatorios() {
     onError: (error) => avisarError(error),
   });
 
+  const crearPlantillaEmail =
+    trpc.recordatorios.crearPlantillaEmail.useMutation({
+      onSuccess: () => {
+        toast.success("Plantilla creada.");
+        invalidar();
+      },
+      onError: (error) => avisarError(error),
+    });
+
+  const actualizarPlantillaEmail =
+    trpc.recordatorios.actualizarPlantillaEmail.useMutation({
+      onSuccess: () => {
+        toast.success("Plantilla guardada.");
+        invalidar();
+      },
+      onError: (error) => avisarError(error),
+    });
+
+  const eliminarPlantillaEmail =
+    trpc.recordatorios.eliminarPlantillaEmail.useMutation({
+      onSuccess: () => {
+        toast.success("Plantilla eliminada.");
+        invalidar();
+      },
+      onError: (error) => avisarError(error),
+    });
+
   const enviarMasivo = trpc.recordatorios.enviarMasivo.useMutation({
     onSuccess: (r) => {
       // El resumen distingue los cuatro desenlaces en vez de decir "listo":
@@ -125,6 +152,7 @@ export function useRecordatorios() {
     utils,
     configuracion: trpc.recordatorios.configuracion.useQuery,
     plantillas: trpc.recordatorios.listarPlantillas.useQuery,
+    plantillasEmail: trpc.recordatorios.listarPlantillasEmail.useQuery,
     turnosParaRecordar: trpc.recordatorios.turnosParaRecordar.useQuery,
     seguimiento: trpc.recordatorios.seguimiento.useQuery,
     pendientes: trpc.recordatorios.pendientes.useQuery,
@@ -133,6 +161,9 @@ export function useRecordatorios() {
     crearPlantilla,
     actualizarPlantilla,
     eliminarPlantilla,
+    crearPlantillaEmail,
+    actualizarPlantillaEmail,
+    eliminarPlantillaEmail,
     enviarMasivo,
     enviarProgramados,
     enviarIndividual,

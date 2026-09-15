@@ -1,5 +1,6 @@
 import type { ServicioConfiguracionRecordatorios } from "./recordatorios/ServicioConfiguracionRecordatorios";
 import type { ServicioPlantillasWhatsapp } from "./recordatorios/ServicioPlantillasWhatsapp";
+import type { ServicioPlantillasEmailRecordatorio } from "./recordatorios/ServicioPlantillasEmailRecordatorio";
 import type { ServicioEnvioRecordatorios } from "./recordatorios/ServicioEnvioRecordatorios";
 import type { ServicioSeguimientoRecordatorios } from "./recordatorios/ServicioSeguimientoRecordatorios";
 
@@ -28,6 +29,7 @@ export class ServicioRecordatorios {
   constructor(
     readonly configuracion: ServicioConfiguracionRecordatorios,
     readonly plantillas: ServicioPlantillasWhatsapp,
+    readonly plantillasEmail: ServicioPlantillasEmailRecordatorio,
     readonly envio: ServicioEnvioRecordatorios,
     readonly seguimiento: ServicioSeguimientoRecordatorios,
   ) {}

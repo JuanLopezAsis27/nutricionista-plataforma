@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Plus, Pencil, Trash2, Send, Mail, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import type { PlantillaSalidaDto } from "@/aplicacion/dtos/secretaria.dto";
-import { CLAVE_RECORDATORIO_TURNO } from "@/dominio/entidades/PlantillaEmail";
 import { useSecretaria } from "@/lib/hooks/useSecretaria";
 import { useConfiguracion } from "@/lib/hooks/useConfiguracion";
 import { Button } from "@/componentes/ui/button";
@@ -47,9 +46,7 @@ export function GestionPlantillasEmail() {
   const [prueba, setPrueba] = useState<PlantillaSalidaDto | null>(null);
   const [aEliminar, setAEliminar] = useState<PlantillaSalidaDto | null>(null);
 
-  const plantillas = (consulta.data ?? []).filter(
-    (p) => p.clave !== CLAVE_RECORDATORIO_TURNO,
-  );
+  const plantillas = consulta.data ?? [];
 
   return (
     <div className="space-y-4">

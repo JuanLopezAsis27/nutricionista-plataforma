@@ -41,6 +41,7 @@ import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfigur
 import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstablecimientoRepositorio";
 import { Establecimiento } from "@/dominio/entidades/Establecimiento";
 import type { IPlantillaWhatsappRepositorio } from "@/dominio/repositorios/IPlantillaWhatsappRepositorio";
+import type { IPlantillaEmailRecordatorioRepositorio } from "@/dominio/repositorios/IPlantillaEmailRecordatorioRepositorio";
 import type { IConfiguracionRecordatoriosRepositorio } from "@/dominio/repositorios/IConfiguracionRecordatoriosRepositorio";
 import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import type { IRecordatorioWhatsappRepositorio } from "@/dominio/repositorios/IRecordatorioWhatsappRepositorio";
@@ -88,6 +89,7 @@ import type { GrabacionConsulta } from "@/dominio/entidades/GrabacionConsulta";
 import type { ResumenConsulta } from "@/dominio/entidades/ResumenConsulta";
 import { ConfiguracionRecordatorios } from "@/dominio/entidades/ConfiguracionRecordatorios";
 import { PlantillaWhatsapp } from "@/dominio/entidades/PlantillaWhatsapp";
+import type { PlantillaEmailRecordatorio } from "@/dominio/entidades/PlantillaEmailRecordatorio";
 import { AxiomaNutricional } from "@/dominio/entidades/AxiomaNutricional";
 import { CuentaConectada } from "@/dominio/entidades/CuentaConectada";
 
@@ -99,7 +101,10 @@ import { CuentaConectada } from "@/dominio/entidades/CuentaConectada";
  * No es un archivo de test (no contiene `describe`).
  */
 
-import { plantillaWhatsappEjemplo } from "./entidades";
+import {
+  plantillaWhatsappEjemplo,
+  plantillaEmailRecordatorioEjemplo,
+} from "./entidades";
 
 /**
  * Mocks de los repositorios del dominio.
@@ -741,8 +746,26 @@ export function mockPlantillaWhatsappRepositorio(
     listar: vi.fn(async () => []),
     obtenerPorId: vi.fn(async () => null),
     obtenerPredeterminada: vi.fn(async () => plantillaWhatsappEjemplo()),
+    obtenerPorDia: vi.fn(async () => null),
     crear: vi.fn(async (p: PlantillaWhatsapp) => p),
     actualizar: vi.fn(async (p: PlantillaWhatsapp) => p),
+    eliminar: vi.fn(async () => {}),
+    ...parcial,
+  };
+}
+
+export function mockPlantillaEmailRecordatorioRepositorio(
+  parcial: Partial<IPlantillaEmailRecordatorioRepositorio> = {},
+): IPlantillaEmailRecordatorioRepositorio {
+  return {
+    listar: vi.fn(async () => []),
+    obtenerPorId: vi.fn(async () => null),
+    obtenerPredeterminada: vi.fn(async () =>
+      plantillaEmailRecordatorioEjemplo(),
+    ),
+    obtenerPorDia: vi.fn(async () => null),
+    crear: vi.fn(async (p: PlantillaEmailRecordatorio) => p),
+    actualizar: vi.fn(async (p: PlantillaEmailRecordatorio) => p),
     eliminar: vi.fn(async () => {}),
     ...parcial,
   };

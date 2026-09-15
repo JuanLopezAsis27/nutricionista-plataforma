@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { EnviarRecordatoriosPorEmail } from "./EnviarRecordatoriosPorEmail";
-import { ErrorPlantillaNoEncontrada } from "@/dominio/errores/ErrorPlantillaNoEncontrada";
+import { ErrorPlantillaEmailRecordatorioNoEncontrada } from "@/dominio/errores/ErrorPlantillaEmailRecordatorioNoEncontrada";
 import {
-  mockPlantillaEmailRepositorio,
+  mockPlantillaEmailRecordatorioRepositorio,
   mockConfiguracionRecordatoriosRepositorio,
   mockEmailEnviadoRepositorio,
   mockTurnoRepositorio,
@@ -11,7 +11,7 @@ import {
   mockServicioEmail,
   mockEnlaceConfirmacionTurno,
   mockReloj,
-  plantillaEmailEjemplo,
+  plantillaEmailRecordatorioEjemplo,
   turnoEjemplo,
   pacienteEjemplo,
 } from "../_ayudas-test";
@@ -24,15 +24,19 @@ function armar(overrides: {
   turnos?: ReturnType<typeof turnoEjemplo>[];
   paciente?: ReturnType<typeof pacienteEjemplo> | null;
   yaEnviado?: boolean;
+  plantillaPorDia?: ReturnType<typeof plantillaEmailRecordatorioEjemplo> | null;
+  predeterminada?: ReturnType<typeof plantillaEmailRecordatorioEjemplo>;
 }) {
-  const plantilla = plantillaEmailEjemplo();
+  const predeterminada =
+    overrides.predeterminada ?? plantillaEmailRecordatorioEjemplo();
   const enviar = vi.fn(async () => {});
   const registrar = vi.fn(async () => {});
   const enlaces = mockEnlaceConfirmacionTurno();
 
   const uc = new EnviarRecordatoriosPorEmail(
-    mockPlantillaEmailRepositorio({
-      obtenerPorClave: vi.fn(async () => plantilla),
+    mockPlantillaEmailRecordatorioRepositorio({
+      obtenerPredeterminada: vi.fn(async () => predeterminada),
+      obtenerPorDia: vi.fn(async () => overrides.plantillaPorDia ?? null),
     }),
     mockEmailEnviadoRepositorio({
       yaEnviado: vi.fn(async () => overrides.yaEnviado ?? false),
@@ -55,7 +59,7 @@ function armar(overrides: {
     mockEstablecimientoRepositorio(),
     enlaces,
   );
-  return { uc, enviar, registrar, enlaces };
+  return { uc, enviar, registrar, enlaces, predeterminada };
 }
 
 describe("EnviarRecordatoriosPorEmail", () => {
@@ -73,6 +77,30 @@ describe("EnviarRecordatoriosPorEmail", () => {
         para: "ana@mail.com",
         html: expect.stringContaining("Ana García"),
         asunto: expect.stringContaining("15/07/2026"),
+      }),
+    );
+  });
+
+  it("usa la plantilla propia del escalón cuando hay una asignada a ese día", async () => {
+    const turno = turnoEjemplo({ fecha: MANANA, hora: "10:00" });
+    const plantillaDelDia = plantillaEmailRecordatorioEjemplo(
+      {
+        asunto: "Mañana es tu turno, {{paciente}}",
+        diasAntes: 1,
+        predeterminada: false,
+      },
+      "pla-dia-1",
+    );
+    const { uc, enviar } = armar({
+      turnos: [turno],
+      plantillaPorDia: plantillaDelDia,
+    });
+
+    await uc.ejecutar();
+
+    expect(enviar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        asunto: expect.stringContaining("Mañana es tu turno"),
       }),
     );
   });
@@ -101,6 +129,28 @@ describe("EnviarRecordatoriosPorEmail", () => {
     const turno = turnoEjemplo({ fecha: MANANA });
     turno.cambiarEstado("CONFIRMADO");
     const { uc, enviar, enlaces } = armar({ turnos: [turno] });
+
+    await uc.ejecutar();
+
+    expect(enlaces.generar).not.toHaveBeenCalled();
+    expect(enviar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.not.stringContaining("confirmar-turno"),
+      }),
+    );
+  });
+
+  // La plantilla decide si pide confirmación, no el estado del turno solo:
+  // un recordatorio puede ser puramente informativo.
+  it("no agrega el botón si la plantilla lo tiene desactivado", async () => {
+    const turno = turnoEjemplo({ fecha: MANANA });
+    const sinBoton = plantillaEmailRecordatorioEjemplo({
+      incluirBotonConfirmacion: false,
+    });
+    const { uc, enviar, enlaces } = armar({
+      turnos: [turno],
+      predeterminada: sinBoton,
+    });
 
     await uc.ejecutar();
 
@@ -146,11 +196,12 @@ describe("EnviarRecordatoriosPorEmail", () => {
 
   it("no registra un envío que falla (se reintenta luego)", async () => {
     const turno = turnoEjemplo({ fecha: MANANA });
-    const plantilla = plantillaEmailEjemplo();
     const registrar = vi.fn(async () => {});
     const uc = new EnviarRecordatoriosPorEmail(
-      mockPlantillaEmailRepositorio({
-        obtenerPorClave: vi.fn(async () => plantilla),
+      mockPlantillaEmailRecordatorioRepositorio({
+        obtenerPredeterminada: vi.fn(async () =>
+          plantillaEmailRecordatorioEjemplo(),
+        ),
       }),
       mockEmailEnviadoRepositorio({ registrar }),
       mockTurnoRepositorio({ obtenerEnFecha: vi.fn(async () => [turno]) }),
@@ -175,10 +226,10 @@ describe("EnviarRecordatoriosPorEmail", () => {
     expect(registrar).not.toHaveBeenCalled();
   });
 
-  it("lanza ErrorPlantillaNoEncontrada si falta la plantilla del sistema", async () => {
+  it("lanza ErrorPlantillaEmailRecordatorioNoEncontrada si no hay predeterminada", async () => {
     const uc = new EnviarRecordatoriosPorEmail(
-      mockPlantillaEmailRepositorio({
-        obtenerPorClave: vi.fn(async () => null),
+      mockPlantillaEmailRecordatorioRepositorio({
+        obtenerPredeterminada: vi.fn(async () => null),
       }),
       mockEmailEnviadoRepositorio(),
       mockTurnoRepositorio(),
@@ -192,7 +243,7 @@ describe("EnviarRecordatoriosPorEmail", () => {
     );
 
     await expect(uc.ejecutar()).rejects.toBeInstanceOf(
-      ErrorPlantillaNoEncontrada,
+      ErrorPlantillaEmailRecordatorioNoEncontrada,
     );
   });
 });

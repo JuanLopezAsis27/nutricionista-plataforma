@@ -4,6 +4,7 @@ import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstabl
 import type { IPlantillaEmailRepositorio } from "@/dominio/repositorios/IPlantillaEmailRepositorio";
 import type { IAxiomaRepositorio } from "@/dominio/repositorios/IAxiomaRepositorio";
 import type { IPlantillaWhatsappRepositorio } from "@/dominio/repositorios/IPlantillaWhatsappRepositorio";
+import type { IPlantillaEmailRecordatorioRepositorio } from "@/dominio/repositorios/IPlantillaEmailRecordatorioRepositorio";
 import type { IConfiguracionRecordatoriosRepositorio } from "@/dominio/repositorios/IConfiguracionRecordatoriosRepositorio";
 import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
 import { Establecimiento } from "@/dominio/entidades/Establecimiento";
@@ -15,23 +16,16 @@ import {
   NOMBRE_PLANTILLA_POR_DEFECTO,
   VARIABLES_RECORDATORIO,
 } from "@/dominio/entidades/PlantillaWhatsapp";
+import {
+  PlantillaEmailRecordatorio,
+  ASUNTO_RECORDATORIO_POR_DEFECTO,
+  CUERPO_RECORDATORIO_EMAIL_POR_DEFECTO,
+} from "@/dominio/entidades/PlantillaEmailRecordatorio";
 import { ConfiguracionRecordatorios } from "@/dominio/entidades/ConfiguracionRecordatorios";
 import { ejecutarEnNutricionista } from "@/infraestructura/multitenancy/contextoTenant";
 
 /** Plantillas de sistema que arranca cada nutricionista nuevo. */
 const PLANTILLAS_SISTEMA = [
-  {
-    clave: "RECORDATORIO_TURNO",
-    nombre: "Recordatorio de turno",
-    asunto: "Recordatorio de tu turno del {{fecha}}",
-    descripcion: "Se envía automáticamente el día previo a cada turno.",
-    cuerpoHtml: `<div style="font-family:sans-serif;color:#222;line-height:1.5">
-  <p>Hola <strong>{{paciente}}</strong>,</p>
-  <p>Te recordamos tu turno para el <strong>{{fecha}}</strong> a las <strong>{{hora}}</strong>.</p>
-  <p>Si no podés asistir, avisanos con anticipación para reprogramarlo.</p>
-  <p>Saludos,<br/>{{profesional}}</p>
-</div>`,
-  },
   {
     clave: "BIENVENIDA",
     nombre: "Bienvenida al paciente",
@@ -91,6 +85,7 @@ export class ProvisionadorNutricionista implements IProvisionadorNutricionista {
     private readonly plantillas: IPlantillaEmailRepositorio,
     private readonly axiomas: IAxiomaRepositorio,
     private readonly plantillasWhatsapp: IPlantillaWhatsappRepositorio,
+    private readonly plantillasEmailRecordatorio: IPlantillaEmailRecordatorioRepositorio,
     private readonly configRecordatorios: IConfiguracionRecordatoriosRepositorio,
   ) {}
 
@@ -142,8 +137,25 @@ export class ProvisionadorNutricionista implements IProvisionadorNutricionista {
             claveMeta: null,
             idiomaMeta: "es_AR",
             variablesMeta: [...VARIABLES_RECORDATORIO],
+            diasAntes: null,
             predeterminada: true,
             activa: true,
+          },
+          crypto.randomUUID(),
+        ),
+      );
+      // Mismo criterio del lado del email: una plantilla predeterminada, sin
+      // día asignado, así el barrido tiene con qué mandar desde el arranque.
+      await this.plantillasEmailRecordatorio.crear(
+        PlantillaEmailRecordatorio.crear(
+          {
+            nombre: NOMBRE_PLANTILLA_POR_DEFECTO,
+            asunto: ASUNTO_RECORDATORIO_POR_DEFECTO,
+            cuerpoHtml: CUERPO_RECORDATORIO_EMAIL_POR_DEFECTO,
+            diasAntes: null,
+            predeterminada: true,
+            activa: true,
+            incluirBotonConfirmacion: true,
           },
           crypto.randomUUID(),
         ),

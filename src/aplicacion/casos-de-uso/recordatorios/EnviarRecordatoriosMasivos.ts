@@ -5,7 +5,9 @@ import type { IPlantillaWhatsappRepositorio } from "@/dominio/repositorios/IPlan
 import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstablecimientoRepositorio";
 import type { IConfiguracionRecordatoriosRepositorio } from "@/dominio/repositorios/IConfiguracionRecordatoriosRepositorio";
 import type { IRecordatorioWhatsappRepositorio } from "@/dominio/repositorios/IRecordatorioWhatsappRepositorio";
+import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import type { Paciente } from "@/dominio/entidades/Paciente";
+import type { PlantillaWhatsapp } from "@/dominio/entidades/PlantillaWhatsapp";
 import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
 import { ConfiguracionRecordatorios } from "@/dominio/entidades/ConfiguracionRecordatorios";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
@@ -40,6 +42,8 @@ export interface ResultadoEnvioMasivo {
 /** Tope de turnos por lote: más que eso es un barrido, no una selección. */
 export const MAX_TURNOS_POR_LOTE = 100;
 
+const DIA_MS = 24 * 60 * 60 * 1000;
+
 /**
  * Caso de uso: mandar el recordatorio a una selección de turnos, por TODOS los
  * medios que el consultorio tenga activos.
@@ -53,6 +57,12 @@ export const MAX_TURNOS_POR_LOTE = 100;
  * la programación— y por eso `forzar` existe: por defecto se omite a quien ya
  * recibió el aviso, que es la protección pedida contra el doble envío, pero el
  * profesional que sabe que está insistiendo a propósito tiene cómo decirlo.
+ *
+ * Que el envío sea manual no significa que el TEXTO tenga que ser el genérico:
+ * si el turno cae justo en un día con plantilla propia ("3 días antes", "1
+ * día antes"), es esa la que sale, no la predeterminada. Elegir una plantilla
+ * a mano en la consola es lo único que lo anula —ahí la decisión ya la tomó
+ * el profesional—.
  *
  * Devuelve el detalle turno por turno y no un contador: cuando el consultorio
  * trabaja con el enlace wa.me, cada envío es un chat que hay que abrir, y la
@@ -69,6 +79,7 @@ export class EnviarRecordatoriosMasivos {
     private readonly enviarUno: EnviarRecordatorioWhatsapp,
     private readonly enviarEmail: EnviarRecordatoriosPorEmail,
     private readonly establecimientos: IEstablecimientoRepositorio,
+    private readonly reloj: IRelojFecha,
   ) {}
 
   async ejecutar(datos: {
@@ -99,20 +110,26 @@ export class EnviarRecordatoriosMasivos {
 
     // La plantilla solo hace falta si WhatsApp está activo: con el medio
     // apagado, exigirla dejaría sin mandar un email que no la necesita.
-    const plantilla = preferencias.whatsappActivo
+    //
+    // Si el profesional NO eligió una a mano, no es que no haya plantilla:
+    // por turno se busca primero la del día que realmente falta (más abajo,
+    // con `obtenerPorDia`) y esta es el FALLBACK para los turnos sin una
+    // propia. Si SÍ eligió una, esa gana siempre —es una decisión deliberada
+    // que no depende de cuántos días falten—.
+    const plantillaElegida = preferencias.whatsappActivo
       ? ((datos.plantillaId
           ? await this.plantillas.obtenerPorId(datos.plantillaId)
           : await this.plantillas.obtenerPredeterminada()) ?? null)
       : null;
     if (preferencias.whatsappActivo) {
-      if (!plantilla) {
+      if (!plantillaElegida) {
         throw new ErrorPlantillaWhatsappNoEncontrada(
           datos.plantillaId ?? "predeterminada",
         );
       }
-      if (!plantilla.activa) {
+      if (!plantillaElegida.activa) {
         throw new ErrorValidacion(
-          `La plantilla «${plantilla.nombre}» está desactivada.`,
+          `La plantilla «${plantillaElegida.nombre}» está desactivada.`,
         );
       }
     }
@@ -138,6 +155,18 @@ export class EnviarRecordatoriosMasivos {
     // Un solo "ahora" para todo el lote: si se tomara por turno, dos pacientes
     // del mismo envío podrían caer a distinto lado del margen.
     const ahora = new Date();
+    const hoy = this.reloj.hoy();
+    // Cachea la búsqueda por día: varios turnos del lote suelen compartir el
+    // mismo escalón, y no tiene sentido repetir la consulta para cada uno.
+    const plantillasPorDia = new Map<number, PlantillaWhatsapp | null>();
+    const plantillaDelDia = async (
+      dias: number,
+    ): Promise<PlantillaWhatsapp | null> => {
+      if (!plantillasPorDia.has(dias)) {
+        plantillasPorDia.set(dias, await this.plantillas.obtenerPorDia(dias));
+      }
+      return plantillasPorDia.get(dias) ?? null;
+    };
 
     for (const turnoId of datos.turnoIds) {
       const turno = await this.turnos.obtenerPorId(turnoId);
@@ -157,6 +186,13 @@ export class EnviarRecordatoriosMasivos {
         continue;
       }
 
+      // Días reales que faltan para ESTE turno: aunque el envío sea manual,
+      // el texto tiene que coincidir con el que le corresponde a ese escalón
+      // (ver `plantillaDelDia` y `diasParaPlantilla` de abajo).
+      const diasFaltantes = Math.round(
+        (turno.fecha.getTime() - hoy.getTime()) / DIA_MS,
+      );
+
       // El email va PRIMERO y por su cuenta: es el medio que sale solo, sin
       // depender de que el profesional después abra un chat. Que WhatsApp se
       // omita por duplicado no puede dejar al paciente sin ningún aviso.
@@ -165,10 +201,11 @@ export class EnviarRecordatoriosMasivos {
             forzar: datos.forzar ?? false,
             horasEntreAvisos: preferencias.horasEntreAvisos,
             ahora,
+            diasParaPlantilla: diasFaltantes,
           })) === "ENVIADO"
         : false;
 
-      if (!preferencias.whatsappActivo || plantilla == null) {
+      if (!preferencias.whatsappActivo || plantillaElegida == null) {
         detalles.push({
           turnoId,
           pacienteId: paciente.id,
@@ -180,6 +217,13 @@ export class EnviarRecordatoriosMasivos {
         });
         continue;
       }
+
+      // Sin plantilla elegida a mano, la del día que corresponde gana sobre
+      // la predeterminada; si el profesional sí eligió una, esa es la que va
+      // pase lo que pase con la fecha.
+      const plantilla = datos.plantillaId
+        ? plantillaElegida
+        : ((await plantillaDelDia(diasFaltantes)) ?? plantillaElegida);
 
       const resultado = await this.enviarUno.ejecutar({
         turno,

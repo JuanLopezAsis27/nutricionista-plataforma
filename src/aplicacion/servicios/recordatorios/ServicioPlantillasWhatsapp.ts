@@ -33,6 +33,7 @@ export class ServicioPlantillasWhatsapp {
         claveMeta: datos.claveMeta ?? null,
         idiomaMeta: datos.idiomaMeta ?? "es_AR",
         variablesMeta: datos.variablesMeta ?? [],
+        diasAntes: datos.diasAntes ?? null,
         predeterminada: datos.predeterminada ?? false,
         activa: datos.activa ?? true,
       }),
