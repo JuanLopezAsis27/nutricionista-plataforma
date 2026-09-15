@@ -67,7 +67,8 @@ export interface RecomendacionDelPlan {
 }
 
 /**
- * Archivo del plan: el PDF principal (modalidad PDF) o un anexo.
+ * Archivo del plan: uno de los documentos que SON el plan (modalidad PDF) o un
+ * anexo.
  *
  * Los completa el repositorio al leer, igual que `recetaNombre` en una opción:
  * al crear el plan solo se conocen los ids, porque subir y guardar son dos
@@ -78,6 +79,8 @@ export interface ArchivoDelPlan {
   nombreOriginal: string;
   mimeType: string;
   tamanoBytes: number;
+  /** true si este archivo ES (parte de) el plan; false si lo acompaña. */
+  esDocumento: boolean;
 }
 
 /**
@@ -112,10 +115,13 @@ export interface PropiedadesPlan {
   grupoId: string | null;
   /** Nombre de la carpeta. Lo completa el repositorio al leer. */
   grupoNombre: string | null;
-  /** Archivos vinculados al plan: el principal y/o los anexos. */
+  /** Archivos vinculados al plan: los documentos del plan y/o los anexos. */
   archivos: ArchivoDelPlan[];
-  /** Cuál de ellos ES el plan. Solo en modalidad PDF; null en modalidad APP. */
-  archivoPrincipalId: string | null;
+  /**
+   * Cuáles de ellos SON el plan, en orden. Al menos uno en modalidad PDF,
+   * vacío en modalidad APP (ahí ningún anexo puede hacer de plan).
+   */
+  documentoIds: string[];
   /** Recetas vinculadas directamente al plan, sin franja. Ver RecetaDelPlan. */
   recetasVinculadas: RecetaDelPlan[];
   creadoEn: Date;
@@ -164,10 +170,11 @@ export interface DatosNuevoPlan {
   /** Carpeta donde guardarlo (opcional). */
   grupoId?: string | null;
   /**
-   * Id del Archivo ya subido que ES el plan. Obligatorio en modalidad PDF,
-   * prohibido en modalidad APP (ahí ningún anexo puede hacer de plan).
+   * Ids de los Archivos ya subidos que SON el plan. Al menos uno en modalidad
+   * PDF —el plan puede venir repartido en varios documentos— y ninguno en
+   * modalidad APP (ahí ningún anexo puede hacer de plan).
    */
-  archivoPrincipalId?: string | null;
+  documentoIds?: string[];
   /**
    * Recetas a vincular directamente al plan, sin franja. Pensado para el plan
    * PDF/Word (no tiene franjas), pero no se restringe por modalidad: un plan
@@ -181,13 +188,14 @@ export interface DatosNuevoPlan {
  * opciones intercambiables, equivalencias y recomendaciones).
  *
  * Invariantes locales: nombre obligatorio; el CONTENIDO que pide su modalidad
- * —comidas si es APP, archivo principal si es PDF—, cada franja con nombre y al
- * menos una opción con contenido; horas en formato HH:mm; metas de macros no
- * negativas.
+ * —comidas si es APP, al menos un documento si es PDF—, cada franja con nombre
+ * y al menos una opción con contenido; horas en formato HH:mm; metas de macros
+ * no negativas.
  *
  * El contenido depende de la modalidad porque son dos maneras de trabajar y no
  * dos variantes de la misma (ver `MODALIDADES_PLAN`). Un plan APP sin comidas
- * no es un plan, es un nombre; y un plan PDF sin archivo no tiene qué mostrar.
+ * no es un plan, es un nombre; y un plan PDF sin documentos no tiene qué
+ * mostrar.
  * Que un plan PDF no admita comidas es deliberado: si las admitiera habría dos
  * planes en el mismo registro y ninguna forma de decir cuál rige.
  *
@@ -208,12 +216,14 @@ export class PlanNutricional {
       throw new ErrorValidacion("El plan debe tener un nombre.");
     }
     const modalidad: ModalidadPlan = datos.modalidad ?? "APP";
-    const archivoPrincipalId = datos.archivoPrincipalId ?? null;
+    // Sin repetidos y en el orden en que se subieron: es el orden en el que el
+    // paciente los va a leer.
+    const documentoIds = [...new Set(datos.documentoIds ?? [])];
 
     if (modalidad === "PDF") {
-      if (archivoPrincipalId === null) {
+      if (documentoIds.length === 0) {
         throw new ErrorValidacion(
-          "Un plan en PDF necesita el archivo del plan.",
+          "Un plan en PDF necesita al menos un archivo: ese archivo es el plan.",
         );
       }
       if (datos.comidas && datos.comidas.length > 0) {
@@ -223,9 +233,9 @@ export class PlanNutricional {
         );
       }
     } else {
-      if (archivoPrincipalId !== null) {
+      if (documentoIds.length > 0) {
         throw new ErrorValidacion(
-          "Un plan de la app no puede tener un archivo principal: sus archivos son anexos.",
+          "Un plan de la app no puede tener archivos que sean el plan: los suyos son anexos.",
         );
       }
       if (!datos.comidas || datos.comidas.length === 0) {
@@ -331,9 +341,10 @@ export class PlanNutricional {
       // los archivos: acá solo se conoce el id.
       grupoNombre: null,
       // Los archivos los completa el repositorio al leer: acá solo se conocen
-      // los ids, y el principal es el único que la entidad necesita decidir.
+      // los ids, y cuáles de ellos son el plan es lo único que la entidad
+      // necesita decidir.
       archivos: [],
-      archivoPrincipalId,
+      documentoIds,
       // Ídem: al crear solo se conocen los ids, sin repetidos. El nombre lo
       // completa el repositorio al leer.
       recetasVinculadas: [...new Set(datos.recetaIds ?? [])].map(
@@ -353,7 +364,7 @@ export class PlanNutricional {
    * (franjas, opciones, equivalencias, recomendaciones y PDF) preservando id,
    * esPlantilla, planOrigenId, archivado y creadoEn.
    *
-   * La modalidad y el archivo principal se reemplazan como todo lo demás:
+   * La modalidad y los documentos del plan se reemplazan como todo lo demás:
    * quien edita el plan manda los que quiere que queden, igual que manda las
    * comidas que no tocó. La lista de archivos leída se preserva —la vincula el
    * repositorio, no este método—.
@@ -470,28 +481,24 @@ export class PlanNutricional {
   }
 
   /**
-   * El archivo que ES el plan, o null si el plan se carga en la app.
+   * Los archivos que SON el plan, en orden. Vacío si el plan se carga en la
+   * app: ahí el plan son las franjas y ningún archivo lo reemplaza.
    *
-   * Resuelve acá el caso de que el elegido ya no esté —se borró el archivo y la
-   * FK quedó en NULL—: cae en el primero que haya. El fallback vive en la
-   * entidad y no en cada pantalla por lo mismo que en `Receta.fotoPrincipal`:
-   * repetido en la UI, dos pantallas del mismo plan podrían mostrar archivos
-   * distintos.
+   * Que sean varios es lo normal en un plan armado afuera: la pauta en un PDF,
+   * las equivalencias en otro. Quién es documento y quién anexo lo dice la
+   * fila del archivo (`esDocumento`, migración 66) y no una elección aparte
+   * del plan, así que no hay fallback que resolver: borrar un documento lo
+   * saca de la lista sin ascender ningún anexo.
    */
-  get archivoPrincipal(): ArchivoDelPlan | null {
-    if (this.props.modalidad !== "PDF") return null;
-    const elegido = this.props.archivos.find(
-      (a) => a.id === this.props.archivoPrincipalId,
-    );
-    return elegido ?? this.props.archivos[0] ?? null;
+  get documentos(): ReadonlyArray<ArchivoDelPlan> {
+    if (this.props.modalidad !== "PDF") return [];
+    return this.props.archivos.filter((a) => a.esDocumento);
   }
 
   /** Los archivos que NO son el plan: anexos, material de apoyo. */
   get adjuntos(): ReadonlyArray<ArchivoDelPlan> {
-    const principal = this.archivoPrincipal;
-    return principal === null
-      ? this.props.archivos
-      : this.props.archivos.filter((a) => a.id !== principal.id);
+    if (this.props.modalidad !== "PDF") return this.props.archivos;
+    return this.props.archivos.filter((a) => !a.esDocumento);
   }
 
   aPrimitivos(): PropiedadesPlan {
@@ -504,6 +511,7 @@ export class PlanNutricional {
       equivalencias: this.props.equivalencias.map((e) => ({ ...e })),
       recomendaciones: this.props.recomendaciones.map((r) => ({ ...r })),
       archivos: this.props.archivos.map((a) => ({ ...a })),
+      documentoIds: [...this.props.documentoIds],
       recetasVinculadas: this.props.recetasVinculadas.map((r) => ({ ...r })),
     };
   }

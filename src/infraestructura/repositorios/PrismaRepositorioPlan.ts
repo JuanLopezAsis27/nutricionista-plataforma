@@ -40,8 +40,8 @@ const INCLUIR_HIJOS = {
   // Solo el nombre de la carpeta: la pantalla muestra dónde está guardado.
   grupo: { select: { nombre: true } },
   // Archivos del plan: solo su ficha, nunca el contenido (vive en el bucket).
-  // Orden estable: sin ORDER BY, "el primero" cambia entre consultas y el
-  // fallback del archivo principal iría rotando solo.
+  // Orden estable: es el orden en el que el paciente lee los documentos del
+  // plan, y sin ORDER BY cambiaría entre consultas.
   archivos: {
     orderBy: { creadoEn: "asc" },
     select: {
@@ -49,6 +49,7 @@ const INCLUIR_HIJOS = {
       nombreOriginal: true,
       mimeType: true,
       tamanoBytes: true,
+      esDocumentoDelPlan: true,
     },
   },
   // Recetas vinculadas directamente al plan (sin franja): solo el nombre, para
@@ -145,7 +146,7 @@ export class PrismaRepositorioPlan
           },
         },
       });
-      await this.vincularArchivos(tx, d.id, archivoIds, d.archivoPrincipalId);
+      await this.vincularArchivos(tx, d.id, archivoIds, d.documentoIds);
       await this.vincularRecetas(tx, d.id, recetaIds);
       return tx.planNutricional.findUniqueOrThrow({
         where: { id: d.id },
@@ -221,7 +222,7 @@ export class PrismaRepositorioPlan
           },
         },
       });
-      await this.vincularArchivos(tx, d.id, archivoIds, d.archivoPrincipalId);
+      await this.vincularArchivos(tx, d.id, archivoIds, d.documentoIds);
       await this.vincularRecetas(tx, d.id, recetaIds);
       return tx.planNutricional.findUniqueOrThrow({
         where: { id: d.id },
@@ -255,7 +256,8 @@ export class PrismaRepositorioPlan
   }
 
   /**
-   * Deja al plan con exactamente esos archivos y ese principal.
+   * Deja al plan con exactamente esos archivos, y marcados como documentos
+   * exactamente esos otros.
    *
    * Los que salen de la lista se BORRAN, no se desvinculan: un archivo sin
    * dueño no lo recoge nadie —el barrido del worker limpia objetos del bucket
@@ -263,14 +265,17 @@ export class PrismaRepositorioPlan
    * huérfanos para siempre. Borrada la fila, el objeto del bucket queda
    * huérfano de verdad y ese barrido sí se lo lleva.
    *
-   * El principal se fija DESPUÉS de vincular: la FK exige que el archivo
-   * exista, y si se fijara antes apuntaría a uno que todavía no es del plan.
+   * La marca de documento se pone DESPUÉS de vincular: un archivo recién
+   * subido todavía no es del plan, y marcarlo antes ensuciaría una fila que la
+   * primera consulta ni siquiera trae. Y se limpia primero en TODO el plan
+   * para que un documento que pasó a anexo pierda la marca: la lista que llega
+   * es el estado final, igual que la de archivos.
    */
   private async vincularArchivos(
     tx: Prisma.TransactionClient,
     planId: string,
     archivoIds: string[],
-    archivoPrincipalId: string | null,
+    documentoIds: string[],
   ): Promise<void> {
     await tx.archivo.deleteMany({
       where: {
@@ -284,15 +289,17 @@ export class PrismaRepositorioPlan
         data: { planId },
       });
     }
-    await tx.planNutricional.update({
-      where: { id: planId },
-      data: {
-        archivoPrincipalId:
-          archivoPrincipalId && archivoIds.includes(archivoPrincipalId)
-            ? archivoPrincipalId
-            : null,
-      },
+    await tx.archivo.updateMany({
+      where: { planId },
+      data: { esDocumentoDelPlan: false },
     });
+    const documentos = documentoIds.filter((id) => archivoIds.includes(id));
+    if (documentos.length > 0) {
+      await tx.archivo.updateMany({
+        where: { planId, id: { in: documentos } },
+        data: { esDocumentoDelPlan: true },
+      });
+    }
   }
 
   async eliminar(id: string): Promise<void> {
@@ -533,8 +540,11 @@ export function mapearPlan(fila: PlanConHijos): PlanNutricional {
       nombreOriginal: archivo.nombreOriginal,
       mimeType: archivo.mimeType,
       tamanoBytes: archivo.tamanoBytes,
+      esDocumento: archivo.esDocumentoDelPlan,
     })),
-    archivoPrincipalId: fila.archivoPrincipalId,
+    documentoIds: fila.archivos
+      .filter((archivo) => archivo.esDocumentoDelPlan)
+      .map((archivo) => archivo.id),
     recetasVinculadas: fila.recetasVinculadas.map((vinculo) => ({
       recetaId: vinculo.recetaId,
       recetaNombre: vinculo.receta.nombre,

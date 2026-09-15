@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   FileDown,
   UserPlus,
@@ -58,6 +59,7 @@ export function SeccionPlanesDelPaciente({
   apellido: string;
 }) {
   const { delPaciente, desasignar } = usePlanes();
+  const router = useRouter();
   const plan = delPaciente({ pacienteId });
   const [asignarAbierto, setAsignarAbierto] = useState(false);
   const [confirmarDesasignar, setConfirmarDesasignar] = useState(false);
@@ -133,7 +135,14 @@ export function SeccionPlanesDelPaciente({
                   Finalizar plan
                 </Button>
               </div>
-              <VistaPlan plan={plan.data} />
+              {/* Igual que en la ficha del plan: la receta que acompaña al
+                  plan lleva a la receta, no es un nombre suelto. */}
+              <VistaPlan
+                plan={plan.data}
+                onVerReceta={(recetaId) =>
+                  router.push(`/dashboard/recetas/${recetaId}`)
+                }
+              />
             </>
           ) : (
             <div className="space-y-3">

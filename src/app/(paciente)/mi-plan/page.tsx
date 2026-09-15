@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   CalendarRange,
@@ -9,11 +9,9 @@ import {
   FileDown,
   Pill,
 } from "lucide-react";
-import type { RecetaSalidaDto } from "@/aplicacion/dtos/receta.dto";
 import { usePlanes } from "@/lib/hooks/usePlanes";
 import { usePlanesSemanales } from "@/lib/hooks/usePlanesSemanales";
 import { useSeguimiento } from "@/lib/hooks/useSeguimiento";
-import { useRecetas } from "@/lib/hooks/useRecetas";
 import { formatearFecha } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
@@ -23,27 +21,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/componentes/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/componentes/ui/dialog";
 import { EncabezadoPortal } from "@/componentes/layout/EncabezadoPortal";
 import { VistaPlan } from "@/componentes/planes/VistaPlan";
-import { VistaReceta } from "@/componentes/recetas/VistaReceta";
 
 /** Mi plan: plan nutricional activo + suplementación vigente, con PDF. */
 export default function PaginaMiPlan() {
   const { miPlan } = usePlanes();
   const { miPlanSemanal } = usePlanesSemanales();
   const { misSuplementos } = useSeguimiento();
-  const { misRecetas } = useRecetas();
+  const router = useRouter();
   const consulta = miPlan();
   const semanal = miPlanSemanal();
   const suplementos = misSuplementos();
-  const recetas = misRecetas();
-  const [recetaVer, setRecetaVer] = useState<RecetaSalidaDto | null>(null);
 
   return (
     <div className="space-y-5">
@@ -97,10 +86,9 @@ export default function PaginaMiPlan() {
       ) : consulta.data ? (
         <VistaPlan
           plan={consulta.data}
-          onVerReceta={(recetaId) => {
-            const receta = recetas.data?.find((r) => r.id === recetaId);
-            if (receta) setRecetaVer(receta);
-          }}
+          // La receta del plan lleva a la receta, que tiene su propia pantalla
+          // (antes abría un diálogo, y ahí el documento adjunto no entraba).
+          onVerReceta={(recetaId) => router.push(`/mis-recetas/${recetaId}`)}
         />
       ) : (
         <div className="rounded-xl border border-dashed p-10 text-center">
@@ -147,18 +135,6 @@ export default function PaginaMiPlan() {
           </CardContent>
         </Card>
       )}
-
-      <Dialog
-        open={Boolean(recetaVer)}
-        onOpenChange={(abierto) => !abierto && setRecetaVer(null)}
-      >
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{recetaVer?.nombre}</DialogTitle>
-          </DialogHeader>
-          {recetaVer && <VistaReceta receta={recetaVer} />}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

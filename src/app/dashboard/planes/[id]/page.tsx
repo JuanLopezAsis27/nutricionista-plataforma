@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, UserPlus, Pencil, FileDown, Copy } from "lucide-react";
 import { usePlanes } from "@/lib/hooks/usePlanes";
 import { Button } from "@/componentes/ui/button";
@@ -20,6 +20,7 @@ import { PacientesDelPlan } from "@/componentes/planes/PacientesDelPlan";
 
 export default function PaginaDetallePlan() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const { obtenerPorId, crearDesdePlantilla } = usePlanes();
   const [asignar, setAsignar] = useState(false);
   const [editar, setEditar] = useState(false);
@@ -101,7 +102,15 @@ export default function PaginaDetallePlan() {
         </div>
       </div>
 
-      <VistaPlan plan={datos} />
+      {/* Las recetas del plan —las de una opción y las vinculadas directo—
+          llevan a la receta, que ahora tiene su propia página. Antes eran
+          texto suelto: había que ir al recetario y buscarla por nombre. */}
+      <VistaPlan
+        plan={datos}
+        onVerReceta={(recetaId) =>
+          router.push(`/dashboard/recetas/${recetaId}`)
+        }
+      />
 
       {/* Una plantilla no se asigna: se clona. No tiene pacientes que listar. */}
       {!datos.esPlantilla && <PacientesDelPlan planId={datos.id} />}

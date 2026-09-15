@@ -57,8 +57,8 @@ export const esquema = z
     modalidad: z.enum(MODALIDADES_PLAN),
     /** Carpeta donde guardarlo, o el sentinela SIN_CARPETA. */
     grupoId: z.string(),
-    /** Id del Archivo que ES el plan (modalidad PDF), o null. */
-    archivoPrincipalId: z.string().nullable(),
+    /** Ids de los Archivos que SON el plan (modalidad PDF), en orden. */
+    documentoIds: z.array(z.string()).max(20),
     /** Recetas vinculadas directamente al plan, sin franja (pensado para PDF). */
     recetaIds: z.array(z.string()).max(50),
     equivalencias: z
@@ -89,11 +89,11 @@ export const esquema = z
         path: ["comidas"],
       });
     }
-    if (d.modalidad === "PDF" && !d.archivoPrincipalId) {
+    if (d.modalidad === "PDF" && d.documentoIds.length === 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Subí el archivo con el plan",
-        path: ["archivoPrincipalId"],
+        path: ["documentoIds"],
       });
     }
   });

@@ -1000,12 +1000,18 @@ model Archivo {
   comidaConsumidaId String? @unique // foto de una comida del diario (1 a 1)
   recetaId          String? // fotos de una receta (1 a muchas)
   materialId        String? @unique // material de la biblioteca (1 a 1)
-  /// Archivos del plan nutricional (1 a MUCHOS): el PDF principal de un plan
-  /// en modalidad PDF y/o los anexos de cualquier plan. Cuál es el principal
-  /// lo decide `planes_nutricionales.archivoPrincipalId` (ver migración 37).
+  /// Archivos del plan nutricional (1 a MUCHOS): los documentos que SON el
+  /// plan en modalidad PDF y/o los anexos de cualquier plan. Cuál es cuál lo
+  /// dice `esDocumentoDelPlan` (ver migración 66).
   planId            String?
   /// Audio de una grabación de consulta (1 a 1). Ver GrabacionConsulta.
   grabacionId       String? @unique
+
+  /// Este archivo ES (parte de) el plan, no un anexo suyo. Solo tiene sentido
+  /// junto a `planId` y en un plan de modalidad PDF: ahí el plan puede estar
+  /// repartido en VARIOS documentos (migración 66), y los que no lleven la
+  /// marca son el material de apoyo.
+  esDocumentoDelPlan Boolean @default(false)
 
   /// Fecha que representa la foto en la línea de tiempo de "antes y después",
   /// que NO es `creadoEn`: una foto de hace seis meses se sube hoy. Que esté
@@ -1023,10 +1029,6 @@ model Archivo {
   recetaPrincipalDe Receta[]                   @relation("FotoPrincipalReceta")
   material          MaterialBiblioteca?        @relation(fields: [materialId], references: [id], onDelete: Cascade)
   plan              PlanNutricional?           @relation("ArchivosDelPlan", fields: [planId], references: [id], onDelete: Cascade)
-  /// Contracara de `PlanNutricional.archivoPrincipal`: el plan que usa este
-  /// archivo como su PDF principal. Es una relación aparte de `plan` porque son
-  /// dos cosas: estar adjunto al plan y SER el plan.
-  planPrincipalDe   PlanNutricional[]          @relation("ArchivoPrincipalPlan")
   grabacion         GrabacionConsulta?         @relation("ArchivoDeGrabacion", fields: [grabacionId], references: [id], onDelete: Cascade)
   configuraciones   ConfiguracionConsultorio[]
   /// Contracara de `Usuario.fotoPerfil`: la cuenta que usa este archivo como
@@ -1769,9 +1771,6 @@ model PlanNutricional {
   modalidad          ModalidadPlan @default(APP)
   /// Carpeta en la que está guardado (opcional). Ver GrupoPlan.
   grupoId            String?
-  /// El PDF que ES el plan, en modalidad PDF. Null en modalidad APP: ahí los
-  /// archivos son anexos y ninguno reemplaza al plan cargado.
-  archivoPrincipalId String?
   planOrigenId       String? // plantilla de la que se clonó (informativo)
   archivado          Boolean       @default(false)
   // Metas de macros del plan (opcionales)
@@ -1791,13 +1790,12 @@ model PlanNutricional {
   /// (migración 56). Es lo único que le puede acompañar recetas a un plan PDF:
   /// ese plan no tiene franjas de las que colgarlas.
   recetasVinculadas RecetaDelPlan[]
-  /// Archivos del plan: el principal y/o los anexos. La FK vive en `archivos`,
-  /// como el resto de los dueños de archivo: el arco exclusivo se sostiene en
-  /// una sola tabla.
+  /// Archivos del plan: los documentos que SON el plan y/o los anexos. La FK
+  /// vive en `archivos`, como el resto de los dueños de archivo: el arco
+  /// exclusivo se sostiene en una sola tabla. Cuáles de ellos son el plan lo
+  /// dice `archivos.esDocumentoDelPlan`, en la fila del archivo y no acá: el
+  /// plan en PDF puede estar repartido en varios documentos (migración 66).
   archivos          Archivo[]           @relation("ArchivosDelPlan")
-  /// Cuál de esos archivos ES el plan (modalidad PDF). FK con SET NULL: borrar
-  /// el archivo deja el plan sin principal, no apuntando a un id inexistente.
-  archivoPrincipal  Archivo?            @relation("ArchivoPrincipalPlan", fields: [archivoPrincipalId], references: [id], onDelete: SetNull)
   nutricionista     Nutricionista       @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
   // Plantilla de la que se clonó: FK real con SET NULL, para que borrar la
   // plantilla no deje ids colgando en los planes que salieron de ella.

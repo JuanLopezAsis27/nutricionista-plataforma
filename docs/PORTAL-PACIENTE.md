@@ -18,6 +18,7 @@ sentado frente a una pantalla grande durante la consulta.
 | `/mi-composicion`  | Antropometría, en lectura                            |
 | `/mis-objetivos`   | Objetivos y estrategias, en lectura                  |
 | `/mis-recetas`     | Recetas que le asignaron                             |
+| `/mis-recetas/[id]`| Una receta: ingredientes, pasos y su documento       |
 | `/mi-material`     | Material de la biblioteca                            |
 | `/mis-turnos`      | Sus turnos                                           |
 | `/mensajes`        | El hilo con su nutricionista                         |
@@ -28,6 +29,12 @@ Todas leen procedimientos «míos» (`miPlan`, `miDia`, `miTracking`,
 `obtenerMiPlanSemanal`…), que toman el paciente de la sesión con
 `pacienteDeSesion`. Ninguna recibe un `pacienteId`: donde no hay nada que
 elegir, no hay forma de pedir los datos de otro.
+
+`/mis-recetas/[id]` sí lleva un id en la URL, y por eso NO consulta por id: se
+queda con la receta que aparezca en `obtenerMisRecetas`, la lista de las que le
+compartieron. Esa lista ya es la autorización —un id ajeno simplemente no está
+ahí— y pedir la receta suelta habría necesitado un procedimiento nuevo que
+repitiera la misma regla, con el riesgo de que las dos se separen.
 
 ## El inicio responde una sola pregunta: qué me toca ahora
 

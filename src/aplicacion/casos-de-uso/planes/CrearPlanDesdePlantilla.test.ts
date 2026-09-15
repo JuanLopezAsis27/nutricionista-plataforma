@@ -104,7 +104,7 @@ describe("CrearPlanDesdePlantilla", () => {
 
   it("no deja usar un plan en PDF como plantilla", async () => {
     const enPdf = planEjemplo(
-      { modalidad: "PDF", comidas: [], archivoPrincipalId: "arc-1" },
+      { modalidad: "PDF", comidas: [], documentoIds: ["arc-1"] },
       "pla-pdf",
     );
     const planes = mockPlanRepositorio({

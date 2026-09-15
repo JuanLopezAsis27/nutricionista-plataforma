@@ -16,27 +16,42 @@ const ACEPTA_DOCUMENTO =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 /**
- * El archivo que ES el plan. Solo en modalidad PDF (la del plan subido como
+ * Los archivos que SON el plan. Solo en modalidad PDF (la del plan subido como
  * archivo, sea PDF o Word).
  *
+ * Son VARIOS y no uno porque un plan armado afuera suele venir repartido —la
+ * pauta en un PDF, las equivalencias en otro—, y con un solo campo el resto
+ * terminaba de anexo abajo, leído como material de apoyo de sí mismo. El orden
+ * en que se suben es el orden en que el paciente los lee.
+ *
  * Recibe el `form` completo y no solo el `control` porque necesita
- * `setValue`: la ficha del archivo vive en estado del componente (para mostrar
- * nombre y tamaño) mientras que lo que se valida es el id, que sí está en el
- * formulario. Los dos tienen que moverse juntos.
+ * `setValue`: las fichas de los archivos viven en estado del componente (para
+ * mostrar nombre y tamaño) mientras que lo que se valida son los ids, que sí
+ * están en el formulario. Los dos tienen que moverse juntos.
  */
-export function SeccionArchivoPrincipal({
+export function SeccionDocumentosDelPlan({
   form,
-  principal,
+  documentos,
   alCambiar,
 }: {
   form: UseFormReturn<DatosFormulario>;
-  principal: ArchivoDelPlanDto | null;
-  alCambiar: (archivo: ArchivoDelPlanDto | null) => void;
+  documentos: ArchivoDelPlanDto[];
+  alCambiar: (documentos: ArchivoDelPlanDto[]) => void;
 }) {
+  /** Mueve las fichas y los ids juntos: el formulario valida los segundos. */
+  function fijar(nuevos: ArchivoDelPlanDto[]) {
+    alCambiar(nuevos);
+    form.setValue(
+      "documentoIds",
+      nuevos.map((documento) => documento.id),
+      { shouldValidate: true },
+    );
+  }
+
   return (
     <FormField
       control={form.control}
-      name="archivoPrincipalId"
+      name="documentoIds"
       render={() => (
         <FormItem>
           <fieldset className="space-y-3 rounded-lg border p-4">
@@ -44,32 +59,32 @@ export function SeccionArchivoPrincipal({
               El plan (PDF o Word)
             </legend>
             <p className="text-sm text-muted-foreground">
-              Este archivo ES el plan: es lo que el paciente ve al entrar a «Mi
-              plan».
+              Estos archivos SON el plan: es lo que el paciente ve al entrar a
+              «Mi plan». Podés subir más de uno y se muestran en este orden.
             </p>
-            {principal ? (
-              <FilaArchivo
-                archivo={principal}
-                etiquetaQuitar="Quitar el archivo del plan"
-                onQuitar={() => {
-                  alCambiar(null);
-                  form.setValue("archivoPrincipalId", null, {
-                    shouldValidate: true,
-                  });
-                }}
-              />
-            ) : (
-              <SubidorArchivo
-                contexto="plan"
-                accept={ACEPTA_DOCUMENTO}
-                onSubido={(archivo) => {
-                  alCambiar(aFichaArchivo(archivo));
-                  form.setValue("archivoPrincipalId", archivo.id, {
-                    shouldValidate: true,
-                  });
-                }}
-              />
+            {documentos.length > 0 && (
+              <ul className="space-y-2">
+                {documentos.map((documento) => (
+                  <li key={documento.id}>
+                    <FilaArchivo
+                      archivo={documento}
+                      etiquetaQuitar={`Quitar ${documento.nombreOriginal} del plan`}
+                      onQuitar={() =>
+                        fijar(documentos.filter((d) => d.id !== documento.id))
+                      }
+                    />
+                  </li>
+                ))}
+              </ul>
             )}
+            <SubidorArchivo
+              contexto="plan"
+              accept={ACEPTA_DOCUMENTO}
+              sinVistaPrevia
+              onSubido={(archivo) =>
+                fijar([...documentos, aFichaArchivo(archivo)])
+              }
+            />
             <FormMessage />
           </fieldset>
         </FormItem>
@@ -100,7 +115,7 @@ export function SeccionAdjuntos({
       <p className="text-sm text-muted-foreground">
         {esApp
           ? "PDFs o documentos de Word que acompañan al plan: la lista de compras, un instructivo, un recetario. El paciente los ve al final de su plan."
-          : "PDFs o documentos de Word que acompañan al plan principal. El paciente los ve debajo del plan."}
+          : "PDFs o documentos de Word que acompañan al plan sin ser parte de él. El paciente los ve debajo del plan."}
       </p>
 
       {adjuntos.length > 0 && (

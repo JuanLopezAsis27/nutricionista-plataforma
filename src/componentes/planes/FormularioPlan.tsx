@@ -35,7 +35,7 @@ import {
 import { SeccionDatosGenerales } from "./formulario/SeccionDatosGenerales";
 import { SeccionMetasMacros } from "./formulario/SeccionMetasMacros";
 import {
-  SeccionArchivoPrincipal,
+  SeccionDocumentosDelPlan,
   SeccionAdjuntos,
 } from "./formulario/SeccionArchivos";
 import { SeccionComidas } from "./formulario/SeccionComidas";
@@ -79,7 +79,8 @@ interface PropsFormularioPlan {
  *
  * En modalidad APP: datos generales, metas, franjas con opciones (con receta
  * opcional), equivalencias y recomendaciones. En modalidad PDF: datos
- * generales, metas y el archivo que ES el plan; no hay franjas que cargar.
+ * generales, metas y los archivos que SON el plan —uno o varios—; no hay
+ * franjas que cargar.
  *
  * El material adjunto está en las dos: es material de apoyo del plan, no el
  * plan, y eso vale igual para un plan cargado que para uno subido.
@@ -158,7 +159,7 @@ export function FormularioPlan({
           })),
           modalidad: planInicial.modalidad,
           grupoId: planInicial.grupoId ?? SIN_CARPETA,
-          archivoPrincipalId: planInicial.archivoPrincipal?.id ?? null,
+          documentoIds: planInicial.documentos.map((d) => d.id),
           recetaIds: planInicial.recetasVinculadas.map((r) => r.recetaId),
         }
       : {
@@ -177,16 +178,16 @@ export function FormularioPlan({
           // Crear estando dentro de una carpeta guarda ahí, salvo que sea una
           // plantilla: esas no van a ninguna carpeta.
           grupoId: (comoPlantilla ? null : grupoIdInicial) ?? SIN_CARPETA,
-          archivoPrincipalId: null,
+          documentoIds: [],
           recetaIds: [],
         },
   });
 
   // Fichas de los archivos, para mostrar nombre y tamaño. Van en estado y no en
-  // el formulario porque no se validan: lo único que se valida es que en un
-  // plan PDF haya principal, y eso es `archivoPrincipalId`.
-  const [principal, setPrincipal] = useState<ArchivoDelPlanDto | null>(
-    planInicial?.archivoPrincipal ?? null,
+  // el formulario porque no se validan: lo único que se valida es que un plan
+  // PDF tenga al menos un documento, y eso es `documentoIds`.
+  const [documentos, setDocumentos] = useState<ArchivoDelPlanDto[]>(
+    planInicial?.documentos ?? [],
   );
   const [adjuntos, setAdjuntos] = useState<ArchivoDelPlanDto[]>(
     planInicial?.adjuntos ?? [],
@@ -218,13 +219,11 @@ export function FormularioPlan({
       modalidad: datos.modalidad,
       grupoId:
         esPlantilla || datos.grupoId === SIN_CARPETA ? null : datos.grupoId,
-      archivoPrincipalId: datos.archivoPrincipalId,
-      // El principal también va en la lista: ser el plan no lo exime de estar
-      // vinculado a él. Lo que no esté acá el servidor lo desvincula.
-      archivoIds: [
-        ...(datos.archivoPrincipalId ? [datos.archivoPrincipalId] : []),
-        ...adjuntos.map((a) => a.id),
-      ],
+      documentoIds: datos.documentoIds,
+      // Los documentos también van en la lista: ser el plan no exime a un
+      // archivo de estar vinculado a él. Lo que no esté acá el servidor lo
+      // desvincula.
+      archivoIds: [...datos.documentoIds, ...adjuntos.map((a) => a.id)],
       recetaIds: datos.recetaIds,
     };
 
@@ -301,10 +300,10 @@ export function FormularioPlan({
 
         {!esApp && (
           <>
-            <SeccionArchivoPrincipal
+            <SeccionDocumentosDelPlan
               form={form}
-              principal={principal}
-              alCambiar={setPrincipal}
+              documentos={documentos}
+              alCambiar={setDocumentos}
             />
             <SeccionRecetasVinculadas
               control={form.control}
