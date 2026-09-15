@@ -23,11 +23,11 @@ import { formatearTamano } from "@/lib/formato";
  * Vista de solo lectura de un plan nutricional, organizada por franjas.
  * Reutilizada en el detalle del plan, la ficha del paciente y el portal.
  *
- * Muestra lo que el plan ES, según su modalidad: el visor del archivo si es un
- * plan subido (PDF o Word), las franjas si se cargó en la app. Los ANEXOS van
- * al final en los dos casos, como material de apoyo: nunca arriba, porque un
- * anexo no es el plan y ponerlo primero es exactamente lo que llevó a separar
- * las dos modalidades.
+ * Muestra lo que el plan ES, según su modalidad: el visor de cada uno de sus
+ * documentos si es un plan subido (PDF o Word), las franjas si se cargó en la
+ * app. Los ANEXOS van al final en los dos casos, como material de apoyo: nunca
+ * arriba, porque un anexo no es el plan y ponerlo primero es exactamente lo que
+ * llevó a separar las dos modalidades.
  *
  * Que el visor viva acá y no en cada pantalla es lo que hace que el paciente lo
  * vea en «Mi plan» sin tocar esa página.
@@ -108,14 +108,18 @@ export function VistaPlan({
         </div>
       )}
 
-      {plan.archivoPrincipal && (
+      {/* El plan puede estar repartido en varios documentos: van uno abajo del
+          otro y en el orden en que se subieron, que es el que eligió el
+          profesional al armarlo. */}
+      {plan.documentos.map((documento) => (
         <VisorArchivo
-          archivo={plan.archivoPrincipal}
-          titulo={plan.archivoPrincipal.nombreOriginal}
+          key={documento.id}
+          archivo={documento}
+          titulo={documento.nombreOriginal}
         />
-      )}
+      ))}
 
-      {plan.modalidad === "PDF" && !plan.archivoPrincipal && (
+      {plan.modalidad === "PDF" && plan.documentos.length === 0 && (
         <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
           Este plan es un archivo, pero ya no está disponible. Volvé a subirlo
           desde la edición del plan.

@@ -19,7 +19,10 @@ import type { CrearGrupoPlan } from "@/aplicacion/casos-de-uso/grupos-plan/Crear
 import type { ActualizarGrupoPlan } from "@/aplicacion/casos-de-uso/grupos-plan/ActualizarGrupoPlan";
 import type { EliminarGrupoPlan } from "@/aplicacion/casos-de-uso/grupos-plan/EliminarGrupoPlan";
 import type { ObtenerGruposPlan } from "@/aplicacion/casos-de-uso/grupos-plan/ObtenerGruposPlan";
-import type { PlanNutricional } from "@/dominio/entidades/PlanNutricional";
+import type {
+  PlanNutricional,
+  ArchivoDelPlan,
+} from "@/dominio/entidades/PlanNutricional";
 import type { AsignacionPlan } from "@/dominio/repositorios/IPlanRepositorio";
 import type {
   CrearPlanDto,
@@ -34,6 +37,7 @@ import type {
   ResultadoAsignacionMultipleDto,
   CrearPlanParaPacienteDto,
   PlanSalidaDto,
+  ArchivoDelPlanDto,
   AsignacionPlanSalidaDto,
   AsignacionConPacienteDto,
   GrupoPlanDto,
@@ -214,13 +218,26 @@ export class ServicioPlan {
   }
 
   private static aSalida(plan: PlanNutricional): PlanSalidaDto {
-    const { archivos, archivoPrincipalId, ...resto } = plan.aPrimitivos();
+    const { archivos, documentoIds, ...resto } = plan.aPrimitivos();
     void archivos;
-    void archivoPrincipalId;
+    void documentoIds;
+    // La lista cruda no sale: la pantalla recibe los dos grupos ya separados
+    // por la entidad. Exponerla sería la puerta para que una vista vuelva a
+    // decidir por su cuenta cuál de los archivos es el plan.
     return {
       ...resto,
-      archivoPrincipal: plan.archivoPrincipal,
-      adjuntos: [...plan.adjuntos],
+      documentos: plan.documentos.map(fichaDeArchivo),
+      adjuntos: plan.adjuntos.map(fichaDeArchivo),
     };
   }
+}
+
+/** La ficha que ve la pantalla: sin la marca de documento, ya dicha por el grupo. */
+function fichaDeArchivo(archivo: ArchivoDelPlan): ArchivoDelPlanDto {
+  return {
+    id: archivo.id,
+    nombreOriginal: archivo.nombreOriginal,
+    mimeType: archivo.mimeType,
+    tamanoBytes: archivo.tamanoBytes,
+  };
 }

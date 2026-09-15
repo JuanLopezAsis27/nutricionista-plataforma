@@ -7,7 +7,7 @@ import { ErrorPlanDuplicado } from "@/dominio/errores/ErrorPlanDuplicado";
 
 /** Datos de entrada: el plan + ids de los archivos ya subidos al bucket. */
 export interface DatosCrearPlan extends DatosNuevoPlan {
-  /** Archivos a vincular: el principal (modalidad PDF) y/o los anexos. */
+  /** Archivos a vincular: los documentos (modalidad PDF) y/o los anexos. */
   archivoIds?: string[];
 }
 
@@ -15,9 +15,9 @@ export interface DatosCrearPlan extends DatosNuevoPlan {
  * Caso de uso: crear un plan nutricional (plantilla o plan suelto), en
  * cualquiera de las dos modalidades.
  *
- * Los archivos se suben antes (módulo Archivos) y acá solo se vinculan. El
- * principal se incluye en la lista aunque venga también en `archivoPrincipalId`:
- * ser el plan no lo exime de estar vinculado a él.
+ * Los archivos se suben antes (módulo Archivos) y acá solo se vinculan. Los
+ * documentos se incluyen en la lista aunque vengan también en `documentoIds`:
+ * ser el plan no exime a un archivo de estar vinculado a él.
  */
 export class CrearPlan {
   constructor(private readonly planes: IPlanRepositorio) {}
@@ -41,12 +41,12 @@ export class CrearPlan {
   }
 }
 
-/** Ids a vincular, con el principal incluido y sin repetidos. */
+/** Ids a vincular, con los documentos del plan incluidos y sin repetidos. */
 export function idsDeArchivos(datos: {
   archivoIds?: string[];
-  archivoPrincipalId?: string | null;
+  documentoIds?: string[];
 }): string[] {
   const ids = new Set(datos.archivoIds ?? []);
-  if (datos.archivoPrincipalId) ids.add(datos.archivoPrincipalId);
+  for (const documentoId of datos.documentoIds ?? []) ids.add(documentoId);
   return [...ids];
 }

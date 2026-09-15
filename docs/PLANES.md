@@ -8,14 +8,14 @@ Este documento cubre lo que se sumó después: **las dos modalidades de plan**,
 
 ## Dos modalidades, no dos variantes
 
-|                           | `APP`                    | `PDF`                   |
-| ------------------------- | ------------------------ | ----------------------- |
-| Qué es el plan            | las franjas cargadas acá | el archivo subido       |
-| Comidas                   | al menos una             | ninguna (no se admiten) |
-| Archivo principal         | ninguno (prohibido)      | obligatorio             |
-| Anexos                    | sí                       | sí                      |
-| PDF generado con membrete | sí                       | no aplica               |
-| Sirve de plantilla        | sí                       | no                      |
+|                           | `APP`                    | `PDF`                        |
+| ------------------------- | ------------------------ | ---------------------------- |
+| Qué es el plan            | las franjas cargadas acá | los archivos subidos         |
+| Comidas                   | al menos una             | ninguna (no se admiten)      |
+| Documentos del plan       | ninguno (prohibido)      | al menos uno, y pueden ser varios |
+| Anexos                    | sí                       | sí                           |
+| PDF generado con membrete | sí                       | no aplica                    |
+| Sirve de plantilla        | sí                       | no                           |
 
 **Son dos maneras de trabajar, no dos formas de llenar el mismo plan.** Quien
 arma sus planes en Word o Canva los tiene terminados y solo quiere que el
@@ -36,8 +36,12 @@ problemas que son el mismo error:
 preguntas separadas (migración 37):
 
 - **`modalidad`** dice de qué clase es el plan;
-- **`archivoPrincipalId`** dice cuál de sus archivos ES el plan, y solo tiene
-  sentido en modalidad PDF.
+- **`archivos.esDocumentoDelPlan`** dice cuáles de sus archivos SON el plan, y
+  solo tiene sentido en modalidad PDF.
+
+La segunda pregunta vivió hasta la migración 66 en `archivoPrincipalId`, una
+columna del plan, y por eso el plan subido era exactamente UN archivo. Ver
+«El plan puede ser varios documentos», más abajo.
 
 La entidad lo hace cumplir en las dos direcciones: un plan PDF con comidas
 cargadas se rechaza (habría dos planes en el mismo registro y ninguna forma de
@@ -54,8 +58,8 @@ Los archivos del plan son **`Archivo`**, dueños del arco exclusivo igual que la
 fotos de una receta:
 
 ```
-archivos.planId                        → planes_nutricionales.id  (1 a N, CASCADE)
-planes_nutricionales.archivoPrincipalId → archivos.id             (SET NULL)
+archivos.planId              → planes_nutricionales.id  (1 a N, CASCADE)
+archivos.esDocumentoDelPlan  → ¿este archivo ES el plan, o lo acompaña?
 ```
 
 No es una columna con una ruta porque un plan no "tiene un path": tiene un
@@ -74,9 +78,9 @@ los adjuntos de una receta. Por eso el CHECK `archivos_un_solo_dueno` es `<= 1` 
 no `= 1` (ver migración 34).
 
 `IPlanRepositorio.crear/actualizar` reciben `archivoIds`: es el **estado final**,
-lo que no está en la lista se desvincula. El principal viaja en esa lista aunque
-venga además en `archivoPrincipalId` — ser el plan no lo exime de estar
-vinculado a él.
+lo que no está en la lista se desvincula. Los documentos viajan en esa lista
+aunque vengan además en `documentoIds` — ser el plan no exime a un archivo de
+estar vinculado a él.
 
 **Un archivo que sale de la lista se BORRA, no se desvincula**
 (`PrismaRepositorioPlan.vincularArchivos`). Un archivo sin dueño no lo recoge
@@ -84,20 +88,37 @@ nadie: el barrido semanal del worker limpia objetos del bucket **sin fila**, no
 filas sin dueño. Borrada la fila, el objeto queda huérfano de verdad y ese
 barrido sí se lo lleva.
 
-El principal se fija **después** de vincular: la FK exige que el archivo exista,
-y fijarlo antes apuntaría a uno que todavía no es del plan.
+La marca de documento se pone **después** de vincular —un archivo recién subido
+todavía no es del plan— y se limpia primero en todos los del plan: la lista que
+llega es el estado final, así que un documento que pasó a anexo tiene que perder
+la marca.
 
-### El fallback del principal vive en la entidad
+## El plan puede ser varios documentos
 
-`PlanNutricional.archivoPrincipal` resuelve el caso de que el elegido ya no esté
-—se borró el archivo y la FK quedó en NULL— cayendo en el primero disponible, y
-`adjuntos` devuelve el resto. El DTO de salida expone esos dos ya resueltos, no
-la lista cruda: si cada pantalla repitiera el fallback, dos vistas del mismo plan
-podrían mostrar archivos distintos. Es exactamente el error que ya se cometió
-con la foto de la receta (migración 35).
+El plan armado afuera no siempre es un archivo: la pauta viene en un PDF, las
+equivalencias en otro, el instructivo en un tercero, y los tres SON el plan.
+Con `archivoPrincipalId` —una columna, un archivo— dos de los tres caían abajo
+en «Material adjunto», leídos como apoyo de sí mismos: la misma confusión que
+la migración 37 había venido a arreglar, entrando por otra puerta.
 
-Por eso el `INCLUIR_HIJOS` del repositorio trae los archivos con `orderBy`: sin
-él "el primero" cambia entre consultas y el fallback iría rotando solo.
+La migración 66 mueve la respuesta a la fila del archivo
+(`archivos.esDocumentoDelPlan`), porque la pregunta «¿esto es el plan o lo
+acompaña?» es de **cada archivo** y no del plan. La entidad expone los dos
+grupos ya separados —`documentos` y `adjuntos`— y el DTO de salida los pasa así,
+sin la lista cruda: si cada pantalla decidiera por su cuenta, dos vistas del
+mismo plan podrían mostrar cosas distintas. Es exactamente el error que ya se
+cometió con la foto de la receta (migración 35).
+
+**Se fue el fallback**, y no por descuido: `archivoPrincipal` caía en el primer
+archivo disponible cuando el elegido ya no estaba, porque la FK era SET NULL y
+el plan podía quedar apuntando a nada teniendo anexos. Con la marca en la fila
+ese estado no existe: borrar un documento lo saca de la lista y ningún anexo
+asciende a plan solo. Los planes que venían con el principal borrado los
+resuelve la migración, marcando el primero —la elección que el fallback venía
+haciendo—.
+
+El `INCLUIR_HIJOS` del repositorio sigue trayendo los archivos con `orderBy`:
+ese orden es el que el paciente ve, un documento abajo del otro.
 
 ## Recetas vinculadas directamente al plan
 
@@ -137,7 +158,7 @@ leer el mismo archivo, y si una fuera más permisiva sería la puerta de atrás 
 la otra.
 
 La regla del paciente (`PuedeVerArchivoPaciente`) alcanza a **todos** los
-archivos del plan **ACTIVO** —el principal y los anexos—, y solo a ese: el plan
+archivos del plan **ACTIVO** —los documentos y los anexos—, y solo a ese: el plan
 vigente es la indicación vigente, y dejar abierto el de un plan finalizado es
 dejar al paciente siguiendo un plan que ya se cambió.
 
@@ -146,9 +167,9 @@ salida cuando el navegador no puede dibujar PDFs embebidos —pasa en el WebView
 de Android, que no trae visor— y ahí el sistema lo abre con la app que
 corresponda.
 
-En `VistaPlan` el orden es siempre el mismo: **el plan primero** (el visor si es
-PDF, las franjas si es APP) y el **material adjunto al final**. Un anexo nunca va
-arriba: eso es lo que llevó a separar las dos modalidades.
+En `VistaPlan` el orden es siempre el mismo: **el plan primero** (un visor por
+documento si es PDF, las franjas si es APP) y el **material adjunto al final**.
+Un anexo nunca va arriba: eso es lo que llevó a separar las dos modalidades.
 
 ## El PDF generado y el PDF subido son dos cosas
 
@@ -369,9 +390,9 @@ selector múltiple ahí.
 - `PlanNutricional.archivos` lo completa el **repositorio** al leer: al crear el
   plan solo se conocen los ids, porque subir y guardar son dos pasos. Es el mismo
   patrón que `recetaNombre` en una opción.
-- El DTO de salida expone `archivoPrincipal` y `adjuntos` **ya resueltos**. No
+- El DTO de salida expone `documentos` y `adjuntos` **ya separados**. No
   agregues la lista cruda "por si acaso": es la puerta para que una pantalla
-  vuelva a resolver el principal por su cuenta.
+  vuelva a decidir por su cuenta cuál de los archivos es el plan.
 - Editar un plan **reemplaza** sus archivos: el formulario manda los que quiere
   que queden. Igual que manda las comidas que no tocó.
 - Al sumar un filtro al listado, **acordate de `ObtenerPlanesPaginado`**: arma

@@ -117,8 +117,8 @@ export default function PaginaPlanes() {
             <span className="font-medium">{plan.nombre}</span>
             {plan.modalidad === "PDF" && (
               <Badge variant="secondary">
-                {plan.archivoPrincipal &&
-                esDocumentoWord(plan.archivoPrincipal.mimeType)
+                {plan.documentos[0] &&
+                esDocumentoWord(plan.documentos[0].mimeType)
                   ? "Word"
                   : "PDF"}
               </Badge>

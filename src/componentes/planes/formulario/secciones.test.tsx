@@ -47,7 +47,8 @@ function Envoltorio({
       recomendaciones: [],
       modalidad: "APP",
       grupoId: "__suelto__",
-      archivoPrincipalId: null,
+      documentoIds: [],
+      recetaIds: [],
     },
   });
   return (

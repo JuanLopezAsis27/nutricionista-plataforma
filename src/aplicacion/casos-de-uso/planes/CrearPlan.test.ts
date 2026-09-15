@@ -62,7 +62,7 @@ describe("CrearPlan", () => {
     ).rejects.toBeInstanceOf(ErrorValidacion);
   });
 
-  it("crea un plan en PDF: sin comidas, con el archivo como principal", async () => {
+  it("crea un plan en PDF: sin comidas, con el archivo como documento", async () => {
     const planes = mockPlanRepositorio();
     const casoUso = new CrearPlan(planes);
 
@@ -70,18 +70,21 @@ describe("CrearPlan", () => {
       nombre: "Plan de Julia",
       modalidad: "PDF",
       comidas: [],
-      archivoPrincipalId: "arc-plan",
+      documentoIds: ["arc-plan"],
     });
 
     const datos = plan.aPrimitivos();
     expect(datos.modalidad).toBe("PDF");
     expect(datos.comidas).toHaveLength(0);
-    expect(datos.archivoPrincipalId).toBe("arc-plan");
-    // El principal viaja en la lista a vincular aunque no venga en archivoIds.
+    expect(datos.documentoIds).toEqual(["arc-plan"]);
+    // El documento viaja en la lista a vincular aunque no venga en archivoIds.
     expect(planes.crear).toHaveBeenCalledWith(plan, ["arc-plan"], []);
   });
 
-  it("vincula los anexos junto al principal, sin repetirlo", async () => {
+  it("un plan en PDF puede ser VARIOS documentos, en orden y sin repetidos", async () => {
+    // El plan armado afuera suele venir repartido: la pauta en un PDF, las
+    // equivalencias en otro. Con un solo archivo posible, el resto terminaba
+    // de anexo abajo y se leía como material de apoyo del propio plan.
     const planes = mockPlanRepositorio();
     const casoUso = new CrearPlan(planes);
 
@@ -89,7 +92,29 @@ describe("CrearPlan", () => {
       nombre: "Plan de Julia",
       modalidad: "PDF",
       comidas: [],
-      archivoPrincipalId: "arc-plan",
+      documentoIds: ["arc-pauta", "arc-equivalencias", "arc-pauta"],
+    });
+
+    expect(plan.aPrimitivos().documentoIds).toEqual([
+      "arc-pauta",
+      "arc-equivalencias",
+    ]);
+    expect(planes.crear).toHaveBeenCalledWith(
+      plan,
+      ["arc-pauta", "arc-equivalencias"],
+      [],
+    );
+  });
+
+  it("vincula los anexos junto a los documentos, sin repetirlos", async () => {
+    const planes = mockPlanRepositorio();
+    const casoUso = new CrearPlan(planes);
+
+    const plan = await casoUso.ejecutar({
+      nombre: "Plan de Julia",
+      modalidad: "PDF",
+      comidas: [],
+      documentoIds: ["arc-plan"],
       archivoIds: ["arc-plan", "arc-compras"],
     });
 
@@ -112,7 +137,7 @@ describe("CrearPlan", () => {
 
     const datos = plan.aPrimitivos();
     expect(datos.modalidad).toBe("APP");
-    expect(datos.archivoPrincipalId).toBeNull();
+    expect(datos.documentoIds).toEqual([]);
     expect(planes.crear).toHaveBeenCalledWith(plan, ["arc-compras"], []);
   });
 
@@ -124,7 +149,7 @@ describe("CrearPlan", () => {
       nombre: "Plan de Julia",
       modalidad: "PDF",
       comidas: [],
-      archivoPrincipalId: "arc-plan",
+      documentoIds: ["arc-plan"],
       recetaIds: ["rec-1", "rec-2", "rec-1"],
     });
 
@@ -161,14 +186,14 @@ describe("CrearPlan", () => {
       casoUso.ejecutar({
         nombre: "Plan de dos caras",
         modalidad: "PDF",
-        archivoPrincipalId: "arc-plan",
+        documentoIds: ["arc-plan"],
         comidas: [{ nombre: "Desayuno", opciones: [{ contenido: "Café" }] }],
       }),
     ).rejects.toBeInstanceOf(ErrorValidacion);
     expect(planes.crear).not.toHaveBeenCalled();
   });
 
-  it("lanza ErrorValidacion si un plan de la app declara archivo principal", async () => {
+  it("lanza ErrorValidacion si un plan de la app declara un documento", async () => {
     const planes = mockPlanRepositorio();
     const casoUso = new CrearPlan(planes);
 
@@ -176,7 +201,7 @@ describe("CrearPlan", () => {
       casoUso.ejecutar({
         nombre: "Plan con anexo ascendido",
         comidas: [{ nombre: "Desayuno", opciones: [{ contenido: "Café" }] }],
-        archivoPrincipalId: "arc-compras",
+        documentoIds: ["arc-compras"],
       }),
     ).rejects.toBeInstanceOf(ErrorValidacion);
     expect(planes.crear).not.toHaveBeenCalled();

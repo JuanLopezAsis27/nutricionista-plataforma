@@ -33,7 +33,6 @@ describe("mapearPlan", () => {
     modalidad: "APP",
     grupoId: "grupo-1",
     grupo: { nombre: "Descenso" },
-    archivoPrincipalId: "arch-principal",
     creadoEn: new Date("2026-01-01T00:00:00.000Z"),
     actualizadoEn: new Date("2026-01-02T00:00:00.000Z"),
     comidas: [
@@ -82,10 +81,18 @@ describe("mapearPlan", () => {
     ],
     archivos: [
       {
-        id: "arch-principal",
+        id: "arch-documento",
         nombreOriginal: "plan.pdf",
         mimeType: "application/pdf",
         tamanoBytes: 1024,
+        esDocumentoDelPlan: true,
+      },
+      {
+        id: "arch-anexo",
+        nombreOriginal: "compras.pdf",
+        mimeType: "application/pdf",
+        tamanoBytes: 512,
+        esDocumentoDelPlan: false,
       },
     ],
     recetasVinculadas: [],
@@ -100,7 +107,9 @@ describe("mapearPlan", () => {
     expect(datos.esPlantilla).toBe(false);
     expect(datos.archivado).toBe(false);
     expect(datos.modalidad).toBe("APP");
-    expect(datos.archivoPrincipalId).toBe("arch-principal");
+    // Cuáles archivos SON el plan sale de la marca de cada fila, no de una
+    // columna del plan que solo podía nombrar a uno (migración 66).
+    expect(datos.documentoIds).toEqual(["arch-documento"]);
   });
 
   it("no cruza las cuatro metas de macros entre si", () => {
@@ -180,10 +189,18 @@ describe("mapearPlan", () => {
     ]);
     expect(datos.archivos).toEqual([
       {
-        id: "arch-principal",
+        id: "arch-documento",
         nombreOriginal: "plan.pdf",
         mimeType: "application/pdf",
         tamanoBytes: 1024,
+        esDocumento: true,
+      },
+      {
+        id: "arch-anexo",
+        nombreOriginal: "compras.pdf",
+        mimeType: "application/pdf",
+        tamanoBytes: 512,
+        esDocumento: false,
       },
     ]);
   });

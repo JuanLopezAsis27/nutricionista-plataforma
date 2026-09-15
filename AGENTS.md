@@ -321,8 +321,10 @@ con dos copias eso dura hasta el primer arreglo que se aplique en una sola.
 
 Antes se llamaba "Dieta" (hay redirects permanentes en `next.config.ts`). Hay
 **DOS modalidades declaradas y no deducidas** (`ModalidadPlan`): `APP` se carga
-franja por franja acá; `PDF` es el archivo armado afuera. La modalidad se elige
-al dar de alta, no se cambia editando.
+franja por franja acá; `PDF` son los archivos armados afuera —pueden ser
+VARIOS, y cuáles de los archivos del plan son el plan lo dice
+`archivos.esDocumentoDelPlan`, no una columna del plan (migración 66)—. La
+modalidad se elige al dar de alta, no se cambia editando.
 
 **`AsignacionPlan` es el HISTORIAL del paciente y sobrevive al borrado del plan**
 (FK SET NULL + `nombrePlan` congelado). Nunca borrar una asignación para

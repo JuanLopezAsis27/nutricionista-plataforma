@@ -60,8 +60,8 @@ const planBase = z.object({
   grupoId: z.string().min(1).nullable().optional(),
   /** Archivos ya subidos (contexto "plan") que quedan vinculados al plan. */
   archivoIds: z.array(z.string().min(1)).max(20).optional(),
-  /** Cuál de ellos ES el plan. Solo en modalidad PDF. */
-  archivoPrincipalId: z.string().min(1).nullable().optional(),
+  /** Cuáles de ellos SON el plan, en orden. Solo en modalidad PDF. */
+  documentoIds: z.array(z.string().min(1)).max(20).optional(),
   /**
    * Recetas vinculadas directamente al plan, sin franja. Pensado para el plan
    * PDF/Word, que no tiene franjas de las que colgarlas.
@@ -78,7 +78,7 @@ const planBase = z.object({
 interface DatosConContenido {
   comidas: unknown[];
   modalidad?: (typeof MODALIDADES_PLAN)[number];
-  archivoPrincipalId?: string | null;
+  documentoIds?: string[];
 }
 
 /** Un plan de la app necesita al menos una comida. */
@@ -86,9 +86,9 @@ function contenidoDeLaApp(datos: DatosConContenido): boolean {
   return (datos.modalidad ?? "APP") !== "APP" || datos.comidas.length > 0;
 }
 
-/** Un plan en PDF necesita el archivo que ES el plan. */
+/** Un plan en PDF necesita al menos un documento: son ellos el plan. */
 function contenidoDelPdf(datos: DatosConContenido): boolean {
-  return datos.modalidad !== "PDF" || Boolean(datos.archivoPrincipalId);
+  return datos.modalidad !== "PDF" || (datos.documentoIds ?? []).length > 0;
 }
 
 const FALTA_COMIDA = {
@@ -97,7 +97,7 @@ const FALTA_COMIDA = {
 };
 const FALTA_ARCHIVO = {
   message: "Subí el archivo con el plan",
-  path: ["archivoPrincipalId"],
+  path: ["documentoIds"],
 };
 
 // Los refines van encadenados en cada esquema y no en un helper genérico: un
@@ -283,11 +283,11 @@ export const planSalidaDto = z.object({
   /** Nombre de la carpeta, para mostrarlo sin una consulta aparte. */
   grupoNombre: z.string().nullable(),
   /**
-   * El archivo que ES el plan (modalidad PDF), ya resuelto: la pantalla no
-   * elige entre el elegido y el primero disponible, eso lo hace la entidad.
-   * Null en modalidad APP.
+   * Los archivos que SON el plan (modalidad PDF), en orden y ya separados de
+   * los anexos por la entidad: la pantalla no vuelve a decidir cuál es cuál.
+   * Vacío en modalidad APP.
    */
-  archivoPrincipal: archivoDelPlanDto.nullable(),
+  documentos: z.array(archivoDelPlanDto),
   /** Archivos que acompañan al plan sin reemplazarlo. */
   adjuntos: z.array(archivoDelPlanDto),
   /** Recetas vinculadas directamente al plan, sin franja. */

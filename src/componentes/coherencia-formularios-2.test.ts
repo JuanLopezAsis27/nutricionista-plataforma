@@ -357,7 +357,7 @@ describe("FormularioPlan vs crearPlanDto", () => {
     ],
     modalidad: "APP" as const,
     grupoId: "__suelto__",
-    archivoPrincipalId: null,
+    documentoIds: [],
     recetaIds: [],
     equivalencias: [],
     recomendaciones: [],
