@@ -317,6 +317,14 @@ El navegador de carpetas es UNO solo (`componentes/comunes/NavegadorCarpetas`),
 compartido por planes y recetario: los dos módulos tienen que navegarse igual, y
 con dos copias eso dura hasta el primer arreglo que se aplique en una sola.
 
+La receta se abre en **su propia página** —`/dashboard/recetas/[id]` en el
+consultorio, `/mis-recetas/[id]` en el portal—, como un plan, y no en un
+diálogo: si tiene un documento cargado ese documento se MUESTRA —mismo
+`VisorArchivo` que el plan subido—, y un visor de PDF adentro de un modal es un
+recuadro con scroll propio arriba del scroll del diálogo. Tener URL propia es
+además lo que permite llegar a la receta desde el plan que la usa, de los dos
+lados.
+
 ### Plan Nutricional
 
 Antes se llamaba "Dieta" (hay redirects permanentes en `next.config.ts`). Hay

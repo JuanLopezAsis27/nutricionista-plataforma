@@ -1,23 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import type { RecetaSalidaDto } from "@/aplicacion/dtos/receta.dto";
+import { useRouter } from "next/navigation";
 import { useRecetas } from "@/lib/hooks/useRecetas";
 import { Skeleton } from "@/componentes/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/componentes/ui/dialog";
 import { TarjetaReceta } from "@/componentes/recetas/TarjetaReceta";
-import { VistaReceta } from "@/componentes/recetas/VistaReceta";
 
 /** Mis recetas: las recetas que el nutricionista compartió con el paciente. */
 export default function PaginaMisRecetas() {
   const { misRecetas } = useRecetas();
+  const router = useRouter();
   const consulta = misRecetas();
-  const [recetaVer, setRecetaVer] = useState<RecetaSalidaDto | null>(null);
 
   return (
     <div className="space-y-6">
@@ -44,23 +36,13 @@ export default function PaginaMisRecetas() {
             <TarjetaReceta
               key={receta.id}
               receta={receta}
-              onVer={() => setRecetaVer(receta)}
+              // La receta se abre en su propia pantalla: el documento que
+              // pueda traer necesita el ancho completo.
+              onVer={() => router.push(`/mis-recetas/${receta.id}`)}
             />
           ))}
         </div>
       )}
-
-      <Dialog
-        open={Boolean(recetaVer)}
-        onOpenChange={(abierto) => !abierto && setRecetaVer(null)}
-      >
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{recetaVer?.nombre}</DialogTitle>
-          </DialogHeader>
-          {recetaVer && <VistaReceta receta={recetaVer} />}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

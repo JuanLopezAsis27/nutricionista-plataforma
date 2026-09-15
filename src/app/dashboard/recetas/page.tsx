@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Search,
@@ -24,7 +25,6 @@ import {
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { ControlesPaginacion } from "@/componentes/comunes/ControlesPaginacion";
 import { TarjetaReceta } from "@/componentes/recetas/TarjetaReceta";
-import { VistaReceta } from "@/componentes/recetas/VistaReceta";
 import { FormularioReceta } from "@/componentes/recetas/FormularioReceta";
 import { CompartirReceta } from "@/componentes/recetas/CompartirReceta";
 import { NavegadorCarpetas } from "@/componentes/recetas/NavegadorCarpetas";
@@ -32,6 +32,7 @@ import { MoverRecetaACarpeta } from "@/componentes/recetas/MoverRecetaACarpeta";
 
 export default function PaginaRecetas() {
   const { listarPaginado, eliminar } = useRecetas();
+  const router = useRouter();
 
   const [busqueda, setBusqueda] = useState("");
   const [pagina, setPagina] = useState(1);
@@ -66,7 +67,6 @@ export default function PaginaRecetas() {
   const [recetaEditar, setRecetaEditar] = useState<RecetaSalidaDto | null>(
     null,
   );
-  const [recetaVer, setRecetaVer] = useState<RecetaSalidaDto | null>(null);
   const [recetaCompartir, setRecetaCompartir] =
     useState<RecetaSalidaDto | null>(null);
   const [recetaEliminar, setRecetaEliminar] = useState<RecetaSalidaDto | null>(
@@ -132,7 +132,9 @@ export default function PaginaRecetas() {
             <TarjetaReceta
               key={receta.id}
               receta={receta}
-              onVer={() => setRecetaVer(receta)}
+              // La receta se abre en su propia página, como un plan: el
+              // documento que pueda tener necesita la pantalla entera.
+              onVer={() => router.push(`/dashboard/recetas/${receta.id}`)}
               acciones={
                 <>
                   <Button
@@ -196,19 +198,6 @@ export default function PaginaRecetas() {
             grupoIdInicial={carpetaId}
             onTerminado={() => setFormAbierto(false)}
           />
-        </DialogContent>
-      </Dialog>
-
-      {/* Detalle */}
-      <Dialog
-        open={Boolean(recetaVer)}
-        onOpenChange={(abierto) => !abierto && setRecetaVer(null)}
-      >
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{recetaVer?.nombre}</DialogTitle>
-          </DialogHeader>
-          {recetaVer && <VistaReceta receta={recetaVer} />}
         </DialogContent>
       </Dialog>
 

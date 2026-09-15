@@ -1,12 +1,19 @@
-import { Users, Flame, FileText, ExternalLink } from "lucide-react";
+import { Users, Flame, ExternalLink } from "lucide-react";
 import type { RecetaSalidaDto } from "@/aplicacion/dtos/receta.dto";
 import { Badge } from "@/componentes/ui/badge";
 import { FotoConVisor } from "@/componentes/comunes/FotoConVisor";
+import { VisorArchivo } from "@/componentes/comunes/VisorArchivo";
 
 /**
  * Vista de solo lectura de una receta (detalle del recetario y portal).
  * Las fotos y los documentos se sirven vía /api/archivos/[id]/ver, que los
  * devuelve EN LÍNEA desde la app: la ruta hermana los ofrece para bajar.
+ *
+ * El documento adjunto se MUESTRA, no se enlaza: cuando una receta se cargó
+ * como PDF o Word, ese archivo es la receta —igual que en un plan subido— y
+ * dejarlo como un enlace al pie obligaba a salir de la pantalla para leer lo
+ * único que había para leer. Por eso usa el mismo `VisorArchivo` que el plan,
+ * con su salida a abrirlo aparte cuando el navegador no dibuja PDFs.
  */
 export function VistaReceta({ receta }: { receta: RecetaSalidaDto }) {
   const macros = [
@@ -114,23 +121,15 @@ export function VistaReceta({ receta }: { receta: RecetaSalidaDto }) {
       )}
 
       {receta.documentos.length > 0 && (
-        <div>
-          <h3 className="mb-1 font-semibold">Documentos</h3>
-          <ul className="space-y-1">
-            {receta.documentos.map((doc) => (
-              <li key={doc.id}>
-                <a
-                  href={`/api/archivos/${doc.id}/ver`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm text-primary underline-offset-4 hover:underline"
-                >
-                  <FileText className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{doc.nombreOriginal}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
+        <div className="space-y-4">
+          <h3 className="font-semibold">Documentos</h3>
+          {receta.documentos.map((documento) => (
+            <VisorArchivo
+              key={documento.id}
+              archivo={documento}
+              titulo={documento.nombreOriginal}
+            />
+          ))}
         </div>
       )}
 
