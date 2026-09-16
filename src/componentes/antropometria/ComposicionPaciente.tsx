@@ -399,7 +399,7 @@ export function ComposicionPaciente() {
             {metodoSerie != null ? (
               <EvolucionGrasa
                 mediciones={mediciones}
-                metodo={metodoSerie}
+                metodos={[metodoSerie]}
                 tema={tema}
               />
             ) : (

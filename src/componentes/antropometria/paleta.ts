@@ -126,6 +126,29 @@ export const TEMAS_COMPOSICION: { light: Tema; dark: Tema } = {
 
 export type TemaComposicion = Tema;
 
+/**
+ * Color de una ECUACIÓN de grasa, por su posición en `METODOS_GRASA`.
+ *
+ * Reusa la rampa de los pliegues —las seis ranuras categóricas del sistema, en
+ * ese orden— y no una paleta nueva: las dos listas tienen exactamente seis
+ * elementos, así que cada ecuación cae en una ranura ya validada. Una ecuación
+ * nueva necesita una séptima ranura validada, no un color inventado; hasta que
+ * exista, el módulo hace que dos ecuaciones compartan tono, que se ve, en vez
+ * de devolver `undefined`, que no.
+ *
+ * El color va por el índice del MÉTODO en el enum, nunca por su posición en el
+ * gráfico: filtrar a una sola ecuación no puede repintar a las que quedan.
+ *
+ * En el tema claro tres de los seis tonos quedan por debajo de 3:1 contra la
+ * superficie (el validador de dataviz lo marca como WARN, igual que en el
+ * gráfico de pliegues). Por eso la serie de grasa lleva SIEMPRE la leyenda con
+ * el último valor de cada ecuación escrito al lado: el color no es nunca el
+ * único canal por el que se lee un número.
+ */
+export function colorDeEcuacion(tema: Tema, indice: number): string {
+  return tema.pliegues[indice % tema.pliegues.length]!;
+}
+
 /** Estilo compartido de los tooltips de recharts. */
 export function estiloTooltip(tema: Tema): React.CSSProperties {
   return {
