@@ -8,7 +8,6 @@ import {
 } from "@react-pdf/renderer";
 import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
 import type { ConfiguracionSalidaDto } from "@/aplicacion/dtos/configuracion.dto";
-import { DEFINICIONES_METODO } from "@/dominio/servicios/grasaPorPliegues";
 import {
   construirGrupos,
   metodosVisiblesDe,
@@ -226,11 +225,6 @@ function MedicionAntropometricaPdf({
   const matricula = config?.matricula?.trim() || null;
   const pieTexto = config?.pdfPieTexto?.trim() || null;
 
-  const metodoDestacado =
-    medicion.metodoGrasa != null
-      ? DEFINICIONES_METODO[medicion.metodoGrasa].etiqueta
-      : null;
-
   const grupos = construirGrupos(metodosVisiblesDe(medicion))
     .map((grupo) => ({
       ...grupo,
@@ -243,6 +237,13 @@ function MedicionAntropometricaPdf({
   // --- Datos de los gráficos ---
   const fraccionamiento = medicion.resultado.fraccionamiento;
   const grasa = grasaDestacada(medicion);
+
+  // La ecuación de la que salen TODOS los números de grasa del documento: la
+  // barra del reparto, la curva y el encabezado. Se nombra desde el resultado
+  // y no desde `medicion.metodoGrasa` porque ese puede estar en null (nadie
+  // eligió ninguna) o apuntar a una ecuación que estas medidas no resuelven, y
+  // ahí el PDF nombraba una y mostraba los números de otra.
+  const etiquetaSerie = grasa?.etiqueta ?? null;
 
   // El reparto del peso sale del fraccionamiento de Kerr cuando está —es la
   // partición completa— y, si no, de la ecuación de pliegues, que reparte el
@@ -297,10 +298,30 @@ function MedicionAntropometricaPdf({
   const hayEvolucion = evolucion.length > 1;
   const fechasEvolucion = evolucion.map((m) => m.fecha);
   const seriePeso = evolucion.map((m) => m.medidas.pesoKg);
+
+  // La curva va con UNA sola ecuación —la principal de esta medición— de punta
+  // a punta. Antes tomaba la destacada de CADA consulta, y como la destacada
+  // se elige medición por medición, una serie podía saltar de Faulkner a
+  // Yuhasz en el medio y dibujar un escalón que el paciente no vivió.
+  const metodoSerie = grasa?.metodo ?? null;
   const serieGrasa = evolucion.map(
-    (m) => grasaDestacada(m)?.porcentajeGrasa ?? null,
+    (m) =>
+      m.resultado.grasaPorPliegues.resultados.find(
+        (r) => r.metodo === metodoSerie,
+      )?.porcentajeGrasa ?? null,
   );
   const hayGrasaEnSerie = serieGrasa.some((v) => v != null);
+
+  // Las demás ecuaciones NO llevan curva: son seis líneas casi pegadas en un
+  // PDF sin tooltip donde apoyarse, y para el paciente la lectura útil es la
+  // de su ecuación a lo largo del tiempo. De estas alcanza con el valor de
+  // ESTA medición, que es lo que las pone en contexto.
+  //
+  // `resultados` llega ya filtrado por las ecuaciones que el consultorio deja
+  // activas (`ObtenerComposicionCorporal`), y en el orden de `METODOS_GRASA`.
+  const otrasEcuaciones = medicion.resultado.grasaPorPliegues.resultados.filter(
+    (resultado) => resultado.metodo !== metodoSerie,
+  );
 
   return (
     <Document
@@ -329,7 +350,7 @@ function MedicionAntropometricaPdf({
         <Text style={estilos.paciente}>Paciente: {nombrePaciente}</Text>
         <Text style={estilos.subtitulo}>
           {ETIQUETAS_PROTOCOLO[medicion.protocolo]}
-          {metodoDestacado && ` · ecuación destacada: ${metodoDestacado}`}
+          {etiquetaSerie && ` · ecuación destacada: ${etiquetaSerie}`}
           {medicion.edadAnios != null &&
             ` · ${formatearNumero(medicion.edadAnios)} años`}
           {anterior
@@ -350,7 +371,7 @@ function MedicionAntropometricaPdf({
             <Text style={estilos.notaGrafico}>
               {fraccionamiento
                 ? `Fraccionamiento en 5 masas sobre ${formatearMedida(medicion.medidas.pesoKg)} kg.`
-                : `Estimado con ${metodoDestacado ?? "la ecuación destacada"} sobre ${formatearMedida(medicion.medidas.pesoKg)} kg: ${formatearMedida(grasa?.masaGrasaKg)} kg de grasa y ${formatearMedida(grasa?.masaLibreGrasaKg)} kg libres de grasa.`}
+                : `Estimado con ${etiquetaSerie ?? "la ecuación destacada"} sobre ${formatearMedida(medicion.medidas.pesoKg)} kg: ${formatearMedida(grasa?.masaGrasaKg)} kg de grasa y ${formatearMedida(grasa?.masaLibreGrasaKg)} kg libres de grasa.`}
             </Text>
           </View>
         )}
@@ -374,7 +395,7 @@ function MedicionAntropometricaPdf({
               <View style={estilosGrafico.bloqueGrafico} wrap={false}>
                 <Text style={estilosGrafico.tituloGrafico}>
                   Grasa corporal (%)
-                  {metodoDestacado && ` · ${metodoDestacado}`}
+                  {etiquetaSerie && ` · ${etiquetaSerie}`}
                 </Text>
                 <GraficoLineas
                   ancho={ANCHO_CONTENIDO}
@@ -383,6 +404,10 @@ function MedicionAntropometricaPdf({
                   fechas={fechasEvolucion}
                   unidad="%"
                 />
+                <Text style={estilos.notaGrafico}>
+                  Toda la curva usa la misma ecuación, que es la única forma de
+                  ver si el valor cambió.
+                </Text>
               </View>
             )}
 
@@ -414,6 +439,42 @@ function MedicionAntropometricaPdf({
                 </View>
               ))}
             </View>
+          </View>
+        )}
+
+        {otrasEcuaciones.length > 0 && (
+          <View wrap={false}>
+            <Text style={[estilos.seccionTitulo, { color }]}>
+              Las otras ecuaciones, en esta medición
+            </Text>
+            <View style={estilos.filaCabecera}>
+              <Text style={estilos.colFechaCab}>Ecuación</Text>
+              <Text style={estilos.colNumeroCab}>Grasa (%)</Text>
+              <Text style={estilos.colNumeroCab}>Grasa (kg)</Text>
+            </View>
+            {otrasEcuaciones.map((resultado) => (
+              <View key={resultado.metodo} style={estilos.filaTabla}>
+                <Text style={estilos.colFecha}>
+                  {textoPdf(resultado.etiqueta)}
+                </Text>
+                <Text style={estilos.colNumero}>
+                  {formatearMedida(resultado.porcentajeGrasa)}
+                </Text>
+                <Text style={estilos.colNumero}>
+                  {formatearMedida(resultado.masaGrasaKg)}
+                </Text>
+              </View>
+            ))}
+            {/* La nota nombra la ecuación en vez de decir "la de arriba":
+                con una sola medición no hay curva arriba a la que apuntar. */}
+            <Text style={estilos.notaGrafico}>
+              Cada ecuación usa otra fórmula y se validó en otro grupo de gente,
+              así que dan números distintos sobre las mismas medidas. No se
+              comparan entre sí
+              {etiquetaSerie
+                ? `: tu seguimiento va con ${etiquetaSerie}.`
+                : "."}
+            </Text>
           </View>
         )}
 

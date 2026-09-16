@@ -239,6 +239,19 @@ ecuación sale de su **índice en `METODOS_GRASA`** (`colorDeEcuacion` en
 `paleta.ts`), no de su posición en el gráfico: filtrar a una sola no repinta a
 las que quedan.
 
+El filtro es el MISMO en las dos pantallas —el dashboard del profesional y
+«Mi composición» del paciente— y vive en un solo lugar (`SelectorEcuacion.tsx`:
+el desplegable, `ecuacionesDeLaSerie` y `ecuacionesElegidas`). Cuando el
+paciente pregunta por un número, los dos tienen que poder poner la pantalla en
+el mismo estado; con una copia por pantalla, una podía ofrecer un filtro que la
+otra no.
+
+**No hay que filtrar por las ecuaciones activas del consultorio**: los
+resultados llegan ya recortados desde `ObtenerComposicionCorporal`, que oculta
+una ecuación desmarcada incluso en mediciones viejas que la tenían calculada.
+Todo lo que mira `grasaPorPliegues.resultados` —los dos dashboards, las dos
+pantallas y los tres PDF— hereda ese recorte sin repetirlo.
+
 ### Lo que sostiene que seis líneas se puedan leer
 
 - La rampa es la de los pliegues —las seis ranuras categóricas del sistema, en
@@ -385,6 +398,24 @@ La serie de evolución llega **hasta esa medición**, no hasta la última: el PD
 de una medición de marzo con la curva completa hasta hoy diría cosas que en
 marzo no se sabían, y dos descargas del mismo PDF en fechas distintas no
 coincidirían.
+
+### En papel, una sola curva y las demás tabuladas
+
+En pantalla las seis ecuaciones se dibujan juntas porque hay un tooltip donde
+apoyarse: se apunta a una fecha y salen los seis valores. **El PDF no tiene
+dónde apoyarse**, así que seis curvas casi pegadas serían un ovillo. El PDF del
+paciente resuelve el mismo pedido en dos piezas:
+
+- **Curva** de una sola ecuación, la principal de esa medición, de punta a
+  punta.
+- **Tabla** con las OTRAS ecuaciones activas y su valor —% y kg— en esa
+  medición nada más. Es lo que las pone en contexto sin prometer una serie que
+  no se puede leer.
+
+La curva se fija a UNA ecuación para toda la serie. Antes tomaba la destacada de
+CADA consulta, y como la destacada se elige medición por medición, una serie
+podía saltar de Faulkner a Yuhasz en el medio y dibujar un escalón que el
+paciente no vivió — exactamente lo que el filtro de pantalla evita.
 
 Los gráficos los dibuja `infraestructura/pdf/graficosPdf.tsx`, compartido por
 los dos documentos. react-pdf tiene su propio renderer —los componentes de

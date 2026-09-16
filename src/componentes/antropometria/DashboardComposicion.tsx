@@ -18,11 +18,12 @@ import { CabeceraMedicion } from "./dashboard/CabeceraMedicion";
 import { IndicadoresCabecera } from "./dashboard/IndicadoresCabecera";
 import { TarjetaGrasa } from "./dashboard/TarjetaGrasa";
 import { TarjetaFraccionamiento } from "./dashboard/TarjetaFraccionamiento";
+import { TarjetasEvolucion } from "./dashboard/TarjetasEvolucion";
 import {
-  TarjetasEvolucion,
+  ecuacionesDeLaSerie,
   TODAS_LAS_ECUACIONES,
   type SeleccionEcuacion,
-} from "./dashboard/TarjetasEvolucion";
+} from "./SelectorEcuacion";
 import { TarjetaIndices } from "./dashboard/TarjetaIndices";
 import { TarjetaEnergia } from "./dashboard/TarjetaEnergia";
 import { TarjetaDistribucion } from "./dashboard/TarjetaDistribucion";
@@ -91,13 +92,7 @@ export function DashboardComposicion({
     ) ?? resultado.grasaPorPliegues.resultados[0];
 
   // Para la serie histórica: los métodos que al menos una medición resolvió.
-  const metodosDisponibles = [
-    ...new Set(
-      mediciones.flatMap((m) =>
-        m.resultado.grasaPorPliegues.resultados.map((r) => r.metodo),
-      ),
-    ),
-  ];
+  const metodosDisponibles = ecuacionesDeLaSerie(mediciones);
 
   // El protocolo decide qué modelo va primero: con DOS_COMPONENTES la grasa
   // por pliegues es lo que se midió, y el fraccionamiento de Kerr pasa a ser

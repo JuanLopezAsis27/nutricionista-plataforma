@@ -1,7 +1,6 @@
 import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
 import type { TemaComposicion } from "../paleta";
 import type { MetodoGrasa } from "@/dominio/servicios/grasaPorPliegues";
-import { DEFINICIONES_METODO } from "@/dominio/servicios/grasaPorPliegues";
 import {
   Card,
   CardContent,
@@ -9,26 +8,16 @@ import {
   CardTitle,
 } from "@/componentes/ui/card";
 import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/componentes/ui/select";
+  SelectorEcuacion,
+  ecuacionesElegidas,
+  TODAS_LAS_ECUACIONES,
+  type SeleccionEcuacion,
+} from "../SelectorEcuacion";
 import {
   EvolucionMasas,
   EvolucionScoreZ,
   EvolucionGrasa,
 } from "../EvolucionMasas";
-
-/**
- * Qué ecuaciones muestra la serie de grasa: una sola, o todas juntas.
- *
- * `TODAS` no es "ninguna elegida": es una lectura propia —la dispersión entre
- * ecuaciones—, y por eso es un valor del filtro y no la ausencia de valor.
- */
-export const TODAS_LAS_ECUACIONES = "TODAS";
-export type SeleccionEcuacion = MetodoGrasa | typeof TODAS_LAS_ECUACIONES;
 
 /**
  * Las tres series históricas. Solo aparecen con más de una medición: una serie
@@ -62,9 +51,6 @@ export function TarjetasEvolucion({
   if (mediciones.length <= 1) return null;
 
   const todas = seleccion === TODAS_LAS_ECUACIONES;
-  const metodos = todas
-    ? metodosDisponibles
-    : metodosDisponibles.filter((metodo) => metodo === seleccion);
 
   return (
     <>
@@ -73,34 +59,17 @@ export function TarjetasEvolucion({
           <CardHeader className="pb-2">
             <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-sm font-semibold">
               <span>Evolución del porcentaje graso</span>
-              {metodosDisponibles.length > 1 && (
-                <Select
-                  value={seleccion}
-                  onValueChange={(valor) =>
-                    alCambiarSeleccion(valor as SeleccionEcuacion)
-                  }
-                >
-                  <SelectTrigger className="h-8 w-auto min-w-[14rem] text-xs font-normal">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={TODAS_LAS_ECUACIONES}>
-                      Todas las ecuaciones
-                    </SelectItem>
-                    {metodosDisponibles.map((metodo) => (
-                      <SelectItem key={metodo} value={metodo}>
-                        {DEFINICIONES_METODO[metodo].etiqueta}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              <SelectorEcuacion
+                seleccion={seleccion}
+                disponibles={metodosDisponibles}
+                alCambiar={alCambiarSeleccion}
+              />
             </CardTitle>
           </CardHeader>
           <CardContent className="pl-0 pr-3">
             <EvolucionGrasa
               mediciones={mediciones}
-              metodos={metodos}
+              metodos={ecuacionesElegidas(seleccion, metodosDisponibles)}
               tema={tema}
             />
             <p className="px-4 pt-2 text-xs text-muted-foreground">

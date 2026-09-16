@@ -194,6 +194,30 @@ El vacío se explica por fuente («No hay mediciones de consulta en este
 período»), porque con el filtro puesto un gráfico vacío no dice si falta el dato
 o si está del otro lado del selector.
 
+## Mi composición: el paciente ve las mismas ecuaciones que el profesional
+
+La serie de grasa de «Mi composición» arranca mostrando **todas** las
+ecuaciones activas, con el mismo desplegable para quedarse con una que tiene el
+dashboard del profesional. Es literalmente el mismo componente
+(`SelectorEcuacion`) sobre los mismos datos.
+
+Antes acá se veía **una sola línea**, la de la ecuación destacada, sin filtro.
+El problema no era de completitud sino de consulta compartida: cuando el
+paciente pregunta «¿por qué me dice 19 y la otra vez 22?», las dos pantallas
+tienen que poder ponerse en el mismo estado. Con una vista recortada, el
+profesional veía un gráfico que el paciente no podía reproducir.
+
+Lo que sí cambia entre las dos es el TEXTO al pie, no los datos: el aviso del
+paciente explica por qué dos ecuaciones dan números distintos sobre las mismas
+medidas («cada una se validó en otro grupo de gente»), el del profesional
+nombra el riesgo clínico. La regla de la vista recortada sigue en pie para lo
+otro —Phantom, control de calidad del fraccionamiento—, que es herramienta de
+lectura y no un número del paciente.
+
+Su **PDF** no lleva las seis curvas: en papel no hay tooltip donde apoyarse, así
+que va la curva de su ecuación principal y una tabla con el valor de las otras
+en esa medición. Está en `docs/ANTROPOMETRIA.md`.
+
 ## El asistente guarda los chats
 
 Igual que el del profesional, y en la misma tabla: el detalle de por qué, y de
