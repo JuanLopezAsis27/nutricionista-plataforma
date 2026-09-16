@@ -21,6 +21,15 @@ export interface CamposEvolucion {
   descanso: string | null;
   indispuesta: string | null;
   sePercibe: string | null;
+  /**
+   * El cajón de sastre de la consulta: lo que se anotó ese día y no entra en
+   * ninguno de los campos de arriba.
+   *
+   * Mismo papel que el de la historia clínica. Sin él, un rótulo propio del
+   * cuaderno que no coincide con ningún campo fijo ni con uno del consultorio
+   * se descartaba en silencio al leer el documento con IA.
+   */
+  informacionGeneral: string | null;
 }
 
 /**
@@ -65,6 +74,7 @@ export const CAMPOS_EVOLUCION = [
   "descanso",
   "indispuesta",
   "sePercibe",
+  "informacionGeneral",
 ] as const satisfies readonly (keyof CamposEvolucion)[];
 
 export type CampoFijoEvolucion = (typeof CAMPOS_EVOLUCION)[number];
@@ -78,6 +88,7 @@ export const ETIQUETAS_EVOLUCION: Record<CampoFijoEvolucion, string> = {
   descanso: "Descanso",
   indispuesta: "Indispuesta",
   sePercibe: "Se percibe",
+  informacionGeneral: "Información general",
 };
 
 /** Tope de caracteres por campo: es una nota de consulta, no un informe. */

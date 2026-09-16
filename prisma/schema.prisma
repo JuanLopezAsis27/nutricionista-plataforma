@@ -1282,7 +1282,13 @@ model HistoriaClinica {
   /// base, distinta del seguimiento consulta a consulta de `Evolucion`.
   descanso               String?
   habitos                String?
-  contexto               String?
+  /// Alergias, intolerancias y restricciones alimentarias, en texto libre
+  /// (migración 67). Antes era la tabla `alertas_alimentarias`, con tipo y
+  /// severidad por fila: se escribe en la consulta como una frase suelta.
+  alergiasIntolerancias  String?
+  /// Antes "contexto" — ver migración 67: es el cajón de sastre de la ficha,
+  /// donde va todo lo que el documento trae y no entra en ningún otro campo.
+  informacionGeneral     String?
   /// Valores de los campos personalizados de ESTE paciente, como
   /// [{ clave, etiqueta, valor }]. Guarda la etiqueta junto al valor para que
   /// la historia se siga leyendo aunque después se borre la definición del
@@ -1342,6 +1348,10 @@ model Evolucion {
   descanso             String?
   indispuesta          String?
   sePercibe            String?
+  /// Cajón de sastre de la consulta (migración 67), igual que el de la
+  /// historia clínica: lo que el documento anotó ese día y no entra en
+  /// ninguno de los campos fijos.
+  informacionGeneral   String?
   /// Valores de los campos personalizados de ESTA evolución, como
   /// [{ clave, etiqueta, valor }]. Guarda la etiqueta junto al valor por lo
   /// mismo que la historia clínica: para que la evolución se siga leyendo

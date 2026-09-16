@@ -30,6 +30,8 @@ const EJEMPLOS: Record<(typeof CAMPOS_EVOLUCION)[number], string> = {
   descanso: "7 hs.",
   indispuesta: "no.",
   sePercibe: "igual. No tomó nada nuevo.",
+  informacionGeneral:
+    "Lo que se anotó ese día y no entra en los campos de arriba.",
 };
 
 interface Props {

@@ -148,6 +148,7 @@ const CAMPOS_HISTORIA: {
   { clave: "motivoConsulta", etiqueta: "Motivo de consulta" },
   { clave: "diagnosticos", etiqueta: "Diagnósticos" },
   { clave: "medicacion", etiqueta: "Medicación/suplementos" },
+  { clave: "alergiasIntolerancias", etiqueta: "Alergias e intolerancias" },
   {
     clave: "antecedentesDigestivos",
     etiqueta: "Antecedentes de enfermedades digestivas/deposiciones",
@@ -156,7 +157,7 @@ const CAMPOS_HISTORIA: {
   { clave: "entrenamientos", etiqueta: "Entrenamientos" },
   { clave: "descanso", etiqueta: "Descanso" },
   { clave: "habitos", etiqueta: "Hábitos y observaciones" },
-  { clave: "contexto", etiqueta: "Contexto" },
+  { clave: "informacionGeneral", etiqueta: "Información general" },
 ];
 
 /** Renderiza la evaluación a un buffer PDF (la única API que consume la presentación). */

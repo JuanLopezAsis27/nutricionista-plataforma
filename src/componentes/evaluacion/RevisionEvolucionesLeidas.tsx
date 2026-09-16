@@ -91,6 +91,7 @@ export function RevisionEvolucionesLeidas({
           descanso: fila.leida.descanso ?? null,
           indispuesta: fila.leida.indispuesta ?? null,
           sePercibe: fila.leida.sePercibe ?? null,
+          informacionGeneral: fila.leida.informacionGeneral ?? null,
           camposPersonalizados: fila.leida.camposPersonalizados,
         })),
       },

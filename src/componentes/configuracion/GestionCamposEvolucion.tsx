@@ -24,7 +24,7 @@ export function GestionCamposEvolucion() {
     <GestionCamposPersonalizados
       titulo="Campos de las evoluciones"
       descripcion="Se agregan a los campos fijos del control (cumplimiento, entrenamiento, deposiciones, orina, descanso, indispuesta y se percibe) y se piden en cada consulta. La descripción también le sirve a la IA para encontrar el dato cuando leés un documento de seguimiento."
-      vacio="Todavía no agregaste campos propios. La evolución muestra solo los siete campos fijos."
+      vacio="Todavía no agregaste campos propios. La evolución muestra solo sus campos fijos."
       placeholderNombre="Suplementación"
       avisoRenombre="Renombrar el campo conserva lo que ya esté cargado en las evoluciones."
       avisoBorrado="El campo deja de pedirse al cargar una evolución. Lo que ya esté escrito en las consultas anteriores se conserva y se sigue viendo."

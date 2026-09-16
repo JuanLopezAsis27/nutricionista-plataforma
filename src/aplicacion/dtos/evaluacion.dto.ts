@@ -57,12 +57,13 @@ export const guardarHistoriaClinicaDto = z.object({
   motivoConsulta: campoTextoLargo,
   diagnosticos: campoTextoLargo,
   medicacion: campoTextoLargo,
+  alergiasIntolerancias: campoTextoLargo,
   antecedentesDigestivos: campoTextoLargo,
   antecedentesFamiliares: campoTextoLargo,
   entrenamientos: campoTextoLargo,
   descanso: campoTextoLargo,
   habitos: campoTextoLargo,
-  contexto: campoTextoLargo,
+  informacionGeneral: campoTextoLargo,
   camposPersonalizados: z
     .array(campoPersonalizadoHistoriaDto)
     .max(MAXIMO_CAMPOS_EN_HISTORIA)
@@ -78,12 +79,13 @@ export const historiaClinicaSalidaDto = z.object({
   motivoConsulta: z.string().nullable(),
   diagnosticos: z.string().nullable(),
   medicacion: z.string().nullable(),
+  alergiasIntolerancias: z.string().nullable(),
   antecedentesDigestivos: z.string().nullable(),
   antecedentesFamiliares: z.string().nullable(),
   entrenamientos: z.string().nullable(),
   descanso: z.string().nullable(),
   habitos: z.string().nullable(),
-  contexto: z.string().nullable(),
+  informacionGeneral: z.string().nullable(),
   camposPersonalizados: z.array(campoPersonalizadoHistoriaDto),
   actualizadoEn: z.date(),
 });
@@ -101,12 +103,13 @@ export const historiaClinicaSugeridaDto = z.object({
   motivoConsulta: z.string().nullable(),
   diagnosticos: z.string().nullable(),
   medicacion: z.string().nullable(),
+  alergiasIntolerancias: z.string().nullable(),
   antecedentesDigestivos: z.string().nullable(),
   antecedentesFamiliares: z.string().nullable(),
   entrenamientos: z.string().nullable(),
   descanso: z.string().nullable(),
   habitos: z.string().nullable(),
-  contexto: z.string().nullable(),
+  informacionGeneral: z.string().nullable(),
 });
 export type HistoriaClinicaSugeridaDto = z.infer<
   typeof historiaClinicaSugeridaDto
@@ -206,6 +209,7 @@ export interface EvolucionSalidaDto {
   descanso: string | null;
   indispuesta: string | null;
   sePercibe: string | null;
+  informacionGeneral: string | null;
   camposPersonalizados: CampoPersonalizadoEvolucionDto[];
   creadoEn: Date;
   actualizadoEn: Date;

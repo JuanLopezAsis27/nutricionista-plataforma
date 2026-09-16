@@ -95,6 +95,7 @@ function escribibles(evolucion: Evolucion) {
     descanso: datos.descanso,
     indispuesta: datos.indispuesta,
     sePercibe: datos.sePercibe,
+    informacionGeneral: datos.informacionGeneral,
     // La columna es JSONB: Prisma tipa el valor como `InputJsonValue`, que no
     // acepta una interfaz nominal (le falta la firma de índice). El array ya
     // viene normalizado por la entidad.
@@ -115,6 +116,7 @@ export function mapearEvolucion(fila: EvolucionFila): Evolucion {
     descanso: fila.descanso,
     indispuesta: fila.indispuesta,
     sePercibe: fila.sePercibe,
+    informacionGeneral: fila.informacionGeneral,
     camposPersonalizados: leerCamposPersonalizados(fila.camposPersonalizados),
     creadoEn: fila.creadoEn,
     actualizadoEn: fila.actualizadoEn,

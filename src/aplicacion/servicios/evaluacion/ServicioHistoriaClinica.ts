@@ -56,12 +56,13 @@ export class ServicioHistoriaClinica {
         motivoConsulta: campos.motivoConsulta ?? null,
         diagnosticos: campos.diagnosticos ?? null,
         medicacion: campos.medicacion ?? null,
+        alergiasIntolerancias: campos.alergiasIntolerancias ?? null,
         antecedentesDigestivos: campos.antecedentesDigestivos ?? null,
         antecedentesFamiliares: campos.antecedentesFamiliares ?? null,
         entrenamientos: campos.entrenamientos ?? null,
         descanso: campos.descanso ?? null,
         habitos: campos.habitos ?? null,
-        contexto: campos.contexto ?? null,
+        informacionGeneral: campos.informacionGeneral ?? null,
       },
       evoluciones: evoluciones.map((evolucion) => ({
         fecha: evolucion.fecha,
@@ -72,6 +73,7 @@ export class ServicioHistoriaClinica {
         descanso: evolucion.descanso ?? null,
         indispuesta: evolucion.indispuesta ?? null,
         sePercibe: evolucion.sePercibe ?? null,
+        informacionGeneral: evolucion.informacionGeneral ?? null,
         camposPersonalizados: evolucion.camposPersonalizados,
       })),
     };

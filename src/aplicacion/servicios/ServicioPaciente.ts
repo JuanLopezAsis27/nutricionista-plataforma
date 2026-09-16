@@ -151,17 +151,18 @@ export class ServicioPaciente {
       ...ficha,
       // El puerto devuelve un Partial (un campo ausente es `undefined`); el
       // DTO de salida pide null explícito para que el formulario del cliente
-      // reciba siempre las siete claves.
+      // reciba siempre todas las claves.
       historiaClinica: {
         motivoConsulta: historiaClinica.motivoConsulta ?? null,
         diagnosticos: historiaClinica.diagnosticos ?? null,
         medicacion: historiaClinica.medicacion ?? null,
+        alergiasIntolerancias: historiaClinica.alergiasIntolerancias ?? null,
         antecedentesDigestivos: historiaClinica.antecedentesDigestivos ?? null,
         antecedentesFamiliares: historiaClinica.antecedentesFamiliares ?? null,
         entrenamientos: historiaClinica.entrenamientos ?? null,
         descanso: historiaClinica.descanso ?? null,
         habitos: historiaClinica.habitos ?? null,
-        contexto: historiaClinica.contexto ?? null,
+        informacionGeneral: historiaClinica.informacionGeneral ?? null,
       },
     };
   }

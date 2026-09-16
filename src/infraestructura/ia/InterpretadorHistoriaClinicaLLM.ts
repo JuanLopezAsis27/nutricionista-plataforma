@@ -20,12 +20,13 @@ const CAMPOS = [
   "motivoConsulta",
   "diagnosticos",
   "medicacion",
+  "alergiasIntolerancias",
   "antecedentesDigestivos",
   "antecedentesFamiliares",
   "entrenamientos",
   "descanso",
   "habitos",
-  "contexto",
+  "informacionGeneral",
 ] as const satisfies readonly (keyof CamposHistoriaClinica)[];
 
 const textoONulo = { type: ["string", "null"] };
@@ -106,7 +107,7 @@ function variablesDeHistoria(
 
 /**
  * Interpreta una foto, un PDF, un Word o un Excel de historia clínica con el
- * LLM del consultorio y sugiere los 7 campos del formulario **más las
+ * LLM del consultorio y sugiere los campos del formulario **más las
  * evoluciones de control** que el documento traiga.
  *
  * Las dos lecturas van en la MISMA pasada a propósito: el cuaderno del
@@ -156,8 +157,8 @@ export class InterpretadorHistoriaClinicaLLM implements IInterpretadorHistoriaCl
             "Extraé la historia clínica y todas las evoluciones de control de este documento.",
         },
       ],
-      // Un cuaderno de seguimiento son varias consultas con siete campos cada
-      // una: con el tope que alcanzaba para los 7 campos sueltos, la última
+      // Un cuaderno de seguimiento son varias consultas con ocho campos cada
+      // una: con el tope que alcanzaba para los campos sueltos de la ficha, la última
       // evolución se cortaba a la mitad.
       maxTokens: 16000,
       // Mismo criterio que la ficha de alta: extraer de un documento clínico

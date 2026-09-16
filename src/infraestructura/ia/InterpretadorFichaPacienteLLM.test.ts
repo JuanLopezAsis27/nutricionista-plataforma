@@ -59,7 +59,7 @@ describe("normalizarFicha", () => {
     expect(ficha.paciente.sexo).toBeNull();
   });
 
-  it("devuelve los nueve campos de historia, con null los ausentes", () => {
+  it("devuelve todos los campos de historia, con null los ausentes", () => {
     const ficha = normalizarFicha(
       { historiaClinica: { motivoConsulta: "Descenso de peso" } },
       [],
@@ -69,12 +69,13 @@ describe("normalizarFicha", () => {
       motivoConsulta: "Descenso de peso",
       diagnosticos: null,
       medicacion: null,
+      alergiasIntolerancias: null,
       antecedentesDigestivos: null,
       antecedentesFamiliares: null,
       entrenamientos: null,
       descanso: null,
       habitos: null,
-      contexto: null,
+      informacionGeneral: null,
     });
   });
 
