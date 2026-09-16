@@ -204,6 +204,71 @@ miden, no aparecían en **ningún** número de la pantalla —los usan Withers y
 Durnin & Womersley por dentro, pero eso no se veía— y parecía que cargarlos no
 servía para nada.
 
+## La serie de grasa: línea de tiempo, y todas las ecuaciones a la vez
+
+Las tres series históricas del dashboard (`TarjetasEvolucion`) no se dibujan
+igual, y la diferencia no es estética:
+
+| Serie                  | Forma   | Por qué                                                                                                    |
+| ---------------------- | ------- | ---------------------------------------------------------------------------------------------------------- |
+| Masas (kg) y Score-Z   | Barras  | Son cinco magnitudes que se reparten un total. Las mediciones son eventos discretos y espaciados, y el eje X es una ranura por consulta. |
+| Porcentaje graso       | **Líneas, eje de tiempo** | Es una magnitud sola, y lo que se lee es la *pendiente*.                                      |
+
+En la serie de grasa el eje X es **tiempo de verdad** (`type="number"`,
+`scale="time"`, marcas en las fechas medidas): cada punto se ubica en su fecha
+y no en una ranura de igual ancho, así que la pendiente entre dos consultas es
+la velocidad real del cambio y dos meses de hueco se ven como dos meses de
+hueco — que es la objeción que las barras resolvían no dibujando la línea. Es
+además la misma forma que el PDF ya usaba para esta serie, así que pantalla y
+papel dejaron de contradecirse.
+
+### El filtro tiene dos posiciones, y son dos lecturas
+
+Arranca en **todas las ecuaciones**, una línea por cada una:
+
+- **Todas** muestra la dispersión. Yuhasz, Faulkner, Withers y Durnin &
+  Womersley se validaron en poblaciones distintas y dan números distintos para
+  el mismo paciente; el ancho de la banda, y que se mueva entera, es lo que
+  dice cuánto de una bajada es del paciente y cuánto de la fórmula elegida.
+- **Una** es el seguimiento, que es como venía funcionando: la misma fórmula de
+  punta a punta. El aviso debajo del gráfico cambia con la posición, porque la
+  advertencia también cambia.
+
+Las series nunca se promedian ni se mezclan en una línea. El color de cada
+ecuación sale de su **índice en `METODOS_GRASA`** (`colorDeEcuacion` en
+`paleta.ts`), no de su posición en el gráfico: filtrar a una sola no repinta a
+las que quedan.
+
+El filtro es el MISMO en las dos pantallas —el dashboard del profesional y
+«Mi composición» del paciente— y vive en un solo lugar (`SelectorEcuacion.tsx`:
+el desplegable, `ecuacionesDeLaSerie` y `ecuacionesElegidas`). Cuando el
+paciente pregunta por un número, los dos tienen que poder poner la pantalla en
+el mismo estado; con una copia por pantalla, una podía ofrecer un filtro que la
+otra no.
+
+**No hay que filtrar por las ecuaciones activas del consultorio**: los
+resultados llegan ya recortados desde `ObtenerComposicionCorporal`, que oculta
+una ecuación desmarcada incluso en mediciones viejas que la tenían calculada.
+Todo lo que mira `grasaPorPliegues.resultados` —los dos dashboards, las dos
+pantallas y los tres PDF— hereda ese recorte sin repetirlo.
+
+### Lo que sostiene que seis líneas se puedan leer
+
+- La rampa es la de los pliegues —las seis ranuras categóricas del sistema, en
+  ese orden—, validada con el validador de dataviz sobre el par-a-par de
+  vecinos, que es el que corresponde a líneas. En el tema claro tres de los
+  seis tonos no llegan a 3:1 contra la superficie: por eso **la leyenda lleva
+  el último valor de cada ecuación escrito al lado**. El número nunca depende
+  solo del color de una línea de 2px.
+- Un hueco es un hueco: una consulta que no resuelve esa ecuación va como
+  `null` y la línea se **corta** (`connectNulls={false}`). Unirla con la
+  siguiente insinuaría un valor que nadie midió.
+- El eje Y está recortado al rango medido ±1, no desde cero. Son líneas y el
+  recorrido vive entre 10 % y 30 %; desde cero queda aplastado contra el techo.
+- El tooltip lista **todas** las ecuaciones de esa fecha, con sus kg, y no solo
+  la línea señalada: con seis series casi pegadas, apuntarle a una es
+  imposible, y la distancia entre ellas es justamente lo que se viene a leer.
+
 ## La pestaña de mediciones
 
 Una **tarjeta por consulta**, no una columna por consulta. La planilla de
@@ -333,6 +398,24 @@ La serie de evolución llega **hasta esa medición**, no hasta la última: el PD
 de una medición de marzo con la curva completa hasta hoy diría cosas que en
 marzo no se sabían, y dos descargas del mismo PDF en fechas distintas no
 coincidirían.
+
+### En papel, una sola curva y las demás tabuladas
+
+En pantalla las seis ecuaciones se dibujan juntas porque hay un tooltip donde
+apoyarse: se apunta a una fecha y salen los seis valores. **El PDF no tiene
+dónde apoyarse**, así que seis curvas casi pegadas serían un ovillo. El PDF del
+paciente resuelve el mismo pedido en dos piezas:
+
+- **Curva** de una sola ecuación, la principal de esa medición, de punta a
+  punta.
+- **Tabla** con las OTRAS ecuaciones activas y su valor —% y kg— en esa
+  medición nada más. Es lo que las pone en contexto sin prometer una serie que
+  no se puede leer.
+
+La curva se fija a UNA ecuación para toda la serie. Antes tomaba la destacada de
+CADA consulta, y como la destacada se elige medición por medición, una serie
+podía saltar de Faulkner a Yuhasz en el medio y dibujar un escalón que el
+paciente no vivió — exactamente lo que el filtro de pantalla evita.
 
 Los gráficos los dibuja `infraestructura/pdf/graficosPdf.tsx`, compartido por
 los dos documentos. react-pdf tiene su propio renderer —los componentes de

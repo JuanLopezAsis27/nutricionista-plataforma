@@ -5,12 +5,23 @@ export interface CamposHistoriaClinica {
   motivoConsulta: string | null;
   diagnosticos: string | null;
   medicacion: string | null;
+  /** Alergias, intolerancias y restricciones, en texto libre (migración 67). */
+  alergiasIntolerancias: string | null;
   antecedentesDigestivos: string | null;
   antecedentesFamiliares: string | null;
   entrenamientos: string | null;
   descanso: string | null;
   habitos: string | null;
-  contexto: string | null;
+  /**
+   * El cajón de sastre de la ficha: lo que el documento trae y no entra en
+   * ninguno de los otros campos.
+   *
+   * Existe por lo mismo que `otrosDatos` en el alta desde una ficha: el
+   * esquema que se le pide a la IA es cerrado, así que sin un lugar donde
+   * ponerlo, todo rótulo propio de esa historia —obra social, ocupación, un
+   * dato que el profesional anotó al margen— se perdía en silencio.
+   */
+  informacionGeneral: string | null;
 }
 
 /**
@@ -50,12 +61,13 @@ const CAMPOS_CONTENIDO = [
   "motivoConsulta",
   "diagnosticos",
   "medicacion",
+  "alergiasIntolerancias",
   "antecedentesDigestivos",
   "antecedentesFamiliares",
   "entrenamientos",
   "descanso",
   "habitos",
-  "contexto",
+  "informacionGeneral",
 ] as const satisfies readonly (keyof CamposHistoriaClinica)[];
 
 /**

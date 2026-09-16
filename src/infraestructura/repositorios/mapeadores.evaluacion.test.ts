@@ -201,12 +201,13 @@ describe("mapearHistoriaClinica", () => {
     motivoConsulta: "motivo",
     diagnosticos: "diagnosticos",
     medicacion: "medicacion",
+    alergiasIntolerancias: "alergias",
     antecedentesDigestivos: "digestivos",
     antecedentesFamiliares: "familiares",
     entrenamientos: "entrenamientos",
     descanso: "descanso",
     habitos: "habitos",
-    contexto: "contexto",
+    informacionGeneral: "informacion general",
     creadoEn: new Date("2026-01-05T00:00:00.000Z"),
     actualizadoEn: new Date("2026-01-06T00:00:00.000Z"),
   } as unknown as Parameters<typeof mapearHistoriaClinica>[0];
@@ -219,12 +220,13 @@ describe("mapearHistoriaClinica", () => {
     expect(datos.motivoConsulta).toBe("motivo");
     expect(datos.diagnosticos).toBe("diagnosticos");
     expect(datos.medicacion).toBe("medicacion");
+    expect(datos.alergiasIntolerancias).toBe("alergias");
     expect(datos.antecedentesDigestivos).toBe("digestivos");
     expect(datos.antecedentesFamiliares).toBe("familiares");
     expect(datos.entrenamientos).toBe("entrenamientos");
     expect(datos.descanso).toBe("descanso");
     expect(datos.habitos).toBe("habitos");
-    expect(datos.contexto).toBe("contexto");
+    expect(datos.informacionGeneral).toBe("informacion general");
   });
 });
 

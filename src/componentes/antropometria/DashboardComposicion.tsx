@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from "@/componentes/ui/card";
 import { Button } from "@/componentes/ui/button";
-import type { MetodoGrasa } from "@/dominio/servicios/grasaPorPliegues";
 import { PerfilPhantom } from "./PerfilPhantom";
 import { Somatocarta, type PuntoSomatocarta } from "./Somatocarta";
 import { useTemaComposicion } from "./useTemaComposicion";
@@ -20,6 +19,11 @@ import { IndicadoresCabecera } from "./dashboard/IndicadoresCabecera";
 import { TarjetaGrasa } from "./dashboard/TarjetaGrasa";
 import { TarjetaFraccionamiento } from "./dashboard/TarjetaFraccionamiento";
 import { TarjetasEvolucion } from "./dashboard/TarjetasEvolucion";
+import {
+  ecuacionesDeLaSerie,
+  TODAS_LAS_ECUACIONES,
+  type SeleccionEcuacion,
+} from "./SelectorEcuacion";
 import { TarjetaIndices } from "./dashboard/TarjetaIndices";
 import { TarjetaEnergia } from "./dashboard/TarjetaEnergia";
 import { TarjetaDistribucion } from "./dashboard/TarjetaDistribucion";
@@ -45,7 +49,11 @@ export function DashboardComposicion({
 }) {
   const { tema, montado } = useTemaComposicion();
   const [seleccionadaId, setSeleccionadaId] = useState<string | null>(null);
-  const [metodoSerie, setMetodoSerie] = useState<MetodoGrasa | null>(null);
+  // Arranca comparando TODAS las ecuaciones: es la lectura que dice cuánto de
+  // un cambio es del paciente y cuánto de la fórmula. El seguimiento con una
+  // sola sale de filtrar.
+  const [seleccionEcuacion, setSeleccionEcuacion] =
+    useState<SeleccionEcuacion>(TODAS_LAS_ECUACIONES);
 
   if (!montado) return null;
 
@@ -84,15 +92,7 @@ export function DashboardComposicion({
     ) ?? resultado.grasaPorPliegues.resultados[0];
 
   // Para la serie histórica: los métodos que al menos una medición resolvió.
-  const metodosDisponibles = [
-    ...new Set(
-      mediciones.flatMap((m) =>
-        m.resultado.grasaPorPliegues.resultados.map((r) => r.metodo),
-      ),
-    ),
-  ];
-  const metodoDeSerie =
-    metodoSerie ?? grasaDestacada?.metodo ?? metodosDisponibles[0] ?? null;
+  const metodosDisponibles = ecuacionesDeLaSerie(mediciones);
 
   // El protocolo decide qué modelo va primero: con DOS_COMPONENTES la grasa
   // por pliegues es lo que se midió, y el fraccionamiento de Kerr pasa a ser
@@ -176,9 +176,9 @@ export function DashboardComposicion({
 
       <TarjetasEvolucion
         mediciones={mediciones}
-        metodo={metodoDeSerie}
+        seleccion={seleccionEcuacion}
         metodosDisponibles={metodosDisponibles}
-        alCambiarMetodo={setMetodoSerie}
+        alCambiarSeleccion={setSeleccionEcuacion}
         tema={tema}
       />
 

@@ -31,12 +31,13 @@ const CAMPOS_HISTORIA = [
   "motivoConsulta",
   "diagnosticos",
   "medicacion",
+  "alergiasIntolerancias",
   "antecedentesDigestivos",
   "antecedentesFamiliares",
   "entrenamientos",
   "descanso",
   "habitos",
-  "contexto",
+  "informacionGeneral",
 ] as const satisfies readonly (keyof CamposHistoriaClinica)[];
 
 const CAMPOS_PACIENTE = [

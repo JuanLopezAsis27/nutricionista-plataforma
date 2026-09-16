@@ -14,23 +14,38 @@ import { Skeleton } from "@/componentes/ui/skeleton";
 import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
 import { SeccionDesplegable } from "@/componentes/comunes/SeccionDesplegable";
 import { formatearFecha } from "@/lib/formato";
-import { GestionAlertas } from "./AlertasPaciente";
 import { RevisionEvolucionesLeidas } from "./RevisionEvolucionesLeidas";
 import type { LecturaHistoriaClinicaDto } from "@/aplicacion/dtos/evaluacion.dto";
 
 const CAMPOS = [
-  { nombre: "motivoConsulta", etiqueta: "Motivo de consulta" },
-  { nombre: "diagnosticos", etiqueta: "Diagnósticos" },
-  { nombre: "medicacion", etiqueta: "Medicación/suplementos" },
+  { nombre: "motivoConsulta", etiqueta: "Motivo de consulta", ayuda: null },
+  { nombre: "diagnosticos", etiqueta: "Diagnósticos", ayuda: null },
+  { nombre: "medicacion", etiqueta: "Medicación/suplementos", ayuda: null },
+  {
+    nombre: "alergiasIntolerancias",
+    etiqueta: "Alergias e intolerancias",
+    ayuda:
+      "Alergias, intolerancias y restricciones alimentarias, con la reacción y desde cuándo.",
+  },
   {
     nombre: "antecedentesDigestivos",
     etiqueta: "Antecedentes de enfermedades digestivas/deposiciones",
+    ayuda: null,
   },
-  { nombre: "antecedentesFamiliares", etiqueta: "Antecedentes familiares" },
-  { nombre: "entrenamientos", etiqueta: "Entrenamientos" },
-  { nombre: "descanso", etiqueta: "Descanso" },
-  { nombre: "habitos", etiqueta: "Hábitos y observaciones" },
-  { nombre: "contexto", etiqueta: "Contexto (trabajo, horarios, entorno)" },
+  {
+    nombre: "antecedentesFamiliares",
+    etiqueta: "Antecedentes familiares",
+    ayuda: null,
+  },
+  { nombre: "entrenamientos", etiqueta: "Entrenamientos", ayuda: null },
+  { nombre: "descanso", etiqueta: "Descanso", ayuda: null },
+  { nombre: "habitos", etiqueta: "Hábitos y observaciones", ayuda: null },
+  {
+    nombre: "informacionGeneral",
+    etiqueta: "Información general",
+    ayuda:
+      "Todo lo que no entra en los campos de arriba: obra social, ocupación, horarios de trabajo, cómo llegó al consultorio. Es donde la IA deja lo que el documento traía y no coincidió con ningún campo.",
+  },
 ] as const;
 
 type NombreCampo = (typeof CAMPOS)[number]["nombre"];
@@ -42,7 +57,7 @@ const PREFIJO_SUELTO = "suelto-";
 /**
  * Formulario de historia clínica del paciente.
  *
- * Además de los siete campos fijos muestra los personalizados, que son de dos
+ * Además de los campos fijos muestra los personalizados, que son de dos
  * clases y conviven a propósito:
  *
  * - Los **del consultorio** (Configuración → Historia clínica) aparecen en
@@ -52,6 +67,17 @@ const PREFIJO_SUELTO = "suelto-";
  *
  * Los dos se guardan igual —clave, etiqueta y valor— así que un campo del
  * consultorio que después se borre sigue mostrándose con su nombre.
+ *
+ * Dos de los campos fijos son nuevos de la migración 67 y dicen por qué:
+ *
+ * - **Alergias e intolerancias** era una sección aparte (`GestionAlertas`) con
+ *   una fila por alergia, su tipo y su severidad. En la consulta no se anota
+ *   así: se escribe una frase donde el matiz está en las palabras, no en un
+ *   enum de tres valores. Las alertas ya cargadas se siguen viendo como
+ *   badges en el encabezado de la ficha (`BadgesAlertas`).
+ * - **Información general** es el cajón de sastre, y reemplaza a "contexto".
+ *   El esquema que se le pide a la IA es cerrado, así que sin un campo así
+ *   todo rótulo propio de ese documento se perdía en silencio.
  */
 export function FormularioHistoriaClinica({
   pacienteId,
@@ -82,7 +108,7 @@ export function FormularioHistoriaClinica({
    * effect deja la pantalla mostrando lo que había cuando se montó, y este
    * componente muestra datos que él mismo modifica. Las claves son dinámicas
    * —dependen de lo que el consultorio defina—, así que tampoco pueden vivir
-   * en react-hook-form como los siete fijos.
+   * en react-hook-form como los fijos.
    */
   const [ediciones, setEdiciones] = useState<Record<string, string>>({});
   const [agregados, setAgregados] = useState<
@@ -102,7 +128,7 @@ export function FormularioHistoriaClinica({
     LecturaHistoriaClinicaDto["evoluciones"] | null
   >(null);
 
-  // Los siete campos fijos sí van por react-hook-form, que necesita el reset.
+  // Los campos fijos sí van por react-hook-form, que necesita el reset.
   useEffect(() => {
     if (!historia.data) return;
     form.reset(
@@ -281,11 +307,6 @@ export function FormularioHistoriaClinica({
             />
           )}
 
-          {/* Intolerancias y alergias viven dentro de la historia clínica:
-              son parte de "de dónde viene" el paciente, igual que el resto de
-              estos campos. */}
-          <GestionAlertas pacienteId={pacienteId} />
-
           <div className="grid gap-4 md:grid-cols-2">
             {CAMPOS.map((campo) => (
               <div key={campo.nombre} className="space-y-2">
@@ -296,6 +317,9 @@ export function FormularioHistoriaClinica({
                   {...form.register(campo.nombre)}
                   placeholder="—"
                 />
+                {campo.ayuda && (
+                  <p className="text-xs text-muted-foreground">{campo.ayuda}</p>
+                )}
               </div>
             ))}
           </div>

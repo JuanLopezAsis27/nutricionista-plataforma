@@ -138,7 +138,7 @@ Reglas:
 2. No diagnostiques ni interpretes: transcribí y ordená lo que ya está escrito.
 3. Fechas SIEMPRE en formato ISO YYYY-MM-DD. Si solo hay año, o la fecha es ilegible, devolvé null. Ojo con el formato del documento: en español la fecha se escribe DÍA/MES/AÑO, así que 03/11/1985 es el 1985-11-03, no el 1985-03-11.
 4. Medidas antropométricas en sus unidades: peso en kg, tallas y perímetros en cm, pliegues en mm. Si el documento usa otra unidad, convertila. Si no hay peso, devolvé antropometria en null: sin peso no hay medición.
-5. Las alertas son SOLO alergias, intolerancias y restricciones alimentarias. tipo: ALERGIA, INTOLERANCIA o RESTRICCION. severidad: LEVE, MODERADA o SEVERA (si no está indicada, poné MODERADA).
+5. Las alergias, intolerancias y restricciones alimentarias van DOS veces, y las dos se completan: en "alergiasIntolerancias" de la historia clínica, todas juntas y con las palabras del documento, y además una por una en "alertas" (tipo: ALERGIA, INTOLERANCIA o RESTRICCION; severidad: LEVE, MODERADA o SEVERA, y si no está indicada, MODERADA).
 6. Los laboratorios son estudios de análisis mencionados en el documento: un título corto y, en notas, los valores que figuren.
 7. El email tiene que estar escrito literalmente en el documento. NUNCA lo deduzcas del nombre.
 8. Respondé en español.
@@ -152,7 +152,7 @@ NOMBRE Y APELLIDO van SEPARADOS, y la ficha casi nunca los separa por vos:
 
 SEXO: devolvé exactamente MASCULINO o FEMENINO. La ficha lo escribe de muchas formas y TODAS estas cuentan: "M", "Masc", "Masculino", "Varón", "Hombre", "H" → MASCULINO; "F", "Fem", "Femenino", "Mujer" → FEMENINO. Si no figura, o dice otra cosa, devolvé null.
 
-OTROS DATOS: todo lo demás que la ficha traiga sobre el paciente y no entre en ninguno de los campos de arriba va en "otrosDatos", como pares de etiqueta y valor. Por ejemplo: obra social, número de afiliado, DNI, ocupación, domicilio, teléfono alternativo, contacto de emergencia, objetivo del tratamiento, cómo llegó al consultorio, o cualquier rótulo propio de esa planilla. Usá como etiqueta el rótulo tal como aparece en el documento. Es preferible que un dato caiga acá a que se pierda: no descartes nada que esté escrito en la ficha.
+OTROS DATOS: todo lo demás que la ficha traiga sobre el paciente y no entre en ninguno de los campos de arriba va en "otrosDatos", como pares de etiqueta y valor (si la ficha lo trae como un texto corrido que no se puede partir en pares, va en "informacionGeneral" de la historia clínica). Por ejemplo: obra social, número de afiliado, DNI, ocupación, domicilio, teléfono alternativo, contacto de emergencia, objetivo del tratamiento, cómo llegó al consultorio, o cualquier rótulo propio de esa planilla. Usá como etiqueta el rótulo tal como aparece en el documento. Es preferible que un dato caiga acá a que se pierda: no descartes nada que esté escrito en la ficha.
 
 Las medidas antropométricas que se pueden leer son: {{medidas}}.{{camposPersonalizados}}`;
 
@@ -167,7 +167,7 @@ Reglas generales:
 2. No diagnostiques ni agregues interpretación clínica propia: transcribí y organizá lo que ya está escrito.
 3. Respondé en español, con el texto de cada campo breve y legible (no copies saltos de línea raros del original).
 
-HISTORIA CLÍNICA — un solo bloque, con los campos: motivo de consulta, diagnósticos, medicación/suplementos, antecedentes de enfermedades digestivas/deposiciones, antecedentes familiares, entrenamientos, descanso, hábitos y observaciones, y contexto (trabajo, horarios, entorno).
+HISTORIA CLÍNICA — un solo bloque, con los campos: motivo de consulta, diagnósticos, medicación/suplementos, alergias e intolerancias, antecedentes de enfermedades digestivas/deposiciones, antecedentes familiares, entrenamientos, descanso, hábitos y observaciones, e información general.
 
 EVOLUCIONES — UNA POR CONSULTA. Se reconocen porque el documento las encabeza con una FECHA y debajo repite siempre los mismos rótulos. Por ejemplo:
 
@@ -185,8 +185,12 @@ Eso es UNA evolución. Si abajo hay otra fecha con los mismos rótulos, es OTRA:
 Reglas de las evoluciones:
 4. Copiá el texto del campo TAL CUAL, entero. "50%. 10 días no respeto por viaje" va completo: el porcentaje solo perdería el motivo, que es la mitad del dato. No lo resumas ni lo pases a un número.
 5. Fechas SIEMPRE en formato ISO YYYY-MM-DD. En español se escribe DÍA/MES/AÑO, así que 12/07/2024 es el 2024-07-12, no el 2024-12-07. Si un bloque no tiene fecha legible, devolvé fecha null igual; no la inventes ni la deduzcas de los bloques vecinos.
-6. Un rótulo que el documento trae y no corresponde a ningún campo conocido NO se fuerza dentro de otro: se ignora, salvo que coincida con alguno de los campos propios del consultorio de más abajo.
+6. Un rótulo que el documento trae y no corresponde a ningún campo conocido NO se fuerza dentro de otro: si coincide con alguno de los campos propios del consultorio de más abajo va ahí, y si no, va en "informacionGeneral" de esa evolución (ver INFORMACIÓN GENERAL).
 7. Si el documento no tiene ninguna evolución, devolvé la lista vacía. Un bloque de la historia clínica NO es una evolución.
+
+INFORMACIÓN GENERAL — el cajón de sastre, y lo hay en los dos lados: "informacionGeneral" de la historia clínica y "informacionGeneral" de cada evolución. Ahí va TODO lo que el documento trae y no coincide con ninguno de los otros campos: obra social, número de afiliado, DNI, ocupación, domicilio, cómo llegó al consultorio, una nota al margen, un rótulo propio de esa planilla. Escribí cada dato con el rótulo tal como aparece en el documento ("Obra social: OSDE 210"), uno por línea. Es preferible que un dato caiga acá a que se pierda: no descartes nada que esté escrito. Lo que corresponde a otro campo NO se duplica acá, y si no quedó nada suelto devolvé null.
+
+ALERGIAS E INTOLERANCIAS — van todas juntas en el campo "alergiasIntolerancias" de la historia clínica, con las palabras del documento: alergias, intolerancias y restricciones alimentarias, y lo que diga sobre la reacción o desde cuándo. No las repartas en diagnósticos ni en medicación.
 
 Los campos fijos de una evolución son: {{camposFijos}}.{{camposPersonalizados}}`;
 

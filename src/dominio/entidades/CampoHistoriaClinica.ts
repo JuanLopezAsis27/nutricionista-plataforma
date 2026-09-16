@@ -34,7 +34,7 @@ export interface PropiedadesCampoHistoriaClinica {
 /**
  * Campo personalizado de historia clínica, definido por el consultorio.
  *
- * Existe porque los 7 campos fijos de la historia clínica son el mínimo común
+ * Existe porque los campos fijos de la historia clínica son el mínimo común
  * y cada profesional sigue además lo suyo (adherencia previa, suplementos,
  * horario de trabajo). Definidos acá, aparecen en la historia de TODOS los
  * pacientes del consultorio, que es lo que los hace comparables entre sí.

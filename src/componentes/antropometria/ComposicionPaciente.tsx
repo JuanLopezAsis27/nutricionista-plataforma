@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Activity,
   CalendarX,
@@ -36,6 +37,13 @@ import { Skeleton } from "@/componentes/ui/skeleton";
 import { Button } from "@/componentes/ui/button";
 import { DonutMasas } from "./DonutMasas";
 import { EvolucionMasas, EvolucionGrasa } from "./EvolucionMasas";
+import {
+  SelectorEcuacion,
+  ecuacionesDeLaSerie,
+  ecuacionesElegidas,
+  TODAS_LAS_ECUACIONES,
+  type SeleccionEcuacion,
+} from "./SelectorEcuacion";
 import { TortaPlieguesProyectados } from "./TortaPlieguesProyectados";
 import { TortaMasasConObjetivos } from "./TortaMasasConObjetivos";
 import { Somatocarta, type PuntoSomatocarta } from "./Somatocarta";
@@ -127,6 +135,11 @@ export function ComposicionPaciente() {
   const { miComposicion } = useEvaluacion();
   const consulta = miComposicion();
   const { tema, montado } = useTemaComposicion();
+  // Arranca comparando TODAS las ecuaciones, igual que el dashboard del
+  // profesional: es la misma lectura y tiene que poder ponerse en el mismo
+  // estado cuando el paciente pregunta por un número.
+  const [seleccionEcuacion, setSeleccionEcuacion] =
+    useState<SeleccionEcuacion>(TODAS_LAS_ECUACIONES);
 
   if (consulta.isLoading || !montado) {
     return (
@@ -171,7 +184,9 @@ export function ComposicionPaciente() {
       (r) => r.metodo === actual.metodoGrasa,
     ) ?? resultado.grasaPorPliegues.resultados[0];
 
-  const metodoSerie = grasa?.metodo ?? null;
+  // Las ecuaciones de la serie, ya filtradas por las que el consultorio deja
+  // activas (`ObtenerComposicionCorporal` las recorta antes de llegar acá).
+  const ecuaciones = ecuacionesDeLaSerie(mediciones);
 
   const { indices } = resultado;
   const hayIndices =
@@ -394,14 +409,28 @@ export function ComposicionPaciente() {
             fondo="bg-sky-500/5"
             tinte="bg-sky-500/10"
             color="text-sky-600 dark:text-sky-400"
+            acciones={
+              <SelectorEcuacion
+                seleccion={seleccionEcuacion}
+                disponibles={ecuaciones}
+                alCambiar={setSeleccionEcuacion}
+              />
+            }
           />
           <CardContent className="py-4 pl-0 pr-3">
-            {metodoSerie != null ? (
-              <EvolucionGrasa
-                mediciones={mediciones}
-                metodo={metodoSerie}
-                tema={tema}
-              />
+            {ecuaciones.length > 0 ? (
+              <>
+                <EvolucionGrasa
+                  mediciones={mediciones}
+                  metodos={ecuacionesElegidas(seleccionEcuacion, ecuaciones)}
+                  tema={tema}
+                />
+                <p className="px-4 pt-2 text-xs text-muted-foreground">
+                  {seleccionEcuacion === TODAS_LAS_ECUACIONES
+                    ? "Cada ecuación se calcula con otra fórmula y se validó en otro grupo de gente, así que dan números distintos sobre las mismas medidas. Lo que se compara es cada línea con ella misma a lo largo del tiempo, nunca una contra otra."
+                    : "Toda la serie usa la misma ecuación, que es la única forma de ver si el valor cambió: comparar dos fórmulas distintas mide el cambio de fórmula, no el tuyo."}
+                </p>
+              </>
             ) : (
               <div className="px-4">
                 <EvolucionMasas mediciones={mediciones} tema={tema} />
@@ -463,7 +492,7 @@ function TarjetaObjetivoPaciente({
         {/* Lo que el paciente quiere saber primero: cuánto falta. */}
         {falta != null && falta > 0 ? (
           <p className="text-sm">
-            Te{" "}
+            Te faltan{" "}
             <span className="text-lg font-bold tabular-nums" style={{ color }}>
               {formatearMedida(falta)}
               {unidad}
@@ -545,16 +574,19 @@ function CabeceraTarjeta({
   fondo,
   tinte,
   color,
+  acciones,
 }: {
   icono: LucideIcon;
   titulo: string;
   fondo: string;
   tinte: string;
   color: string;
+  /** Control de la tarjeta (un filtro), a la derecha del título. */
+  acciones?: React.ReactNode;
 }) {
   return (
     <CardHeader className={cn("border-b p-4", fondo)}>
-      <CardTitle className="flex items-center gap-2 text-base">
+      <CardTitle className="flex flex-wrap items-center gap-2 text-base">
         <span
           className={cn(
             "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
@@ -564,6 +596,7 @@ function CabeceraTarjeta({
           <Icono className={cn("h-4 w-4", color)} />
         </span>
         {titulo}
+        {acciones && <span className="ml-auto">{acciones}</span>}
       </CardTitle>
     </CardHeader>
   );

@@ -73,6 +73,54 @@ El prompt también deletrea dos cosas que el modelo erraba solo: cómo separar
 que va antes de la coma es el apellido) y que **el sexo** llega como "M", "F",
 "Masc", "Varón" o "Mujer" y hay que mapearlo al enum.
 
+## Los campos fijos de la historia clínica
+
+Diez campos de texto libre, más los personalizados. Dos de ellos son de la
+**migración 67** y valen la explicación, porque los dos reemplazan algo:
+
+### Alergias e intolerancias: un campo, no una tabla
+
+Era una sección aparte de la pestaña —`GestionAlertas`— con una fila por
+alergia y dos enums encima: tipo (ALERGIA / INTOLERANCIA / RESTRICCION) y
+severidad (LEVE / MODERADA / SEVERA). En la consulta eso no se anota así. Lo
+que se escribe es «no tolera lácteos; celiaquía diagnosticada en 2019; el maní
+le da urticaria», donde el matiz está en las palabras y no en cuál de tres
+casilleros se eligió — el mismo motivo por el que los campos de la evolución
+son texto y no números.
+
+Lo que **no** cambió, a propósito:
+
+- La tabla `alertas_alimentarias` sigue existiendo con sus filas. Es un
+  registro clínico ya escrito y no se borra por un cambio de formulario.
+- `BadgesAlertas` las sigue mostrando **siempre** en el encabezado de la ficha,
+  que es donde no pueden pasarse por alto, y las restricciones que la app le
+  pasa a la IA (`PreguntarAlAsistente`, `AnalizarConAsistente`) salen de ahí.
+- El alta desde una ficha sigue extrayéndolas fila por fila. El prompt las pide
+  ahora **dos veces** —en `alergiasIntolerancias` y en `alertas`—: el texto es
+  lo que el profesional lee y edita, las filas son lo que alimenta los badges.
+
+El efecto secundario a tener presente: sin `GestionAlertas` montado en ninguna
+pantalla, una fila de `alertas_alimentarias` ya no se puede editar ni borrar
+desde la app.
+
+### Información general: el cajón de sastre
+
+Reemplaza a `contexto` (trabajo, horarios, entorno), y es un **renombre de
+columna**: el texto que cada paciente tenía cargado se conserva tal cual, igual
+que hizo la migración 50 con «antecedentes personales».
+
+Existe por lo mismo que `otrosDatos` en el alta desde una ficha: el esquema JSON
+que se le pide al modelo es cerrado (`additionalProperties: false`), así que sin
+un lugar donde ponerlo, todo rótulo propio de ese documento —obra social,
+ocupación, cómo llegó al consultorio, una nota al margen— se perdía en
+silencio. `contexto` era un campo temático más, y lo que la gente efectivamente
+escribía ahí era justo esa clase de dato suelto.
+
+La **evolución** tiene ahora el mismo campo, y no lo tenía: hasta la 67, un
+rótulo del cuaderno que no era ninguno de los siete fijos ni uno del
+consultorio se descartaba (la regla 6 del prompt decía «se ignora»). Ahora cae
+en `informacionGeneral` de esa consulta.
+
 ## Evoluciones de control
 
 La historia clínica se carga UNA vez y dice de dónde viene el paciente. La
@@ -89,8 +137,9 @@ Indispuesta: no.
 Se percibe: igual. No tomó nada nuevo.
 ```
 
-Siete campos fijos (`CAMPOS_EVOLUCION`), más los personalizados del
-consultorio, más los sueltos de esa consulta. Se cargan a mano en Evaluación →
+Ocho campos fijos (`CAMPOS_EVOLUCION`) —los siete de arriba más
+«información general»—, los personalizados del consultorio y los sueltos de esa
+consulta. Se cargan a mano en Evaluación →
 Evoluciones, o **salen del documento que se sube en la historia clínica**.
 
 ### Por qué son TEXTO libre y no números
@@ -291,7 +340,7 @@ envío falla, el alta no se cae y queda el envío manual desde el listado.
 | Pieza                                          | Qué hace                                        |
 | ---------------------------------------------- | ----------------------------------------------- |
 | `infraestructura/ia/documentoParaLLM.ts`       | Archivo del bucket → bloque para el modelo      |
-| `infraestructura/ia/InterpretadorHistoriaClinicaLLM.ts` | Los 7 campos, para un paciente que ya existe |
+| `infraestructura/ia/InterpretadorHistoriaClinicaLLM.ts` | Los campos de la historia + las evoluciones, para un paciente que ya existe |
 | `infraestructura/ia/InterpretadorFichaPacienteLLM.ts`   | La ficha completa de un paciente nuevo    |
 | `dominio/entidades/CampoHistoriaClinica.ts`    | La definición del consultorio (clave estable)   |
 | `dominio/entidades/HistoriaClinica.ts`         | Los valores, con su etiqueta                    |
@@ -312,6 +361,12 @@ Migración **43** (`campos_personalizados_historia`): la tabla
 Migración **47** (`evoluciones_de_control`): las tablas `evoluciones` y
 `campos_evolucion`. `Evolucion` y `CampoEvolucion` están en
 `MODELOS_INQUILINO`.
+
+Migración **67** (`alergias_y_informacion_general`):
+`historias_clinicas.alergiasIntolerancias` (columna nueva),
+`historias_clinicas.contexto` → `informacionGeneral` (renombre, conserva el
+texto) y `evoluciones.informacionGeneral` (columna nueva). `alertas_alimentarias`
+queda intacta.
 
 ## El modelo configurado es el techo
 
