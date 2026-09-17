@@ -14,7 +14,6 @@ import type { IConversacionIARepositorio } from "@/dominio/repositorios/IConvers
 import type { IAntropometriaRepositorio } from "@/dominio/repositorios/IAntropometriaRepositorio";
 import type { IObjetivoComposicionRepositorio } from "@/dominio/repositorios/IObjetivoComposicionRepositorio";
 import type { IPlantillaAntropometricaRepositorio } from "@/dominio/repositorios/IPlantillaAntropometricaRepositorio";
-import type { IAlertaAlimentariaRepositorio } from "@/dominio/repositorios/IAlertaAlimentariaRepositorio";
 import type { ILaboratorioRepositorio } from "@/dominio/repositorios/ILaboratorioRepositorio";
 import type { IRegistroDiarioRepositorio } from "@/dominio/repositorios/IRegistroDiarioRepositorio";
 import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositorio";
@@ -67,7 +66,6 @@ import type { CampoHistoriaClinica } from "@/dominio/entidades/CampoHistoriaClin
 import type { Evolucion } from "@/dominio/entidades/Evolucion";
 import type { CampoEvolucion } from "@/dominio/entidades/CampoEvolucion";
 import { Antropometria } from "@/dominio/entidades/Antropometria";
-import { AlertaAlimentaria } from "@/dominio/entidades/AlertaAlimentaria";
 import { Laboratorio } from "@/dominio/entidades/Laboratorio";
 import { RegistroDiario } from "@/dominio/entidades/RegistroDiario";
 import { Receta } from "@/dominio/entidades/Receta";
@@ -277,19 +275,6 @@ export function mockPlantillaAntropometricaRepositorio(
     eliminar: vi.fn(async () => {}),
     obtenerPorId: vi.fn(async () => null),
     listar: vi.fn(async () => []),
-    ...parcial,
-  };
-}
-
-export function mockAlertaAlimentariaRepositorio(
-  parcial: Partial<IAlertaAlimentariaRepositorio> = {},
-): IAlertaAlimentariaRepositorio {
-  return {
-    crear: vi.fn(async (a: AlertaAlimentaria) => a),
-    actualizar: vi.fn(async (a: AlertaAlimentaria) => a),
-    eliminar: vi.fn(async () => {}),
-    obtenerPorId: vi.fn(async () => null),
-    listarPorPaciente: vi.fn(async () => []),
     ...parcial,
   };
 }

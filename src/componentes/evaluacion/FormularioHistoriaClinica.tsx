@@ -73,8 +73,8 @@ const PREFIJO_SUELTO = "suelto-";
  * - **Alergias e intolerancias** era una sección aparte (`GestionAlertas`) con
  *   una fila por alergia, su tipo y su severidad. En la consulta no se anota
  *   así: se escribe una frase donde el matiz está en las palabras, no en un
- *   enum de tres valores. Las alertas ya cargadas se siguen viendo como
- *   badges en el encabezado de la ficha (`BadgesAlertas`).
+ *   enum de tres valores. Es la única fuente: el encabezado de la ficha
+ *   (`AlergiasPaciente`) y la IA leen este texto (migración 68).
  * - **Información general** es el cajón de sastre, y reemplaza a "contexto".
  *   El esquema que se le pide a la IA es cerrado, así que sin un campo así
  *   todo rótulo propio de ese documento se perdía en silencio.

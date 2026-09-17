@@ -29,7 +29,8 @@ inicio local  = 2026-09-01T03:00:00Z   (Argentina, UTC-3)
 
 El turno de hoy quedaba «antes de hoy» y se descartaba. Es la misma trampa que
 `getDay()` vs `getUTCDay()` que ya documenta AGENTS.md. Ahora usa
-`IRelojFecha.hoy()`, que devuelve medianoche UTC.
+`IRelojFecha.hoy()`, que devuelve el día local expresado a medianoche UTC
+(la misma forma en que llega el DATE).
 
 ### 3. No recordaba nada
 

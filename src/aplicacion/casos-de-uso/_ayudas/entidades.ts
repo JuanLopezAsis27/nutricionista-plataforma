@@ -23,10 +23,6 @@ import {
   type DatosNuevaAntropometria,
 } from "@/dominio/entidades/Antropometria";
 import {
-  AlertaAlimentaria,
-  type DatosNuevaAlertaAlimentaria,
-} from "@/dominio/entidades/AlertaAlimentaria";
-import {
   Laboratorio,
   type DatosNuevoLaboratorio,
 } from "@/dominio/entidades/Laboratorio";
@@ -344,21 +340,6 @@ export function antropometriaEjemplo(
     },
     id,
     new Date("2026-07-14T12:00:00Z"),
-  );
-}
-
-export function alertaAlimentariaEjemplo(
-  cambios: Partial<DatosNuevaAlertaAlimentaria> = {},
-  id = "ale-1",
-): AlertaAlimentaria {
-  return AlertaAlimentaria.crear(
-    {
-      pacienteId: "pac-1",
-      tipo: "INTOLERANCIA",
-      descripcion: "Lactosa",
-      ...cambios,
-    },
-    id,
   );
 }
 

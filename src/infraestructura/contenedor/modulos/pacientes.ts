@@ -6,7 +6,6 @@ import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
 import type { IHistoriaClinicaRepositorio } from "@/dominio/repositorios/IHistoriaClinicaRepositorio";
 import type { ICampoHistoriaClinicaRepositorio } from "@/dominio/repositorios/ICampoHistoriaClinicaRepositorio";
-import type { IAlertaAlimentariaRepositorio } from "@/dominio/repositorios/IAlertaAlimentariaRepositorio";
 import type { IAntropometriaRepositorio } from "@/dominio/repositorios/IAntropometriaRepositorio";
 import type { ILaboratorioRepositorio } from "@/dominio/repositorios/ILaboratorioRepositorio";
 import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
@@ -39,7 +38,6 @@ export function crearServicioPaciente(deps: {
   // evaluación que en el alta manual no necesita.
   historias: IHistoriaClinicaRepositorio;
   camposHistoria: ICampoHistoriaClinicaRepositorio;
-  alertas: IAlertaAlimentariaRepositorio;
   antropometrias: IAntropometriaRepositorio;
   laboratorios: ILaboratorioRepositorio;
   archivos: IArchivoRepositorio;
@@ -80,7 +78,6 @@ export function crearServicioPaciente(deps: {
     new CrearPacienteDesdeFicha(
       crearPaciente,
       deps.historias,
-      deps.alertas,
       deps.antropometrias,
       deps.laboratorios,
       deps.archivos,

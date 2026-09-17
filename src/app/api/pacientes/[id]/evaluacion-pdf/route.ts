@@ -15,7 +15,7 @@ type Parametros = { params: Promise<{ id: string }> };
 
 /**
  * GET /api/pacientes/[id]/evaluacion-pdf — descarga la evaluación integral
- * del paciente (historia clínica, alertas alimentarias y laboratorios) como
+ * del paciente (historia clínica y laboratorios) como
  * PDF.
  *
  * Exclusivo del NUTRICIONISTA: el router de Evaluación ya excluye del portal
@@ -41,11 +41,10 @@ export function GET(
     try {
       const { id: pacienteId } = await params;
 
-      const [paciente, historiaClinica, alertas, laboratorios, config] =
+      const [paciente, historiaClinica, laboratorios, config] =
         await Promise.all([
           servicioPaciente().obtenerPacientePorId(pacienteId),
           servicioEvaluacion().historiaClinica.obtener(pacienteId),
-          servicioEvaluacion().alertasAlimentarias.obtener(pacienteId),
           servicioEvaluacion().laboratorios.obtener(pacienteId),
           servicioConfiguracion().obtener(),
         ]);
@@ -53,7 +52,6 @@ export function GET(
       const buffer = await renderizarEvaluacionPdf({
         paciente,
         historiaClinica,
-        alertas,
         laboratorios,
         config,
       });

@@ -88,6 +88,14 @@ a pg-boss reintentar un inquilino fallido.
 Se comparan hora Y minuto: con `horaEnvio` 10:30, la pasada de las 10:05 no
 corresponde todavía y el envío sale en la de las 11:05.
 
+**"Hoy" es el día local, no el UTC.** El `>=` destapó un error que antes no se
+veía: `RelojSistema.hoy()` tomaba el día UTC. En Argentina (UTC-3), desde las
+21:00 el día UTC ya es el siguiente, así que la pasada de las 21:05 calculaba
+«mañana» como pasado mañana y mandaba el aviso de «1 día antes» de un turno del
+16/09 el 14/09 a la noche. Mientras el barrido solo corría a las 09:05, las dos
+fechas coincidían y el error no aparecía. Ahora `hoy()` usa el día local (la
+zona de `TZ`), el mismo reloj del que sale la hora que compara `yaEsHoraDeEnviar`.
+
 **Los crons se programan con `tz` explícita** (`src/trabajos/zonaHoraria.ts`,
 leída de `TZ`). pg-boss interpreta toda expresión cron en UTC salvo que se le
 pase la zona, y `TZ` en el `.env` no alcanza: afecta a `Date` dentro del

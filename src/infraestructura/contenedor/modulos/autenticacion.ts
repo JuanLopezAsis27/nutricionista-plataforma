@@ -10,6 +10,7 @@ import { RestablecerPassword } from "@/aplicacion/casos-de-uso/autenticacion/Res
 import { EmitirTokenRefresco } from "@/aplicacion/casos-de-uso/autenticacion/EmitirTokenRefresco";
 import { RenovarSesion } from "@/aplicacion/casos-de-uso/autenticacion/RenovarSesion";
 import { RevocarSesionesPersistentes } from "@/aplicacion/casos-de-uso/autenticacion/RevocarSesionesPersistentes";
+import { LimpiarSesionesCaducadas } from "@/aplicacion/casos-de-uso/autenticacion/LimpiarSesionesCaducadas";
 import { ServicioAutenticacion } from "@/aplicacion/servicios/ServicioAutenticacion";
 
 /**
@@ -62,6 +63,13 @@ export function crearServicioAutenticacion(deps: {
       deps.tokensRefresco,
       deps.generador,
       deps.reloj,
+    ),
+    // El margen es la misma validez de la sesión: un token vencido hace menos
+    // que eso todavía puede delatar un robo si alguien lo vuelve a presentar.
+    new LimpiarSesionesCaducadas(
+      deps.tokensRefresco,
+      deps.reloj,
+      deps.diasSesionPersistente,
     ),
   );
 }

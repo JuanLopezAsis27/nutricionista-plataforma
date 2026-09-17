@@ -8,7 +8,7 @@ import {
   mockObjetivoRepositorio,
   mockAsignacionPlanRepositorio,
   mockRecetaRepositorio,
-  mockAlertaAlimentariaRepositorio,
+  mockHistoriaClinicaRepositorio,
   mockAxiomaRepositorio,
   mockAsistenteNutricional,
   mockConversacionIARepositorio,
@@ -16,14 +16,17 @@ import {
   mockCompetenciaRepositorio,
   mockReloj,
   pacienteEjemplo,
+  historiaClinicaEjemplo,
 } from "../_ayudas-test";
 import type { IConversacionIARepositorio } from "@/dominio/repositorios/IConversacionIARepositorio";
+import type { HistoriaClinica } from "@/dominio/entidades/HistoriaClinica";
 
 /** El caso de uso con todo mockeado salvo lo que cada test necesita ver. */
 function armar(opciones: {
   responder?: ReturnType<typeof vi.fn>;
   conversaciones?: IConversacionIARepositorio;
   pacienteExiste?: boolean;
+  historia?: HistoriaClinica | null;
 }) {
   return new PreguntarAlAsistente(
     mockPacienteRepositorio({
@@ -36,8 +39,8 @@ function armar(opciones: {
       obtenerPlanActivoDePaciente: vi.fn(async () => null),
     }),
     mockRecetaRepositorio({ listarPorPaciente: vi.fn(async () => []) }),
-    mockAlertaAlimentariaRepositorio({
-      listarPorPaciente: vi.fn(async () => []),
+    mockHistoriaClinicaRepositorio({
+      obtenerPorPaciente: vi.fn(async () => opciones.historia ?? null),
     }),
     mockAxiomaRepositorio({ listarActivos: vi.fn(async () => []) }),
     mockAsistenteNutricional(
@@ -99,6 +102,43 @@ describe("PreguntarAlAsistente", () => {
         rol: "ASISTENTE",
         contenido: "respuesta demo",
       }),
+    );
+  });
+
+  it("le pasa al modelo las alergias de la historia clínica como restricciones", async () => {
+    const responder = vi.fn(async () => "sin lácteos");
+    const uc = armar({
+      responder,
+      historia: historiaClinicaEjemplo({
+        alergiasIntolerancias: "No tolera lácteos; alergia al maní",
+      }),
+    });
+
+    await uc.ejecutar("pac-1", "¿Qué desayuno?");
+
+    expect(responder).toHaveBeenCalledWith(
+      "¿Qué desayuno?",
+      expect.objectContaining({
+        restricciones: ["No tolera lácteos; alergia al maní"],
+      }),
+      expect.anything(),
+      expect.anything(),
+      undefined,
+    );
+  });
+
+  it("sin historia clínica no inventa restricciones", async () => {
+    const responder = vi.fn(async () => "ok");
+    const uc = armar({ responder, historia: null });
+
+    await uc.ejecutar("pac-1", "¿Qué desayuno?");
+
+    expect(responder).toHaveBeenCalledWith(
+      "¿Qué desayuno?",
+      expect.objectContaining({ restricciones: [] }),
+      expect.anything(),
+      expect.anything(),
+      undefined,
     );
   });
 

@@ -5,7 +5,6 @@ import {
   mockPacienteRepositorio,
   mockUsuarioRepositorio,
   mockHistoriaClinicaRepositorio,
-  mockAlertaAlimentariaRepositorio,
   mockAntropometriaRepositorio,
   mockLaboratorioRepositorio,
   mockArchivoRepositorio,
@@ -16,14 +15,12 @@ import {
 function armar(
   sobrescribir: {
     historias?: ReturnType<typeof mockHistoriaClinicaRepositorio>;
-    alertas?: ReturnType<typeof mockAlertaAlimentariaRepositorio>;
     antropometrias?: ReturnType<typeof mockAntropometriaRepositorio>;
     laboratorios?: ReturnType<typeof mockLaboratorioRepositorio>;
     archivos?: ReturnType<typeof mockArchivoRepositorio>;
   } = {},
 ) {
   const historias = sobrescribir.historias ?? mockHistoriaClinicaRepositorio();
-  const alertas = sobrescribir.alertas ?? mockAlertaAlimentariaRepositorio();
   const antropometrias =
     sobrescribir.antropometrias ?? mockAntropometriaRepositorio();
   const laboratorios =
@@ -41,13 +38,11 @@ function armar(
     casoUso: new CrearPacienteDesdeFicha(
       crearPaciente,
       historias,
-      alertas,
       antropometrias,
       laboratorios,
       archivos,
     ),
     historias,
-    alertas,
     antropometrias,
     laboratorios,
     archivos,
@@ -63,13 +58,11 @@ const BASE = {
 
 describe("CrearPacienteDesdeFicha", () => {
   it("crea el paciente y todo lo que traía el documento", async () => {
-    const { casoUso, historias, alertas, antropometrias, laboratorios } =
-      armar();
+    const { casoUso, historias, antropometrias, laboratorios } = armar();
 
     const { paciente, advertencias } = await casoUso.ejecutar({
       ...BASE,
       historiaClinica: { motivoConsulta: "Descenso de peso" },
-      alertas: [{ tipo: "ALERGIA", descripcion: "Maní", severidad: "SEVERA" }],
       antropometria: { pesoKg: 70, fecha: new Date("2026-01-10T00:00:00Z") },
       laboratorios: [
         { fecha: new Date("2026-01-05T00:00:00Z"), titulo: "Perfil lipídico" },
@@ -79,7 +72,6 @@ describe("CrearPacienteDesdeFicha", () => {
     expect(paciente.email).toBe("ana@ejemplo.com");
     expect(advertencias).toEqual([]);
     expect(historias.guardar).toHaveBeenCalledOnce();
-    expect(alertas.crear).toHaveBeenCalledOnce();
     expect(antropometrias.crear).toHaveBeenCalledOnce();
     expect(laboratorios.crear).toHaveBeenCalledOnce();
   });
@@ -129,24 +121,24 @@ describe("CrearPacienteDesdeFicha", () => {
   });
 
   it("informa lo que no pudo guardar sin perder el paciente ni el resto", async () => {
-    // El paciente ya existe cuando falla un asociado: una alerta inválida no
-    // puede tumbar el alta entera ni llevarse puesta la medición.
-    const alertas = mockAlertaAlimentariaRepositorio({
-      crear: vi.fn(async () => {
+    // El paciente ya existe cuando falla un asociado: una historia que no se
+    // pudo guardar no puede tumbar el alta entera ni llevarse puesta la medición.
+    const historias = mockHistoriaClinicaRepositorio({
+      guardar: vi.fn(async () => {
         throw new Error("la base dijo que no");
       }),
     });
-    const { casoUso, antropometrias } = armar({ alertas });
+    const { casoUso, antropometrias } = armar({ historias });
 
     const { paciente, advertencias } = await casoUso.ejecutar({
       ...BASE,
-      alertas: [{ tipo: "ALERGIA", descripcion: "Maní", severidad: "SEVERA" }],
+      historiaClinica: { alergiasIntolerancias: "Alergia al maní" },
       antropometria: { pesoKg: 70, fecha: new Date("2026-01-10T00:00:00Z") },
     });
 
     expect(paciente.email).toBe("ana@ejemplo.com");
     expect(advertencias).toHaveLength(1);
-    expect(advertencias[0]).toContain("Maní");
+    expect(advertencias[0]).toContain("la historia clínica");
     expect(advertencias[0]).toContain("la base dijo que no");
     expect(antropometrias.crear).toHaveBeenCalledOnce();
   });

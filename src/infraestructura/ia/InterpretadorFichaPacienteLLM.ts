@@ -3,7 +3,6 @@ import type {
   IInterpretadorFichaPaciente,
   FichaPacienteSugerida,
   CampoPersonalizadoPedido,
-  AlertaAlimentariaSugerida,
   AntropometriaSugerida,
   LaboratorioSugerido,
   DatosPacienteSugeridos,
@@ -12,10 +11,6 @@ import type {
   CamposHistoriaClinica,
   CampoPersonalizadoHistoria,
 } from "@/dominio/entidades/HistoriaClinica";
-import {
-  TIPOS_ALERTA_ALIMENTARIA,
-  SEVERIDADES_ALERTA,
-} from "@/dominio/entidades/AlertaAlimentaria";
 import {
   CAMPOS_PLANTILLA,
   ETIQUETAS_CAMPO_PLANTILLA,
@@ -75,7 +70,6 @@ function esquemaFicha(
       "historiaClinica",
       "camposPersonalizados",
       "otrosDatos",
-      "alertas",
       "antropometria",
       "laboratorios",
     ],
@@ -120,20 +114,6 @@ function esquemaFicha(
           properties: {
             etiqueta: { type: "string" },
             valor: { type: "string" },
-          },
-        },
-      },
-      alertas: {
-        type: "array",
-        items: {
-          type: "object",
-          additionalProperties: false,
-          required: ["tipo", "descripcion", "severidad", "notas"],
-          properties: {
-            tipo: { type: "string", enum: [...TIPOS_ALERTA_ALIMENTARIA] },
-            descripcion: { type: "string" },
-            severidad: { type: "string", enum: [...SEVERIDADES_ALERTA] },
-            notas: textoONulo,
           },
         },
       },
@@ -193,7 +173,7 @@ function variablesDeFicha(
 /**
  * Lee una ficha de paciente (PDF, Word o foto) con el LLM del consultorio y
  * devuelve todo lo que reconoció: datos personales, historia clínica —con los
- * campos propios del consultorio—, alertas alimentarias, la medición inicial y
+ * campos propios del consultorio—, la medición inicial y
  * los laboratorios.
  *
  * Sin proveedor configurado LANZA, igual que el resto de la IA que toca datos
@@ -321,37 +301,9 @@ export function normalizarFicha(
     },
     historiaClinica,
     camposPersonalizados,
-    alertas: lista(datos.alertas).flatMap(normalizarAlerta),
     antropometria: normalizarAntropometria(datos.antropometria),
     laboratorios: lista(datos.laboratorios).flatMap(normalizarLaboratorio),
   };
-}
-
-function normalizarAlerta(cruda: unknown): AlertaAlimentariaSugerida[] {
-  const item = objeto(cruda);
-  const descripcion = texto(item.descripcion);
-  const tipo = item.tipo;
-  if (
-    !descripcion ||
-    typeof tipo !== "string" ||
-    !(TIPOS_ALERTA_ALIMENTARIA as readonly string[]).includes(tipo)
-  ) {
-    return [];
-  }
-  const severidadCruda = item.severidad;
-  const severidad =
-    typeof severidadCruda === "string" &&
-    (SEVERIDADES_ALERTA as readonly string[]).includes(severidadCruda)
-      ? (severidadCruda as AlertaAlimentariaSugerida["severidad"])
-      : "MODERADA";
-  return [
-    {
-      tipo: tipo as AlertaAlimentariaSugerida["tipo"],
-      descripcion,
-      severidad,
-      notas: texto(item.notas),
-    },
-  ];
 }
 
 function normalizarAntropometria(cruda: unknown): AntropometriaSugerida | null {

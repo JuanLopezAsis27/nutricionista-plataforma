@@ -3,7 +3,6 @@ import { Prisma } from "@prisma/client";
 import { mapearAntropometria } from "./PrismaRepositorioAntropometria";
 import { mapearLaboratorio } from "./PrismaRepositorioLaboratorio";
 import { mapearHistoriaClinica } from "./PrismaRepositorioHistoriaClinica";
-import { mapearAlertaAlimentaria } from "./PrismaRepositorioAlertaAlimentaria";
 import { mapearObjetivoComposicion } from "./PrismaRepositorioObjetivoComposicion";
 import { mapearPlantillaAntropometrica } from "./PrismaRepositorioPlantillaAntropometrica";
 
@@ -227,31 +226,6 @@ describe("mapearHistoriaClinica", () => {
     expect(datos.descanso).toBe("descanso");
     expect(datos.habitos).toBe("habitos");
     expect(datos.informacionGeneral).toBe("informacion general");
-  });
-});
-
-describe("mapearAlertaAlimentaria", () => {
-  const fila = {
-    id: "alerta-1",
-    nutricionistaId: "nutri-1",
-    pacienteId: "pac-1",
-    tipo: "ALERGIA",
-    severidad: "ALTA",
-    descripcion: "frutos secos",
-    notas: "epinefrina a mano",
-    creadoEn: new Date("2026-01-02T00:00:00.000Z"),
-    actualizadoEn: new Date("2026-01-02T00:00:00.000Z"),
-  } as unknown as Parameters<typeof mapearAlertaAlimentaria>[0];
-
-  it("preserva tipo y severidad como valores distintos", () => {
-    const datos = mapearAlertaAlimentaria(fila).aPrimitivos();
-
-    expect(datos.id).toBe("alerta-1");
-    expect(datos.pacienteId).toBe("pac-1");
-    expect(datos.tipo).toBe("ALERGIA");
-    expect(datos.severidad).toBe("ALTA");
-    expect(datos.descripcion).toBe("frutos secos");
-    expect(datos.notas).toBe("epinefrina a mano");
   });
 });
 

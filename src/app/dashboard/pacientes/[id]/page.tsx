@@ -32,7 +32,7 @@ import { FormularioPaciente } from "@/componentes/pacientes/FormularioPaciente";
 import { SeccionPlanesDelPaciente } from "@/componentes/planes/SeccionPlanesDelPaciente";
 import { FormularioTurno } from "@/componentes/turnos/FormularioTurno";
 import { GrabacionesConsulta } from "@/componentes/turnos/GrabacionesConsulta";
-import { BadgesAlertas } from "@/componentes/evaluacion/AlertasPaciente";
+import { AlergiasPaciente } from "@/componentes/evaluacion/AlergiasPaciente";
 import { FormularioHistoriaClinica } from "@/componentes/evaluacion/FormularioHistoriaClinica";
 import { EvolucionesPaciente } from "@/componentes/evaluacion/EvolucionesPaciente";
 import { FotosProgreso } from "@/componentes/evaluacion/FotosProgreso";
@@ -131,7 +131,7 @@ export default function PaginaDetallePaciente() {
             </CardTitle>
             <p className="text-sm text-muted-foreground">{p.email}</p>
             {/* Alergias e intolerancias: visibles SIEMPRE, en cualquier pestaña. */}
-            <BadgesAlertas pacienteId={id} />
+            <AlergiasPaciente pacienteId={id} />
           </div>
           <Button variant="outline" onClick={() => setEditar(true)}>
             <Pencil className="h-4 w-4" />

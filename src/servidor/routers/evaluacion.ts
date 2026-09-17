@@ -12,8 +12,6 @@ import {
   idAntropometriaDto,
   interpretarMedicionesDto,
   importarMedicionesDto,
-  registrarAlertaAlimentariaDto,
-  actualizarAlertaAlimentariaDto,
   registrarLaboratorioDto,
   actualizarLaboratorioDto,
   idPacienteEvaluacionDto,
@@ -37,8 +35,8 @@ const idDto = z.object({ id: z.string().min(1) });
 /**
  * Router de Evaluación Integral (presentación → aplicación).
  *
- * Casi todo es exclusivo del NUTRICIONISTA: la historia clínica, los
- * laboratorios y las alertas alimentarias no se exponen al portal.
+ * Casi todo es exclusivo del NUTRICIONISTA: la historia clínica y los
+ * laboratorios no se exponen al portal.
  *
  * La ÚNICA excepción es `miComposicion`: el paciente ve su propia
  * antropometría y sus objetivos de composición. Es lectura, resuelve el
@@ -249,38 +247,6 @@ export const routerEvaluacion = crearRouter({
       pacienteDeSesion(ctx.usuario),
     );
   }),
-
-  // --- Alertas alimentarias ---------------------------------------------------
-  obtenerAlertas: nutricionistaProcedimiento
-    .input(idPacienteEvaluacionDto)
-    .query(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.alertasAlimentarias.obtener(
-        input.pacienteId,
-      );
-    }),
-
-  registrarAlerta: nutricionistaProcedimiento
-    .input(registrarAlertaAlimentariaDto)
-    .mutation(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.alertasAlimentarias.registrar(
-        input,
-      );
-    }),
-
-  actualizarAlerta: nutricionistaProcedimiento
-    .input(actualizarAlertaAlimentariaDto)
-    .mutation(async ({ ctx, input }) => {
-      return await ctx.servicios.evaluacion.alertasAlimentarias.actualizar(
-        input,
-      );
-    }),
-
-  eliminarAlerta: nutricionistaProcedimiento
-    .input(idDto)
-    .mutation(async ({ ctx, input }) => {
-      await ctx.servicios.evaluacion.alertasAlimentarias.eliminar(input.id);
-      return { eliminado: true };
-    }),
 
   // --- Laboratorios -------------------------------------------------------------
   obtenerLaboratorios: nutricionistaProcedimiento

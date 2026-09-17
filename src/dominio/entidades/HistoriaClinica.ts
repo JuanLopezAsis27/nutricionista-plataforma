@@ -150,6 +150,18 @@ export class HistoriaClinica {
     return [...this.props.camposPersonalizados];
   }
 
+  /**
+   * Las restricciones alimentarias tal como se las pasa la app a la IA: el
+   * texto de alergias e intolerancias entero, o ninguna. No se parte en
+   * pedazos —«no tolera lácteos; celiaquía desde 2019»— porque el matiz está
+   * en las palabras, y es la única fuente desde que se quitó la tabla
+   * `alertas_alimentarias` (migración 68).
+   */
+  get restriccionesAlimentarias(): string[] {
+    const texto = this.props.alergiasIntolerancias?.trim();
+    return texto ? [texto] : [];
+  }
+
   aPrimitivos(): PropiedadesHistoriaClinica {
     return {
       ...this.props,

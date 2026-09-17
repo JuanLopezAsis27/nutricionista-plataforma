@@ -13,7 +13,6 @@ export { ErrorArchivoNoEncontrado } from "./ErrorArchivoNoEncontrado";
 export { ErrorAntropometriaNoEncontrada } from "./ErrorAntropometriaNoEncontrada";
 export { ErrorAntropometriaDuplicada } from "./ErrorAntropometriaDuplicada";
 export { ErrorLaboratorioNoEncontrado } from "./ErrorLaboratorioNoEncontrado";
-export { ErrorAlertaAlimentariaNoEncontrada } from "./ErrorAlertaAlimentariaNoEncontrada";
 export { ErrorRegistroDiarioNoEncontrado } from "./ErrorRegistroDiarioNoEncontrado";
 export { ErrorRecetaNoEncontrada } from "./ErrorRecetaNoEncontrada";
 export { ErrorPlanNoEncontrado } from "./ErrorPlanNoEncontrado";

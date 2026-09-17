@@ -11,7 +11,7 @@ import { MensajesSinLeer } from "@/componentes/dashboard/MensajesSinLeer";
 import { ResumenDelMes } from "@/componentes/dashboard/ResumenDelMes";
 import { GraficoTurnosSemanales } from "@/componentes/dashboard/GraficoTurnosSemanales";
 import { ACENTOS, type ClaveAcento } from "@/componentes/dashboard/acentos";
-import { aFechaISO } from "@/lib/formato";
+import { aFechaISO, hoyArgentinaISO } from "@/lib/formato";
 import {
   Card,
   CardContent,
@@ -80,7 +80,10 @@ export default function PaginaDashboard() {
   // El día se fija al montar y no en cada render: leer el reloj en el cuerpo
   // del componente es impuro, y con SSR el servidor y el cliente pueden caer a
   // los dos lados de la medianoche y renderizar dashboards distintos.
-  const [hoy] = useState(() => aFechaISO(new Date()));
+  // Es el día ARGENTINO, no el UTC: con `aFechaISO(new Date())`, desde las
+  // 21:00 "hoy" ya era mañana y la tarjeta mostraba los turnos del día
+  // siguiente.
+  const [hoy] = useState(() => hoyArgentinaISO());
 
   const mapaPacientes = useMemo(() => {
     const mapa = new Map<string, string>();

@@ -7,6 +7,10 @@ export interface IRelojFecha {
   /** Fecha y hora actuales. */
   ahora(): Date;
 
-  /** Fecha de hoy a medianoche UTC (para comparar con campos de solo fecha). */
+  /**
+   * El día de hoy EN HORA LOCAL, a medianoche UTC (para comparar con campos de
+   * solo fecha, que llegan así). No es el día UTC: a las 22:00 en Argentina
+   * sigue siendo hoy, aunque en UTC ya sea mañana.
+   */
   hoy(): Date;
 }

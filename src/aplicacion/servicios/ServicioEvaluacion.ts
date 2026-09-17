@@ -1,7 +1,6 @@
 import type { ServicioHistoriaClinica } from "./evaluacion/ServicioHistoriaClinica";
 import type { ServicioEvoluciones } from "./evaluacion/ServicioEvoluciones";
 import type { ServicioAntropometria } from "./evaluacion/ServicioAntropometria";
-import type { ServicioAlertasAlimentarias } from "./evaluacion/ServicioAlertasAlimentarias";
 import type { ServicioLaboratorios } from "./evaluacion/ServicioLaboratorios";
 
 /**
@@ -51,7 +50,6 @@ export class ServicioEvaluacion {
     readonly historiaClinica: ServicioHistoriaClinica,
     readonly evoluciones: ServicioEvoluciones,
     readonly antropometria: ServicioAntropometria,
-    readonly alertasAlimentarias: ServicioAlertasAlimentarias,
     readonly laboratorios: ServicioLaboratorios,
   ) {}
 }

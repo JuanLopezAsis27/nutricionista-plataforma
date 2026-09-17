@@ -103,28 +103,6 @@ describe("normalizarFicha", () => {
     expect(ficha.camposPersonalizados).toEqual([]);
   });
 
-  it("descarta alertas con tipo desconocido y repone la severidad", () => {
-    const ficha = normalizarFicha(
-      {
-        alertas: [
-          { tipo: "ALERGIA", descripcion: "Maní", severidad: "inventada" },
-          { tipo: "OTRA_COSA", descripcion: "Gluten", severidad: "LEVE" },
-          { tipo: "INTOLERANCIA", descripcion: "  ", severidad: "LEVE" },
-        ],
-      },
-      [],
-    );
-
-    expect(ficha.alertas).toEqual([
-      {
-        tipo: "ALERGIA",
-        descripcion: "Maní",
-        severidad: "MODERADA",
-        notas: null,
-      },
-    ]);
-  });
-
   it("descarta la antropometría sin peso", () => {
     // Sin peso no hay medición: la entidad lo exige y no calcularía nada.
     const ficha = normalizarFicha(
@@ -227,7 +205,6 @@ describe("normalizarFicha", () => {
     const ficha = normalizarFicha({}, PEDIDOS);
 
     expect(ficha.paciente.nombre).toBeNull();
-    expect(ficha.alertas).toEqual([]);
     expect(ficha.antropometria).toBeNull();
     expect(ficha.laboratorios).toEqual([]);
     expect(ficha.camposPersonalizados).toEqual([]);

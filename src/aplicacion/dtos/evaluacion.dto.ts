@@ -1,8 +1,4 @@
 import { z } from "zod";
-import {
-  TIPOS_ALERTA_ALIMENTARIA,
-  SEVERIDADES_ALERTA,
-} from "@/dominio/entidades/AlertaAlimentaria";
 import { NIVELES_ACTIVIDAD } from "@/dominio/servicios/composicionCorporal";
 import { PROTOCOLOS_COMPOSICION } from "@/dominio/entidades/Antropometria";
 import { CAMPOS_PLANTILLA } from "@/dominio/entidades/PlantillaAntropometrica";
@@ -572,43 +568,6 @@ export interface PlantillaAntropometricaDto {
   alcance: AlcancePlantilla;
   creadoEn: Date;
 }
-
-// --- Alertas alimentarias -----------------------------------------------------
-
-export const registrarAlertaAlimentariaDto = z.object({
-  pacienteId: z.string().min(1),
-  tipo: z.enum(TIPOS_ALERTA_ALIMENTARIA),
-  descripcion: z.string().min(1, "Indicá el alimento o condición").max(200),
-  severidad: z.enum(SEVERIDADES_ALERTA).optional(),
-  notas: z.string().max(1000).optional().nullable(),
-});
-export type RegistrarAlertaAlimentariaDto = z.infer<
-  typeof registrarAlertaAlimentariaDto
->;
-
-export const actualizarAlertaAlimentariaDto = z.object({
-  id: z.string().min(1),
-  tipo: z.enum(TIPOS_ALERTA_ALIMENTARIA).optional(),
-  descripcion: z.string().min(1).max(200).optional(),
-  severidad: z.enum(SEVERIDADES_ALERTA).optional(),
-  notas: z.string().max(1000).optional().nullable(),
-});
-export type ActualizarAlertaAlimentariaDto = z.infer<
-  typeof actualizarAlertaAlimentariaDto
->;
-
-export const alertaAlimentariaSalidaDto = z.object({
-  id: z.string(),
-  pacienteId: z.string(),
-  tipo: z.enum(TIPOS_ALERTA_ALIMENTARIA),
-  descripcion: z.string(),
-  severidad: z.enum(SEVERIDADES_ALERTA),
-  notas: z.string().nullable(),
-  creadoEn: z.date(),
-});
-export type AlertaAlimentariaSalidaDto = z.infer<
-  typeof alertaAlimentariaSalidaDto
->;
 
 // --- Laboratorios ---------------------------------------------------------------
 

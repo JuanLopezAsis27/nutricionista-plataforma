@@ -2,7 +2,6 @@ import type { IHistoriaClinicaRepositorio } from "@/dominio/repositorios/IHistor
 import type { IAntropometriaRepositorio } from "@/dominio/repositorios/IAntropometriaRepositorio";
 import type { IObjetivoComposicionRepositorio } from "@/dominio/repositorios/IObjetivoComposicionRepositorio";
 import type { IPlantillaAntropometricaRepositorio } from "@/dominio/repositorios/IPlantillaAntropometricaRepositorio";
-import type { IAlertaAlimentariaRepositorio } from "@/dominio/repositorios/IAlertaAlimentariaRepositorio";
 import type { ILaboratorioRepositorio } from "@/dominio/repositorios/ILaboratorioRepositorio";
 import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
@@ -40,10 +39,6 @@ import { EliminarPlantillaAntropometrica } from "@/aplicacion/casos-de-uso/evalu
 import { ObtenerPlantillasAntropometricas } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerPlantillasAntropometricas";
 import { InterpretarMediciones } from "@/aplicacion/casos-de-uso/evaluacion/InterpretarMediciones";
 import { ImportarMediciones } from "@/aplicacion/casos-de-uso/evaluacion/ImportarMediciones";
-import { RegistrarAlertaAlimentaria } from "@/aplicacion/casos-de-uso/evaluacion/RegistrarAlertaAlimentaria";
-import { ActualizarAlertaAlimentaria } from "@/aplicacion/casos-de-uso/evaluacion/ActualizarAlertaAlimentaria";
-import { EliminarAlertaAlimentaria } from "@/aplicacion/casos-de-uso/evaluacion/EliminarAlertaAlimentaria";
-import { ObtenerAlertasAlimentarias } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerAlertasAlimentarias";
 import { RegistrarLaboratorio } from "@/aplicacion/casos-de-uso/evaluacion/RegistrarLaboratorio";
 import { ActualizarLaboratorio } from "@/aplicacion/casos-de-uso/evaluacion/ActualizarLaboratorio";
 import { EliminarLaboratorio } from "@/aplicacion/casos-de-uso/evaluacion/EliminarLaboratorio";
@@ -52,7 +47,6 @@ import { ServicioEvaluacion } from "@/aplicacion/servicios/ServicioEvaluacion";
 import { ServicioHistoriaClinica } from "@/aplicacion/servicios/evaluacion/ServicioHistoriaClinica";
 import { ServicioEvoluciones } from "@/aplicacion/servicios/evaluacion/ServicioEvoluciones";
 import { ServicioAntropometria } from "@/aplicacion/servicios/evaluacion/ServicioAntropometria";
-import { ServicioAlertasAlimentarias } from "@/aplicacion/servicios/evaluacion/ServicioAlertasAlimentarias";
 import { ServicioLaboratorios } from "@/aplicacion/servicios/evaluacion/ServicioLaboratorios";
 
 /** Arma el servicio de Evaluación Integral con sus casos de uso. */
@@ -61,7 +55,6 @@ export function crearServicioEvaluacion(deps: {
   antropometrias: IAntropometriaRepositorio;
   objetivosComposicion: IObjetivoComposicionRepositorio;
   plantillasAntropometricas: IPlantillaAntropometricaRepositorio;
-  alertas: IAlertaAlimentariaRepositorio;
   laboratorios: ILaboratorioRepositorio;
   archivos: IArchivoRepositorio;
   pacientes: IPacienteRepositorio;
@@ -122,12 +115,6 @@ export function crearServicioEvaluacion(deps: {
         deps.pacientes,
       ),
       new ImportarMediciones(deps.antropometrias, deps.pacientes),
-    ),
-    new ServicioAlertasAlimentarias(
-      new RegistrarAlertaAlimentaria(deps.alertas, deps.pacientes),
-      new ActualizarAlertaAlimentaria(deps.alertas),
-      new EliminarAlertaAlimentaria(deps.alertas),
-      new ObtenerAlertasAlimentarias(deps.alertas, deps.pacientes),
     ),
     new ServicioLaboratorios(
       new RegistrarLaboratorio(deps.laboratorios, deps.pacientes),
