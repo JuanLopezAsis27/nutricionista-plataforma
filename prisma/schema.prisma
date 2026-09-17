@@ -73,18 +73,6 @@ enum EstadoMensajeWhatsapp {
   FALLIDO
 }
 
-enum TipoAlertaAlimentaria {
-  ALERGIA
-  INTOLERANCIA
-  RESTRICCION
-}
-
-enum SeveridadAlerta {
-  LEVE
-  MODERADA
-  SEVERA
-}
-
 enum CalidadSueno {
   MALA
   REGULAR
@@ -321,7 +309,6 @@ model Nutricionista {
   camposEvolucion             CampoEvolucion[]
   conversacionesIA            ConversacionIA[]
   mensajesIA                  MensajeIA[]
-  alertasAlimentarias         AlertaAlimentaria[]
   laboratorios                Laboratorio[]
   antropometrias              Antropometria[]
   objetivosComposicion        ObjetivoComposicion[]
@@ -469,7 +456,6 @@ model Paciente {
   antropometrias          Antropometria[]
   objetivosComposicion    ObjetivoComposicion[]
   laboratorios            Laboratorio[]
-  alertasAlimentarias     AlertaAlimentaria[]
   archivos                Archivo[]
   registrosDiarios        RegistroDiario[]
   asignacionesPlan        AsignacionPlan[]
@@ -687,6 +673,7 @@ model Turno {
   recordatoriosWhatsapp RecordatorioWhatsapp[]
   grabaciones           GrabacionConsulta[]
   resumen               ResumenConsulta?
+  sincronizaciones      SincronizacionTurno[]
   paciente              Paciente               @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
 
   // La regla de no solapamiento se valida en el caso de uso (ignorando los
@@ -1038,10 +1025,12 @@ model Archivo {
   perfilDe          Usuario[]                  @relation("FotoDePerfil")
   nutricionista     Nutricionista              @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
-  @@index([nutricionistaId, pacienteId])
   @@index([nutricionistaId, laboratorioId])
   @@index([nutricionistaId, recetaId])
   @@index([nutricionistaId, planId])
+  // Sirve también para "los archivos de este paciente": (nutricionistaId,
+  // pacienteId) es su prefijo, así que un índice aparte por esas dos columnas
+  // era redundante (se quitó en la migración 68).
   @@index([nutricionistaId, pacienteId, fechaProgreso])
   @@map("archivos")
 }
@@ -1284,7 +1273,9 @@ model HistoriaClinica {
   habitos                String?
   /// Alergias, intolerancias y restricciones alimentarias, en texto libre
   /// (migración 67). Antes era la tabla `alertas_alimentarias`, con tipo y
-  /// severidad por fila: se escribe en la consulta como una frase suelta.
+  /// severidad por fila: se escribe en la consulta como una frase suelta. La
+  /// migración 68 volcó acá las filas que quedaban y quitó la tabla: es la
+  /// única fuente para el encabezado de la ficha y para la IA.
   alergiasIntolerancias  String?
   /// Antes "contexto" — ver migración 67: es el cajón de sastre de la ficha,
   /// donde va todo lo que el documento trae y no entra en ningún otro campo.
@@ -1363,8 +1354,9 @@ model Evolucion {
   paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
+  /// El único índice por (paciente, fecha): el `@@index` gemelo que había al
+  /// lado era idéntico a este y solo duplicaba el costo de escribir.
   @@unique([pacienteId, fecha])
-  @@index([pacienteId, fecha])
   @@map("evoluciones")
 }
 
@@ -1388,26 +1380,6 @@ model CampoEvolucion {
   @@unique([nutricionistaId, clave])
   @@index([nutricionistaId])
   @@map("campos_evolucion")
-}
-
-/// Alergia, intolerancia o restricción alimentaria del paciente.
-/// Se muestran como alertas destacadas en toda la ficha.
-model AlertaAlimentaria {
-  id              String                @id @default(uuid(4))
-  nutricionistaId String
-  pacienteId      String
-  tipo            TipoAlertaAlimentaria
-  descripcion     String // "Lactosa", "Maní", "Celiaquía"…
-  severidad       SeveridadAlerta       @default(MODERADA)
-  notas           String?
-  creadoEn        DateTime              @default(now())
-  actualizadoEn   DateTime              @updatedAt
-
-  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
-  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
-
-  @@index([nutricionistaId, pacienteId])
-  @@map("alertas_alimentarias")
 }
 
 /// Estudio de laboratorio con adjuntos (vía Archivo.laboratorioId).
@@ -1985,9 +1957,9 @@ model PlanSemanal {
 
   @@unique([nutricionistaId, id])
   /// Mismo motivo que en los planes: el nombre es lo único que se ve al elegir
-  /// uno para asignar, y dos llamados igual son indistinguibles ahí.
+  /// uno para asignar, y dos llamados igual son indistinguibles ahí. El índice
+  /// que crea sirve también para listar por nombre.
   @@unique([nutricionistaId, nombre])
-  @@index([nutricionistaId, nombre])
   @@map("planes_semanales")
 }
 
@@ -2326,7 +2298,6 @@ model CuentaConectada {
 }
 
 /// Correspondencia entre un turno y su evento en el calendario externo.
-/// `turnoId` no lleva FK (feature futura, se evita acoplar el modelo Turno).
 model SincronizacionTurno {
   id              String   @id @default(uuid(4))
   nutricionistaId String
@@ -2336,6 +2307,11 @@ model SincronizacionTurno {
   creadoEn        DateTime @default(now())
 
   cuenta        CuentaConectada @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
+  /// FK real desde la migración 68. Antes `turnoId` era texto suelto y, al
+  /// borrar un turno —o un paciente, que arrastra sus turnos—, la fila quedaba
+  /// huérfana para siempre. CASCADE es seguro: `EliminarTurno` borra el evento
+  /// de Google ANTES que la fila del turno, así que el id del evento ya se usó.
+  turno         Turno           @relation(fields: [turnoId], references: [id], onDelete: Cascade)
   nutricionista Nutricionista   @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@unique([cuentaId, turnoId])

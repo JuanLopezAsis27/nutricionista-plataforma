@@ -3,7 +3,7 @@ import type { IObjetivoRepositorio } from "@/dominio/repositorios/IObjetivoRepos
 import type { IPlanRepositorio } from "@/dominio/repositorios/IPlanRepositorio";
 import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositorio";
-import type { IAlertaAlimentariaRepositorio } from "@/dominio/repositorios/IAlertaAlimentariaRepositorio";
+import type { IHistoriaClinicaRepositorio } from "@/dominio/repositorios/IHistoriaClinicaRepositorio";
 import type { IAxiomaRepositorio } from "@/dominio/repositorios/IAxiomaRepositorio";
 import type { IHistorialIARepositorio } from "@/dominio/repositorios/IHistorialIARepositorio";
 import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
@@ -41,7 +41,8 @@ export function crearServicioIA(deps: {
   planes: IPlanRepositorio & IAsignacionPlanRepositorio;
   recetas: IRecetaRepositorio;
   turnos: ITurnoRepositorio;
-  alertas: IAlertaAlimentariaRepositorio;
+  /** Las alergias del paciente viven en su historia clínica (texto libre). */
+  historias: IHistoriaClinicaRepositorio;
   axiomas: IAxiomaRepositorio;
   historial: IHistorialIARepositorio;
   /** Traduce el archivoId de la foto a su clave en el bucket. */
@@ -63,7 +64,7 @@ export function crearServicioIA(deps: {
       deps.objetivos,
       deps.planes,
       deps.recetas,
-      deps.alertas,
+      deps.historias,
       deps.axiomas,
       deps.asistente,
       deps.conversaciones,
@@ -84,7 +85,7 @@ export function crearServicioIA(deps: {
       deps.recetas,
       deps.turnos,
       deps.objetivos,
-      deps.alertas,
+      deps.historias,
       deps.asistenteAnalitico,
       deps.reloj,
       deps.conversaciones,

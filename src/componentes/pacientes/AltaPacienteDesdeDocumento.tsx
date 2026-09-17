@@ -85,8 +85,8 @@ const CAMPOS_HISTORIA = [
  * ficha escrita, así que un alta automática tendría que inventarlos—, y además
  * lo que sale de un modelo entra a la historia clínica de una persona real.
  *
- * Lo que el documento traiga además del paciente (historia clínica, alertas
- * alimentarias, medición inicial y laboratorios) se muestra para revisar y se
+ * Lo que el documento traiga además del paciente (historia clínica —con las
+ * alergias—, medición inicial y laboratorios) se muestra para revisar y se
  * puede descartar por separado antes de guardar.
  */
 export function AltaPacienteDesdeDocumento({
@@ -102,9 +102,6 @@ export function AltaPacienteDesdeDocumento({
   const [ficha, setFicha] = useState<FichaPacienteSugeridaDto | null>(null);
   const [conservarHistoria, setConservarHistoria] = useState(true);
   const [conservarMedicion, setConservarMedicion] = useState(true);
-  const [alertasDescartadas, setAlertasDescartadas] = useState<Set<number>>(
-    new Set(),
-  );
   const [labsDescartados, setLabsDescartados] = useState<Set<number>>(
     new Set(),
   );
@@ -151,7 +148,6 @@ export function AltaPacienteDesdeDocumento({
           });
           setConservarHistoria(true);
           setConservarMedicion(true);
-          setAlertasDescartadas(new Set());
           setLabsDescartados(new Set());
         },
       },
@@ -212,9 +208,6 @@ export function AltaPacienteDesdeDocumento({
             : datos.establecimientoHabitualId,
         notas: datos.notas?.trim() ? datos.notas : null,
         historiaClinica: historia,
-        alertas: ficha.alertas.filter(
-          (_, indice) => !alertasDescartadas.has(indice),
-        ),
         antropometria: conservarMedicion ? ficha.antropometria : null,
         laboratorios: ficha.laboratorios.filter(
           (_, indice) => !labsDescartados.has(indice),
@@ -474,18 +467,6 @@ export function AltaPacienteDesdeDocumento({
               ))}
             </ul>
           </SeccionRevisable>
-        )}
-
-        {ficha.alertas.length > 0 && (
-          <ListaRevisable
-            titulo="Alertas alimentarias"
-            elementos={ficha.alertas.map(
-              (alerta) =>
-                `${alerta.tipo} · ${alerta.descripcion} (${alerta.severidad})`,
-            )}
-            descartados={alertasDescartadas}
-            onCambiar={setAlertasDescartadas}
-          />
         )}
 
         {ficha.antropometria && (

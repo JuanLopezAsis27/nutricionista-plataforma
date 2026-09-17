@@ -10,12 +10,13 @@ import {
   mockRecetaRepositorio,
   mockTurnoRepositorio,
   mockObjetivoRepositorio,
-  mockAlertaAlimentariaRepositorio,
+  mockHistoriaClinicaRepositorio,
   mockAsistenteAnalitico,
   mockConversacionIARepositorio,
   mockReloj,
   pacienteEjemplo,
   turnoEjemplo,
+  historiaClinicaEjemplo,
 } from "../_ayudas-test";
 
 const AHORA = new Date("2026-09-01T14:00:00Z");
@@ -27,6 +28,7 @@ function crear(
     pacientes?: Parameters<typeof mockPacienteRepositorio>[0];
     turnos?: Parameters<typeof mockTurnoRepositorio>[0];
     asignaciones?: Parameters<typeof mockAsignacionPlanRepositorio>[0];
+    historias?: Parameters<typeof mockHistoriaClinicaRepositorio>[0];
     conversaciones?: Parameters<typeof mockConversacionIARepositorio>[0];
     responder?: (
       m: TurnoAsistente[],
@@ -46,7 +48,7 @@ function crear(
     mockRecetaRepositorio(),
     mockTurnoRepositorio(overrides.turnos),
     mockObjetivoRepositorio(),
-    mockAlertaAlimentariaRepositorio(),
+    mockHistoriaClinicaRepositorio(overrides.historias),
     mockAsistenteAnalitico({ responder }),
     mockReloj(AHORA),
     conversaciones,
@@ -231,5 +233,32 @@ describe("AnalizarConAsistente", () => {
 
     expect(r.respuesta).toContain("Avena con fruta");
     expect(r.respuesta).toContain("Tomar 2 L de agua");
+  });
+
+  it("datos_de_paciente toma las restricciones del texto de alergias de la historia clínica", async () => {
+    const { uc } = crear({
+      pacientes: {
+        obtenerPorId: vi.fn(async () => pacienteEjemplo({}, "pac-1")),
+      },
+      historias: {
+        obtenerPorPaciente: vi.fn(async () =>
+          historiaClinicaEjemplo({
+            alergiasIntolerancias: "Celíaca; no tolera lácteos",
+          }),
+        ),
+      },
+      responder: async (_m, herramientas) => {
+        const tool = herramientas.find(
+          (h) => h.nombre === "datos_de_paciente",
+        )!;
+        return tool.ejecutar({ pacienteId: "pac-1" });
+      },
+    });
+
+    const r = await uc.ejecutar({ pregunta: "¿qué no puede comer Ana?" });
+
+    expect(JSON.parse(r.respuesta).restricciones).toEqual([
+      "Celíaca; no tolera lácteos",
+    ]);
   });
 });

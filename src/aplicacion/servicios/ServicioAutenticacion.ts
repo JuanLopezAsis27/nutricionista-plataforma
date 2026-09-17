@@ -3,6 +3,7 @@ import type { RestablecerPassword } from "@/aplicacion/casos-de-uso/autenticacio
 import type { EmitirTokenRefresco } from "@/aplicacion/casos-de-uso/autenticacion/EmitirTokenRefresco";
 import type { RenovarSesion } from "@/aplicacion/casos-de-uso/autenticacion/RenovarSesion";
 import type { RevocarSesionesPersistentes } from "@/aplicacion/casos-de-uso/autenticacion/RevocarSesionesPersistentes";
+import type { LimpiarSesionesCaducadas } from "@/aplicacion/casos-de-uso/autenticacion/LimpiarSesionesCaducadas";
 import type { RolUsuario } from "@/dominio/entidades/Usuario";
 import type {
   SolicitarRecuperacionDto,
@@ -34,6 +35,7 @@ export class ServicioAutenticacion {
     private readonly emitirRefrescoUC: EmitirTokenRefresco,
     private readonly renovarUC: RenovarSesion,
     private readonly revocarUC: RevocarSesionesPersistentes,
+    private readonly limpiarUC: LimpiarSesionesCaducadas,
   ) {}
 
   /** Siempre resuelve OK aunque el email no exista (no revela cuentas). */
@@ -114,5 +116,10 @@ export class ServicioAutenticacion {
   /** Echa a TODOS los dispositivos (cambio de contraseña, baja de cuenta). */
   async cerrarSesionesDeUsuario(usuarioId: string): Promise<void> {
     await this.revocarUC.ejecutar({ usuarioId });
+  }
+
+  /** Borra los tokens de refresco que ya no sirven (lo corre el worker). */
+  async limpiarSesionesCaducadas(): Promise<number> {
+    return this.limpiarUC.ejecutar();
   }
 }

@@ -42,7 +42,7 @@ devuelve vacío y el modelo no tendría nada que leer.
 prompt**. Es la pieza de la que depende toda la extracción, y por qué:
 OpenRouter no acepta `response_format` en varios modelos, así que el formato se
 pide por prompt. Antes se listaban solo las claves de PRIMER NIVEL
-(«paciente, historiaClinica, alertas, antropometria…»), sin decirle nunca al
+(«paciente, historiaClinica, antropometria…»), sin decirle nunca al
 modelo qué campos van adentro de cada una. El modelo inventaba los nombres
 internos, `normalizarFicha` —que lee claves exactas— los descartaba, y la ficha
 volvía medio vacía **sin un solo error a la vista**.
@@ -88,20 +88,22 @@ le da urticaria», donde el matiz está en las palabras y no en cuál de tres
 casilleros se eligió — el mismo motivo por el que los campos de la evolución
 son texto y no números.
 
-Lo que **no** cambió, a propósito:
+En la migración 67 la tabla `alertas_alimentarias` se dejó viva, y eso dejó
+**dos fuentes** para el mismo dato: los badges del encabezado y la IA leían la
+tabla, pero las alergias nuevas se cargaban como texto. Una alergia escrita en
+la historia no le llegaba al asistente, y una fila vieja ya no se podía editar
+ni borrar desde ninguna pantalla.
 
-- La tabla `alertas_alimentarias` sigue existiendo con sus filas. Es un
-  registro clínico ya escrito y no se borra por un cambio de formulario.
-- `BadgesAlertas` las sigue mostrando **siempre** en el encabezado de la ficha,
-  que es donde no pueden pasarse por alto, y las restricciones que la app le
-  pasa a la IA (`PreguntarAlAsistente`, `AnalizarConAsistente`) salen de ahí.
-- El alta desde una ficha sigue extrayéndolas fila por fila. El prompt las pide
-  ahora **dos veces** —en `alergiasIntolerancias` y en `alertas`—: el texto es
-  lo que el profesional lee y edita, las filas son lo que alimenta los badges.
+La **migración 68** cerró eso. Hoy el texto es la única fuente:
 
-El efecto secundario a tener presente: sin `GestionAlertas` montado en ninguna
-pantalla, una fila de `alertas_alimentarias` ya no se puede editar ni borrar
-desde la app.
+- Las filas que quedaban se **volcaron** al texto, una línea por alergia
+  («Alergia: Maní (severidad severa)»), salvo las que el texto ya nombraba. Si
+  el paciente no tenía historia, se le creó una con ese campo.
+- `AlergiasPaciente` muestra el texto **siempre** en el encabezado de la ficha,
+  que es donde no puede pasarse por alto.
+- La IA (`PreguntarAlAsistente`, `AnalizarConAsistente`) recibe el texto entero
+  como restricción, vía `HistoriaClinica.restriccionesAlimentarias`.
+- El alta desde una ficha las pide una sola vez, en `alergiasIntolerancias`.
 
 ### Información general: el cajón de sastre
 
@@ -288,7 +290,7 @@ consultorio es una historia con contenido, y antes se habría rechazado.
    personalizados del consultorio para que también los busque. **No persiste
    nada.**
 3. El formulario queda precargado con lo que se encontró: datos del paciente,
-   historia clínica, alertas alimentarias, medición inicial y laboratorios. Cada
+   historia clínica (con las alergias), medición inicial y laboratorios. Cada
    bloque se puede descartar antes de guardar.
 4. `CrearPacienteDesdeFicha` da de alta al paciente con su cuenta y crea los
    asociados.
@@ -367,6 +369,11 @@ Migración **67** (`alergias_y_informacion_general`):
 `historias_clinicas.contexto` → `informacionGeneral` (renombre, conserva el
 texto) y `evoluciones.informacionGeneral` (columna nueva). `alertas_alimentarias`
 queda intacta.
+
+Migración **68** (`alergias_solo_texto_e_higiene_de_datos`): vuelca las filas
+de `alertas_alimentarias` en `alergiasIntolerancias` (sin repetir las que el
+texto ya nombraba; crea la historia si el paciente no tenía) y borra la tabla y
+sus enums.
 
 ## El modelo configurado es el techo
 

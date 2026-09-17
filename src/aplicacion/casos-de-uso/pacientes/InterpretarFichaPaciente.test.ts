@@ -24,7 +24,6 @@ const FICHA_VACIA: FichaPacienteSugerida = {
   },
   historiaClinica: {},
   camposPersonalizados: [],
-  alertas: [],
   antropometria: null,
   laboratorios: [],
 };

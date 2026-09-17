@@ -1,8 +1,4 @@
 import type { EstadoTurno } from "@/dominio/entidades/Turno";
-import type {
-  TipoAlertaAlimentaria,
-  SeveridadAlerta,
-} from "@/dominio/entidades/AlertaAlimentaria";
 
 /** Utilidades de formato y etiquetas legibles, en español (es-AR). */
 
@@ -114,18 +110,6 @@ export const ETIQUETAS_ESTADO_TURNO: Record<EstadoTurno, string> = {
   CONFIRMADO: "Confirmado",
   CANCELADO: "Cancelado",
   COMPLETADO: "Completado",
-};
-
-export const ETIQUETAS_TIPO_ALERTA: Record<TipoAlertaAlimentaria, string> = {
-  ALERGIA: "Alergia",
-  INTOLERANCIA: "Intolerancia",
-  RESTRICCION: "Restricción",
-};
-
-export const ETIQUETAS_SEVERIDAD: Record<SeveridadAlerta, string> = {
-  LEVE: "Leve",
-  MODERADA: "Moderada",
-  SEVERA: "Severa",
 };
 
 const formateadorNumero = new Intl.NumberFormat("es-AR", {

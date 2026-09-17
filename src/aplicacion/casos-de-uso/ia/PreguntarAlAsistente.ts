@@ -2,7 +2,7 @@ import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepos
 import type { IObjetivoRepositorio } from "@/dominio/repositorios/IObjetivoRepositorio";
 import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositorio";
-import type { IAlertaAlimentariaRepositorio } from "@/dominio/repositorios/IAlertaAlimentariaRepositorio";
+import type { IHistoriaClinicaRepositorio } from "@/dominio/repositorios/IHistoriaClinicaRepositorio";
 import type { IAxiomaRepositorio } from "@/dominio/repositorios/IAxiomaRepositorio";
 import type { IConversacionIARepositorio } from "@/dominio/repositorios/IConversacionIARepositorio";
 import type { IPerfilDeportivoRepositorio } from "@/dominio/repositorios/IPerfilDeportivoRepositorio";
@@ -62,7 +62,7 @@ export class PreguntarAlAsistente {
     private readonly objetivos: IObjetivoRepositorio,
     private readonly planes: IAsignacionPlanRepositorio,
     private readonly recetas: IRecetaRepositorio,
-    private readonly alertas: IAlertaAlimentariaRepositorio,
+    private readonly historias: IHistoriaClinicaRepositorio,
     private readonly axiomas: IAxiomaRepositorio,
     private readonly asistente: IAsistenteNutricional,
     private readonly conversaciones: IConversacionIARepositorio,
@@ -93,10 +93,10 @@ export class PreguntarAlAsistente {
       throw new ErrorPacienteNoEncontrado(pacienteId);
     }
 
-    const [objetivos, planActivo, alertas, axiomas] = await Promise.all([
+    const [objetivos, planActivo, historia, axiomas] = await Promise.all([
       this.objetivos.listarPorPaciente(pacienteId),
       this.planes.obtenerPlanActivoDePaciente(pacienteId),
-      this.alertas.listarPorPaciente(pacienteId),
+      this.historias.obtenerPorPaciente(pacienteId),
       this.axiomas.listarActivos(),
     ]);
 
@@ -140,10 +140,7 @@ export class PreguntarAlAsistente {
           .filter((o) => o.estado === "EN_CURSO")
           .map((o) => o.titulo),
         tienePlan: planActivo != null,
-        restricciones: alertas.map((a) => {
-          const p = a.aPrimitivos();
-          return `${p.tipo}: ${p.descripcion} (severidad ${p.severidad})`;
-        }),
+        restricciones: historia?.restriccionesAlimentarias ?? [],
         recomendacionesNutricionista: axiomas.map((a) => a.aPrimitivos().texto),
       },
       this.construirHerramientas(pacienteId),

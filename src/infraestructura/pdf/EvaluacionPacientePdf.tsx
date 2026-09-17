@@ -8,19 +8,14 @@ import {
 } from "@react-pdf/renderer";
 import type {
   HistoriaClinicaSalidaDto,
-  AlertaAlimentariaSalidaDto,
   LaboratorioSalidaDto,
 } from "@/aplicacion/dtos/evaluacion.dto";
 import type { PacienteSalidaDto } from "@/aplicacion/dtos/paciente.dto";
 import type { ConfiguracionSalidaDto } from "@/aplicacion/dtos/configuracion.dto";
-import type {
-  TipoAlertaAlimentaria,
-  SeveridadAlerta,
-} from "@/dominio/entidades/AlertaAlimentaria";
 
 /**
- * Documento PDF de la Evaluación Integral de un paciente: historia clínica,
- * alertas alimentarias (intolerancias/alergias/restricciones) y laboratorios.
+ * Documento PDF de la Evaluación Integral de un paciente: historia clínica
+ * (alergias e intolerancias incluidas) y laboratorios.
  *
  * Exclusivo del nutricionista — es la misma barrera que ya tiene el router de
  * Evaluación (`miComposicion` es la ÚNICA parte que el portal del paciente
@@ -45,17 +40,6 @@ const formateadorFecha = new Intl.DateTimeFormat("es-AR", {
 function formatearFecha(fecha: Date | string | null | undefined): string {
   return fecha ? formateadorFecha.format(new Date(fecha)) : "—";
 }
-
-const ETIQUETAS_TIPO_ALERTA: Record<TipoAlertaAlimentaria, string> = {
-  ALERGIA: "Alergia",
-  INTOLERANCIA: "Intolerancia",
-  RESTRICCION: "Restricción",
-};
-const ETIQUETAS_SEVERIDAD: Record<SeveridadAlerta, string> = {
-  LEVE: "Leve",
-  MODERADA: "Moderada",
-  SEVERA: "Severa",
-};
 
 const estilos = StyleSheet.create({
   pagina: {
@@ -136,7 +120,6 @@ const estilos = StyleSheet.create({
 interface Props {
   paciente: PacienteSalidaDto;
   historiaClinica: HistoriaClinicaSalidaDto | null;
-  alertas: AlertaAlimentariaSalidaDto[];
   laboratorios: LaboratorioSalidaDto[];
   config?: ConfiguracionSalidaDto | null;
 }
@@ -168,7 +151,6 @@ export async function renderizarEvaluacionPdf(props: Props): Promise<Buffer> {
 function EvaluacionPacientePdf({
   paciente,
   historiaClinica,
-  alertas,
   laboratorios,
   config,
 }: Props) {
@@ -212,34 +194,6 @@ function EvaluacionPacientePdf({
           {paciente.fechaNacimiento &&
             ` · Nac. ${formatearFecha(paciente.fechaNacimiento)}`}
         </Text>
-
-        {/* Alertas alimentarias */}
-        <View style={estilos.seccion}>
-          <Text style={[estilos.seccionTitulo, { color }]}>
-            Alertas alimentarias
-          </Text>
-          {alertas.length === 0 ? (
-            <Text style={estilos.vacio}>
-              Sin alertas alimentarias registradas.
-            </Text>
-          ) : (
-            alertas.map((alerta) => (
-              <View key={alerta.id} style={estilos.tarjeta} wrap={false}>
-                <View style={estilos.tarjetaCabecera}>
-                  <Text style={estilos.tarjetaTitulo}>
-                    {ETIQUETAS_TIPO_ALERTA[alerta.tipo]}: {alerta.descripcion}
-                  </Text>
-                  <Text style={estilos.tarjetaMeta}>
-                    {ETIQUETAS_SEVERIDAD[alerta.severidad]}
-                  </Text>
-                </View>
-                {alerta.notas && (
-                  <Text style={estilos.tarjetaTexto}>{alerta.notas}</Text>
-                )}
-              </View>
-            ))
-          )}
-        </View>
 
         {/* Historia clínica */}
         <View style={estilos.seccion}>

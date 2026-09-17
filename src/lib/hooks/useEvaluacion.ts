@@ -7,7 +7,7 @@ import { avisarError } from "@/lib/errores";
 
 /**
  * Encapsula todas las llamadas tRPC de la Evaluación Integral
- * (historia clínica, antropometría, alertas alimentarias, laboratorios).
+ * (historia clínica, antropometría, laboratorios).
  *
  * Las queries se devuelven como referencias de hook; las mutations vienen
  * preconfiguradas con toasts e invalidación de la caché del módulo.
@@ -115,17 +115,6 @@ export function useEvaluacion() {
     ),
     eliminarPlantilla: trpc.evaluacion.eliminarPlantilla.useMutation(
       conToasts("Plantilla eliminada."),
-    ),
-    // Alertas alimentarias
-    obtenerAlertas: trpc.evaluacion.obtenerAlertas.useQuery,
-    registrarAlerta: trpc.evaluacion.registrarAlerta.useMutation(
-      conToasts("Alerta registrada."),
-    ),
-    actualizarAlerta: trpc.evaluacion.actualizarAlerta.useMutation(
-      conToasts("Alerta actualizada."),
-    ),
-    eliminarAlerta: trpc.evaluacion.eliminarAlerta.useMutation(
-      conToasts("Alerta eliminada."),
     ),
     // Laboratorios
     obtenerLaboratorios: trpc.evaluacion.obtenerLaboratorios.useQuery,

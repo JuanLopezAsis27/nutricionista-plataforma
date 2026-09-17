@@ -138,7 +138,7 @@ Reglas:
 2. No diagnostiques ni interpretes: transcribí y ordená lo que ya está escrito.
 3. Fechas SIEMPRE en formato ISO YYYY-MM-DD. Si solo hay año, o la fecha es ilegible, devolvé null. Ojo con el formato del documento: en español la fecha se escribe DÍA/MES/AÑO, así que 03/11/1985 es el 1985-11-03, no el 1985-03-11.
 4. Medidas antropométricas en sus unidades: peso en kg, tallas y perímetros en cm, pliegues en mm. Si el documento usa otra unidad, convertila. Si no hay peso, devolvé antropometria en null: sin peso no hay medición.
-5. Las alergias, intolerancias y restricciones alimentarias van DOS veces, y las dos se completan: en "alergiasIntolerancias" de la historia clínica, todas juntas y con las palabras del documento, y además una por una en "alertas" (tipo: ALERGIA, INTOLERANCIA o RESTRICCION; severidad: LEVE, MODERADA o SEVERA, y si no está indicada, MODERADA).
+5. Las alergias, intolerancias y restricciones alimentarias van todas juntas en "alergiasIntolerancias" de la historia clínica, con las palabras del documento y lo que diga sobre la reacción o desde cuándo. No las repartas en diagnósticos ni en medicación.
 6. Los laboratorios son estudios de análisis mencionados en el documento: un título corto y, en notas, los valores que figuren.
 7. El email tiene que estar escrito literalmente en el documento. NUNCA lo deduzcas del nombre.
 8. Respondé en español.
@@ -304,7 +304,7 @@ export const PROMPTS_IA: readonly DescripcionPromptIA[] = [
     audiencia:
       "Vos: la lectura precarga el alta y la revisás antes de guardar.",
     descripcion:
-      "Lee la ficha de papel de un paciente (PDF, Word o foto de una planilla escaneada) y precarga el alta: datos personales, historia clínica, alertas alimentarias, la medición inicial y los laboratorios. Las reglas largas sobre nombre/apellido y sexo están porque cada planilla los escribe distinto: si tus fichas siguen una convención propia, describírsela acá es lo que más mejora la lectura. La salida es un JSON con forma fija: cambiá el criterio, no los nombres de los campos.",
+      "Lee la ficha de papel de un paciente (PDF, Word o foto de una planilla escaneada) y precarga el alta: datos personales, historia clínica (con alergias e intolerancias), la medición inicial y los laboratorios. Las reglas largas sobre nombre/apellido y sexo están porque cada planilla los escribe distinto: si tus fichas siguen una convención propia, describírsela acá es lo que más mejora la lectura. La salida es un JSON con forma fija: cambiá el criterio, no los nombres de los campos.",
     variables: [
       {
         nombre: "medidas",

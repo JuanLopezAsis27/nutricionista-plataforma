@@ -1,5 +1,4 @@
 import type { IHistoriaClinicaRepositorio } from "@/dominio/repositorios/IHistoriaClinicaRepositorio";
-import type { IAlertaAlimentariaRepositorio } from "@/dominio/repositorios/IAlertaAlimentariaRepositorio";
 import type { IAntropometriaRepositorio } from "@/dominio/repositorios/IAntropometriaRepositorio";
 import type { ILaboratorioRepositorio } from "@/dominio/repositorios/ILaboratorioRepositorio";
 import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
@@ -9,10 +8,6 @@ import {
   type CampoPersonalizadoHistoria,
   type CamposHistoriaClinica,
 } from "@/dominio/entidades/HistoriaClinica";
-import {
-  AlertaAlimentaria,
-  type DatosNuevaAlertaAlimentaria,
-} from "@/dominio/entidades/AlertaAlimentaria";
 import {
   Antropometria,
   type DatosNuevaAntropometria,
@@ -33,7 +28,6 @@ export interface DatosPacienteDesdeFicha extends DatosNuevoPacienteConAcceso {
         camposPersonalizados?: CampoPersonalizadoHistoria[];
       })
     | null;
-  alertas?: Omit<DatosNuevaAlertaAlimentaria, "pacienteId">[];
   antropometria?: Omit<DatosNuevaAntropometria, "pacienteId"> | null;
   laboratorios?: Omit<DatosNuevoLaboratorio, "pacienteId">[];
   /** El documento que se leyó, para que quede en la ficha del paciente. */
@@ -57,18 +51,17 @@ export interface ResultadoAltaDesdeFicha {
  *
  * Es el alta normal (`CrearPaciente`, con su cuenta de acceso) más los
  * registros asociados que el documento traía y el profesional confirmó:
- * historia clínica, alertas alimentarias, la medición inicial y los
+ * historia clínica —alergias incluidas, como texto—, la medición inicial y los
  * laboratorios.
  *
  * El orden importa: primero el paciente —si eso falla, no se creó nada— y
- * después cada asociado por separado. Meterlos en el mismo `try` haría que una
- * alergia mal escrita se llevara puesta la medición y la historia.
+ * después cada asociado por separado. Meterlos en el mismo `try` haría que un
+ * laboratorio mal escrito se llevara puesta la medición y la historia.
  */
 export class CrearPacienteDesdeFicha {
   constructor(
     private readonly crearPacienteUC: CrearPaciente,
     private readonly historias: IHistoriaClinicaRepositorio,
-    private readonly alertas: IAlertaAlimentariaRepositorio,
     private readonly antropometrias: IAntropometriaRepositorio,
     private readonly laboratorios: ILaboratorioRepositorio,
     private readonly archivos: IArchivoRepositorio,
@@ -99,21 +92,6 @@ export class CrearPacienteDesdeFicha {
         HistoriaClinica.crear({ ...historia, pacienteId }, crypto.randomUUID()),
       );
     });
-
-    for (const alerta of datos.alertas ?? []) {
-      await this.intentar(
-        advertencias,
-        `la alerta «${alerta.descripcion}»`,
-        async () => {
-          await this.alertas.crear(
-            AlertaAlimentaria.crear(
-              { ...alerta, pacienteId },
-              crypto.randomUUID(),
-            ),
-          );
-        },
-      );
-    }
 
     if (datos.antropometria) {
       const medicion = datos.antropometria;

@@ -1,9 +1,5 @@
 import type { CamposHistoriaClinica } from "../entidades/HistoriaClinica";
 import type { CampoPersonalizadoHistoria } from "../entidades/HistoriaClinica";
-import type {
-  TipoAlertaAlimentaria,
-  SeveridadAlerta,
-} from "../entidades/AlertaAlimentaria";
 import type { MedidasAntropometricas } from "../entidades/Antropometria";
 import type { SexoBiologico } from "./composicionCorporal";
 
@@ -16,13 +12,6 @@ export interface DatosPacienteSugeridos {
   /** ISO `YYYY-MM-DD`. Se arma la fecha recién al guardar. */
   fechaNacimiento: string | null;
   sexo: SexoBiologico | null;
-  notas: string | null;
-}
-
-export interface AlertaAlimentariaSugerida {
-  tipo: TipoAlertaAlimentaria;
-  descripcion: string;
-  severidad: SeveridadAlerta;
   notas: string | null;
 }
 
@@ -50,7 +39,6 @@ export interface FichaPacienteSugerida {
   paciente: DatosPacienteSugeridos;
   historiaClinica: Partial<CamposHistoriaClinica>;
   camposPersonalizados: CampoPersonalizadoHistoria[];
-  alertas: AlertaAlimentariaSugerida[];
   antropometria: AntropometriaSugerida | null;
   laboratorios: LaboratorioSugerido[];
 }

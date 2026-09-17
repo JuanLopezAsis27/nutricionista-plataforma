@@ -4,7 +4,7 @@ import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignac
 import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositorio";
 import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio";
 import type { IObjetivoRepositorio } from "@/dominio/repositorios/IObjetivoRepositorio";
-import type { IAlertaAlimentariaRepositorio } from "@/dominio/repositorios/IAlertaAlimentariaRepositorio";
+import type { IHistoriaClinicaRepositorio } from "@/dominio/repositorios/IHistoriaClinicaRepositorio";
 import type { IAsistenteAnalitico } from "@/dominio/servicios/IAsistenteAnalitico";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import type { AlAvanzarIA } from "@/dominio/servicios/avanceIA";
@@ -59,7 +59,7 @@ export class AnalizarConAsistente {
     private readonly recetas: IRecetaRepositorio,
     private readonly turnos: ITurnoRepositorio,
     private readonly objetivos: IObjetivoRepositorio,
-    private readonly alertas: IAlertaAlimentariaRepositorio,
+    private readonly historias: IHistoriaClinicaRepositorio,
     private readonly asistente: IAsistenteAnalitico,
     private readonly reloj: IRelojFecha,
     private readonly conversaciones: IConversacionIARepositorio,
@@ -164,10 +164,10 @@ export class AnalizarConAsistente {
             typeof args.pacienteId === "string" ? args.pacienteId : "";
           const paciente = await this.pacientes.obtenerPorId(pacienteId);
           if (!paciente) return "No existe un paciente con ese id.";
-          const [plan, objetivos, alertas] = await Promise.all([
+          const [plan, objetivos, historia] = await Promise.all([
             this.asignaciones.obtenerPlanActivoDePaciente(pacienteId),
             this.objetivos.listarPorPaciente(pacienteId),
-            this.alertas.listarPorPaciente(pacienteId),
+            this.historias.obtenerPorPaciente(pacienteId),
           ]);
           return JSON.stringify({
             paciente: paciente.nombreCompleto,
@@ -180,10 +180,7 @@ export class AnalizarConAsistente {
                 prioridad: d.prioridad,
               };
             }),
-            restricciones: alertas.map((a) => {
-              const d = a.aPrimitivos();
-              return `${d.tipo}: ${d.descripcion} (severidad ${d.severidad})`;
-            }),
+            restricciones: historia?.restriccionesAlimentarias ?? [],
           });
         },
       },

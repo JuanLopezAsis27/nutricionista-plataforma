@@ -3,10 +3,6 @@ import { MAX_PACIENTES_POR_LOTE } from "@/aplicacion/casos-de-uso/pacientes/Envi
 import { passwordNuevaDto } from "./password";
 import { SEXOS_BIOLOGICOS } from "@/dominio/servicios/composicionCorporal";
 import {
-  TIPOS_ALERTA_ALIMENTARIA,
-  SEVERIDADES_ALERTA,
-} from "@/dominio/entidades/AlertaAlimentaria";
-import {
   campoPersonalizadoHistoriaDto,
   medidasAntropometricasDto,
 } from "./evaluacion.dto";
@@ -140,13 +136,6 @@ export type InterpretarFichaPacienteDto = z.infer<
   typeof interpretarFichaPacienteDto
 >;
 
-const alertaSugeridaDto = z.object({
-  tipo: z.enum(TIPOS_ALERTA_ALIMENTARIA),
-  descripcion: z.string().min(1).max(300),
-  severidad: z.enum(SEVERIDADES_ALERTA),
-  notas: z.string().max(1000).nullable(),
-});
-
 const laboratorioSugeridoDto = z.object({
   /** ISO `YYYY-MM-DD`, o null si el documento no la traía legible. */
   fecha: z
@@ -195,7 +184,6 @@ export const fichaPacienteSugeridaDto = z.object({
     informacionGeneral: z.string().nullable(),
   }),
   camposPersonalizados: z.array(campoPersonalizadoHistoriaDto),
-  alertas: z.array(alertaSugeridaDto),
   antropometria: antropometriaSugeridaDto.nullable(),
   laboratorios: z.array(laboratorioSugeridoDto),
 });
@@ -222,7 +210,6 @@ export const crearPacienteDesdeFichaDto = crearPacienteConAccesoDto.extend({
     })
     .optional()
     .nullable(),
-  alertas: z.array(alertaSugeridaDto).max(50).default([]),
   antropometria: antropometriaSugeridaDto.optional().nullable(),
   laboratorios: z.array(laboratorioSugeridoDto).max(50).default([]),
   /** El documento leído, para que quede archivado en la ficha del paciente. */
