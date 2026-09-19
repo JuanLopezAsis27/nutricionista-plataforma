@@ -228,7 +228,6 @@ enum ImportanciaCompetencia {
 enum TipoAlertaSeguimiento {
   SIN_REGISTRO_PESO
   SIN_ACTIVIDAD
-  PLAN_VENCIDO
   TURNO_SIN_CONFIRMAR
 }
 
@@ -348,6 +347,7 @@ model Nutricionista {
   estrategias          Estrategia[]
   historialObjetivos   HistorialObjetivo[]
   asignacionesPlan     AsignacionPlan[]
+  desasignacionesPlan  DesasignacionPlan[]
   asignacionesReceta   AsignacionReceta[]
   asignacionesMaterial AsignacionMaterial[]
   franjasPlanSemanal   FranjaPlanSemanal[]
@@ -459,6 +459,7 @@ model Paciente {
   archivos                Archivo[]
   registrosDiarios        RegistroDiario[]
   asignacionesPlan        AsignacionPlan[]
+  desasignacionesPlan     DesasignacionPlan[]
   asignacionesSemanal     AsignacionPlanSemanal[]
   asignacionesReceta      AsignacionReceta[]
   objetivos               Objetivo[]
@@ -1768,6 +1769,9 @@ model PlanNutricional {
   equivalencias     EquivalenciaPlan[]
   recomendaciones   RecomendacionPlan[]
   asignaciones      AsignacionPlan[]
+  /// Las veces que se le sacó a un paciente. Es un registro, no se lee desde
+  /// ninguna pantalla; por eso la FK es SET NULL y no CASCADE (ver migración 69).
+  desasignaciones   DesasignacionPlan[]
   /// Recetas vinculadas DIRECTAMENTE al plan, sin pasar por una franja
   /// (migración 56). Es lo único que le puede acompañar recetas a un plan PDF:
   /// ese plan no tiene franjas de las que colgarlas.
@@ -2187,41 +2191,61 @@ model AsignacionMaterial {
   @@map("asignaciones_material")
 }
 
-/// Vincula un plan a un paciente durante un período.
-/// Regla de negocio: un paciente solo puede tener un plan activo a la vez.
-/// Un plan asignado a un paciente durante un período. Es el HISTORIAL: las
-/// asignaciones no se borran, se desactivan, y sobreviven al borrado del plan
-/// (ver migración 38).
+/// Vincula un plan a un paciente (visible en su portal).
+///
+/// Es un vínculo PURO, como el de una receta o un material: sin fechas, sin
+/// estado y sin historial. Un paciente puede tener VARIOS planes asignados a
+/// la vez y ninguno reemplaza a otro; se asigna y se desasigna, nada más
+/// (migración 69).
 model AsignacionPlan {
-  id              String    @id @default(uuid(4))
+  id              String   @id @default(uuid(4))
   nutricionistaId String
-  /// Nulo si el plan se borró. La asignación queda igual: qué siguió el
-  /// paciente y cuándo es historia clínica, y no se va con el plan.
-  planId          String?
-  /// Nombre del plan al momento de asignarlo. Es una FOTO, no un cache: si el
-  /// plan se borró, es lo único que queda para decir qué se le asignó, y si se
-  /// renombró, el historial tiene que seguir diciendo cómo se llamaba entonces.
-  nombrePlan      String
+  planId          String
   pacienteId      String
-  fechaInicio     DateTime  @db.Date
-  /// Fin PLANIFICADO al asignar (opcional). No es cuándo terminó de verdad.
-  fechaFin        DateTime? @db.Date
-  /// Cuándo dejó de estar activa de verdad: al asignarse otro plan o al
-  /// finalizarlo a mano. Separado de `fechaFin` a propósito —planificar un fin
-  /// y que efectivamente termine ahí son dos cosas, y el historial necesita la
-  /// segunda—.
-  finalizadaEn    DateTime? @db.Date
-  activa          Boolean   @default(true)
-  creadoEn        DateTime  @default(now())
+  creadoEn        DateTime @default(now())
+
+  plan          PlanNutricional @relation(fields: [planId], references: [id], onDelete: Cascade)
+  paciente      Paciente        @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista   @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@unique([planId, pacienteId])
+  @@index([nutricionistaId, pacienteId])
+  @@map("asignaciones_plan")
+}
+
+/// Un plan que DEJÓ de estar asignado a un paciente: qué plan, desde cuándo y
+/// hasta cuándo lo tuvo (migración 69).
+///
+/// Es un registro append-only y **ninguna pantalla lo lee**. La asignación
+/// (`AsignacionPlan`) es el presente y sigue siendo un vínculo puro: el pasado
+/// vive acá, aparte, para no volver a meterle estado ni fechas a la tabla que
+/// contesta "¿qué planes tiene hoy?".
+///
+/// Se escribe en UNA sola operación —`desasignarDePaciente`, en la misma
+/// transacción que borra el vínculo— y no se escribe en ninguna otra: si algún
+/// día aparece otro camino para sacarle un plan a alguien, tiene que pasar por
+/// ahí o el registro queda con huecos.
+model DesasignacionPlan {
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
+  pacienteId      String
+  /// Nulo si el plan se borró DESPUÉS de esta desasignación. La fila queda: el
+  /// registro le pertenece al paciente, no al plan.
+  planId          String?
+  /// Nombre del plan al desasignarlo. Es una FOTO, no un cache: si el plan se
+  /// borró o se renombró, es lo único que queda para decir qué tenía.
+  nombrePlan      String
+  /// Cuándo se lo habían asignado (el `creadoEn` del vínculo que se cierra).
+  /// Sin esto el registro dice qué dejó de tener pero no desde cuándo lo tuvo.
+  asignadoEn      DateTime
+  desasignadoEn   DateTime
 
   plan          PlanNutricional? @relation(fields: [planId], references: [id], onDelete: SetNull)
   paciente      Paciente         @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
   nutricionista Nutricionista    @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@index([nutricionistaId, pacienteId])
-  @@index([nutricionistaId, planId])
-  @@index([nutricionistaId, activa, fechaFin])
-  @@map("asignaciones_plan")
+  @@map("desasignaciones_plan")
 }
 
 // ---------------------------------------------------------------------------

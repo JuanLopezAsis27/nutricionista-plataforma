@@ -156,7 +156,7 @@ export class AnalizarConAsistente {
       {
         nombre: "datos_de_paciente",
         descripcion:
-          "Detalle de un paciente: su plan activo (comidas y metas), sus objetivos y sus " +
+          "Detalle de un paciente: sus planes asignados (comidas y metas), sus objetivos y sus " +
           "restricciones alimentarias. Requiere el id (obtenelo con listar_pacientes).",
         esquema: CON_PACIENTE,
         ejecutar: async (args) => {
@@ -164,14 +164,14 @@ export class AnalizarConAsistente {
             typeof args.pacienteId === "string" ? args.pacienteId : "";
           const paciente = await this.pacientes.obtenerPorId(pacienteId);
           if (!paciente) return "No existe un paciente con ese id.";
-          const [plan, objetivos, historia] = await Promise.all([
-            this.asignaciones.obtenerPlanActivoDePaciente(pacienteId),
+          const [planes, objetivos, historia] = await Promise.all([
+            this.asignaciones.listarPlanesDePaciente(pacienteId),
             this.objetivos.listarPorPaciente(pacienteId),
             this.historias.obtenerPorPaciente(pacienteId),
           ]);
           return JSON.stringify({
             paciente: paciente.nombreCompleto,
-            planActivo: plan ? detallePlan(plan.aPrimitivos()) : null,
+            planesAsignados: planes.map((p) => detallePlan(p.aPrimitivos())),
             objetivos: objetivos.map((o) => {
               const d = o.aPrimitivos();
               return {

@@ -60,7 +60,6 @@ export interface CentroNotificaciones {
 const ETIQUETA_ALERTA: Record<TipoAlertaSeguimiento, string> = {
   SIN_REGISTRO_PESO: "Sin registro de peso",
   SIN_ACTIVIDAD: "Sin actividad",
-  PLAN_VENCIDO: "Plan vencido",
   TURNO_SIN_CONFIRMAR: "Turno sin confirmar",
 };
 

@@ -6,6 +6,9 @@ se renombró en la Fase 3 y hay redirects permanentes en `next.config.ts`.
 Este documento cubre lo que se sumó después: **las dos modalidades de plan**,
 **el material adjunto** y **la asignación desde la ficha del paciente**.
 
+Un paciente puede tener **varios planes asignados a la vez** y ninguno reemplaza
+a otro. Ver «Varios planes por paciente: el presente y el pasado, aparte».
+
 ## Dos modalidades, no dos variantes
 
 |                           | `APP`                    | `PDF`                        |
@@ -311,43 +314,138 @@ el plan.
 En el repositorio, `null` filtra los sueltos y `undefined` no filtra: son dos
 preguntas distintas y colapsarlas haría imposible pedir la raíz.
 
-## El historial de planes del paciente
+## Varios planes por paciente: el presente y el pasado, aparte
 
-`AsignacionPlan` siempre fue el historial —asignar desactiva la anterior en vez
-de pisarla— pero tenía dos agujeros que lo vaciaban justo cuando servía
-(migración 38):
+`AsignacionPlan` nació siendo **dos cosas a la vez**: «qué plan tiene hoy» y
+«qué planes tuvo». Por eso llevaba un período (`fechaInicio`/`fechaFin`), un fin
+real (`finalizadaEn`), un estado (`activa`) y una foto del nombre del plan
+(`nombrePlan`) para sobrevivirle al borrado. Encima de eso, un índice único
+parcial —una activa por paciente— convertía asignar en **reemplazar**.
 
-1. **La FK al plan era CASCADE**: borrar un plan borraba la historia de todos
-   los que lo habían seguido. Qué plan siguió un paciente y entre qué fechas es
-   información clínica: le pertenece al paciente, no al plan. Ahora es SET NULL
-   y la asignación queda, con `nombrePlan` —una **foto**, no un cache— para
-   decir qué se le asignó aunque el plan ya no exista o se haya renombrado.
+La migración 69 separa las dos preguntas, porque el consultorio no trabaja así:
+el paciente sigue la pauta general y, al mismo tiempo, el plan de suplementación
+y el de la semana de competencia. Ninguno rige sobre los otros y no empiezan ni
+terminan en una fecha declarada.
 
-2. **No se guardaba cuándo terminó de verdad.** `fechaFin` es el fin
-   _planificado_ al asignar y suele estar vacío; cuando el plan se reemplaza
-   antes de esa fecha —el caso normal— no había cómo decir hasta cuándo rigió.
-   Para eso está `finalizadaEn`, el fin **real**.
+**La mezcla era el problema, no el historial.** Las dos preguntas no valen lo
+mismo: «qué tiene hoy» se consulta todo el tiempo y tiene que ser barato; «qué
+tuvo» no se muestra en ninguna pantalla, pero es información clínica del
+paciente y **no se puede reconstruir después**. Así que cada una tiene su tabla.
 
-Las dos fechas conviven a propósito: planificar un fin y que efectivamente
-termine ahí son dos cosas distintas.
+La asignación pasa a ser lo mismo que ya eran `AsignacionReceta` y
+`AsignacionMaterial`: **un vínculo puro**.
 
-**La anterior se cierra con la fecha de INICIO de la nueva**, no con «hoy». El
-plan viejo rigió hasta que empezó el que lo reemplaza; si el profesional
-antedata la asignación, el historial queda sin huecos ni superposiciones. Al
-finalizar a mano (sin reemplazo) sí es hoy.
+```prisma
+model AsignacionPlan {
+  id              String   @id
+  nutricionistaId String
+  planId          String
+  pacienteId      String
+  creadoEn        DateTime @default(now())
 
-`GenerarAlertasDeSeguimiento` aprovecha `nombrePlan`: antes hacía una lectura
-por cada plan vencido para recuperar un dato que ahora viaja en la asignación.
+  @@unique([planId, pacienteId])
+}
+```
+
+Lo que se fue de la asignación, y a dónde:
+
+| Se fue                     | A dónde                                                       |
+| -------------------------- | ------------------------------------------------------------- |
+| `fechaInicio` / `fechaFin` | se fueron: un plan no empieza ni termina en una fecha declarada |
+| `activa`                   | se fue: todas lo están, porque desasignar BORRA la fila         |
+| `finalizadaEn`             | es `DesasignacionPlan.desasignadoEn`                            |
+| `nombrePlan`               | es `DesasignacionPlan.nombrePlan`, la misma foto                |
+
+Y por eso mismo **`planId` vuelve a ser NOT NULL con CASCADE**: borrar el plan
+se lleva sus vínculos, como con una receta. El historial NO se va con él —tiene
+su propia FK, con SET NULL— y ahí `nombrePlan` sigue existiendo, del lado que sí
+lo necesita.
+
+### El pasado: `DesasignacionPlan`
+
+Una fila por cada vez que un plan dejó de estar asignado a un paciente:
+
+```prisma
+model DesasignacionPlan {
+  id, nutricionistaId, pacienteId
+  planId        String?    // SET NULL: el plan se puede borrar después
+  nombrePlan    String     // foto al desasignar
+  asignadoEn    DateTime
+  desasignadoEn DateTime
+}
+```
+
+Tres decisiones que la sostienen:
+
+- **Es append-only y ninguna pantalla la lee.** Por eso el puerto no tiene
+  método para consultarla: no es un read model, es un registro. El front solo
+  asocia, desasocia y muestra lo asignado hoy —y el paciente, lo mismo—.
+- **Se escribe en UN solo lugar**, dentro de la misma transacción que borra el
+  vínculo (`PrismaRepositorioPlan.desasignarDePaciente`). Son la misma operación
+  vista de los dos lados: si el borrado anduviera sin el registro, el paciente
+  perdería el plan y nadie podría decir que alguna vez lo tuvo. Si algún día
+  aparece otro camino para sacarle un plan a alguien, tiene que pasar por ahí o
+  el registro queda con huecos.
+- **`nombrePlan` se copia al desasignar**, no se resuelve después por `planId`:
+  el plan se puede renombrar o borrar, y la fila tiene que seguir diciendo qué
+  tenía el paciente **entonces**. Es exactamente la foto que llevaba la vieja
+  `asignaciones_plan`.
+
+`asignadoEn` sale del `creadoEn` del vínculo que se cierra. No estaba en el
+pedido original, pero sin él la fila dice qué dejó de tener y no desde cuándo lo
+tuvo, que es la mitad de la pregunta.
+
+**El historial viejo se muda, no se pierde**: la migración pasa las asignaciones
+cerradas a la tabla nueva conservando el id, y `desasignadoEn` sale del fin REAL
+(`finalizadaEn`), cayendo al planificado y al `creadoEn` para las filas
+anteriores a la migración 38 que no lo tienen.
+
+**Ojo con la trampa que esto tiende.** Un registro que nadie lee es un registro
+que nadie nota cuando se rompe — le pasó al historial anterior, que tuvo dos
+agujeros hasta la migración 38 justo porque no se miraba. Si algún día se
+muestra en pantalla, lo primero es verificar que no tenga huecos; no asumir que
+está completo porque la tabla existe.
+
+**Asignar es idempotente.** La garantía dura es `UNIQUE (planId, pacienteId)` y
+el repositorio hace `upsert`: asignar dos veces el mismo plan al mismo paciente
+deja una sola fila y no falla. El formulario igual lo avisa antes —el botón se
+deshabilita— para no dejar un clic que no hace nada.
+
+**Desasignar nombra el plan.** `DesasignarPlanDePaciente` recibe `planId` y
+`pacienteId`, no solo el paciente: "sacarle el plan" dejó de significar algo
+cuando puede tener cinco.
+
+### Lo que arrastró el cambio
+
+- **Se fue la alerta PLAN_VENCIDO**, entera: era "asignación activa cuya
+  `fechaFin` ya pasó" y sin fechas nada vence. La migración borra las alertas de
+  ese tipo y saca el valor del enum `TipoAlertaSeguimiento`; dejar las
+  pendientes sería pedir renovar algo que ya no caduca.
+- **El archivo del plan se ve si el plan está asignado HOY**
+  (`PuedeVerArchivoPaciente` → `estaAsignado`), sin importar cuántos otros
+  tenga. Sigue siendo solo lo asignado: dejarle abierto el de un plan que le
+  sacaron es dejarlo siguiendo un plan que ya no es suyo.
+- **El tracking une las franjas de TODOS los planes asignados**, sin repetir.
+  "Desayuno" en dos planes es una franja que registrar, no dos: contarla doble
+  le bajaría la cobertura por tener más planes.
+- **Las metas del plan semanal** salen del PRIMER plan asignado que declare
+  macros, y su nombre viaja en `nombrePlanDeLasMetas` para que la pantalla diga
+  de dónde salieron. Ninguno rige sobre los otros, así que elegir en silencio
+  sería inventar una jerarquía.
+- **`EliminarPlan` sigue avisando** si el plan está asignado a alguien, y ahora
+  importa el doble. No es redundante con el CASCADE: la base se llevaría los
+  vínculos en silencio, varios pacientes se quedarían sin un plan que estaban
+  siguiendo y —peor— sin pasar por `desasignarDePaciente` **no quedaría registro
+  de que lo tuvieron**. Es el único camino por el que un vínculo puede morir sin
+  dejar rastro, y por eso está tapado en el caso de uso.
 
 ## Quiénes tienen un plan
 
-`/dashboard/planes/[id]` lista sus asignaciones —**activas e históricas**— con
-las fechas, y deja finalizar desde ahí. Mostrar solo las vigentes escondería que
-el plan se usó, que es justo lo que hay que saber antes de borrarlo.
-
-Es la contracara de asignar desde la ficha del plan: se decide sobre el plan, y
-obligar a entrar a cada paciente para soltarlo era el mismo viaje de ida y
-vuelta que ya se había sacado en la asignación.
+`/dashboard/planes/[id]` lista quiénes lo tienen asignado y deja desasignar
+desde ahí. Es la contracara de asignar desde la ficha del plan: se decide sobre
+el plan, y obligar a entrar a cada paciente para soltarlo era el mismo viaje de
+ida y vuelta que ya se había sacado en la asignación. Desasignar ahí le saca a
+ese paciente SOLO este plan.
 
 ## Asignar el plan desde la ficha del paciente
 
@@ -366,10 +464,12 @@ El selector de planes lista solo `esPlantilla: false` e
 `incluirArchivados: false`: una plantilla no se asigna (se clona) y un plan
 archivado ya se dio de baja.
 
-En la pestaña "Plan actual" de la ficha hay tres acciones según el estado:
-**Asignar plan** si no tiene, y **Cambiar plan** / **Finalizar plan** si tiene.
-"Cambiar" reusa el mismo diálogo: la advertencia de que el plan anterior se
-desactiva ya la trae el formulario.
+En la pestaña "Plan nutricional" de la ficha, las acciones de arriba son del
+PACIENTE y siempre suman uno más —**Crear plan nuevo**, **Subir plan** y
+**Asignar plan existente**—, y cada plan de la lista trae las suyas: **PDF** (si
+es de la app) y **Desasignar**, que actúa sobre ESE plan. No hay "Cambiar plan":
+cambiar es asignar el nuevo y, si corresponde, sacar el viejo — dos decisiones,
+no una.
 
 **Desde la ficha del PLAN se puede elegir más de un paciente.** El botón
 "Asignar a paciente" de `/dashboard/planes` abre el mismo `FormularioAsignacionPlan`,
@@ -378,8 +478,8 @@ selector MÚLTIPLE: es una tanda ("asignarle este plan a estos cinco"), y forzar
 una asignación por vez ahí sería el mismo viaje de ida y vuelta que ya se sacó
 del resto del módulo. Cada asignación es independiente en el servidor
 (`AsignarPlanAVariosPacientes` reusa `AsignarPlanAPaciente` paciente por
-paciente): uno que falle —no existe, ya no aplica— no aborta a los demás, y el
-mensaje final cuenta cuántos anduvieron y cuántos no.
+paciente): uno que falle —no existe, es una plantilla— no aborta a los demás, y
+el mensaje final cuenta cuántos anduvieron y cuántos no.
 
 Ese mismo diálogo muestra, debajo del formulario, la lista de **quiénes ya
 tienen asignado este plan** (`PacientesDelPlan`, la misma que
@@ -388,6 +488,14 @@ más pacientes, y pedirlo aparte hubiera sido otra ida y vuelta.
 
 Desde la ficha del PACIENTE, en cambio, el destino es él y nadie más: no hay
 selector múltiple ahí.
+
+## Cómo los ve el paciente
+
+«Mi plan» muestra **todos** los planes asignados, uno abajo del otro, cada uno
+con su botón de PDF: el PDF es de UN plan, no de la pantalla. La tarjeta "Tu
+plan ahora" del inicio, en cambio, junta las franjas de todos en una sola bolsa
+—qué toca comer ahora no depende de en cuál de sus planes esté escrito— y
+manda a «Mi plan» para verlos separados.
 
 ## Al tocar esto
 
@@ -416,6 +524,14 @@ selector múltiple ahí.
   que no está en la lista se DESVINCULA (no se borra — una receta tiene dueño
   propio, a diferencia de un archivo del plan).
 - `CrearPlanParaPaciente` y `AsignarPlanAVariosPacientes` reusan `CrearPlan` y
-  `AsignarPlanAPaciente` en vez de reimplementar la regla de "un plan activo
-  por paciente": si esa regla cambia, cambia en un solo lugar y los dos flujos
-  la heredan.
+  `AsignarPlanAPaciente` en vez de reimplementar la asignación: si cambia lo que
+  hay que validar antes de asignar, cambia en un solo lugar y los dos flujos lo
+  heredan.
+- La asignación es un vínculo, no una entidad con vida propia. Si mañana hace
+  falta una fecha o una nota ahí, preguntate primero si no es del PLAN o del
+  PASADO (`DesasignacionPlan`): meterle estado a `AsignacionPlan` es lo que
+  llevó a que asignar reemplazara, y se arregló una vez ya.
+- **Todo camino nuevo que le saque un plan a un paciente tiene que pasar por
+  `desasignarDePaciente`.** Es el único lugar que escribe el registro, y un
+  `deleteMany` sobre `asignaciones_plan` desde otro lado lo dejaría con huecos
+  sin que nada falle: nadie lee esa tabla, así que nadie se entera.

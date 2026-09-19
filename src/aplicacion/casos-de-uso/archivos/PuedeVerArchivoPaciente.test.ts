@@ -154,22 +154,14 @@ describe("PuedeVerArchivoPaciente", () => {
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(false);
   });
 
-  it("permite ver el PDF del plan que el paciente tiene asignado hoy", async () => {
+  it("permite ver el PDF de cualquier plan que el paciente tenga asignado", async () => {
     const archivos = mockArchivoRepositorio({
       obtenerPorId: vi.fn(async () => archivoSubidoPor("usu-nutri")),
       obtenerDueno: vi.fn(async () => ({ planId: "plan-1" })),
     });
+    // Tiene dos planes a la vez y el archivo es de uno de ellos: alcanza.
     const planes = mockAsignacionPlanRepositorio({
-      obtenerAsignacionActiva: vi.fn(async () => ({
-        id: "asig-1",
-        planId: "plan-1",
-        nombrePlan: "Plan de descenso",
-        finalizadaEn: null,
-        pacienteId: "pac-1",
-        fechaInicio: new Date("2026-07-01"),
-        fechaFin: null,
-        activa: true,
-      })),
+      estaAsignado: vi.fn(async (planId: string) => planId === "plan-1"),
     });
     const casoUso = new PuedeVerArchivoPaciente(
       archivos,
@@ -182,22 +174,13 @@ describe("PuedeVerArchivoPaciente", () => {
     expect(await casoUso.ejecutar("arc-1", solicitante)).toBe(true);
   });
 
-  it("niega el PDF de un plan que ya no es el vigente del paciente", async () => {
+  it("niega el PDF de un plan que le desasignaron", async () => {
     const archivos = mockArchivoRepositorio({
       obtenerPorId: vi.fn(async () => archivoSubidoPor("usu-nutri")),
       obtenerDueno: vi.fn(async () => ({ planId: "plan-viejo" })),
     });
     const planes = mockAsignacionPlanRepositorio({
-      obtenerAsignacionActiva: vi.fn(async () => ({
-        id: "asig-2",
-        planId: "plan-nuevo",
-        nombrePlan: "Plan nuevo",
-        finalizadaEn: null,
-        pacienteId: "pac-1",
-        fechaInicio: new Date("2026-07-01"),
-        fechaFin: null,
-        activa: true,
-      })),
+      estaAsignado: vi.fn(async (planId: string) => planId === "plan-nuevo"),
     });
     const casoUso = new PuedeVerArchivoPaciente(
       archivos,

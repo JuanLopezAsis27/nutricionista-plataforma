@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Users, CircleOff, ExternalLink } from "lucide-react";
 import type { AsignacionConPacienteDto } from "@/aplicacion/dtos/plan.dto";
 import { usePlanes } from "@/lib/hooks/usePlanes";
-import { formatearFecha } from "@/lib/formato";
 import { Badge } from "@/componentes/ui/badge";
 import { Button } from "@/componentes/ui/button";
 import {
@@ -18,36 +17,24 @@ import { Skeleton } from "@/componentes/ui/skeleton";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 
 /**
- * Quiénes tienen —o tuvieron— este plan.
+ * Quiénes tienen este plan asignado.
  *
- * Por default muestra las asignaciones históricas y no solo las vigentes: un
- * plan que se usó y se dejó de usar sigue siendo un plan usado, y esconderlo
- * haría pensar que nunca se asignó (por ejemplo al ir a borrarlo).
+ * Es lo primero que se quiere saber antes de sumar más pacientes —y antes de
+ * borrar el plan—, así que la lista va tanto en la ficha del plan como debajo
+ * del diálogo de "Asignar a paciente".
  *
- * `soloActivas` corta esa lista a las vigentes. Lo usa el diálogo de "Asignar
- * a paciente": ahí lo que importa es quién lo está siguiendo HOY —para no
- * sumarlo de nuevo—, y el historial de finalizados es ruido en esa decisión.
- *
- * Finalizar desde acá es la contracara de asignar desde la ficha del plan: se
+ * Desasignar desde acá es la contracara de asignar desde la ficha del plan: se
  * decide sobre el plan, y obligar a entrar a cada paciente para soltarlo era
- * el mismo viaje de ida y vuelta que ya se sacó en la asignación.
+ * el mismo viaje de ida y vuelta que ya se sacó en la asignación. Al paciente
+ * le saca SOLO este plan: los otros que tenga siguen asignados.
  */
-export function PacientesDelPlan({
-  planId,
-  soloActivas,
-}: {
-  planId: string;
-  soloActivas?: boolean;
-}) {
+export function PacientesDelPlan({ planId }: { planId: string }) {
   const { pacientesDelPlan, desasignar } = usePlanes();
   const consulta = pacientesDelPlan({ id: planId });
-  const [finalizar, setFinalizar] = useState<AsignacionConPacienteDto | null>(
-    null,
-  );
+  const [desasignarA, setDesasignarA] =
+    useState<AsignacionConPacienteDto | null>(null);
 
-  const todas = consulta.data ?? [];
-  const asignaciones = soloActivas ? todas.filter((a) => a.activa) : todas;
-  const activas = todas.filter((a) => a.activa);
+  const asignaciones = consulta.data ?? [];
 
   return (
     <Card>
@@ -55,10 +42,8 @@ export function PacientesDelPlan({
         <CardTitle className="flex items-center gap-2 text-base">
           <Users className="h-4 w-4 text-muted-foreground" />
           Pacientes con este plan
-          {activas.length > 0 && (
-            <Badge variant="secondary">
-              {activas.length} vigente{activas.length > 1 ? "s" : ""}
-            </Badge>
+          {asignaciones.length > 0 && (
+            <Badge variant="secondary">{asignaciones.length}</Badge>
           )}
         </CardTitle>
       </CardHeader>
@@ -67,9 +52,7 @@ export function PacientesDelPlan({
           <Skeleton className="h-20 w-full" />
         ) : asignaciones.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            {soloActivas && todas.length > 0
-              ? "Nadie lo tiene vigente ahora mismo."
-              : "Todavía no se le asignó a nadie."}
+            Todavía no se le asignó a nadie.
           </p>
         ) : (
           <ul className="divide-y">
@@ -78,36 +61,21 @@ export function PacientesDelPlan({
                 key={asignacion.id}
                 className="flex flex-wrap items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
               >
-                <div className="min-w-0">
-                  <Link
-                    href={`/dashboard/pacientes/${asignacion.pacienteId}`}
-                    className="inline-flex items-center gap-1.5 text-sm font-medium hover:text-primary"
-                  >
-                    {asignacion.pacienteNombre} {asignacion.pacienteApellido}
-                    <ExternalLink className="h-3 w-3 shrink-0" />
-                  </Link>
-                  <p className="text-xs text-muted-foreground">
-                    Desde {formatearFecha(asignacion.fechaInicio)}
-                    {!asignacion.activa &&
-                      ` · hasta ${
-                        asignacion.finalizadaEn
-                          ? formatearFecha(asignacion.finalizadaEn)
-                          : "fecha no registrada"
-                      }`}
-                  </p>
-                </div>
-                {asignacion.activa ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setFinalizar(asignacion)}
-                  >
-                    <CircleOff className="h-4 w-4" />
-                    Finalizar
-                  </Button>
-                ) : (
-                  <Badge variant="outline">Finalizado</Badge>
-                )}
+                <Link
+                  href={`/dashboard/pacientes/${asignacion.pacienteId}`}
+                  className="inline-flex min-w-0 items-center gap-1.5 text-sm font-medium hover:text-primary"
+                >
+                  {asignacion.pacienteNombre} {asignacion.pacienteApellido}
+                  <ExternalLink className="h-3 w-3 shrink-0" />
+                </Link>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDesasignarA(asignacion)}
+                >
+                  <CircleOff className="h-4 w-4" />
+                  Desasignar
+                </Button>
               </li>
             ))}
           </ul>
@@ -115,18 +83,21 @@ export function PacientesDelPlan({
       </CardContent>
 
       <ModalConfirmacion
-        abierto={finalizar !== null}
-        titulo="Finalizar plan"
-        descripcion={`¿Finalizar este plan para ${finalizar?.pacienteNombre ?? ""} ${
-          finalizar?.pacienteApellido ?? ""
-        }? Queda en su historial, pero deja de ser su plan vigente.`}
+        abierto={desasignarA !== null}
+        titulo="Desasignar plan"
+        descripcion={`¿Sacarle este plan a ${desasignarA?.pacienteNombre ?? ""} ${
+          desasignarA?.pacienteApellido ?? ""
+        }? Los otros planes que tenga siguen asignados.`}
+        // Sin esto el botón dice "Eliminar", que es justo lo que NO pasa: el
+        // plan queda en el consultorio y solo se corta el vínculo.
+        textoConfirmar="Desasignar"
         cargando={desasignar.isPending}
-        onCancelar={() => setFinalizar(null)}
+        onCancelar={() => setDesasignarA(null)}
         onConfirmar={() => {
-          if (finalizar) {
+          if (desasignarA) {
             desasignar.mutate(
-              { pacienteId: finalizar.pacienteId },
-              { onSuccess: () => setFinalizar(null) },
+              { planId, pacienteId: desasignarA.pacienteId },
+              { onSuccess: () => setDesasignarA(null) },
             );
           }
         }}

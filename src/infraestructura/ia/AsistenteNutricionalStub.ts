@@ -21,8 +21,8 @@ export class AsistenteNutricionalStub implements IAsistenteNutricional {
         ? `Tus objetivos actuales: ${contexto.objetivos.join(", ")}.`
         : "Todavía no tenés objetivos cargados.";
     const plan = contexto.tienePlan
-      ? "Tenés un plan activo asignado."
-      : "Aún no tenés un plan activo.";
+      ? "Tenés un plan asignado."
+      : "Aún no tenés ningún plan asignado.";
 
     return (
       `Hola ${contexto.nombrePaciente}. Soy tu asistente (versión de demostración).\n\n` +

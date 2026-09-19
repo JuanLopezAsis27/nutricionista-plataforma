@@ -50,15 +50,20 @@ que nadie declaró queda en «—». Un cero se leería como «no comió nada de
 
 El plan fija cuánto tiene que comer por día; el semanal es una manera concreta
 de repartirlo. Comparar el reparto contra una meta propia sería compararlo
-consigo mismo, así que `ObtenerPlanSemanalDelPaciente` lee **los dos
-historiales**: el semanal para el menú y el de planes para la pauta.
+consigo mismo, así que `ObtenerPlanSemanalDelPaciente` lee **las dos
+asignaciones**: la semanal para el menú y la de planes para la pauta.
 
 Tres estados posibles, y la pantalla los dice con todas las letras:
 
-- el paciente no tiene plan activo → totales sin comparación;
-- lo tiene pero sin metas cargadas → se nombra el plan y se aclara que no fija
+- el paciente no tiene ningún plan asignado → totales sin comparación;
+- tiene pero sin metas cargadas → se nombra el plan y se aclara que no fija
   macros;
-- lo tiene con metas → semáforo por día.
+- tiene con metas → semáforo por día.
+
+Desde la migración 69 el paciente puede tener **varios** planes nutricionales.
+Las metas salen del **primero que declare macros** y `nombrePlanDeLasMetas` dice
+cuál fue: ninguno rige sobre los otros, así que elegir en silencio sería
+inventar una jerarquía que el modelo no tiene.
 
 La tolerancia es **±10 % de la meta** (`TOLERANCIA_META`), medida sobre la meta
 y no sobre el valor: es la referencia fija, y calcularla sobre el valor haría

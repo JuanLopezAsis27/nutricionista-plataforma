@@ -18,11 +18,11 @@ export interface SolicitanteArchivo {
  *  - puede ver la FOTO DE PERFIL de cualquier cuenta del consultorio;
  *  - puede ver las fotos de una receta que le fue compartida;
  *  - puede ver el archivo de un material de biblioteca que le fue compartido;
- *  - puede ver el PDF del plan que tiene asignado HOY.
+ *  - puede ver los archivos de CUALQUIERA de los planes que tiene asignados
+ *    (puede tener varios a la vez, y ninguno le gana a los otros).
  *
- * Lo del plan es deliberadamente el plan ACTIVO y no cualquiera que haya
- * tenido: el PDF es la indicación vigente, y dejar abierto el de un plan
- * finalizado es dejar al paciente siguiendo un plan que ya se cambió.
+ * Es el plan asignado HOY y no uno que le hayan sacado: dejarle abierto el de
+ * un plan desasignado es dejarlo siguiendo un plan que ya no es suyo.
  *
  * La foto de perfil es la única regla que NO pasa por el arco de dueños: la
  * foto de perfil es un archivo huérfano y la FK vive en `usuarios`
@@ -71,10 +71,7 @@ export class PuedeVerArchivoPaciente {
       return asignados.includes(solicitante.pacienteId);
     }
     if (dueno?.planId) {
-      const activo = await this.planes.obtenerAsignacionActiva(
-        solicitante.pacienteId,
-      );
-      return activo?.planId === dueno.planId;
+      return this.planes.estaAsignado(dueno.planId, solicitante.pacienteId);
     }
     return false;
   }

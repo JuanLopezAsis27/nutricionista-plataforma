@@ -361,9 +361,8 @@ export default function PaginaPlanes() {
               />
               {/* Quiénes ya lo tienen: se ve acá mismo, sin ir a la ficha del
                   plan, porque es lo primero que se quiere saber antes de
-                  sumar más pacientes. Solo los vigentes: un finalizado no es
-                  candidato a "ya lo tiene", es historial. */}
-              <PacientesDelPlan planId={planAsignar.id} soloActivas />
+                  sumar más pacientes. */}
+              <PacientesDelPlan planId={planAsignar.id} />
             </div>
           )}
         </DialogContent>

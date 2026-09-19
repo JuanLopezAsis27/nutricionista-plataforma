@@ -6,7 +6,6 @@ import {
   mockAlertaSeguimientoRepositorio,
   mockPacienteRepositorio,
   mockRegistroDiarioRepositorio,
-  mockAsignacionPlanRepositorio,
   mockTurnoRepositorio,
   mockReloj,
   pacienteEjemplo,
@@ -52,7 +51,6 @@ describe("GenerarAlertasDeSeguimiento", () => {
       alertas,
       pacientes,
       registros,
-      mockAsignacionPlanRepositorio(),
       mockTurnoRepositorio(),
       mockReloj(),
     );
@@ -79,7 +77,6 @@ describe("GenerarAlertasDeSeguimiento", () => {
       alertas,
       pacientes,
       registros,
-      mockAsignacionPlanRepositorio(),
       mockTurnoRepositorio(),
       mockReloj(),
     );
@@ -106,7 +103,6 @@ describe("GenerarAlertasDeSeguimiento", () => {
       alertas,
       pacientes,
       registros,
-      mockAsignacionPlanRepositorio(),
       mockTurnoRepositorio(),
       mockReloj(),
     );
@@ -114,41 +110,6 @@ describe("GenerarAlertasDeSeguimiento", () => {
     const resultado = await casoUso.ejecutar();
     expect(resultado.generadas).toBe(0);
     expect(capturadas).toHaveLength(0);
-  });
-
-  it("genera PLAN_VENCIDO con la asignación como referencia", async () => {
-    const { alertas, capturadas } = capturarAlertas();
-    const pacientes = mockPacienteRepositorio({
-      listar: vi.fn(async () => [pacienteEjemplo()]),
-    });
-    const planes = mockAsignacionPlanRepositorio({
-      listarAsignacionesActivasVencidas: vi.fn(async () => [
-        {
-          id: "asig-1",
-          planId: "pla-1",
-          nombrePlan: "Plan descenso",
-          pacienteId: "pac-1",
-          fechaInicio: new Date("2026-05-01"),
-          fechaFin: new Date("2026-07-01"),
-          finalizadaEn: null,
-          activa: true,
-        },
-      ]),
-    });
-    const casoUso = new GenerarAlertasDeSeguimiento(
-      alertas,
-      pacientes,
-      mockRegistroDiarioRepositorio(),
-      planes,
-      mockTurnoRepositorio(),
-      mockReloj(),
-    );
-
-    const resultado = await casoUso.ejecutar();
-
-    expect(resultado.generadas).toBe(1);
-    expect(capturadas[0]!.tipo).toBe("PLAN_VENCIDO");
-    expect(capturadas[0]!.referenciaId).toBe("asig-1");
   });
 
   it("genera TURNO_SIN_CONFIRMAR solo para turnos PENDIENTES de mañana", async () => {
@@ -163,7 +124,6 @@ describe("GenerarAlertasDeSeguimiento", () => {
       alertas,
       pacientes,
       mockRegistroDiarioRepositorio(),
-      mockAsignacionPlanRepositorio(),
       turnos,
       mockReloj(),
     );
@@ -195,7 +155,6 @@ describe("GenerarAlertasDeSeguimiento", () => {
       alertas,
       pacientes,
       registros,
-      mockAsignacionPlanRepositorio(),
       mockTurnoRepositorio(),
       mockReloj(),
     );

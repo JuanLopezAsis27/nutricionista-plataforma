@@ -153,33 +153,24 @@ export const crearDesdePlantillaDto = z.object({
 });
 export type CrearDesdePlantillaDto = z.infer<typeof crearDesdePlantillaDto>;
 
-export const asignarPlanDto = z
-  .object({
-    planId: z.string().min(1),
-    pacienteId: z.string().min(1),
-    fechaInicio: z.coerce.date(),
-    fechaFin: z.coerce.date().optional().nullable(),
-  })
-  .refine((datos) => !datos.fechaFin || datos.fechaFin >= datos.fechaInicio, {
-    message: "La fecha de fin no puede ser anterior a la de inicio",
-    path: ["fechaFin"],
-  });
+export const asignarPlanDto = z.object({
+  planId: z.string().min(1),
+  pacienteId: z.string().min(1),
+});
 export type AsignarPlanDto = z.infer<typeof asignarPlanDto>;
 
-/** Asignar el MISMO plan a varios pacientes a la vez, con el mismo período. */
-export const asignarPlanMultipleDto = z
-  .object({
-    planId: z.string().min(1),
-    pacienteIds: z
-      .array(z.string().min(1))
-      .min(1, "Elegí al menos un paciente"),
-    fechaInicio: z.coerce.date(),
-    fechaFin: z.coerce.date().optional().nullable(),
-  })
-  .refine((datos) => !datos.fechaFin || datos.fechaFin >= datos.fechaInicio, {
-    message: "La fecha de fin no puede ser anterior a la de inicio",
-    path: ["fechaFin"],
-  });
+/** Sacarle UN plan a un paciente: hay que decir cuál, puede tener varios. */
+export const desasignarPlanDto = z.object({
+  planId: z.string().min(1),
+  pacienteId: z.string().min(1),
+});
+export type DesasignarPlanDto = z.infer<typeof desasignarPlanDto>;
+
+/** Asignar el MISMO plan a varios pacientes a la vez. */
+export const asignarPlanMultipleDto = z.object({
+  planId: z.string().min(1),
+  pacienteIds: z.array(z.string().min(1)).min(1, "Elegí al menos un paciente"),
+});
 export type AsignarPlanMultipleDto = z.infer<typeof asignarPlanMultipleDto>;
 
 /** Resultado de asignar a varios: quién sí y quién no (y por qué). */
@@ -195,21 +186,13 @@ export type ResultadoAsignacionMultipleDto = z.infer<
 /**
  * Crear un plan NUEVO ya asignado a un paciente, desde su ficha. Es
  * `crearPlanDto` menos `esPlantilla`/`grupoId` (los decide el caso de uso: no
- * es plantilla y la carpeta es la del paciente) más a quién y desde cuándo.
+ * es plantilla y la carpeta es la del paciente) más a quién asignárselo.
  */
 export const crearPlanParaPacienteDto = planBase
   .omit({ grupoId: true })
-  .extend({
-    pacienteId: z.string().min(1),
-    fechaInicio: z.coerce.date(),
-    fechaFin: z.coerce.date().optional().nullable(),
-  })
+  .extend({ pacienteId: z.string().min(1) })
   .refine((d) => contenidoDeLaApp(d), FALTA_COMIDA)
-  .refine((d) => contenidoDelPdf(d), FALTA_ARCHIVO)
-  .refine((datos) => !datos.fechaFin || datos.fechaFin >= datos.fechaInicio, {
-    message: "La fecha de fin no puede ser anterior a la de inicio",
-    path: ["fechaFin"],
-  });
+  .refine((d) => contenidoDelPdf(d), FALTA_ARCHIVO);
 export type CrearPlanParaPacienteDto = z.infer<typeof crearPlanParaPacienteDto>;
 
 // --- Salida ------------------------------------------------------------------
@@ -309,22 +292,14 @@ export interface PlanesPaginados {
 // --- Asignaciones y carpetas -------------------------------------------------
 
 /**
- * Una asignación del historial. `planId` en null significa que el plan se
- * borró: la asignación sobrevive porque qué siguió el paciente y entre qué
- * fechas es información suya, no del plan (ver migración 38).
+ * Una asignación plan⇄paciente. Es el vínculo y nada más: sin fechas ni
+ * estado, porque el paciente puede tener varios planes y ninguno reemplaza a
+ * otro (migración 69).
  */
 export const asignacionPlanSalidaDto = z.object({
   id: z.string(),
-  planId: z.string().nullable(),
-  /** Nombre del plan al asignarlo. Sobrevive al borrado y al renombre. */
-  nombrePlan: z.string(),
+  planId: z.string(),
   pacienteId: z.string(),
-  fechaInicio: z.date(),
-  /** Fin planificado al asignar. */
-  fechaFin: z.date().nullable(),
-  /** Fin real: cuándo dejó de regir. */
-  finalizadaEn: z.date().nullable(),
-  activa: z.boolean(),
 });
 export type AsignacionPlanSalidaDto = z.infer<typeof asignacionPlanSalidaDto>;
 

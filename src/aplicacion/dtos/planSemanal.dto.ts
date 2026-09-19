@@ -189,11 +189,12 @@ export type DiaComparadoDto = z.infer<typeof diaComparadoDto>;
 /**
  * El plan semanal del paciente, ya comparado contra sus metas diarias.
  *
- * Las metas NO son del plan semanal: salen del `PlanNutricional` que el
- * paciente tiene asignado, y por eso viaja también su nombre —la pantalla
- * tiene que poder decir de dónde salió el número contra el que compara—.
- * `metas` en null significa que el paciente no tiene plan activo o que ese
- * plan no declara metas: ahí se muestran totales sin semáforo.
+ * Las metas NO son del plan semanal: salen de un `PlanNutricional` que el
+ * paciente tiene asignado —el primero que declare macros, porque puede tener
+ * varios—, y por eso viaja también su nombre: la pantalla tiene que poder decir
+ * de dónde salió el número contra el que compara. `metas` en null significa que
+ * no tiene ningún plan asignado o que ninguno declara metas: ahí se muestran
+ * totales sin semáforo.
  */
 export const planSemanalDelPacienteDto = z.object({
   plan: planSemanalSalidaDto,

@@ -207,50 +207,23 @@ describe("mapearPlan", () => {
 });
 
 describe("mapearAsignacionPlan", () => {
-  it("distingue las tres fechas de la asignacion", () => {
-    // fechaInicio, fechaFin y finalizadaEn significan cosas distintas:
-    // cuando empezo, cuando estaba PLANIFICADO que termine, y cuando dejo de
-    // regir de verdad. Cruzarlas corrompe el historial del paciente.
+  it("deja el vínculo pelado: plan, paciente y nada más", () => {
+    // La asignación dejó de llevar período, estado y foto del nombre
+    // (migración 69). Si el mapeador arrastrara algo de eso, el tipo del
+    // dominio volvería a prometer un historial que ya no existe.
     const asignacion = mapearAsignacionPlan({
       id: "asig-1",
       nutricionistaId: "nutri-1",
       planId: "plan-1",
-      nombrePlan: "Plan de descenso",
       pacienteId: "pac-1",
-      fechaInicio: new Date("2026-01-01T00:00:00.000Z"),
-      fechaFin: new Date("2026-03-01T00:00:00.000Z"),
-      finalizadaEn: new Date("2026-02-15T00:00:00.000Z"),
-      activa: false,
-    } as unknown as Parameters<typeof mapearAsignacionPlan>[0]);
+      creadoEn: new Date("2026-01-01T00:00:00.000Z"),
+    });
 
-    expect(asignacion.fechaInicio).toEqual(
-      new Date("2026-01-01T00:00:00.000Z"),
-    );
-    expect(asignacion.fechaFin).toEqual(new Date("2026-03-01T00:00:00.000Z"));
-    expect(asignacion.finalizadaEn).toEqual(
-      new Date("2026-02-15T00:00:00.000Z"),
-    );
-    expect(asignacion.activa).toBe(false);
-    expect(asignacion.nombrePlan).toBe("Plan de descenso");
-  });
-
-  it("sobrevive al borrado del plan: planId null, nombre conservado", () => {
-    // El nombre es una foto tomada al asignar, justamente para que la
-    // asignacion siga siendo legible cuando el plan ya no existe.
-    const asignacion = mapearAsignacionPlan({
-      id: "asig-2",
-      nutricionistaId: "nutri-1",
-      planId: null,
-      nombrePlan: "Plan borrado",
+    expect(asignacion).toEqual({
+      id: "asig-1",
+      planId: "plan-1",
       pacienteId: "pac-1",
-      fechaInicio: new Date("2026-01-01T00:00:00.000Z"),
-      fechaFin: null,
-      finalizadaEn: null,
-      activa: true,
-    } as unknown as Parameters<typeof mapearAsignacionPlan>[0]);
-
-    expect(asignacion.planId).toBeNull();
-    expect(asignacion.nombrePlan).toBe("Plan borrado");
+    });
   });
 });
 

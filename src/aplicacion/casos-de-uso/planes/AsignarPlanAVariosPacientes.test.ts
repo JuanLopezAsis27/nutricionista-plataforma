@@ -24,7 +24,6 @@ describe("AsignarPlanAVariosPacientes", () => {
     const resultados = await casoUso.ejecutar({
       planId: "pla-1",
       pacienteIds: ["pac-1", "pac-2"],
-      fechaInicio: new Date("2026-01-01"),
     });
 
     expect(resultados).toHaveLength(2);
@@ -48,7 +47,6 @@ describe("AsignarPlanAVariosPacientes", () => {
     const resultados = await casoUso.ejecutar({
       planId: "pla-1",
       pacienteIds: ["pac-1", "pac-x"],
-      fechaInicio: new Date("2026-01-01"),
     });
 
     const ok = resultados.find((r) => r.pacienteId === "pac-1");
@@ -72,7 +70,6 @@ describe("AsignarPlanAVariosPacientes", () => {
     const resultados = await casoUso.ejecutar({
       planId: "pla-1",
       pacienteIds: ["pac-1", "pac-1"],
-      fechaInicio: new Date("2026-01-01"),
     });
 
     expect(resultados).toHaveLength(1);

@@ -12,21 +12,20 @@ import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 export interface DatosAsignarPlan {
   planId: string;
   pacienteId: string;
-  fechaInicio: Date;
-  fechaFin?: Date | null;
 }
 
 /**
  * Caso de uso: asignar un plan a un paciente.
  *
  * Verifica que existan paciente y plan (y que el plan no sea una plantilla:
- * las plantillas se clonan primero), aplica la regla "un solo plan activo
- * por paciente" desactivando la asignación previa, y crea la nueva.
+ * las plantillas se clonan primero) y crea el vínculo.
  *
- * La anterior se cierra con la fecha de INICIO de la nueva, no con "hoy": el
- * plan viejo rigió hasta que empezó el que lo reemplaza. Si el profesional
- * antedata la asignación —"esto arrancó el lunes pasado"—, el historial queda
- * sin huecos ni superposiciones.
+ * **Suma, no reemplaza**: el paciente puede tener varios planes a la vez y
+ * este se agrega a los que ya tenga. Para sacarle uno está
+ * `DesasignarPlanDePaciente`, que nombra cuál.
+ *
+ * Asignar dos veces el mismo plan al mismo paciente no duplica nada: el
+ * repositorio es idempotente por la clave única (planId, pacienteId).
  */
 export class AsignarPlanAPaciente {
   constructor(
@@ -51,25 +50,10 @@ export class AsignarPlanAPaciente {
       );
     }
 
-    // Regla: un solo plan activo por paciente → desactivar el anterior.
-    await this.asignaciones.desactivarAsignacionesDe(
-      datos.pacienteId,
-      datos.fechaInicio,
-    );
-
-    const asignacion: AsignacionPlan = {
+    return this.asignaciones.asignarAPaciente({
       id: crypto.randomUUID(),
       planId: datos.planId,
-      // Foto del nombre: el historial tiene que seguir diciendo qué se asignó
-      // aunque después el plan se renombre o se borre.
-      nombrePlan: plan.nombre,
       pacienteId: datos.pacienteId,
-      fechaInicio: datos.fechaInicio,
-      fechaFin: datos.fechaFin ?? null,
-      finalizadaEn: null,
-      activa: true,
-    };
-
-    return this.asignaciones.asignarAPaciente(asignacion);
+    });
   }
 }

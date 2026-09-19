@@ -334,9 +334,19 @@ VARIOS, y cuáles de los archivos del plan son el plan lo dice
 `archivos.esDocumentoDelPlan`, no una columna del plan (migración 66)—. La
 modalidad se elige al dar de alta, no se cambia editando.
 
-**`AsignacionPlan` es el HISTORIAL del paciente y sobrevive al borrado del plan**
-(FK SET NULL + `nombrePlan` congelado). Nunca borrar una asignación para
-"limpiar". Ver `docs/PLANES.md`.
+**Un paciente puede tener VARIOS planes asignados a la vez y ninguno reemplaza
+a otro** (migración 69). `AsignacionPlan` es un vínculo puro —plan, paciente y
+nada más—, como `AsignacionReceta`: sin fechas y sin estado. Se asigna y se
+desasigna, y desasignar BORRA la fila. Por eso `DesasignarPlanDePaciente` nombra
+el plan: "el plan del paciente" dejó de ser una cosa sola.
+
+**El historial existe pero vive aparte**: `DesasignacionPlan` guarda una fila por
+cada plan que se le sacó a un paciente —nombre congelado, `asignadoEn` y
+`desasignadoEn`—. Es append-only, **ninguna pantalla lo lee** (el front solo
+asocia, desasocia y muestra lo asignado hoy) y se escribe en UN solo lugar: la
+transacción de `desasignarDePaciente`. Cualquier camino nuevo para sacarle un
+plan a alguien tiene que pasar por ahí o el registro queda con huecos. Ver
+`docs/PLANES.md`.
 
 ### Plan Semanal
 
@@ -348,9 +358,10 @@ los dos.
 Dos reglas que se rompen fácil: el total de un día suma la comida **principal**
 (`orden = 0`) de cada franja y no las alternativas —sumarlas triplicaría un
 lunes con tres almuerzos—, y **las metas contra las que se compara salen del
-PLAN NUTRICIONAL asignado**, no del plan semanal, que no las tiene. Su
-historial (`AsignacionPlanSemanal`) es aparte del de planes: el menú se cambia
-sin tocar la pauta de macros.
+PLAN NUTRICIONAL asignado**, no del plan semanal, que no las tiene —y con
+varios asignados, del primero que declare macros, diciendo en pantalla de cuál
+salieron—. Su historial (`AsignacionPlanSemanal`) es aparte y sigue siendo un
+historial: el menú se cambia sin tocar la pauta de macros.
 
 Ver `docs/PLANES-SEMANALES.md`.
 

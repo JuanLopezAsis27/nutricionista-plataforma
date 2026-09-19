@@ -199,8 +199,8 @@ export interface DatosNuevoPlan {
  * Que un plan PDF no admita comidas es deliberado: si las admitiera habría dos
  * planes en el mismo registro y ninguna forma de decir cuál rige.
  *
- * La regla "un paciente solo puede tener un plan activo a la vez" pertenece a
- * la asignación (caso de uso AsignarPlanAPaciente).
+ * A quién está asignado el plan no es asunto de la entidad: vive en
+ * `AsignacionPlan`, y un paciente puede tener varios a la vez.
  */
 export class PlanNutricional {
   private constructor(private readonly props: PropiedadesPlan) {}
