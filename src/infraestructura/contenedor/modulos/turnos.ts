@@ -55,5 +55,6 @@ export function crearServicioTurno(deps: {
     ),
     deps.sincronizador,
     deps.establecimientos,
+    deps.pacientes,
   );
 }

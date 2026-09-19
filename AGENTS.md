@@ -577,7 +577,10 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
 - Nunca sumar un filtro a un listado paginado tocando solo el DTO y el
   repositorio: `ObtenerPlanesPaginado` y `ObtenerRecetasPaginado` enumeran los
   campos a mano y lo que no esté ahí se descarta en silencio
-- Nunca borrar una asignación de plan para "limpiar": son el historial clínico
+- Nunca sacarle un plan a un paciente sin pasar por `desasignarDePaciente`: es
+  el único camino que deja el registro en `DesasignacionPlan`, y un
+  `deleteMany` sobre `asignaciones_plan` desde otro lado lo deja con huecos sin
+  que nada falle —nadie lee esa tabla, así que nadie se entera—
 - Nunca sumar TODAS las comidas de una celda del plan semanal al total del día:
   son alternativas entre sí y suma la principal (`orden = 0`). Y si tocás esa
   cuenta, tocá las dos —el dominio y el espejo de la grilla—: `totales.test.ts`
@@ -629,6 +632,11 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   ahí el formato se pide por prompt (no hay `response_format`), y con solo las
   claves de primer nivel el modelo inventa los nombres anidados y el
   normalizador los descarta en silencio
+- Nunca resolver en la pantalla el nombre de algo que ya viene referenciado
+  (el paciente de un turno) con un listado paginado: se queda con la primera
+  página y deja afuera a los archivados. Así los turnos del paciente 101 salían
+  como "Paciente" en producción. El nombre viaja en el DTO, resuelto por id en
+  el servicio (`ServicioTurno`), como la sede del turno
 - Nunca comparar la fecha de un `Turno` contra una medianoche LOCAL: es un DATE
   a medianoche UTC, y al oeste de Greenwich los turnos de hoy quedan "antes de
   hoy". Va `IRelojFecha.hoy()`

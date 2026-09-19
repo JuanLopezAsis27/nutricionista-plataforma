@@ -11,7 +11,8 @@ sentado frente a una pantalla grande durante la consulta.
 | Ruta               | Qué muestra                                          |
 | ------------------ | ---------------------------------------------------- |
 | `/mi-inicio`       | Hoy: turno, qué comer, registro rápido, accesos      |
-| `/mi-plan`         | El plan nutricional vigente: el **día tipo**         |
+| `/mi-plan`         | Sus planes: el **día tipo**; si son varios, tarjetas |
+| `/mi-plan/[id]`    | Uno de sus planes, cuando tiene más de uno           |
 | `/mi-semana`       | El plan semanal asignado: **qué come cada día**      |
 | `/mi-diario`       | Lo que registra: comidas, peso, agua, sueño          |
 | `/mi-progreso`     | Su evolución (`SeccionTracking`)                     |
@@ -25,14 +26,14 @@ sentado frente a una pantalla grande durante la consulta.
 | `/asistente`       | El asistente de IA                                   |
 | `/mi-perfil`       | Su foto y su contraseña (`docs/PERFIL.md`)           |
 
-Todas leen procedimientos «míos» (`miPlan`, `miDia`, `miTracking`,
+Todas leen procedimientos «míos» (`misPlanes`, `miDia`, `miTracking`,
 `obtenerMiPlanSemanal`…), que toman el paciente de la sesión con
 `pacienteDeSesion`. Ninguna recibe un `pacienteId`: donde no hay nada que
 elegir, no hay forma de pedir los datos de otro.
 
-`/mis-recetas/[id]` sí lleva un id en la URL, y por eso NO consulta por id: se
-queda con la receta que aparezca en `obtenerMisRecetas`, la lista de las que le
-compartieron. Esa lista ya es la autorización —un id ajeno simplemente no está
+`/mis-recetas/[id]` y `/mi-plan/[id]` sí llevan un id en la URL, y por eso NO
+consultan por id: se quedan con lo que aparezca en `obtenerMisRecetas` y
+`obtenerMisPlanes`, la lista de lo que le compartieron. Esa lista ya es la autorización —un id ajeno simplemente no está
 ahí— y pedir la receta suelta habría necesitado un procedimiento nuevo que
 repitiera la misma regla, con el riesgo de que las dos se separen.
 

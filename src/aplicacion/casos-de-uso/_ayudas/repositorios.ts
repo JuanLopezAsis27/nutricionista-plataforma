@@ -121,6 +121,7 @@ export function mockPacienteRepositorio(
     actualizar: vi.fn(async (p: Paciente) => p),
     eliminar: vi.fn(async () => {}),
     obtenerPorId: vi.fn(async () => null),
+    obtenerPorIds: vi.fn(async () => []),
     obtenerPorEmail: vi.fn(async () => null),
     obtenerPorTelefonoE164: vi.fn(async () => null),
     listar: vi.fn(async () => []),

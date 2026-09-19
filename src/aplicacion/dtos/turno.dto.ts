@@ -70,6 +70,15 @@ export type RegistrarCobroTurnoDto = z.infer<typeof registrarCobroTurnoDto>;
 export const turnoSalidaDto = z.object({
   id: z.string(),
   pacienteId: z.string(),
+  /**
+   * Nombre completo del paciente, resuelto por `ServicioTurno` por id y con
+   * los ARCHIVADOS incluidos. Antes cada pantalla lo buscaba en la primera
+   * página del listado de pacientes (100, solo vigentes): un turno del
+   * paciente 101 —o de uno archivado— salía como "Paciente", aunque el enlace
+   * llevara a la ficha correcta. Es el mismo caso que la sede, un poco más
+   * abajo.
+   */
+  pacienteNombre: z.string(),
   establecimientoId: z.string(),
   /**
    * Nombre y dirección de la sede, resueltos por `ServicioTurno` (no vienen

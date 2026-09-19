@@ -6,7 +6,6 @@ import { Plus, List, CalendarDays, FileDown } from "lucide-react";
 import type { TurnoSalidaDto } from "@/aplicacion/dtos/turno.dto";
 import { ESTADOS_TURNO, type EstadoTurno } from "@/dominio/entidades/Turno";
 import { useTurnos } from "@/lib/hooks/useTurnos";
-import { usePacientes } from "@/lib/hooks/usePacientes";
 import { useEstablecimientos } from "@/lib/hooks/useEstablecimientos";
 import { useSedeActiva } from "@/lib/hooks/useSedeActiva";
 import { coloresDeSedes, etiquetaSede } from "@/lib/sedes";
@@ -54,7 +53,6 @@ interface HuecoElegido {
 
 export default function PaginaTurnos() {
   const { listar } = useTurnos();
-  const { listar: listarPacientes } = usePacientes();
   const { listar: listarSedes } = useEstablecimientos();
   const { sedeActivaId } = useSedeActiva();
 
@@ -80,28 +78,6 @@ export default function PaginaTurnos() {
   const [turnoReprogramar, setTurnoReprogramar] =
     useState<TurnoSalidaDto | null>(null);
   const [turnoGrabar, setTurnoGrabar] = useState<TurnoSalidaDto | null>(null);
-
-  const pacientes = listarPacientes({ pagina: 1, porPagina: 100 });
-  // Nombre + teléfono: el teléfono habilita el recordatorio por WhatsApp.
-  const mapaPacientes = useMemo(() => {
-    const mapa = new Map<string, { nombre: string; telefono: string | null }>();
-    pacientes.data?.pacientes.forEach((p) =>
-      mapa.set(p.id, {
-        nombre: `${p.nombre} ${p.apellido}`,
-        telefono: p.telefono,
-      }),
-    );
-    return mapa;
-  }, [pacientes.data]);
-
-  const nombrePaciente = (pacienteId: string): string =>
-    mapaPacientes.get(pacienteId)?.nombre ?? "Paciente";
-
-  // El calendario solo necesita los nombres.
-  const mapaNombres = useMemo(
-    () => new Map([...mapaPacientes].map(([id, p]) => [id, p.nombre])),
-    [mapaPacientes],
-  );
 
   // `establecimientoId` sin valor = todas las sedes juntas, que es el
   // calendario unificado. El filtro es del turno, no del paciente: el mismo
@@ -137,7 +113,7 @@ export default function PaginaTurnos() {
           href={`/dashboard/pacientes/${t.pacienteId}`}
           className="font-medium hover:underline"
         >
-          {nombrePaciente(t.pacienteId)}
+          {t.pacienteNombre}
         </Link>
       ),
     },
@@ -272,7 +248,6 @@ export default function PaginaTurnos() {
       ) : (
         <CalendarioTurnos
           turnos={turnos.data ?? []}
-          mapaPacientes={mapaNombres}
           sedes={sedes}
           colores={colores}
           onAgendar={abrirAlta}
@@ -309,9 +284,7 @@ export default function PaginaTurnos() {
           <DialogHeader>
             <DialogTitle>
               Grabación de la consulta
-              {turnoGrabar
-                ? ` · ${mapaNombres.get(turnoGrabar.pacienteId) ?? ""}`
-                : ""}
+              {turnoGrabar ? ` · ${turnoGrabar.pacienteNombre}` : ""}
             </DialogTitle>
           </DialogHeader>
           {/* La clave monta un panel nuevo por turno: sin esto, abrirlo para

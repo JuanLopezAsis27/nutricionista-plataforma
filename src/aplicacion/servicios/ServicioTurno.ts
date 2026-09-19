@@ -12,6 +12,7 @@ import type {
 } from "@/aplicacion/casos-de-uso/turnos/ConfirmarAsistenciaTurno";
 import type { ISincronizadorCalendario } from "@/dominio/servicios/ISincronizadorCalendario";
 import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstablecimientoRepositorio";
+import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { Turno } from "@/dominio/entidades/Turno";
 import type { Establecimiento } from "@/dominio/entidades/Establecimiento";
 import type {
@@ -44,6 +45,7 @@ export class ServicioTurno {
     private readonly confirmarAsistenciaUC: ConfirmarAsistenciaTurno,
     private readonly sincronizador: ISincronizadorCalendario,
     private readonly establecimientos: IEstablecimientoRepositorio,
+    private readonly pacientes: IPacienteRepositorio,
   ) {}
 
   async agendarTurno(datos: AgendarTurnoDto): Promise<TurnoSalidaDto> {
@@ -112,46 +114,63 @@ export class ServicioTurno {
   }
 
   /**
-   * Un solo turno: la sede se pide por id (no del listado vigente), porque un
-   * turno viejo puede ser de una sede archivada y esa sigue siendo la
-   * dirección correcta para ese turno (ver docs/ESTABLECIMIENTOS.md).
+   * Un solo turno: la sede y el paciente se piden por id (no del listado
+   * vigente), porque un turno viejo puede ser de una sede o de un paciente
+   * archivados, y ese sigue siendo el dato correcto para ese turno (ver
+   * docs/ESTABLECIMIENTOS.md).
    */
   private async aSalidaUno(turno: Turno): Promise<TurnoSalidaDto> {
     const d = turno.aPrimitivos();
-    const sede = await this.establecimientos.obtenerPorId(d.establecimientoId);
-    return ServicioTurno.conSede(turno, sede);
+    const [sede, paciente] = await Promise.all([
+      this.establecimientos.obtenerPorId(d.establecimientoId),
+      this.pacientes.obtenerPorId(d.pacienteId),
+    ]);
+    return ServicioTurno.aSalida(turno, sede, paciente?.nombreCompleto ?? "");
   }
 
   /**
-   * Varios turnos: una sola consulta que trae TODAS las sedes (vigentes y
-   * archivadas) a un Map antes del bucle, en vez de pedir la sede por turno —
-   * mismo criterio que usan los recordatorios masivos.
+   * Varios turnos: una consulta para las sedes y una para los pacientes, a Maps
+   * antes del bucle, en vez de pedirlos turno por turno —mismo criterio que
+   * usan los recordatorios masivos—.
+   *
+   * Las sedes se traen TODAS (son pocas); los pacientes, solo los de estos
+   * turnos: el consultorio puede tener miles, y traerlos enteros para pintar
+   * una semana sería justo el error que tenían las pantallas, del otro lado
+   * (ellas se quedaban con los primeros 100 y los demás salían "Paciente").
    */
   private async aSalidaLote(turnos: Turno[]): Promise<TurnoSalidaDto[]> {
     if (turnos.length === 0) return [];
-    const sedes = new Map(
-      (await this.establecimientos.listar({ incluirArchivados: true })).map(
-        (e) => [e.id, e],
-      ),
-    );
-    return turnos.map((turno) =>
-      ServicioTurno.conSede(
+    const pacienteIds = [
+      ...new Set(turnos.map((turno) => turno.aPrimitivos().pacienteId)),
+    ];
+    const [todasLasSedes, pacientes] = await Promise.all([
+      this.establecimientos.listar({ incluirArchivados: true }),
+      this.pacientes.obtenerPorIds(pacienteIds),
+    ]);
+    const sedes = new Map(todasLasSedes.map((e) => [e.id, e]));
+    const nombres = new Map(pacientes.map((p) => [p.id, p.nombreCompleto]));
+    return turnos.map((turno) => {
+      const d = turno.aPrimitivos();
+      return ServicioTurno.aSalida(
         turno,
-        sedes.get(turno.aPrimitivos().establecimientoId) ?? null,
-      ),
-    );
+        sedes.get(d.establecimientoId) ?? null,
+        nombres.get(d.pacienteId) ?? "",
+      );
+    });
   }
 
   /**
-   * Nunca queda el placeholder crudo: sin sede resuelta, nombre y dirección
-   * van vacíos en vez de mostrar el id.
+   * Nunca queda el placeholder crudo: sin sede o paciente resueltos, los
+   * nombres van vacíos en vez de mostrar el id.
    */
-  private static conSede(
+  private static aSalida(
     turno: Turno,
     sede: Establecimiento | null,
+    pacienteNombre: string,
   ): TurnoSalidaDto {
     return {
       ...turno.aPrimitivos(),
+      pacienteNombre,
       establecimientoNombre: sede?.nombre ?? "",
       establecimientoDireccion: sede?.direccion ?? null,
     };

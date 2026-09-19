@@ -491,11 +491,30 @@ selector múltiple ahí.
 
 ## Cómo los ve el paciente
 
-«Mi plan» muestra **todos** los planes asignados, uno abajo del otro, cada uno
-con su botón de PDF: el PDF es de UN plan, no de la pantalla. La tarjeta "Tu
-plan ahora" del inicio, en cambio, junta las franjas de todos en una sola bolsa
-—qué toca comer ahora no depende de en cuál de sus planes esté escrito— y
-manda a «Mi plan» para verlos separados.
+«Mi plan» cambia según cuántos tenga:
+
+- **uno**: el plan entero, directo. Es el caso común, y una tarjeta que hay que
+  tocar para ver lo único que hay sería un paso de más.
+- **varios**: las mismas tarjetas que la ficha del profesional
+  (`TarjetaPlanAsignado`), y cada una lleva a **`/mi-plan/[id]`**. Dibujarlos
+  todos enteros dejaba el segundo a varias pantallas de scroll en el teléfono.
+
+En la ficha del profesional el plan se abre EN EL LUGAR; en el portal, en su
+propia página. No es una inconsistencia: el portal se usa desde el teléfono y la
+app de Android, y ahí el «atrás» del sistema tiene que volver a la lista. Con el
+plan abierto en un estado de la pantalla, «atrás» sacaría al paciente de «Mi
+plan». Por eso la tarjeta acepta `href` u `onAbrir`, uno de los dos.
+
+`/mi-plan/[id]` NO consulta por id: se queda con el plan que aparezca en
+`misPlanes`. Esa lista ya es la autorización —un id ajeno, o uno desasignado con
+la pantalla abierta, simplemente no está— y es el mismo criterio que
+`/mis-recetas/[id]`. Las dos pantallas dibujan el plan con `MiPlanCompleto`
+(contenido + «Descargar PDF» si es de la app), para que el mismo plan no se vea
+distinto según por dónde se llegó.
+
+La tarjeta "Tu plan ahora" del inicio, en cambio, junta las franjas de todos en
+una sola bolsa —qué toca comer ahora no depende de en cuál de sus planes esté
+escrito— y manda a «Mi plan» para verlos separados.
 
 ## Al tocar esto
 

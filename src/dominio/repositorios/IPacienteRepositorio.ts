@@ -23,6 +23,14 @@ export interface IPacienteRepositorio {
   actualizar(paciente: Paciente): Promise<Paciente>;
   eliminar(id: string): Promise<void>;
   obtenerPorId(id: string): Promise<Paciente | null>;
+  /**
+   * Varios pacientes por id, en UNA consulta, **archivados incluidos**, igual
+   * que `obtenerPorId`. Es para resolver nombres de algo que ya apunta a ellos
+   * (los turnos de una semana): archivar a alguien no borra sus turnos viejos,
+   * y esos tienen que seguir diciendo de quién son. Los ids que no existen
+   * simplemente no vuelven; el orden no está garantizado.
+   */
+  obtenerPorIds(ids: readonly string[]): Promise<Paciente[]>;
   obtenerPorEmail(email: string): Promise<Paciente | null>;
   /**
    * Busca por la forma canónica del teléfono (E.164 sin "+"). Es la consulta

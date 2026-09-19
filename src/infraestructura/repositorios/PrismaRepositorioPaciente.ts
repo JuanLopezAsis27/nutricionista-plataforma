@@ -73,6 +73,16 @@ export class PrismaRepositorioPaciente implements IPacienteRepositorio {
     return fila ? mapearPaciente(fila) : null;
   }
 
+  async obtenerPorIds(ids: readonly string[]): Promise<Paciente[]> {
+    if (ids.length === 0) return [];
+    // Sin `construirWhere`: ese filtro saca a los archivados, y acá se pide
+    // por id justamente para no perderlos.
+    const filas = await this.prisma.paciente.findMany({
+      where: { id: { in: [...ids] } },
+    });
+    return filas.map((fila) => mapearPaciente(fila));
+  }
+
   async obtenerPorEmail(email: string): Promise<Paciente | null> {
     // El email dejó de ser único global (una persona puede ser paciente de dos
     // consultorios). La unicidad es (nutricionistaId, email) y el filtro de

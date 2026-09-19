@@ -37,7 +37,6 @@ const MESES_LARGOS = [
 
 interface PropsCalendario {
   turnos: TurnoSalidaDto[];
-  mapaPacientes: Map<string, string>;
   /** Las sedes vigentes, en el orden en que se muestran. */
   sedes: EstablecimientoSalidaDto[];
   /** Color por establecimiento, compartido con el selector y la leyenda. */
@@ -76,7 +75,6 @@ interface PropsCalendario {
  */
 export function CalendarioTurnos({
   turnos,
-  mapaPacientes,
   sedes,
   colores,
   onAgendar,
@@ -138,9 +136,6 @@ export function CalendarioTurnos({
     }
     return cuenta;
   }, [turnos]);
-
-  const nombrePaciente = (pacienteId: string): string =>
-    mapaPacientes.get(pacienteId) ?? "Paciente";
 
   /** Mover la ventana también acompaña el mini mes al mes que corresponde. */
   function irA(fechaISO: string) {
@@ -235,7 +230,6 @@ export function CalendarioTurnos({
         <GrillaSemanal
           dias={dias}
           turnos={turnos}
-          nombrePaciente={nombrePaciente}
           agenda={agenda}
           unificado={unificado}
           colores={colores}

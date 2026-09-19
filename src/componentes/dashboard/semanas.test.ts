@@ -20,6 +20,7 @@ function turno(
   return {
     id: `t-${fecha}-${estado}`,
     pacienteId: "pac-1",
+    pacienteNombre: "Ana Gómez",
     establecimientoId: "est-1",
     establecimientoNombre: "Sede 1",
     establecimientoDireccion: null,

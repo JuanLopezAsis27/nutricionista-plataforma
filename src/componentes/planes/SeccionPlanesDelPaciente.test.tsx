@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { PlanSalidaDto } from "@/aplicacion/dtos/plan.dto";
+import { planDeEjemplo as plan } from "@/componentes/planes/_ayudas-test";
 
 /**
  * Los planes del paciente se navegan como maestro/detalle: tarjetas que
@@ -42,58 +43,6 @@ vi.mock("next/navigation", () => ({
 }));
 
 const { SeccionPlanesDelPaciente } = await import("./SeccionPlanesDelPaciente");
-
-/** Un plan de la app con una franja, lo mínimo para que `VistaPlan` dibuje. */
-function plan(
-  id: string,
-  nombre: string,
-  extra: Partial<PlanSalidaDto> = {},
-): PlanSalidaDto {
-  return {
-    id,
-    nombre,
-    descripcion: null,
-    esPlantilla: false,
-    planOrigenId: null,
-    archivado: false,
-    caloriasMeta: null,
-    proteinasMetaG: null,
-    carbohidratosMetaG: null,
-    grasasMetaG: null,
-    contactosUtiles: null,
-    comidas: [
-      {
-        id: `${id}-c1`,
-        nombre: "Desayuno",
-        horaDesde: null,
-        horaHasta: null,
-        orden: 0,
-        opciones: [
-          {
-            id: `${id}-o1`,
-            numero: 1,
-            contenido: `Opción de ${nombre}`,
-            recetaId: null,
-            recetaNombre: null,
-            recetaMacros: null,
-            orden: 0,
-          },
-        ],
-      },
-    ],
-    equivalencias: [],
-    recomendaciones: [],
-    modalidad: "APP",
-    grupoId: null,
-    grupoNombre: null,
-    documentos: [],
-    adjuntos: [],
-    recetasVinculadas: [],
-    creadoEn: new Date("2026-01-01"),
-    actualizadoEn: new Date("2026-01-01"),
-    ...extra,
-  };
-}
 
 function renderizar() {
   return render(
