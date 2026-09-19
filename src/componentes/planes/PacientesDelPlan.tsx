@@ -88,6 +88,9 @@ export function PacientesDelPlan({ planId }: { planId: string }) {
         descripcion={`¿Sacarle este plan a ${desasignarA?.pacienteNombre ?? ""} ${
           desasignarA?.pacienteApellido ?? ""
         }? Los otros planes que tenga siguen asignados.`}
+        // Sin esto el botón dice "Eliminar", que es justo lo que NO pasa: el
+        // plan queda en el consultorio y solo se corta el vínculo.
+        textoConfirmar="Desasignar"
         cargando={desasignar.isPending}
         onCancelar={() => setDesasignarA(null)}
         onConfirmar={() => {
