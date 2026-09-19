@@ -256,6 +256,21 @@ time() - nutricionista_respaldo_ultimo_exito_timestamp > 26 * 3600
 Si todavía no instalaste node_exporter, el respaldo funciona igual: si el
 directorio no está montado, no se escribe nada y no falla nada.
 
+### De dónde sale `mc`
+
+La imagen de respaldos copia `mc` de **`quay.io/minio/mc`**, fijada al mismo
+tag que usa `crear_bucket` (`respaldos/Dockerfile`). Antes lo descargaba de
+`dl.min.io/client/mc/release/...`, una URL sin versión que MinIO retiró
+(responde **410 Gone**): es el mismo retiro que ya había obligado a pasar
+`minio/minio` de Docker Hub a quay.io.
+
+No se rompió el día del retiro. Se rompió cuando cambió el digest de
+`postgres:18` y el CI ya no tenía esa capa en caché: el job «Imágenes
+(respaldo)» falló sin que nadie hubiera tocado `respaldos/`. **Al subir el tag
+de `mc`, subilo en los dos lugares** —el Dockerfile y `crear_bucket` en
+`docker-compose.prod.yml`—: los dos tienen que hablar la misma versión del
+cliente.
+
 ---
 
 ## 7. Staging (VPS propio)
