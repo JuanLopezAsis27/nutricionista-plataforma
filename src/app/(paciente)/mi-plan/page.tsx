@@ -1,19 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import {
-  ArrowRight,
-  CalendarRange,
-  ClipboardList,
-  FileDown,
-  Pill,
-} from "lucide-react";
+import { ArrowRight, CalendarRange, ClipboardList, Pill } from "lucide-react";
 import { usePlanes } from "@/lib/hooks/usePlanes";
 import { usePlanesSemanales } from "@/lib/hooks/usePlanesSemanales";
 import { useSeguimiento } from "@/lib/hooks/useSeguimiento";
 import { formatearFecha } from "@/lib/formato";
-import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
 import {
   Card,
@@ -22,21 +14,32 @@ import {
   CardTitle,
 } from "@/componentes/ui/card";
 import { EncabezadoPortal } from "@/componentes/layout/EncabezadoPortal";
-import { VistaPlan } from "@/componentes/planes/VistaPlan";
+import { MiPlanCompleto } from "@/componentes/planes/MiPlanCompleto";
+import { TarjetaPlanAsignado } from "@/componentes/planes/TarjetaPlanAsignado";
 
 /**
  * Mi plan: los planes nutricionales asignados + suplementación vigente.
  *
- * Son VARIOS a propósito (migración 69): el profesional le puede dejar la
- * pauta general y, aparte, el plan de la semana de competencia. Ninguno
- * reemplaza al otro, así que van uno abajo del otro y cada uno con su botón de
- * PDF —el PDF es de UN plan, no de la pantalla—.
+ * Pueden ser VARIOS (migración 69): el profesional le puede dejar la pauta
+ * general y, aparte, el plan de la semana de competencia. Ninguno reemplaza al
+ * otro. Cómo se muestran depende de cuántos son:
+ *
+ * - **uno**: el plan entero, directo. Es el caso común, y una tarjeta que hay
+ *   que tocar para ver lo único que hay sería un paso de más.
+ * - **varios**: una tarjeta por plan, y cada una lleva a `/mi-plan/[id]`.
+ *   Dibujarlos todos enteros dejaba el segundo a varias pantallas de scroll en
+ *   el teléfono, y con planes en PDF, un visor abajo del otro.
+ *
+ * Son páginas y no un "abrir en el lugar" como en la ficha del profesional: el
+ * portal se usa desde el teléfono y la app de Android, y ahí el botón "atrás"
+ * del sistema tiene que volver a la lista. Con el plan abierto en un estado de
+ * la pantalla, "atrás" sacaría al paciente de «Mi plan». Es el mismo criterio
+ * que la receta, que tiene `/mis-recetas/[id]`.
  */
 export default function PaginaMiPlan() {
   const { misPlanes } = usePlanes();
   const { miPlanSemanal } = usePlanesSemanales();
   const { misSuplementos } = useSeguimiento();
-  const router = useRouter();
   const consulta = misPlanes();
   const planes = consulta.data ?? [];
   const semanal = miPlanSemanal();
@@ -47,7 +50,11 @@ export default function PaginaMiPlan() {
       <EncabezadoPortal
         icono={ClipboardList}
         titulo="Mi plan"
-        descripcion="Tus planes nutricionales: las comidas de un día y las opciones de cada franja."
+        descripcion={
+          planes.length > 1
+            ? "Tenés varios planes: elegí cuál querés ver."
+            : "Tu plan nutricional: las comidas de un día y las opciones de cada franja."
+        }
       />
 
       {/* El plan es el DÍA TIPO; el menú de la semana es otra pantalla y se
@@ -75,36 +82,18 @@ export default function PaginaMiPlan() {
 
       {consulta.isLoading ? (
         <Skeleton className="h-64 w-full" />
-      ) : planes.length > 0 ? (
-        planes.map((plan) => (
-          <div key={plan.id} className="space-y-2">
-            {/* Solo para el plan cargado en la app: el plan que subió el
-                profesional se ve —y se abre— desde el visor de VistaPlan. */}
-            {plan.modalidad === "APP" && (
-              <div className="flex justify-end">
-                <Button asChild variant="outline" size="sm">
-                  <a
-                    href={`/api/planes/${plan.id}/pdf`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <FileDown className="h-4 w-4" />
-                    Descargar PDF
-                  </a>
-                </Button>
-              </div>
-            )}
-            <VistaPlan
+      ) : planes.length > 1 ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {planes.map((plan) => (
+            <TarjetaPlanAsignado
+              key={plan.id}
               plan={plan}
-              // La receta del plan lleva a la receta, que tiene su propia
-              // pantalla (antes abría un diálogo, y ahí el documento adjunto
-              // no entraba).
-              onVerReceta={(recetaId) =>
-                router.push(`/mis-recetas/${recetaId}`)
-              }
+              href={`/mi-plan/${plan.id}`}
             />
-          </div>
-        ))
+          ))}
+        </div>
+      ) : planes.length === 1 ? (
+        <MiPlanCompleto plan={planes[0]!} />
       ) : (
         <div className="rounded-xl border border-dashed p-10 text-center">
           <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">

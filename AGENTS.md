@@ -577,7 +577,10 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
 - Nunca sumar un filtro a un listado paginado tocando solo el DTO y el
   repositorio: `ObtenerPlanesPaginado` y `ObtenerRecetasPaginado` enumeran los
   campos a mano y lo que no esté ahí se descarta en silencio
-- Nunca borrar una asignación de plan para "limpiar": son el historial clínico
+- Nunca sacarle un plan a un paciente sin pasar por `desasignarDePaciente`: es
+  el único camino que deja el registro en `DesasignacionPlan`, y un
+  `deleteMany` sobre `asignaciones_plan` desde otro lado lo deja con huecos sin
+  que nada falle —nadie lee esa tabla, así que nadie se entera—
 - Nunca sumar TODAS las comidas de una celda del plan semanal al total del día:
   son alternativas entre sí y suma la principal (`orden = 0`). Y si tocás esa
   cuenta, tocá las dos —el dominio y el espejo de la grilla—: `totales.test.ts`
