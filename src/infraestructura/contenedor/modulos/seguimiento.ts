@@ -3,7 +3,6 @@ import type { IAlertaSeguimientoRepositorio } from "@/dominio/repositorios/IAler
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IRegistroDiarioRepositorio } from "@/dominio/repositorios/IRegistroDiarioRepositorio";
 import type { IAntropometriaRepositorio } from "@/dominio/repositorios/IAntropometriaRepositorio";
-import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
@@ -27,7 +26,6 @@ export function crearServicioSeguimiento(deps: {
   pacientes: IPacienteRepositorio;
   registros: IRegistroDiarioRepositorio;
   antropometrias: IAntropometriaRepositorio;
-  planes: IAsignacionPlanRepositorio;
   turnos: ITurnoRepositorio;
   usuarios: IUsuarioRepositorio;
   reloj: IRelojFecha;
@@ -42,7 +40,6 @@ export function crearServicioSeguimiento(deps: {
       deps.alertas,
       deps.pacientes,
       deps.registros,
-      deps.planes,
       deps.turnos,
       deps.reloj,
     ),

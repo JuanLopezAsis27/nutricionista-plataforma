@@ -412,20 +412,18 @@ export function mockPlanRepositorio(
  *
  * Separado de `mockPlanRepositorio` desde que el puerto se partió en dos: un
  * test de asignaciones ya no tiene que construir los nueve métodos del plan
- * para ejercitar uno del historial.
+ * para ejercitar uno del vínculo.
  */
 export function mockAsignacionPlanRepositorio(
   parcial: Partial<IAsignacionPlanRepositorio> = {},
 ): IAsignacionPlanRepositorio {
   return {
     asignarAPaciente: vi.fn(async (a) => a),
-    desactivarAsignacionesDe: vi.fn(async () => {}),
-    obtenerAsignacionActiva: vi.fn(async () => null),
+    desasignarDePaciente: vi.fn(async () => {}),
+    estaAsignado: vi.fn(async () => false),
     listarAsignacionesDePlan: vi.fn(async () => []),
-    listarAsignacionesDePaciente: vi.fn(async () => []),
-    obtenerPlanActivoDePaciente: vi.fn(async () => null),
-    listarAsignacionesActivasVencidas: vi.fn(async () => []),
-    contarAsignacionesActivasDePlan: vi.fn(async () => 0),
+    listarPlanesDePaciente: vi.fn(async () => []),
+    contarAsignacionesDePlan: vi.fn(async () => 0),
     ...parcial,
   };
 }

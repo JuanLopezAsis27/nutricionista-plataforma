@@ -219,7 +219,7 @@ describe("AnalizarConAsistente", () => {
         obtenerPorId: vi.fn(async () => pacienteEjemplo({}, "pac-1")),
       },
       asignaciones: {
-        obtenerPlanActivoDePaciente: vi.fn(async () => plan as never),
+        listarPlanesDePaciente: vi.fn(async () => [plan] as never),
       },
       responder: async (_m, herramientas) => {
         const tool = herramientas.find(

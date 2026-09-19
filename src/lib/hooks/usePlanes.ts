@@ -121,7 +121,7 @@ export function usePlanes() {
 
   const desasignar = trpc.planes.desasignarDePaciente.useMutation({
     onSuccess: () => {
-      toast.success("Plan finalizado para el paciente.");
+      toast.success("Plan desasignado del paciente.");
       invalidar();
     },
     onError: (error) => avisarError(error),
@@ -134,9 +134,8 @@ export function usePlanes() {
     obtenerPorId: trpc.planes.obtenerPorId.useQuery,
     delPaciente: trpc.planes.obtenerDelPaciente.useQuery,
     pacientesDelPlan: trpc.planes.obtenerPacientesDePlan.useQuery,
-    historialDelPaciente: trpc.planes.obtenerHistorialDePaciente.useQuery,
     grupos: trpc.planes.obtenerGrupos.useQuery,
-    miPlan: trpc.planes.obtenerMiPlan.useQuery,
+    misPlanes: trpc.planes.obtenerMisPlanes.useQuery,
     crear,
     actualizar,
     eliminar,

@@ -56,7 +56,7 @@ function tracking(deps: {
       listarPorRango: vi.fn(async () => deps.registros ?? []),
     }),
     mockAsignacionPlanRepositorio({
-      obtenerPlanActivoDePaciente: vi.fn(async () => deps.plan ?? null),
+      listarPlanesDePaciente: vi.fn(async () => (deps.plan ? [deps.plan] : [])),
     }),
     mockAxiomaRepositorio({
       listarActivos: vi.fn(async () => deps.axiomas ?? []),

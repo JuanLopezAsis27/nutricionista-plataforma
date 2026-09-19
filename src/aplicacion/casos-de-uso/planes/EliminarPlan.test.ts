@@ -32,7 +32,7 @@ describe("EliminarPlan", () => {
       obtenerPorId: vi.fn(async () => planEjemplo()),
     });
     const asignaciones = mockAsignacionPlanRepositorio({
-      contarAsignacionesActivasDePlan: vi.fn(async () => 2),
+      contarAsignacionesDePlan: vi.fn(async () => 2),
     });
     const casoUso = new EliminarPlan(planes, asignaciones);
 

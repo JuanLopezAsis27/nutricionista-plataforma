@@ -9,14 +9,12 @@ import { AsignarPlanAPaciente } from "./AsignarPlanAPaciente";
 /** Cuántos sufijos se prueban antes de rendirse: «Julia Pérez (2)»…«(50)». */
 const MAX_INTENTOS_DE_NOMBRE = 50;
 
-/** Entrada: el plan completo (como en `CrearPlan`) + a quién y desde cuándo. */
+/** Entrada: el plan completo (como en `CrearPlan`) + a quién asignárselo. */
 export interface DatosCrearPlanParaPaciente extends Omit<
   DatosCrearPlan,
   "esPlantilla" | "grupoId"
 > {
   pacienteId: string;
-  fechaInicio: Date;
-  fechaFin?: Date | null;
 }
 
 /**
@@ -59,13 +57,11 @@ export class CrearPlanParaPaciente {
       grupoId: carpeta.id,
     });
 
-    // Reemplaza cualquier plan activo previo, como cualquier otra asignación:
-    // un paciente solo sigue un plan a la vez.
+    // Se SUMA a los planes que el paciente ya tenga, como cualquier otra
+    // asignación: ninguno reemplaza a otro.
     await this.asignarUC.ejecutar({
       planId: plan.id,
       pacienteId: datos.pacienteId,
-      fechaInicio: datos.fechaInicio,
-      fechaFin: datos.fechaFin ?? null,
     });
 
     return plan;

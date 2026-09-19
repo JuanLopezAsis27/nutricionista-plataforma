@@ -94,6 +94,7 @@ export const MODELOS_INQUILINO = new Set<string>([
   "Estrategia",
   "HistorialObjetivo",
   "AsignacionPlan",
+  "DesasignacionPlan",
   "FranjaPlanSemanal",
   "ComidaSemanal",
   "ItemComidaSemanal",

@@ -12,7 +12,6 @@ import type {
 } from "@/dominio/repositorios/IPlanRepositorio";
 import { PlanNutricional } from "@/dominio/entidades/PlanNutricional";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
-import { soloFecha } from "./base/fechas";
 
 /** Include estándar: franjas ordenadas con opciones (y nombre de receta), extras. */
 const INCLUIR_HIJOS = {
@@ -388,39 +387,78 @@ export class PrismaRepositorioPlan
     });
   }
 
-  async contarAsignacionesActivasDePlan(planId: string): Promise<number> {
-    return this.prisma.asignacionPlan.count({
-      where: { planId, activa: true },
-    });
+  async contarAsignacionesDePlan(planId: string): Promise<number> {
+    return this.prisma.asignacionPlan.count({ where: { planId } });
   }
 
+  /**
+   * Idempotente por la clave única (planId, pacienteId): asignar de nuevo un
+   * plan que el paciente ya tiene no lo duplica ni falla, igual que en recetas
+   * y materiales. El `id` nuevo se descarta en ese caso.
+   */
   async asignarAPaciente(asignacion: AsignacionPlan): Promise<AsignacionPlan> {
-    const fila = await this.prisma.asignacionPlan.create({
-      data: {
+    const fila = await this.prisma.asignacionPlan.upsert({
+      where: {
+        planId_pacienteId: {
+          planId: asignacion.planId,
+          pacienteId: asignacion.pacienteId,
+        },
+      },
+      create: {
         nutricionistaId: inquilinoActual(),
         id: asignacion.id,
         planId: asignacion.planId,
-        nombrePlan: asignacion.nombrePlan,
         pacienteId: asignacion.pacienteId,
-        fechaInicio: soloFecha(asignacion.fechaInicio),
-        fechaFin: asignacion.fechaFin ? soloFecha(asignacion.fechaFin) : null,
-        finalizadaEn: asignacion.finalizadaEn
-          ? soloFecha(asignacion.finalizadaEn)
-          : null,
-        activa: asignacion.activa,
       },
+      update: {},
     });
     return mapearAsignacionPlan(fila);
   }
 
-  async desactivarAsignacionesDe(
+  /**
+   * Borra el vínculo y deja el registro de que existió, en una transacción: son
+   * la misma operación vista de los dos lados.
+   *
+   * El nombre del plan se copia ACÁ y no se resuelve después por `planId`: el
+   * plan se puede renombrar o borrar, y el registro tiene que seguir diciendo
+   * qué tenía el paciente entonces. Es la misma foto que llevaba la vieja
+   * `asignaciones_plan`, ahora del lado que sí la necesita.
+   *
+   * El `id` lo pone el default del modelo: la desasignación es un registro de
+   * infraestructura, no una entidad que el dominio construya.
+   */
+  async desasignarDePaciente(
+    planId: string,
     pacienteId: string,
-    finalizadaEn: Date,
+    desasignadoEn: Date,
   ): Promise<void> {
-    await this.prisma.asignacionPlan.updateMany({
-      where: { pacienteId, activa: true },
-      data: { activa: false, finalizadaEn: soloFecha(finalizadaEn) },
+    await this.prisma.$transaction(async (tx) => {
+      const asignacion = await tx.asignacionPlan.findUnique({
+        where: { planId_pacienteId: { planId, pacienteId } },
+        include: { plan: { select: { nombre: true } } },
+      });
+      // No lo tenía asignado: no hay vínculo que borrar ni nada que registrar.
+      if (!asignacion) return;
+
+      await tx.desasignacionPlan.create({
+        data: {
+          nutricionistaId: inquilinoActual(),
+          pacienteId,
+          planId,
+          nombrePlan: asignacion.plan.nombre,
+          asignadoEn: asignacion.creadoEn,
+          desasignadoEn,
+        },
+      });
+      await tx.asignacionPlan.delete({ where: { id: asignacion.id } });
     });
+  }
+
+  async estaAsignado(planId: string, pacienteId: string): Promise<boolean> {
+    const cantidad = await this.prisma.asignacionPlan.count({
+      where: { planId, pacienteId },
+    });
+    return cantidad > 0;
   }
 
   async listarAsignacionesDePlan(
@@ -429,8 +467,10 @@ export class PrismaRepositorioPlan
     const filas = await this.prisma.asignacionPlan.findMany({
       where: { planId },
       include: { paciente: { select: { nombre: true, apellido: true } } },
-      // Los que lo siguen HOY primero; después, los más recientes.
-      orderBy: [{ activa: "desc" }, { fechaInicio: "desc" }],
+      orderBy: [
+        { paciente: { apellido: "asc" } },
+        { paciente: { nombre: "asc" } },
+      ],
     });
     return filas.map((fila) => ({
       ...mapearAsignacionPlan(fila),
@@ -439,48 +479,13 @@ export class PrismaRepositorioPlan
     }));
   }
 
-  async listarAsignacionesDePaciente(
-    pacienteId: string,
-  ): Promise<AsignacionPlan[]> {
-    const filas = await this.prisma.asignacionPlan.findMany({
-      where: { pacienteId },
-      orderBy: [{ fechaInicio: "desc" }, { creadoEn: "desc" }],
+  async listarPlanesDePaciente(pacienteId: string): Promise<PlanNutricional[]> {
+    const filas = await this.prisma.planNutricional.findMany({
+      where: { asignaciones: { some: { pacienteId } } },
+      include: INCLUIR_HIJOS,
+      orderBy: { nombre: "asc" },
     });
-    return filas.map((fila) => mapearAsignacionPlan(fila));
-  }
-
-  async obtenerAsignacionActiva(
-    pacienteId: string,
-  ): Promise<AsignacionPlan | null> {
-    const fila = await this.prisma.asignacionPlan.findFirst({
-      where: { pacienteId, activa: true },
-    });
-    return fila ? mapearAsignacionPlan(fila) : null;
-  }
-
-  async obtenerPlanActivoDePaciente(
-    pacienteId: string,
-  ): Promise<PlanNutricional | null> {
-    const asignacion = await this.prisma.asignacionPlan.findFirst({
-      where: { pacienteId, activa: true },
-      include: { plan: { include: INCLUIR_HIJOS } },
-    });
-    // `plan` puede ser null desde la migración 38: si el plan se borró, la
-    // asignación queda en el historial sin él. Un paciente en ese estado no
-    // tiene plan vigente, que es exactamente lo que devuelve este método.
-    return asignacion?.plan ? mapearPlan(asignacion.plan) : null;
-  }
-
-  async listarAsignacionesActivasVencidas(
-    fechaLimite: Date,
-  ): Promise<AsignacionPlan[]> {
-    const filas = await this.prisma.asignacionPlan.findMany({
-      where: {
-        activa: true,
-        fechaFin: { not: null, lt: soloFecha(fechaLimite) },
-      },
-    });
-    return filas.map((fila) => mapearAsignacionPlan(fila));
+    return filas.map((fila) => mapearPlan(fila));
   }
 }
 
@@ -558,11 +563,6 @@ export function mapearAsignacionPlan(fila: AsignacionFila): AsignacionPlan {
   return {
     id: fila.id,
     planId: fila.planId,
-    nombrePlan: fila.nombrePlan,
     pacienteId: fila.pacienteId,
-    fechaInicio: fila.fechaInicio,
-    fechaFin: fila.fechaFin,
-    finalizadaEn: fila.finalizadaEn,
-    activa: fila.activa,
   };
 }

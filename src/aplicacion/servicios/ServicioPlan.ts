@@ -10,9 +10,8 @@ import type { AsignarPlanAPaciente } from "@/aplicacion/casos-de-uso/planes/Asig
 import type { AsignarPlanAVariosPacientes } from "@/aplicacion/casos-de-uso/planes/AsignarPlanAVariosPacientes";
 import type { CrearPlanParaPaciente } from "@/aplicacion/casos-de-uso/planes/CrearPlanParaPaciente";
 import type { DesasignarPlanDePaciente } from "@/aplicacion/casos-de-uso/planes/DesasignarPlanDePaciente";
-import type { ObtenerPlanDelPaciente } from "@/aplicacion/casos-de-uso/planes/ObtenerPlanDelPaciente";
+import type { ObtenerPlanesDelPaciente } from "@/aplicacion/casos-de-uso/planes/ObtenerPlanesDelPaciente";
 import type { ObtenerPacientesDePlan } from "@/aplicacion/casos-de-uso/planes/ObtenerPacientesDePlan";
-import type { ObtenerHistorialDePlanes } from "@/aplicacion/casos-de-uso/planes/ObtenerHistorialDePlanes";
 import type { SincronizarRecetasDePlan } from "@/aplicacion/casos-de-uso/planes/SincronizarRecetasDePlan";
 import type { MoverPlanAGrupo } from "@/aplicacion/casos-de-uso/planes/MoverPlanAGrupo";
 import type { CrearGrupoPlan } from "@/aplicacion/casos-de-uso/grupos-plan/CrearGrupoPlan";
@@ -33,12 +32,12 @@ import type {
   ArchivarPlanDto,
   CrearDesdePlantillaDto,
   AsignarPlanDto,
+  DesasignarPlanDto,
   AsignarPlanMultipleDto,
   ResultadoAsignacionMultipleDto,
   CrearPlanParaPacienteDto,
   PlanSalidaDto,
   ArchivoDelPlanDto,
-  AsignacionPlanSalidaDto,
   AsignacionConPacienteDto,
   GrupoPlanDto,
   ActualizarGrupoPlanDto,
@@ -64,9 +63,8 @@ export class ServicioPlan {
     private readonly asignarVariosUC: AsignarPlanAVariosPacientes,
     private readonly crearParaPacienteUC: CrearPlanParaPaciente,
     private readonly desasignarUC: DesasignarPlanDePaciente,
-    private readonly obtenerDelPacienteUC: ObtenerPlanDelPaciente,
+    private readonly obtenerDelPacienteUC: ObtenerPlanesDelPaciente,
     private readonly pacientesDePlanUC: ObtenerPacientesDePlan,
-    private readonly historialUC: ObtenerHistorialDePlanes,
     private readonly sincronizarRecetasUC: SincronizarRecetasDePlan,
     private readonly moverAGrupoUC: MoverPlanAGrupo,
     private readonly crearGrupoUC: CrearGrupoPlan,
@@ -128,8 +126,8 @@ export class ServicioPlan {
     return asignacion;
   }
 
-  async desasignarPlanDePaciente(pacienteId: string): Promise<void> {
-    await this.desasignarUC.ejecutar(pacienteId);
+  async desasignarPlanDePaciente(datos: DesasignarPlanDto): Promise<void> {
+    await this.desasignarUC.ejecutar(datos);
   }
 
   /** Asigna el mismo plan a varios pacientes. Uno que falle no aborta al resto. */
@@ -156,11 +154,10 @@ export class ServicioPlan {
     return ServicioPlan.aSalida(plan);
   }
 
-  async obtenerPlanDelPaciente(
-    pacienteId: string,
-  ): Promise<PlanSalidaDto | null> {
-    const plan = await this.obtenerDelPacienteUC.ejecutar(pacienteId);
-    return plan ? ServicioPlan.aSalida(plan) : null;
+  /** Los planes que el paciente tiene asignados (ninguno, uno o varios). */
+  async obtenerPlanesDelPaciente(pacienteId: string): Promise<PlanSalidaDto[]> {
+    const planes = await this.obtenerDelPacienteUC.ejecutar(pacienteId);
+    return planes.map(ServicioPlan.aSalida);
   }
 
   /**
@@ -170,18 +167,11 @@ export class ServicioPlan {
    * fallback del principal y dos podrían mostrar archivos distintos del mismo
    * plan —el error que ya se cometió con la foto de la receta—.
    */
-  /** Pacientes que tienen o tuvieron este plan, con sus fechas. */
+  /** Pacientes que tienen este plan asignado. */
   async obtenerPacientesDePlan(
     planId: string,
   ): Promise<AsignacionConPacienteDto[]> {
     return this.pacientesDePlanUC.ejecutar(planId);
-  }
-
-  /** Historial completo de planes del paciente, del más reciente al más viejo. */
-  async obtenerHistorialDePlanes(
-    pacienteId: string,
-  ): Promise<AsignacionPlanSalidaDto[]> {
-    return this.historialUC.ejecutar(pacienteId);
   }
 
   /** Mueve un plan a una carpeta (o lo saca de la que esté). */

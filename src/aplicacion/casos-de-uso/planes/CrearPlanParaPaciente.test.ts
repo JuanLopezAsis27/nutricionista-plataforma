@@ -61,7 +61,6 @@ describe("CrearPlanParaPaciente", () => {
       nombre: "Plan de Julia",
       comidas: [{ nombre: "Desayuno", opciones: [{ contenido: "Avena" }] }],
       pacienteId: "pac-1",
-      fechaInicio: new Date("2026-01-01"),
     });
 
     expect(grupos.existeNombre).toHaveBeenCalledWith("Ana García");
@@ -86,7 +85,6 @@ describe("CrearPlanParaPaciente", () => {
       nombre: "Plan de Julia",
       comidas: [{ nombre: "Desayuno", opciones: [{ contenido: "Avena" }] }],
       pacienteId: "pac-1",
-      fechaInicio: new Date("2026-01-01"),
     });
 
     expect(grupos.crear).not.toHaveBeenCalled();
@@ -103,7 +101,6 @@ describe("CrearPlanParaPaciente", () => {
       nombre: "Plan de Julia",
       comidas: [{ nombre: "Desayuno", opciones: [{ contenido: "Avena" }] }],
       pacienteId: "pac-1",
-      fechaInicio: new Date("2026-01-01"),
     });
 
     expect(asignaciones.asignarAPaciente).toHaveBeenCalledOnce();
@@ -117,7 +114,6 @@ describe("CrearPlanParaPaciente", () => {
         nombre: "Plan",
         comidas: [{ nombre: "Desayuno", opciones: [{ contenido: "X" }] }],
         pacienteId: "pac-x",
-        fechaInicio: new Date("2026-01-01"),
       }),
     ).rejects.toBeInstanceOf(ErrorPacienteNoEncontrado);
     expect(planes.crear).not.toHaveBeenCalled();

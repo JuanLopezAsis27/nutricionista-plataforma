@@ -93,9 +93,9 @@ export class PreguntarAlAsistente {
       throw new ErrorPacienteNoEncontrado(pacienteId);
     }
 
-    const [objetivos, planActivo, historia, axiomas] = await Promise.all([
+    const [objetivos, planesAsignados, historia, axiomas] = await Promise.all([
       this.objetivos.listarPorPaciente(pacienteId),
-      this.planes.obtenerPlanActivoDePaciente(pacienteId),
+      this.planes.listarPlanesDePaciente(pacienteId),
       this.historias.obtenerPorPaciente(pacienteId),
       this.axiomas.listarActivos(),
     ]);
@@ -139,7 +139,7 @@ export class PreguntarAlAsistente {
           .map((o) => o.aPrimitivos())
           .filter((o) => o.estado === "EN_CURSO")
           .map((o) => o.titulo),
-        tienePlan: planActivo != null,
+        tienePlan: planesAsignados.length > 0,
         restricciones: historia?.restriccionesAlimentarias ?? [],
         recomendacionesNutricionista: axiomas.map((a) => a.aPrimitivos().texto),
       },
@@ -168,29 +168,34 @@ export class PreguntarAlAsistente {
       {
         nombre: "obtener_plan_nutricional",
         descripcion:
-          "Devuelve el plan nutricional activo del paciente: sus comidas por franja con las " +
-          "opciones, y las metas de macros. Usalo cuando pregunte por su plan, sus comidas o qué comer.",
+          "Devuelve los planes nutricionales asignados al paciente —puede tener varios a la " +
+          "vez— con sus comidas por franja, las opciones y las metas de macros. Usalo cuando " +
+          "pregunte por su plan, sus comidas o qué comer.",
         esquema: SIN_ARGUMENTOS,
         ejecutar: async () => {
-          const plan =
-            await this.planes.obtenerPlanActivoDePaciente(pacienteId);
-          if (!plan) return "El paciente no tiene un plan activo asignado.";
-          const p = plan.aPrimitivos();
-          return JSON.stringify({
-            nombre: p.nombre,
-            descripcion: p.descripcion,
-            metas: {
-              caloriasMeta: p.caloriasMeta,
-              proteinasMetaG: p.proteinasMetaG,
-              carbohidratosMetaG: p.carbohidratosMetaG,
-              grasasMetaG: p.grasasMetaG,
-            },
-            comidas: p.comidas.map((c) => ({
-              franja: c.nombre,
-              opciones: c.opciones.map((o) => o.contenido),
-            })),
-            recomendaciones: p.recomendaciones.map((r) => r.texto),
-          });
+          const planes = await this.planes.listarPlanesDePaciente(pacienteId);
+          if (planes.length === 0)
+            return "El paciente no tiene ningún plan asignado.";
+          return JSON.stringify(
+            planes.map((plan) => {
+              const p = plan.aPrimitivos();
+              return {
+                nombre: p.nombre,
+                descripcion: p.descripcion,
+                metas: {
+                  caloriasMeta: p.caloriasMeta,
+                  proteinasMetaG: p.proteinasMetaG,
+                  carbohidratosMetaG: p.carbohidratosMetaG,
+                  grasasMetaG: p.grasasMetaG,
+                },
+                comidas: p.comidas.map((c) => ({
+                  franja: c.nombre,
+                  opciones: c.opciones.map((o) => o.contenido),
+                })),
+                recomendaciones: p.recomendaciones.map((r) => r.texto),
+              };
+            }),
+          );
         },
       },
       {

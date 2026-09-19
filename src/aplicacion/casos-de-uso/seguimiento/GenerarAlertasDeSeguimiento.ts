@@ -1,7 +1,6 @@
 import type { IAlertaSeguimientoRepositorio } from "@/dominio/repositorios/IAlertaSeguimientoRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IRegistroDiarioRepositorio } from "@/dominio/repositorios/IRegistroDiarioRepositorio";
-import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import {
@@ -24,8 +23,10 @@ export interface ResultadoGeneracion {
  *  - SIN_REGISTRO_PESO: paciente con diario iniciado que no registra peso
  *    hace 7 días.
  *  - SIN_ACTIVIDAD: ídem para actividad física.
- *  - PLAN_VENCIDO: asignación activa cuya fecha de fin ya pasó.
  *  - TURNO_SIN_CONFIRMAR: turno de MAÑANA aún PENDIENTE.
+ *
+ * Hubo una cuarta, PLAN_VENCIDO, que se fue con las fechas de la asignación
+ * (migración 69): un plan se asigna y se desasigna, no caduca solo.
  *
  * La creación es idempotente (crearSiNoExistePendiente): correr el barrido
  * dos veces no duplica avisos.
@@ -35,7 +36,6 @@ export class GenerarAlertasDeSeguimiento {
     private readonly alertas: IAlertaSeguimientoRepositorio,
     private readonly pacientes: IPacienteRepositorio,
     private readonly registros: IRegistroDiarioRepositorio,
-    private readonly planes: IAsignacionPlanRepositorio,
     private readonly turnos: ITurnoRepositorio,
     private readonly reloj: IRelojFecha,
   ) {}
@@ -96,22 +96,6 @@ export class GenerarAlertasDeSeguimiento {
           datos: { diasSinRegistro: DIAS_SIN_REGISTRO },
         });
       }
-    }
-
-    // --- Planes con asignación activa vencida -----------------------------
-    const vencidas = await this.planes.listarAsignacionesActivasVencidas(hoy);
-    for (const asignacion of vencidas) {
-      const nombre =
-        nombreDe.get(asignacion.pacienteId) ?? asignacion.pacienteId;
-      // El nombre sale de la asignación, no de una consulta por plan: la
-      // asignación lo guarda desde la migración 38. Antes esto era un bucle de
-      // lecturas por cada plan vencido para recuperar un dato que ya viajaba.
-      await crear({
-        pacienteId: asignacion.pacienteId,
-        tipo: "PLAN_VENCIDO",
-        detalle: `El plan «${asignacion.nombrePlan}» de ${nombre} venció: toca renovarlo.`,
-        referenciaId: asignacion.id,
-      });
     }
 
     // --- Turnos de mañana sin confirmar -----------------------------------

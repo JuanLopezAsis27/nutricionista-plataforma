@@ -5,8 +5,12 @@ import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 
 /**
  * Caso de uso: eliminar un plan.
- * Verifica que exista y que no tenga asignaciones activas (en ese caso
+ * Verifica que exista y que no esté asignado a ningún paciente (en ese caso
  * conviene archivarlo, no borrarlo).
+ *
+ * El chequeo no es redundante con el CASCADE de la FK: la base se llevaría los
+ * vínculos en silencio y varios pacientes se quedarían sin un plan que estaban
+ * siguiendo. Acá se avisa antes.
  */
 export class EliminarPlan {
   constructor(
@@ -20,9 +24,8 @@ export class EliminarPlan {
       throw new ErrorPlanNoEncontrado(id);
     }
 
-    const asignacionesActivas =
-      await this.asignaciones.contarAsignacionesActivasDePlan(id);
-    if (asignacionesActivas > 0) {
+    const asignados = await this.asignaciones.contarAsignacionesDePlan(id);
+    if (asignados > 0) {
       throw new ErrorValidacion(
         "No se puede eliminar un plan asignado a pacientes. Archivalo, o desasignalo primero.",
       );
