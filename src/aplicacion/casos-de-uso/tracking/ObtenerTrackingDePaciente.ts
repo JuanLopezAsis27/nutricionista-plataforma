@@ -84,9 +84,10 @@ const EXTRACTORES: Record<
 };
 
 /**
- * Caso de uso: tracking del progreso del paciente. Compone su diario, el plan
- * activo, los axiomas activos y la antropometría para producir un read-model
- * con adherencia a los axiomas, concordancia con el plan y evolución de peso.
+ * Caso de uso: tracking del progreso del paciente. Compone su diario, los
+ * planes que tiene asignados, los axiomas activos y la antropometría para
+ * producir un read-model con adherencia a los axiomas, concordancia con el
+ * plan y evolución de peso.
  * Lo consumen tanto el portal del paciente como la ficha del nutricionista.
  */
 export class ObtenerTrackingDePaciente {
@@ -109,10 +110,10 @@ export class ObtenerTrackingDePaciente {
       throw new ErrorPacienteNoEncontrado(pacienteId);
     }
 
-    const [diario, plan, axiomasActivos, mediciones, metricas] =
+    const [diario, planes, axiomasActivos, mediciones, metricas] =
       await Promise.all([
         this.registros.listarPorRango(pacienteId, desde, hasta),
-        this.planes.obtenerPlanActivoDePaciente(pacienteId),
+        this.planes.listarPlanesDePaciente(pacienteId),
         this.axiomas.listarActivos(),
         this.antropometrias.listarPorPaciente(pacienteId),
         this.metricas.listarPorRango(pacienteId, desde, hasta),
@@ -128,7 +129,7 @@ export class ObtenerTrackingDePaciente {
       hasta,
       diasConRegistro: dias.length,
       adherencia: calcularAdherencia(axiomasActivos, diasAdherencia),
-      concordancia: calcularConcordancia(plan, dias),
+      concordancia: calcularConcordancia(planes, dias),
       peso: calcularPeso(dias, mediciones, desde, hasta),
     };
   }
@@ -288,18 +289,31 @@ function objetivoLegible(a: {
   }
 }
 
+/**
+ * Las franjas de TODOS los planes asignados, sin repetir: un paciente puede
+ * tener varios a la vez y "Desayuno" en dos de ellos es una sola franja que
+ * registrar. Contarla dos veces le bajaría la cobertura por tener más planes.
+ */
 function calcularConcordancia(
-  plan: { aPrimitivos(): { comidas: { nombre: string }[] } } | null,
+  planes: { aPrimitivos(): { comidas: { nombre: string }[] } }[],
   dias: { comidas: ReadonlyArray<{ franja: string }> }[],
 ): ConcordanciaPlan {
-  const franjasPlan = plan
-    ? plan.aPrimitivos().comidas.map((c) => c.nombre.trim())
-    : [];
+  const franjasPlan: string[] = [];
+  const vistas = new Set<string>();
+  for (const plan of planes) {
+    for (const comida of plan.aPrimitivos().comidas) {
+      const nombre = comida.nombre.trim();
+      const clave = nombre.toLowerCase();
+      if (vistas.has(clave)) continue;
+      vistas.add(clave);
+      franjasPlan.push(nombre);
+    }
+  }
   const diasConRegistro = dias.filter((d) => d.comidas.length > 0);
 
   if (franjasPlan.length === 0) {
     return {
-      tienePlan: plan != null,
+      tienePlan: planes.length > 0,
       franjasPlanificadas: franjasPlan.length,
       diasEvaluados: diasConRegistro.length,
       coberturaPromedio: null,

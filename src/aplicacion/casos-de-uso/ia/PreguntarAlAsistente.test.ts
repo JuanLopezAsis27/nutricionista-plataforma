@@ -36,7 +36,7 @@ function armar(opciones: {
     }),
     mockObjetivoRepositorio({ listarPorPaciente: vi.fn(async () => []) }),
     mockAsignacionPlanRepositorio({
-      obtenerPlanActivoDePaciente: vi.fn(async () => null),
+      listarPlanesDePaciente: vi.fn(async () => []),
     }),
     mockRecetaRepositorio({ listarPorPaciente: vi.fn(async () => []) }),
     mockHistoriaClinicaRepositorio({

@@ -1,12 +1,10 @@
 import type { AsignacionPlan } from "@/dominio/repositorios/IPlanRepositorio";
 import { AsignarPlanAPaciente } from "./AsignarPlanAPaciente";
 
-/** Entrada: un plan, varios pacientes, el mismo período para todos. */
+/** Entrada: un plan, varios pacientes. */
 export interface DatosAsignarPlanAVarios {
   planId: string;
   pacienteIds: string[];
-  fechaInicio: Date;
-  fechaFin?: Date | null;
 }
 
 /** Una asignación lograda, o el motivo por el que ese paciente no lo recibió. */
@@ -22,9 +20,9 @@ export interface ResultadoAsignacionMultiple {
  *
  * Reusa `AsignarPlanAPaciente` paciente por paciente, en vez de una versión
  * propia de la regla: son la misma asignación repetida, no una nueva. Cada
- * paciente es independiente —el que ya tenía plan activo lo pierde igual que
- * si se lo asignaran de a uno—, así que un paciente que falla (no existe, el
- * plan es una plantilla) no aborta a los demás: se junta el error y se sigue,
+ * paciente es independiente —el plan se suma a los que ya tenga, igual que si
+ * se lo asignaran de a uno—, así que un paciente que falla (no existe, el plan
+ * es una plantilla) no aborta a los demás: se junta el error y se sigue,
  * porque a mitad de una tanda de diez nadie quiere perder las nueve que sí
  * iban a andar.
  */
@@ -40,8 +38,6 @@ export class AsignarPlanAVariosPacientes {
         const asignacion = await this.asignarUC.ejecutar({
           planId: datos.planId,
           pacienteId,
-          fechaInicio: datos.fechaInicio,
-          fechaFin: datos.fechaFin ?? null,
         });
         resultados.push({ pacienteId, asignacion, error: null });
       } catch (error) {

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle } from "lucide-react";
 import type {
   PlanSalidaDto,
   ArchivoDelPlanDto,
@@ -11,11 +10,8 @@ import type {
 import type { ModalidadPlan } from "@/dominio/entidades/PlanNutricional";
 import { usePlanes } from "@/lib/hooks/usePlanes";
 import { useRecetas } from "@/lib/hooks/useRecetas";
-import { hoyISO } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
-import { Input } from "@/componentes/ui/input";
 import { Textarea } from "@/componentes/ui/textarea";
-import { Label } from "@/componentes/ui/label";
 import {
   Form,
   FormField,
@@ -105,18 +101,11 @@ export function FormularioPlan({
     crear,
     actualizar,
     crearParaPaciente,
-    delPaciente,
     grupos: listarGrupos,
   } = usePlanes();
   const grupos = listarGrupos();
   // La carpeta la decide el servidor (la del paciente): el selector no aplica.
   const conCarpetaHabilitada = !paraPaciente;
-  const [fechaInicio, setFechaInicio] = useState(hoyISO());
-  const [fechaFin, setFechaFin] = useState("");
-  const planActivo = delPaciente(
-    { pacienteId: paraPaciente?.pacienteId ?? "" },
-    { enabled: Boolean(paraPaciente) },
-  );
   // La del plan que se edita gana siempre: la modalidad no se cambia editando.
   const modalidad: ModalidadPlan =
     planInicial?.modalidad ?? modalidadProp ?? "APP";
@@ -236,12 +225,7 @@ export function FormularioPlan({
       const { grupoId: _grupoId, ...sinCarpeta } = cuerpo;
       void _grupoId;
       crearParaPaciente.mutate(
-        {
-          ...sinCarpeta,
-          pacienteId: paraPaciente.pacienteId,
-          fechaInicio: new Date(fechaInicio),
-          fechaFin: fechaFin ? new Date(fechaFin) : null,
-        },
+        { ...sinCarpeta, pacienteId: paraPaciente.pacienteId },
         { onSuccess: onTerminado },
       );
     } else {
@@ -260,41 +244,6 @@ export function FormularioPlan({
           grupos={grupos.data ?? []}
           conCarpeta={!esPlantilla && conCarpetaHabilitada}
         />
-
-        {paraPaciente && (
-          <div className="space-y-3 rounded-lg border p-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="plan-fecha-inicio">Fecha de inicio</Label>
-                <Input
-                  id="plan-fecha-inicio"
-                  type="date"
-                  value={fechaInicio}
-                  onChange={(e) => setFechaInicio(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="plan-fecha-fin">Fecha de fin (opcional)</Label>
-                <Input
-                  id="plan-fecha-fin"
-                  type="date"
-                  value={fechaFin}
-                  onChange={(e) => setFechaFin(e.target.value)}
-                />
-              </div>
-            </div>
-            {planActivo.data && (
-              <div className="flex items-start gap-2 rounded-md border border-yellow-300/60 bg-yellow-50 p-3 text-sm text-yellow-800 dark:border-yellow-500/30 dark:bg-yellow-500/10 dark:text-yellow-200">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>
-                  {paraPaciente.nombre} ya tiene un plan activo («
-                  {planActivo.data.nombre}»). Este plan nuevo lo va a
-                  reemplazar.
-                </span>
-              </div>
-            )}
-          </div>
-        )}
 
         <SeccionMetasMacros control={form.control} />
 

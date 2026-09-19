@@ -4,7 +4,6 @@ import { ErrorValidacion } from "../errores/ErrorValidacion";
 export const TIPOS_ALERTA_SEGUIMIENTO = [
   "SIN_REGISTRO_PESO",
   "SIN_ACTIVIDAD",
-  "PLAN_VENCIDO",
   "TURNO_SIN_CONFIRMAR",
 ] as const;
 export type TipoAlertaSeguimiento = (typeof TIPOS_ALERTA_SEGUIMIENTO)[number];
@@ -22,7 +21,7 @@ export interface DatosNuevaAlertaSeguimiento {
   pacienteId: string;
   tipo: TipoAlertaSeguimiento;
   detalle: string;
-  /** Id del disparador (turno, asignación de plan) — evita duplicados. */
+  /** Id del disparador (el turno) — evita duplicados. */
   referenciaId?: string | null;
   /** Señales extra (para el análisis/ML futuro). */
   datos?: Record<string, unknown> | null;

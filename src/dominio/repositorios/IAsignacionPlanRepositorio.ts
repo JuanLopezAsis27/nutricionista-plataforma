@@ -1,26 +1,18 @@
 import type { PlanNutricional } from "../entidades/PlanNutricional";
 
 /**
- * Vinculación de un plan a un paciente durante un período.
+ * Vinculación de un plan a un paciente.
  * Se modela como tipo de dominio (no entidad rica) por simplicidad.
  *
- * Las asignaciones son el HISTORIAL del paciente: no se borran, se desactivan,
- * y sobreviven al borrado del plan. Qué siguió y entre qué fechas es
- * información del paciente, no un detalle del plan.
+ * Es un vínculo PURO —plan y paciente, nada más—, como el de una receta o un
+ * material compartido. Un paciente puede tener VARIOS planes asignados al
+ * mismo tiempo: no hay período, no hay uno vigente que le gane a los otros y
+ * no queda registro de los que tuvo antes (migración 69).
  */
 export interface AsignacionPlan {
   id: string;
-  /** Null si el plan se borró. La asignación queda igual. */
-  planId: string | null;
-  /** Nombre del plan al asignarlo. Es una foto: sobrevive al borrado y al renombre. */
-  nombrePlan: string;
+  planId: string;
   pacienteId: string;
-  fechaInicio: Date;
-  /** Fin PLANIFICADO al asignar. No es cuándo terminó de verdad. */
-  fechaFin: Date | null;
-  /** Cuándo dejó de regir realmente (al reemplazarla o finalizarla). */
-  finalizadaEn: Date | null;
-  activa: boolean;
 }
 
 /** Asignación con el nombre del paciente, para la lista de un plan. */
@@ -34,11 +26,9 @@ export interface AsignacionConPaciente extends AsignacionPlan {
  *
  * ## Por qué es un puerto aparte de `IPlanRepositorio`
  *
- * Son dos agregados con ciclos de vida distintos. Un plan es una plantilla que
- * el consultorio edita y archiva; una asignación es un tramo del historial de
- * UN paciente, que no se borra ni se edita —se desactiva— y que **sobrevive al
- * borrado del plan** (por eso `planId` es nullable y `nombrePlan` guarda una
- * foto del nombre).
+ * Son dos agregados con ciclos de vida distintos. Un plan es contenido que el
+ * consultorio edita, archiva y reusa; una asignación solo dice que ese plan
+ * está compartido con ese paciente, y se crea y se borra sin tocarlo.
  *
  * La separación tiene un motivo medido, no estético: de los 19 consumidores
  * del puerto original, **15 necesitaban uno solo de los dos grupos**. Cuatro de
@@ -49,34 +39,43 @@ export interface AsignacionConPaciente extends AsignacionPlan {
  * dos contratos, y el cableado inyecta la misma instancia donde hace falta.
  */
 export interface IAsignacionPlanRepositorio {
+  /**
+   * Asigna el plan al paciente. Es IDEMPOTENTE: asignar dos veces el mismo
+   * plan al mismo paciente deja una sola asignación, como en recetas y
+   * materiales. La garantía dura es el índice único (planId, pacienteId).
+   */
   asignarAPaciente(asignacion: AsignacionPlan): Promise<AsignacionPlan>;
   /**
-   * Cierra las asignaciones activas del paciente dejando registrado CUÁNDO
-   * dejaron de regir. La fecha la decide el caso de uso: al reemplazar un plan
-   * es el inicio del nuevo, al finalizarlo a mano es hoy.
-   */
-  desactivarAsignacionesDe(
-    pacienteId: string,
-    finalizadaEn: Date,
-  ): Promise<void>;
-  obtenerAsignacionActiva(pacienteId: string): Promise<AsignacionPlan | null>;
-  /** Pacientes que tienen o tuvieron este plan, del más reciente al más viejo. */
-  listarAsignacionesDePlan(planId: string): Promise<AsignacionConPaciente[]>;
-  /** Historial completo de planes del paciente, del más reciente al más viejo. */
-  listarAsignacionesDePaciente(pacienteId: string): Promise<AsignacionPlan[]>;
-  /**
-   * El plan que el paciente sigue hoy, ya resuelto.
+   * Saca UN plan de UN paciente. Los demás planes que tenga siguen ahí.
    *
-   * Devuelve el PLAN y no la asignación porque quien pregunta esto —el portal,
-   * la IA, el tracking— quiere el contenido, no el vínculo.
+   * Borra el vínculo y, **en la misma transacción**, deja el registro de que lo
+   * tuvo: qué plan (con el nombre congelado), desde cuándo y hasta cuándo. Las
+   * dos cosas van juntas porque son la misma decisión: si el borrado anduviera
+   * sin el registro, el paciente perdería el plan y nadie podría decir que
+   * alguna vez lo tuvo.
+   *
+   * Ese registro no se lee desde ninguna pantalla —el front solo muestra lo
+   * asignado hoy— y por eso no hay método para leerlo: es información clínica
+   * que se guarda porque no se puede reconstruir después, no un read model.
+   *
+   * Desasignar un plan que el paciente no tiene no hace nada y no falla.
    */
-  obtenerPlanActivoDePaciente(
+  desasignarDePaciente(
+    planId: string,
     pacienteId: string,
-  ): Promise<PlanNutricional | null>;
-  /** Asignaciones aún activas cuya fecha de fin ya pasó (para alertas). */
-  listarAsignacionesActivasVencidas(
-    fechaLimite: Date,
-  ): Promise<AsignacionPlan[]>;
-  /** Cantidad de asignaciones activas que apuntan a un plan. */
-  contarAsignacionesActivasDePlan(planId: string): Promise<number>;
+    desasignadoEn: Date,
+  ): Promise<void>;
+  /** ¿Este paciente tiene este plan asignado hoy? */
+  estaAsignado(planId: string, pacienteId: string): Promise<boolean>;
+  /** Pacientes que tienen este plan asignado. */
+  listarAsignacionesDePlan(planId: string): Promise<AsignacionConPaciente[]>;
+  /**
+   * Los planes que el paciente tiene asignados, ya resueltos.
+   *
+   * Devuelve los PLANES y no las asignaciones porque quien pregunta esto —el
+   * portal, la IA, el tracking— quiere el contenido, no el vínculo.
+   */
+  listarPlanesDePaciente(pacienteId: string): Promise<PlanNutricional[]>;
+  /** Cantidad de pacientes que tienen asignado un plan. */
+  contarAsignacionesDePlan(planId: string): Promise<number>;
 }

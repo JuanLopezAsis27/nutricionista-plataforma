@@ -71,7 +71,7 @@ function saludoSegunHora(hora: number): string {
 }
 
 export default function PaginaMiInicio() {
-  const { miPlan } = usePlanes();
+  const { misPlanes } = usePlanes();
   const { miPlanSemanal } = usePlanesSemanales();
   const { porPaciente } = useTurnos();
   const { miDia, guardarMiDia } = useDiario();
@@ -79,7 +79,7 @@ export default function PaginaMiInicio() {
   const { misNoLeidos } = useMensajeria();
 
   const hoy = new Date(hoyLocalISO());
-  const plan = miPlan();
+  const planes = misPlanes();
   const semanal = miPlanSemanal();
   const turnos = porPaciente({});
   const dia = miDia({ fecha: hoy });
@@ -97,8 +97,12 @@ export default function PaginaMiInicio() {
     )[0];
 
   // --- Franja actual (o próxima) del plan ---
+  //
+  // Las franjas de TODOS los planes asignados en una sola bolsa: la tarjeta
+  // dice "qué toca ahora" y eso no depende de en cuál de sus planes esté
+  // escrito. El plan completo —cada uno por separado— está en «Mi plan».
   const ahora = horaAhora();
-  const comidas = plan.data?.comidas ?? [];
+  const comidas = (planes.data ?? []).flatMap((plan) => plan.comidas);
   const franjaActual =
     comidas.find(
       (c) =>
@@ -130,7 +134,7 @@ export default function PaginaMiInicio() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <TarjetaPlanAhora
-          cargando={plan.isLoading}
+          cargando={planes.isLoading}
           franja={
             franjaActual
               ? {

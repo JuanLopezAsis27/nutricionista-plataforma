@@ -291,7 +291,6 @@ export const servicioSeguimiento = perezoso(() =>
     pacientes: nucleo.repositorioPaciente(),
     registros: nucleo.repositorioRegistroDiario(),
     antropometrias: nucleo.repositorioAntropometria(),
-    planes: nucleo.repositorioPlan(),
     turnos: nucleo.repositorioTurno(),
     usuarios: nucleo.repositorioUsuario(),
     reloj: nucleo.reloj(),

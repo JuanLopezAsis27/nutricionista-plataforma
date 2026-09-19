@@ -305,22 +305,51 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log("\nM-7 · Un solo plan activo por paciente");
-  await comprobar("la segunda asignación activa se rechaza", async () => {
+  // M-7 nació como "un solo plan activo por paciente" y la migración 69 lo dio
+  // vuelta: ahora conviven varios. Lo único que la base sigue impidiendo es
+  // asignar DOS VECES el mismo plan al mismo paciente.
+  console.log("\nM-7 · Varios planes por paciente, el mismo una sola vez");
+  await comprobar("dos planes distintos conviven en un paciente", async () => {
     const planId = crypto.randomUUID();
+    const otroPlanId = crypto.randomUUID();
     await ejecutarEnNutricionista(nutriA, async () => {
       await prisma.planNutricional.create({
         data: { id: planId, nutricionistaId: nutriA, nombre: "Plan 1" },
+      });
+      await prisma.planNutricional.create({
+        data: { id: otroPlanId, nutricionistaId: nutriA, nombre: "Plan 2" },
       });
       await prisma.asignacionPlan.create({
         data: {
           id: crypto.randomUUID(),
           nutricionistaId: nutriA,
           planId,
-          nombrePlan: "Plan 1",
           pacienteId: pacienteA,
-          fechaInicio: fecha,
-          activa: true,
+        },
+      });
+      await prisma.asignacionPlan.create({
+        data: {
+          id: crypto.randomUUID(),
+          nutricionistaId: nutriA,
+          planId: otroPlanId,
+          pacienteId: pacienteA,
+        },
+      });
+    });
+  });
+
+  await comprobar("el mismo plan dos veces se rechaza", async () => {
+    const planId = crypto.randomUUID();
+    await ejecutarEnNutricionista(nutriA, async () => {
+      await prisma.planNutricional.create({
+        data: { id: planId, nutricionistaId: nutriA, nombre: "Plan 3" },
+      });
+      await prisma.asignacionPlan.create({
+        data: {
+          id: crypto.randomUUID(),
+          nutricionistaId: nutriA,
+          planId,
+          pacienteId: pacienteA,
         },
       });
     });
@@ -332,17 +361,47 @@ async function main(): Promise<void> {
               id: crypto.randomUUID(),
               nutricionistaId: nutriA,
               planId,
-              nombrePlan: "Plan 1",
               pacienteId: pacienteA,
-              fechaInicio: fecha,
-              activa: true,
             },
           }),
         ),
-      // Prisma traduce el índice único parcial a P2002 con el campo, no con
-      // el nombre del índice.
-      "Unique constraint failed on the fields: (`pacienteId`)",
+      "Unique constraint failed on the fields: (`planId`,`pacienteId`)",
     );
+  });
+
+  // El historial vive en `desasignaciones_plan` y no lo lee ninguna pantalla,
+  // así que si se rompe nadie se entera mirando la app. Se comprueba acá lo
+  // único que la BASE garantiza: que la fila sobreviva al borrado del plan.
+  console.log("\nM-9 · El historial de planes sobrevive al borrado del plan");
+  await comprobar("al borrar el plan queda la fila con el nombre", async () => {
+    const planId = crypto.randomUUID();
+    const desasignacionId = crypto.randomUUID();
+    await ejecutarEnNutricionista(nutriA, async () => {
+      await prisma.planNutricional.create({
+        data: { id: planId, nutricionistaId: nutriA, nombre: "Plan 4" },
+      });
+      await prisma.desasignacionPlan.create({
+        data: {
+          id: desasignacionId,
+          nutricionistaId: nutriA,
+          pacienteId: pacienteA,
+          planId,
+          nombrePlan: "Plan 4",
+          asignadoEn: new Date("2026-01-01"),
+          desasignadoEn: new Date("2026-03-01"),
+        },
+      });
+      await prisma.planNutricional.delete({ where: { id: planId } });
+    });
+
+    const fila = await ejecutarEnNutricionista(nutriA, () =>
+      prisma.desasignacionPlan.findUnique({ where: { id: desasignacionId } }),
+    );
+    if (!fila) throw new Error("la desasignación se fue con el plan");
+    if (fila.planId !== null) throw new Error("planId debería quedar en null");
+    if (fila.nombrePlan !== "Plan 4") {
+      throw new Error(`se perdió el nombre: ${fila.nombrePlan}`);
+    }
   });
 
   console.log("\nA-3 · WhatsApp resuelve por índice, no barriendo la tabla");

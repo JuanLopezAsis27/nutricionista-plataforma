@@ -11,15 +11,10 @@ import {
   pacienteEjemplo,
 } from "../_ayudas-test";
 
-const datos = {
-  planId: "pla-1",
-  pacienteId: "pac-1",
-  fechaInicio: new Date("2026-07-01"),
-  fechaFin: null,
-};
+const datos = { planId: "pla-1", pacienteId: "pac-1" };
 
 describe("AsignarPlanAPaciente", () => {
-  it("desactiva la asignación previa y crea una nueva activa", async () => {
+  it("crea el vínculo sin tocar los planes que el paciente ya tenga", async () => {
     const planes = mockPlanRepositorio({
       obtenerPorId: vi.fn(async () => planEjemplo()),
     });
@@ -31,17 +26,11 @@ describe("AsignarPlanAPaciente", () => {
 
     const asignacion = await casoUso.ejecutar(datos);
 
-    // La anterior se cierra con el INICIO de la nueva, no con "hoy": el plan
-    // viejo rigió hasta que empezó el que lo reemplaza.
-    expect(asignaciones.desactivarAsignacionesDe).toHaveBeenCalledWith(
-      "pac-1",
-      datos.fechaInicio,
-    );
     expect(asignaciones.asignarAPaciente).toHaveBeenCalledOnce();
-    expect(asignacion.activa).toBe(true);
-    // Foto del nombre: sobrevive a que el plan se renombre o se borre.
-    expect(asignacion.nombrePlan).toBe(planEjemplo().nombre);
-    expect(asignacion.finalizadaEn).toBeNull();
+    expect(asignacion.planId).toBe("pla-1");
+    expect(asignacion.pacienteId).toBe("pac-1");
+    // Asignar SUMA: no hay nada que desasignar de paso.
+    expect(asignaciones.desasignarDePaciente).not.toHaveBeenCalled();
   });
 
   it("rechaza asignar una plantilla directamente", async () => {
@@ -57,7 +46,7 @@ describe("AsignarPlanAPaciente", () => {
     await expect(casoUso.ejecutar(datos)).rejects.toBeInstanceOf(
       ErrorValidacion,
     );
-    expect(asignaciones.desactivarAsignacionesDe).not.toHaveBeenCalled();
+    expect(asignaciones.asignarAPaciente).not.toHaveBeenCalled();
   });
 
   it("lanza ErrorPacienteNoEncontrado si el paciente no existe", async () => {

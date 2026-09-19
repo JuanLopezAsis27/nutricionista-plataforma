@@ -6,11 +6,11 @@ import type {
 import { ErrorPlanNoEncontrado } from "@/dominio/errores/ErrorPlanNoEncontrado";
 
 /**
- * Caso de uso: pacientes que tienen —o tuvieron— este plan asignado.
+ * Caso de uso: pacientes que tienen este plan asignado.
  *
- * Devuelve las asignaciones enteras, activas e históricas, y no solo los ids:
- * la pantalla del plan necesita saber desde cuándo lo sigue cada uno y quiénes
- * ya lo dejaron. Devolver solo los activos escondería que el plan se usó.
+ * Devuelve las asignaciones enteras y no solo los ids de paciente: la pantalla
+ * del plan muestra nombre y apellido, y resolverlos aparte sería una consulta
+ * por fila.
  */
 export class ObtenerPacientesDePlan {
   constructor(

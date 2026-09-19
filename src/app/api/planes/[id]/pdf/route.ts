@@ -31,7 +31,8 @@ function nombreArchivo(nombrePlan: string): string {
  * GET /api/planes/[id]/pdf — descarga el plan como PDF con membrete.
  *
  * Autorización: el nutricionista descarga cualquier plan (con `?paciente=` el
- * membrete incluye el nombre del paciente); el paciente solo su plan activo.
+ * membrete incluye el nombre del paciente); el paciente, cualquiera de los
+ * planes que tenga asignados.
  * Los PDF se generan al vuelo, nunca por tRPC (transporte binario).
  */
 export function GET(
@@ -59,17 +60,17 @@ export function GET(
           nombrePaciente = `${paciente.nombre} ${paciente.apellido}`;
         }
       } else {
-        // Paciente: solo puede descargar su propio plan activo.
+        // Paciente: solo puede descargar un plan que tenga asignado.
         if (!usuario.pacienteId) {
           return NextResponse.json(
             { error: "Tu usuario no tiene un paciente asociado." },
             { status: 403 },
           );
         }
-        const planActivo = await servicioPlan().obtenerPlanDelPaciente(
+        const asignados = await servicioPlan().obtenerPlanesDelPaciente(
           usuario.pacienteId,
         );
-        if (!planActivo || planActivo.id !== id) {
+        if (!asignados.some((plan) => plan.id === id)) {
           return NextResponse.json(
             { error: "No tenés acceso a este plan." },
             { status: 403 },

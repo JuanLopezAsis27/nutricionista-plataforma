@@ -4,8 +4,9 @@ import type { IRecetaRepositorio } from "@/dominio/repositorios/IRecetaRepositor
 import { ErrorPlanNoEncontrado } from "@/dominio/errores/ErrorPlanNoEncontrado";
 
 /**
- * Caso de uso: comparte con quienes siguen HOY este plan cada receta usada en
- * alguna de sus franjas, para que aparezca en su portal (Mis recetas).
+ * Caso de uso: comparte con quienes tienen asignado este plan cada receta
+ * usada en alguna de sus franjas, para que aparezca en su portal (Mis
+ * recetas).
  *
  * Se dispara al guardar el plan (una franja pudo sumar una receta nueva) y al
  * asignarlo a un paciente (empieza a seguir un plan que ya tenía recetas
@@ -39,11 +40,10 @@ export class SincronizarRecetasDePlan {
     }
     if (recetaIds.size === 0) return;
 
-    const pacientesActivos = (
-      await this.asignaciones.listarAsignacionesDePlan(planId)
-    ).filter((asignacion) => asignacion.activa);
+    const asignaciones =
+      await this.asignaciones.listarAsignacionesDePlan(planId);
 
-    for (const asignacion of pacientesActivos) {
+    for (const asignacion of asignaciones) {
       for (const recetaId of recetaIds) {
         await this.recetas.asignarAPaciente(
           recetaId,

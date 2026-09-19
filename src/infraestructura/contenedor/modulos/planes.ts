@@ -15,9 +15,8 @@ import { AsignarPlanAPaciente } from "@/aplicacion/casos-de-uso/planes/AsignarPl
 import { AsignarPlanAVariosPacientes } from "@/aplicacion/casos-de-uso/planes/AsignarPlanAVariosPacientes";
 import { CrearPlanParaPaciente } from "@/aplicacion/casos-de-uso/planes/CrearPlanParaPaciente";
 import { DesasignarPlanDePaciente } from "@/aplicacion/casos-de-uso/planes/DesasignarPlanDePaciente";
-import { ObtenerPlanDelPaciente } from "@/aplicacion/casos-de-uso/planes/ObtenerPlanDelPaciente";
+import { ObtenerPlanesDelPaciente } from "@/aplicacion/casos-de-uso/planes/ObtenerPlanesDelPaciente";
 import { ObtenerPacientesDePlan } from "@/aplicacion/casos-de-uso/planes/ObtenerPacientesDePlan";
-import { ObtenerHistorialDePlanes } from "@/aplicacion/casos-de-uso/planes/ObtenerHistorialDePlanes";
 import { SincronizarRecetasDePlan } from "@/aplicacion/casos-de-uso/planes/SincronizarRecetasDePlan";
 import { MoverPlanAGrupo } from "@/aplicacion/casos-de-uso/planes/MoverPlanAGrupo";
 import { CrearGrupoPlan } from "@/aplicacion/casos-de-uso/grupos-plan/CrearGrupoPlan";
@@ -54,9 +53,8 @@ export function crearServicioPlan(deps: {
     new AsignarPlanAVariosPacientes(asignarUC),
     new CrearPlanParaPaciente(crearUC, asignarUC, deps.grupos, deps.pacientes),
     new DesasignarPlanDePaciente(deps.planes),
-    new ObtenerPlanDelPaciente(deps.planes),
+    new ObtenerPlanesDelPaciente(deps.planes),
     new ObtenerPacientesDePlan(deps.planes, deps.planes),
-    new ObtenerHistorialDePlanes(deps.planes, deps.pacientes),
     new SincronizarRecetasDePlan(deps.planes, deps.planes, deps.recetas),
     new MoverPlanAGrupo(deps.planes, deps.grupos),
     new CrearGrupoPlan(deps.grupos),

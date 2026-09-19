@@ -506,17 +506,17 @@ describe("Formularios que ya coincidían con su DTO", () => {
     ).toBe(false);
   });
 
-  it("FormularioAsignacionPlan exige fin posterior al inicio", () => {
-    const base = {
-      planId: "plan-1",
-      pacienteId: "pac-1",
-      fechaInicio: "2026-01-01",
-      fechaFin: "2026-03-01",
-    };
+  it("FormularioAsignacionPlan pide los dos extremos y nada más", () => {
+    // Desde la migración 69 la asignación es el vínculo pelado: sin fechas que
+    // validar, lo único que el formulario exige es plan y paciente.
+    const base = { planId: "plan-1", pacienteId: "pac-1" };
 
     expect(esquemaAsignacion.safeParse(base).success).toBe(true);
+    expect(esquemaAsignacion.safeParse({ ...base, planId: "" }).success).toBe(
+      false,
+    );
     expect(
-      esquemaAsignacion.safeParse({ ...base, fechaFin: "2025-12-01" }).success,
+      esquemaAsignacion.safeParse({ ...base, pacienteId: "" }).success,
     ).toBe(false);
   });
 });

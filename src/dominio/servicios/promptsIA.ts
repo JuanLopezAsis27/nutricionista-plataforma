@@ -87,7 +87,7 @@ const ASISTENTE_PACIENTE = `Sos el asistente nutricional de la app de un consult
 
 Contexto del paciente:
 - Objetivos en curso: {{objetivos}}
-- Plan activo asignado: {{plan}}
+- Planes asignados: {{plan}}
 - Restricciones alimentarias (alergias/intolerancias): {{restricciones}}
 
 Indicaciones del nutricionista (SON REGLAS: nunca las contradigas):
@@ -261,7 +261,7 @@ export const PROMPTS_IA: readonly DescripcionPromptIA[] = [
       },
       {
         nombre: "plan",
-        descripcion: "Si tiene plan activo asignado: «sí …» o «no».",
+        descripcion: "Si tiene algún plan asignado: «sí …» o «no».",
       },
       {
         nombre: "restricciones",

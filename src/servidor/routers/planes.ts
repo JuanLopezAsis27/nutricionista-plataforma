@@ -14,6 +14,7 @@ import {
   archivarPlanDto,
   crearDesdePlantillaDto,
   asignarPlanDto,
+  desasignarPlanDto,
   asignarPlanMultipleDto,
   crearPlanParaPacienteDto,
   grupoPlanDto,
@@ -25,8 +26,8 @@ import {
 /**
  * Router de Planes Nutricionales (presentación → aplicación).
  *
- * La gestión es del NUTRICIONISTA; el paciente solo ve su plan activo
- * (obtenerMiPlan, con pacienteId tomado de la sesión).
+ * La gestión es del NUTRICIONISTA; el paciente solo ve los planes que tiene
+ * asignados (obtenerMisPlanes, con pacienteId tomado de la sesión).
  */
 export const routerPlanes = crearRouter({
   // Lista completa (sin paginar): para selectores.
@@ -101,34 +102,28 @@ export const routerPlanes = crearRouter({
       return await ctx.servicios.plan.crearPlanParaPaciente(input);
     }),
 
+  /** Le saca UN plan al paciente: los otros que tenga siguen asignados. */
   desasignarDePaciente: nutricionistaProcedimiento
-    .input(z.object({ pacienteId: z.string().min(1) }))
+    .input(desasignarPlanDto)
     .mutation(async ({ ctx, input }) => {
-      await ctx.servicios.plan.desasignarPlanDePaciente(input.pacienteId);
+      await ctx.servicios.plan.desasignarPlanDePaciente(input);
       return { desasignado: true };
     }),
 
-  // El nutricionista consulta el plan activo de un paciente concreto.
+  // El nutricionista consulta los planes de un paciente concreto.
   obtenerDelPaciente: nutricionistaProcedimiento
     .input(z.object({ pacienteId: z.string().min(1) }))
     .query(async ({ ctx, input }) => {
-      return await ctx.servicios.plan.obtenerPlanDelPaciente(input.pacienteId);
+      return await ctx.servicios.plan.obtenerPlanesDelPaciente(
+        input.pacienteId,
+      );
     }),
 
-  /** Pacientes que tienen o tuvieron este plan (con sus fechas). */
+  /** Pacientes que tienen este plan asignado. */
   obtenerPacientesDePlan: nutricionistaProcedimiento
     .input(idPlanDto)
     .query(async ({ ctx, input }) => {
       return await ctx.servicios.plan.obtenerPacientesDePlan(input.id);
-    }),
-
-  /** Historial completo de planes de un paciente, incluido el vigente. */
-  obtenerHistorialDePaciente: nutricionistaProcedimiento
-    .input(z.object({ pacienteId: z.string().min(1) }))
-    .query(async ({ ctx, input }) => {
-      return await ctx.servicios.plan.obtenerHistorialDePlanes(
-        input.pacienteId,
-      );
     }),
 
   /** Mueve un plan a una carpeta. Toca SOLO la carpeta, no el contenido. */
@@ -164,9 +159,9 @@ export const routerPlanes = crearRouter({
       return { eliminado: true };
     }),
 
-  // Portal: el paciente ve su plan activo (pacienteId de la sesión).
-  obtenerMiPlan: protegidoProcedimiento.query(async ({ ctx }) => {
-    return await ctx.servicios.plan.obtenerPlanDelPaciente(
+  // Portal: el paciente ve sus planes asignados (pacienteId de la sesión).
+  obtenerMisPlanes: protegidoProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.plan.obtenerPlanesDelPaciente(
       pacienteDeSesion(ctx.usuario),
     );
   }),

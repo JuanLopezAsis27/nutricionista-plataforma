@@ -8,18 +8,13 @@ import {
   planEjemplo,
 } from "../_ayudas-test";
 
-function asignacionEjemplo(pacienteId: string, activa = true) {
+function asignacionEjemplo(pacienteId: string) {
   return {
     id: `asig-${pacienteId}`,
     planId: "pla-1",
-    nombrePlan: "Plan descenso",
     pacienteId,
     pacienteNombre: "Julia",
     pacienteApellido: "Pérez",
-    fechaInicio: new Date("2026-07-01"),
-    fechaFin: null,
-    finalizadaEn: null,
-    activa,
   };
 }
 
@@ -40,14 +35,14 @@ const planConRecetas = planEjemplo({
 });
 
 describe("SincronizarRecetasDePlan", () => {
-  it("comparte cada receta de las franjas con los pacientes que siguen el plan hoy", async () => {
+  it("comparte cada receta de las franjas con todos los que tienen el plan", async () => {
     const planes = mockPlanRepositorio({
       obtenerPorId: vi.fn(async () => planConRecetas),
     });
     const asignaciones = mockAsignacionPlanRepositorio({
       listarAsignacionesDePlan: vi.fn(async () => [
         asignacionEjemplo("pac-1"),
-        asignacionEjemplo("pac-2", false),
+        asignacionEjemplo("pac-2"),
       ]),
     });
     const recetas = mockRecetaRepositorio();
@@ -55,19 +50,20 @@ describe("SincronizarRecetasDePlan", () => {
 
     await casoUso.ejecutar("pla-1");
 
-    // Solo el paciente con asignación ACTIVA recibe las recetas: pac-2 ya dejó
-    // este plan y no debe verse afectado.
-    expect(recetas.asignarAPaciente).toHaveBeenCalledTimes(2);
-    expect(recetas.asignarAPaciente).toHaveBeenCalledWith(
-      "rec-1",
-      "pac-1",
-      expect.any(String),
-    );
-    expect(recetas.asignarAPaciente).toHaveBeenCalledWith(
-      "rec-2",
-      "pac-1",
-      expect.any(String),
-    );
+    // Dos recetas únicas (rec-1 aparece en dos franjas) por dos pacientes.
+    expect(recetas.asignarAPaciente).toHaveBeenCalledTimes(4);
+    for (const pacienteId of ["pac-1", "pac-2"]) {
+      expect(recetas.asignarAPaciente).toHaveBeenCalledWith(
+        "rec-1",
+        pacienteId,
+        expect.any(String),
+      );
+      expect(recetas.asignarAPaciente).toHaveBeenCalledWith(
+        "rec-2",
+        pacienteId,
+        expect.any(String),
+      );
+    }
   });
 
   it("no hace nada si el plan no usa recetas", async () => {
@@ -85,7 +81,7 @@ describe("SincronizarRecetasDePlan", () => {
     expect(recetas.asignarAPaciente).not.toHaveBeenCalled();
   });
 
-  it("no hace nada si nadie sigue hoy el plan", async () => {
+  it("no hace nada si nadie tiene el plan asignado", async () => {
     const planes = mockPlanRepositorio({
       obtenerPorId: vi.fn(async () => planConRecetas),
     });

@@ -134,7 +134,7 @@ describe("ObtenerPlanSemanalDelPaciente", () => {
     });
     // planEjemplo trae caloriasMeta: 2000.
     const planes = mockAsignacionPlanRepositorio({
-      obtenerPlanActivoDePaciente: vi.fn(async () => planEjemplo()),
+      listarPlanesDePaciente: vi.fn(async () => [planEjemplo()]),
     });
 
     const resultado = await new ObtenerPlanSemanalDelPaciente(

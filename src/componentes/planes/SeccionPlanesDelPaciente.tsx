@@ -7,13 +7,13 @@ import {
   FileDown,
   UserPlus,
   CircleOff,
-  Repeat,
   ClipboardList,
   CalendarRange,
   Plus,
   FileUp,
 } from "lucide-react";
 import type { ModalidadPlan } from "@/dominio/entidades/PlanNutricional";
+import type { PlanSalidaDto } from "@/aplicacion/dtos/plan.dto";
 import { usePlanes } from "@/lib/hooks/usePlanes";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
@@ -33,7 +33,6 @@ import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { VistaPlan } from "@/componentes/planes/VistaPlan";
 import { FormularioPlan } from "@/componentes/planes/FormularioPlan";
 import { FormularioAsignacionPlan } from "@/componentes/planes/FormularioAsignacionPlan";
-import { HistorialDePlanes } from "@/componentes/planes/HistorialDePlanes";
 import { PlanSemanalDelPaciente } from "@/componentes/planes-semanales/PlanSemanalDelPaciente";
 
 /**
@@ -48,6 +47,11 @@ import { PlanSemanalDelPaciente } from "@/componentes/planes-semanales/PlanSeman
  *
  * Se navegan como la pestaña de Antropometría (Dashboard / Mediciones /
  * Objetivos): una sola pestaña en la ficha y adentro sus secciones.
+ *
+ * El paciente puede tener VARIOS planes nutricionales a la vez (migración 69),
+ * así que la sección es una lista y cada plan trae sus propias acciones. Las de
+ * arriba —crear, subir, asignar— son del paciente y suman uno más; las de cada
+ * tarjeta actúan sobre ESE plan y no sobre los otros.
  */
 export function SeccionPlanesDelPaciente({
   pacienteId,
@@ -60,9 +64,12 @@ export function SeccionPlanesDelPaciente({
 }) {
   const { delPaciente, desasignar } = usePlanes();
   const router = useRouter();
-  const plan = delPaciente({ pacienteId });
+  const consulta = delPaciente({ pacienteId });
+  const planes = consulta.data ?? [];
   const [asignarAbierto, setAsignarAbierto] = useState(false);
-  const [confirmarDesasignar, setConfirmarDesasignar] = useState(false);
+  const [desasignarPlan, setDesasignarPlan] = useState<PlanSalidaDto | null>(
+    null,
+  );
   const [crearModalidad, setCrearModalidad] = useState<ModalidadPlan | null>(
     null,
   );
@@ -82,102 +89,83 @@ export function SeccionPlanesDelPaciente({
         </TabsList>
 
         <TabsContent value="nutricional" className="mt-4 space-y-4">
-          {plan.isLoading ? (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCrearModalidad("APP")}
+            >
+              <Plus className="h-4 w-4" />
+              Crear plan nuevo
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCrearModalidad("PDF")}
+            >
+              <FileUp className="h-4 w-4" />
+              Subir plan (PDF o Word)
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAsignarAbierto(true)}
+            >
+              <UserPlus className="h-4 w-4" />
+              Asignar plan existente
+            </Button>
+          </div>
+
+          {consulta.isLoading ? (
             <Skeleton className="h-32 w-full" />
-          ) : plan.data ? (
-            <>
-              <div className="flex flex-wrap justify-end gap-2">
-                {/* El PDF generado arma el plan CARGADO con el membrete. Un
-                    plan que YA es un PDF no tiene nada que generar: el suyo se
-                    abre desde el visor. */}
-                {plan.data.modalidad === "APP" && (
-                  <Button asChild variant="outline" size="sm">
-                    <a
-                      href={`/api/planes/${plan.data.id}/pdf?paciente=${pacienteId}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <FileDown className="h-4 w-4" />
-                      PDF
-                    </a>
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCrearModalidad("APP")}
-                >
-                  <Plus className="h-4 w-4" />
-                  Crear plan nuevo
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCrearModalidad("PDF")}
-                >
-                  <FileUp className="h-4 w-4" />
-                  Subir plan (PDF o Word)
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAsignarAbierto(true)}
-                >
-                  <Repeat className="h-4 w-4" />
-                  Cambiar plan
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setConfirmarDesasignar(true)}
-                >
-                  <CircleOff className="h-4 w-4" />
-                  Finalizar plan
-                </Button>
-              </div>
-              {/* Igual que en la ficha del plan: la receta que acompaña al
-                  plan lleva a la receta, no es un nombre suelto. */}
-              <VistaPlan
-                plan={plan.data}
-                onVerReceta={(recetaId) =>
-                  router.push(`/dashboard/recetas/${recetaId}`)
-                }
-              />
-            </>
-          ) : (
+          ) : planes.length === 0 ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                El paciente no tiene un plan activo asignado.
+                El paciente no tiene ningún plan asignado.
               </p>
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" onClick={() => setCrearModalidad("APP")}>
-                  <Plus className="h-4 w-4" />
-                  Crear plan nuevo
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCrearModalidad("PDF")}
-                >
-                  <FileUp className="h-4 w-4" />
-                  Subir plan (PDF o Word)
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAsignarAbierto(true)}
-                >
-                  <UserPlus className="h-4 w-4" />
-                  Asignar plan existente
-                </Button>
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/dashboard/planes">Ver planes</Link>
-                </Button>
-              </div>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/dashboard/planes">Ver planes</Link>
+              </Button>
             </div>
+          ) : (
+            planes.map((plan) => (
+              <div key={plan.id} className="space-y-2">
+                <div className="flex flex-wrap justify-end gap-2">
+                  {/* El PDF generado arma el plan CARGADO con el membrete. Un
+                      plan que YA es un PDF no tiene nada que generar: el suyo
+                      se abre desde el visor. */}
+                  {plan.modalidad === "APP" && (
+                    <Button asChild variant="outline" size="sm">
+                      <a
+                        href={`/api/planes/${plan.id}/pdf?paciente=${pacienteId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <FileDown className="h-4 w-4" />
+                        PDF
+                      </a>
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDesasignarPlan(plan)}
+                  >
+                    <CircleOff className="h-4 w-4" />
+                    Desasignar
+                  </Button>
+                </div>
+                {/* Igual que en la ficha del plan: la receta que acompaña al
+                    plan lleva a la receta, no es un nombre suelto. */}
+                <VistaPlan
+                  plan={plan}
+                  onVerReceta={(recetaId) =>
+                    router.push(`/dashboard/recetas/${recetaId}`)
+                  }
+                />
+              </div>
+            ))
           )}
-
-          <HistorialDePlanes pacienteId={pacienteId} />
         </TabsContent>
 
         <TabsContent value="semanal" className="mt-4">
@@ -189,17 +177,19 @@ export function SeccionPlanesDelPaciente({
       </Tabs>
 
       <ModalConfirmacion
-        abierto={confirmarDesasignar}
-        titulo="Finalizar plan"
-        descripcion={`¿Finalizar el plan activo de ${nombre}? El paciente quedará sin plan asignado.`}
+        abierto={desasignarPlan !== null}
+        titulo="Desasignar plan"
+        descripcion={`¿Sacarle «${desasignarPlan?.nombre ?? ""}» a ${nombre}? El plan sigue en el consultorio y los otros que tenga asignados no se tocan.`}
         cargando={desasignar.isPending}
-        onCancelar={() => setConfirmarDesasignar(false)}
-        onConfirmar={() =>
-          desasignar.mutate(
-            { pacienteId },
-            { onSuccess: () => setConfirmarDesasignar(false) },
-          )
-        }
+        onCancelar={() => setDesasignarPlan(null)}
+        onConfirmar={() => {
+          if (desasignarPlan) {
+            desasignar.mutate(
+              { planId: desasignarPlan.id, pacienteId },
+              { onSuccess: () => setDesasignarPlan(null) },
+            );
+          }
+        }}
       />
 
       <Dialog open={asignarAbierto} onOpenChange={setAsignarAbierto}>
