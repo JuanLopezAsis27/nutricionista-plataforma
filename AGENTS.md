@@ -629,6 +629,11 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   ahí el formato se pide por prompt (no hay `response_format`), y con solo las
   claves de primer nivel el modelo inventa los nombres anidados y el
   normalizador los descarta en silencio
+- Nunca resolver en la pantalla el nombre de algo que ya viene referenciado
+  (el paciente de un turno) con un listado paginado: se queda con la primera
+  página y deja afuera a los archivados. Así los turnos del paciente 101 salían
+  como "Paciente" en producción. El nombre viaja en el DTO, resuelto por id en
+  el servicio (`ServicioTurno`), como la sede del turno
 - Nunca comparar la fecha de un `Turno` contra una medianoche LOCAL: es un DATE
   a medianoche UTC, y al oeste de Greenwich los turnos de hoy quedan "antes de
   hoy". Va `IRelojFecha.hoy()`

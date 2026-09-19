@@ -74,7 +74,10 @@ export default function PaginaDashboard() {
   const { listar: listarPacientes } = usePacientes();
   const { listar: listarTurnos, actualizarEstado } = useTurnos();
 
-  const pacientes = listarPacientes({ pagina: 1, porPagina: 100 });
+  // Solo se lee el TOTAL (la tarjeta de pacientes): una fila alcanza. Antes
+  // pedía 100 para armar un mapa de nombres de los turnos, que ahora viajan en
+  // cada turno —con esa página, el paciente 101 salía como "Paciente"—.
+  const pacientes = listarPacientes({ pagina: 1, porPagina: 1 });
   const turnos = listarTurnos({});
 
   // El día se fija al montar y no en cada render: leer el reloj en el cuerpo
@@ -84,14 +87,6 @@ export default function PaginaDashboard() {
   // 21:00 "hoy" ya era mañana y la tarjeta mostraba los turnos del día
   // siguiente.
   const [hoy] = useState(() => hoyArgentinaISO());
-
-  const mapaPacientes = useMemo(() => {
-    const mapa = new Map<string, string>();
-    pacientes.data?.pacientes.forEach((p) =>
-      mapa.set(p.id, `${p.nombre} ${p.apellido}`),
-    );
-    return mapa;
-  }, [pacientes.data]);
 
   const { turnosHoy, cantidadSemana, sinConfirmar } = useMemo(() => {
     const lista = turnos.data ?? [];
@@ -191,7 +186,7 @@ export default function PaginaDashboard() {
                         href={`/dashboard/pacientes/${turno.pacienteId}`}
                         className="truncate font-medium hover:underline"
                       >
-                        {mapaPacientes.get(turno.pacienteId) ?? "Paciente"}
+                        {turno.pacienteNombre}
                       </Link>
                     </div>
                     <div className="flex shrink-0 items-center gap-3">

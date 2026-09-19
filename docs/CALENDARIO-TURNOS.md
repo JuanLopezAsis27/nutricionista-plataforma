@@ -206,3 +206,9 @@ vista por defecto.
   módulo de turnos: `Turno.fecha` es un `DATE` que llega como medianoche UTC.
 - El globo no puede contener otra superficie flotante. Lo que necesite una,
   se abre desde la pantalla, como reprogramar.
+- El nombre del paciente viaja EN el turno (`pacienteNombre`, lo resuelve
+  `ServicioTurno` por id, archivados incluidos). Nunca armarlo en la pantalla
+  con un listado de pacientes: así estuvo, con la primera página (100, solo
+  vigentes), y en producción los turnos del paciente 101 —o de uno archivado—
+  salían como "Paciente" aunque el enlace llevara a la ficha correcta. No falla
+  nada: aparece solo cuando el consultorio pasa los cien pacientes.

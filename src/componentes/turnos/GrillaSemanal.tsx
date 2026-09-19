@@ -58,7 +58,6 @@ interface PropsGrillaSemanal {
   dias: string[];
   /** Todos los turnos cargados; la grilla se queda con los de estos días. */
   turnos: TurnoSalidaDto[];
-  nombrePaciente: (pacienteId: string) => string;
   /**
    * La agenda que gobierna la grilla: la de la sede elegida, o la unión de
    * todas cuando se las mira juntas (ver `agendaUnificada`).
@@ -117,7 +116,6 @@ interface PropsGrillaSemanal {
 export function GrillaSemanal({
   dias,
   turnos,
-  nombrePaciente,
   agenda,
   unificado,
   colores,
@@ -246,7 +244,6 @@ export function GrillaSemanal({
                   turnosDelDia={enLaVentana.filter(
                     (t) => aFechaISO(t.fecha) === dia,
                   )}
-                  nombrePaciente={nombrePaciente}
                   agenda={agenda}
                   unificado={unificado}
                   colores={colores}
@@ -278,7 +275,6 @@ interface PropsColumnaDia {
   dia: string;
   bloques: BloqueTurno[];
   turnosDelDia: TurnoSalidaDto[];
-  nombrePaciente: (pacienteId: string) => string;
   agenda: AgendaVigente;
   unificado: boolean;
   colores: Map<string, string>;
@@ -308,7 +304,6 @@ function ColumnaDia({
   dia,
   bloques,
   turnosDelDia,
-  nombrePaciente,
   agenda,
   unificado,
   colores,
@@ -436,7 +431,10 @@ function ColumnaDia({
           ((bloque.finMinutos - bloque.inicioMinutos) / 60) * pxPorHora - 2,
         );
         const compacto = alto < 34;
-        const nombre = nombrePaciente(bloque.turno.pacienteId);
+        // El nombre viaja en el turno (lo resuelve ServicioTurno por id).
+        // Antes se buscaba en un mapa armado con la primera página del
+        // listado de pacientes, y los que no entraban salían "Paciente".
+        const nombre = bloque.turno.pacienteNombre;
 
         return (
           <Popover

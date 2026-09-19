@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { usuarioDeSesion } from "@/lib/autenticacion/sesion";
 import {
   servicioTurno,
-  servicioPaciente,
   servicioEstablecimiento,
 } from "@/infraestructura/contenedor/contenedor";
 import { ESTADOS_TURNO, type EstadoTurno } from "@/dominio/entidades/Turno";
@@ -59,25 +58,20 @@ export function GET(solicitud: Request): Promise<NextResponse> {
       // calendario unificado: el Excel exporta lo que se está viendo.
       const sedeParam = parametros.get("establecimientoId");
 
-      const [turnos, { pacientes }, sedes] = await Promise.all([
+      // El nombre del paciente viaja en cada turno (ServicioTurno lo resuelve
+      // por id, archivados incluidos): ya no hace falta traer el padrón
+      // entero para armar un mapa en cada exportación.
+      const [turnos, sedes] = await Promise.all([
         servicioTurno().obtenerTurnos({
           estado: esEstadoTurno(estadoParam) ? estadoParam : undefined,
           fecha: fechaParam ? new Date(fechaParam) : undefined,
           establecimientoId: sedeParam ?? undefined,
-        }),
-        servicioPaciente().obtenerPacientes({
-          pagina: 1,
-          porPagina: 10_000,
-          incluirArchivados: true,
         }),
         // Con las archivadas: un turno viejo puede apuntar a una sede cerrada
         // y la columna tiene que decir su nombre igual.
         servicioEstablecimiento().listar({ incluirArchivados: true }),
       ]);
 
-      const nombrePorId = new Map(
-        pacientes.map((p) => [p.id, `${p.nombre} ${p.apellido}`]),
-      );
       const sedePorId = new Map(sedes.map((s) => [s.id, s.nombre]));
 
       const libro = new ExcelJS.Workbook();
@@ -87,7 +81,7 @@ export function GET(solicitud: Request): Promise<NextResponse> {
 
       for (const t of turnos) {
         hoja.addRow({
-          paciente: nombrePorId.get(t.pacienteId) ?? "—",
+          paciente: t.pacienteNombre || "—",
           fecha: formatearFecha(t.fecha),
           hora: t.hora,
           establecimiento: sedePorId.get(t.establecimientoId) ?? "—",

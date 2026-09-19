@@ -16,6 +16,7 @@ function turno(
   return {
     id,
     pacienteId: "p1",
+    pacienteNombre: "Ana Gómez",
     establecimientoId: "est-1",
     establecimientoNombre: "Sede 1",
     establecimientoDireccion: null,
