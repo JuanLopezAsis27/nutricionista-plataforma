@@ -7,6 +7,7 @@ import {
   Circle,
   Loader2,
   Mic,
+  Minimize2,
   Pause,
   Play,
   RefreshCw,
@@ -16,17 +17,13 @@ import {
 } from "lucide-react";
 import type { GrabacionSalidaDto } from "@/aplicacion/dtos/grabacion.dto";
 import { useGrabaciones } from "@/lib/hooks/useGrabaciones";
-import { useSubirArchivo } from "@/lib/hooks/useSubirArchivo";
 import { formatearFechaHora } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
-import {
-  useGrabadorAudio,
-  formatearDuracion,
-  type MotivoSinGrabador,
-} from "./useGrabadorAudio";
+import { useGrabacionConsulta } from "./ProveedorGrabacionConsulta";
+import { formatearDuracion, type MotivoSinGrabador } from "./useGrabadorAudio";
 
 /**
  * Grabar la consulta, verla transcrita y leer el resumen que arma la IA.
@@ -40,28 +37,18 @@ import {
  * resumen generado por un modelo sobre un audio transcrito por otro tiene que
  * poder contrastarse. Esconderla del todo convertiría al resumen en la única
  * versión de lo que pasó en la consulta.
+ *
+ * El panel **no es dueño del grabador**: lo lee de
+ * `ProveedorGrabacionConsulta`, que vive en el layout. Es lo que hace que
+ * cerrarlo sea minimizar y no cortar la grabación (ver `docs/GRABACIONES.md`).
  */
 export function GrabacionesConsulta({ turnoId }: { turnoId: string }) {
-  const { deTurno, registrar, eliminar, reintentar, regenerarResumen } =
-    useGrabaciones();
-  const { subir, subiendo } = useSubirArchivo();
-  const grabador = useGrabadorAudio();
+  const { deTurno, eliminar, reintentar, regenerarResumen } = useGrabaciones();
 
   const consulta = deTurno(turnoId);
   const [porEliminar, setPorEliminar] = useState<GrabacionSalidaDto | null>(
     null,
   );
-
-  async function terminarYGuardar() {
-    const audio = await grabador.detener();
-    if (!audio) return;
-    const archivo = await subir(audio.archivo, { contexto: "grabacion" });
-    registrar.mutate({
-      turnoId,
-      archivoId: archivo.id,
-      duracionSegundos: audio.duracionSegundos,
-    });
-  }
 
   if (consulta.isLoading) return <Skeleton className="h-40 w-full" />;
 
@@ -71,11 +58,7 @@ export function GrabacionesConsulta({ turnoId }: { turnoId: string }) {
 
   return (
     <div className="space-y-4">
-      <Controles
-        grabador={grabador}
-        guardando={subiendo || registrar.isPending}
-        onTerminar={terminarYGuardar}
-      />
+      <Controles turnoId={turnoId} />
 
       {datos?.transcripcionActiva === false && grabaciones.length > 0 && (
         <Aviso>
@@ -150,16 +133,28 @@ const MENSAJES_FALLO: Record<MotivoSinGrabador, string> = {
   DESCONOCIDO: "No se pudo abrir el micrófono.",
 };
 
-/** El botón grande: grabar, pausar y terminar. */
-function Controles({
-  grabador,
-  guardando,
-  onTerminar,
-}: {
-  grabador: ReturnType<typeof useGrabadorAudio>;
-  guardando: boolean;
-  onTerminar: () => void;
-}) {
+/**
+ * El botón grande: grabar, pausar, minimizar y terminar.
+ *
+ * Son cuatro situaciones y no dos, porque el grabador es del panel entero y no
+ * de esta pantalla: se puede estar grabando OTRO turno. Mostrar ahí el botón
+ * de grabar ofrecía algo que el proveedor no va a hacer (una sola grabación a
+ * la vez), así que en su lugar va el camino a la que está en curso.
+ */
+function Controles({ turnoId }: { turnoId: string }) {
+  const {
+    grabador,
+    turnoGrabando,
+    comenzar,
+    terminarYGuardar,
+    descartar,
+    cerrarPanel,
+    abrirPanel,
+    guardando,
+  } = useGrabacionConsulta();
+
+  const grabandoEsteTurno = turnoGrabando?.id === turnoId;
+
   if (grabador.estado === "ERROR" && grabador.fallo) {
     return (
       <div className="space-y-2">
@@ -176,12 +171,10 @@ function Controles({
         </Aviso>
         {/* Reintentar sin recargar: conceder el permiso y volver a probar es la
             secuencia normal, y recargar en el medio de una consulta no lo hace
-            nadie. */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => void grabador.comenzar()}
-        >
+            nadie. El fallo es del MICRÓFONO y no de un turno, así que se ve en
+            cualquier panel que se abra y reintentar graba el que esté a la
+            vista. */}
+        <Button variant="outline" size="sm" onClick={() => void comenzar()}>
           <RefreshCw className="h-4 w-4" />
           Reintentar
         </Button>
@@ -189,10 +182,36 @@ function Controles({
     );
   }
 
-  if (!grabador.grabando) {
+  if (turnoGrabando && !grabandoEsteTurno) {
+    return (
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border p-3">
+        <Circle
+          className="h-3 w-3 shrink-0 animate-pulse fill-destructive text-destructive"
+          aria-hidden
+        />
+        <p className="text-sm">
+          Se está grabando otra consulta
+          {turnoGrabando.pacienteNombre
+            ? ` (${turnoGrabando.pacienteNombre})`
+            : ""}
+          . Terminala antes de empezar esta.
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="ml-auto"
+          onClick={() => abrirPanel(turnoGrabando)}
+        >
+          Ver esa grabación
+        </Button>
+      </div>
+    );
+  }
+
+  if (!grabandoEsteTurno) {
     return (
       <div className="flex flex-wrap items-center gap-3">
-        <Button onClick={() => void grabador.comenzar()} disabled={guardando}>
+        <Button onClick={() => void comenzar()} disabled={guardando}>
           {guardando ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
@@ -208,48 +227,66 @@ function Controles({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
-      {/* El punto rojo late solo mientras se está grabando de verdad: en pausa
-          queda fijo, que es la diferencia que hay que poder ver de un vistazo. */}
-      <Circle
-        className={cn(
-          "h-3 w-3 fill-destructive text-destructive",
-          grabador.estado === "GRABANDO" && "animate-pulse",
-        )}
-        aria-hidden
-      />
-      <span className="text-sm font-medium tabular-nums">
-        {formatearDuracion(grabador.segundos)}
-      </span>
-      <span className="text-xs text-muted-foreground">
-        {grabador.estado === "PAUSADO" ? "En pausa" : "Grabando"}
-      </span>
+    <div className="space-y-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        {/* El punto rojo late solo mientras se está grabando de verdad: en pausa
+            queda fijo, que es la diferencia que hay que poder ver de un vistazo. */}
+        <Circle
+          className={cn(
+            "h-3 w-3 fill-destructive text-destructive",
+            grabador.estado === "GRABANDO" && "animate-pulse",
+          )}
+          aria-hidden
+        />
+        <span className="text-sm font-medium tabular-nums">
+          {formatearDuracion(grabador.segundos)}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {grabador.estado === "PAUSADO" ? "En pausa" : "Grabando"}
+        </span>
 
-      <div className="ml-auto flex flex-wrap gap-2">
-        {grabador.estado === "GRABANDO" ? (
-          <Button variant="outline" size="sm" onClick={grabador.pausar}>
-            <Pause className="h-4 w-4" />
-            Pausar
+        <div className="ml-auto flex flex-wrap gap-2">
+          {grabador.estado === "GRABANDO" ? (
+            <Button variant="outline" size="sm" onClick={grabador.pausar}>
+              <Pause className="h-4 w-4" />
+              Pausar
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" onClick={grabador.reanudar}>
+              <Play className="h-4 w-4" />
+              Seguir
+            </Button>
+          )}
+          {/* Minimizar y cerrar hacen lo mismo —la X y Escape también—, pero
+              el botón es el que lo DICE: sin él, cerrar el diálogo grabando
+              parece que corta, y la salida que se usa es «Descartar». */}
+          <Button variant="outline" size="sm" onClick={cerrarPanel}>
+            <Minimize2 className="h-4 w-4" />
+            Minimizar
           </Button>
-        ) : (
-          <Button variant="outline" size="sm" onClick={grabador.reanudar}>
-            <Play className="h-4 w-4" />
-            Seguir
+          <Button
+            size="sm"
+            onClick={() => void terminarYGuardar()}
+            disabled={guardando}
+          >
+            <Square className="h-4 w-4" />
+            Terminar y guardar
           </Button>
-        )}
-        <Button size="sm" onClick={onTerminar} disabled={guardando}>
-          <Square className="h-4 w-4" />
-          Terminar y guardar
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:text-destructive"
-          onClick={grabador.descartar}
-        >
-          Descartar
-        </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+            onClick={descartar}
+          >
+            Descartar
+          </Button>
+        </div>
       </div>
+
+      <p className="text-xs text-muted-foreground">
+        Podés minimizar y seguir usando la app: la consulta se sigue grabando y
+        queda el control abajo de la pantalla.
+      </p>
     </div>
   );
 }

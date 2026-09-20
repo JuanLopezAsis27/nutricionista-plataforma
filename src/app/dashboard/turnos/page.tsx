@@ -32,7 +32,7 @@ import {
 import { EstadoBadge } from "@/componentes/comunes/EstadoBadge";
 import { FormularioTurno } from "@/componentes/turnos/FormularioTurno";
 import { FormularioReprogramar } from "@/componentes/turnos/FormularioReprogramar";
-import { GrabacionesConsulta } from "@/componentes/turnos/GrabacionesConsulta";
+import { useAbrirGrabacion } from "@/componentes/turnos/ProveedorGrabacionConsulta";
 import { CalendarioTurnos } from "@/componentes/turnos/CalendarioTurnos";
 import { SelectorSede } from "@/componentes/turnos/SelectorSede";
 import { AccionesTurno } from "@/componentes/turnos/AccionesTurno";
@@ -77,7 +77,9 @@ export default function PaginaTurnos() {
   const [hueco, setHueco] = useState<HuecoElegido | null>(null);
   const [turnoReprogramar, setTurnoReprogramar] =
     useState<TurnoSalidaDto | null>(null);
-  const [turnoGrabar, setTurnoGrabar] = useState<TurnoSalidaDto | null>(null);
+  // Grabar no abre un diálogo de esta pantalla: se le pide al proveedor del
+  // layout, que es el que sobrevive a navegar a otra mientras se graba.
+  const abrirPanel = useAbrirGrabacion();
 
   // `establecimientoId` sin valor = todas las sedes juntas, que es el
   // calendario unificado. El filtro es del turno, no del paciente: el mismo
@@ -160,7 +162,7 @@ export default function PaginaTurnos() {
         <AccionesTurno
           turno={t}
           onReprogramar={setTurnoReprogramar}
-          onGrabar={setTurnoGrabar}
+          onGrabar={abrirPanel}
         />
       ),
     },
@@ -252,7 +254,7 @@ export default function PaginaTurnos() {
           colores={colores}
           onAgendar={abrirAlta}
           onReprogramar={setTurnoReprogramar}
-          onGrabar={setTurnoGrabar}
+          onGrabar={abrirPanel}
         />
       )}
 
@@ -272,30 +274,6 @@ export default function PaginaTurnos() {
             establecimientoInicialId={hueco?.establecimientoId}
             onTerminado={() => setAgendarAbierto(false)}
           />
-        </DialogContent>
-      </Dialog>
-
-      {/* Grabación de la consulta */}
-      <Dialog
-        open={Boolean(turnoGrabar)}
-        onOpenChange={(abierto) => !abierto && setTurnoGrabar(null)}
-      >
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              Grabación de la consulta
-              {turnoGrabar ? ` · ${turnoGrabar.pacienteNombre}` : ""}
-            </DialogTitle>
-          </DialogHeader>
-          {/* La clave monta un panel nuevo por turno: sin esto, abrirlo para
-              otro turno reusaría el que quedó montado, con su grabador a medio
-              camino. */}
-          {turnoGrabar && (
-            <GrabacionesConsulta
-              key={turnoGrabar.id}
-              turnoId={turnoGrabar.id}
-            />
-          )}
         </DialogContent>
       </Dialog>
 
