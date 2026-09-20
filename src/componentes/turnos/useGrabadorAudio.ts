@@ -88,7 +88,12 @@ export interface AudioGrabado {
  *    grabación cada vez que se interrumpe la consulta: al reanudar sigue el
  *    mismo archivo, y la cuenta del tiempo descuenta lo que estuvo en pausa.
  *  - **Limpia si el componente se desmonta grabando**, para no dejar el
- *    micrófono abierto cuando alguien cierra el diálogo sin parar.
+ *    micrófono abierto cuando alguien se va sin parar.
+ *
+ * Quién lo monta importa, porque de eso depende cuánto dura la grabación: lo
+ * monta `ProveedorGrabacionConsulta`, que vive en el layout del dashboard y no
+ * en el diálogo del turno. Montado en el diálogo, cerrarlo desmontaba el hook y
+ * cortaba el micrófono, que es lo que impedía grabar y usar la app a la vez.
  */
 export function useGrabadorAudio() {
   const [estado, setEstado] = useState<EstadoGrabador>("INACTIVO");
@@ -126,14 +131,23 @@ export function useGrabadorAudio() {
   }, [estado]);
 
   const fallar = useCallback(
-    (motivo: MotivoSinGrabador, detalle: string | null = null): void => {
+    (motivo: MotivoSinGrabador, detalle: string | null = null): false => {
       setFallo({ motivo, detalle });
       setEstado("ERROR");
+      return false;
     },
     [],
   );
 
-  const comenzar = useCallback(async (): Promise<void> => {
+  /**
+   * Abre el micrófono y arranca. Devuelve si lo logró.
+   *
+   * No lanza nunca —el motivo del fallo queda en `fallo`, que es lo que la
+   * pantalla sabe explicar—, así que el booleano es la única forma que tiene
+   * quien llama de saber si hay una grabación en curso. Lo usa el proveedor
+   * para no dar por empezada una grabación que no abrió el micrófono.
+   */
+  const comenzar = useCallback(async (): Promise<boolean> => {
     // Reintentar es volver a llamar acá: el fallo anterior se limpia solo, así
     // que conceder el permiso y apretar «Reintentar» alcanza. Antes el estado
     // de error era terminal y había que recargar la página, que es justo lo que
@@ -149,17 +163,14 @@ export function useGrabadorAudio() {
       !window.isSecureContext ||
       !navigator.mediaDevices?.getUserMedia
     ) {
-      fallar("SIN_CONTEXTO_SEGURO");
-      return;
+      return fallar("SIN_CONTEXTO_SEGURO");
     }
     if (typeof MediaRecorder === "undefined") {
-      fallar("NO_SOPORTADO");
-      return;
+      return fallar("NO_SOPORTADO");
     }
     const formato = FORMATOS.find((f) => MediaRecorder.isTypeSupported(f));
     if (!formato) {
-      fallar("NO_SOPORTADO");
-      return;
+      return fallar("NO_SOPORTADO");
     }
 
     let stream: MediaStream;
@@ -174,11 +185,10 @@ export function useGrabadorAudio() {
         },
       });
     } catch (error) {
-      fallar(
+      return fallar(
         motivoDeError(error),
         error instanceof Error ? error.message : null,
       );
-      return;
     }
 
     const grabador = new MediaRecorder(stream, {
@@ -199,6 +209,7 @@ export function useGrabadorAudio() {
     inicioRef.current = Date.now();
     setSegundos(0);
     setEstado("GRABANDO");
+    return true;
   }, [fallar]);
 
   const pausar = useCallback((): void => {

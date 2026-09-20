@@ -13,6 +13,15 @@ Tres modelos y un trabajo en segundo plano:
 | `Archivo`            | el audio en el bucket (contexto `grabacion`) | `dominio/entidades/Archivo.ts`             |
 | cola `transcribir-grabacion` | el trabajo del worker             | `trabajos/manejadores/transcribirGrabaciones.ts` |
 
+Del lado del navegador son tres piezas más, y el reparto entre ellas es el
+tema de la sección siguiente:
+
+| Pieza                         | Qué es                                       | Dónde vive                                          |
+| ----------------------------- | -------------------------------------------- | --------------------------------------------------- |
+| `ProveedorGrabacionConsulta`  | dueño del micrófono y del turno que se graba | `componentes/turnos/ProveedorGrabacionConsulta.tsx`  |
+| `GrabacionesConsulta`         | el panel: grabar, resumen y transcripciones  | `componentes/turnos/GrabacionesConsulta.tsx`         |
+| `PildoraGrabacion`            | la grabación minimizada                      | `componentes/turnos/PildoraGrabacion.tsx`            |
+
 ## Muchas grabaciones por turno, un resumen por turno
 
 Son las dos decisiones que explican el resto del diseño.
@@ -36,6 +45,65 @@ regenerarlo, en vez de mostrar en silencio un resumen al que le falta la mitad
 de la consulta. Se compara contra las transcripciones **listas**: una que
 todavía se está transcribiendo no lo vuelve viejo, lo va a volver cuando
 termine.
+
+## Se graba en segundo plano, y por eso el grabador no es del diálogo
+
+Grabar dura toda la consulta, y durante la consulta el profesional USA la app:
+abre la ficha, mira la antropometría anterior, carga una evolución, agenda el
+turno que sigue. Mientras el `useGrabadorAudio` vivió dentro del diálogo del
+turno, cerrarlo desmontaba el componente y con él el `MediaRecorder`: había que
+elegir entre grabar o usar el sistema, y lo que se hacía era no grabar.
+
+El grabador vive entonces en `ProveedorGrabacionConsulta`, montado en
+`app/dashboard/layout.tsx`. **El layout es lo único que no se vuelve a montar
+al navegar entre pantallas del panel**, y de eso —y solo de eso— depende que el
+micrófono siga abierto. Bajarlo a una pantalla, o devolver el `useGrabadorAudio`
+al diálogo, reintroduce el problema exacto sin romper ninguna compilación; por
+eso `ProveedorGrabacionConsulta.test.tsx` comprueba que cerrar el panel no
+llama a `detener` ni a `descartar`.
+
+El reparto queda así:
+
+- el **proveedor** es dueño del `MediaRecorder`, del turno que se está grabando
+  y del guardado (subir el audio + `grabaciones.registrar`);
+- el **panel** es una vista de eso, que se abre y se cierra sin consecuencias;
+- la **píldora** es lo que queda cuando el panel se cierra grabando.
+
+**Cerrar es minimizar.** La X, Escape y el clic afuera hacen lo mismo que el
+botón «Minimizar», que existe igual porque es el que lo DICE: sin él, cerrar el
+diálogo grabando parece que corta, y la salida que se usa es «Descartar» —que
+tira la consulta—.
+
+**La píldora no es decoración.** Una grabación corriendo sin nada en pantalla se
+descubre al día siguiente, de dos horas y con lo que se haya dicho después de
+que el paciente se fue. Por eso muestra a quién se está grabando y el
+cronómetro, y por eso ofrece cortar sin volver al turno: obligar a navegar hasta
+la agenda para apretar «Terminar» es la fricción que hace que no se apriete. No
+ofrece descartar: ahí se aprieta de paso, y es un botón de tirar la consulta a
+la basura.
+
+**Una grabación a la vez, atada a su turno.** `turnoGrabando` se fija al empezar
+y no lo mueve abrir el panel de otro turno: el audio tiene que ir a la consulta
+donde se grabó, y un grabador que siguiera al panel guardaría la consulta de
+alguien en la ficha de otro. El panel de un segundo turno muestra el aviso y el
+camino a la grabación en curso, no el botón de grabar.
+
+Dos detalles que no se ven y que se rompen solos si se tocan:
+
+- **El turno se marca como «grabando» DESPUÉS de que el micrófono abrió.**
+  `comenzar` no lanza —deja el estado en ERROR con el motivo—, así que devuelve
+  si lo logró. Marcarlo antes deja un turno en curso que nunca grabó nada, con
+  su píldora fantasma encima.
+- **El contexto está partido en dos.** El cronómetro cambia cuatro veces por
+  segundo y el valor de un contexto repinta a todos sus consumidores: con uno
+  solo, grabar repintaba la grilla de la agenda cada 250 ms. Las pantallas usan
+  `useAbrirGrabacion` (un valor estable); el panel y la píldora, que sí tienen
+  que seguir el reloj, usan `useGrabacionConsulta`.
+
+Lo que sigue sin poder sobrevivir es **recargar o cerrar la pestaña**: lo grabado
+está en memoria y todavía no hay nada subido. El proveedor pone un
+`beforeunload` mientras se graba para que el navegador pregunte, que es todo lo
+que se puede hacer sin cambiar el modelo de subida.
 
 ## El recorrido completo
 
@@ -209,3 +277,7 @@ recuerda al lado del botón; la app no puede hacerlo por él.
 - El estado de la grabación describe SOLO la transcripción. Si el resumen falla,
   la transcripción sigue LISTA: el texto ya está guardado y es lo que de verdad
   importa conservar.
+- El guardado (subir + registrar) es del PROVEEDOR y no del panel, y avisa sus
+  errores con un toast en vez de dejar propagar la promesa: minimizado, quien
+  grabó puede estar en otra pantalla, y un fallo en silencio le hace creer que
+  la consulta quedó guardada.

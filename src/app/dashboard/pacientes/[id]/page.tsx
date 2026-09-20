@@ -31,7 +31,7 @@ import { EstadoBadge } from "@/componentes/comunes/EstadoBadge";
 import { FormularioPaciente } from "@/componentes/pacientes/FormularioPaciente";
 import { SeccionPlanesDelPaciente } from "@/componentes/planes/SeccionPlanesDelPaciente";
 import { FormularioTurno } from "@/componentes/turnos/FormularioTurno";
-import { GrabacionesConsulta } from "@/componentes/turnos/GrabacionesConsulta";
+import { useAbrirGrabacion } from "@/componentes/turnos/ProveedorGrabacionConsulta";
 import { AlergiasPaciente } from "@/componentes/evaluacion/AlergiasPaciente";
 import { FormularioHistoriaClinica } from "@/componentes/evaluacion/FormularioHistoriaClinica";
 import { EvolucionesPaciente } from "@/componentes/evaluacion/EvolucionesPaciente";
@@ -85,7 +85,9 @@ export default function PaginaDetallePaciente() {
   // con el paciente delante, y mandarlas a otra pantalla obligaba a volver a
   // buscarlo ahí.
   const [agendarAbierto, setAgendarAbierto] = useState(false);
-  const [turnoGrabar, setTurnoGrabar] = useState<string | null>(null);
+  // El panel de grabación lo abre el proveedor del layout y no esta pantalla:
+  // grabar dura toda la consulta y tiene que sobrevivir a irse a la agenda.
+  const abrirPanel = useAbrirGrabacion();
 
   const paciente = obtenerPorId({ id });
   const turnos = porPaciente({ pacienteId: id });
@@ -255,7 +257,12 @@ export default function PaginaDetallePaciente() {
                       className="h-7 w-7"
                       title="Grabación y resumen de la consulta"
                       aria-label="Grabación y resumen de la consulta"
-                      onClick={() => setTurnoGrabar(turno.id)}
+                      onClick={() =>
+                        abrirPanel({
+                          id: turno.id,
+                          pacienteNombre: `${p.nombre} ${p.apellido}`,
+                        })
+                      }
                     >
                       <Mic className="h-3.5 w-3.5" />
                     </Button>
@@ -274,20 +281,6 @@ export default function PaginaDetallePaciente() {
           />
         </TabsContent>
       </Tabs>
-
-      <Dialog
-        open={Boolean(turnoGrabar)}
-        onOpenChange={(abierto) => !abierto && setTurnoGrabar(null)}
-      >
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Grabación de la consulta</DialogTitle>
-          </DialogHeader>
-          {turnoGrabar && (
-            <GrabacionesConsulta key={turnoGrabar} turnoId={turnoGrabar} />
-          )}
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={agendarAbierto} onOpenChange={setAgendarAbierto}>
         <DialogContent>

@@ -275,6 +275,11 @@ Dos cosas que se rompen fácil si no se saben:
   un registro clínico inventado. Sin clave, el audio queda guardado y la
   grabación FALLIDA, lista para reintentar.
 
+Se graba **en segundo plano**: el panel se minimiza y la consulta sigue
+grabándose mientras se navega por la app. Eso depende de dónde está montado el
+grabador —`ProveedorGrabacionConsulta`, en el layout del dashboard, que es lo
+único que no se vuelve a montar al cambiar de pantalla—, no del diálogo.
+
 Es material del PROFESIONAL: no hay procedimiento de paciente en su router.
 Ver `docs/GRABACIONES.md`.
 
@@ -592,6 +597,10 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   pg-boss en paralelo dejando al profesional sin ver el motivo
 - Nunca guardar una transcripción o un resumen de demostración: los stubs de
   grabaciones lanzan a propósito
+- Nunca montar `useGrabadorAudio` dentro del diálogo del turno ni de una
+  pantalla: desmontarlo corta el `MediaRecorder`, y grabar tiene que sobrevivir
+  a cerrar el panel y a navegar. Va en `ProveedorGrabacionConsulta`, en el
+  layout. No rompe nada al bajarlo: simplemente deja de grabar al minimizar
 - Nunca agregar un CHECK que exija "exactamente un dueño" sobre `archivos`: el
   invariante correcto es `<= 1` (migración 34; la 27 puso `= 1` y rompió todos
   los adjuntos hasta que alguien lo reportó)
