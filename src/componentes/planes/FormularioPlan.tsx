@@ -218,7 +218,16 @@ export function FormularioPlan({
 
     if (planInicial) {
       actualizar.mutate(
-        { id: planInicial.id, ...cuerpo },
+        {
+          id: planInicial.id,
+          ...cuerpo,
+          // Testigo del bloqueo optimista: ver `FormularioPaciente`. Es el
+          // caso donde más pesa: el guardado reemplaza franjas, opciones,
+          // equivalencias, recomendaciones, archivos y recetas, así que el que
+          // llega segundo no pierde un campo, rehace el plan entero desde la
+          // foto que tenía en pantalla.
+          actualizadoEn: planInicial.actualizadoEn,
+        },
         { onSuccess: onTerminado },
       );
     } else if (paraPaciente) {

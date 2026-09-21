@@ -110,7 +110,17 @@ export const crearPlanDto = planBase
 export type CrearPlanDto = z.infer<typeof crearPlanDto>;
 
 export const actualizarPlanDto = planBase
-  .extend({ id: z.string().min(1) })
+  .extend({
+    id: z.string().min(1),
+    /**
+     * Bloqueo optimista: el `actualizadoEn` del plan que se abrió. Acá el
+     * guardado reemplaza el agregado ENTERO —franjas, opciones,
+     * equivalencias, recomendaciones, archivos y recetas—, así que el que
+     * llega segundo no pisa un campo: rehace el plan completo desde una foto
+     * vieja. Ver `actualizarPacienteDto`.
+     */
+    actualizadoEn: z.coerce.date().optional(),
+  })
   .refine((d) => contenidoDeLaApp(d), FALTA_COMIDA)
   .refine((d) => contenidoDelPdf(d), FALTA_ARCHIVO);
 export type ActualizarPlanDto = z.infer<typeof actualizarPlanDto>;

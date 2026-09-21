@@ -167,10 +167,17 @@ Tres decisiones que conviene no deshacer:
   cerrar el diálogo. No se fusiona por nuestra cuenta — sería elegir cuál de
   los dos profesionales tenía razón.
 
-Hoy lo llevan **paciente** y **receta**, que son los formularios que escriben
-el registro entero. Las mutaciones de un solo campo (archivar, marcar la
-bienvenida, cambiar el estado de un turno) van sin testigo a propósito: no
+Hoy lo llevan **paciente**, **receta** y **plan**, que son los formularios que
+escriben el registro entero. Las mutaciones de un solo campo (archivar, marcar
+la bienvenida, cambiar el estado de un turno) van sin testigo a propósito: no
 salen de un formulario, no tienen de dónde sacarlo, y pisan únicamente lo suyo.
+
+En el **plan** es donde más pesa, y donde la transacción hace más que ordenar:
+`actualizar` reemplaza el agregado entero, y los `deleteMany` de franjas,
+equivalencias y recomendaciones corren ANTES del `update` que lleva la guardia.
+Un conflicto los encuentra ya hechos, y lo único que los deshace es el rollback
+—sin transacción, un choque dejaría el plan vacío—. Está comprobado contra la
+base: tras el rechazo, las franjas siguen estando.
 
 ## El toast: lo que el usuario ve
 

@@ -50,10 +50,18 @@ export interface IPlanRepositorio {
     archivoIds: string[],
     recetaIds: string[],
   ): Promise<PlanNutricional>;
+  /**
+   * @param esperadoEn Bloqueo optimista: el `actualizadoEn` que el cliente
+   * leyó. Ver `IPacienteRepositorio.actualizar`. Acá pesa más que en ningún
+   * otro agregado: `actualizar` reemplaza a TODOS los hijos, así que una
+   * edición concurrente no pierde un campo, rehace el plan entero desde una
+   * foto vieja.
+   */
   actualizar(
     plan: PlanNutricional,
     archivoIds: string[],
     recetaIds: string[],
+    esperadoEn?: Date,
   ): Promise<PlanNutricional>;
   eliminar(id: string): Promise<void>;
   obtenerPorId(id: string): Promise<PlanNutricional | null>;
