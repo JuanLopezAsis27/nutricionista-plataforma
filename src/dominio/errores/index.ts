@@ -4,6 +4,7 @@ export { ErrorValidacion } from "./ErrorValidacion";
 export { ErrorRestriccionDatos } from "./ErrorRestriccionDatos";
 export { ErrorPacienteNoEncontrado } from "./ErrorPacienteNoEncontrado";
 export { ErrorTurnoConflicto } from "./ErrorTurnoConflicto";
+export { ErrorEdicionConcurrente } from "./ErrorEdicionConcurrente";
 export { ErrorTurnoNoEncontrado } from "./ErrorTurnoNoEncontrado";
 export { ErrorUsuarioNoEncontrado } from "./ErrorUsuarioNoEncontrado";
 export { ErrorAccesoDenegado } from "./ErrorAccesoDenegado";

@@ -177,6 +177,10 @@ export function FormularioReceta({
           fotoIdsNuevos: fotoIds,
           documentoIdsNuevos: documentoIds,
           fotoPrincipalId,
+          // Testigo del bloqueo optimista: ver `FormularioPaciente`. Acá el
+          // guardado reemplaza la lista ENTERA de ingredientes, así que el que
+          // llega segundo no pierde un campo, pierde la receta rehecha.
+          actualizadoEn: recetaInicial.actualizadoEn,
         },
         { onSuccess: onTerminado },
       );

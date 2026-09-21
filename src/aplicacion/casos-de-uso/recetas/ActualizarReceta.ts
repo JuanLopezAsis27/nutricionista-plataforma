@@ -10,6 +10,11 @@ export interface DatosActualizarReceta extends DatosNuevaReceta {
   documentoIdsNuevos?: string[];
   /** Portada elegida; `undefined` deja la que ya tenía. */
   fotoPrincipalId?: string;
+  /**
+   * `actualizadoEn` que tenía la receta cuando se abrió. Va hasta el WHERE del
+   * UPDATE: si la fila ya no está en esa versión, la escritura no entra.
+   */
+  actualizadoEn?: Date;
 }
 
 /**
@@ -29,7 +34,11 @@ export class ActualizarReceta {
       ...(datos.fotoIdsNuevos ?? []),
       ...(datos.documentoIdsNuevos ?? []),
     ];
-    const guardada = await this.recetas.actualizar(actualizada, archivoIds);
+    const guardada = await this.recetas.actualizar(
+      actualizada,
+      archivoIds,
+      datos.actualizadoEn,
+    );
     return marcarPortada(this.recetas, guardada, datos.fotoPrincipalId);
   }
 }

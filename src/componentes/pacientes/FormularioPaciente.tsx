@@ -150,7 +150,16 @@ export function FormularioPaciente({
 
     if (pacienteInicial) {
       actualizar.mutate(
-        { id: pacienteInicial.id, ...base },
+        {
+          id: pacienteInicial.id,
+          ...base,
+          // Testigo del bloqueo optimista: la versión que se abrió. Este
+          // formulario manda TODOS sus campos en cada guardado, así que sin
+          // esto dos personas editando la misma ficha se pisan en silencio —
+          // el que guarda segundo devuelve a su valor viejo todo lo que el
+          // primero haya cambiado.
+          actualizadoEn: pacienteInicial.actualizadoEn,
+        },
         { onSuccess: onTerminado },
       );
     } else {

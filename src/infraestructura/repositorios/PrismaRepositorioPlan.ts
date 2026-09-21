@@ -12,6 +12,7 @@ import type {
 } from "@/dominio/repositorios/IPlanRepositorio";
 import { PlanNutricional } from "@/dominio/entidades/PlanNutricional";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { enVersion, guardandoVersion } from "./base/edicionConcurrente";
 
 /** Include estándar: franjas ordenadas con opciones (y nombre de receta), extras. */
 const INCLUIR_HIJOS = {
@@ -159,75 +160,83 @@ export class PrismaRepositorioPlan
     plan: PlanNutricional,
     archivoIds: string[],
     recetaIds: string[],
+    esperadoEn?: Date,
   ): Promise<PlanNutricional> {
     const d = plan.aPrimitivos();
     // Las hijas del agregado llevan el inquilino materializado (migración 27).
     const inquilino = inquilinoActual();
     // Reemplaza el conjunto de hijos: borra los viejos y crea los nuevos
     // (las opciones caen en cascada con sus comidas).
-    const fila = await this.prisma.$transaction(async (tx) => {
-      await tx.comidaPlan.deleteMany({ where: { planId: d.id } });
-      await tx.equivalenciaPlan.deleteMany({ where: { planId: d.id } });
-      await tx.recomendacionPlan.deleteMany({ where: { planId: d.id } });
-      await tx.planNutricional.update({
-        where: { id: d.id },
-        data: {
-          nombre: d.nombre,
-          descripcion: d.descripcion,
-          modalidad: d.modalidad,
-          grupoId: d.grupoId,
-          caloriasMeta: d.caloriasMeta,
-          proteinasMetaG: d.proteinasMetaG,
-          carbohidratosMetaG: d.carbohidratosMetaG,
-          grasasMetaG: d.grasasMetaG,
-          contactosUtiles: d.contactosUtiles,
-          comidas: {
-            create: d.comidas.map((comida) => ({
-              id: comida.id,
-              nutricionistaId: inquilino,
-              nombre: comida.nombre,
-              horaDesde: comida.horaDesde,
-              horaHasta: comida.horaHasta,
-              orden: comida.orden,
-              opciones: {
-                create: comida.opciones.map((opcion) => ({
-                  id: opcion.id,
-                  nutricionistaId: inquilino,
-                  numero: opcion.numero,
-                  contenido: opcion.contenido,
-                  recetaId: opcion.recetaId,
-                  orden: opcion.orden,
-                })),
-              },
-            })),
+    //
+    // Los borrados van ANTES del update que lleva la guardia de versión, así
+    // que un conflicto los encuentra ya hechos: lo que los deshace es el
+    // rollback de la transacción, no el orden. Sin transacción, un choque
+    // dejaría el plan sin franjas, sin equivalencias y sin recomendaciones.
+    const fila = await guardandoVersion("El plan", esperadoEn, () =>
+      this.prisma.$transaction(async (tx) => {
+        await tx.comidaPlan.deleteMany({ where: { planId: d.id } });
+        await tx.equivalenciaPlan.deleteMany({ where: { planId: d.id } });
+        await tx.recomendacionPlan.deleteMany({ where: { planId: d.id } });
+        await tx.planNutricional.update({
+          where: enVersion(d.id, esperadoEn),
+          data: {
+            nombre: d.nombre,
+            descripcion: d.descripcion,
+            modalidad: d.modalidad,
+            grupoId: d.grupoId,
+            caloriasMeta: d.caloriasMeta,
+            proteinasMetaG: d.proteinasMetaG,
+            carbohidratosMetaG: d.carbohidratosMetaG,
+            grasasMetaG: d.grasasMetaG,
+            contactosUtiles: d.contactosUtiles,
+            comidas: {
+              create: d.comidas.map((comida) => ({
+                id: comida.id,
+                nutricionistaId: inquilino,
+                nombre: comida.nombre,
+                horaDesde: comida.horaDesde,
+                horaHasta: comida.horaHasta,
+                orden: comida.orden,
+                opciones: {
+                  create: comida.opciones.map((opcion) => ({
+                    id: opcion.id,
+                    nutricionistaId: inquilino,
+                    numero: opcion.numero,
+                    contenido: opcion.contenido,
+                    recetaId: opcion.recetaId,
+                    orden: opcion.orden,
+                  })),
+                },
+              })),
+            },
+            equivalencias: {
+              create: d.equivalencias.map((equivalencia) => ({
+                id: equivalencia.id,
+                nutricionistaId: inquilino,
+                titulo: equivalencia.titulo,
+                detalle: equivalencia.detalle,
+                orden: equivalencia.orden,
+              })),
+            },
+            recomendaciones: {
+              create: d.recomendaciones.map((recomendacion) => ({
+                id: recomendacion.id,
+                nutricionistaId: inquilino,
+                tipo: recomendacion.tipo,
+                texto: recomendacion.texto,
+                orden: recomendacion.orden,
+              })),
+            },
           },
-          equivalencias: {
-            create: d.equivalencias.map((equivalencia) => ({
-              id: equivalencia.id,
-              nutricionistaId: inquilino,
-              titulo: equivalencia.titulo,
-              detalle: equivalencia.detalle,
-              orden: equivalencia.orden,
-            })),
-          },
-          recomendaciones: {
-            create: d.recomendaciones.map((recomendacion) => ({
-              id: recomendacion.id,
-              nutricionistaId: inquilino,
-              tipo: recomendacion.tipo,
-              texto: recomendacion.texto,
-              orden: recomendacion.orden,
-            })),
-          },
-        },
-      });
-      await this.vincularArchivos(tx, d.id, archivoIds, d.documentoIds);
-      await this.vincularRecetas(tx, d.id, recetaIds);
-      return tx.planNutricional.findUniqueOrThrow({
-        where: { id: d.id },
-        include: INCLUIR_HIJOS,
-      });
-    });
+        });
+        await this.vincularArchivos(tx, d.id, archivoIds, d.documentoIds);
+        await this.vincularRecetas(tx, d.id, recetaIds);
+        return tx.planNutricional.findUniqueOrThrow({
+          where: { id: d.id },
+          include: INCLUIR_HIJOS,
+        });
+      }),
+    );
     return mapearPlan(fila);
   }
 

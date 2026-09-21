@@ -135,6 +135,50 @@ Los mensajes de la entidad también nombran la medida como se la ve
 («Pliegue tricipital debe estar entre 1 y 80 mm»), porque son los que aparecen
 en el resumen de la importación.
 
+## «Alguien más la editó»: el error que evita perder datos en silencio
+
+`ErrorEdicionConcurrente` es distinto de todos los demás de esta lista: no
+señala un dato mal cargado, señala que **el guardado no entró** para proteger
+lo que otro acababa de escribir.
+
+El caso: dos personas abren la misma ficha. Una guarda el teléfono; la otra
+guarda una nota, y el formulario manda TODOS sus campos, incluido el teléfono
+viejo que tenía en pantalla. Sin guardia, el teléfono vuelve atrás, nadie ve un
+error y el dato perdido solo aparece si alguien lo va a buscar.
+
+La guardia es un bloqueo optimista sobre `actualizadoEn`, que ya existe en 43
+tablas y por eso no hizo falta migración. El formulario manda la versión que
+leyó y la condición viaja hasta el `where` del UPDATE
+(`base/edicionConcurrente.ts`): si la fila se movió, Postgres no actualiza
+nada, Prisma devuelve `P2025` y ahí se traduce.
+
+Tres decisiones que conviene no deshacer:
+
+- **La condición va en el UPDATE, no en un `if` previo.** Comparar antes de
+  escribir deja una ventana entre la comparación y la escritura; el motor es el
+  único punto donde no la hay. Es el mismo criterio que el EXCLUDE de los
+  turnos.
+- **Solo se traduce el `P2025` cuando HAY testigo.** Sin bloqueo optimista ese
+  código significa lo que dice —la fila no está— y lo resuelve
+  `traducirErrorPrisma` con su propio mensaje. Convertirlo siempre en conflicto
+  de edición mandaría a recargar por algo que se borró.
+- **El mensaje dice que los cambios NO se guardaron.** Es la mitad del dato: el
+  usuario los tiene en pantalla y necesita saber que no entraron antes de
+  cerrar el diálogo. No se fusiona por nuestra cuenta — sería elegir cuál de
+  los dos profesionales tenía razón.
+
+Hoy lo llevan **paciente**, **receta** y **plan**, que son los formularios que
+escriben el registro entero. Las mutaciones de un solo campo (archivar, marcar
+la bienvenida, cambiar el estado de un turno) van sin testigo a propósito: no
+salen de un formulario, no tienen de dónde sacarlo, y pisan únicamente lo suyo.
+
+En el **plan** es donde más pesa, y donde la transacción hace más que ordenar:
+`actualizar` reemplaza el agregado entero, y los `deleteMany` de franjas,
+equivalencias y recomendaciones corren ANTES del `update` que lleva la guardia.
+Un conflicto los encuentra ya hechos, y lo único que los deshace es el rollback
+—sin transacción, un choque dejaría el plan vacío—. Está comprobado contra la
+base: tras el rechazo, las franjas siguen estando.
+
 ## El toast: lo que el usuario ve
 
 `lib/errores.ts` es el único lugar por donde un error se convierte en un toast

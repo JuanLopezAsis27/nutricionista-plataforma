@@ -15,6 +15,11 @@ export interface DatosActualizarPlan extends Omit<
   id: string;
   /** Archivos que quedan vinculados. Lo que no esté acá se desvincula. */
   archivoIds?: string[];
+  /**
+   * `actualizadoEn` que tenía el plan cuando se abrió. Va hasta el WHERE del
+   * UPDATE: si la fila ya no está en esa versión, la escritura no entra.
+   */
+  actualizadoEn?: Date;
 }
 
 /**
@@ -48,6 +53,7 @@ export class ActualizarPlan {
       actualizado,
       idsDeArchivos(datos),
       actualizado.recetasVinculadas.map((r) => r.recetaId),
+      datos.actualizadoEn,
     );
   }
 }

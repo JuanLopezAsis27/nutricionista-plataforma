@@ -498,6 +498,18 @@ mapas.
 `servidor/errores-http.ts`, que es por donde salen los route handlers de
 `/api/*` —que no pasan por el middleware—. Lo que se agrega en uno va en el otro.
 
+**Edición concurrente (lost update).** Los formularios que escriben un registro
+ENTERO —paciente, receta y plan— mandan el `actualizadoEn` que leyeron, y la
+condición viaja hasta el `where` del UPDATE
+(`infraestructura/repositorios/base/edicionConcurrente.ts`). Si la fila ya no
+está en esa versión no entra ninguna escritura y sale
+`ErrorEdicionConcurrente`. Va en el WHERE y no en un `if` previo por el mismo
+motivo que el EXCLUDE de los turnos: comparar antes de escribir deja una
+ventana, y el motor es el único punto donde no la hay. El testigo es
+**opcional** a propósito: las mutaciones de un solo campo que no salen de un
+formulario (archivar, marcar la bienvenida) no tienen de dónde sacarlo ni por
+qué frenarse.
+
 Un choque contra una restricción de Postgres (email repetido, FK que ya no está)
 NO es un `ErrorDominio`: sin traducir cae en el genérico «Ocurrió un error
 inesperado», que para el usuario no dice nada. `traducirErrorPrisma`
@@ -587,6 +599,17 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   verificar la contraseña)
 - Nunca envolver un resolver de tRPC en `try/catch` para traducir errores: de eso
   se encarga el middleware, y hacerlo a mano apaga el monitoreo
+- Nunca resolver el bloqueo optimista comparando `actualizadoEn` en el caso de
+  uso antes de escribir: entre la comparación y el UPDATE hay una ventana, más
+  chica que la del formulario pero igual de real. La condición va en el `where`
+  del UPDATE (`enVersion`), como el EXCLUDE de los turnos
+- Nunca hacer obligatorio el testigo de versión: archivar un paciente o marcar
+  su bienvenida no salen de un formulario y no tienen de dónde sacarlo.
+  Exigirlo las rompe a todas
+- Nunca sacar de la transacción los `deleteMany` de los hijos del plan: corren
+  ANTES del `update` que lleva la guardia de versión, así que un conflicto los
+  encuentra hechos y lo único que los deshace es el rollback. Sueltos, un
+  choque deja el plan sin franjas, sin equivalencias y sin recomendaciones
 - Nunca consultar una tabla de inquilino sin alcance fijado
 - Nunca llamar a `IProveedorWhatsapp.preparar()` desde una lectura: con la Cloud
   API conectada ese método ENVÍA el mensaje. Ya pasó una vez: el query de vista

@@ -19,9 +19,30 @@ describe("ActualizarReceta", () => {
     });
 
     expect(receta.nombre).toBe("Tortilla renovada");
-    expect(recetas.actualizar).toHaveBeenCalledWith(expect.any(Receta), [
-      "arc-9",
-    ]);
+    // El tercer argumento es el testigo del bloqueo optimista: sin él en la
+    // llamada, la edición entra sin guardia y vuelve el lost update.
+    expect(recetas.actualizar).toHaveBeenCalledWith(
+      expect.any(Receta),
+      ["arc-9"],
+      undefined,
+    );
+  });
+
+  it("lleva el testigo de versión hasta el repositorio", async () => {
+    const recetas = mockRecetaRepositorio({
+      obtenerPorId: vi.fn(async () => recetaEjemplo()),
+    });
+    const casoUso = new ActualizarReceta(recetas);
+    const abiertaEn = new Date("2026-03-01T10:00:00.000Z");
+
+    await casoUso.ejecutar({
+      id: "rec-1",
+      nombre: "Tortilla renovada",
+      actualizadoEn: abiertaEn,
+    });
+
+    const [, , esperadoEn] = vi.mocked(recetas.actualizar).mock.calls[0]!;
+    expect(esperadoEn).toEqual(abiertaEn);
   });
 
   it("lanza ErrorRecetaNoEncontrada si la receta no existe", async () => {
