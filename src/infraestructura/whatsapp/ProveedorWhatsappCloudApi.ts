@@ -95,13 +95,42 @@ export class ProveedorWhatsappCloudApi implements IProveedorWhatsapp {
 
     const datos = (await respuesta.json().catch(() => ({}))) as RespuestaEnvio;
     if (!respuesta.ok || datos.error) {
-      throw new Error(
+      const crudo =
         datos.error?.error_data?.details ??
-          datos.error?.message ??
-          `WhatsApp rechazó el envío (HTTP ${respuesta.status}).`,
-      );
+        datos.error?.message ??
+        `WhatsApp rechazó el envío (HTTP ${respuesta.status}).`;
+      throw new Error(traducirRechazo(crudo));
     }
 
     return { modo: "API", idExterno: datos.messages?.[0]?.id };
   }
+}
+
+/**
+ * El motivo de Meta, en castellano y diciendo qué hacer.
+ *
+ * Lo que devuelve la Cloud API va derecho a la pantalla del profesional como
+ * motivo del recordatorio fallido: es texto en inglés escrito para quien está
+ * mirando el payload, no para quien quiere mandar un turno. «Parameter name is
+ * missing or empty» no insinúa siquiera que el problema esté en cómo se creó
+ * la plantilla en Meta.
+ *
+ * Solo se traduce lo que tiene una acción clara del otro lado; cualquier otro
+ * rechazo pasa TAL CUAL. Inventarle una explicación a un error que no
+ * conocemos es peor que el inglés: manda a mirar donde no hay nada.
+ */
+export function traducirRechazo(crudo: string): string {
+  const texto = crudo.toLowerCase();
+
+  if (texto.includes("parameter name is missing")) {
+    return (
+      "La plantilla aprobada en Meta usa variables CON NOMBRE " +
+      "({{nombre_paciente}}) y esta app manda las variables por posición " +
+      "({{1}}, {{2}}). Editá la plantilla en el Administrador de WhatsApp y " +
+      "volvé a crearla con variables numeradas, o sacale las variables. " +
+      `(Meta dijo: "${crudo}")`
+    );
+  }
+
+  return crudo;
 }

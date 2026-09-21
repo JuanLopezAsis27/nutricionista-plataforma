@@ -5,6 +5,10 @@ import type {
 import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
 import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
 import { esMetodoGrasaVigente } from "@/dominio/servicios/grasaPorPliegues";
+import { normalizarCamposPlantilla } from "@/dominio/entidades/PlantillaAntropometrica";
+import { CAMPOS_PROTOCOLO_POR_DEFECTO } from "@/dominio/entidades/protocolosMedicion";
+import type { ProtocoloComposicion } from "@/dominio/entidades/Antropometria";
+import type { CampoPlantilla } from "@/dominio/entidades/PlantillaAntropometrica";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /**
@@ -38,6 +42,8 @@ export class PrismaRepositorioConfiguracion implements IConfiguracionRepositorio
       whatsappPrefijoPais: d.whatsappPrefijoPais,
       bienvenidaAutomaticaActiva: d.bienvenidaAutomaticaActiva,
       formulasGrasaVisibles: d.formulasGrasaVisibles,
+      camposDosComponentes: d.camposDosComponentes,
+      camposCincoComponentes: d.camposCincoComponentes,
       analisisFotoComidaAutomatico: d.analisisFotoComidaAutomatico,
     };
     // La config del inquilino es única; si ya existe se actualiza, si no se crea.
@@ -76,8 +82,35 @@ export function mapearConfiguracion(
     // de Antropometria).
     formulasGrasaVisibles:
       fila.formulasGrasaVisibles.filter(esMetodoGrasaVigente),
+    camposDosComponentes: camposDelProtocolo(
+      "DOS_COMPONENTES",
+      fila.camposDosComponentes,
+    ),
+    camposCincoComponentes: camposDelProtocolo(
+      "CINCO_COMPONENTES",
+      fila.camposCincoComponentes,
+    ),
     analisisFotoComidaAutomatico: fila.analisisFotoComidaAutomatico,
     creadoEn: fila.creadoEn,
     actualizadoEn: fila.actualizadoEn,
   });
+}
+
+/**
+ * Campos guardados de un protocolo, o los de fábrica si la fila no los tiene.
+ *
+ * La columna arranca vacía (migración 70) y vacío significa «nunca se
+ * personalizó»: se resuelve acá, al leer, y no con un backfill, para que sumar
+ * una medida al protocolo la haga aparecer sola en los consultorios que no lo
+ * tocaron. `normalizarCamposPlantilla` descarta además cualquier campo que ya
+ * no exista, como el filtro de métodos de grasa de arriba.
+ */
+function camposDelProtocolo(
+  protocolo: ProtocoloComposicion,
+  guardados: string[],
+): CampoPlantilla[] {
+  const campos = normalizarCamposPlantilla(guardados ?? []);
+  return campos.length > 0
+    ? campos
+    : [...CAMPOS_PROTOCOLO_POR_DEFECTO[protocolo]];
 }

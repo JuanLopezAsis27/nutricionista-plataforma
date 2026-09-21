@@ -163,6 +163,157 @@ Los colores de los dos tejidos son los del resto del dashboard
 (`TEMAS_COMPOSICION.masas`), no una paleta propia de esta tarjeta: la masa
 adiposa no puede ser de un color en el donut y de otro tres tarjetas más abajo.
 
+## Qué campos pide el formulario
+
+El perfil ISAK son 25 medidas y en la consulta real se toman seis. Los **dos
+protocolos son las plantillas principales** y cada uno lleva su lista de
+medidas, configurable; las plantillas propias son juegos de campos adicionales
+que se acomodan a los protocolos que admiten.
+
+| Nivel              | Quién lo arma                              | Piso                                  |
+| ------------------ | ------------------------------------------ | ------------------------------------- |
+| **Protocolo**      | Configuración → Antropometría → Protocolos | Kerr en 5 componentes; una ecuación de grasa en 2 |
+| **Plantilla propia** | Configuración → Antropometría → Plantillas | resolver ALGO                       |
+
+**No hay «perfil completo»** como tercera opción del modal. Uno de los dos
+protocolos ya es el perfil entero si así se lo configura, y una lista fija al
+lado dejaba a la configuración de los protocolos sin efecto justo en la
+pantalla donde se carga.
+
+En el modal se elige primero el **protocolo** y después la **plantilla**, en
+ese orden y en el mismo bloque, arriba del formulario: las dos cosas deciden
+qué campos se piden, y la segunda depende de la primera. El valor por defecto
+de la plantilla es *los campos del protocolo*, así que un consultorio que nunca
+configuró nada ve exactamente lo de siempre.
+
+### Una plantilla propia solo sirve para los protocolos que admite
+
+`protocolosQueAdmite` contesta con qué protocolos se puede cargar usando una
+lista de campos, y el piso es **el mismo** que el de la personalización del
+protocolo: si un juego de campos no sirve para configurar un protocolo, tampoco
+sirve para cargar con él. Dos reglas para lo mismo se separan sin que nada
+falle.
+
+La consecuencia práctica: la plantilla de 6 pliegues sirve para 2 componentes y
+**no** para 5 —con ella la medición saldría sin el fraccionamiento, que es lo
+único que ese protocolo viene a contestar—. En el desplegable las incompatibles
+aparecen **deshabilitadas y con el motivo**, no escondidas: desaparecer de la
+lista al cambiar de protocolo se lee como que la plantilla se borró. Y si ya
+había una elegida que deja de servir al cambiar de protocolo, se vuelve sola a
+«los campos del protocolo».
+
+Ninguna plantilla válida se queda sin protocolo: el piso de 2 componentes es el
+mismo que el de la entidad (resolver algo), y todo lo que resuelve las 5 masas
+resuelve también Faulkner y Yuhasz, porque sus seis pliegues están entre las 21
+medidas de Kerr.
+
+El gestor de plantillas lo dice mientras se arma la plantilla («Se puede usar
+con: …»), para que nadie se encuentre con una deshabilitada en el modal sin
+entender por qué.
+
+### El protocolo es del diálogo, no del formulario
+
+`FormularioMedicion` lo recibe por **prop**. Vivía en su estado de
+`react-hook-form`, y ahí no se podía ofrecer una lista de plantillas que
+dependiera de él: el desplegable está afuera. El protocolo sigue guardándose en
+la medición igual que antes, y al editar una se arranca con el suyo —no con el
+de la última carga, que reordenaría la planilla y escondería medidas que esa
+medición sí tiene—.
+
+### Por qué los dos protocolos tienen pisos distintos
+
+Una plantilla propia puede quedarse en los 4 pliegues de Faulkner: es un juego
+de campos más corto y nada más. Un **protocolo** no, porque su razón de ser es
+el resultado que promete. El de 5 componentes sin las 21 medidas de Kerr no es
+un protocolo más chico: es el de 2 componentes con otro nombre. El de 2
+componentes sin ninguna ecuación de grasa produce mediciones sin un solo
+porcentaje.
+
+Por eso la regla está partida en dos (`dominio/entidades/protocolosMedicion.ts`,
+`faltaParaElProtocolo`):
+
+- **5 componentes**: las medidas de `REQUERIDOS_CINCO_MASAS` no se pueden
+  destildar — el editor las deja deshabilitadas, con el motivo en el `title`—.
+  Lo que sí se saca es lo que el fraccionamiento no usa: cintura máxima,
+  cadera, muslo medial, brazo flexionado, bicipital, cresta ilíaca.
+- **2 componentes**: no hay campo bloqueado, porque el piso depende de la
+  COMBINACIÓN. Se valida en vivo y el guardado queda deshabilitado con el
+  motivo escrito.
+
+### El panel de alcance
+
+Al costado del selector de campos, `PanelAlcanceCampos` parte en dos lo que se
+puede y lo que **no** se va a poder calcular, y cada pérdida nombra las medidas
+que la recuperan. Sin eso, destildar la cresta ilíaca hacía desaparecer a
+Durnin & Womersley sin decir que había sido ESE campo, y el efecto recién se
+notaba al cargar la primera medición.
+
+Las dos mitades salen de `estadoDeResultados`, que lee la MISMA
+`REQUISITOS_RESULTADO` que valida el servidor: lo que el panel promete mientras
+se destilda es lo que después se acepta. Withers figura dos veces en esa tabla
+(una por sexo) y el panel lo colapsa en una línea, aclarando el alcance; cuando
+no sale por ningún camino, lo que informa como faltante es el de la variante a
+la que menos le falta.
+
+### Lo que el vocabulario de plantillas no nombra
+
+El peso, los kg de grasa de la fórmula propia y la dinamometría **no** están en
+`CAMPOS_PLANTILLA`, así que no se filtran: se muestran siempre. Filtrarlos por
+una lista que nunca los nombra los escondía para siempre, y con el peso eso era
+grave —es el único campo obligatorio, y sin él en pantalla el formulario no se
+podía enviar—.
+
+### Qué pide cada protocolo de fábrica
+
+`CINCO_COMPONENTES` es el perfil ISAK entero, porque lo necesita entero.
+
+`DOS_COMPONENTES` es lo mínimo para lo que ESE protocolo contesta: **los
+pliegues que alimentan alguna ecuación vigente** —hoy los 6 de la planilla más
+el bicipital y la cresta ilíaca, sin los cuales Durnin & Womersley no sale
+nunca y Withers solo sale en mujeres—, los **tres perímetros que se siguen por
+clínica** (cintura mínima, cintura máxima y cadera) y la **talla**, que es lo
+que da el IMC. Los diámetros óseos y los demás perímetros quedan destildados:
+solo sirven para el fraccionamiento, que en 2 componentes no se calcula. La
+carga de todos los días pasa de 25 campos a 12.
+
+La lista de pliegues se **deriva** de `REQUISITOS_RESULTADO` en vez de
+escribirse a mano: si mañana entra una ecuación que pide el axilar medio, ese
+pliegue aparece solo. Escrita a mano se quedaba vieja sin que nada fallara —el
+pliegue simplemente no se pedía—.
+
+### El protocolo de una medición IMPORTADA se deduce
+
+Es la única deducción del módulo, y tiene motivo: en la carga a mano el
+profesional elige el protocolo antes de empezar, pero una planilla trae años de
+consultas y preguntárselo columna por columna es impracticable. El dato ya está
+en la columna: si trae las 21 medidas del fraccionamiento de Kerr, esa consulta
+se tomó con el perfil ISAK completo.
+
+`protocoloSegunMedidas` lo contesta y lo aplica `ImportarMediciones` cuando la
+columna no declara protocolo. Antes entraban **todas** como de 2 componentes
+—el default de la entidad—, así que una proforma ISAK importada abría el
+dashboard en el modelo equivocado aunque el fraccionamiento se calculara igual.
+
+Mira las medidas **cargadas**, no los campos pedidos: un campo presente pero
+vacío no cuenta. La tabla de revisión muestra el protocolo de cada columna con
+la misma función, así que completar a mano un diámetro que la IA no leyó pasa
+esa consulta a 5 componentes a la vista.
+
+Del lado del prompt, la **regla 11** de `MEDICIONES` existe para esto: le pide
+al modelo que no se saltee las filas que solo aparecen en las proformas (los
+seis diámetros, los perímetros de cabeza, antebrazo, tórax, muslo máximo y
+pantorrilla, la talla sentado), que son justamente las que definen la
+diferencia. El protocolo NO se lo pide al modelo —se cuenta en código—: lo que
+depende de él es que las medidas lleguen.
+
+### Dónde se guarda
+
+Dos columnas `String[]` en `configuracion_consultorio` (migración 70).
+**Vacío = la fila es anterior a la migración**, y el juego de fábrica se
+resuelve al LEER (`camposDelProtocolo`, en el repositorio), no con un backfill:
+así la lista de medidas no queda congelada en SQL, donde nadie la mantendría al
+sumar un sitio.
+
 ## Objetivos: uno por FORMA DE MEDIR
 
 El módulo mide lo mismo de tres maneras, y la meta se plantea sobre una de
@@ -363,7 +514,14 @@ debajo.
   `ETIQUETAS_MEDIDA`, la entidad, `CAMPOS_PLANTILLA`, los DTOs, el mapeador de
   Prisma, `GRUPOS` del formulario y `filasMedicion.ts`. El test de mapeadores
   (`mapeadores.evaluacion.test.ts`) da a cada medida un valor único justamente
-  para cazar un cruce entre campos vecinos.
+  para cazar un cruce entre campos vecinos. Si además tiene que pedirse desde
+  el vamos, va en `CAMPOS_PROTOCOLO_POR_DEFECTO`: los consultorios que nunca
+  configuraron los protocolos lo reciben solos, los que sí lo tienen que
+  tildar.
+- El selector de campos de la configuración es UNO
+  (`SelectorCamposMedicion`), compartido por los dos protocolos y por las
+  plantillas, igual que el panel de alcance. Con una copia por editor, el
+  primer arreglo se aplica en uno solo.
 - Una serie histórica **nunca** cambia de modelo ni de ecuación. Por eso los
   valores del enum `MetodoGrasa` solo se agregan, nunca se renombran ni se
   reordenan. Lo mismo vale para `VariableComposicion`: el orden de un enum de

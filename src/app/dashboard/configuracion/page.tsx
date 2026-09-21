@@ -10,7 +10,7 @@ import {
 import { FormularioConfiguracion } from "@/componentes/configuracion/FormularioConfiguracion";
 import { GestionEstablecimientos } from "@/componentes/configuracion/GestionEstablecimientos";
 import { FormularioPdfPlan } from "@/componentes/configuracion/FormularioPdfPlan";
-import { FormularioEcuacionesGrasa } from "@/componentes/configuracion/FormularioEcuacionesGrasa";
+import { ConfiguracionAntropometria } from "@/componentes/configuracion/ConfiguracionAntropometria";
 import { FormularioWhatsapp } from "@/componentes/configuracion/FormularioWhatsapp";
 import { GestionAxiomas } from "@/componentes/configuracion/GestionAxiomas";
 import { GestionPlantillasEmail } from "@/componentes/configuracion/GestionPlantillasEmail";
@@ -59,7 +59,7 @@ export default function PaginaConfiguracion() {
         </TabsContent>
 
         <TabsContent value="antropometria">
-          <FormularioEcuacionesGrasa />
+          <ConfiguracionAntropometria />
         </TabsContent>
 
         <TabsContent value="diario">

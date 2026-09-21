@@ -15,6 +15,10 @@ import {
   CAMPOS_PLANTILLA,
   ETIQUETAS_CAMPO_PLANTILLA,
 } from "@/dominio/entidades/PlantillaAntropometrica";
+import {
+  ETIQUETAS_PROTOCOLO,
+  protocoloSegunMedidas,
+} from "@/dominio/entidades/protocolosMedicion";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
 import { formatearFecha } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
@@ -262,6 +266,11 @@ export function ImportadorMediciones({
           const cargadas = CAMPOS_MEDIDA.filter(
             (campo) => aNumeroONull(fila.medidas[campo]) !== null,
           );
+          // Con qué protocolo va a entrar esta consulta. Se calcula con la
+          // MISMA función del dominio que aplica la importación, y se muestra
+          // acá porque depende de lo que se esté editando en la fila: completar
+          // un diámetro que la IA no leyó puede pasarla a 5 componentes.
+          const protocolo = protocoloSegunMedidas(medidasDe(fila));
           return (
             <div
               key={indice}
@@ -326,6 +335,22 @@ export function ImportadorMediciones({
                     ? "1 medida más"
                     : `${cargadas.length} medidas más`}
                 </button>
+
+                <span
+                  className={cn(
+                    "rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                    protocolo === "CINCO_COMPONENTES"
+                      ? "border-primary/40 bg-primary/5 text-foreground"
+                      : "text-muted-foreground",
+                  )}
+                  title={
+                    protocolo === "CINCO_COMPONENTES"
+                      ? "La consulta trae las 21 medidas del fraccionamiento de Kerr."
+                      : "No trae todas las medidas del fraccionamiento de Kerr."
+                  }
+                >
+                  {ETIQUETAS_PROTOCOLO[protocolo]}
+                </span>
 
                 {!fila.fecha && (
                   <p className="pb-2 text-xs text-destructive">

@@ -14,11 +14,11 @@ import {
   METODOS_GRASA,
   type MetodoGrasa,
 } from "@/dominio/servicios/grasaPorPliegues";
+import type { ProtocoloComposicion } from "@/dominio/entidades/Antropometria";
 import {
-  PROTOCOLOS_COMPOSICION,
-  type ProtocoloComposicion,
-} from "@/dominio/entidades/Antropometria";
-import type { CampoPlantilla } from "@/dominio/entidades/PlantillaAntropometrica";
+  CAMPOS_PLANTILLA,
+  type CampoPlantilla,
+} from "@/dominio/entidades/PlantillaAntropometrica";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
 import { useConfiguracion } from "@/lib/hooks/useConfiguracion";
 import { aFechaISO, hoyISO, formatearMedida } from "@/lib/formato";
@@ -147,33 +147,19 @@ const ETIQUETAS_ACTIVIDAD: Record<NivelActividad, string> = {
   EXTREMADA: "Extremada",
 };
 
-const ETIQUETAS_PROTOCOLO: Record<
-  ProtocoloComposicion,
-  { titulo: string; detalle: string }
-> = {
-  DOS_COMPONENTES: {
-    titulo: "2 componentes (grasa / masa magra)",
-    detalle: "Sale con los 6 pliegues. Es el protocolo habitual de consulta.",
-  },
-  CINCO_COMPONENTES: {
-    titulo: "5 componentes (Kerr)",
-    detalle: "Perfil ISAK completo: pliegues, perímetros y diámetros.",
-  },
-};
-
 /** Valor del select cuando el campo quedó sin especificar. */
 const SIN_DATO = "SIN_DATO";
 
 /**
- * Campos que NO se muestran en el perfil completo (predeterminado): son sitios
- * fuera del protocolo habitual de consulta y solo tienen sentido si el
- * profesional arma una plantilla propia que los pida explícitamente.
+ * Campos que una plantilla (o un protocolo) puede pedir o no.
+ *
+ * Lo que NO está acá —el peso, los kg de grasa de la fórmula propia y la
+ * dinamometría— se muestra siempre: no es vocabulario de plantilla, así que
+ * filtrarlo por una lista que nunca lo nombra lo escondería para siempre. Con
+ * el peso eso era grave: es el único campo obligatorio, y sin él en pantalla
+ * el formulario no se podía enviar.
  */
-const CAMPOS_EXCLUIDOS_PREDETERMINADO = new Set<string>([
-  "pliegueBicipital",
-  "pliegueAxilarMedio",
-  "pliegueLumbar",
-]);
+const CAMPOS_DE_PLANTILLA = new Set<string>(CAMPOS_PLANTILLA);
 
 const CAMPOS_NUMERICOS = [
   "pesoKg",
@@ -189,7 +175,6 @@ type CampoNumerico = (typeof CAMPOS_NUMERICOS)[number];
 
 type DatosFormulario = Record<CampoNumerico, string> & {
   fecha: string;
-  protocolo: ProtocoloComposicion;
   metodoGrasa: MetodoGrasa | typeof SIN_DATO;
   nivelActividad: NivelActividad | typeof SIN_DATO;
   observaciones: string;
@@ -199,9 +184,16 @@ interface Props {
   pacienteId: string;
   medicionInicial?: MedicionComposicionDto | null;
   /**
-   * Campos a mostrar. Null = todos (el perfil completo). Una medición que ya
-   * tiene un campo cargado lo muestra aunque la plantilla no lo incluya: si no,
-   * editar con otra plantilla escondería un dato sin avisar.
+   * Protocolo elegido. Es PROP y no estado del formulario porque se elige
+   * junto con la plantilla, arriba: las dos cosas deciden qué se pide, y una
+   * plantilla propia solo se puede usar con los protocolos que admite.
+   */
+  protocolo: ProtocoloComposicion;
+  /**
+   * Campos de la plantilla elegida. Null = los del PROTOCOLO, tal como el
+   * consultorio los configuró. Una medición que ya tiene un campo cargado lo
+   * muestra aunque la plantilla no lo incluya: si no, editar con otra
+   * plantilla escondería un dato sin avisar.
    */
   camposVisibles?: readonly CampoPlantilla[] | null;
   onTerminado: () => void;
@@ -219,6 +211,7 @@ interface Props {
 export function FormularioMedicion({
   pacienteId,
   medicionInicial,
+  protocolo,
   camposVisibles = null,
   onTerminado,
 }: Props) {
@@ -230,8 +223,9 @@ export function FormularioMedicion({
   // visibles; una medición vieja que ya tenía destacada una que ahora está
   // oculta conserva su valor (se agrega aparte para no perder la selección).
   const { obtener: obtenerConfiguracion } = useConfiguracion();
+  const configuracion = obtenerConfiguracion().data;
   const formulasVisibles =
-    obtenerConfiguracion().data?.formulasGrasaVisibles ?? METODOS_GRASA;
+    configuracion?.formulasGrasaVisibles ?? METODOS_GRASA;
   const metodosDelSelect = METODOS_GRASA.filter(
     (metodo) =>
       formulasVisibles.includes(metodo) ||
@@ -241,7 +235,6 @@ export function FormularioMedicion({
   const form = useForm<DatosFormulario>({
     defaultValues: {
       fecha: medicionInicial ? aFechaISO(medicionInicial.fecha) : hoyISO(),
-      protocolo: medicionInicial?.protocolo ?? "DOS_COMPONENTES",
       metodoGrasa: medicionInicial?.metodoGrasa ?? SIN_DATO,
       nivelActividad: medicionInicial?.nivelActividad ?? SIN_DATO,
       observaciones: medicionInicial?.observaciones ?? "",
@@ -251,19 +244,32 @@ export function FormularioMedicion({
     },
   });
 
-  const protocolo = form.watch("protocolo");
   const tallaCm = aNumeroONull(form.watch("tallaCm"));
 
   /**
-   * ¿Se muestra este campo? Lo decide la plantilla, salvo que la medición que
-   * se está editando ya lo tenga cargado: esconder un valor existente sería
-   * perderlo de vista sin que nadie lo haya borrado.
+   * Los campos que pide el protocolo elegido, según la configuración del
+   * consultorio. Mientras la configuración no cargó se muestran todos: es
+   * preferible pedir de más por un instante que esconder una medida y que
+   * alguien la dé por no pedida.
+   */
+  const camposDelProtocolo =
+    protocolo === "CINCO_COMPONENTES"
+      ? configuracion?.camposCincoComponentes
+      : configuracion?.camposDosComponentes;
+  const camposActivos = new Set<string>(
+    camposVisibles ?? camposDelProtocolo ?? CAMPOS_PLANTILLA,
+  );
+
+  /**
+   * ¿Se muestra este campo? Lo decide la plantilla elegida —o, si no hay, el
+   * protocolo—, salvo que la medición que se está editando ya lo tenga
+   * cargado: esconder un valor existente sería perderlo de vista sin que nadie
+   * lo haya borrado.
    */
   const visible = (campo: CampoNumerico): boolean => {
+    if (!CAMPOS_DE_PLANTILLA.has(campo)) return true;
     if (medidas?.[campo] != null) return true;
-    if (camposVisibles == null)
-      return !CAMPOS_EXCLUIDOS_PREDETERMINADO.has(campo);
-    return (camposVisibles as readonly string[]).includes(campo);
+    return camposActivos.has(campo);
   };
   const enviando =
     registrarAntropometria.isPending || actualizarAntropometria.isPending;
@@ -285,7 +291,7 @@ export function FormularioMedicion({
     const base = {
       fecha: new Date(datos.fecha),
       pesoKg: peso,
-      protocolo: datos.protocolo,
+      protocolo,
       metodoGrasa: datos.metodoGrasa === SIN_DATO ? null : datos.metodoGrasa,
       nivelActividad:
         datos.nivelActividad === SIN_DATO ? null : datos.nivelActividad,
@@ -340,39 +346,6 @@ export function FormularioMedicion({
 
   return (
     <form onSubmit={form.handleSubmit(alEnviar)} className="space-y-5">
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-semibold">Protocolo</legend>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {PROTOCOLOS_COMPOSICION.map((opcion) => {
-            const activo = protocolo === opcion;
-            return (
-              <button
-                key={opcion}
-                type="button"
-                onClick={() => form.setValue("protocolo", opcion)}
-                aria-pressed={activo}
-                className={cn(
-                  "rounded-md border p-3 text-left transition-colors",
-                  activo ? "border-primary bg-primary/5" : "hover:bg-muted/50",
-                )}
-              >
-                <p className="text-sm font-medium">
-                  {ETIQUETAS_PROTOCOLO[opcion].titulo}
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {ETIQUETAS_PROTOCOLO[opcion].detalle}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-        <p className="text-[11px] text-muted-foreground">
-          Elegir uno no descarta el otro: se guarda todo lo que cargues y se
-          calcula todo lo que las medidas permitan. El protocolo define qué se
-          muestra primero en el dashboard.
-        </p>
-      </fieldset>
-
       <fieldset className="space-y-2">
         <legend className="text-sm font-semibold">Datos básicos</legend>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

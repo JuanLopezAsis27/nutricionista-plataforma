@@ -1,20 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Check, X, LayoutTemplate } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Check,
+  Layers,
+  LayoutTemplate,
+} from "lucide-react";
 import type { PlantillaAntropometricaDto } from "@/aplicacion/dtos/evaluacion.dto";
 import {
-  CAMPOS_PLANTILLA,
-  ETIQUETAS_CAMPO_PLANTILLA,
   MINIMO_PARA_SERVIR,
   REQUISITOS_RESULTADO,
+  ETIQUETAS_CAMPO_PLANTILLA,
+  alcanceDe,
   type AlcancePlantilla,
   type CampoPlantilla,
-  type RequisitoResultado,
 } from "@/dominio/entidades/PlantillaAntropometrica";
 import { PLANTILLAS_BASE } from "@/dominio/entidades/plantillasBase";
+import {
+  ETIQUETAS_PROTOCOLO,
+  protocolosQueAdmite,
+} from "@/dominio/entidades/protocolosMedicion";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
-import { cn } from "@/lib/utilidades";
 import { Button } from "@/componentes/ui/button";
 import { Card, CardContent } from "@/componentes/ui/card";
 import { Input } from "@/componentes/ui/input";
@@ -28,36 +37,23 @@ import {
   DialogTitle,
 } from "@/componentes/ui/dialog";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
-
-/** Los campos agrupados como en el formulario de carga. */
-const GRUPOS: { titulo: string; campos: CampoPlantilla[] }[] = [
-  {
-    titulo: "Básicos",
-    campos: ["tallaCm", "tallaSentadoCm"],
-  },
-  {
-    titulo: "Pliegues cutáneos",
-    campos: CAMPOS_PLANTILLA.filter((c) => c.startsWith("pliegue")),
-  },
-  {
-    titulo: "Perímetros",
-    campos: CAMPOS_PLANTILLA.filter((c) => c.startsWith("circ")),
-  },
-  {
-    titulo: "Diámetros óseos",
-    campos: CAMPOS_PLANTILLA.filter((c) => c.startsWith("diam")),
-  },
-];
+import { PanelAlcanceCampos } from "./PanelAlcanceCampos";
+import { SelectorCamposMedicion } from "./SelectorCamposMedicion";
 
 /**
  * Plantillas de carga del consultorio.
  *
+ * Son el tercer juego de campos, además de los dos protocolos: una plantilla
+ * no tiene que resolver nada en particular —le alcanza con resolver ALGO—,
+ * así que es donde entran las cargas cortas y los sitios de fuera del ISAK.
+ * Aparecen en el desplegable de toda medición nueva.
+ *
  * El flujo es el que pidió el profesional: se parte de una plantilla de
  * fábrica y se destilda lo que no se usa. Mientras se destilda, el panel de
- * alcance dice en vivo qué resultados se siguen pudiendo calcular y cuáles se
- * pierden, así la poda no es a ciegas.
+ * alcance dice en vivo qué se sigue pudiendo calcular y qué se pierde, así la
+ * poda no es a ciegas.
  */
-export function GestorPlantillas() {
+export function GestorPlantillasAntropometria() {
   const { obtenerPlantillas, eliminarPlantilla } = useEvaluacion();
   const consulta = obtenerPlantillas();
 
@@ -78,8 +74,11 @@ export function GestorPlantillas() {
         <div>
           <h3 className="font-semibold">Plantillas de carga</h3>
           <p className="text-sm text-muted-foreground">
-            Definen qué campos pide el formulario de medición. Partí de una de
-            las nuestras y sacá lo que no midas.
+            Juegos de campos propios, además de los dos protocolos. Aparecen
+            para elegir en cada medición nueva, con los protocolos a los que le
+            alcanzan: una plantilla que no resuelve el fraccionamiento no se
+            puede usar con 5 componentes. Partí de una de las nuestras y sacá lo
+            que no midas.
           </p>
         </div>
         <Button
@@ -96,8 +95,8 @@ export function GestorPlantillas() {
 
       {plantillas.length === 0 ? (
         <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Todavía no tenés plantillas propias. El formulario de medición usa el
-          perfil completo hasta que crees una.
+          Todavía no tenés plantillas propias. El formulario de medición pide
+          los campos del protocolo elegido hasta que crees una.
         </p>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
@@ -137,6 +136,7 @@ export function GestorPlantillas() {
                     </Button>
                   </div>
                 </div>
+                <ProtocolosQueAdmite campos={plantilla.campos} />
                 <ResumenAlcance alcance={plantilla.alcance} />
               </CardContent>
             </Card>
@@ -199,8 +199,8 @@ function EditorPlantilla({
   // El panel se recalcula en cada tilde sobre la MISMA tabla de requisitos que
   // usa la validación del servidor, así que lo que promete es lo que se acepta.
   const seleccionados = [...campos];
-  const cubiertos = requisitosCubiertos(campos);
-  const sirve = cubiertos.length > 0;
+  const alcance = alcanceDe(seleccionados);
+  const sirve = alcance.metodosGrasa.length > 0 || alcance.cincoMasas;
   const faltaParaServir = MINIMO_PARA_SERVIR.filter(
     (campo) => !campos.has(campo),
   ).map((campo) => ETIQUETAS_CAMPO_PLANTILLA[campo]);
@@ -291,62 +291,17 @@ function EditorPlantilla({
         </div>
       </div>
 
-      <div className="space-y-3">
-        <p className="text-xs text-muted-foreground">
-          El <span className="font-medium">peso</span> y la{" "}
-          <span className="font-medium">fecha</span> van siempre: no se pueden
-          quitar.
-        </p>
-        {GRUPOS.map((grupo) => (
-          <fieldset key={grupo.titulo} className="space-y-2">
-            <legend className="text-sm font-semibold">{grupo.titulo}</legend>
-            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-              {grupo.campos.map((campo) => {
-                const activo = campos.has(campo);
-                return (
-                  <button
-                    key={campo}
-                    type="button"
-                    role="switch"
-                    aria-checked={activo}
-                    onClick={() => alternar(campo)}
-                    className={cn(
-                      "flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-left text-xs transition-colors",
-                      activo
-                        ? "border-primary bg-primary/5 font-medium"
-                        : "text-muted-foreground hover:bg-muted/50",
-                    )}
-                  >
-                    <span
-                      aria-hidden
-                      className={cn(
-                        "flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] border",
-                        activo
-                          ? "border-primary bg-primary text-white"
-                          : "border-input",
-                      )}
-                    >
-                      {activo && <Check className="h-3 w-3" />}
-                    </span>
-                    <span className="min-w-0 truncate">
-                      {ETIQUETAS_CAMPO_PLANTILLA[campo]}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
-        ))}
-      </div>
+      <p className="text-xs text-muted-foreground">
+        El <span className="font-medium">peso</span> y la{" "}
+        <span className="font-medium">fecha</span> van siempre: no se pueden
+        quitar.
+      </p>
 
-      <div className="rounded-md border p-3">
-        <p className="mb-2 text-xs font-semibold">
-          Con estos {seleccionados.length} campos vas a poder calcular:
-        </p>
-        <ListaRequisitos
-          cubiertos={cubiertos}
-          faltaParaServir={faltaParaServir}
-        />
+      <SelectorCamposMedicion campos={campos} onAlternar={alternar} />
+
+      <div className="space-y-2">
+        <ProtocolosQueAdmite campos={seleccionados} />
+        <PanelAlcanceCampos campos={seleccionados} />
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
@@ -372,87 +327,39 @@ function EditorPlantilla({
 }
 
 /**
- * Requisitos que un conjunto de campos satisface.
+ * Con qué protocolos se puede cargar usando esta plantilla.
  *
- * La comprobación es un `every` sobre un `Set`: la regla de negocio —qué exige
- * cada resultado— vive en la tabla del dominio, no acá.
+ * Los dos protocolos son las plantillas principales y una propia se acomoda a
+ * la que le da el cuero. Decirlo acá, mientras se arma, es lo que evita la
+ * sorpresa de encontrarla deshabilitada en el modal de medición sin entender
+ * por qué: el motivo es el mismo panel de abajo.
  */
-function requisitosCubiertos(
-  campos: ReadonlySet<CampoPlantilla>,
-): RequisitoResultado[] {
-  return REQUISITOS_RESULTADO.filter((requisito) =>
-    requisito.campos.every((campo) => campos.has(campo)),
-  );
-}
-
-/** Panel en vivo del editor: qué se puede calcular con lo tildado. */
-function ListaRequisitos({
-  cubiertos,
-  faltaParaServir,
+function ProtocolosQueAdmite({
+  campos,
 }: {
-  cubiertos: RequisitoResultado[];
-  faltaParaServir: string[];
+  campos: readonly CampoPlantilla[];
 }) {
-  if (cubiertos.length === 0) {
-    return (
-      <p className="flex items-start gap-1.5 text-xs text-destructive">
-        <X className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-        <span>
-          Ningún resultado. Falta {faltaParaServir.join(", ").toLowerCase()}.
-        </span>
-      </p>
-    );
-  }
-
-  // Withers aparece dos veces en la tabla (una por sexo): si están las dos,
-  // sirve para cualquier paciente y se muestra una sola línea sin aclaración.
-  const porClave = new Map<string, RequisitoResultado[]>();
-  for (const requisito of cubiertos) {
-    porClave.set(requisito.clave, [
-      ...(porClave.get(requisito.clave) ?? []),
-      requisito,
-    ]);
-  }
-  const totalPorClave = new Map<string, number>();
-  for (const requisito of REQUISITOS_RESULTADO) {
-    totalPorClave.set(
-      requisito.clave,
-      (totalPorClave.get(requisito.clave) ?? 0) + 1,
-    );
-  }
+  const admitidos = protocolosQueAdmite(campos);
+  if (admitidos.length === 0) return null;
 
   return (
-    <ul className="space-y-1 text-xs">
-      {[...porClave.entries()].map(([clave, variantes]) => {
-        const completo = variantes.length === totalPorClave.get(clave);
-        const sexo = completo ? "AMBOS" : variantes[0]!.sexo;
-        return (
-          <li key={clave} className="flex items-start gap-1.5">
-            <Check
-              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary"
-              aria-hidden
-            />
-            <span>
-              {variantes[0]!.etiqueta}
-              {sexo !== "AMBOS" && (
-                <span className="text-muted-foreground">
-                  {" "}
-                  — solo en {sexo === "FEMENINO" ? "mujeres" : "varones"}
-                </span>
-              )}
-            </span>
-          </li>
-        );
-      })}
-      {!porClave.has("CINCO_MASAS") && (
-        <li className="flex items-start gap-1.5 text-muted-foreground">
-          <X className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-          <span>
-            Sin fraccionamiento en 5 masas: necesita el perfil ISAK completo.
+    <p className="flex items-start gap-1.5 text-xs">
+      <Layers
+        className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary"
+        aria-hidden
+      />
+      <span>
+        Se puede usar con:{" "}
+        <span className="font-medium">
+          {admitidos.map((p) => ETIQUETAS_PROTOCOLO[p]).join(" · ")}
+        </span>
+        {!admitidos.includes("CINCO_COMPONENTES") && (
+          <span className="block text-muted-foreground">
+            Para 5 componentes le faltan medidas del fraccionamiento de Kerr.
           </span>
-        </li>
-      )}
-    </ul>
+        )}
+      </span>
+    </p>
   );
 }
 

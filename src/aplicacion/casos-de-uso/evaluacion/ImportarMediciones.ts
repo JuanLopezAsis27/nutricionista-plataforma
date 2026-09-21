@@ -4,6 +4,7 @@ import {
   Antropometria,
   type DatosNuevaAntropometria,
 } from "@/dominio/entidades/Antropometria";
+import { protocoloSegunMedidas } from "@/dominio/entidades/protocolosMedicion";
 import { ErrorDominio } from "@/dominio/errores/ErrorDominio";
 import { ErrorPacienteNoEncontrado } from "@/dominio/errores/ErrorPacienteNoEncontrado";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
@@ -71,7 +72,17 @@ export class ImportarMediciones {
     for (const medidas of ordenadas) {
       try {
         const medicion = Antropometria.crear(
-          { ...medidas, pacienteId: datos.pacienteId },
+          {
+            ...medidas,
+            pacienteId: datos.pacienteId,
+            // El protocolo se deduce POR COLUMNA de lo que la planilla trajo:
+            // una consulta con el perfil ISAK completo es de 5 componentes y
+            // el resto de 2. Antes entraban todas como de 2 —el default de la
+            // entidad—, así que una proforma ISAK importada quedaba con el
+            // dashboard abierto en el modelo equivocado aunque el
+            // fraccionamiento se calculara igual.
+            protocolo: medidas.protocolo ?? protocoloSegunMedidas(medidas),
+          },
           crypto.randomUUID(),
         );
         if (

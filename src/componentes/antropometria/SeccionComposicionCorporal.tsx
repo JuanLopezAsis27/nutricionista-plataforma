@@ -2,10 +2,30 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Download, FileSpreadsheet, Plus, UserCog } from "lucide-react";
-import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
+import {
+  Download,
+  FileSpreadsheet,
+  LayoutTemplate,
+  Plus,
+  Settings2,
+  UserCog,
+} from "lucide-react";
+import type {
+  MedicionComposicionDto,
+  PlantillaAntropometricaDto,
+} from "@/aplicacion/dtos/evaluacion.dto";
+import {
+  PROTOCOLOS_COMPOSICION,
+  type ProtocoloComposicion,
+} from "@/dominio/entidades/Antropometria";
+import type { CampoPlantilla } from "@/dominio/entidades/PlantillaAntropometrica";
+import {
+  ETIQUETAS_PROTOCOLO,
+  protocolosQueAdmite,
+} from "@/dominio/entidades/protocolosMedicion";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
 import { formatearFecha } from "@/lib/formato";
+import { cn } from "@/lib/utilidades";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
 import {
@@ -27,17 +47,46 @@ import {
   SelectValue,
   SelectContent,
   SelectItem,
+  SelectGroup,
+  SelectLabel,
 } from "@/componentes/ui/select";
 import { Label } from "@/componentes/ui/label";
 import { DashboardComposicion } from "./DashboardComposicion";
 import { FormularioMedicion } from "./FormularioMedicion";
-import { GestorPlantillas } from "./GestorPlantillas";
 import { ImportadorMediciones } from "./ImportadorMediciones";
 import { ObjetivosComposicion } from "./ObjetivosComposicion";
 import { TarjetasMediciones } from "./TarjetasMediciones";
 
-/** Valor del selector cuando no se filtra por plantilla. */
-const PERFIL_COMPLETO = "COMPLETO";
+/**
+ * El valor del selector cuando no hay plantilla propia elegida: se cargan los
+ * campos del protocolo, tal como el consultorio los configuró.
+ *
+ * No hay opción de «perfil completo»: los dos protocolos SON las plantillas
+ * principales, y uno de ellos ya es el perfil entero si así se lo configura.
+ * Ofrecer una tercera lista fija al lado dejaba a la configuración de los
+ * protocolos sin efecto justo en la pantalla donde se carga.
+ */
+const SEGUIR_PROTOCOLO = "PROTOCOLO";
+
+/** El renglón de ayuda de cada protocolo; el nombre sale del dominio. */
+const DETALLE_PROTOCOLO: Record<ProtocoloComposicion, string> = {
+  DOS_COMPONENTES:
+    "Sale con los pliegues. Es el protocolo habitual de consulta.",
+  CINCO_COMPONENTES:
+    "Perfil ISAK: pliegues, perímetros y diámetros para el fraccionamiento.",
+};
+
+/**
+ * ¿Esta plantilla propia se puede usar con este protocolo? La regla es del
+ * dominio y es la MISMA que valida la personalización del protocolo: si una
+ * lista de campos no sirve para configurarlo, tampoco sirve para cargar con él.
+ */
+function admite(
+  plantilla: PlantillaAntropometricaDto,
+  protocolo: ProtocoloComposicion,
+): boolean {
+  return protocolosQueAdmite(plantilla.campos).includes(protocolo);
+}
 
 /**
  * Pestaña de Antropometría del paciente: la única sección donde se cargan y
@@ -58,7 +107,11 @@ export function SeccionComposicionCorporal({
     useEvaluacion();
   const composicion = obtenerComposicion({ pacienteId });
   const plantillas = obtenerPlantillas();
-  const [plantillaId, setPlantillaId] = useState<string>(PERFIL_COMPLETO);
+  // Protocolo y plantilla se eligen juntos, arriba del formulario: son las dos
+  // cosas que deciden qué se pide, y la segunda depende de la primera.
+  const [protocolo, setProtocolo] =
+    useState<ProtocoloComposicion>("DOS_COMPONENTES");
+  const [plantillaId, setPlantillaId] = useState<string>(SEGUIR_PROTOCOLO);
 
   const [abierto, setAbierto] = useState(false);
   const [importando, setImportando] = useState(false);
@@ -82,12 +135,39 @@ export function SeccionComposicionCorporal({
 
   const abrirNueva = () => {
     setEditando(null);
+    setProtocolo("DOS_COMPONENTES");
+    setPlantillaId(SEGUIR_PROTOCOLO);
+    setAbierto(true);
+  };
+
+  const abrirEdicion = (medicion: MedicionComposicionDto) => {
+    setEditando(medicion);
+    // La medición ya declaró su protocolo: editarla con el de la última carga
+    // podría reordenar la planilla y esconder medidas que sí tiene.
+    setProtocolo(medicion.protocolo);
+    setPlantillaId(SEGUIR_PROTOCOLO);
     setAbierto(true);
   };
 
   const listaPlantillas = plantillas.data ?? [];
   const plantillaElegida =
     listaPlantillas.find((p) => p.id === plantillaId) ?? null;
+  // Null deja que el formulario pida los campos del protocolo elegido.
+  const camposVisibles: readonly CampoPlantilla[] | null =
+    plantillaElegida?.campos ?? null;
+
+  /**
+   * Cambiar de protocolo puede dejar huérfana a la plantilla elegida: la de 6
+   * pliegues no sirve para 5 componentes. Se vuelve al protocolo solo, que es
+   * lo único que siempre sirve; dejarla puesta cargaría una medición sin el
+   * fraccionamiento bajo el protocolo que lo promete.
+   */
+  const cambiarProtocolo = (nuevo: ProtocoloComposicion) => {
+    setProtocolo(nuevo);
+    if (plantillaElegida && !admite(plantillaElegida, nuevo)) {
+      setPlantillaId(SEGUIR_PROTOCOLO);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -129,7 +209,6 @@ export function SeccionComposicionCorporal({
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="plantillas">Plantillas</TabsTrigger>
           </TabsList>
           <div className="flex items-center gap-2">
             <Button
@@ -168,10 +247,7 @@ export function SeccionComposicionCorporal({
           <TarjetasMediciones
             pacienteId={pacienteId}
             mediciones={mediciones}
-            onEditar={(medicion) => {
-              setEditando(medicion);
-              setAbierto(true);
-            }}
+            onEditar={abrirEdicion}
             onEliminar={setEliminando}
           />
         </TabsContent>
@@ -184,10 +260,6 @@ export function SeccionComposicionCorporal({
             ultimaMedicion={mediciones[mediciones.length - 1] ?? null}
           />
         </TabsContent>
-
-        <TabsContent value="plantillas" className="mt-4">
-          <GestorPlantillas />
-        </TabsContent>
       </Tabs>
 
       <Dialog open={abierto} onOpenChange={setAbierto}>
@@ -199,30 +271,105 @@ export function SeccionComposicionCorporal({
                 : "Nueva medición antropométrica"}
             </DialogTitle>
           </DialogHeader>
-          {listaPlantillas.length > 0 && (
-            <div className="space-y-1">
-              <Label className="text-xs">Plantilla de carga</Label>
+          {/* Protocolo y plantilla van juntos, ARRIBA del formulario: los dos
+              deciden qué campos se van a pedir, y elegirlos después de empezar
+              a cargar es volver a mirar la planilla desde el principio. La
+              plantilla se ofrece debajo del protocolo porque depende de él:
+              una propia solo se puede usar con los protocolos que admite. */}
+          <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">
+                Protocolo de la medición
+              </legend>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {PROTOCOLOS_COMPOSICION.map((opcion) => {
+                  const activo = protocolo === opcion;
+                  return (
+                    <button
+                      key={opcion}
+                      type="button"
+                      onClick={() => cambiarProtocolo(opcion)}
+                      aria-pressed={activo}
+                      className={cn(
+                        "rounded-md border bg-background p-3 text-left transition-colors",
+                        activo
+                          ? "border-primary bg-primary/5"
+                          : "hover:bg-muted/50",
+                      )}
+                    >
+                      <p className="text-sm font-medium">
+                        {ETIQUETAS_PROTOCOLO[opcion]}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {DETALLE_PROTOCOLO[opcion]}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="plantilla-carga"
+                className="flex items-center gap-1.5 text-sm font-medium"
+              >
+                <LayoutTemplate className="h-4 w-4 text-primary" />
+                Plantilla de carga
+              </Label>
               <Select value={plantillaId} onValueChange={setPlantillaId}>
-                <SelectTrigger>
+                <SelectTrigger id="plantilla-carga" className="bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={PERFIL_COMPLETO}>
-                    Perfil completo (todos los campos)
+                  <SelectItem value={SEGUIR_PROTOCOLO}>
+                    Los campos del protocolo
                   </SelectItem>
-                  {listaPlantillas.map((plantilla) => (
-                    <SelectItem key={plantilla.id} value={plantilla.id}>
-                      {plantilla.nombre} · {plantilla.campos.length} campos
-                    </SelectItem>
-                  ))}
+                  {listaPlantillas.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel>Mis plantillas</SelectLabel>
+                      {listaPlantillas.map((plantilla) => {
+                        // Las que no le sirven a este protocolo se muestran
+                        // DESHABILITADAS y con el motivo, no se esconden:
+                        // desaparecer de la lista al cambiar de protocolo se
+                        // lee como que la plantilla se borró.
+                        const sirve = admite(plantilla, protocolo);
+                        return (
+                          <SelectItem
+                            key={plantilla.id}
+                            value={plantilla.id}
+                            disabled={!sirve}
+                          >
+                            {plantilla.nombre} · {plantilla.campos.length}{" "}
+                            campos
+                            {!sirve && " — no alcanza para este protocolo"}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectGroup>
+                  )}
                 </SelectContent>
               </Select>
+              <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <Settings2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                <span>
+                  Los protocolos y tus plantillas se arman en{" "}
+                  <Link
+                    href="/dashboard/configuracion"
+                    className="underline underline-offset-2"
+                  >
+                    Configuración → Antropometría
+                  </Link>
+                  .
+                </span>
+              </p>
             </div>
-          )}
+          </div>
           <FormularioMedicion
             pacienteId={pacienteId}
             medicionInicial={editando}
-            camposVisibles={plantillaElegida?.campos ?? null}
+            protocolo={protocolo}
+            camposVisibles={camposVisibles}
             onTerminado={() => setAbierto(false)}
           />
         </DialogContent>

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { METODOS_GRASA } from "@/dominio/servicios/grasaPorPliegues";
+import { CAMPOS_PLANTILLA } from "@/dominio/entidades/PlantillaAntropometrica";
 
 /**
  * DTOs de la Configuración del consultorio: lo que describe al PROFESIONAL.
@@ -34,6 +35,17 @@ export const guardarConfiguracionDto = z.object({
     .array(z.enum(METODOS_GRASA))
     .min(1, "Tiene que quedar al menos una ecuación de grasa visible.")
     .optional(),
+  // El piso real de cada protocolo —Kerr en 5 componentes, una ecuación de
+  // grasa en 2— lo impone la entidad: acá no entra porque depende de QUÉ
+  // campos son, no de cuántos.
+  camposDosComponentes: z
+    .array(z.enum(CAMPOS_PLANTILLA))
+    .min(1, "Elegí al menos un campo")
+    .optional(),
+  camposCincoComponentes: z
+    .array(z.enum(CAMPOS_PLANTILLA))
+    .min(1, "Elegí al menos un campo")
+    .optional(),
   analisisFotoComidaAutomatico: z.boolean().optional(),
 });
 export type GuardarConfiguracionDto = z.infer<typeof guardarConfiguracionDto>;
@@ -53,6 +65,8 @@ export const configuracionSalidaDto = z.object({
   whatsappPrefijoPais: z.string().nullable(),
   bienvenidaAutomaticaActiva: z.boolean(),
   formulasGrasaVisibles: z.array(z.enum(METODOS_GRASA)),
+  camposDosComponentes: z.array(z.enum(CAMPOS_PLANTILLA)),
+  camposCincoComponentes: z.array(z.enum(CAMPOS_PLANTILLA)),
   analisisFotoComidaAutomatico: z.boolean(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),

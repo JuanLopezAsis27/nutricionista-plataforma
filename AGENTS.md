@@ -396,6 +396,24 @@ reemplazarlas por PI/10 o 1/3 desplazaría los resultados históricos.
 El `sexo` biológico vive en el Paciente (no cambia entre consultas) y el nivel de
 actividad en la medición (sí cambia).
 
+**Qué medidas pide el formulario lo decide el consultorio**, en Configuración →
+Antropometría. Los **dos protocolos son las plantillas principales** y cada uno
+lleva su lista configurable; las plantillas propias son juegos de campos
+adicionales. Los pisos son distintos y por eso la regla está partida: una
+plantilla propia solo tiene que resolver ALGO, pero un protocolo tiene que
+seguir arrojando lo que promete —el fraccionamiento de Kerr en 5 componentes, al
+menos una ecuación de grasa en 2—, porque si no deja de ser ese protocolo.
+
+De ahí sale la otra mitad: **una plantilla propia solo se puede usar con los
+protocolos que admite** (`protocolosQueAdmite`), con el MISMO piso. La de 6
+pliegues sirve para 2 componentes y no para 5. Todo vive en
+`dominio/entidades/protocolosMedicion.ts`, y la misma función la usan el editor
+en vivo, la validación del guardado y el desplegable de la medición.
+
+En la carga a mano el protocolo se DECLARA; en la importación de una planilla se
+DEDUCE de lo que trajo cada columna (`protocoloSegunMedidas`), porque son años
+de consultas y no hay a quién preguntarle una por una.
+
 La serie histórica se puede **importar de la planilla del profesional** (un
 Excel con una columna por consulta): la IA la lee y precarga una tabla de
 revisión; nada se guarda hasta confirmar. La importación NO es todo-o-nada —una
@@ -606,6 +624,20 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   los adjuntos hasta que alguien lo reportó)
 - Nunca renombrar ni reordenar los valores del enum `MetodoGrasa`: una serie
   histórica de composición corporal no puede cambiar de ecuación
+- Nunca dejar que el protocolo de 5 componentes se quede sin una medida de
+  `REQUERIDOS_CINCO_MASAS`: sin el fraccionamiento de Kerr no es un protocolo
+  más corto, es el de 2 componentes con otro nombre. El editor las deshabilita
+  y la entidad las revalida, porque la pantalla no es una defensa
+- Nunca ofrecer una plantilla propia bajo un protocolo que no admite: la de 6
+  pliegues con 5 componentes se guarda perfecto y produce una medición sin
+  fraccionamiento, que es justo lo que ese protocolo promete. Va
+  `protocolosQueAdmite`, y al cambiar de protocolo la elegida que dejó de
+  servir se suelta sola
+- Nunca filtrar por la lista de campos de una plantilla algo que esa lista no
+  nombra: el peso, los kg de grasa y la dinamometría no están en
+  `CAMPOS_PLANTILLA` y se muestran siempre. Con el peso el efecto era mudo y
+  total: es el único campo obligatorio, y al elegir una plantilla desaparecía
+  de la pantalla dejando el formulario imposible de enviar
 - Nunca importar de una planilla los valores DERIVADOS que trae calculados (Σ de
   pliegues, kg bajados, % graso): el dominio los recalcula en cada lectura, y
   los de una planilla vieja pueden venir de otra ecuación. Solo `kgGrasa`, que
