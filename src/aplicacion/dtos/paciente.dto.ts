@@ -48,6 +48,17 @@ export type CrearPacienteConAccesoDto = z.infer<
 
 export const actualizarPacienteDto = crearPacienteDto.partial().extend({
   id: z.string().min(1),
+  /**
+   * Bloqueo optimista: el `actualizadoEn` que venía en la ficha que se abrió.
+   * Si la fila ya no está en esa versión, alguien la editó mientras tanto y el
+   * guardado se rechaza en vez de pisarle los cambios.
+   *
+   * Es OPCIONAL a propósito. Lo manda el formulario de edición, que es el que
+   * escribe la ficha entera; las mutaciones de un campo solo —archivar,
+   * marcar la bienvenida— no tienen por qué frenarse porque alguien haya
+   * tocado el teléfono, y no tienen de dónde sacar el testigo.
+   */
+  actualizadoEn: z.coerce.date().optional(),
 });
 export type ActualizarPacienteDto = z.infer<typeof actualizarPacienteDto>;
 

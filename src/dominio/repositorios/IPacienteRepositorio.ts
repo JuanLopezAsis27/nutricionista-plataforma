@@ -20,7 +20,17 @@ export interface FiltroPacientes {
  */
 export interface IPacienteRepositorio {
   crear(paciente: Paciente): Promise<Paciente>;
-  actualizar(paciente: Paciente): Promise<Paciente>;
+  /**
+   * @param esperadoEn Bloqueo optimista: el `actualizadoEn` que el cliente
+   * leyó. Cuando viene, la escritura solo entra si la fila sigue en esa
+   * versión; si otro la tocó, lanza `ErrorEdicionConcurrente` en vez de pisar
+   * sus cambios. La condición va en el WHERE del UPDATE y no en un chequeo
+   * previo: entre leer y escribir hay una ventana, y el motor es el único que
+   * no la tiene. Omitirlo es escribir sin guardia, que es lo correcto para las
+   * mutaciones de un solo campo que no salen de un formulario (archivar,
+   * marcar la bienvenida).
+   */
+  actualizar(paciente: Paciente, esperadoEn?: Date): Promise<Paciente>;
   eliminar(id: string): Promise<void>;
   obtenerPorId(id: string): Promise<Paciente | null>;
   /**

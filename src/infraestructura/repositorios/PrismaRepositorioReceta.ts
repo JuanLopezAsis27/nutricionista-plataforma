@@ -5,6 +5,7 @@ import type {
 } from "@/dominio/repositorios/IRecetaRepositorio";
 import { Receta, type IngredienteDeReceta } from "@/dominio/entidades/Receta";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { enVersion, guardandoVersion } from "./base/edicionConcurrente";
 
 /** Fila de receta con sus fotos e ingredientes incluidos. */
 type RecetaConDetalle = Prisma.RecetaGetPayload<{
@@ -90,37 +91,44 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
   async actualizar(
     receta: Receta,
     archivoIdsNuevos: string[],
+    esperadoEn?: Date,
   ): Promise<Receta> {
     const d = receta.aPrimitivos();
-    const fila = await this.prisma.$transaction(async (tx) => {
-      await tx.receta.update({
-        where: { id: d.id },
-        data: {
-          nombre: d.nombre,
-          descripcion: d.descripcion,
-          porciones: d.porciones,
-          preparacion: d.preparacion,
-          etiquetas: d.etiquetas,
-          enlaces: d.enlaces,
-          calorias: d.calorias,
-          proteinasG: d.proteinasG,
-          carbohidratosG: d.carbohidratosG,
-          grasasG: d.grasasG,
-          grupoId: d.grupoId,
-          fotoPrincipalId: d.fotoPrincipalId,
-          // Reemplaza la lista completa de ingredientes (agregado).
-          ingredientes: {
-            deleteMany: {},
-            create: d.ingredientes.map(datosIngrediente),
+    // La guardia envuelve la transacción entera: si la receta cambió, el
+    // UPDATE no toca ninguna fila y el vínculo de los archivos nuevos se
+    // deshace con ella. Guardar adjuntos de una edición que no entró dejaría
+    // el bucket poblado de huérfanos por cada conflicto.
+    const fila = await guardandoVersion("La receta", esperadoEn, () =>
+      this.prisma.$transaction(async (tx) => {
+        await tx.receta.update({
+          where: enVersion(d.id, esperadoEn),
+          data: {
+            nombre: d.nombre,
+            descripcion: d.descripcion,
+            porciones: d.porciones,
+            preparacion: d.preparacion,
+            etiquetas: d.etiquetas,
+            enlaces: d.enlaces,
+            calorias: d.calorias,
+            proteinasG: d.proteinasG,
+            carbohidratosG: d.carbohidratosG,
+            grasasG: d.grasasG,
+            grupoId: d.grupoId,
+            fotoPrincipalId: d.fotoPrincipalId,
+            // Reemplaza la lista completa de ingredientes (agregado).
+            ingredientes: {
+              deleteMany: {},
+              create: d.ingredientes.map(datosIngrediente),
+            },
           },
-        },
-      });
-      await this.vincularArchivos(tx, d.id, archivoIdsNuevos);
-      return tx.receta.findUniqueOrThrow({
-        where: { id: d.id },
-        include: INCLUIR,
-      });
-    });
+        });
+        await this.vincularArchivos(tx, d.id, archivoIdsNuevos);
+        return tx.receta.findUniqueOrThrow({
+          where: { id: d.id },
+          include: INCLUIR,
+        });
+      }),
+    );
     return mapearReceta(fila);
   }
 

@@ -9,6 +9,7 @@ import type {
 } from "@/dominio/repositorios/IPacienteRepositorio";
 import { Paciente } from "@/dominio/entidades/Paciente";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
+import { enVersion, guardandoVersion } from "./base/edicionConcurrente";
 
 /**
  * Implementación con Prisma del repositorio de Paciente (adaptador de salida).
@@ -41,26 +42,31 @@ export class PrismaRepositorioPaciente implements IPacienteRepositorio {
     return mapearPaciente(fila);
   }
 
-  async actualizar(paciente: Paciente): Promise<Paciente> {
+  async actualizar(paciente: Paciente, esperadoEn?: Date): Promise<Paciente> {
     const datos = paciente.aPrimitivos();
-    const fila = await this.prisma.paciente.update({
-      where: { id: datos.id },
-      data: {
-        nombre: datos.nombre,
-        apellido: datos.apellido,
-        email: datos.email,
-        telefono: datos.telefono,
-        telefonoE164: datos.telefonoE164,
-        fechaNacimiento: datos.fechaNacimiento,
-        sexo: datos.sexo,
-        notas: datos.notas,
-        establecimientoHabitualId: datos.establecimientoHabitualId,
-        archivadoEn: datos.archivadoEn,
-        motivoArchivado: datos.motivoArchivado,
-        bienvenidaEnviadaEn: datos.bienvenidaEnviadaEn,
-        actualizadoEn: datos.actualizadoEn,
-      },
-    });
+    const fila = await guardandoVersion(
+      "La ficha del paciente",
+      esperadoEn,
+      () =>
+        this.prisma.paciente.update({
+          where: enVersion(datos.id, esperadoEn),
+          data: {
+            nombre: datos.nombre,
+            apellido: datos.apellido,
+            email: datos.email,
+            telefono: datos.telefono,
+            telefonoE164: datos.telefonoE164,
+            fechaNacimiento: datos.fechaNacimiento,
+            sexo: datos.sexo,
+            notas: datos.notas,
+            establecimientoHabitualId: datos.establecimientoHabitualId,
+            archivadoEn: datos.archivadoEn,
+            motivoArchivado: datos.motivoArchivado,
+            bienvenidaEnviadaEn: datos.bienvenidaEnviadaEn,
+            actualizadoEn: datos.actualizadoEn,
+          },
+        }),
+    );
     return mapearPaciente(fila);
   }
 

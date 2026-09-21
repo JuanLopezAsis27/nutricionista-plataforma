@@ -12,6 +12,11 @@ import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 /** Entrada del dominio: id + cambios parciales a aplicar. */
 export interface DatosActualizarPaciente extends Partial<DatosNuevoPaciente> {
   id: string;
+  /**
+   * `actualizadoEn` que tenía la ficha cuando se abrió. Va hasta el WHERE del
+   * UPDATE: si la fila ya no está en esa versión, la escritura no entra.
+   */
+  actualizadoEn?: Date;
 }
 
 /**
@@ -29,7 +34,7 @@ export class ActualizarPaciente {
   ) {}
 
   async ejecutar(datos: DatosActualizarPaciente): Promise<Paciente> {
-    const { id, ...cambios } = datos;
+    const { id, actualizadoEn: esperadoEn, ...cambios } = datos;
 
     const existente = await this.repositorio.obtenerPorId(id);
     if (!existente) {
@@ -56,7 +61,7 @@ export class ActualizarPaciente {
       new Date(),
       config?.whatsappPrefijoPais ?? PREFIJO_PAIS_POR_DEFECTO,
     );
-    const guardado = await this.repositorio.actualizar(actualizado);
+    const guardado = await this.repositorio.actualizar(actualizado, esperadoEn);
 
     // Sincroniza el email en la cuenta de acceso del paciente.
     if (cambiaEmail) {

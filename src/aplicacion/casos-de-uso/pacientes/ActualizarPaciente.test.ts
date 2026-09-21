@@ -29,6 +29,72 @@ describe("ActualizarPaciente", () => {
     expect(repositorio.actualizar).toHaveBeenCalledOnce();
   });
 
+  it("lleva el testigo de versión hasta el repositorio", async () => {
+    // El bloqueo optimista se impone en el WHERE del UPDATE, así que lo único
+    // que el caso de uso tiene que garantizar es que el testigo LLEGUE. Si se
+    // pierde en el camino la escritura entra igual y vuelve el lost update,
+    // sin que falle nada.
+    const repositorio = mockPacienteRepositorio({
+      obtenerPorId: vi.fn(async () => pacienteEjemplo({}, "pac-1")),
+    });
+    const casoUso = new ActualizarPaciente(
+      repositorio,
+      mockUsuarioRepositorio(),
+      mockConfiguracionRepositorio(),
+    );
+    const abiertaEn = new Date("2026-03-01T10:00:00.000Z");
+
+    await casoUso.ejecutar({
+      id: "pac-1",
+      notas: "algo",
+      actualizadoEn: abiertaEn,
+    });
+
+    const [, esperadoEn] = vi.mocked(repositorio.actualizar).mock.calls[0]!;
+    expect(esperadoEn).toEqual(abiertaEn);
+  });
+
+  it("sin testigo escribe igual: las mutaciones de un campo no se frenan", async () => {
+    // Archivar o marcar la bienvenida no salen de un formulario y no tienen de
+    // dónde sacar el testigo. Exigirlo las rompería a todas.
+    const repositorio = mockPacienteRepositorio({
+      obtenerPorId: vi.fn(async () => pacienteEjemplo({}, "pac-1")),
+    });
+    const casoUso = new ActualizarPaciente(
+      repositorio,
+      mockUsuarioRepositorio(),
+      mockConfiguracionRepositorio(),
+    );
+
+    await casoUso.ejecutar({ id: "pac-1", notas: "algo" });
+
+    const [, esperadoEn] = vi.mocked(repositorio.actualizar).mock.calls[0]!;
+    expect(esperadoEn).toBeUndefined();
+  });
+
+  it("el testigo no se guarda como si fuera un dato del paciente", async () => {
+    // `actualizadoEn` entra por el mismo objeto que los campos editables y la
+    // entidad lo fija ella misma al actualizar. Colarlo en los cambios haría
+    // que la ficha quedara marcada con la fecha en que se ABRIÓ.
+    const repositorio = mockPacienteRepositorio({
+      obtenerPorId: vi.fn(async () => pacienteEjemplo({}, "pac-1")),
+    });
+    const casoUso = new ActualizarPaciente(
+      repositorio,
+      mockUsuarioRepositorio(),
+      mockConfiguracionRepositorio(),
+    );
+    const abiertaEn = new Date("2020-01-01T00:00:00.000Z");
+
+    const guardado = await casoUso.ejecutar({
+      id: "pac-1",
+      notas: "algo",
+      actualizadoEn: abiertaEn,
+    });
+
+    expect(guardado.actualizadoEn).not.toEqual(abiertaEn);
+  });
+
   it("lanza ErrorPacienteNoEncontrado si el paciente no existe", async () => {
     const repositorio = mockPacienteRepositorio();
     const casoUso = new ActualizarPaciente(

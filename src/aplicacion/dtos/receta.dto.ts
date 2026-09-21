@@ -65,6 +65,11 @@ export const actualizarRecetaDto = recetaBase.extend({
   documentoIdsNuevos: z.array(z.string().min(1)).max(10).optional(),
   fotoPrincipalId: fotoPrincipalElegida,
   grupoId: carpetaElegida,
+  /**
+   * Bloqueo optimista: el `actualizadoEn` de la receta que se abrió. Ver
+   * `actualizarPacienteDto` para el criterio de por qué es opcional.
+   */
+  actualizadoEn: z.coerce.date().optional(),
 });
 export type ActualizarRecetaDto = z.infer<typeof actualizarRecetaDto>;
 

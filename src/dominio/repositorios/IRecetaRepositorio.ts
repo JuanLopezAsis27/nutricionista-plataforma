@@ -26,7 +26,16 @@ export interface FiltroRecetas {
 export interface IRecetaRepositorio {
   crear(receta: Receta, archivoIds: string[]): Promise<Receta>;
   /** Actualiza los datos y vincula los archivos nuevos (no desvincula los viejos). */
-  actualizar(receta: Receta, archivoIdsNuevos: string[]): Promise<Receta>;
+  /**
+   * @param esperadoEn Bloqueo optimista: el `actualizadoEn` que el cliente
+   * leyó. Ver `IPacienteRepositorio.actualizar` para el porqué de que la
+   * condición viaje hasta el WHERE del UPDATE.
+   */
+  actualizar(
+    receta: Receta,
+    archivoIdsNuevos: string[],
+    esperadoEn?: Date,
+  ): Promise<Receta>;
   eliminar(id: string): Promise<void>;
   obtenerPorId(id: string): Promise<Receta | null>;
   listar(filtro?: FiltroRecetas): Promise<Receta[]>;
