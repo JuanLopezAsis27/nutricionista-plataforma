@@ -213,6 +213,7 @@ Reglas:
 8. Ordená las mediciones por fecha, de la más vieja a la más nueva.
 9. En "observaciones" va SOLO lo que la planilla anote por escrito para esa consulta (un comentario, una aclaración). Si no hay nada, null.
 10. En "nombreEnPlanilla" va el nombre del paciente tal como figura en la planilla, si figura. Si no, null. Respondé en español.
+11. NO DEJES AFUERA NINGUNA MEDIDA QUE ESTÉ ESCRITA, y menos las del perfil ISAK completo. Cada consulta entra al historial como medición de 5 COMPONENTES si trae las 21 medidas del fraccionamiento de Kerr, y como de 2 COMPONENTES si no; eso lo decide el sistema contando lo que le pases, no vos. Las que más se saltean son justamente las que definen la diferencia, porque solo aparecen en las proformas y no en la planilla de seguimiento del día a día: los SEIS diámetros óseos (biacromial, tórax transverso, tórax anteroposterior, bi-iliocrestídeo, humeral, femoral) y los perímetros de cabeza, antebrazo, tórax, muslo máximo y pantorrilla, además de la talla sentado. Si la columna las trae, copialas todas; si esa consulta no las tiene, null y listo — no las completes con las de otra columna.
 
 CUIDADO CON LOS NOMBRES PARECIDOS, que son los que se confunden:
 - "Cintura mínima" y "cintura máxima" son perímetros DISTINTOS. Si la planilla dice solo "cintura", va en circCinturaMinima.
@@ -347,7 +348,7 @@ export const PROMPTS_IA: readonly DescripcionPromptIA[] = [
     donde: "Paciente → Antropometría, al importar una planilla",
     audiencia: "Vos: revisás la serie antes de importarla.",
     descripcion:
-      "Lee una planilla de evolución (Excel, PDF o foto) y devuelve la serie histórica completa, una medición por consulta, para importarla sin tipearla. Es el prompt más específico de todos: casi todo su texto son las reglas para no confundir rótulos parecidos («cintura» contra «cintura máxima», un pliegue contra una circunferencia) y para ignorar los valores que la app recalcula sola (IMC, % de grasa, sumatoria de pliegues). Si tus planillas tienen rótulos propios, agregarlos a la lista de equivalencias es lo que hace que dejen de perderse columnas.",
+      "Lee una planilla de evolución (Excel, PDF o foto) y devuelve la serie histórica completa, una medición por consulta, para importarla sin tipearla. Es el prompt más específico de todos: casi todo su texto son las reglas para no confundir rótulos parecidos («cintura» contra «cintura máxima», un pliegue contra una circunferencia) y para ignorar los valores que la app recalcula sola (IMC, % de grasa, sumatoria de pliegues). Si tus planillas tienen rótulos propios, agregarlos a la lista de equivalencias es lo que hace que dejen de perderse columnas. Ojo con la regla 11: el protocolo de cada consulta importada —5 o 2 componentes— lo decide la app contando las medidas que el modelo devuelve, así que aflojar ahí no da un error, da consultas ISAK importadas como si fueran de 2 componentes.",
     variables: [
       { nombre: "hoy", descripcion: "Fecha de hoy en formato YYYY-MM-DD." },
       {

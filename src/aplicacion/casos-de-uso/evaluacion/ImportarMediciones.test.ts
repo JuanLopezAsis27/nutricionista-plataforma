@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { ImportarMediciones } from "./ImportarMediciones";
 import { ErrorPacienteNoEncontrado } from "@/dominio/errores/ErrorPacienteNoEncontrado";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
+import { REQUERIDOS_CINCO_MASAS } from "@/dominio/entidades/PlantillaAntropometrica";
 import {
   mockAntropometriaRepositorio,
   mockPacienteRepositorio,
@@ -16,6 +17,18 @@ function pacientes() {
 
 const COLUMNA_1 = { fecha: new Date("2024-03-15"), pesoKg: 87.3 };
 const COLUMNA_2 = { fecha: new Date("2024-04-12"), pesoKg: 84.7 };
+
+/**
+ * Las 21 medidas del fraccionamiento de Kerr, con valores dentro de rango.
+ * Se arma desde la lista del dominio para que sumar un requisito allá no deje
+ * a este test comprobando un perfil que ya no es completo.
+ */
+const MEDIDAS_ISAK = Object.fromEntries(
+  REQUERIDOS_CINCO_MASAS.map((campo) => [
+    campo,
+    campo === "tallaCm" ? 170 : campo === "tallaSentadoCm" ? 90 : 30,
+  ]),
+) as Record<(typeof REQUERIDOS_CINCO_MASAS)[number], number>;
 
 describe("ImportarMediciones", () => {
   it("importa todas las mediciones de la planilla", async () => {
@@ -97,6 +110,38 @@ describe("ImportarMediciones", () => {
     await expect(
       casoUso.ejecutar({ pacienteId: "pac-1", mediciones: [] }),
     ).rejects.toBeInstanceOf(ErrorValidacion);
+  });
+
+  it("deduce el protocolo de cada columna: ISAK completo entra como 5 componentes", async () => {
+    // Nadie declara el protocolo por columna —una planilla son años de
+    // consultas—, así que lo decide lo que la columna trajo. Antes entraban
+    // todas como de 2 componentes, el default de la entidad, y una proforma
+    // ISAK importada abría el dashboard en el modelo equivocado.
+    const antropometrias = mockAntropometriaRepositorio();
+    const casoUso = new ImportarMediciones(antropometrias, pacientes());
+
+    await casoUso.ejecutar({
+      pacienteId: "pac-1",
+      mediciones: [COLUMNA_1, { ...COLUMNA_2, ...MEDIDAS_ISAK }],
+    });
+
+    const guardadas = vi
+      .mocked(antropometrias.crear)
+      .mock.calls.map(([medicion]) => medicion.protocolo);
+    expect(guardadas).toEqual(["DOS_COMPONENTES", "CINCO_COMPONENTES"]);
+  });
+
+  it("respeta el protocolo si la columna lo trae declarado", async () => {
+    const antropometrias = mockAntropometriaRepositorio();
+    const casoUso = new ImportarMediciones(antropometrias, pacientes());
+
+    await casoUso.ejecutar({
+      pacienteId: "pac-1",
+      mediciones: [{ ...COLUMNA_1, protocolo: "CINCO_COMPONENTES" }],
+    });
+
+    const [medicion] = vi.mocked(antropometrias.crear).mock.calls[0]!;
+    expect(medicion.protocolo).toBe("CINCO_COMPONENTES");
   });
 
   it("propaga un fallo de infraestructura en vez de anotarlo como rechazo", async () => {
