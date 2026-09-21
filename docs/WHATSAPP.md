@@ -99,7 +99,9 @@ en las últimas 24 h, y ahí Meta solo acepta **plantillas aprobadas**. El flujo
 completo es:
 
 1. Dar de alta la plantilla en Meta Business (Cuenta de WhatsApp → Plantillas de
-   mensaje), con el cuerpo en castellano y sus parámetros `{{1}}`, `{{2}}`…
+   mensaje), con el cuerpo en castellano y sus parámetros **numerados**:
+   `{{1}}`, `{{2}}`… (ver abajo: el editor de Meta ofrece también variables con
+   nombre, y esas NO sirven).
 2. Esperar la aprobación (suele tardar minutos, a veces horas).
 3. En la app: **Recordatorios → Plantillas**, cargar el mismo texto y anotar el
    **nombre en Meta**, el **idioma** y el **orden de los parámetros**.
@@ -112,3 +114,22 @@ manda `parameters` en el orden exacto que se haya guardado.
 Sin nombre de Meta la plantilla sigue sirviendo (vista previa y enlace `wa.me`),
 pero el envío automático por API no va a salir. La pantalla lo dice antes de
 que Meta lo rechace.
+
+### Variables numeradas, no con nombre
+
+El editor de Meta ofrece dos formas de declarar las variables de una plantilla
+y **la app solo habla una**: la posicional. Una plantilla creada con variables
+CON NOMBRE (`{{nombre_paciente}}`) exige que cada parámetro del envío viaje con
+su `parameter_name`, y la app manda `parameters` por posición, como dice el
+contrato de `variablesMeta`.
+
+El síntoma es un recordatorio FALLIDO con el motivo **«Parameter name is
+missing or empty»**, que es de Meta y no de la app. No hay nada que revisar en
+la configuración ni en el orden de los parámetros: la plantilla hay que
+recrearla en el Administrador de WhatsApp con `{{1}}`, `{{2}}`… y volver a
+esperar la aprobación.
+
+`traducirRechazo` (`ProveedorWhatsappCloudApi.ts`) convierte ese rechazo en esa
+instrucción, en castellano y conservando el texto de Meta entre paréntesis para
+poder contrastarlo. Es lo ÚNICO que traduce: un rechazo que no conocemos pasa
+tal cual, porque inventarle una explicación manda a mirar donde no hay nada.
