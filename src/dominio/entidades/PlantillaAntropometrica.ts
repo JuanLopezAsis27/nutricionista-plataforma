@@ -68,8 +68,12 @@ export const ETIQUETAS_CAMPO_PLANTILLA: Record<CampoPlantilla, string> = {
  * Medidas que exige el fraccionamiento en 5 masas de Kerr.
  * Espeja los requisitos de `composicionCorporal.ts`; si allá cambian, el test
  * de esta entidad lo detecta.
+ *
+ * Se exporta porque es el piso del protocolo de 5 componentes: la
+ * personalización de ese protocolo (`protocolosMedicion.ts`) no puede dejar
+ * sacar ninguna de estas.
  */
-const REQUERIDOS_CINCO_MASAS = [
+export const REQUERIDOS_CINCO_MASAS = [
   "tallaCm",
   "tallaSentadoCm",
   "diamBiacromial",
@@ -279,6 +283,69 @@ export function alcanceDe(campos: readonly CampoPlantilla[]): AlcancePlantilla {
   return { metodosGrasa, cincoMasas, somatotipo, faltaParaServir };
 }
 
+/**
+ * Un resultado y si el conjunto de campos alcanza para calcularlo.
+ *
+ * `alcanceDe` contesta qué SÍ sale; esto contesta además qué NO y qué falta
+ * para que salga, que es lo que hay que mostrar mientras se destildan medidas:
+ * sin el motivo, sacar un campo y ver desaparecer una ecuación no dice cuál
+ * volver a tildar.
+ */
+export interface EstadoResultado {
+  clave: RequisitoResultado["clave"];
+  etiqueta: string;
+  /** "AMBOS" si sale con cualquier paciente; un sexo si solo con ese. */
+  sexo: SexoRequisito;
+  cubierto: boolean;
+  /** Etiquetas de las medidas que faltan. Vacío cuando ya está cubierto. */
+  faltan: string[];
+}
+
+/**
+ * Estado de TODOS los resultados frente a un conjunto de campos, en el orden
+ * de la tabla y con una sola línea por resultado (Withers figura dos veces,
+ * una por sexo, y se colapsa: lo que cambia entre variantes es el alcance).
+ */
+export function estadoDeResultados(
+  campos: readonly CampoPlantilla[],
+): EstadoResultado[] {
+  const incluidos = new Set<string>(campos);
+  const salida: EstadoResultado[] = [];
+
+  for (const requisito of REQUISITOS_RESULTADO) {
+    if (salida.some((estado) => estado.clave === requisito.clave)) continue;
+
+    const variantes = REQUISITOS_RESULTADO.filter(
+      (otro) => otro.clave === requisito.clave,
+    );
+    const logradas = variantes.filter((v) => cumpleRequisito(v, incluidos));
+
+    // Sin ninguna variante lograda, lo que falta es lo de la variante MÁS
+    // CERCA de cumplirse: es el camino más corto a recuperar el resultado.
+    const faltantesPorVariante = variantes
+      .map((v) => v.campos.filter((campo) => !incluidos.has(campo)))
+      .sort((a, b) => a.length - b.length);
+
+    salida.push({
+      clave: requisito.clave,
+      etiqueta: requisito.etiqueta,
+      sexo:
+        logradas.length === variantes.length
+          ? "AMBOS"
+          : (logradas[0]?.sexo ?? "AMBOS"),
+      cubierto: logradas.length > 0,
+      faltan:
+        logradas.length > 0
+          ? []
+          : (faltantesPorVariante[0] ?? []).map(
+              (campo) => ETIQUETAS_CAMPO_PLANTILLA[campo],
+            ),
+    });
+  }
+
+  return salida;
+}
+
 /** Datos para crear o actualizar una plantilla. */
 export interface DatosPlantillaAntropometrica {
   nombre: string;
@@ -323,7 +390,7 @@ export class PlantillaAntropometrica {
       );
     }
 
-    const campos = normalizarCampos(datos.campos);
+    const campos = normalizarCamposPlantilla(datos.campos);
     validarQueSirva(campos);
 
     return new PlantillaAntropometrica({
@@ -385,7 +452,9 @@ export class PlantillaAntropometrica {
 }
 
 /** Descarta desconocidos y duplicados, y respeta el orden canónico ISAK. */
-function normalizarCampos(campos: readonly string[]): CampoPlantilla[] {
+export function normalizarCamposPlantilla(
+  campos: readonly string[],
+): CampoPlantilla[] {
   const pedidos = new Set(campos);
   return CAMPOS_PLANTILLA.filter((campo) => pedidos.has(campo));
 }

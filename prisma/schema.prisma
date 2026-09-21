@@ -2517,6 +2517,14 @@ model ConfiguracionConsultorio {
   /// del paciente). No puede quedar vacía: si no hay ninguna guardada, el
   /// dominio asume las vigentes por defecto. Ver migración 57.
   formulasGrasaVisibles        MetodoGrasa[] @default([YUHASZ_CARTER, YUHASZ_CARTER_KERR, FAULKNER, FAULKNER_KERR, WITHERS, DURNIN_WOMERSLEY])
+  /// Qué medidas pide el formulario de carga en cada protocolo (migración 70).
+  /// Vacío = la fila es anterior a la migración y vale el juego por defecto
+  /// del dominio (`CAMPOS_PROTOCOLO_POR_DEFECTO`), que se resuelve al LEER:
+  /// así la migración no necesita backfill ni congelar la lista en SQL.
+  /// El piso lo impone el dominio: Kerr en 5 componentes, al menos una
+  /// ecuación de grasa en 2 componentes.
+  camposDosComponentes         String[]      @default([])
+  camposCincoComponentes       String[]      @default([])
   /// Si una foto de comida del diario se analiza sola con IA al subirla.
   /// Apagado por defecto: cada análisis gasta cuota de IA del consultorio.
   analisisFotoComidaAutomatico Boolean       @default(false)

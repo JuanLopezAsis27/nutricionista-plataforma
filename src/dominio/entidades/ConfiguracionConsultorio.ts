@@ -1,5 +1,10 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
 import { METODOS_GRASA, type MetodoGrasa } from "../servicios/grasaPorPliegues";
+import type { CampoPlantilla } from "./PlantillaAntropometrica";
+import {
+  CAMPOS_PROTOCOLO_POR_DEFECTO,
+  camposDeProtocoloValidados,
+} from "./protocolosMedicion";
 
 /**
  * Campos editables de la configuración del consultorio.
@@ -39,6 +44,15 @@ export interface DatosConfiguracion {
    * antropometría sin ningún % de grasa que mostrar.
    */
   formulasGrasaVisibles: MetodoGrasa[];
+  /**
+   * Qué medidas pide el formulario de carga en cada protocolo. Se pueden
+   * sacar, pero cada protocolo tiene que seguir arrojando lo suyo: el
+   * fraccionamiento de Kerr en 5 componentes, al menos una ecuación de grasa
+   * en 2 componentes. La regla vive en `protocolosMedicion.ts`, que es la
+   * misma que usa el editor de pantalla.
+   */
+  camposDosComponentes: CampoPlantilla[];
+  camposCincoComponentes: CampoPlantilla[];
   /**
    * Si al subir una foto de comida en el diario se analiza sola con IA y
    * completa descripción/porción. Apagado por defecto: cada análisis gasta
@@ -85,6 +99,10 @@ export class ConfiguracionConsultorio {
       whatsappPrefijoPais: null,
       bienvenidaAutomaticaActiva: true,
       formulasGrasaVisibles: [...METODOS_GRASA],
+      camposDosComponentes: [...CAMPOS_PROTOCOLO_POR_DEFECTO.DOS_COMPONENTES],
+      camposCincoComponentes: [
+        ...CAMPOS_PROTOCOLO_POR_DEFECTO.CINCO_COMPONENTES,
+      ],
       analisisFotoComidaAutomatico: false,
       creadoEn: ahora,
       actualizadoEn: ahora,
@@ -146,6 +164,20 @@ export class ConfiguracionConsultorio {
         cambios.formulasGrasaVisibles,
         this.props.formulasGrasaVisibles,
       ),
+      // Se normalizan (orden ISAK, sin duplicados ni desconocidos) y se
+      // validan contra el piso de cada protocolo: el `validar` de abajo no los
+      // vuelve a mirar porque estas dos funciones ya lanzan.
+      camposDosComponentes: camposDeProtocoloValidados(
+        "DOS_COMPONENTES",
+        fusionar(cambios.camposDosComponentes, this.props.camposDosComponentes),
+      ),
+      camposCincoComponentes: camposDeProtocoloValidados(
+        "CINCO_COMPONENTES",
+        fusionar(
+          cambios.camposCincoComponentes,
+          this.props.camposCincoComponentes,
+        ),
+      ),
       analisisFotoComidaAutomatico: fusionar(
         cambios.analisisFotoComidaAutomatico,
         this.props.analisisFotoComidaAutomatico,
@@ -170,6 +202,12 @@ export class ConfiguracionConsultorio {
   }
   get formulasGrasaVisibles(): MetodoGrasa[] {
     return [...this.props.formulasGrasaVisibles];
+  }
+  get camposDosComponentes(): CampoPlantilla[] {
+    return [...this.props.camposDosComponentes];
+  }
+  get camposCincoComponentes(): CampoPlantilla[] {
+    return [...this.props.camposCincoComponentes];
   }
   get analisisFotoComidaAutomatico(): boolean {
     return this.props.analisisFotoComidaAutomatico;

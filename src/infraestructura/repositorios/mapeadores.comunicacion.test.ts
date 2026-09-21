@@ -15,6 +15,7 @@ import { mapearConfiguracion } from "./PrismaRepositorioConfiguracion";
 import { mapearAnalisisComida } from "./PrismaRepositorioHistorialIA";
 import { mapearTokenRecuperacion } from "./PrismaRepositorioTokenRecuperacion";
 import { mapearCuentaConectada } from "./PrismaRepositorioCuentaConectada";
+import { CAMPOS_PROTOCOLO_POR_DEFECTO } from "@/dominio/entidades/protocolosMedicion";
 
 /** Tests de los mapeadores de comunicación, IA, archivos y seguridad. */
 
@@ -469,6 +470,11 @@ describe("mapearConfiguracion", () => {
       "WITHERS",
       "DURNIN_WOMERSLEY",
     ],
+    // Deliberadamente distintos: dos String[] seguidos, con nombres que solo
+    // se diferencian en una palabra, son el par con más riesgo de cruce de
+    // esta tabla.
+    camposDosComponentes: ["pliegueTricipital", "pliegueSubescapular"],
+    camposCincoComponentes: ["circCadera", "diamHumeral"],
     creadoEn: new Date("2026-01-01T00:00:00.000Z"),
     actualizadoEn: new Date("2026-01-01T00:00:00.000Z"),
   } as unknown as Parameters<typeof mapearConfiguracion>[0];
@@ -495,5 +501,37 @@ describe("mapearConfiguracion", () => {
     expect(datos.pdfSubtitulo).toBe("Consultorio de nutricion");
     expect(datos.pdfPieTexto).toBe("Gracias por su visita");
     expect(datos.whatsappPrefijoPais).toBe("54");
+  });
+
+  it("no cruza los campos de un protocolo con los del otro", () => {
+    // Cruzarlos hace que el formulario pida diámetros en la carga rápida y
+    // pliegues en el perfil completo. Nada falla: se cargan las medidas
+    // equivocadas y el dashboard queda sin los resultados esperados.
+    const datos = mapearConfiguracion(fila).aPrimitivos();
+
+    expect(datos.camposDosComponentes).toEqual([
+      "pliegueTricipital",
+      "pliegueSubescapular",
+    ]);
+    // Salen en el orden canónico ISAK, no en el que estaban guardados.
+    expect(datos.camposCincoComponentes).toEqual(["diamHumeral", "circCadera"]);
+  });
+
+  it("una fila sin campos guardados cae en el juego de fábrica de cada protocolo", () => {
+    // Las filas anteriores a la migración 70 traen los arrays vacíos: el
+    // vacío se resuelve al LEER y no con un backfill, así que el formulario
+    // sigue pidiendo lo mismo que antes sin que nadie toque la base.
+    const datos = mapearConfiguracion({
+      ...fila,
+      camposDosComponentes: [],
+      camposCincoComponentes: [],
+    }).aPrimitivos();
+
+    expect(datos.camposDosComponentes).toEqual(
+      CAMPOS_PROTOCOLO_POR_DEFECTO.DOS_COMPONENTES,
+    );
+    expect(datos.camposCincoComponentes).toEqual(
+      CAMPOS_PROTOCOLO_POR_DEFECTO.CINCO_COMPONENTES,
+    );
   });
 });
