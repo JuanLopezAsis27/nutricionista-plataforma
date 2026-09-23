@@ -4,6 +4,8 @@ import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
 import type { ResolverPacientePorTelefono } from "./ResolverPacientePorTelefono";
 import type { RegistrarRespuestaDeRecordatorio } from "../recordatorios/RegistrarRespuestaDeRecordatorio";
 import type { EmitirNotificacion } from "../notificaciones/EmitirNotificacion";
+import type { AtenderBotonWhatsapp } from "./AtenderBotonWhatsapp";
+import { leerPayloadDeBoton } from "@/dominio/servicios/botonesWhatsapp";
 import { MensajeWhatsapp } from "@/dominio/entidades/MensajeWhatsapp";
 
 /** Mensaje entrante tal como lo entrega el webhook de Meta, ya desarmado. */
@@ -15,6 +17,11 @@ export interface MensajeEntranteWhatsapp {
   idExterno: string;
   /** Momento en que Meta lo recibió. */
   enviadoEn: Date;
+  /**
+   * Si el mensaje es el toque de un botón de plantilla, el payload que puso
+   * la app al enviarla (acción + turno). El `cuerpo` es el texto del botón.
+   */
+  payloadBoton?: string | null;
 }
 
 /** Largo del adelanto del mensaje que se muestra en la campana. */
@@ -54,6 +61,7 @@ export class ProcesarMensajeEntranteWhatsapp {
     private readonly bus: IBusEventos,
     private readonly registrarRespuesta: RegistrarRespuestaDeRecordatorio,
     private readonly emitirNotificacion: EmitirNotificacion,
+    private readonly atenderBoton: AtenderBotonWhatsapp,
   ) {}
 
   async ejecutar(entrante: MensajeEntranteWhatsapp): Promise<ResultadoIngesta> {
@@ -85,28 +93,42 @@ export class ProcesarMensajeEntranteWhatsapp {
     // el log deja de decir solo "salió" y pasa a decir "contestó" —y, cuando
     // la respuesta es un sí inequívoco, "viene". Es la mitad de la pregunta
     // que se hace el profesional al mirar la agenda de mañana.
+    //
+    // Con un botón no hay nada que interpretar: la acción la dice el payload,
+    // no el texto («Confirmar» no está entre las afirmaciones, y no tiene por
+    // qué estar: el profesional le pone al botón el texto que quiera).
+    const boton = leerPayloadDeBoton(entrante.payloadBoton);
     const respuesta = await this.registrarRespuesta.ejecutar(
       paciente.id,
       entrante.cuerpo,
       entrante.enviadoEn,
+      boton ? { confirmo: boton.accion === "CONFIRMAR_TURNO" } : undefined,
     );
+
+    // Un botón que actuó ya dejó su propio aviso (turno confirmado, pidió
+    // reprogramar): sumarle "escribió por WhatsApp" diría lo mismo dos veces.
+    const atendido = boton
+      ? await this.atenderBoton.ejecutar(paciente, boton)
+      : false;
 
     // El aviso que queda: el bus de abajo solo llega a quien tiene la app
     // abierta en ese instante, y un WhatsApp que entró a las 22:00 tiene que
     // seguir estando a la mañana siguiente. Por eso además se persiste, con su
     // estado de visto, igual que un mensaje del chat de la app.
-    await this.emitirNotificacion.ejecutar({
-      tipo: "WHATSAPP_ENTRANTE",
-      titulo: `${paciente.nombreCompleto} escribió por WhatsApp`,
-      detalle: resumir(entrante.cuerpo),
-      pacienteId: paciente.id,
-      enlace: `/dashboard/mensajes?paciente=${paciente.id}`,
-      // Se agrupa mientras no se vea, igual que el chat de la app. Por WhatsApp
-      // la gente escribe en ráfaga —una idea por mensaje—, así que sin esto diez
-      // mensajes de un minuto dejaban diez líneas idénticas en la campana y
-      // tapaban todo lo demás.
-      agruparMientrasNoSeVea: true,
-    });
+    if (!atendido) {
+      await this.emitirNotificacion.ejecutar({
+        tipo: "WHATSAPP_ENTRANTE",
+        titulo: `${paciente.nombreCompleto} escribió por WhatsApp`,
+        detalle: resumir(entrante.cuerpo),
+        pacienteId: paciente.id,
+        enlace: `/dashboard/mensajes?paciente=${paciente.id}`,
+        // Se agrupa mientras no se vea, igual que el chat de la app. Por
+        // WhatsApp la gente escribe en ráfaga —una idea por mensaje—, así que
+        // sin esto diez mensajes de un minuto dejaban diez líneas idénticas en
+        // la campana y tapaban todo lo demás.
+        agruparMientrasNoSeVea: true,
+      });
+    }
 
     // El webhook corre fuera de cualquier request de la UI: el bus (pg_notify)
     // es lo que cruza procesos para que el hilo abierto se entere sin polling.

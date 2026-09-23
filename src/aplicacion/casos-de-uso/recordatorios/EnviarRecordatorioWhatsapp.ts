@@ -1,4 +1,6 @@
 import type { IRecordatorioWhatsappRepositorio } from "@/dominio/repositorios/IRecordatorioWhatsappRepositorio";
+import type { IMensajeWhatsappRepositorio } from "@/dominio/repositorios/IMensajeWhatsappRepositorio";
+import type { IEnlaceConfirmacionTurno } from "@/dominio/servicios/IEnlaceConfirmacionTurno";
 import type { IProveedorWhatsapp } from "@/dominio/servicios/IProveedorWhatsapp";
 import type { Turno } from "@/dominio/entidades/Turno";
 import type { Paciente } from "@/dominio/entidades/Paciente";
@@ -7,7 +9,9 @@ import type { PlantillaWhatsapp } from "@/dominio/entidades/PlantillaWhatsapp";
 import type { Establecimiento } from "@/dominio/entidades/Establecimiento";
 import type { OrigenRecordatorio } from "@/dominio/entidades/RecordatorioWhatsapp";
 import { RecordatorioWhatsapp } from "@/dominio/entidades/RecordatorioWhatsapp";
+import { MensajeWhatsapp } from "@/dominio/entidades/MensajeWhatsapp";
 import { armarRecordatorio } from "./armadoRecordatorio";
+import { parametrosDeBotones } from "../whatsapp/plantillaMeta";
 
 /** Un envío concreto, con todo ya resuelto por quien orquesta el lote. */
 export interface PedidoRecordatorio {
@@ -89,6 +93,8 @@ export class EnviarRecordatorioWhatsapp {
   constructor(
     private readonly recordatorios: IRecordatorioWhatsappRepositorio,
     private readonly proveedor: IProveedorWhatsapp,
+    private readonly mensajes: IMensajeWhatsappRepositorio,
+    private readonly enlaces: IEnlaceConfirmacionTurno,
   ) {}
 
   async ejecutar(pedido: PedidoRecordatorio): Promise<ResultadoRecordatorio> {
@@ -138,9 +144,19 @@ export class EnviarRecordatorioWhatsapp {
       ...plantillaArmada,
       mensaje: texto,
       // Texto editado a mano ya no es la plantilla que Meta aprobó.
-      envioPlantilla: pedido.textoManual
-        ? null
-        : plantillaArmada.envioPlantilla,
+      envioPlantilla:
+        pedido.textoManual || !plantillaArmada.envioPlantilla
+          ? null
+          : {
+              ...plantillaArmada.envioPlantilla,
+              // Cada respuesta rápida lleva la acción y ESTE turno en su
+              // payload; el enlace de confirmación, el token de este turno.
+              botones: parametrosDeBotones(
+                pedido.plantilla,
+                pedido.turno,
+                this.enlaces,
+              ),
+            },
     };
 
     let resultado;
@@ -198,6 +214,28 @@ export class EnviarRecordatorioWhatsapp {
             crypto.randomUUID(),
           ),
         );
+
+    // Lo que sale por la API también es una línea del hilo de WhatsApp del
+    // paciente: el chat de la app lee `mensajes_whatsapp`, no el log de
+    // recordatorios, y sin esto la plantilla que le llegó al paciente no
+    // aparecía en la conversación (su respuesta sí, colgada de la nada). El
+    // `idExterno` compartido hace que el webhook de estado actualice las dos
+    // filas. Con el enlace wa.me no hay hilo: lo manda el profesional a mano.
+    if (salioSolo) {
+      await this.mensajes.crear(
+        MensajeWhatsapp.crear(
+          {
+            pacienteId: pedido.paciente.id,
+            direccion: "SALIENTE",
+            telefono: armado.telefono,
+            cuerpo: armado.mensaje,
+            idExterno: resultado.idExterno,
+            estado: "ENVIADO",
+          },
+          crypto.randomUUID(),
+        ),
+      );
+    }
 
     return salioSolo
       ? { estado: "ENVIADO", recordatorio }

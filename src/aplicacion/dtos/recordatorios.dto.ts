@@ -8,6 +8,12 @@ import {
   MAX_LARGO_CUERPO_PLANTILLA,
   MAX_VARIABLES_META,
   MAX_DIAS_ANTES_PLANTILLA,
+  MAX_BOTONES_PLANTILLA,
+  MAX_LARGO_TEXTO_BOTON,
+  CATEGORIAS_META,
+  ESTADOS_PLANTILLA_META,
+  ACCIONES_RESPUESTA_RAPIDA,
+  DESTINOS_BOTON_URL,
 } from "@/dominio/entidades/PlantillaWhatsapp";
 import { MAX_DIAS_ANTES_PLANTILLA_EMAIL } from "@/dominio/entidades/PlantillaEmailRecordatorio";
 import {
@@ -82,6 +88,31 @@ export type ConfiguracionRecordatoriosSalidaDto = z.infer<
 
 export const variableRecordatorioDto = z.enum(VARIABLES_RECORDATORIO);
 
+/**
+ * Un botón de la plantilla. Los límites finos (cuántos enlaces, textos
+ * repetidos, https) los revalida la entidad: acá solo se corta lo grosero.
+ */
+export const botonPlantillaDto = z.discriminatedUnion("tipo", [
+  z.object({
+    tipo: z.literal("RESPUESTA_RAPIDA"),
+    texto: z
+      .string()
+      .min(1, "Escribí el texto del botón.")
+      .max(MAX_LARGO_TEXTO_BOTON),
+    accion: z.enum(ACCIONES_RESPUESTA_RAPIDA),
+  }),
+  z.object({
+    tipo: z.literal("URL"),
+    texto: z
+      .string()
+      .min(1, "Escribí el texto del botón.")
+      .max(MAX_LARGO_TEXTO_BOTON),
+    destino: z.enum(DESTINOS_BOTON_URL),
+    url: z.string().max(2000).nullable(),
+  }),
+]);
+export type BotonPlantillaDto = z.infer<typeof botonPlantillaDto>;
+
 export const guardarPlantillaWhatsappDto = z.object({
   nombre: z.string().min(1, "Poné un nombre.").max(80),
   cuerpo: z
@@ -104,6 +135,13 @@ export const guardarPlantillaWhatsappDto = z.object({
     .optional(),
   predeterminada: z.boolean().optional(),
   activa: z.boolean().optional(),
+  categoriaMeta: z.enum(CATEGORIAS_META).optional(),
+  botones: z.array(botonPlantillaDto).max(MAX_BOTONES_PLANTILLA).optional(),
+  /**
+   * Darla de alta en Meta y mandarla a revisión al guardar. Una que ya está
+   * en Meta no lo necesita: si cambia lo que Meta revisa, se reenvía sola.
+   */
+  enviarAMeta: z.boolean().optional(),
 });
 export type GuardarPlantillaWhatsappDto = z.infer<
   typeof guardarPlantillaWhatsappDto
@@ -128,6 +166,16 @@ export const plantillaWhatsappSalidaDto = z.object({
   diasAntes: z.number().nullable(),
   predeterminada: z.boolean(),
   activa: z.boolean(),
+  categoriaMeta: z.enum(CATEGORIAS_META),
+  botones: z.array(botonPlantillaDto),
+  idMeta: z.string().nullable(),
+  /** null = nunca se consultó a Meta (vinculada a mano o sin nombre de Meta). */
+  estadoMeta: z.enum(ESTADOS_PLANTILLA_META).nullable(),
+  motivoEstadoMeta: z.string().nullable(),
+  /** La dio de alta la app en Meta: la edita y la borra allá. */
+  enviadaAMeta: z.boolean(),
+  /** Usa datos de un turno (o botones sobre él): desde el chat pide un turno próximo. */
+  necesitaTurno: z.boolean(),
   /** Puede salir sola por la Cloud API fuera de la ventana de 24 h. */
   admiteEnvioPorApi: z.boolean(),
   creadoEn: z.date(),

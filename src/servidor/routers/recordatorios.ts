@@ -57,6 +57,15 @@ export const routerRecordatorios = crearRouter({
       return { eliminada: true };
     }),
 
+  /** Trae de Meta el estado de revisión de todas las plantillas. */
+  sincronizarPlantillasMeta: nutricionistaProcedimiento.mutation(
+    async ({ ctx }) => {
+      const actualizadas =
+        await ctx.servicios.recordatorios.plantillas.sincronizarConMeta();
+      return { actualizadas };
+    },
+  ),
+
   // --- Plantillas de email (una por escalón de anticipación) ---------------
   listarPlantillasEmail: nutricionistaProcedimiento.query(async ({ ctx }) => {
     return await ctx.servicios.recordatorios.plantillasEmail.listar();

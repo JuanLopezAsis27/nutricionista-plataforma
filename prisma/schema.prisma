@@ -615,6 +615,8 @@ enum TipoNotificacion {
   TURNO_CONFIRMADO
   /// El paciente escribió por el chat de la app.
   MENSAJE_APP
+  /// El paciente tocó "reprogramar" en un botón de la plantilla de WhatsApp.
+  REPROGRAMACION_PEDIDA
 }
 
 /// Aviso persistido para el nutricionista, con estado de "visto".
@@ -843,31 +845,59 @@ model RecordatorioWhatsapp {
 /// Sin `claveMeta` la plantilla sigue sirviendo (vista previa y wa.me), pero
 /// no se puede mandar sola por la API. La UI lo dice antes de que falle.
 model PlantillaWhatsapp {
-  id              String   @id @default(uuid(4))
-  nutricionistaId String
-  nombre          String
-  cuerpo          String
-  claveMeta       String?
-  idiomaMeta      String   @default("es_AR")
-  variablesMeta   String[]
+  id               String                 @id @default(uuid(4))
+  nutricionistaId  String
+  nombre           String
+  cuerpo           String
+  claveMeta        String?
+  idiomaMeta       String                 @default("es_AR")
+  variablesMeta    String[]
   /// Escalón de "días antes" al que corresponde este texto (3, 1, …). NULL =
   /// sin día asignado: candidata a predeterminada, pero no el texto fijo de
   /// ningún escalón en particular.
-  diasAntes       Int?
+  diasAntes        Int?
   /// La que se ofrece por defecto en la consola y la que usa el barrido
   /// cuando el escalón que le toca no tiene una plantilla propia. Una sola
   /// por consultorio: al marcar una, el caso de uso desmarca la anterior en
   /// la misma operación.
-  predeterminada  Boolean  @default(false)
-  activa          Boolean  @default(true)
-  creadoEn        DateTime @default(now())
-  actualizadoEn   DateTime @updatedAt
+  predeterminada   Boolean                @default(false)
+  activa           Boolean                @default(true)
+  /// Categoría con la que se da de alta en Meta (migración 73).
+  categoriaMeta    CategoriaPlantillaMeta @default(UTILITY)
+  /// Botones de la plantilla de Meta, en el orden en que se registraron: el
+  /// índice identifica a cada uno al enviar. Respuestas rápidas primero.
+  botones          Json                   @default("[]")
+  /// Id en Meta. Solo lo tienen las dadas de alta DESDE la app: es lo que dice
+  /// que la app la administra (la edita y la borra allá).
+  idMeta           String?
+  /// Estado de la revisión en Meta. NULL = nunca se consultó (vinculada a
+  /// mano por su nombre), y la app la trata como aprobada.
+  estadoMeta       EstadoPlantillaMeta?
+  motivoEstadoMeta String?
+  creadoEn         DateTime               @default(now())
+  actualizadoEn    DateTime               @updatedAt
 
   nutricionista Nutricionista          @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
   recordatorios RecordatorioWhatsapp[]
 
   @@unique([nutricionistaId, nombre])
   @@map("plantillas_whatsapp")
+}
+
+/// Categoría de una plantilla de WhatsApp en Meta.
+enum CategoriaPlantillaMeta {
+  UTILITY
+  MARKETING
+}
+
+/// Estado de la revisión de una plantilla en Meta, ya plegado a lo que el
+/// profesional necesita saber. Solo se agregan valores.
+enum EstadoPlantillaMeta {
+  EN_REVISION
+  APROBADA
+  RECHAZADA
+  PAUSADA
+  DESHABILITADA
 }
 
 /// Los textos del recordatorio por EMAIL, uno por escalón de anticipación
@@ -1147,14 +1177,14 @@ model CredencialProveedor {
 /// de IA vivían acá hasta la migración 71: ahora son de la plataforma
 /// (`ConfiguracionIAGlobal`).
 model PreferenciasIntegracion {
-  nutricionistaId        String   @id
+  nutricionistaId   String   @id
   /// Criterios de ingredientes: filtran los alimentos que trae la búsqueda.
-  excluirMarcas          Boolean  @default(false) // solo genéricos (sin marca)
-  requiereMacros         Boolean  @default(false) // descartar sin macros completos
-  maxCaloriasPor100      Float? // tope opcional de kcal/100 g
-  excluirTexto           String[] @default([]) // descartar si el nombre contiene
-  creadoEn               DateTime @default(now())
-  actualizadoEn          DateTime @updatedAt
+  excluirMarcas     Boolean  @default(false) // solo genéricos (sin marca)
+  requiereMacros    Boolean  @default(false) // descartar sin macros completos
+  maxCaloriasPor100 Float? // tope opcional de kcal/100 g
+  excluirTexto      String[] @default([]) // descartar si el nombre contiene
+  creadoEn          DateTime @default(now())
+  actualizadoEn     DateTime @updatedAt
 
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
@@ -1528,14 +1558,14 @@ model Antropometria {
   circMusloMedial    Decimal? @db.Decimal(5, 1)
   circPantorrilla    Decimal? @db.Decimal(5, 1)
 
-  kgGrasa                Decimal? @db.Decimal(5, 2)
+  kgGrasa                 Decimal? @db.Decimal(5, 2)
   // Dinamometría manual (kg). No alimenta ninguna ecuación de composición;
   // se registra y se muestra tal cual, como kgGrasa.
   fuerzaPrensionDerecha   Decimal? @db.Decimal(4, 1)
   fuerzaPrensionIzquierda Decimal? @db.Decimal(4, 1)
-  observaciones          String?
-  creadoEn               DateTime @default(now())
-  actualizadoEn          DateTime @updatedAt
+  observaciones           String?
+  creadoEn                DateTime @default(now())
+  actualizadoEn           DateTime @updatedAt
 
   paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)

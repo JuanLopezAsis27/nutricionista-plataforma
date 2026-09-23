@@ -5,6 +5,7 @@ import { EnviarRecordatoriosPorEmail } from "./EnviarRecordatoriosPorEmail";
 import { RecordatorioWhatsapp } from "@/dominio/entidades/RecordatorioWhatsapp";
 import type { ConfiguracionRecordatorios } from "@/dominio/entidades/ConfiguracionRecordatorios";
 import {
+  mockMensajeWhatsappRepositorio,
   mockTurnoRepositorio,
   mockPacienteRepositorio,
   mockConfiguracionRepositorio,
@@ -82,7 +83,12 @@ function armar(
       ),
     }),
     recordatorios,
-    new EnviarRecordatorioWhatsapp(recordatorios, proveedor),
+    new EnviarRecordatorioWhatsapp(
+      recordatorios,
+      proveedor,
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
+    ),
     new EnviarRecordatoriosPorEmail(
       mockPlantillaEmailRecordatorioRepositorio({
         obtenerPredeterminada: vi.fn(async () =>

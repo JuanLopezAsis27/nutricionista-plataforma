@@ -311,6 +311,19 @@ compartidos. Dos botones para el mismo aviso terminan mandándolo dos veces.
 El antiduplicado es del motor, no del código: `UNIQUE (nutricionistaId, turnoId,
 diasAntes)`. Ver `docs/RECORDATORIOS.md`.
 
+### Plantillas de WhatsApp
+
+Se pueden **crear desde la app** en la cuenta de WhatsApp Business del
+consultorio (migración 73): la app las manda a revisión, les sigue el estado
+(webhook `message_template_status_update` o «Actualizar estado») y les pone
+botones. Crear y editar llaman a Meta ANTES de guardar. Solo sale por la API
+una APROBADA; una vinculada a mano, sin estado consultado, se sigue tratando
+como aprobada. Los botones de respuesta rápida llevan `ACCION:turnoId` en el
+payload, y confirmar el turno desde un botón pasa por `ConfirmarAsistenciaTurno`,
+el mismo camino que el enlace del email. Todo lo que sale por la API queda
+además en el hilo (`mensajes_whatsapp`), que es lo único que lee el chat. Ver
+`docs/WHATSAPP.md`.
+
 ### Archivos
 
 Todo archivo del bucket se sirve **desde la app**, nunca por una URL firmada:
@@ -643,6 +656,12 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
 - Nunca llamar a `IProveedorWhatsapp.preparar()` desde una lectura: con la Cloud
   API conectada ese método ENVÍA el mensaje. Ya pasó una vez: el query de vista
   previa mandaba un recordatorio cada vez que el cliente lo refrescaba
+- Nunca mandar un mensaje por la Cloud API sin dejarlo en `mensajes_whatsapp`:
+  el chat lee solo esa tabla. El recordatorio escribía nada más en su log y la
+  plantilla que le llegaba al paciente no aparecía en la conversación
+- Nunca guardar una plantilla de Meta antes de que Meta la acepte, ni reordenar
+  sus `botones`: Meta identifica cada botón por su posición al enviar, y una
+  plantilla guardada que Meta rechazó muestra un texto que el paciente no recibe
 - Nunca validar la agenda del consultorio en un solo caso de uso: agendar y
   reprogramar comparten `verificarDentroDeLaAgenda`
 - Nunca leer el día de la semana de un turno con `getDay()`: va `getUTCDay()`

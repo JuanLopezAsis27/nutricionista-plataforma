@@ -74,6 +74,7 @@ const TIPO_EN_EL_FEED: Record<TipoNotificacionPersistida, TipoNotificacion> = {
   WHATSAPP_ENTRANTE: "WHATSAPP",
   TURNO_CONFIRMADO: "TURNO",
   MENSAJE_APP: "MENSAJE",
+  REPROGRAMACION_PEDIDA: "TURNO",
 };
 
 /**

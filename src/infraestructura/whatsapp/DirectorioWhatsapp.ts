@@ -5,6 +5,7 @@ import {
   WHATSAPP_APP_SECRET,
   WHATSAPP_PHONE_NUMBER_ID,
   WHATSAPP_VERIFY_TOKEN,
+  WHATSAPP_WABA_ID,
 } from "@/infraestructura/repositorios/PrismaRepositorioCredenciales";
 import { obtenerConfigWhatsapp } from "./configWhatsapp";
 
@@ -45,22 +46,7 @@ export class DirectorioWhatsapp {
         where: { ...WHATSAPP_PHONE_NUMBER_ID, valor: phoneNumberId },
       }),
     );
-    if (fila) {
-      const appSecret = await ejecutarGlobal(() =>
-        this.prisma.credencialProveedor.findUnique({
-          where: {
-            nutricionistaId_proveedor_clave: {
-              nutricionistaId: fila.nutricionistaId,
-              ...WHATSAPP_APP_SECRET,
-            },
-          },
-        }),
-      );
-      return {
-        nutricionistaId: fila.nutricionistaId,
-        appSecret: this.descifrar(appSecret?.valor ?? null),
-      };
-    }
+    if (fila) return this.conAppSecret(fila.nutricionistaId);
 
     // Respaldo de despliegue: un único número configurado por entorno.
     const env = obtenerConfigWhatsapp();
@@ -68,6 +54,45 @@ export class DirectorioWhatsapp {
       return { nutricionistaId: "", appSecret: env.appSecret };
     }
     return null;
+  }
+
+  /**
+   * Inquilino dueño de una cuenta de WhatsApp Business. Lo necesitan los
+   * webhooks de estado de plantillas, que no traen `phone_number_id`: solo el
+   * id de la cuenta (en `entry[].id`).
+   */
+  async porWabaId(wabaId: string): Promise<InquilinoWhatsapp | null> {
+    const fila = await ejecutarGlobal(() =>
+      this.prisma.credencialProveedor.findFirst({
+        where: { ...WHATSAPP_WABA_ID, valor: wabaId },
+      }),
+    );
+    if (fila) return this.conAppSecret(fila.nutricionistaId);
+
+    const env = obtenerConfigWhatsapp();
+    if (env && env.wabaId === wabaId) {
+      return { nutricionistaId: "", appSecret: env.appSecret };
+    }
+    return null;
+  }
+
+  private async conAppSecret(
+    nutricionistaId: string,
+  ): Promise<InquilinoWhatsapp> {
+    const appSecret = await ejecutarGlobal(() =>
+      this.prisma.credencialProveedor.findUnique({
+        where: {
+          nutricionistaId_proveedor_clave: {
+            nutricionistaId,
+            ...WHATSAPP_APP_SECRET,
+          },
+        },
+      }),
+    );
+    return {
+      nutricionistaId,
+      appSecret: this.descifrar(appSecret?.valor ?? null),
+    };
   }
 
   /**

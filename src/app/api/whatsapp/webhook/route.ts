@@ -1,5 +1,6 @@
 import {
   servicioWhatsapp,
+  servicioRecordatorios,
   directorioWhatsapp,
 } from "@/infraestructura/contenedor/contenedor";
 import { ejecutarEnNutricionista } from "@/infraestructura/multitenancy/contextoTenant";
@@ -57,15 +58,17 @@ export async function POST(peticion: Request): Promise<Response> {
   }
 
   const webhook = parsearWebhook(cuerpo);
-  if (!webhook.phoneNumberId) {
+  // Los mensajes y sus estados traen el número; los avisos de estado de
+  // plantillas, solo el id de la cuenta de WhatsApp Business.
+  if (!webhook.phoneNumberId && !webhook.wabaId) {
     return new Response(null, { status: 400 });
   }
 
   // Se parsea antes de validar solo para saber a quién pertenece el webhook;
   // hasta que la firma no da, no se escribe absolutamente nada.
-  const inquilino = await directorioWhatsapp().porPhoneNumberId(
-    webhook.phoneNumberId,
-  );
+  const inquilino = webhook.phoneNumberId
+    ? await directorioWhatsapp().porPhoneNumberId(webhook.phoneNumberId)
+    : await directorioWhatsapp().porWabaId(webhook.wabaId ?? "");
   if (!inquilino) {
     return new Response(null, { status: 404 });
   }
@@ -83,6 +86,9 @@ export async function POST(peticion: Request): Promise<Response> {
     await ejecutarEnNutricionista(inquilino.nutricionistaId, async () => {
       await servicioWhatsapp().procesarEntrantes(webhook.mensajes);
       await servicioWhatsapp().registrarEstados(webhook.estados);
+      await servicioRecordatorios().plantillas.registrarEstadosMeta(
+        webhook.estadosPlantillas,
+      );
     });
   } catch (error) {
     monitorErrores.capturar(

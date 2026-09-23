@@ -7,6 +7,8 @@ import { PlantillaWhatsapp } from "@/dominio/entidades/PlantillaWhatsapp";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 import {
   mockPlantillaWhatsappRepositorio,
+  mockAdministradorPlantillasMeta,
+  mockEnlaceConfirmacionTurno,
   plantillaWhatsappEjemplo,
 } from "../_ayudas-test";
 
@@ -36,7 +38,11 @@ describe("CrearPlantillaWhatsapp", () => {
     const repositorio = mockPlantillaWhatsappRepositorio({
       listar: vi.fn(async () => []),
     });
-    const caso = new CrearPlantillaWhatsapp(repositorio);
+    const caso = new CrearPlantillaWhatsapp(
+      repositorio,
+      mockAdministradorPlantillasMeta(),
+      mockEnlaceConfirmacionTurno(),
+    );
 
     await caso.ejecutar({
       nombre: "Recordatorio",
@@ -58,7 +64,11 @@ describe("CrearPlantillaWhatsapp", () => {
     const repositorio = mockPlantillaWhatsappRepositorio({
       listar: vi.fn(async () => [plantilla({ predeterminada: true })]),
     });
-    const caso = new CrearPlantillaWhatsapp(repositorio);
+    const caso = new CrearPlantillaWhatsapp(
+      repositorio,
+      mockAdministradorPlantillasMeta(),
+      mockEnlaceConfirmacionTurno(),
+    );
 
     await caso.ejecutar({
       nombre: "Otra",
@@ -83,7 +93,11 @@ describe("CrearPlantillaWhatsapp", () => {
     const repositorio = mockPlantillaWhatsappRepositorio({
       listar: vi.fn(async () => [anterior]),
     });
-    const caso = new CrearPlantillaWhatsapp(repositorio);
+    const caso = new CrearPlantillaWhatsapp(
+      repositorio,
+      mockAdministradorPlantillasMeta(),
+      mockEnlaceConfirmacionTurno(),
+    );
 
     await caso.ejecutar({
       nombre: "Nueva",
@@ -110,7 +124,11 @@ describe("CrearPlantillaWhatsapp", () => {
     const repositorio = mockPlantillaWhatsappRepositorio({
       listar: vi.fn(async () => [conElDia]),
     });
-    const caso = new CrearPlantillaWhatsapp(repositorio);
+    const caso = new CrearPlantillaWhatsapp(
+      repositorio,
+      mockAdministradorPlantillasMeta(),
+      mockEnlaceConfirmacionTurno(),
+    );
 
     await caso.ejecutar({
       nombre: "Nueva",
@@ -134,7 +152,11 @@ describe("CrearPlantillaWhatsapp", () => {
     const repositorio = mockPlantillaWhatsappRepositorio({
       listar: vi.fn(async () => [conOtroDia]),
     });
-    const caso = new CrearPlantillaWhatsapp(repositorio);
+    const caso = new CrearPlantillaWhatsapp(
+      repositorio,
+      mockAdministradorPlantillasMeta(),
+      mockEnlaceConfirmacionTurno(),
+    );
 
     await caso.ejecutar({
       nombre: "Nueva",
@@ -157,6 +179,8 @@ describe("ActualizarPlantillaWhatsapp", () => {
       mockPlantillaWhatsappRepositorio({
         obtenerPorId: vi.fn(async () => null),
       }),
+      mockAdministradorPlantillasMeta(),
+      mockEnlaceConfirmacionTurno(),
     );
 
     await expect(caso.ejecutar("pla-inexistente", {})).rejects.toThrow();
@@ -171,7 +195,11 @@ describe("ActualizarPlantillaWhatsapp", () => {
       obtenerPorId: vi.fn(async () => editada),
       listar: vi.fn(async () => [editada, otra]),
     });
-    const caso = new ActualizarPlantillaWhatsapp(repositorio);
+    const caso = new ActualizarPlantillaWhatsapp(
+      repositorio,
+      mockAdministradorPlantillasMeta(),
+      mockEnlaceConfirmacionTurno(),
+    );
 
     await caso.ejecutar("pla-1", { predeterminada: true });
 
@@ -194,7 +222,11 @@ describe("ActualizarPlantillaWhatsapp", () => {
       obtenerPorId: vi.fn(async () => editada),
       listar: vi.fn(async () => [editada, otra]),
     });
-    const caso = new ActualizarPlantillaWhatsapp(repositorio);
+    const caso = new ActualizarPlantillaWhatsapp(
+      repositorio,
+      mockAdministradorPlantillasMeta(),
+      mockEnlaceConfirmacionTurno(),
+    );
 
     await caso.ejecutar("pla-1", { diasAntes: 3 });
 
@@ -209,7 +241,11 @@ describe("ActualizarPlantillaWhatsapp", () => {
       obtenerPorId: vi.fn(async () => plantilla({ predeterminada: true })),
       listar: vi.fn(async () => []),
     });
-    const caso = new ActualizarPlantillaWhatsapp(repositorio);
+    const caso = new ActualizarPlantillaWhatsapp(
+      repositorio,
+      mockAdministradorPlantillasMeta(),
+      mockEnlaceConfirmacionTurno(),
+    );
 
     await caso.ejecutar("pla-1", { nombre: "Otro nombre" });
 
@@ -226,7 +262,10 @@ describe("EliminarPlantillaWhatsapp", () => {
     const repositorio = mockPlantillaWhatsappRepositorio({
       obtenerPorId: vi.fn(async () => plantilla({ predeterminada: true })),
     });
-    const caso = new EliminarPlantillaWhatsapp(repositorio);
+    const caso = new EliminarPlantillaWhatsapp(
+      repositorio,
+      mockAdministradorPlantillasMeta(),
+    );
 
     await expect(caso.ejecutar("pla-1")).rejects.toBeInstanceOf(
       ErrorValidacion,
@@ -238,7 +277,10 @@ describe("EliminarPlantillaWhatsapp", () => {
     const repositorio = mockPlantillaWhatsappRepositorio({
       obtenerPorId: vi.fn(async () => plantilla({ predeterminada: false })),
     });
-    const caso = new EliminarPlantillaWhatsapp(repositorio);
+    const caso = new EliminarPlantillaWhatsapp(
+      repositorio,
+      mockAdministradorPlantillasMeta(),
+    );
 
     await caso.ejecutar("pla-1");
 
@@ -250,6 +292,7 @@ describe("EliminarPlantillaWhatsapp", () => {
       mockPlantillaWhatsappRepositorio({
         obtenerPorId: vi.fn(async () => null),
       }),
+      mockAdministradorPlantillasMeta(),
     );
 
     await expect(caso.ejecutar("pla-inexistente")).rejects.toThrow();

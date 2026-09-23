@@ -209,6 +209,17 @@ describe("mapearPlantillaWhatsapp", () => {
       diasAntes: null,
       predeterminada: true,
       activa: false,
+      categoriaMeta: "MARKETING",
+      botones: [
+        {
+          tipo: "RESPUESTA_RAPIDA",
+          texto: "Confirmo",
+          accion: "CONFIRMAR_TURNO",
+        },
+      ],
+      idMeta: "meta-99",
+      estadoMeta: "RECHAZADA",
+      motivoEstadoMeta: "Formato inválido",
       creadoEn: new Date("2026-01-01T00:00:00.000Z"),
       actualizadoEn: new Date("2026-01-01T00:00:00.000Z"),
     }).aPrimitivos();
@@ -218,6 +229,18 @@ describe("mapearPlantillaWhatsapp", () => {
     expect(datos.claveMeta).toBe("recordatorio_24h");
     expect(datos.idiomaMeta).toBe("es_AR");
     expect(datos.variablesMeta).toEqual(["nombrePaciente", "fechaTurno"]);
+    expect(datos.categoriaMeta).toBe("MARKETING");
+    expect(datos.botones).toEqual([
+      {
+        tipo: "RESPUESTA_RAPIDA",
+        texto: "Confirmo",
+        accion: "CONFIRMAR_TURNO",
+      },
+    ]);
+    // Tres campos de Meta que son string | null y viven juntos: fácil cruzarlos.
+    expect(datos.idMeta).toBe("meta-99");
+    expect(datos.estadoMeta).toBe("RECHAZADA");
+    expect(datos.motivoEstadoMeta).toBe("Formato inválido");
   });
 });
 

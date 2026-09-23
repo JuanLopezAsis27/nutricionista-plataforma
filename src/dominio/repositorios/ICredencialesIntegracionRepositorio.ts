@@ -18,6 +18,12 @@ export interface CredencialesIntegracion {
   whatsappPhoneNumberId: string | null;
   whatsappVerifyToken: string | null;
   whatsappAppSecret: string | null;
+  /**
+   * Id de la cuenta de WhatsApp Business (WABA). No hace falta para enviar:
+   * es el que deja administrar las plantillas (darlas de alta, seguir su
+   * revisión) y el que identifica al consultorio en esos webhooks.
+   */
+  whatsappWabaId: string | null;
   criterios: CriteriosIngredientes;
 }
 
@@ -32,6 +38,7 @@ export interface DatosCredenciales {
   whatsappPhoneNumberId?: string | null;
   whatsappVerifyToken?: string | null;
   whatsappAppSecret?: string | null;
+  whatsappWabaId?: string | null;
   /** Criterios de ingredientes (se guardan completos si se envían). */
   criterios?: CriteriosIngredientes;
 }

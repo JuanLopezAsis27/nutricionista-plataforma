@@ -4,6 +4,7 @@ import { EmitirNotificacion } from "../notificaciones/EmitirNotificacion";
 import { Notificacion } from "@/dominio/entidades/Notificacion";
 import { ResolverPacientePorTelefono } from "./ResolverPacientePorTelefono";
 import { RegistrarRespuestaDeRecordatorio } from "../recordatorios/RegistrarRespuestaDeRecordatorio";
+import type { AtenderBotonWhatsapp } from "./AtenderBotonWhatsapp";
 import type { RecordatorioWhatsapp } from "@/dominio/entidades/RecordatorioWhatsapp";
 import { MensajeWhatsapp } from "@/dominio/entidades/MensajeWhatsapp";
 import {
@@ -17,6 +18,7 @@ import {
   mockBusEventos,
   pacienteEjemplo,
   usuarioEjemplo,
+  recordatorioWhatsappEjemplo,
 } from "../_ayudas-test";
 
 const ENTRANTE = {
@@ -29,9 +31,13 @@ const ENTRANTE = {
 function armar(
   pacientes = [pacienteEjemplo({ telefono: "011 15 5555-4444" })],
   recordatoriosPendientes: RecordatorioWhatsapp[] = [],
+  atiendeElBoton = false,
 ) {
   const mensajes = mockMensajeWhatsappRepositorio();
   const notificaciones = mockNotificacionRepositorio();
+  const atenderBoton = {
+    ejecutar: vi.fn(async () => atiendeElBoton),
+  } as unknown as AtenderBotonWhatsapp;
   const bus = mockBusEventos();
   const recordatorios = mockRecordatorioWhatsappRepositorio({
     sinRespuestaDePaciente: vi.fn(async () => recordatoriosPendientes),
@@ -57,8 +63,9 @@ function armar(
     bus,
     new RegistrarRespuestaDeRecordatorio(recordatorios),
     new EmitirNotificacion(notificaciones, mockReloj()),
+    atenderBoton,
   );
-  return { caso, mensajes, bus, recordatorios, notificaciones };
+  return { caso, mensajes, bus, recordatorios, notificaciones, atenderBoton };
 }
 
 describe("ProcesarMensajeEntranteWhatsapp", () => {
@@ -221,5 +228,59 @@ describe("ProcesarMensajeEntranteWhatsapp — agrupado del aviso", () => {
     const [refrescada] = (notificaciones.actualizar as ReturnType<typeof vi.fn>)
       .mock.calls[0] as [Notificacion];
     expect(refrescada.detalle).toBe("el segundo");
+  });
+});
+
+describe("ProcesarMensajeEntranteWhatsapp — botones de plantilla", () => {
+  const TOQUE = {
+    ...ENTRANTE,
+    idExterno: "wamid.BTN",
+    cuerpo: "Confirmo",
+    payloadBoton: "CONFIRMAR_TURNO:tur-1",
+  };
+
+  it("un botón que actuó no suma el aviso de «escribió por WhatsApp»", async () => {
+    // El botón ya dejó el suyo (turno confirmado): dos avisos dirían lo mismo.
+    const { caso, mensajes, notificaciones, atenderBoton } = armar(
+      undefined,
+      [],
+      true,
+    );
+
+    await caso.ejecutar(TOQUE);
+
+    expect(atenderBoton.ejecutar).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "pac-1" }),
+      { accion: "CONFIRMAR_TURNO", turnoId: "tur-1" },
+    );
+    // El toque igual queda en el chat.
+    expect(mensajes.crear).toHaveBeenCalledTimes(1);
+    expect(notificaciones.crear).not.toHaveBeenCalled();
+  });
+
+  it("si el botón no pudo actuar, el aviso de siempre cuenta que escribió", async () => {
+    const { caso, notificaciones } = armar(undefined, [], false);
+
+    await caso.ejecutar(TOQUE);
+
+    expect(notificaciones.crear).toHaveBeenCalledTimes(1);
+  });
+
+  it("marca CONFIRMADO el recordatorio aunque «Confirmo» no esté entre las afirmaciones", async () => {
+    const pendiente = recordatorioWhatsappEjemplo({ estado: "ENVIADO" });
+    const { caso, recordatorios } = armar(undefined, [pendiente], true);
+
+    await caso.ejecutar({ ...TOQUE, cuerpo: "Ahí estaré sin falta, gracias" });
+
+    const [marcado] = vi.mocked(recordatorios.actualizar).mock.calls[0]!;
+    expect(marcado.estado).toBe("CONFIRMADO");
+  });
+
+  it("un mensaje de texto común no pasa por los botones", async () => {
+    const { caso, atenderBoton } = armar();
+
+    await caso.ejecutar(ENTRANTE);
+
+    expect(atenderBoton.ejecutar).not.toHaveBeenCalled();
   });
 });

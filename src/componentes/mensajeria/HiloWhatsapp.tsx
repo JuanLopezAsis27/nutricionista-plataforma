@@ -1,11 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
-import { Check, CheckCheck, AlertTriangle, MessageCircle } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Check,
+  CheckCheck,
+  AlertTriangle,
+  MessageCircle,
+  Send,
+} from "lucide-react";
 import type { MensajeWhatsappSalidaDto } from "@/aplicacion/dtos/whatsapp.dto";
 import { useWhatsapp } from "@/lib/hooks/useWhatsapp";
+import { useRecordatorios } from "@/lib/hooks/useRecordatorios";
 import { cn } from "@/lib/utilidades";
 import { Skeleton } from "@/componentes/ui/skeleton";
+import { Button } from "@/componentes/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/componentes/ui/select";
 import { Compositor } from "./Compositor";
 import { agruparPorDia, horaChat } from "./chat";
 
@@ -93,6 +108,8 @@ export function HiloWhatsapp({ pacienteId }: { pacienteId: string }) {
         </p>
       )}
 
+      {!ventanaAbierta && <EnviarPlantilla pacienteId={pacienteId} />}
+
       <div className="border-t pt-2">
         <Compositor
           onEnviar={(cuerpo) =>
@@ -107,6 +124,68 @@ export function HiloWhatsapp({ pacienteId }: { pacienteId: string }) {
           }
         />
       </div>
+    </div>
+  );
+}
+
+/**
+ * Mandar una plantilla aprobada: lo único que Meta acepta con la ventana
+ * cerrada. Los datos del turno y los botones se completan en el servidor con
+ * el próximo turno del paciente.
+ */
+function EnviarPlantilla({ pacienteId }: { pacienteId: string }) {
+  const { plantillas } = useRecordatorios();
+  const { enviarPlantilla } = useWhatsapp();
+  const consulta = plantillas();
+  const [plantillaId, setPlantillaId] = useState("");
+
+  const aprobadas = (consulta.data ?? []).filter(
+    (p) => p.activa && p.admiteEnvioPorApi,
+  );
+  if (consulta.isLoading) return null;
+
+  if (aprobadas.length === 0) {
+    return (
+      <p className="mb-2 text-xs text-muted-foreground">
+        No tenés plantillas aprobadas en Meta. Creá una en Recordatorios →
+        Plantillas.
+      </p>
+    );
+  }
+
+  const elegida = aprobadas.find((p) => p.id === plantillaId);
+  return (
+    <div className="mb-2 flex flex-wrap items-center gap-2">
+      <Select value={plantillaId} onValueChange={setPlantillaId}>
+        <SelectTrigger className="h-9 min-w-0 flex-1">
+          <SelectValue placeholder="Elegí una plantilla aprobada" />
+        </SelectTrigger>
+        <SelectContent>
+          {aprobadas.map((p) => (
+            <SelectItem key={p.id} value={p.id}>
+              {p.nombre}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Button
+        size="sm"
+        disabled={!elegida || enviarPlantilla.isPending}
+        onClick={() =>
+          enviarPlantilla.mutate(
+            { pacienteId, plantillaId },
+            { onSuccess: () => setPlantillaId("") },
+          )
+        }
+      >
+        <Send className="h-4 w-4" />
+        {enviarPlantilla.isPending ? "Enviando…" : "Enviar plantilla"}
+      </Button>
+      {elegida?.necesitaTurno && (
+        <p className="w-full text-[11px] text-muted-foreground">
+          Usa los datos del próximo turno del paciente.
+        </p>
+      )}
     </div>
   );
 }

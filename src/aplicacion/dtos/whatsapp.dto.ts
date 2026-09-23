@@ -17,6 +17,14 @@ export const enviarMensajeWhatsappDto = z.object({
 });
 export type EnviarMensajeWhatsappDto = z.infer<typeof enviarMensajeWhatsappDto>;
 
+export const enviarPlantillaWhatsappDto = z.object({
+  pacienteId: z.string().min(1),
+  plantillaId: z.string().min(1),
+});
+export type EnviarPlantillaWhatsappDto = z.infer<
+  typeof enviarPlantillaWhatsappDto
+>;
+
 export const mensajeWhatsappSalidaDto = z.object({
   id: z.string(),
   pacienteId: z.string(),

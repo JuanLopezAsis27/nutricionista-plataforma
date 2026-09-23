@@ -68,6 +68,67 @@ describe("parsearWebhook", () => {
         cuerpo: "Hola",
         idExterno: "wamid.ABC",
         enviadoEn: new Date(1787000000 * 1000),
+        payloadBoton: null,
+      },
+    ]);
+  });
+
+  it("lee el toque de un botón: el texto va al chat y el payload a la acción", () => {
+    const boton = structuredClone(mensaje) as unknown as {
+      entry: {
+        changes: { value: { messages: Record<string, unknown>[] } }[];
+      }[];
+    };
+    boton.entry[0]!.changes[0]!.value.messages[0] = {
+      from: "5491155554444",
+      id: "wamid.BTN",
+      timestamp: "1787000000",
+      type: "button",
+      button: { text: "Confirmo", payload: "CONFIRMAR_TURNO:tur-1" },
+    };
+
+    expect(parsearWebhook(boton).mensajes).toEqual([
+      {
+        telefono: "5491155554444",
+        cuerpo: "Confirmo",
+        idExterno: "wamid.BTN",
+        enviadoEn: new Date(1787000000 * 1000),
+        payloadBoton: "CONFIRMAR_TURNO:tur-1",
+      },
+    ]);
+  });
+
+  it("lee el cambio de estado de una plantilla, que trae la cuenta y no el número", () => {
+    const resultado = parsearWebhook({
+      entry: [
+        {
+          id: "waba-77",
+          changes: [
+            {
+              field: "message_template_status_update",
+              value: {
+                event: "REJECTED",
+                // Meta manda el id como número.
+                message_template_id: 998877,
+                message_template_name: "recordatorio_turno",
+                message_template_language: "es_AR",
+                reason: "INVALID_FORMAT",
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(resultado.phoneNumberId).toBeNull();
+    expect(resultado.wabaId).toBe("waba-77");
+    expect(resultado.estadosPlantillas).toEqual([
+      {
+        idMeta: "998877",
+        nombre: "recordatorio_turno",
+        idioma: "es_AR",
+        estado: "RECHAZADA",
+        motivo: expect.stringContaining("Formato inválido"),
       },
     ]);
   });
@@ -111,8 +172,10 @@ describe("parsearWebhook", () => {
   it("no rompe con un payload inesperado", () => {
     expect(parsearWebhook(null)).toEqual({
       phoneNumberId: null,
+      wabaId: null,
       mensajes: [],
       estados: [],
+      estadosPlantillas: [],
     });
     expect(parsearWebhook({ entry: "no es un arreglo" }).mensajes).toEqual([]);
   });

@@ -15,6 +15,9 @@ import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioReposit
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
 import type { IEnlaceConfirmacionTurno } from "@/dominio/servicios/IEnlaceConfirmacionTurno";
+import type { IAdministradorPlantillasMeta } from "@/dominio/servicios/IAdministradorPlantillasMeta";
+import { SincronizarPlantillasMeta } from "@/aplicacion/casos-de-uso/recordatorios/SincronizarPlantillasMeta";
+import { RegistrarEstadosPlantillasMeta } from "@/aplicacion/casos-de-uso/recordatorios/RegistrarEstadosPlantillasMeta";
 import { EnviarRecordatorioWhatsapp } from "@/aplicacion/casos-de-uso/recordatorios/EnviarRecordatorioWhatsapp";
 import { ObtenerConfiguracionRecordatorios } from "@/aplicacion/casos-de-uso/recordatorios/ObtenerConfiguracionRecordatorios";
 import { GuardarConfiguracionRecordatorios } from "@/aplicacion/casos-de-uso/recordatorios/GuardarConfiguracionRecordatorios";
@@ -66,6 +69,8 @@ export interface DepsRecordatorios {
   bus: IBusEventos;
   nombreProfesional: string;
   enlaceConfirmacionTurno: IEnlaceConfirmacionTurno;
+  /** Alta, edición y estado de las plantillas en la cuenta de Meta. */
+  administradorPlantillasMeta: IAdministradorPlantillasMeta;
 }
 
 /**
@@ -78,8 +83,15 @@ export interface DepsRecordatorios {
 export function crearEnviarRecordatorioWhatsapp(deps: {
   recordatorios: IRecordatorioWhatsappRepositorio;
   proveedor: IProveedorWhatsapp;
+  mensajes: IMensajeWhatsappRepositorio;
+  enlaceConfirmacionTurno: IEnlaceConfirmacionTurno;
 }): EnviarRecordatorioWhatsapp {
-  return new EnviarRecordatorioWhatsapp(deps.recordatorios, deps.proveedor);
+  return new EnviarRecordatorioWhatsapp(
+    deps.recordatorios,
+    deps.proveedor,
+    deps.mensajes,
+    deps.enlaceConfirmacionTurno,
+  );
 }
 
 /** Arma el servicio de Recordatorios con sus casos de uso. */
@@ -87,6 +99,10 @@ export function crearServicioRecordatorios(
   deps: DepsRecordatorios,
 ): ServicioRecordatorios {
   const enviarUno = crearEnviarRecordatorioWhatsapp(deps);
+  // La comparten el webhook de estados y la consulta manual a Meta.
+  const registrarEstadosMeta = new RegistrarEstadosPlantillasMeta(
+    deps.plantillas,
+  );
   // Una sola instancia del envío por email: la comparten el barrido automático
   // y la consola manual, que tienen que mandar exactamente lo mismo.
   const enviarEmail = new EnviarRecordatoriosPorEmail(
@@ -113,9 +129,25 @@ export function crearServicioRecordatorios(
     ),
     new ServicioPlantillasWhatsapp(
       new ListarPlantillasWhatsapp(deps.plantillas),
-      new CrearPlantillaWhatsapp(deps.plantillas),
-      new ActualizarPlantillaWhatsapp(deps.plantillas),
-      new EliminarPlantillaWhatsapp(deps.plantillas),
+      new CrearPlantillaWhatsapp(
+        deps.plantillas,
+        deps.administradorPlantillasMeta,
+        deps.enlaceConfirmacionTurno,
+      ),
+      new ActualizarPlantillaWhatsapp(
+        deps.plantillas,
+        deps.administradorPlantillasMeta,
+        deps.enlaceConfirmacionTurno,
+      ),
+      new EliminarPlantillaWhatsapp(
+        deps.plantillas,
+        deps.administradorPlantillasMeta,
+      ),
+      new SincronizarPlantillasMeta(
+        deps.administradorPlantillasMeta,
+        registrarEstadosMeta,
+      ),
+      registrarEstadosMeta,
     ),
     new ServicioPlantillasEmailRecordatorio(
       new ListarPlantillasEmailRecordatorio(deps.plantillasEmailRecordatorio),

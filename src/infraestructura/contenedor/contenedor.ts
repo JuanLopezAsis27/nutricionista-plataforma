@@ -113,6 +113,11 @@ export const servicioWhatsapp = perezoso(() =>
     bus: nucleo.busEventos(),
     notificaciones: nucleo.repositorioNotificacion(),
     reloj: nucleo.reloj(),
+    turnos: nucleo.repositorioTurno(),
+    plantillas: nucleo.repositorioPlantillaWhatsapp(),
+    establecimientos: nucleo.repositorioEstablecimiento(),
+    servicioEmail: nucleo.servicioEmail(),
+    enlaceConfirmacionTurno: nucleo.enlaceConfirmacionTurno(),
   }),
 );
 
@@ -141,6 +146,7 @@ export const servicioRecordatorios = perezoso(() =>
     bus: nucleo.busEventos(),
     nombreProfesional: nucleo.NOMBRE_PROFESIONAL,
     enlaceConfirmacionTurno: nucleo.enlaceConfirmacionTurno(),
+    administradorPlantillasMeta: nucleo.administradorPlantillasMeta(),
   }),
 );
 

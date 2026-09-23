@@ -25,6 +25,7 @@ export const guardarCredencialesDto = z.object({
   whatsappPhoneNumberId: z.string().max(60).optional(),
   whatsappVerifyToken: z.string().max(200).optional(),
   whatsappAppSecret: z.string().max(200).optional(),
+  whatsappWabaId: z.string().max(60).optional(),
   criterios: criteriosIngredientesDto.optional(),
 });
 export type GuardarCredencialesDto = z.infer<typeof guardarCredencialesDto>;
@@ -56,6 +57,10 @@ export const estadoCredencialesDto = z.object({
   /** El phone_number_id no es secreto: se muestra para verificar el alta en Meta. */
   whatsappPhoneNumberId: z.string().nullable(),
   whatsappWebhookListo: z.boolean(),
+  /** El id de la cuenta de WhatsApp Business tampoco es secreto. */
+  whatsappWabaId: z.string().nullable(),
+  /** true = se pueden crear plantillas desde la app (token + id de la cuenta). */
+  whatsappPlantillasListas: z.boolean(),
   criterios: criteriosIngredientesDto,
 });
 export type EstadoCredencialesDto = z.infer<typeof estadoCredencialesDto>;

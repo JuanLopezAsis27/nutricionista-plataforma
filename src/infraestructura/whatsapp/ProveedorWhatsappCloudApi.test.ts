@@ -1,5 +1,8 @@
-import { describe, it, expect } from "vitest";
-import { traducirRechazo } from "./ProveedorWhatsappCloudApi";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import {
+  traducirRechazo,
+  ProveedorWhatsappCloudApi,
+} from "./ProveedorWhatsappCloudApi";
 
 /**
  * Lo que devuelve la Cloud API cuando rechaza un envío va DERECHO a la
@@ -42,5 +45,55 @@ describe("traducirRechazo", () => {
     for (const crudo of otros) {
       expect(traducirRechazo(crudo)).toBe(crudo);
     }
+  });
+});
+
+describe("ProveedorWhatsappCloudApi.enviarPlantilla con botones", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("manda un componente por botón, con su índice y lo que necesita", async () => {
+    const fetchFalso = vi.fn(
+      async (_url: string, _init: { body: string }) =>
+        new Response(JSON.stringify({ messages: [{ id: "wamid.X" }] })),
+    );
+    vi.stubGlobal("fetch", fetchFalso);
+
+    const resultado = await new ProveedorWhatsappCloudApi(
+      "token",
+      "phone-1",
+    ).enviarPlantilla({
+      telefono: "5491155554444",
+      nombrePlantilla: "recordatorio_botones",
+      idioma: "es_AR",
+      parametros: ["Juan"],
+      textoEquivalente: "Hola Juan",
+      botones: [
+        { indice: 0, tipo: "QUICK_REPLY", payload: "CONFIRMAR_TURNO:tur-1" },
+        { indice: 2, tipo: "URL", sufijo: "abc.firma" },
+      ],
+    });
+
+    expect(resultado).toEqual({ modo: "API", idExterno: "wamid.X" });
+    const cuerpo = JSON.parse(fetchFalso.mock.calls[0]![1].body) as {
+      template: { components: unknown[] };
+    };
+    expect(cuerpo.template.components).toEqual([
+      { type: "body", parameters: [{ type: "text", text: "Juan" }] },
+      {
+        type: "button",
+        sub_type: "quick_reply",
+        // Meta lo pide como string.
+        index: "0",
+        parameters: [{ type: "payload", payload: "CONFIRMAR_TURNO:tur-1" }],
+      },
+      {
+        type: "button",
+        sub_type: "url",
+        index: "2",
+        parameters: [{ type: "text", text: "abc.firma" }],
+      },
+    ]);
   });
 });

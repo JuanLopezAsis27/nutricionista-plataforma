@@ -66,6 +66,11 @@ export class RegistrarRespuestaDeRecordatorio {
     pacienteId: string,
     cuerpo: string,
     ahora: Date = new Date(),
+    /**
+     * La respuesta ya interpretada: un botón de plantilla dice en su payload
+     * si confirma, y ahí no hay texto que adivinar.
+     */
+    interpretacion?: { confirmo: boolean },
   ): Promise<ResultadoRespuesta> {
     const pendientes =
       await this.recordatorios.sinRespuestaDePaciente(pacienteId);
@@ -73,7 +78,7 @@ export class RegistrarRespuestaDeRecordatorio {
       return { marcados: 0, confirmo: false };
     }
 
-    const confirmo = esConfirmacion(cuerpo);
+    const confirmo = interpretacion?.confirmo ?? esConfirmacion(cuerpo);
     const estado = confirmo ? "CONFIRMADO" : "RESPONDIDO";
 
     let marcados = 0;
