@@ -44,6 +44,19 @@ export function useRecordatorios() {
     onError: (error) => avisarError(error),
   });
 
+  const sincronizarPlantillasMeta =
+    trpc.recordatorios.sincronizarPlantillasMeta.useMutation({
+      onSuccess: (r) => {
+        toast.success(
+          r.actualizadas > 0
+            ? `Estado actualizado: ${r.actualizadas} plantilla(s) cambiaron.`
+            : "Las plantillas ya estaban al día con Meta.",
+        );
+        invalidar();
+      },
+      onError: (error) => avisarError(error),
+    });
+
   const crearPlantillaEmail =
     trpc.recordatorios.crearPlantillaEmail.useMutation({
       onSuccess: () => {
@@ -161,6 +174,7 @@ export function useRecordatorios() {
     crearPlantilla,
     actualizarPlantilla,
     eliminarPlantilla,
+    sincronizarPlantillasMeta,
     crearPlantillaEmail,
     actualizarPlantillaEmail,
     eliminarPlantillaEmail,

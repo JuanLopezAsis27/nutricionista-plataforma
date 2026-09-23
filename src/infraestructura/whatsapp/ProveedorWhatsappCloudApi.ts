@@ -50,25 +50,43 @@ export class ProveedorWhatsappCloudApi implements IProveedorWhatsapp {
   async enviarPlantilla(
     envio: PlantillaWhatsappEnvio,
   ): Promise<ResultadoEnvioWhatsapp> {
+    const componentes: Record<string, unknown>[] = [];
+    if (envio.parametros.length > 0) {
+      componentes.push({
+        type: "body",
+        parameters: envio.parametros.map((texto) => ({
+          type: "text",
+          text: texto,
+        })),
+      });
+    }
+    // Un componente por botón que necesita algo en este envío, identificado
+    // por su posición en la plantilla aprobada (Meta lo pide como string).
+    for (const boton of envio.botones ?? []) {
+      componentes.push(
+        boton.tipo === "QUICK_REPLY"
+          ? {
+              type: "button",
+              sub_type: "quick_reply",
+              index: String(boton.indice),
+              parameters: [{ type: "payload", payload: boton.payload }],
+            }
+          : {
+              type: "button",
+              sub_type: "url",
+              index: String(boton.indice),
+              parameters: [{ type: "text", text: boton.sufijo }],
+            },
+      );
+    }
+
     return this.enviar({
       to: envio.telefono,
       type: "template",
       template: {
         name: envio.nombrePlantilla,
         language: { code: envio.idioma },
-        ...(envio.parametros.length > 0
-          ? {
-              components: [
-                {
-                  type: "body",
-                  parameters: envio.parametros.map((texto) => ({
-                    type: "text",
-                    text: texto,
-                  })),
-                },
-              ],
-            }
-          : {}),
+        ...(componentes.length > 0 ? { components: componentes } : {}),
       },
     });
   }

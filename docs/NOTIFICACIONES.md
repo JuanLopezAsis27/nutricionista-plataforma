@@ -47,6 +47,15 @@ comportarse distinto en la misma campana, así que se movió al lado persistido
 (`MENSAJE_APP`). El contador de no leídos no se perdió: sigue en la bandeja de
 Mensajes, que es donde se responde.
 
+### El pedido de reprogramación
+
+`REPROGRAMACION_PEDIDA` (migración 73) sale cuando el paciente toca el botón
+«reprogramar» de una plantilla de WhatsApp (`AtenderBotonWhatsapp`, ver
+`docs/WHATSAPP.md`). Es persistido por lo mismo que la confirmación: es un
+hecho que ya ocurrió, no algo que un barrido pueda regenerar. En el feed se ve
+como un aviso de TURNO. Cuando un botón actuó, no se suma además el aviso de
+«escribió por WhatsApp»: dirían lo mismo dos veces.
+
 ### El agrupado: una línea por paciente, no una por mensaje
 
 Un aviso de mensaje **refresca el que esté pendiente** en vez de abrir otro

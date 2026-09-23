@@ -1,5 +1,8 @@
 import { crearRouter, nutricionistaProcedimiento } from "../trpc";
-import { enviarMensajeWhatsappDto } from "@/aplicacion/dtos/whatsapp.dto";
+import {
+  enviarMensajeWhatsappDto,
+  enviarPlantillaWhatsappDto,
+} from "@/aplicacion/dtos/whatsapp.dto";
 import { pacienteObjetivoDto } from "@/aplicacion/dtos/mensajeria.dto";
 
 /**
@@ -23,6 +26,16 @@ export const routerWhatsapp = crearRouter({
       return await ctx.servicios.whatsapp.enviarMensaje(
         input.pacienteId,
         input.cuerpo,
+      );
+    }),
+
+  /** Manda una plantilla aprobada: lo único que Meta acepta con la ventana cerrada. */
+  enviarPlantilla: nutricionistaProcedimiento
+    .input(enviarPlantillaWhatsappDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.whatsapp.enviarPlantilla(
+        input.pacienteId,
+        input.plantillaId,
       );
     }),
 });

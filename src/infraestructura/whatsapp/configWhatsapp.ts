@@ -8,6 +8,8 @@ export interface ConfigWhatsapp {
   verifyToken: string | null;
   /** App secret, para validar la firma x-hub-signature-256 de los POST. */
   appSecret: string | null;
+  /** Id de la cuenta de WhatsApp Business, para administrar plantillas. */
+  wabaId: string | null;
 }
 
 /**
@@ -27,5 +29,6 @@ export function obtenerConfigWhatsapp(): ConfigWhatsapp | null {
     phoneNumberId,
     verifyToken: process.env.WHATSAPP_VERIFY_TOKEN ?? null,
     appSecret: process.env.WHATSAPP_APP_SECRET ?? null,
+    wabaId: process.env.WHATSAPP_WABA_ID ?? null,
   };
 }

@@ -8,6 +8,7 @@ import type {
   RegistrarEstadoWhatsapp,
   EstadoEntregaWhatsapp,
 } from "@/aplicacion/casos-de-uso/whatsapp/RegistrarEstadoWhatsapp";
+import type { EnviarPlantillaWhatsapp } from "@/aplicacion/casos-de-uso/whatsapp/EnviarPlantillaWhatsapp";
 import type { MensajeWhatsapp } from "@/dominio/entidades/MensajeWhatsapp";
 import type {
   HiloWhatsappSalidaDto,
@@ -28,6 +29,7 @@ export class ServicioWhatsapp {
     private readonly enviarUC: EnviarMensajeWhatsapp,
     private readonly procesarEntranteUC: ProcesarMensajeEntranteWhatsapp,
     private readonly registrarEstadoUC: RegistrarEstadoWhatsapp,
+    private readonly enviarPlantillaUC: EnviarPlantillaWhatsapp,
   ) {}
 
   async obtenerHilo(pacienteId: string): Promise<HiloWhatsappSalidaDto> {
@@ -44,6 +46,19 @@ export class ServicioWhatsapp {
   ): Promise<MensajeWhatsappSalidaDto> {
     return ServicioWhatsapp.aSalidaMensaje(
       await this.enviarUC.ejecutar(pacienteId, cuerpo),
+    );
+  }
+
+  /**
+   * Manda una plantilla aprobada: la salida cuando la ventana de 24 h está
+   * cerrada y Meta ya no acepta texto libre.
+   */
+  async enviarPlantilla(
+    pacienteId: string,
+    plantillaId: string,
+  ): Promise<MensajeWhatsappSalidaDto> {
+    return ServicioWhatsapp.aSalidaMensaje(
+      await this.enviarPlantillaUC.ejecutar(pacienteId, plantillaId),
     );
   }
 

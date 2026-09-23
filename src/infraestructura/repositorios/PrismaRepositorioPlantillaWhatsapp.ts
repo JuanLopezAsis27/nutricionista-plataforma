@@ -6,6 +6,7 @@ import type { IPlantillaWhatsappRepositorio } from "@/dominio/repositorios/IPlan
 import {
   PlantillaWhatsapp,
   type VariableRecordatorio,
+  type BotonPlantilla,
 } from "@/dominio/entidades/PlantillaWhatsapp";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
@@ -60,6 +61,11 @@ export class PrismaRepositorioPlantillaWhatsapp
         diasAntes: d.diasAntes,
         predeterminada: d.predeterminada,
         activa: d.activa,
+        categoriaMeta: d.categoriaMeta,
+        botones: d.botones,
+        idMeta: d.idMeta,
+        estadoMeta: d.estadoMeta,
+        motivoEstadoMeta: d.motivoEstadoMeta,
         creadoEn: d.creadoEn,
       },
     });
@@ -79,6 +85,11 @@ export class PrismaRepositorioPlantillaWhatsapp
         diasAntes: d.diasAntes,
         predeterminada: d.predeterminada,
         activa: d.activa,
+        categoriaMeta: d.categoriaMeta,
+        botones: d.botones,
+        idMeta: d.idMeta,
+        estadoMeta: d.estadoMeta,
+        motivoEstadoMeta: d.motivoEstadoMeta,
       },
     });
     return mapearPlantillaWhatsapp(fila);
@@ -102,6 +113,12 @@ export function mapearPlantillaWhatsapp(
     diasAntes: fila.diasAntes,
     predeterminada: fila.predeterminada,
     activa: fila.activa,
+    categoriaMeta: fila.categoriaMeta,
+    // JSONB escrito solo por este repositorio desde `BotonPlantilla[]`.
+    botones: fila.botones as unknown as BotonPlantilla[],
+    idMeta: fila.idMeta,
+    estadoMeta: fila.estadoMeta,
+    motivoEstadoMeta: fila.motivoEstadoMeta,
     creadoEn: fila.creadoEn,
     actualizadoEn: fila.actualizadoEn,
   });

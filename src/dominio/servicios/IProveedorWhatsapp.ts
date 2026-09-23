@@ -24,7 +24,18 @@ export interface PlantillaWhatsappEnvio {
   idioma: string;
   parametros: string[];
   textoEquivalente: string;
+  /**
+   * Lo que cada botón necesita en ESTE envío, por su posición en la
+   * plantilla: el payload de una respuesta rápida (acción + turno) o el final
+   * de una URL dinámica (el token de confirmación). Los botones que no
+   * necesitan nada no van.
+   */
+  botones?: ParametroBotonEnvio[];
 }
+
+export type ParametroBotonEnvio =
+  | { indice: number; tipo: "QUICK_REPLY"; payload: string }
+  | { indice: number; tipo: "URL"; sufijo: string };
 
 /** Resultado de preparar (o enviar) un mensaje de WhatsApp. */
 export interface ResultadoEnvioWhatsapp {

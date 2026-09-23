@@ -95,8 +95,15 @@ Es el único endpoint de la app que recibe datos sin sesión.
 ## Plantillas aprobadas: lo que la ventana de 24 h obliga
 
 Un recordatorio de turno casi siempre se manda cuando el paciente no escribió
-en las últimas 24 h, y ahí Meta solo acepta **plantillas aprobadas**. El flujo
-completo es:
+en las últimas 24 h, y ahí Meta solo acepta **plantillas aprobadas**. Hay dos
+maneras de tenerlas:
+
+- **Crearla desde la app** (migración 73, ver «Plantillas creadas desde la
+  app» más abajo): la app la da de alta en Meta, la manda a revisión y le sigue
+  el estado. Es el camino normal si está cargado el ID de la cuenta de WhatsApp
+  Business.
+- **Crearla a mano en Meta y vincularla** por su nombre, que es lo que había
+  antes y sigue sirviendo. El flujo es:
 
 1. Dar de alta la plantilla en Meta Business (Cuenta de WhatsApp → Plantillas de
    mensaje), con el cuerpo en castellano y sus parámetros **numerados**:
@@ -133,3 +140,162 @@ esperar la aprobación.
 instrucción, en castellano y conservando el texto de Meta entre paréntesis para
 poder contrastarlo. Es lo ÚNICO que traduce: un rechazo que no conocemos pasa
 tal cual, porque inventarle una explicación manda a mirar donde no hay nada.
+
+## Plantillas creadas desde la app
+
+Desde **Recordatorios → Plantillas**, con la opción «Crear en Meta», la app da
+de alta la plantilla en la cuenta de WhatsApp Business del consultorio por la
+API de administración de Meta (`IAdministradorPlantillasMeta`,
+`infraestructura/whatsapp/AdministradorPlantillasMeta.ts`), la manda a revisión
+y muestra en qué quedó.
+
+**Qué hace falta.** Además del token y el phone number ID que usa el envío, el
+**ID de la cuenta de WhatsApp Business** (WABA ID), que se carga en
+Integraciones → WhatsApp, y que el token tenga el permiso
+`whatsapp_business_management`. Enviar y administrar son dos APIs distintas de
+Meta: un consultorio puede mandar mensajes sin poder crear plantillas, y por
+eso es otro puerto y no un método más de `IProveedorWhatsapp`. El WABA ID se
+guarda en claro, como el phone number ID: es lo que identifica al consultorio
+en los webhooks de estado de plantillas (ver abajo).
+
+**Meta va primero.** El alta y la edición llaman a Meta ANTES de guardar. Si
+Meta la rechaza (nombre repetido, formato inválido, token sin permiso) no se
+guarda nada y el profesional corrige sobre el mismo formulario. Al revés
+quedaría una plantilla que la app muestra con un texto y Meta tiene con otro, y
+al paciente le llegaría el de Meta. Los errores 4xx de Meta salen como
+`ErrorValidacion` con el motivo (es algo que el profesional corrige); un 5xx es
+un error del sistema.
+
+**Las variables se numeran solas.** En las creadas desde la app no se elige el
+orden de los parámetros: cada `{{variable}}` del cuerpo pasa a `{{1}}`,
+`{{2}}`… en orden de aparición (`PlantillaWhatsapp.formatoMeta()`), y eso
+queda en `variablesMeta`. Los ejemplos que pide Meta para revisarla salen de
+los mismos valores que la vista previa. Lo que Meta rechazaría se frena antes,
+en castellano (`validarParaMeta`): el cuerpo **no puede empezar ni terminar con
+una variable** —el texto por defecto termina en `{{profesional}}`, así que hay
+que agregarle un punto—.
+
+**Qué se puede editar.** El nombre en Meta y el idioma son la identidad de la
+plantilla allá y no se cambian: la entidad lo rechaza. Si cambia lo que Meta
+revisa —cuerpo, botones o categoría— la edición se manda a Meta y la plantilla
+vuelve a EN_REVISION; marcarla predeterminada o asignarle un día no toca Meta.
+Meta limita las ediciones de una plantilla aprobada (una por día, pocas por
+mes): ese rechazo llega como error y no se guarda nada.
+
+**Borrar.** Una creada desde la app (`idMeta` presente) se borra también en
+Meta, que no deja reusar ese nombre por 30 días. Una vinculada a mano NO se
+toca en Meta: la creó otra persona, afuera de la app.
+
+### El estado de la revisión
+
+`estadoMeta` pliega los estados de Meta a cinco: EN_REVISION, APROBADA,
+RECHAZADA (con el motivo, traducido cuando se conoce), PAUSADA y
+DESHABILITADA (`estadosPlantillaMeta.ts`). `null` es «nunca se consultó»: una
+vinculada a mano, que se sigue tratando como aprobada, igual que antes.
+
+**Solo sale por la API una APROBADA** (`admiteEnvioPorApi`): una en revisión o
+rechazada la rebotaría Meta. El barrido automático y el chat la ignoran hasta
+que se apruebe.
+
+El estado llega por dos caminos, que terminan en el mismo caso de uso
+(`RegistrarEstadosPlantillasMeta`):
+
+- **El webhook** `message_template_status_update`. Hay que suscribir la app de
+  Meta a ese campo además de `messages`. Esos avisos no traen
+  `phone_number_id`, solo el id de la cuenta en `entry[].id`: por eso la ruta
+  resuelve al consultorio por el WABA ID cuando no hay número
+  (`DirectorioWhatsapp.porWabaId`).
+- **«Actualizar estado»**, que trae de Meta todas las plantillas de la cuenta
+  (`SincronizarPlantillasMeta`). Es el respaldo si el webhook no está
+  suscripto. Como esa lista es COMPLETA, una plantilla con nombre de Meta que no
+  aparece queda DESHABILITADA («no existe en la cuenta»): mejor saberlo ahí que
+  por un recordatorio fallido. El webhook, que avisa de a una, nunca deduce
+  ausencias.
+
+A las vinculadas a mano también se les actualiza el estado (se las busca por
+nombre e idioma, porque no tienen `idMeta`): saber que Meta las pausó sirve
+igual. Saber el estado no las vuelve administradas.
+
+## Botones
+
+Una plantilla creada desde la app puede llevar hasta 10 botones (2 de enlace
+como máximo, 25 caracteres de texto). Dos tipos:
+
+- **Respuesta rápida.** Al tocarla, al chat llega el texto del botón. Cada una
+  tiene una acción: **confirmar el turno**, **pedir reprogramar** o ninguna.
+- **Enlace.** Uno fijo (`https://…`) o el **enlace de confirmación del turno**,
+  el mismo enlace firmado del recordatorio por email. Ese se registra en Meta
+  como URL dinámica (`…/confirmar-turno?token={{1}}`) y en cada envío se
+  completa solo el token (`IEnlaceConfirmacionTurno.prefijo()`).
+
+**El orden es parte del contrato.** Meta identifica a cada botón por su
+posición al enviar, y exige que los del mismo tipo estén juntos: la entidad
+guarda siempre las respuestas rápidas primero y los enlaces después, y el
+índice de cada botón es su lugar en esa lista. Por eso `botones` es un JSONB
+ordenado y no una tabla.
+
+**La acción viaja en el payload, no en el texto.** En cada envío, cada
+respuesta rápida lleva `ACCION:turnoId` como payload
+(`dominio/servicios/botonesWhatsapp.ts`), y Meta lo devuelve tal cual cuando el
+paciente la toca (mensaje de tipo `button`). Así el profesional le pone al
+botón el texto que quiera, y si el paciente tiene dos turnos con recordatorio
+se sabe a cuál contestó. Sin turno (una plantilla mandada desde el chat a
+alguien sin turno próximo) el payload es `NINGUNA` y tocarlo no hace nada.
+
+Al tocar un botón (`AtenderBotonWhatsapp`):
+
+- **Confirmar** pasa el turno a CONFIRMADO por `ConfirmarAsistenciaTurno`, el
+  MISMO camino que el enlace del email: mismo aviso en la campana, mismo email
+  al profesional.
+- **Reprogramar** no toca el turno —reprogramar necesita acordar otro horario—
+  y deja un aviso `REPROGRAMACION_PEDIDA` en la campana.
+- El recordatorio queda CONFIRMADO o RESPONDIDO según el botón, sin pasar por
+  la lista de afirmaciones: «Confirmo» no está en ella, y no tiene por qué.
+- El turno tiene que ser de ESE paciente y estar pendiente o confirmado. Si no
+  (se canceló, ya pasó), el toque queda como un mensaje más y el aviso de
+  «escribió por WhatsApp» de siempre es el que se lo cuenta al profesional.
+  Cuando el botón SÍ actuó, ese aviso no se suma: diría lo mismo dos veces.
+
+El toque queda en el chat como un mensaje entrante (el texto del botón), y
+abre la ventana de 24 h como cualquier otro mensaje del paciente.
+
+Las vinculadas a mano no llevan botones desde la app: la app no sabe qué
+botones tiene esa plantilla en Meta, y mandarle parámetros de botones que no
+existen hace que Meta rechace el envío.
+
+## Mandar una plantilla desde el chat
+
+Con la ventana de 24 h cerrada, el chat de WhatsApp ofrece las plantillas
+aprobadas (`EnviarPlantillaWhatsapp`). Los datos del turno (fecha, hora, sede)
+y los botones que actúan sobre él se completan con el **próximo turno** del
+paciente —pendiente o confirmado, de hoy en adelante—. Una plantilla que los
+necesita (`necesitaTurno`) no se puede mandar a quien no tiene ninguno; una que
+solo nombra al paciente y al profesional, sí.
+
+No es un recordatorio: no entra en el log de recordatorios ni en su
+antiduplicado. Es un mensaje del chat que sale por plantilla, y queda en el
+hilo como cualquier otro.
+
+## Los recordatorios también son parte del chat
+
+El chat de la app (bandeja y ficha del paciente) lee **solo** `mensajes_whatsapp`.
+Los recordatorios viven en otra tabla, `recordatorios_whatsapp`, que es el log
+de avisos con sus reglas de antiduplicado. Durante un tiempo el recordatorio
+escribía únicamente ahí: la plantilla le llegaba al paciente, pero en la
+conversación de la app no aparecía, y si el paciente contestaba, su respuesta
+quedaba colgada sin el mensaje que la originó.
+
+Ahora `EnviarRecordatorioWhatsapp`, cuando el aviso **sale por la API**, deja
+además una fila SALIENTE en `mensajes_whatsapp` con el mismo `idExterno`
+(wamid). Por compartir el wamid, el webhook de estado (`RegistrarEstadoWhatsapp`)
+mueve las dos filas —la del log y la del hilo— a ENTREGADO / LEIDO / FALLIDO.
+
+- Con el enlace `wa.me` **no** se escribe en el hilo: el mensaje todavía no
+  salió (lo manda el profesional a mano) y, sin la API, el chat de la app no
+  existe.
+- Las dos tablas no se funden: el log de recordatorios responde "¿a este turno
+  ya se le avisó?" y el hilo responde "¿qué se habló con este paciente?". Son
+  preguntas distintas con reglas distintas (el log reusa filas al reintentar;
+  el hilo es append-only).
+- Los recordatorios enviados antes de este cambio no aparecen en el chat: no
+  se reconstruyeron.

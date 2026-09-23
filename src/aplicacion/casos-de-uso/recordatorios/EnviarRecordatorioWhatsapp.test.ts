@@ -5,6 +5,8 @@ import {
 } from "./EnviarRecordatorioWhatsapp";
 import { RecordatorioWhatsapp } from "@/dominio/entidades/RecordatorioWhatsapp";
 import {
+  mockMensajeWhatsappRepositorio,
+  mockEnlaceConfirmacionTurno,
   mockRecordatorioWhatsappRepositorio,
   mockProveedorWhatsapp,
   establecimientoEjemplo,
@@ -56,6 +58,8 @@ describe("EnviarRecordatorioWhatsapp — a quién NO se le manda", () => {
     const caso = new EnviarRecordatorioWhatsapp(
       mockRecordatorioWhatsappRepositorio(),
       mockProveedorWhatsapp(),
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
 
     // `Turno.crear` siempre nace PENDIENTE y la maquina de estados es la
@@ -77,6 +81,8 @@ describe("EnviarRecordatorioWhatsapp — a quién NO se le manda", () => {
     const caso = new EnviarRecordatorioWhatsapp(
       mockRecordatorioWhatsappRepositorio(),
       proveedor,
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
 
     const resultado = await caso.ejecutar(
@@ -92,6 +98,8 @@ describe("EnviarRecordatorioWhatsapp — a quién NO se le manda", () => {
       const caso = new EnviarRecordatorioWhatsapp(
         mockRecordatorioWhatsappRepositorio(),
         mockProveedorWhatsapp(),
+        mockMensajeWhatsappRepositorio(),
+        mockEnlaceConfirmacionTurno(),
       );
 
       const turno = turnoEjemplo();
@@ -134,6 +142,8 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
     const caso = new EnviarRecordatorioWhatsapp(
       mockRecordatorioWhatsappRepositorio(),
       mockProveedorWhatsapp(),
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
 
     const resultado = await caso.ejecutar(
@@ -155,6 +165,8 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
     const caso = new EnviarRecordatorioWhatsapp(
       mockRecordatorioWhatsappRepositorio(),
       mockProveedorWhatsapp(),
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
 
     const resultado = await caso.ejecutar(
@@ -168,6 +180,8 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
     const caso = new EnviarRecordatorioWhatsapp(
       mockRecordatorioWhatsappRepositorio(),
       mockProveedorWhatsapp(),
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
 
     const resultado = await caso.ejecutar(
@@ -186,6 +200,8 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
     const caso = new EnviarRecordatorioWhatsapp(
       mockRecordatorioWhatsappRepositorio(),
       mockProveedorWhatsapp(),
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
 
     const resultado = await caso.ejecutar(
@@ -204,6 +220,8 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
     const caso = new EnviarRecordatorioWhatsapp(
       repositorio,
       mockProveedorWhatsapp(),
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
 
     await caso.ejecutar(pedidoBase({ existentes: [fallido] }));
@@ -218,6 +236,8 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
     const caso = new EnviarRecordatorioWhatsapp(
       repositorio,
       mockProveedorWhatsapp(),
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
 
     await caso.ejecutar(
@@ -235,6 +255,8 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
     const caso = new EnviarRecordatorioWhatsapp(
       repositorio,
       mockProveedorWhatsapp(),
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
 
     await caso.ejecutar(
@@ -261,6 +283,8 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
     const caso = new EnviarRecordatorioWhatsapp(
       repositorio,
       mockProveedorWhatsapp(),
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
 
     await caso.ejecutar(
@@ -284,12 +308,16 @@ describe("EnviarRecordatorioWhatsapp — cómo sale el mensaje", () => {
           idExterno: "wamid.123",
         })),
       }),
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
     expect((await porApi.ejecutar(pedidoBase())).estado).toBe("ENVIADO");
 
     const porEnlace = new EnviarRecordatorioWhatsapp(
       mockRecordatorioWhatsappRepositorio(),
       mockProveedorWhatsapp(),
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
     const resultado = await porEnlace.ejecutar(pedidoBase());
     expect(resultado.estado).toBe("PREPARADO");
@@ -298,11 +326,57 @@ describe("EnviarRecordatorioWhatsapp — cómo sale el mensaje", () => {
     }
   });
 
+  it("lo que sale por la API queda en el hilo de WhatsApp del paciente", async () => {
+    // El chat lee `mensajes_whatsapp`, no el log de recordatorios: sin esta
+    // fila, la plantilla que le llegó al paciente no aparecía en la
+    // conversación. Comparte el wamid para que el webhook de estado la mueva.
+    const mensajes = mockMensajeWhatsappRepositorio();
+    const caso = new EnviarRecordatorioWhatsapp(
+      mockRecordatorioWhatsappRepositorio(),
+      mockProveedorWhatsapp({
+        enviarPlantilla: vi.fn(async () => ({
+          modo: "API" as const,
+          idExterno: "wamid.456",
+        })),
+      }),
+      mensajes,
+      mockEnlaceConfirmacionTurno(),
+    );
+
+    await caso.ejecutar(
+      pedidoBase({
+        plantilla: plantillaWhatsappEjemplo({ claveMeta: "recordatorio_24h" }),
+      }),
+    );
+
+    expect(mensajes.crear).toHaveBeenCalledTimes(1);
+    const mensaje = vi.mocked(mensajes.crear).mock.calls[0]![0].aPrimitivos();
+    expect(mensaje.direccion).toBe("SALIENTE");
+    expect(mensaje.idExterno).toBe("wamid.456");
+    expect(mensaje.pacienteId).toBe(pedidoBase().paciente.id);
+  });
+
+  it("con el enlace wa.me no escribe en el hilo: el mensaje todavía no salió", async () => {
+    const mensajes = mockMensajeWhatsappRepositorio();
+    const caso = new EnviarRecordatorioWhatsapp(
+      mockRecordatorioWhatsappRepositorio(),
+      mockProveedorWhatsapp(),
+      mensajes,
+      mockEnlaceConfirmacionTurno(),
+    );
+
+    await caso.ejecutar(pedidoBase());
+
+    expect(mensajes.crear).not.toHaveBeenCalled();
+  });
+
   it("usa la plantilla de Meta cuando la plantilla tiene clave", async () => {
     const proveedor = mockProveedorWhatsapp();
     const caso = new EnviarRecordatorioWhatsapp(
       mockRecordatorioWhatsappRepositorio(),
       proveedor,
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
 
     await caso.ejecutar(
@@ -324,6 +398,8 @@ describe("EnviarRecordatorioWhatsapp — cómo sale el mensaje", () => {
     const caso = new EnviarRecordatorioWhatsapp(
       mockRecordatorioWhatsappRepositorio(),
       proveedor,
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
 
     await caso.ejecutar(
@@ -347,6 +423,8 @@ describe("EnviarRecordatorioWhatsapp — cómo sale el mensaje", () => {
     const caso = new EnviarRecordatorioWhatsapp(
       mockRecordatorioWhatsappRepositorio(),
       proveedor,
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
 
     await caso.ejecutar(pedidoBase({ textoManual: "   " }));
@@ -369,6 +447,8 @@ describe("EnviarRecordatorioWhatsapp — cuando el proveedor falla", () => {
     const caso = new EnviarRecordatorioWhatsapp(
       mockRecordatorioWhatsappRepositorio(),
       proveedorQueFalla(),
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
 
     const resultado = await caso.ejecutar(pedidoBase());
@@ -384,6 +464,8 @@ describe("EnviarRecordatorioWhatsapp — cuando el proveedor falla", () => {
     const caso = new EnviarRecordatorioWhatsapp(
       repositorio,
       proveedorQueFalla(),
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
 
     await caso.ejecutar(pedidoBase());
@@ -401,6 +483,8 @@ describe("EnviarRecordatorioWhatsapp — cuando el proveedor falla", () => {
     const caso = new EnviarRecordatorioWhatsapp(
       repositorio,
       proveedorQueFalla(),
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
     );
 
     await caso.ejecutar(pedidoBase({ diasAntes: 3, existentes: [previo] }));

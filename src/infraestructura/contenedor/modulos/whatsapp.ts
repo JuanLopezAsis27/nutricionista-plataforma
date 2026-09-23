@@ -7,6 +7,14 @@ import type { IProveedorWhatsapp } from "@/dominio/servicios/IProveedorWhatsapp"
 import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
 import type { INotificacionRepositorio } from "@/dominio/repositorios/INotificacionRepositorio";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
+import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio";
+import type { IPlantillaWhatsappRepositorio } from "@/dominio/repositorios/IPlantillaWhatsappRepositorio";
+import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstablecimientoRepositorio";
+import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
+import type { IEnlaceConfirmacionTurno } from "@/dominio/servicios/IEnlaceConfirmacionTurno";
+import { EnviarPlantillaWhatsapp } from "@/aplicacion/casos-de-uso/whatsapp/EnviarPlantillaWhatsapp";
+import { AtenderBotonWhatsapp } from "@/aplicacion/casos-de-uso/whatsapp/AtenderBotonWhatsapp";
+import { ConfirmarAsistenciaTurno } from "@/aplicacion/casos-de-uso/turnos/ConfirmarAsistenciaTurno";
 import { ObtenerHiloWhatsapp } from "@/aplicacion/casos-de-uso/whatsapp/ObtenerHiloWhatsapp";
 import { EnviarMensajeWhatsapp } from "@/aplicacion/casos-de-uso/whatsapp/EnviarMensajeWhatsapp";
 import { ProcesarMensajeEntranteWhatsapp } from "@/aplicacion/casos-de-uso/whatsapp/ProcesarMensajeEntranteWhatsapp";
@@ -30,11 +38,21 @@ export function crearServicioWhatsapp(deps: {
   bus: IBusEventos;
   notificaciones: INotificacionRepositorio;
   reloj: IRelojFecha;
+  turnos: ITurnoRepositorio;
+  plantillas: IPlantillaWhatsappRepositorio;
+  establecimientos: IEstablecimientoRepositorio;
+  servicioEmail: IServicioEmail;
+  enlaceConfirmacionTurno: IEnlaceConfirmacionTurno;
 }): ServicioWhatsapp {
   // El filtro de ingesta: sin paciente que matchee, el mensaje se descarta.
   const resolverPaciente = new ResolverPacientePorTelefono(
     deps.pacientes,
     deps.configuracion,
+  );
+
+  const emitirNotificacion = new EmitirNotificacion(
+    deps.notificaciones,
+    deps.reloj,
   );
 
   return new ServicioWhatsapp(
@@ -54,8 +72,33 @@ export function crearServicioWhatsapp(deps: {
       new RegistrarRespuestaDeRecordatorio(deps.recordatorios),
       // Que el WhatsApp quede en la campana, con su estado de visto: el bus
       // solo llega a quien tenga la app abierta en ese momento.
-      new EmitirNotificacion(deps.notificaciones, deps.reloj),
+      emitirNotificacion,
+      // Los botones de las plantillas: confirmar por el MISMO camino que el
+      // enlace del email, para que los dos avisen igual.
+      new AtenderBotonWhatsapp(
+        deps.turnos,
+        new ConfirmarAsistenciaTurno(
+          deps.turnos,
+          deps.pacientes,
+          deps.usuarios,
+          deps.servicioEmail,
+          deps.bus,
+          emitirNotificacion,
+        ),
+        emitirNotificacion,
+      ),
     ),
     new RegistrarEstadoWhatsapp(deps.mensajes, deps.recordatorios),
+    new EnviarPlantillaWhatsapp(
+      deps.plantillas,
+      deps.pacientes,
+      deps.turnos,
+      deps.establecimientos,
+      deps.configuracion,
+      deps.mensajes,
+      deps.proveedor,
+      deps.enlaceConfirmacionTurno,
+      deps.reloj,
+    ),
   );
 }

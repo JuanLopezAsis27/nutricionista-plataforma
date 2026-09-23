@@ -125,6 +125,7 @@ import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 
 // WhatsApp.
 import { ResolvedorProveedorWhatsapp } from "@/infraestructura/whatsapp/ResolvedorProveedorWhatsapp";
+import { AdministradorPlantillasMeta } from "@/infraestructura/whatsapp/AdministradorPlantillasMeta";
 import { DirectorioWhatsapp } from "@/infraestructura/whatsapp/DirectorioWhatsapp";
 
 // Aprovisionamiento de inquilinos.
@@ -600,6 +601,14 @@ export const servicioEmail = perezoso((): IServicioEmail => {
  */
 export const proveedorWhatsapp = perezoso(
   () => new ResolvedorProveedorWhatsapp(repositorioCredenciales()),
+);
+
+/**
+ * Alta, edición y estado de las plantillas en la cuenta de WhatsApp Business
+ * del consultorio. Se resuelve por llamada, como el proveedor de envío.
+ */
+export const administradorPlantillasMeta = perezoso(
+  () => new AdministradorPlantillasMeta(repositorioCredenciales()),
 );
 
 /** Resuelve el inquilino dueño de un webhook de WhatsApp (corre sin sesión). */

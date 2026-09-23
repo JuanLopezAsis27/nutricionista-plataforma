@@ -5,6 +5,7 @@ import { EnviarRecordatoriosPorEmail } from "./EnviarRecordatoriosPorEmail";
 import type { RecordatorioWhatsapp } from "@/dominio/entidades/RecordatorioWhatsapp";
 import type { IRecordatorioWhatsappRepositorio } from "@/dominio/repositorios/IRecordatorioWhatsappRepositorio";
 import {
+  mockMensajeWhatsappRepositorio,
   mockTurnoRepositorio,
   mockPacienteRepositorio,
   mockConfiguracionRepositorio,
@@ -115,7 +116,12 @@ function armar(horasEntreAvisos = 24) {
       ),
     }),
     recordatorios,
-    new EnviarRecordatorioWhatsapp(recordatorios, proveedor),
+    new EnviarRecordatorioWhatsapp(
+      recordatorios,
+      proveedor,
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
+    ),
     emailPorTurno,
     mockEstablecimientoRepositorio(),
     mockReloj(),

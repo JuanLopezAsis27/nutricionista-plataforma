@@ -12,6 +12,7 @@ import type { IAsistenteNutricional } from "@/dominio/servicios/IAsistenteNutric
 import type { IAnalisisComidaIA } from "@/dominio/servicios/IAnalisisComidaIA";
 import type { IAnalisisPredictivo } from "@/dominio/servicios/IAnalisisPredictivo";
 import type { IEnlaceConfirmacionTurno } from "@/dominio/servicios/IEnlaceConfirmacionTurno";
+import type { IAdministradorPlantillasMeta } from "@/dominio/servicios/IAdministradorPlantillasMeta";
 
 /**
  * Ayudas para los tests de casos de uso.
@@ -154,6 +155,24 @@ export function mockEnlaceConfirmacionTurno(
     generar: vi.fn(
       (turnoId: string) => `https://app.test/confirmar-turno?token=${turnoId}`,
     ),
+    prefijo: vi.fn(() => "https://app.test/confirmar-turno?token="),
+    ...parcial,
+  };
+}
+
+/** Administrador de plantillas de Meta: alta aceptada y en revisión. */
+export function mockAdministradorPlantillasMeta(
+  parcial: Partial<IAdministradorPlantillasMeta> = {},
+): IAdministradorPlantillasMeta {
+  return {
+    disponible: vi.fn(async () => true),
+    crear: vi.fn(async () => ({
+      idMeta: "meta-1",
+      estado: "EN_REVISION" as const,
+    })),
+    editar: vi.fn(async () => undefined),
+    eliminar: vi.fn(async () => undefined),
+    listar: vi.fn(async () => []),
     ...parcial,
   };
 }

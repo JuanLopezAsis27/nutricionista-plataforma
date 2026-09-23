@@ -43,6 +43,10 @@ export class ServicioCredenciales {
       whatsappWebhookListo: Boolean(
         c?.whatsappVerifyToken && c?.whatsappAppSecret,
       ),
+      whatsappWabaId: c?.whatsappWabaId ?? null,
+      // Crear plantillas es otra API de Meta: además del token pide el id de
+      // la cuenta de WhatsApp Business, que para enviar no hace falta.
+      whatsappPlantillasListas: Boolean(c?.whatsappToken && c?.whatsappWabaId),
       criterios: c?.criterios ?? {
         excluirMarcas: false,
         requiereMacros: false,

@@ -10,6 +10,8 @@ export const TIPOS_NOTIFICACION = [
   "WHATSAPP_ENTRANTE",
   "TURNO_CONFIRMADO",
   "MENSAJE_APP",
+  /** Tocó «reprogramar» en un botón de la plantilla de WhatsApp. */
+  "REPROGRAMACION_PEDIDA",
 ] as const;
 
 export type TipoNotificacion = (typeof TIPOS_NOTIFICACION)[number];

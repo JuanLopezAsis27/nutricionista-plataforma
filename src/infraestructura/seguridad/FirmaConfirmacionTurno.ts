@@ -44,7 +44,11 @@ export class FirmaConfirmacionTurno implements IEnlaceConfirmacionTurno {
         v: venceEn.getTime(),
       }),
     ).toString("base64url");
-    return `${this.baseUrl}/confirmar-turno?token=${carga}.${this.firmar(carga)}`;
+    return `${this.prefijo()}${carga}.${this.firmar(carga)}`;
+  }
+
+  prefijo(): string {
+    return `${this.baseUrl}/confirmar-turno?token=`;
   }
 
   /** Consultorio y turno del enlace; null si la firma no cierra o ya venció. */

@@ -30,6 +30,7 @@ export function FormularioWhatsappApi() {
 
   const [token, setToken] = useState("");
   const [phoneNumberId, setPhoneNumberId] = useState("");
+  const [wabaId, setWabaId] = useState("");
   const [verifyToken, setVerifyToken] = useState("");
   const [appSecret, setAppSecret] = useState("");
   const [urlWebhook, setUrlWebhook] = useState("");
@@ -38,6 +39,9 @@ export function FormularioWhatsappApi() {
   useEffect(() => {
     if (e?.whatsappPhoneNumberId) setPhoneNumberId(e.whatsappPhoneNumberId);
   }, [e?.whatsappPhoneNumberId]);
+  useEffect(() => {
+    if (e?.whatsappWabaId) setWabaId(e.whatsappWabaId);
+  }, [e?.whatsappWabaId]);
 
   useEffect(() => {
     setUrlWebhook(`${window.location.origin}/api/whatsapp/webhook`);
@@ -51,6 +55,7 @@ export function FormularioWhatsappApi() {
     guardar.mutate({
       whatsappToken: token.trim() || undefined, // vacío = no cambiar
       whatsappPhoneNumberId: phoneNumberId.trim() || undefined,
+      whatsappWabaId: wabaId.trim() || undefined,
       whatsappVerifyToken: verifyToken.trim() || undefined,
       whatsappAppSecret: appSecret.trim() || undefined,
     });
@@ -76,6 +81,10 @@ export function FormularioWhatsappApi() {
             activo={e.whatsappWebhookListo}
             texto="Webhook listo (verify token + app secret)"
           />
+          <Marca
+            activo={e.whatsappPlantillasListas}
+            texto="Plantillas desde la app (token + id de la cuenta)"
+          />
         </div>
 
         <p className="text-sm text-muted-foreground">
@@ -94,6 +103,25 @@ export function FormularioWhatsappApi() {
               value={phoneNumberId}
               onChange={(ev) => setPhoneNumberId(ev.target.value)}
             />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="wa-waba">
+              ID de la cuenta de WhatsApp Business
+            </Label>
+            <Input
+              id="wa-waba"
+              placeholder="Ej: 102290129340398"
+              value={wabaId}
+              onChange={(ev) => setWabaId(ev.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Opcional. Sirve para crear plantillas desde la app y seguir su
+              aprobación. El token necesita el permiso{" "}
+              <code className="rounded bg-muted px-1">
+                whatsapp_business_management
+              </code>
+              .
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="wa-token">Access token</Label>
@@ -150,8 +178,13 @@ export function FormularioWhatsappApi() {
           />
           <p className="text-xs text-muted-foreground">
             Suscribite al campo{" "}
-            <code className="rounded bg-muted px-1">messages</code>. Sin el app
-            secret cargado, la app rechaza todos los webhooks que entren.
+            <code className="rounded bg-muted px-1">messages</code> y, para
+            seguir la aprobación de las plantillas, a{" "}
+            <code className="rounded bg-muted px-1">
+              message_template_status_update
+            </code>
+            . Sin el app secret cargado, la app rechaza todos los webhooks que
+            entren.
           </p>
         </div>
 

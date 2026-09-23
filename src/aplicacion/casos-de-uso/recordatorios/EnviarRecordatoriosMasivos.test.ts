@@ -6,6 +6,7 @@ import { RecordatorioWhatsapp } from "@/dominio/entidades/RecordatorioWhatsapp";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 import { ErrorPlantillaWhatsappNoEncontrada } from "@/dominio/errores/ErrorPlantillaWhatsappNoEncontrada";
 import {
+  mockMensajeWhatsappRepositorio,
   mockTurnoRepositorio,
   mockPacienteRepositorio,
   mockConfiguracionRepositorio,
@@ -98,7 +99,12 @@ function armar(
       ),
     }),
     recordatorios,
-    new EnviarRecordatorioWhatsapp(recordatorios, proveedor),
+    new EnviarRecordatorioWhatsapp(
+      recordatorios,
+      proveedor,
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
+    ),
     emailPorTurno,
     mockEstablecimientoRepositorio(),
     mockReloj(),

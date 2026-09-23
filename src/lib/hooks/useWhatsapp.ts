@@ -18,8 +18,14 @@ export function useWhatsapp() {
     onError: (error) => avisarError(error),
   });
 
+  const enviarPlantilla = trpc.whatsapp.enviarPlantilla.useMutation({
+    onSuccess: () => invalidar(),
+    onError: (error) => avisarError(error),
+  });
+
   return {
     hiloDe: trpc.whatsapp.hiloDe.useQuery,
     enviarMensaje,
+    enviarPlantilla,
   };
 }

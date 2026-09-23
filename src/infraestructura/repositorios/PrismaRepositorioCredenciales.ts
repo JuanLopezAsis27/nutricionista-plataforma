@@ -30,6 +30,11 @@ export const WHATSAPP_VERIFY_TOKEN: RefCredencial = {
   proveedor: "WHATSAPP",
   clave: "VERIFY_TOKEN",
 };
+/** Id de la cuenta de WhatsApp Business: rutea los webhooks de plantillas. */
+export const WHATSAPP_WABA_ID: RefCredencial = {
+  proveedor: "WHATSAPP",
+  clave: "WABA_ID",
+};
 
 /**
  * Claves que se guardan EN CLARO.
@@ -40,6 +45,9 @@ export const WHATSAPP_VERIFY_TOKEN: RefCredencial = {
  */
 const EN_CLARO = new Set<string>([
   `${WHATSAPP_PHONE_NUMBER_ID.proveedor}/${WHATSAPP_PHONE_NUMBER_ID.clave}`,
+  // Igual que el phone_number_id: los webhooks de estado de plantillas no
+  // traen número, solo el id de la cuenta, y con eso se busca al inquilino.
+  `${WHATSAPP_WABA_ID.proveedor}/${WHATSAPP_WABA_ID.clave}`,
 ]);
 
 function esSecreto(ref: RefCredencial): boolean {
@@ -54,6 +62,7 @@ const CLAVES_DE_INTEGRACION: Record<IntegracionCredenciales, RefCredencial[]> =
       WHATSAPP_PHONE_NUMBER_ID,
       WHATSAPP_VERIFY_TOKEN,
       WHATSAPP_APP_SECRET,
+      WHATSAPP_WABA_ID,
     ],
   };
 
@@ -96,6 +105,7 @@ export class PrismaRepositorioCredenciales implements ICredencialesIntegracionRe
       whatsappPhoneNumberId: leer("WHATSAPP", "PHONE_NUMBER_ID"),
       whatsappVerifyToken: leer("WHATSAPP", "VERIFY_TOKEN"),
       whatsappAppSecret: leer("WHATSAPP", "APP_SECRET"),
+      whatsappWabaId: leer("WHATSAPP", "WABA_ID"),
       criterios: {
         excluirMarcas: preferencias?.excluirMarcas ?? false,
         requiereMacros: preferencias?.requiereMacros ?? false,
@@ -118,6 +128,7 @@ export class PrismaRepositorioCredenciales implements ICredencialesIntegracionRe
       [WHATSAPP_PHONE_NUMBER_ID, datos.whatsappPhoneNumberId],
       [WHATSAPP_VERIFY_TOKEN, datos.whatsappVerifyToken],
       [WHATSAPP_APP_SECRET, datos.whatsappAppSecret],
+      [WHATSAPP_WABA_ID, datos.whatsappWabaId],
     ];
 
     for (const [ref, valor] of cambios) {
