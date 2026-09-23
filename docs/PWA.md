@@ -25,8 +25,9 @@ actualiza a todo el mundo sin reinstalar nada.
 | `src/app/sin-conexion/page.tsx`                | Lo que se ve cuando no hay red                                     |
 | `src/app/icon.png`, `favicon.ico`, `apple-icon.png` | Favicon y ícono de iOS (metadatos de Next)                    |
 | `public/iconos/*`                              | Los íconos que declara el manifiesto                              |
-| `assets/marca/logo-original.jpg`               | El logo tal cual lo entregó el profesional (fuente de todo)       |
-| `scripts/generar-iconos-pwa.mjs`               | Limpia el logo y regenera todos los íconos                        |
+| `assets/marca/marca.svg`                       | El isotipo en vector: la fuente de todos los íconos               |
+| `assets/marca/marca-simple.svg`                | El isotipo reducido, para los tamaños chicos                      |
+| `scripts/generar-iconos-pwa.mjs`               | Encuadra la marca y regenera todos los íconos                     |
 
 Hacen falta **las dos** cosas —manifiesto y service worker con manejador de
 `fetch`— para que Chrome ofrezca "Instalar". Con el manifiesto solo, el acceso
@@ -123,54 +124,72 @@ listar los íconos sin advertencias) y _Service Workers_ (tiene que decir
 
 ## Los íconos
 
-El ícono es el logo del consultorio: la barra de pesas con el nombre y
-«NUTRICIÓN Y DEPORTE». Todo sale de `assets/marca/logo-original.jpg`:
+El ícono es el isotipo de NutriOffice —anillo, manzana y pesa— sobre un cuadrado
+oscuro. Todo sale de `assets/marca/marca.svg`:
 
 ```bash
 node scripts/generar-iconos-pwa.mjs
 ```
 
-Los PNG resultantes **se commitean**: el build no puede depender de `sharp`,
-que viene de arrastre con Next y no es una dependencia declarada del proyecto.
+Los PNG resultantes **se commitean**: el build no puede depender de `sharp`, que
+viene de arrastre con Next y no es una dependencia declarada del proyecto.
 
-### Qué le hace el script al logo
+La marca vive en el sitio de presentación (`pagina-presentacion`), que es donde
+se mantiene. Acá hay una copia versionada para que la generación de íconos sea
+reproducible sin depender de otro repositorio; si la marca cambia allá, hay que
+copiar los dos SVG y volver a correr el script.
 
-El original es un JPEG de 256×256, con el trazo en un negro deslavado (~20% de
-gris), ruido de compresión alrededor de las letras y el logo sentado sobre un
-círculo gris claro con mucho aire. Así, tal cual, se veía sucio y chico. El
-script lo agranda, le aplica una curva de niveles que lleva el trazo a negro
-puro y el fondo a blanco —con eso se van el ruido y el círculo gris de una— y
-usa la luminancia invertida como canal alfa. El resultado es el logo en negro
-sobre transparente, que recién ahí se encuadra.
+### Por qué el fondo es oscuro y no coral
 
-Que el fondo sea **alfa** y no blanco importa para el calado de «NUTRICIÓN Y
-DEPORTE»: como es blanco dentro de la barra negra, si se dejara opaco sería un
-parche que solo funciona sobre blanco.
+La marca tiene **dos tintas**: el coral del anillo grueso y la manzana, que es
+fijo, y una segunda tinta —el anillo fino exterior y la pesa— que se adapta al
+fondo. El SVG de `assets/marca` trae esa segunda tinta en blanco, así que el
+ícono va sobre un cuadrado oscuro: es la versión oscura de la marca, tal como la
+entregó el diseño.
 
-El fondo del ícono es blanco y no el coral de la marca: el logo es negro sobre
-claro y sobre coral pierde contraste, además de teñir ese calado. El coral
-sigue siendo el `theme_color` del manifiesto.
+Sobre un cuadrado coral no funcionaría, y no es una cuestión de gusto: el anillo
+y la manzana **también son corales** y desaparecerían contra el fondo.
+
+El `theme_color` del manifiesto sigue siendo el coral, y el `background_color`
+—el de la pantalla de carga— sigue siendo el gris claro de la app. Son cosas
+distintas del ícono.
+
+### Antes esto era mucho más complicado
+
+La fuente era `assets/marca/logo-original.jpg`, el logo del consultorio: un JPEG
+de 256×256 con el trazo en un negro deslavado, ruido de compresión alrededor de
+las letras y el dibujo sentado sobre un círculo gris con mucho aire. Medio
+script eran correcciones de niveles para rescatarlo: agrandar, aplicar una
+curva que llevara el trazo a negro puro y el fondo a blanco, y usar la
+luminancia invertida como canal alfa.
+
+Con un SVG eso desaparece entero: se rasteriza al tamaño exacto de cada salida y
+sale nítido siempre. El JPEG original queda versionado porque sigue siendo el
+logo del profesional, pero ya no es la fuente de nada.
 
 ### Por qué cada formato se encuadra distinto
 
-El logo es apaisado (1,38:1), así que lo que lo limita en un lienzo cuadrado es
-siempre el ancho; por eso la ocupación se mide sobre el ancho y el aire de
-arriba y abajo sale solo.
-
 Los `maskable` son archivos aparte y no una copia de los otros: Android recorta
 el ícono con la forma del launcher (círculo, gota, squircle) y solo garantiza el
-80% central. Un rectángulo de 1,38:1 dentro de ese círculo no puede pasar del
-**64% del ancho**; con el 84% que usan los `any`, las pesas de los extremos
-quedaban cortadas.
+**80% central**. Por eso ahí la marca ocupa el 62% del lienzo y en los `any`, que
+el sistema muestra tal cual, el 76%.
 
-### Límite conocido
+El dibujo es más ancho que alto (1,3:1), así que lo que lo limita en un lienzo
+cuadrado es siempre el ancho y el aire de arriba y abajo sale solo.
 
-Debajo de ~64 px el nombre no se lee: es un logo con texto y no hay
-procesamiento que arregle eso. A 96 px y de ahí para arriba se lee bien, que es
-el tamaño al que se ve en la pantalla de inicio y en la barra de tareas. Si
-alguna vez molesta en la pestaña del navegador, la salida es una **marca
-simplificada** para los tamaños chicos (la barra de pesas y el óvalo, sin
-texto), no seguir tocando este archivo.
+El `apple-icon` va a sangre y sin transparencia: iOS aplica su propia máscara y
+lo que sea transparente le queda negro.
+
+### La versión reducida
+
+`icon.png` (la pestaña del navegador) y `favicon.ico` (el acceso directo de
+Windows) usan `marca-simple.svg`: solo el anillo y la manzana, con trazo más
+grueso. Por debajo de unos 32 píxeles la pesa se empasta contra el anillo y el
+conjunto se vuelve una mancha.
+
+No es otro logo: es el mismo con menos piezas, que es lo que hace una marca bien
+resuelta a tamaño chico. Es la salida que el documento anterior anticipaba
+cuando el ícono todavía era un logo con texto.
 
 ## Al cambiar el service worker
 

@@ -13,8 +13,8 @@ import type { MetadataRoute } from "next";
  */
 export default function manifiesto(): MetadataRoute.Manifest {
   return {
-    name: "Nutricionista App — Lic. Nicolás López Asis",
-    short_name: "Nutrición",
+    name: "NutriOffice",
+    short_name: "NutriOffice",
     description: "Gestión de pacientes, turnos y planes nutricionales",
     lang: "es",
     dir: "ltr",
