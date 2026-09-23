@@ -7,21 +7,33 @@ import type {
   GuardarCredencialesDto,
 } from "../dtos/credenciales.dto";
 
+/** Si la plataforma tiene IA y voz a texto (de su configuración o del entorno). */
+export interface DisponibilidadIA {
+  ia: boolean;
+  transcripcion: boolean;
+}
+
 /**
  * Servicio de aplicación de credenciales de integración del profesional.
  * `obtenerEstado` NUNCA devuelve los secretos (solo si están configurados).
+ *
+ * La IA no se configura acá desde la migración 71: la carga el SUPERADMIN
+ * para toda la plataforma. El consultorio solo ve si está disponible.
  */
 export class ServicioCredenciales {
   constructor(
     private readonly credenciales: ICredencialesIntegracionRepositorio,
+    private readonly disponibilidadIA: () => Promise<DisponibilidadIA>,
   ) {}
 
   async obtenerEstado(): Promise<EstadoCredencialesDto> {
-    const c = await this.credenciales.obtener();
+    const [c, ia] = await Promise.all([
+      this.credenciales.obtener(),
+      this.disponibilidadIA(),
+    ]);
     return {
-      proveedorIA: c?.proveedorIA ?? "ANTHROPIC",
-      anthropicConfigurado: Boolean(c?.anthropicApiKey),
-      anthropicModelo: c?.anthropicModelo ?? null,
+      iaDisponible: ia.ia,
+      transcripcionDisponible: ia.transcripcion,
       whatsappConfigurado: Boolean(
         c?.whatsappToken && c?.whatsappPhoneNumberId,
       ),
@@ -31,9 +43,6 @@ export class ServicioCredenciales {
       whatsappWebhookListo: Boolean(
         c?.whatsappVerifyToken && c?.whatsappAppSecret,
       ),
-      proveedorTranscripcion: c?.proveedorTranscripcion ?? "OPENAI",
-      transcripcionConfigurada: Boolean(c?.transcripcionApiKey),
-      transcripcionModelo: c?.transcripcionModelo ?? null,
       criterios: c?.criterios ?? {
         excluirMarcas: false,
         requiereMacros: false,

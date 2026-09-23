@@ -299,6 +299,7 @@ model Nutricionista {
   metricasDispositivo         MetricaDispositivo[]
   credenciales                CredencialProveedor[]
   preferencias                PreferenciasIntegracion[]
+  registrosUsoIA              RegistroUsoIA[]
   promptsIA                   PromptIA[]
   retroalimentaciones         RetroalimentacionInsight[]
   alimentosPropios            AlimentoPropio[]
@@ -1127,19 +1128,12 @@ model CredencialProveedor {
   @@map("credenciales_proveedor")
 }
 
-/// Preferencias de integración del inquilino que NO son secretos: qué modelo
-/// de IA usar y con qué criterios filtrar los ingredientes de la búsqueda.
-/// Vivían mezcladas con los tokens cifrados en la misma fila.
+/// Preferencias de integración del inquilino que NO son secretos: con qué
+/// criterios filtrar los ingredientes de la búsqueda. El proveedor y el modelo
+/// de IA vivían acá hasta la migración 71: ahora son de la plataforma
+/// (`ConfiguracionIAGlobal`).
 model PreferenciasIntegracion {
   nutricionistaId        String   @id
-  /// "ANTHROPIC" (defecto) | "OPENROUTER"
-  proveedorIA            String?
-  modeloIA               String?
-  /// Voz a texto de las grabaciones: "OPENAI" (defecto) | "OPENROUTER".
-  /// Es una elección aparte de `proveedorIA` porque son dos capacidades
-  /// distintas: Anthropic no transcribe audio.
-  proveedorTranscripcion String?
-  modeloTranscripcion    String?
   /// Criterios de ingredientes: filtran los alimentos que trae la búsqueda.
   excluirMarcas          Boolean  @default(false) // solo genéricos (sin marca)
   requiereMacros         Boolean  @default(false) // descartar sin macros completos
@@ -1151,6 +1145,64 @@ model PreferenciasIntegracion {
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@map("preferencias_integracion")
+}
+
+/// Configuración de IA de la PLATAFORMA (migración 71): las claves de
+/// Anthropic, OpenRouter y OpenAI, y qué proveedor y modelo usa cada
+/// capacidad. Es UNA sola fila (`id = "global"`) y la administra el
+/// SUPERADMIN. No es tabla de inquilino: todos los consultorios usan las
+/// mismas claves, y lo único de cada uno son sus prompts (`PromptIA`).
+///
+/// Una clave POR PROVEEDOR y no una por capacidad: la de OpenRouter sirve
+/// para conversar y para transcribir, y el saldo que se consulta es el de la
+/// clave, no el de la capacidad.
+model ConfiguracionIAGlobal {
+  id                     String   @id @default("global")
+  /// Cifradas con CifradorTokens (AES-256-GCM), igual que las credenciales.
+  claveAnthropic         String?
+  claveOpenRouter        String?
+  claveOpenAI            String?
+  /// "ANTHROPIC" (defecto) | "OPENROUTER"
+  proveedorIA            String?
+  modeloIA               String?
+  /// "OPENAI" (defecto) | "OPENROUTER". Aparte porque Anthropic no transcribe.
+  proveedorTranscripcion String?
+  modeloTranscripcion    String?
+  actualizadoEn          DateTime @updatedAt
+
+  @@map("configuracion_ia_global")
+}
+
+/// Una llamada a un proveedor de IA: quién la hizo, con qué modelo, cuántos
+/// tokens gastó y si salió bien. La lee el panel del SUPERADMIN.
+///
+/// Es tabla de inquilino (el consultorio que la originó), pero se escribe sola
+/// desde el decorador del proveedor y nunca la lee un consultorio. El
+/// `nutricionistaId` es nullable y con SET NULL: dar de baja un consultorio no
+/// puede borrar el historial de gasto de la plataforma.
+model RegistroUsoIA {
+  id              String               @id @default(uuid(4))
+  nutricionistaId String?
+  /// "LLM" | "TRANSCRIPCION"
+  capacidad       String
+  proveedor       ProveedorIntegracion
+  modelo          String
+  /// "completar" | "conversar" | "transcribir"
+  operacion       String
+  tokensEntrada   Int                  @default(0)
+  tokensSalida    Int                  @default(0)
+  /// Solo cuando el proveedor lo informa (OpenRouter). Nunca se estima.
+  costoUsd        Float?
+  exito           Boolean
+  error           String?
+  duracionMs      Int
+  creadoEn        DateTime             @default(now())
+
+  nutricionista Nutricionista? @relation(fields: [nutricionistaId], references: [id], onDelete: SetNull)
+
+  @@index([creadoEn])
+  @@index([nutricionistaId, creadoEn])
+  @@map("registros_uso_ia")
 }
 
 /// System prompt propio del consultorio para una funcionalidad de IA.

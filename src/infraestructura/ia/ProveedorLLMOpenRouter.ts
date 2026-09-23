@@ -3,6 +3,7 @@ import type {
   OpcionesLLM,
   OpcionesConversacion,
   EsfuerzoLLM,
+  AlConsumirLLM,
 } from "./IProveedorLLM";
 import { ejecutarHerramientaSegura, parsearArgumentos } from "./herramientas";
 import type { AlAvanzarIA } from "@/dominio/servicios/avanceIA";
@@ -29,13 +30,26 @@ interface MensajeOpenRouter {
   content?: string | null;
   tool_calls?: LlamadaHerramienta[];
 }
+/** `usage` de OpenRouter: los tokens, y el costo en dólares de la llamada. */
+interface UsoOpenRouter {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  cost?: number;
+}
 interface RespuestaOpenRouter {
   choices?: Array<{
     message?: MensajeOpenRouter;
     finish_reason?: string | null;
   }>;
+  usage?: UsoOpenRouter;
   error?: { message?: string };
 }
+
+/**
+ * Pide que la respuesta traiga el `usage` con el costo. En stream llega en el
+ * último trozo, que no trae texto.
+ */
+const CON_USO = { usage: { include: true } };
 
 /** Un trozo de la respuesta en stream (formato `chat.completion.chunk`). */
 interface TrozoOpenRouter {
@@ -49,6 +63,7 @@ interface TrozoOpenRouter {
       }>;
     };
   }>;
+  usage?: UsoOpenRouter;
   error?: { message?: string };
 }
 
@@ -112,6 +127,7 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
         { role: "user", content: contenido },
       ],
       ...razonamiento(opts.esfuerzo),
+      ...CON_USO,
     };
 
     const respuesta = await fetch(URL, {
@@ -132,6 +148,7 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
     }
     const j = (await respuesta.json()) as RespuestaOpenRouter;
     if (j.error) throw new Error(j.error.message ?? "Error de OpenRouter.");
+    informarConsumo(j.usage, opts.alConsumir);
     const eleccion = j.choices?.[0];
     // Un JSON cortado por el tope no se puede leer: se avisa con el motivo en
     // vez de devolver medio objeto.
@@ -175,6 +192,7 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
           ...razonamiento(opts.esfuerzo),
         },
         opts.alAvanzar,
+        opts.alConsumir,
       );
       const llamadas = msg.tool_calls ?? [];
       if (llamadas.length === 0) {
@@ -207,6 +225,7 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
     const cierre = await this.pedir(
       { model: this.modelo, max_tokens: opts.maxTokens, messages },
       opts.alAvanzar,
+      opts.alConsumir,
     );
     return (cierre.content ?? "").trim();
   }
@@ -220,14 +239,20 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
   private async pedir(
     body: Record<string, unknown>,
     alAvanzar?: AlAvanzarIA,
+    alConsumir?: AlConsumirLLM,
   ): Promise<MensajeOpenRouter> {
     const respuesta = await this.postear(
-      alAvanzar ? { ...body, stream: true } : body,
+      alAvanzar ? { ...body, ...CON_USO, stream: true } : { ...body, ...CON_USO },
     );
-    if (alAvanzar) return leerStream(respuesta, alAvanzar);
+    if (alAvanzar) {
+      const { mensaje, uso } = await leerStream(respuesta, alAvanzar);
+      informarConsumo(uso, alConsumir);
+      return mensaje;
+    }
 
     const j = (await respuesta.json()) as RespuestaOpenRouter;
     if (j.error) throw new Error(j.error.message ?? "Error de OpenRouter.");
+    informarConsumo(j.usage, alConsumir);
     return j.choices?.[0]?.message ?? {};
   }
 
@@ -265,11 +290,12 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
 async function leerStream(
   respuesta: Response,
   alAvanzar: AlAvanzarIA,
-): Promise<MensajeOpenRouter> {
+): Promise<{ mensaje: MensajeOpenRouter; uso: UsoOpenRouter | undefined }> {
   const cuerpo = respuesta.body;
   if (!cuerpo) throw new Error("OpenRouter no devolvió cuerpo.");
 
   let contenido = "";
+  let uso: UsoOpenRouter | undefined;
   const llamadas = new Map<number, LlamadaHerramienta>();
 
   for await (const dato of datosSSE(cuerpo)) {
@@ -278,6 +304,7 @@ async function leerStream(
     if (trozo.error) {
       throw new Error(trozo.error.message ?? "Error de OpenRouter.");
     }
+    if (trozo.usage) uso = trozo.usage;
     const delta = trozo.choices?.[0]?.delta;
     if (!delta) continue;
 
@@ -310,7 +337,19 @@ async function leerStream(
       .sort(([a], [b]) => a - b)
       .map(([, llamada]) => llamada);
   }
-  return mensaje;
+  return { mensaje, uso };
+}
+
+function informarConsumo(
+  uso: UsoOpenRouter | undefined,
+  alConsumir?: AlConsumirLLM,
+): void {
+  if (!alConsumir || !uso) return;
+  alConsumir({
+    tokensEntrada: uso.prompt_tokens ?? 0,
+    tokensSalida: uso.completion_tokens ?? 0,
+    costoUsd: typeof uso.cost === "number" ? uso.cost : null,
+  });
 }
 
 /** Un trozo ilegible no tira la respuesta entera abajo: se saltea. */

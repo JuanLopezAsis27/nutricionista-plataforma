@@ -1,17 +1,17 @@
 import { describe, it, expect } from "vitest";
-import { guardarCredencialesDto } from "./credenciales.dto";
+import { guardarIAPlataformaDto } from "./iaPlataforma.dto";
 
 /**
  * El nombre del modelo se valida al guardar porque el síntoma aparecía
- * lejísimos de la pantalla de credenciales: con `openai-4o-mini` cargado, la
+ * lejísimos de la pantalla de la IA de la plataforma: con `openai-4o-mini` cargado, la
  * app se mostraba con la IA activa y el chat y el análisis de foto contestaban
  * con los textos de demostración, sin nada que apuntara a la configuración.
  */
-describe("guardarCredencialesDto — nombre del modelo", () => {
+describe("guardarIAPlataformaDto — nombre del modelo", () => {
   it("rechaza un modelo de OpenRouter sin el prefijo del proveedor", () => {
-    const r = guardarCredencialesDto.safeParse({
+    const r = guardarIAPlataformaDto.safeParse({
       proveedorIA: "OPENROUTER",
-      anthropicModelo: "openai-4o-mini",
+      modeloIA: "openai-4o-mini",
     });
 
     expect(r.success).toBe(false);
@@ -24,18 +24,18 @@ describe("guardarCredencialesDto — nombre del modelo", () => {
       "anthropic/claude-opus-5",
       "google/gemini-2.5-pro",
     ]) {
-      const r = guardarCredencialesDto.safeParse({
+      const r = guardarIAPlataformaDto.safeParse({
         proveedorIA: "OPENROUTER",
-        anthropicModelo: modelo,
+        modeloIA: modelo,
       });
       expect(r.success, modelo).toBe(true);
     }
   });
 
   it("rechaza un nombre de OpenRouter cuando el proveedor es Anthropic", () => {
-    const r = guardarCredencialesDto.safeParse({
+    const r = guardarIAPlataformaDto.safeParse({
       proveedorIA: "ANTHROPIC",
-      anthropicModelo: "anthropic/claude-opus-5",
+      modeloIA: "anthropic/claude-opus-5",
     });
 
     expect(r.success).toBe(false);
@@ -43,20 +43,31 @@ describe("guardarCredencialesDto — nombre del modelo", () => {
   });
 
   it("acepta el modelo vacío: significa dejar el que ya estaba", () => {
-    const r = guardarCredencialesDto.safeParse({
+    const r = guardarIAPlataformaDto.safeParse({
       proveedorIA: "OPENROUTER",
-      anthropicApiKey: "sk-or-nueva",
+      claves: { OPENROUTER: "sk-or-nueva" },
     });
 
     expect(r.success).toBe(true);
   });
 
-  /** Guardar WhatsApp o los criterios no manda proveedor: no hay qué validar. */
+  /** Guardar solo una clave no manda proveedor: no hay qué validar. */
   it("no valida el modelo si no viene el proveedor", () => {
-    const r = guardarCredencialesDto.safeParse({
-      whatsappPhoneNumberId: "123",
+    const r = guardarIAPlataformaDto.safeParse({
+      claves: { OPENAI: "sk-nueva" },
+      modeloIA: "cualquiera",
     });
 
     expect(r.success).toBe(true);
+  });
+
+  it("valida también el modelo de voz a texto contra su proveedor", () => {
+    const r = guardarIAPlataformaDto.safeParse({
+      proveedorTranscripcion: "OPENAI",
+      modeloTranscripcion: "openai/gpt-4o-transcribe",
+    });
+
+    expect(r.success).toBe(false);
+    expect(r.error?.issues[0]?.path).toEqual(["modeloTranscripcion"]);
   });
 });

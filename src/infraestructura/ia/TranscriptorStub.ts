@@ -23,7 +23,7 @@ export class TranscriptorStub implements ITranscriptorAudio {
 
   async transcribir(_audio: AudioParaTranscribir): Promise<string> {
     throw new Error(
-      "No hay proveedor de voz a texto configurado. Cargá la clave en Integraciones y reintentá la transcripción: el audio quedó guardado.",
+      "No hay proveedor de voz a texto configurado. Pedile al administrador de la plataforma que cargue la clave y reintentá la transcripción: el audio quedó guardado.",
     );
   }
 }

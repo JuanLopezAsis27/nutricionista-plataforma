@@ -4,8 +4,6 @@ import type {
   CredencialesIntegracion,
   DatosCredenciales,
   IntegracionCredenciales,
-  ProveedorIA,
-  ProveedorTranscripcion,
 } from "@/dominio/repositorios/ICredencialesIntegracionRepositorio";
 import type { CifradorTokens } from "@/infraestructura/seguridad/CifradorTokens";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
@@ -34,16 +32,6 @@ export const WHATSAPP_VERIFY_TOKEN: RefCredencial = {
 };
 
 /**
- * Clave del transcriptor.
- *
- * Va bajo una CLAVE PROPIA y no bajo `API_KEY` porque el proveedor puede ser el
- * mismo que el de la IA (OpenRouter) y la unicidad es (inquilino, proveedor,
- * clave): con el mismo nombre, cargar la clave de transcripción pisaría la del
- * asistente sin que nada lo avise.
- */
-const CLAVE_TRANSCRIPCION = "TRANSCRIPCION_API_KEY";
-
-/**
  * Claves que se guardan EN CLARO.
  *
  * Es una lista corta y deliberada: el `phone_number_id` es lo único que la app
@@ -58,24 +46,9 @@ function esSecreto(ref: RefCredencial): boolean {
   return !EN_CLARO.has(`${ref.proveedor}/${ref.clave}`);
 }
 
-/**
- * Qué filas borra la baja de cada integración.
- *
- * La IA borra la clave de LOS DOS proveedores, no la del que esté
- * seleccionado: son dos proveedores de una sola integración, y borrar solo el
- * activo dejaba la clave del otro guardada sin ninguna pantalla desde la cual
- * llegar a ella. Ver `IntegracionCredenciales`.
- */
+/** Qué filas borra la baja de cada integración. */
 const CLAVES_DE_INTEGRACION: Record<IntegracionCredenciales, RefCredencial[]> =
   {
-    IA: [
-      { proveedor: "ANTHROPIC", clave: "API_KEY" },
-      { proveedor: "OPENROUTER", clave: "API_KEY" },
-    ],
-    TRANSCRIPCION: [
-      { proveedor: "OPENAI", clave: CLAVE_TRANSCRIPCION },
-      { proveedor: "OPENROUTER", clave: CLAVE_TRANSCRIPCION },
-    ],
     WHATSAPP: [
       { proveedor: "WHATSAPP", clave: "TOKEN" },
       WHATSAPP_PHONE_NUMBER_ID,
@@ -118,26 +91,11 @@ export class PrismaRepositorioCredenciales implements ICredencialesIntegracionRe
       clave: string,
     ): string | null => valores.get(`${proveedor}/${clave}`) ?? null;
 
-    const proveedorIA: ProveedorIA =
-      preferencias?.proveedorIA === "OPENROUTER" ? "OPENROUTER" : "ANTHROPIC";
-    const proveedorTranscripcion: ProveedorTranscripcion =
-      preferencias?.proveedorTranscripcion === "OPENROUTER"
-        ? "OPENROUTER"
-        : "OPENAI";
-
     return {
-      proveedorIA,
-      // La clave de IA se guarda bajo el proveedor elegido.
-      anthropicApiKey: leer(proveedorIA, "API_KEY"),
-      anthropicModelo: preferencias?.modeloIA ?? null,
       whatsappToken: leer("WHATSAPP", "TOKEN"),
       whatsappPhoneNumberId: leer("WHATSAPP", "PHONE_NUMBER_ID"),
       whatsappVerifyToken: leer("WHATSAPP", "VERIFY_TOKEN"),
       whatsappAppSecret: leer("WHATSAPP", "APP_SECRET"),
-      proveedorTranscripcion,
-      // Igual que la de IA: la clave se guarda bajo el proveedor elegido.
-      transcripcionApiKey: leer(proveedorTranscripcion, CLAVE_TRANSCRIPCION),
-      transcripcionModelo: preferencias?.modeloTranscripcion ?? null,
       criterios: {
         excluirMarcas: preferencias?.excluirMarcas ?? false,
         requiereMacros: preferencias?.requiereMacros ?? false,
@@ -155,44 +113,20 @@ export class PrismaRepositorioCredenciales implements ICredencialesIntegracionRe
     }
     const inquilino = inquilinoActual();
 
-    // El proveedor de IA en vigor decide bajo cuál se guarda la clave.
-    const proveedorIA: ProveedorIA =
-      datos.proveedorIA ?? (await this.obtener())?.proveedorIA ?? "ANTHROPIC";
-
-    const proveedorTranscripcion: ProveedorTranscripcion =
-      datos.proveedorTranscripcion ??
-      (await this.obtener())?.proveedorTranscripcion ??
-      "OPENAI";
-
     const cambios: [RefCredencial, string | null | undefined][] = [
-      [{ proveedor: proveedorIA, clave: "API_KEY" }, datos.anthropicApiKey],
       [{ proveedor: "WHATSAPP", clave: "TOKEN" }, datos.whatsappToken],
       [WHATSAPP_PHONE_NUMBER_ID, datos.whatsappPhoneNumberId],
       [WHATSAPP_VERIFY_TOKEN, datos.whatsappVerifyToken],
       [WHATSAPP_APP_SECRET, datos.whatsappAppSecret],
-      [
-        { proveedor: proveedorTranscripcion, clave: CLAVE_TRANSCRIPCION },
-        datos.transcripcionApiKey,
-      ],
     ];
 
     for (const [ref, valor] of cambios) {
       await this.guardarValor(inquilino, ref, valor);
     }
 
-    const tienePreferencias =
-      datos.proveedorIA !== undefined ||
-      datos.anthropicModelo !== undefined ||
-      datos.proveedorTranscripcion !== undefined ||
-      datos.transcripcionModelo !== undefined ||
-      datos.criterios !== undefined;
-    if (!tienePreferencias) return;
+    if (datos.criterios === undefined) return;
 
     const preferencias = {
-      proveedorIA: datos.proveedorIA,
-      modeloIA: this.limpiar(datos.anthropicModelo),
-      proveedorTranscripcion: datos.proveedorTranscripcion,
-      modeloTranscripcion: this.limpiar(datos.transcripcionModelo),
       excluirMarcas: datos.criterios?.excluirMarcas,
       requiereMacros: datos.criterios?.requiereMacros,
       maxCaloriasPor100:
@@ -219,22 +153,6 @@ export class PrismaRepositorioCredenciales implements ICredencialesIntegracionRe
         OR: CLAVES_DE_INTEGRACION[integracion],
       },
     });
-
-    // El modelo de IA no es un secreto pero tampoco significa nada sin la
-    // clave: dejarlo haría que volver a conectar la integración arrastrara en
-    // silencio el modelo del proveedor anterior.
-    if (integracion === "IA") {
-      await this.prisma.preferenciasIntegracion.updateMany({
-        where: { nutricionistaId: inquilino },
-        data: { modeloIA: null },
-      });
-    }
-    if (integracion === "TRANSCRIPCION") {
-      await this.prisma.preferenciasIntegracion.updateMany({
-        where: { nutricionistaId: inquilino },
-        data: { modeloTranscripcion: null },
-      });
-    }
   }
 
   /**
@@ -274,12 +192,6 @@ export class PrismaRepositorioCredenciales implements ICredencialesIntegracionRe
       },
       update: { valor: guardado, rotadoEn: new Date() },
     });
-  }
-
-  private limpiar(valor: string | null | undefined): string | null | undefined {
-    if (valor === undefined) return undefined;
-    const limpio = valor?.trim() ?? "";
-    return limpio === "" ? null : limpio;
   }
 
   private descifrar(cifrado: string | null): string | null {

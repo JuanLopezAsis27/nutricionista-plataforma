@@ -19,38 +19,21 @@ import { Input } from "@/componentes/ui/input";
 import { Button } from "@/componentes/ui/button";
 import { Label } from "@/componentes/ui/label";
 import { Skeleton } from "@/componentes/ui/skeleton";
-import { EliminarCredenciales } from "./EliminarCredenciales";
 import { PromptsIA } from "./PromptsIA";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/componentes/ui/select";
-
-type ProveedorIA = "ANTHROPIC" | "OPENROUTER";
-type ProveedorTranscripcion = "OPENAI" | "OPENROUTER";
 
 /**
- * Carga de credenciales de integraciones del profesional: la clave de Claude
- * (chat del paciente + análisis de foto de comida), la de voz a texto y las de
- * WhatsApp. Los secretos se guardan cifrados y nunca se muestran de vuelta.
+ * La IA del consultorio: si la plataforma la tiene disponible, las
+ * instrucciones (prompts) propias del profesional y los criterios de
+ * ingredientes.
+ *
+ * Las CLAVES no están acá: desde la migración 71 las carga el SUPERADMIN una
+ * sola vez para todos los consultorios. Lo que sí es de cada profesional es
+ * cómo le habla la IA, y eso son los prompts.
  */
 export function FormularioCredenciales() {
   const { estado, guardar } = useCredenciales();
   const consulta = estado();
   const e = consulta.data;
-
-  const [proveedor, setProveedor] = useState<ProveedorIA>("ANTHROPIC");
-  const [claudeKey, setClaudeKey] = useState("");
-  const [modelo, setModelo] = useState("");
-
-  // Voz a texto de las grabaciones de consulta.
-  const [proveedorVoz, setProveedorVoz] =
-    useState<ProveedorTranscripcion>("OPENAI");
-  const [vozKey, setVozKey] = useState("");
-  const [vozModelo, setVozModelo] = useState("");
 
   // Criterios de ingredientes.
   const [excluirMarcas, setExcluirMarcas] = useState(false);
@@ -58,19 +41,6 @@ export function FormularioCredenciales() {
   const [maxCalorias, setMaxCalorias] = useState(""); // "" = sin tope
   const [excluirTexto, setExcluirTexto] = useState(""); // coma-separado
 
-  // Precarga proveedor y modelo (no secretos) una vez que llega el estado.
-  useEffect(() => {
-    if (e?.proveedorIA) setProveedor(e.proveedorIA);
-  }, [e?.proveedorIA]);
-  useEffect(() => {
-    if (e?.anthropicModelo) setModelo(e.anthropicModelo);
-  }, [e?.anthropicModelo]);
-  useEffect(() => {
-    if (e?.proveedorTranscripcion) setProveedorVoz(e.proveedorTranscripcion);
-  }, [e?.proveedorTranscripcion]);
-  useEffect(() => {
-    if (e?.transcripcionModelo) setVozModelo(e.transcripcionModelo);
-  }, [e?.transcripcionModelo]);
   useEffect(() => {
     const c = e?.criterios;
     if (!c) return;
@@ -84,26 +54,6 @@ export function FormularioCredenciales() {
 
   if (consulta.isLoading || !e) {
     return <Skeleton className="h-64 w-full" />;
-  }
-
-  const esOpenRouter = proveedor === "OPENROUTER";
-
-  function guardarClaude() {
-    guardar.mutate({
-      proveedorIA: proveedor,
-      anthropicApiKey: claudeKey.trim() || undefined, // vacío = no cambiar
-      anthropicModelo: modelo.trim() || undefined,
-    });
-    setClaudeKey("");
-  }
-
-  function guardarVoz() {
-    guardar.mutate({
-      proveedorTranscripcion: proveedorVoz,
-      transcripcionApiKey: vozKey.trim() || undefined, // vacío = no cambiar
-      transcripcionModelo: vozModelo.trim() || undefined,
-    });
-    setVozKey("");
   }
 
   function guardarCriterios() {
@@ -123,206 +73,46 @@ export function FormularioCredenciales() {
 
   return (
     <div className="space-y-6">
-      {/* Claude */}
+      {/* Disponibilidad (la configura la plataforma) */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center justify-between gap-2 text-base">
-            <span className="flex items-center gap-2">
-              <Bot className="h-5 w-5 text-primary" /> IA (Claude)
-            </span>
-            <Estado activo={e.anthropicConfigurado} />
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Bot className="h-5 w-5 text-primary" /> Inteligencia artificial
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Habilita el chat del paciente y el análisis de la foto de comida.
-            Podés usar la API de Anthropic directa o <strong>OpenRouter</strong>{" "}
-            (una sola key para varios modelos). Sin clave, esas funciones quedan
-            en modo demostración.
+            La conexión con los proveedores de IA la administra la plataforma:
+            no necesitás cargar ninguna clave. Lo que sí podés ajustar son las
+            instrucciones que recibe la IA en cada función, más abajo.
           </p>
-          <div className="space-y-1.5">
-            <Label>Proveedor</Label>
-            <Select
-              value={proveedor}
-              onValueChange={(v) => setProveedor(v as ProveedorIA)}
-            >
-              <SelectTrigger
-                aria-label="Proveedor de IA"
-                className="w-full sm:w-64"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ANTHROPIC">
-                  Anthropic (Claude directo)
-                </SelectItem>
-                <SelectItem value="OPENROUTER">OpenRouter</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="claudeKey">
-              API key {esOpenRouter ? "de OpenRouter" : "de Anthropic"}
-            </Label>
-            <Input
-              id="claudeKey"
-              type="password"
-              autoComplete="off"
-              placeholder={
-                e.anthropicConfigurado
-                  ? "•••• configurada — dejá vacío para no cambiarla"
-                  : esOpenRouter
-                    ? "sk-or-…"
-                    : "sk-ant-…"
-              }
-              value={claudeKey}
-              onChange={(ev) => setClaudeKey(ev.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="modelo">Modelo (opcional)</Label>
-            <Input
-              id="modelo"
-              placeholder={
-                esOpenRouter
-                  ? "anthropic/claude-opus-5 (por defecto). Ej: openai/gpt-4o-mini, google/gemini-2.5-pro"
-                  : "claude-opus-5 (por defecto). Ej: claude-sonnet-5, claude-haiku-4-5"
-              }
-              value={modelo}
-              onChange={(ev) => setModelo(ev.target.value)}
-            />
+          <ul className="space-y-2 text-sm">
+            <li className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <Bot className="h-4 w-4 text-muted-foreground" /> Asistente,
+                análisis de comida y lectura de documentos
+              </span>
+              <Estado activo={e.iaDisponible} />
+            </li>
+            <li className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <Mic className="h-4 w-4 text-muted-foreground" /> Voz a texto
+                de las grabaciones
+              </span>
+              <Estado activo={e.transcripcionDisponible} />
+            </li>
+          </ul>
+          {(!e.iaDisponible || !e.transcripcionDisponible) && (
             <p className="text-xs text-muted-foreground">
-              {esOpenRouter ? (
-                <>
-                  En OpenRouter los modelos se escriben{" "}
-                  <strong>proveedor/modelo</strong> (
-                  <code>openai/gpt-4o-mini</code>, no{" "}
-                  <code>openai-4o-mini</code>): con el nombre mal escrito la API
-                  rechaza todas las llamadas.
-                </>
-              ) : (
-                <>Va el nombre del modelo solo, sin el prefijo del proveedor.</>
-              )}{" "}
-              Tiene que ser un modelo <strong>con visión</strong>: el mismo se
-              usa para analizar la foto de la comida del paciente.
+              Lo que figura como no disponible depende del administrador de la
+              plataforma.
             </p>
-          </div>
-          <div className="flex justify-end gap-2">
-            <EliminarCredenciales
-              integracion="IA"
-              nombre="la IA"
-              consecuencia="El chat del paciente y el análisis de foto de comida vuelven al modo demostración."
-              configurada={e.anthropicConfigurado}
-            />
-            <Button
-              type="button"
-              disabled={guardar.isPending}
-              onClick={guardarClaude}
-            >
-              Guardar
-            </Button>
-          </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Instrucciones (system prompts) de cada funcionalidad de IA */}
       <PromptsIA />
-
-      {/* Voz a texto */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center justify-between gap-2 text-base">
-            <span className="flex items-center gap-2">
-              <Mic className="h-5 w-5 text-primary" /> Voz a texto (grabaciones)
-            </span>
-            <Estado activo={e.transcripcionConfigurada} />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Transcribe el audio de las consultas que grabás desde el turno. Es
-            una clave <strong>aparte</strong> de la de arriba porque Anthropic
-            no transcribe audio: acá va OpenAI (Whisper) o OpenRouter. El
-            resumen de la consulta lo sigue haciendo la IA configurada arriba.
-            Sin clave, el audio se guarda igual y podés transcribirlo después.
-          </p>
-          <div className="space-y-1.5">
-            <Label>Proveedor</Label>
-            <Select
-              value={proveedorVoz}
-              onValueChange={(v) =>
-                setProveedorVoz(v as ProveedorTranscripcion)
-              }
-            >
-              <SelectTrigger
-                aria-label="Proveedor de voz a texto"
-                className="w-full sm:w-64"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="OPENAI">OpenAI (recomendado)</SelectItem>
-                <SelectItem value="OPENROUTER">OpenRouter</SelectItem>
-              </SelectContent>
-            </Select>
-            {proveedorVoz === "OPENROUTER" && (
-              <p className="text-xs text-muted-foreground">
-                OpenRouter no tiene un servicio de transcripción: el audio se le
-                manda a un modelo de chat que escucha. No acepta el formato que
-                graba Chrome (WebM) y puede resumir de más en consultas largas.
-              </p>
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="vozKey">
-              API key{" "}
-              {proveedorVoz === "OPENROUTER" ? "de OpenRouter" : "de OpenAI"}
-            </Label>
-            <Input
-              id="vozKey"
-              type="password"
-              autoComplete="off"
-              placeholder={
-                e.transcripcionConfigurada
-                  ? "•••• configurada — dejá vacío para no cambiarla"
-                  : proveedorVoz === "OPENROUTER"
-                    ? "sk-or-…"
-                    : "sk-…"
-              }
-              value={vozKey}
-              onChange={(ev) => setVozKey(ev.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="vozModelo">Modelo (opcional)</Label>
-            <Input
-              id="vozModelo"
-              placeholder={
-                proveedorVoz === "OPENROUTER"
-                  ? "google/gemini-2.5-flash (por defecto)"
-                  : "gpt-4o-transcribe (por defecto). Ej: whisper-1"
-              }
-              value={vozModelo}
-              onChange={(ev) => setVozModelo(ev.target.value)}
-            />
-          </div>
-          <div className="flex justify-end gap-2">
-            <EliminarCredenciales
-              integracion="TRANSCRIPCION"
-              nombre="voz a texto"
-              consecuencia="Las grabaciones nuevas dejan de transcribirse; el audio ya guardado no se toca."
-              configurada={e.transcripcionConfigurada}
-            />
-            <Button
-              type="button"
-              disabled={guardar.isPending}
-              onClick={guardarVoz}
-            >
-              Guardar
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Criterios de ingredientes */}
       <Card>
@@ -415,12 +205,12 @@ export function FormularioCredenciales() {
 
 function Estado({ activo }: { activo: boolean }) {
   return activo ? (
-    <span className="flex items-center gap-1 text-xs font-normal text-primary">
-      <CheckCircle2 className="h-4 w-4" /> Configurada
+    <span className="flex shrink-0 items-center gap-1 text-xs font-normal text-primary">
+      <CheckCircle2 className="h-4 w-4" /> Disponible
     </span>
   ) : (
-    <span className="flex items-center gap-1 text-xs font-normal text-muted-foreground">
-      <Circle className="h-4 w-4" /> Sin configurar
+    <span className="flex shrink-0 items-center gap-1 text-xs font-normal text-muted-foreground">
+      <Circle className="h-4 w-4" /> No disponible
     </span>
   );
 }

@@ -165,22 +165,26 @@ arrancar con los intentos agotados haría fallar el primer reintento.
 ## Proveedores
 
 Transcribir y resumir son **dos capacidades distintas con dos proveedores
-distintos**, y esa es la razón de que la pantalla de Integraciones tenga dos
-tarjetas:
+distintos**, y esa es la razón de que la configuración de IA de la plataforma
+(`/admin`, desde la migración 71; ver `docs/IA-PLATAFORMA.md`) elija un
+proveedor para cada una:
 
-| Capacidad   | Puerto                | Proveedores          | Se configura en             |
-| ----------- | --------------------- | -------------------- | --------------------------- |
-| voz a texto | `ITranscriptorAudio`  | OpenAI, OpenRouter   | tarjeta «Voz a texto»       |
-| resumen     | `IResumidorConsulta`  | el LLM de la app     | tarjeta «IA (Claude)»       |
+| Capacidad   | Puerto                | Proveedores          | Se configura en                   |
+| ----------- | --------------------- | -------------------- | --------------------------------- |
+| voz a texto | `ITranscriptorAudio`  | OpenAI, OpenRouter   | `/admin` → «Voz a texto»          |
+| resumen     | `IResumidorConsulta`  | el LLM de la app     | `/admin` → «Asistente y lectura…» |
 
 **Anthropic no transcribe audio.** Atar las dos cosas a `proveedorIA` habría
-dejado la grabación sin funcionar justo para quien tiene la IA con Claude, que
-es el caso normal.
+dejado la grabación sin funcionar justo con la IA en Claude, que es el caso
+normal.
 
-La clave de transcripción se guarda bajo la clave `TRANSCRIPCION_API_KEY` y no
-bajo `API_KEY`: el proveedor puede ser el mismo que el de la IA (OpenRouter) y
-la unicidad es `(inquilino, proveedor, clave)`, así que con el mismo nombre
-cargar una pisaría la otra sin aviso.
+La CLAVE sí es compartida: hay una por proveedor, así que si las dos
+capacidades usan OpenRouter se carga una sola vez. (Antes de la migración 71
+eran claves por consultorio, y la de transcripción iba bajo
+`TRANSCRIPCION_API_KEY` para no pisar la del asistente.)
+
+Cada transcripción queda en `registros_uso_ia`, con sus tokens si el modelo los
+informa (`whisper-1` informa segundos, no tokens, y queda en 0).
 
 **OpenRouter no tiene endpoint de transcripción.** El audio entra como un bloque
 `input_audio` de un mensaje de chat contra un modelo que escuche. Dos límites que
@@ -195,7 +199,8 @@ chat de demostración se lee como una demostración; una transcripción falsa
 guardada en la ficha de un paciente es un registro clínico inventado, y el
 resumen que salga de ella lo va a parecer todavía más. Sin proveedor
 configurado, la grabación queda FALLIDA con el motivo, **el audio queda
-guardado**, y cargar la clave más tarde permite reintentar sin perder nada.
+guardado**, y cuando el administrador carga la clave se puede reintentar sin
+perder nada.
 
 ## El tope de 25 MB no es una precaución
 

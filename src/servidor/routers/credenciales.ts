@@ -5,8 +5,9 @@ import {
 } from "@/aplicacion/dtos/credenciales.dto";
 
 /**
- * Router de credenciales de integración (solo NUTRICIONISTA). Deja cargar la
- * clave de Claude y las de WhatsApp desde la app; `estado` no revela secretos.
+ * Router de credenciales de integración (solo NUTRICIONISTA). Deja cargar las
+ * de WhatsApp y los criterios de ingredientes; `estado` no revela secretos y
+ * dice si la plataforma tiene IA (que ya no se configura acá).
  */
 export const routerCredenciales = crearRouter({
   estado: nutricionistaProcedimiento.query(async ({ ctx }) => {

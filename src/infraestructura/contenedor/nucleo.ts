@@ -64,6 +64,9 @@ import { PrismaRepositorioMetricaDispositivo } from "@/infraestructura/repositor
 import { PrismaRepositorioAlimentoPropio } from "@/infraestructura/repositorios/PrismaRepositorioAlimentoPropio";
 import { PrismaRepositorioRetroalimentacionInsight } from "@/infraestructura/repositorios/PrismaRepositorioRetroalimentacionInsight";
 import { PrismaRepositorioCredenciales } from "@/infraestructura/repositorios/PrismaRepositorioCredenciales";
+import { PrismaRepositorioConfiguracionIAGlobal } from "@/infraestructura/repositorios/PrismaRepositorioConfiguracionIAGlobal";
+import { PrismaRepositorioRegistroUsoIA } from "@/infraestructura/repositorios/PrismaRepositorioRegistroUsoIA";
+import { ConsultorSaldoIA } from "@/infraestructura/ia/ConsultorSaldoIA";
 import { PrismaRepositorioPromptIA } from "@/infraestructura/repositorios/PrismaRepositorioPromptIA";
 import { PrismaRepositorioCuentaConectada } from "@/infraestructura/repositorios/PrismaRepositorioCuentaConectada";
 import { PrismaRepositorioSincronizacionTurno } from "@/infraestructura/repositorios/PrismaRepositorioSincronizacionTurno";
@@ -332,15 +335,35 @@ const cifradorCredenciales = perezoso(() =>
 
 /**
  * Credenciales de integración por profesional: repo cifrado que resuelve la
- * clave del inquilino POR REQUEST. Así el profesional carga su propia clave
- * de Claude, de transcripción o de WhatsApp desde la app.
+ * clave del inquilino POR REQUEST. Hoy son las de WhatsApp: las de IA pasaron
+ * a la plataforma (migración 71).
  */
 export const repositorioCredenciales = perezoso(
   () => new PrismaRepositorioCredenciales(prisma(), cifradorCredenciales()),
 );
 
+/**
+ * Claves y modelos de IA de la PLATAFORMA (los carga el SUPERADMIN) y el
+ * registro de cada llamada, que es de donde salen las estadísticas del panel.
+ */
+export const repositorioConfiguracionIAGlobal = perezoso(
+  () =>
+    new PrismaRepositorioConfiguracionIAGlobal(
+      prisma(),
+      cifradorCredenciales(),
+    ),
+);
+export const repositorioRegistroUsoIA = perezoso(
+  () => new PrismaRepositorioRegistroUsoIA(prisma()),
+);
+export const consultorSaldoIA = perezoso(() => new ConsultorSaldoIA());
+
 const resolvedorIA = perezoso(
-  () => new ResolvedorConfigIA(repositorioCredenciales()),
+  () =>
+    new ResolvedorConfigIA(
+      repositorioConfiguracionIAGlobal(),
+      repositorioRegistroUsoIA(),
+    ),
 );
 
 /**
@@ -355,7 +378,7 @@ const promptsIA = perezoso(
   () => new ResolvedorPromptsIA(repositorioPromptIA()),
 );
 
-/** ¿Hay alguna clave de IA disponible (del profesional o del entorno)? */
+/** ¿Hay alguna clave de IA disponible (de la plataforma o del entorno)? */
 export const tieneIA = (): Promise<boolean> => resolvedorIA().tieneIA();
 
 /**
@@ -367,7 +390,11 @@ export const tieneIA = (): Promise<boolean> => resolvedorIA().tieneIA();
  * clave, así que el consumidor no vuelve a preguntar.
  */
 export const transcriptorAudio = perezoso(
-  () => new ResolvedorTranscripcion(repositorioCredenciales()),
+  () =>
+    new ResolvedorTranscripcion(
+      repositorioConfiguracionIAGlobal(),
+      repositorioRegistroUsoIA(),
+    ),
 );
 
 /** Resume la consulta con el MISMO proveedor de LLM que el resto de la app. */

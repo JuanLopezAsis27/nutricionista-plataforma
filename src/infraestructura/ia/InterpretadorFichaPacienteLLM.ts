@@ -193,7 +193,7 @@ export class InterpretadorFichaPacienteLLM implements IInterpretadorFichaPacient
     const llm = await this.resolvedor.obtenerLLM();
     if (!llm) {
       throw new Error(
-        "No hay IA configurada para leer el documento. Cargá la clave en Integraciones o cargá el paciente a mano.",
+        "No hay IA configurada para leer el documento. La activa el administrador de la plataforma; mientras tanto, cargá el paciente a mano.",
       );
     }
 

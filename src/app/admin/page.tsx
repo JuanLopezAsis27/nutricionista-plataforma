@@ -17,8 +17,19 @@ import {
   CardTitle,
 } from "@/componentes/ui/card";
 import { ToggleTema } from "@/componentes/comunes/ToggleTema";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/componentes/ui/tabs";
+import { ConfiguracionIAPlataforma } from "@/componentes/superadmin/ConfiguracionIAPlataforma";
+import { UsoIAPlataforma } from "@/componentes/superadmin/UsoIAPlataforma";
 
-/** Panel del SUPERADMIN: alta y gestión de cuentas de nutricionista. */
+/**
+ * Panel del SUPERADMIN: las cuentas de nutricionista y la IA de la
+ * plataforma (claves que comparten todos los consultorios, su saldo y su uso).
+ */
 export default function PaginaAdmin() {
   const { listarNutricionistas, crearNutricionista, cambiarEstado } =
     useSuperAdmin();
@@ -41,7 +52,7 @@ export default function PaginaAdmin() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-4 md:p-8">
+    <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-8">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold">
@@ -49,7 +60,7 @@ export default function PaginaAdmin() {
           </h1>
           <p className="text-sm text-muted-foreground">
             Cuentas de nutricionista (cada una es un espacio aislado con sus
-            pacientes).
+            pacientes) y la IA que comparten.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -64,102 +75,120 @@ export default function PaginaAdmin() {
         </div>
       </header>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Plus className="h-5 w-5 text-primary" /> Nueva cuenta de
-            nutricionista
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-          <div className="space-y-1.5">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="nutri@consultorio.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="password">Contraseña inicial</Label>
-            <Input
-              id="password"
-              type="text"
-              placeholder="mínimo 8 caracteres"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-          <Button
-            onClick={crear}
-            disabled={
-              crearNutricionista.isPending ||
-              !email.trim() ||
-              password.length < 8
-            }
-          >
-            Crear cuenta
-          </Button>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="cuentas">
+        <TabsList className="h-auto flex-wrap">
+          <TabsTrigger value="cuentas">Cuentas</TabsTrigger>
+          <TabsTrigger value="uso-ia">Uso de la IA</TabsTrigger>
+          <TabsTrigger value="config-ia">Configuración de IA</TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Nutricionistas</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {consulta.isLoading ? (
-            <Skeleton className="h-24 w-full" />
-          ) : nutris.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">
-              Todavía no hay cuentas de nutricionista.
-            </p>
-          ) : (
-            <ul className="divide-y">
-              {nutris.map((n) => (
-                <li
-                  key={n.id}
-                  className="flex items-center justify-between gap-3 py-3"
-                >
-                  <div className="min-w-0">
-                    <p className="flex items-center gap-2 font-medium">
-                      <span className="truncate">{n.email}</span>
-                      {n.activo ? (
-                        <Badge variant="secondary">Activa</Badge>
-                      ) : (
-                        <Badge variant="outline">Inactiva</Badge>
-                      )}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Alta: {formatearFecha(n.creadoEn)}
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={cambiarEstado.isPending}
-                    onClick={() =>
-                      cambiarEstado.mutate({ id: n.id, activo: !n.activo })
-                    }
-                  >
-                    {n.activo ? (
-                      <>
-                        <UserX className="h-4 w-4" /> Desactivar
-                      </>
-                    ) : (
-                      <>
-                        <UserCheck className="h-4 w-4" /> Activar
-                      </>
-                    )}
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+        <TabsContent value="uso-ia" className="mt-4">
+          <UsoIAPlataforma />
+        </TabsContent>
+
+        <TabsContent value="config-ia" className="mt-4">
+          <ConfiguracionIAPlataforma />
+        </TabsContent>
+
+        <TabsContent value="cuentas" className="mt-4 space-y-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Plus className="h-5 w-5 text-primary" /> Nueva cuenta de
+                nutricionista
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="nutri@consultorio.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Contraseña inicial</Label>
+                <Input
+                  id="password"
+                  type="text"
+                  placeholder="mínimo 8 caracteres"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <Button
+                onClick={crear}
+                disabled={
+                  crearNutricionista.isPending ||
+                  !email.trim() ||
+                  password.length < 8
+                }
+              >
+                Crear cuenta
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Nutricionistas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {consulta.isLoading ? (
+                <Skeleton className="h-24 w-full" />
+              ) : nutris.length === 0 ? (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  Todavía no hay cuentas de nutricionista.
+                </p>
+              ) : (
+                <ul className="divide-y">
+                  {nutris.map((n) => (
+                    <li
+                      key={n.id}
+                      className="flex items-center justify-between gap-3 py-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-2 font-medium">
+                          <span className="truncate">{n.email}</span>
+                          {n.activo ? (
+                            <Badge variant="secondary">Activa</Badge>
+                          ) : (
+                            <Badge variant="outline">Inactiva</Badge>
+                          )}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Alta: {formatearFecha(n.creadoEn)}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={cambiarEstado.isPending}
+                        onClick={() =>
+                          cambiarEstado.mutate({ id: n.id, activo: !n.activo })
+                        }
+                      >
+                        {n.activo ? (
+                          <>
+                            <UserX className="h-4 w-4" /> Desactivar
+                          </>
+                        ) : (
+                          <>
+                            <UserCheck className="h-4 w-4" /> Activar
+                          </>
+                        )}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
