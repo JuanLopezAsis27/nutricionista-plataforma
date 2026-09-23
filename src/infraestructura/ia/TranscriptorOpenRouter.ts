@@ -133,8 +133,7 @@ export class TranscriptorOpenRouter implements ITranscriptorAudio {
       consumo: {
         tokensEntrada: json.usage?.prompt_tokens ?? 0,
         tokensSalida: json.usage?.completion_tokens ?? 0,
-        costoUsd:
-          typeof json.usage?.cost === "number" ? json.usage.cost : null,
+        costoUsd: typeof json.usage?.cost === "number" ? json.usage.cost : null,
       },
     };
   }

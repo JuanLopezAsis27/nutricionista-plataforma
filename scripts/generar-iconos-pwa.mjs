@@ -59,7 +59,10 @@ const FUENTES = {
 /** La marca rasterizada al lado pedido, con sus colores. */
 async function marca(fuente, lado) {
   const svg = await readFile(FUENTES[fuente], "utf8");
-  return sharp(Buffer.from(svg), { density: 600 }).resize(lado, lado).png().toBuffer();
+  return sharp(Buffer.from(svg), { density: 600 })
+    .resize(lado, lado)
+    .png()
+    .toBuffer();
 }
 
 /**

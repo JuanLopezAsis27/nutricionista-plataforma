@@ -15,7 +15,11 @@ export type ProveedorTranscripcion = "OPENAI" | "OPENROUTER";
  * proveedor, no una por capacidad: la de OpenRouter sirve para conversar y
  * para transcribir, y el saldo es de la clave.
  */
-export const PROVEEDORES_CLAVE_IA = ["ANTHROPIC", "OPENROUTER", "OPENAI"] as const;
+export const PROVEEDORES_CLAVE_IA = [
+  "ANTHROPIC",
+  "OPENROUTER",
+  "OPENAI",
+] as const;
 export type ProveedorClaveIA = (typeof PROVEEDORES_CLAVE_IA)[number];
 
 /**

@@ -22,5 +22,9 @@ export function crearServicioIAPlataforma(deps: {
   registro: IRegistroUsoIARepositorio;
   saldo: IConsultorSaldoIA;
 }): ServicioIAPlataforma {
-  return new ServicioIAPlataforma(deps.configuracion, deps.registro, deps.saldo);
+  return new ServicioIAPlataforma(
+    deps.configuracion,
+    deps.registro,
+    deps.saldo,
+  );
 }
