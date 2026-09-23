@@ -44,7 +44,10 @@ export interface TotalesUsoIA {
 
 export interface ResumenUsoIA {
   totales: TotalesUsoIA;
-  porProveedor: (TotalesUsoIA & { proveedor: ProveedorClaveIA; capacidad: CapacidadIA })[];
+  porProveedor: (TotalesUsoIA & {
+    proveedor: ProveedorClaveIA;
+    capacidad: CapacidadIA;
+  })[];
   porModelo: (TotalesUsoIA & { proveedor: ProveedorClaveIA; modelo: string })[];
   porConsultorio: (TotalesUsoIA & {
     nutricionistaId: string | null;

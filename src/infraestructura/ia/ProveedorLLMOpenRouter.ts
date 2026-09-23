@@ -242,7 +242,9 @@ export class ProveedorLLMOpenRouter implements IProveedorLLM {
     alConsumir?: AlConsumirLLM,
   ): Promise<MensajeOpenRouter> {
     const respuesta = await this.postear(
-      alAvanzar ? { ...body, ...CON_USO, stream: true } : { ...body, ...CON_USO },
+      alAvanzar
+        ? { ...body, ...CON_USO, stream: true }
+        : { ...body, ...CON_USO },
     );
     if (alAvanzar) {
       const { mensaje, uso } = await leerStream(respuesta, alAvanzar);

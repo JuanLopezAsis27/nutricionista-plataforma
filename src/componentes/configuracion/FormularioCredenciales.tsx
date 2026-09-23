@@ -96,8 +96,8 @@ export function FormularioCredenciales() {
             </li>
             <li className="flex items-center justify-between gap-2">
               <span className="flex items-center gap-2">
-                <Mic className="h-4 w-4 text-muted-foreground" /> Voz a texto
-                de las grabaciones
+                <Mic className="h-4 w-4 text-muted-foreground" /> Voz a texto de
+                las grabaciones
               </span>
               <Estado activo={e.transcripcionDisponible} />
             </li>

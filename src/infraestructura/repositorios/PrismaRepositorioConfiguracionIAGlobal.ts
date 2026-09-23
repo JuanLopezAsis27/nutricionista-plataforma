@@ -44,7 +44,8 @@ export class PrismaRepositorioConfiguracionIAGlobal implements IConfiguracionIAG
         OPENROUTER: this.descifrar(fila?.claveOpenRouter ?? null),
         OPENAI: this.descifrar(fila?.claveOpenAI ?? null),
       },
-      proveedorIA: fila?.proveedorIA === "OPENROUTER" ? "OPENROUTER" : "ANTHROPIC",
+      proveedorIA:
+        fila?.proveedorIA === "OPENROUTER" ? "OPENROUTER" : "ANTHROPIC",
       modeloIA: fila?.modeloIA ?? null,
       proveedorTranscripcion:
         fila?.proveedorTranscripcion === "OPENROUTER" ? "OPENROUTER" : "OPENAI",

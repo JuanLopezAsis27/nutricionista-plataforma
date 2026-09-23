@@ -21,5 +21,8 @@ export interface SaldoIA {
 
 /** Puerto: consulta al proveedor el estado de una clave. Nunca lanza. */
 export interface IConsultorSaldoIA {
-  consultar(proveedor: ProveedorClaveIA, apiKey: string | null): Promise<SaldoIA>;
+  consultar(
+    proveedor: ProveedorClaveIA,
+    apiKey: string | null,
+  ): Promise<SaldoIA>;
 }
