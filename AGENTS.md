@@ -63,7 +63,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/WEARABLES.md`          | Importación de métricas de dispositivos               |
 | `docs/MOBILE.md`             | La app Android con Capacitor                          |
 | `docs/PWA.md`                | Instalar la web como app; qué cachea el service worker |
-| `docs/DESPLIEGUE.md`         | Producción, respaldos y nginx                         |
+| `docs/DESPLIEGUE.md`         | Producción, respaldos, nginx y el cambio de dominio    |
 
 ## Arquitectura — Clean Architecture
 
