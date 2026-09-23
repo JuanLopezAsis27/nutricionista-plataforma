@@ -4,6 +4,7 @@ import type { MetodoGrasa } from "@/dominio/servicios/grasaPorPliegues";
 import {
   ecuacionesDeLaSerie,
   ecuacionesElegidas,
+  ecuacionFavorita,
   TODAS_LAS_ECUACIONES,
 } from "./SelectorEcuacion";
 
@@ -66,5 +67,37 @@ describe("ecuacionesElegidas", () => {
     // Pasa al desmarcar la ecuación en Configuración con el filtro puesto en
     // ella: el gráfico tiene que quedar vacío, no dibujar otra.
     expect(ecuacionesElegidas("WITHERS", disponibles)).toEqual([]);
+  });
+});
+
+describe("ecuacionFavorita", () => {
+  const disponibles: MetodoGrasa[] = ["YUHASZ_CARTER", "FAULKNER"];
+  const conDestacada = (
+    destacada: MetodoGrasa | null,
+  ): MedicionComposicionDto => ({
+    ...medicion(disponibles),
+    metodoGrasa: destacada,
+  });
+
+  it("es la destacada de la última medición que declara una", () => {
+    // La última no eligió ecuación: eso no es cambiar la favorita.
+    const serie = [conDestacada("FAULKNER"), conDestacada(null)];
+    expect(ecuacionFavorita(serie, disponibles)).toBe("FAULKNER");
+  });
+
+  it("sin ninguna destacada, la primera disponible", () => {
+    expect(ecuacionFavorita([conDestacada(null)], disponibles)).toBe(
+      "YUHASZ_CARTER",
+    );
+  });
+
+  it("una destacada que la serie no resolvió no se elige", () => {
+    expect(ecuacionFavorita([conDestacada("WITHERS")], disponibles)).toBe(
+      "YUHASZ_CARTER",
+    );
+  });
+
+  it("sin ecuaciones, ninguna", () => {
+    expect(ecuacionFavorita([], [])).toBeNull();
   });
 });

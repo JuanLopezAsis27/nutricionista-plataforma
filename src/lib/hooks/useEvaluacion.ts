@@ -7,7 +7,7 @@ import { avisarError } from "@/lib/errores";
 
 /**
  * Encapsula todas las llamadas tRPC de la Evaluación Integral
- * (historia clínica, antropometría, laboratorios).
+ * (historia clínica, antropometría, bioimpedancia, laboratorios).
  *
  * Las queries se devuelven como referencias de hook; las mutations vienen
  * preconfiguradas con toasts e invalidación de la caché del módulo.
@@ -116,6 +116,26 @@ export function useEvaluacion() {
     eliminarPlantilla: trpc.evaluacion.eliminarPlantilla.useMutation(
       conToasts("Plantilla eliminada."),
     ),
+    // Bioimpedancia
+    obtenerBioimpedancia: trpc.evaluacion.obtenerBioimpedancia.useQuery,
+    registrarBioimpedancia: trpc.evaluacion.registrarBioimpedancia.useMutation(
+      conToasts("Bioimpedancia registrada."),
+    ),
+    actualizarBioimpedancia:
+      trpc.evaluacion.actualizarBioimpedancia.useMutation(
+        conToasts("Bioimpedancia actualizada."),
+      ),
+    eliminarBioimpedancia: trpc.evaluacion.eliminarBioimpedancia.useMutation(
+      conToasts("Bioimpedancia eliminada."),
+    ),
+    guardarObjetivoBioimpedancia:
+      trpc.evaluacion.guardarObjetivoBioimpedancia.useMutation(
+        conToasts("Objetivo guardado."),
+      ),
+    eliminarObjetivoBioimpedancia:
+      trpc.evaluacion.eliminarObjetivoBioimpedancia.useMutation(
+        conToasts("Objetivo eliminado."),
+      ),
     // Laboratorios
     obtenerLaboratorios: trpc.evaluacion.obtenerLaboratorios.useQuery,
     registrarLaboratorio: trpc.evaluacion.registrarLaboratorio.useMutation(

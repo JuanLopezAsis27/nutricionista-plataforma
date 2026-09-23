@@ -21,6 +21,7 @@ import { TarjetaFraccionamiento } from "./dashboard/TarjetaFraccionamiento";
 import { TarjetasEvolucion } from "./dashboard/TarjetasEvolucion";
 import {
   ecuacionesDeLaSerie,
+  ecuacionFavorita,
   TODAS_LAS_ECUACIONES,
   type SeleccionEcuacion,
 } from "./SelectorEcuacion";
@@ -49,11 +50,11 @@ export function DashboardComposicion({
 }) {
   const { tema, montado } = useTemaComposicion();
   const [seleccionadaId, setSeleccionadaId] = useState<string | null>(null);
-  // Arranca comparando TODAS las ecuaciones: es la lectura que dice cuánto de
-  // un cambio es del paciente y cuánto de la fórmula. El seguimiento con una
-  // sola sale de filtrar.
-  const [seleccionEcuacion, setSeleccionEcuacion] =
-    useState<SeleccionEcuacion>(TODAS_LAS_ECUACIONES);
+  // Cada ecuación se mira por separado y arranca en la favorita (la que el
+  // profesional destacó). Comparar todas juntas sigue disponible en el
+  // selector. Null = todavía no se eligió a mano.
+  const [eleccionEcuacion, setSeleccionEcuacion] =
+    useState<SeleccionEcuacion | null>(null);
 
   if (!montado) return null;
 
@@ -93,6 +94,9 @@ export function DashboardComposicion({
 
   // Para la serie histórica: los métodos que al menos una medición resolvió.
   const metodosDisponibles = ecuacionesDeLaSerie(mediciones);
+  const favorita = ecuacionFavorita(mediciones, metodosDisponibles);
+  const seleccionEcuacion: SeleccionEcuacion =
+    eleccionEcuacion ?? favorita ?? TODAS_LAS_ECUACIONES;
 
   // El protocolo decide qué modelo va primero: con DOS_COMPONENTES la grasa
   // por pliegues es lo que se midió, y el fraccionamiento de Kerr pasa a ser
@@ -179,6 +183,7 @@ export function DashboardComposicion({
         seleccion={seleccionEcuacion}
         metodosDisponibles={metodosDisponibles}
         alCambiarSeleccion={setSeleccionEcuacion}
+        favorita={favorita}
         tema={tema}
       />
 

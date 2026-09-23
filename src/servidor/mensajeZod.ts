@@ -145,8 +145,12 @@ const ETIQUETAS_PROPIAS: Record<string, string> = {
   nombre: "Nombre",
   apellido: "Apellido",
   observaciones: "Observaciones",
-  fuerzaPresionDerecha: "Fuerza de presión derecha",
-  fuerzaPresionIzquierda: "Fuerza de presión izquierda",
+  fuerzaPrensionDerecha: "Fuerza de prensión derecha",
+  fuerzaPrensionIzquierda: "Fuerza de prensión izquierda",
+  masaMuscularKg: "Masa muscular",
+  masaGrasaKg: "Masa grasa",
+  porcentajeMuscular: "Porcentaje muscular",
+  porcentajeGrasa: "Porcentaje graso",
 };
 
 /** `circMusloMedial` → «Circ muslo medial». Último recurso. */

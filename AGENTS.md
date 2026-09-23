@@ -48,6 +48,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/PLANES.md`             | Modalidades, archivos, carpetas e historial           |
 | `docs/PLANES-SEMANALES.md`   | El menú de la semana, sus alternativas y la comparación |
 | `docs/ANTROPOMETRIA.md`      | Ecuaciones de grasa, distribución y sitios de pliegue |
+| `docs/BIOIMPEDANCIA.md`      | La balanza: mediciones, dashboard y metas; por qué no se mezcla con la antropometría |
 | `docs/HISTORIA-CLINICA.md`   | Evoluciones, campos personalizados y el alta por documento |
 | `docs/ASISTENTE-IA.md`       | El chat analítico: herramientas, contexto e historial |
 | `docs/PROMPTS-IA.md`         | Los siete system prompts, sus marcadores y cómo se personalizan |
@@ -212,7 +213,7 @@ consultorio lento bloquearía a todos los demás.
 
 ## Modelos del dominio
 
-**34 entidades**, **163 casos de uso** en 25 módulos, **38 interfaces de
+**36 entidades**, **169 casos de uso** en 26 módulos, **40 interfaces de
 repositorio** y **18 puertos de servicio**. La fuente de verdad es el código
 (`/src/dominio`) y `prisma/schema.prisma`. Acá van solo los invariantes que
 cruzan módulos; el detalle de cada uno, en `/docs`.
@@ -451,6 +452,17 @@ del paciente, **Mi composición** es la ÚNICA parte de la evaluación que se
 expone: historia clínica, laboratorios y alertas siguen siendo del profesional.
 
 Ver `docs/ANTROPOMETRIA.md`.
+
+### Bioimpedancia
+
+Lo que informa la balanza —peso, kg y % de músculo, kg y % de grasa—, una
+medición por paciente y fecha, con dashboard y metas (migración 72). Es **otra
+fuente y no se mezcla con la antropometría**: tablas propias y metas propias
+(`ObjetivoBioimpedancia`, no variables de `ObjetivoComposicion`), porque el %
+graso de la balanza y el de una ecuación son números de métodos distintos.
+Al revés que la antropometría, **acá no hay nada derivado**: se guarda lo que
+dijo el equipo, porcentajes incluidos. Lo que sí comparte es la proyección de
+metas (`proyectarMeta`) y la tarjeta que la dibuja. Ver `docs/BIOIMPEDANCIA.md`.
 
 ### Evolución de control
 

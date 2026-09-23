@@ -29,22 +29,22 @@ import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
 
 /**
  * Medidas editables de una fila, además del peso: las de la plantilla +
- * kgGrasa y la fuerza de presión (ninguna de las tres es un campo de
+ * kgGrasa y la fuerza de prensión (ninguna de las tres es un campo de
  * plantilla: se cargan siempre, como en el formulario manual).
  */
 const CAMPOS_MEDIDA = [
   ...CAMPOS_PLANTILLA,
   "kgGrasa",
-  "fuerzaPresionDerecha",
-  "fuerzaPresionIzquierda",
+  "fuerzaPrensionDerecha",
+  "fuerzaPrensionIzquierda",
 ] as const;
 type CampoMedida = (typeof CAMPOS_MEDIDA)[number];
 
 const ETIQUETAS_MEDIDA: Record<CampoMedida, string> = {
   ...ETIQUETAS_CAMPO_PLANTILLA,
   kgGrasa: "Kg de grasa",
-  fuerzaPresionDerecha: "Fuerza de presión derecha (kg)",
-  fuerzaPresionIzquierda: "Fuerza de presión izquierda (kg)",
+  fuerzaPrensionDerecha: "Fuerza de prensión derecha (kg)",
+  fuerzaPrensionIzquierda: "Fuerza de prensión izquierda (kg)",
 };
 
 const ACEPTA_PLANILLA =

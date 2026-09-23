@@ -66,8 +66,8 @@ export interface MedidasAntropometricas {
   kgGrasa: number | null;
   // Dinamometría manual (kg). No alimenta ninguna ecuación: se carga y se
   // muestra tal cual, como kgGrasa.
-  fuerzaPresionDerecha: number | null;
-  fuerzaPresionIzquierda: number | null;
+  fuerzaPrensionDerecha: number | null;
+  fuerzaPrensionIzquierda: number | null;
 }
 
 /** Datos para registrar una medición nueva. */
@@ -205,8 +205,8 @@ export class Antropometria {
       circMusloMedial: datos.circMusloMedial ?? null,
       circPantorrilla: datos.circPantorrilla ?? null,
       kgGrasa: datos.kgGrasa ?? null,
-      fuerzaPresionDerecha: datos.fuerzaPresionDerecha ?? null,
-      fuerzaPresionIzquierda: datos.fuerzaPresionIzquierda ?? null,
+      fuerzaPrensionDerecha: datos.fuerzaPrensionDerecha ?? null,
+      fuerzaPrensionIzquierda: datos.fuerzaPrensionIzquierda ?? null,
       observaciones: datos.observaciones?.trim() || null,
       creadoEn: ahora,
     });
@@ -460,20 +460,20 @@ function validarMedidas(
       "Los kg de grasa deben estar entre 0 y 150.",
     );
   }
-  if (datos.fuerzaPresionDerecha != null) {
+  if (datos.fuerzaPrensionDerecha != null) {
     validarRango(
-      datos.fuerzaPresionDerecha,
+      datos.fuerzaPrensionDerecha,
       0,
       100,
-      "La fuerza de presión derecha debe estar entre 0 y 100 kg.",
+      "La fuerza de prensión derecha debe estar entre 0 y 100 kg.",
     );
   }
-  if (datos.fuerzaPresionIzquierda != null) {
+  if (datos.fuerzaPrensionIzquierda != null) {
     validarRango(
-      datos.fuerzaPresionIzquierda,
+      datos.fuerzaPrensionIzquierda,
       0,
       100,
-      "La fuerza de presión izquierda debe estar entre 0 y 100 kg.",
+      "La fuerza de prensión izquierda debe estar entre 0 y 100 kg.",
     );
   }
 }

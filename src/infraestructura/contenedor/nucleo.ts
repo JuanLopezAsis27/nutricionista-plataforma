@@ -31,6 +31,8 @@ import { PrismaRepositorioCampoEvolucion } from "@/infraestructura/repositorios/
 import { PrismaRepositorioConversacionIA } from "@/infraestructura/repositorios/PrismaRepositorioConversacionIA";
 import { PrismaRepositorioAntropometria } from "@/infraestructura/repositorios/PrismaRepositorioAntropometria";
 import { PrismaRepositorioObjetivoComposicion } from "@/infraestructura/repositorios/PrismaRepositorioObjetivoComposicion";
+import { PrismaRepositorioBioimpedancia } from "@/infraestructura/repositorios/PrismaRepositorioBioimpedancia";
+import { PrismaRepositorioObjetivoBioimpedancia } from "@/infraestructura/repositorios/PrismaRepositorioObjetivoBioimpedancia";
 import { PrismaRepositorioPlantillaAntropometrica } from "@/infraestructura/repositorios/PrismaRepositorioPlantillaAntropometrica";
 import { PrismaRepositorioLaboratorio } from "@/infraestructura/repositorios/PrismaRepositorioLaboratorio";
 import { PrismaRepositorioRegistroDiario } from "@/infraestructura/repositorios/PrismaRepositorioRegistroDiario";
@@ -210,6 +212,12 @@ export const repositorioAntropometria = perezoso(
 );
 export const repositorioObjetivoComposicion = perezoso(
   () => new PrismaRepositorioObjetivoComposicion(prisma()),
+);
+export const repositorioBioimpedancia = perezoso(
+  () => new PrismaRepositorioBioimpedancia(prisma()),
+);
+export const repositorioObjetivoBioimpedancia = perezoso(
+  () => new PrismaRepositorioObjetivoBioimpedancia(prisma()),
 );
 export const repositorioPlantillaAntropometrica = perezoso(
   () => new PrismaRepositorioPlantillaAntropometrica(prisma()),

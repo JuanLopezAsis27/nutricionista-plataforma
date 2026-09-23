@@ -587,3 +587,52 @@ Cada gráfico va **acompañado de sus números exactos** —la leyenda de la bar
 el valor sobre cada punto, la tabla debajo de la evolución—, nunca los
 reemplaza: con muchas mediciones el gráfico saltea etiquetas para que no se
 pisen, y el número tiene que estar en algún lado.
+
+## Los resultados de la planilla, partidos por modelo
+
+La planilla de cada medición (la ficha, el PDF y el Excel leen la misma
+definición, `aplicacion/servicios/evaluacion/filasMedicion.ts`) ya no tiene un
+único bloque «Resultados calculados». Son tres, en este orden:
+
+1. **Resultados · 5 componentes (Kerr)** — las cinco masas.
+2. **Resultados · 2 componentes (grasa por pliegues)** — una fila por ecuación
+   visible.
+3. **Otros resultados** — IMC, índice cintura/cadera, somatotipo, metabolismo
+   basal, gasto energético y los kg de grasa cargados a mano: lo que no sale de
+   ninguno de los dos modelos.
+
+Juntos, la masa adiposa de Kerr y el % graso de una ecuación quedaban a dos
+renglones como si fueran el mismo número medido dos veces, y son dos modelos
+que no se comparan (ver arriba).
+
+## Fuerza de prensión
+
+La dinamometría de mano se llama **fuerza de prensión** (apretar), no «de
+presión». La migración 52 la nombró bien en su comentario pero las columnas
+nacieron como `fuerzaPresion…`; la 72 las renombra a `fuerzaPrensionDerecha` /
+`fuerzaPrensionIzquierda` y el código y las etiquetas acompañan. La misma
+migración corrige el texto de los prompts personalizados de lectura de
+planillas que nombraban las claves viejas.
+
+## La evolución del % graso abre en la ecuación favorita
+
+El gráfico de evolución del porcentaje graso (dashboard del profesional y «Mi
+composición» del paciente) muestra **una ecuación por vez**, y arranca en la
+**favorita**: la que el profesional destacó («Ecuación de grasa a destacar»)
+en la medición más reciente que destaca alguna. Sin ninguna destacada, la
+primera que la serie resolvió. La regla vive una vez en `ecuacionFavorita`
+(`componentes/antropometria/SelectorEcuacion.tsx`) y en el selector se marca
+con ★. Comparar todas juntas sigue disponible, como la última opción.
+
+Se toma de la última medición que DESTACA una y no de la última a secas: una
+consulta cargada sin elegir ecuación no es un cambio de favorita.
+
+## Masa grasa en Progreso
+
+La pestaña Progreso muestra, además del peso, la evolución de la **masa grasa
+en kg** del período (`componentes/tracking/TarjetaMasaGrasa.tsx`), con una
+fuente por vez como el peso: **Antropometría** (predeterminada) o
+**Bioimpedancia**. De la antropometría se usa una sola ecuación para toda la
+serie, la favorita, elegida sobre la historia completa para que cambiar de
+período no cambie de ecuación. Es solo del lado del profesional: las dos
+fuentes se leen por procedimientos suyos.

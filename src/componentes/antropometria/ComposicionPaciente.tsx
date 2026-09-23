@@ -40,6 +40,7 @@ import { EvolucionMasas, EvolucionGrasa } from "./EvolucionMasas";
 import {
   SelectorEcuacion,
   ecuacionesDeLaSerie,
+  ecuacionFavorita,
   ecuacionesElegidas,
   TODAS_LAS_ECUACIONES,
   type SeleccionEcuacion,
@@ -135,11 +136,11 @@ export function ComposicionPaciente() {
   const { miComposicion } = useEvaluacion();
   const consulta = miComposicion();
   const { tema, montado } = useTemaComposicion();
-  // Arranca comparando TODAS las ecuaciones, igual que el dashboard del
-  // profesional: es la misma lectura y tiene que poder ponerse en el mismo
-  // estado cuando el paciente pregunta por un número.
-  const [seleccionEcuacion, setSeleccionEcuacion] =
-    useState<SeleccionEcuacion>(TODAS_LAS_ECUACIONES);
+  // Arranca en la ecuación favorita del profesional, igual que su dashboard:
+  // es la misma lectura y tiene que poder ponerse en el mismo estado cuando
+  // el paciente pregunta por un número. Null = todavía no eligió nadie.
+  const [eleccionEcuacion, setSeleccionEcuacion] =
+    useState<SeleccionEcuacion | null>(null);
 
   if (consulta.isLoading || !montado) {
     return (
@@ -187,6 +188,9 @@ export function ComposicionPaciente() {
   // Las ecuaciones de la serie, ya filtradas por las que el consultorio deja
   // activas (`ObtenerComposicionCorporal` las recorta antes de llegar acá).
   const ecuaciones = ecuacionesDeLaSerie(mediciones);
+  const favorita = ecuacionFavorita(mediciones, ecuaciones);
+  const seleccionEcuacion: SeleccionEcuacion =
+    eleccionEcuacion ?? favorita ?? TODAS_LAS_ECUACIONES;
 
   const { indices } = resultado;
   const hayIndices =
@@ -414,6 +418,7 @@ export function ComposicionPaciente() {
                 seleccion={seleccionEcuacion}
                 disponibles={ecuaciones}
                 alCambiar={setSeleccionEcuacion}
+                favorita={favorita}
               />
             }
           />

@@ -52,9 +52,15 @@ export const ESTADOS_PROYECCION = [
 ] as const;
 export type EstadoProyeccion = (typeof ESTADOS_PROYECCION)[number];
 
-/** Todo lo que el dashboard necesita para dibujar un objetivo. */
-export interface ProyeccionObjetivo {
-  variable: VariableComposicion;
+/**
+ * Todo lo que el dashboard necesita para dibujar un objetivo.
+ *
+ * Es genérica en la variable porque la matemática no depende de QUÉ se mide:
+ * la usan las metas de la antropometría y las de la bioimpedancia, que son
+ * dos juegos de variables distintos sobre la misma regla de proyección.
+ */
+export interface ProyeccionMeta<V extends string = string> {
+  variable: V;
   etiqueta: string;
   unidad: string;
   valorObjetivo: number;
@@ -84,6 +90,18 @@ export interface ProyeccionObjetivo {
   /** Valor estimado a la fecha objetivo manteniendo el ritmo actual. */
   valorProyectadoAFecha: number | null;
   estado: EstadoProyeccion;
+}
+
+/** La proyección de una meta de antropometría. */
+export type ProyeccionObjetivo = ProyeccionMeta<VariableComposicion>;
+
+/** Lo que la proyección necesita saber de la variable, sea cual sea. */
+export interface DefinicionVariableMeta {
+  etiqueta: string;
+  unidad: string;
+  /** Rango admisible: fuera de él, un valor proyectado se descarta. */
+  min: number;
+  max: number;
 }
 
 const MS_POR_SEMANA = 7 * 24 * 60 * 60 * 1000;
@@ -125,8 +143,34 @@ export function proyectarObjetivo(
   serie: readonly PuntoSerie[],
   ahora: Date = new Date(),
 ): ProyeccionObjetivo {
-  const { etiqueta, unidad, min, max } = definicionVariable(objetivo.variable);
-  const base: ProyeccionObjetivo = {
+  return proyectarMeta(
+    objetivo,
+    definicionVariable(objetivo.variable),
+    serie,
+    ahora,
+  );
+}
+
+/**
+ * La proyección sin atarse a un juego de variables: recibe la definición de
+ * la variable (etiqueta, unidad y rango) en vez de buscarla. Es lo que deja
+ * que la bioimpedancia proyecte sus metas con la MISMA regla que la
+ * antropometría —punto de partida, ritmo, estados— sin copiarla.
+ */
+export function proyectarMeta<V extends string>(
+  objetivo: {
+    variable: V;
+    valorObjetivo: number;
+    fechaObjetivo: Date | null;
+    /** Cuándo se planteó la meta: define el punto de partida. */
+    creadoEn?: Date | null;
+  },
+  definicion: DefinicionVariableMeta,
+  serie: readonly PuntoSerie[],
+  ahora: Date = new Date(),
+): ProyeccionMeta<V> {
+  const { etiqueta, unidad, min, max } = definicion;
+  const base: ProyeccionMeta<V> = {
     variable: objetivo.variable,
     etiqueta,
     unidad,
