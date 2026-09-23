@@ -18,7 +18,7 @@ export class ResumidorConsultaStub implements IResumidorConsulta {
     _contexto: { nombrePaciente?: string | null; fecha?: Date | null },
   ): Promise<ResumenGenerado> {
     throw new Error(
-      "No hay IA configurada para resumir la consulta. Cargá la clave en Integraciones.",
+      "No hay IA configurada para resumir la consulta. La activa el administrador de la plataforma.",
     );
   }
 }

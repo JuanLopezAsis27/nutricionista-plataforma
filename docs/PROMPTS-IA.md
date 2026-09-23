@@ -121,9 +121,11 @@ una vez por llamada al modelo: al lado de la llamada misma, no se nota.
 
 ## Por qué la pantalla se ve plegada
 
-Son siete prompts de hasta cinco mil caracteres. Desplegados de una empujaban la
-clave de API y los criterios de ingredientes tan abajo que la pestaña dejaba de
-servir para lo que se entra a hacer casi siempre, que es cargar una credencial.
+Son siete prompts de hasta cinco mil caracteres. Desplegados de una empujaban
+los criterios de ingredientes tan abajo que la pestaña dejaba de servir para lo
+demás. (Desde la migración 71 las claves de API ya no están en esa pestaña: son
+de la plataforma, ver `docs/IA-PLATAFORMA.md`. Los prompts son lo único de la
+IA que sigue siendo de cada consultorio.)
 La lista muestra el título y dónde se usa; la explicación se despliega al
 tocarla y el texto largo vive en un modal.
 

@@ -18,9 +18,9 @@ const figtree = Figtree({
 });
 
 export const metadata: Metadata = {
-  title: "Nutricionista App",
+  title: "NutriOffice",
   description: "Gestión de pacientes, turnos y planes nutricionales",
-  applicationName: "Nutricionista App",
+  applicationName: "NutriOffice",
   /**
    * El `<link rel="manifest">` lo inyecta Next solo, porque existe
    * `src/app/manifest.ts`. Lo de acá abajo es lo que ese archivo NO cubre.

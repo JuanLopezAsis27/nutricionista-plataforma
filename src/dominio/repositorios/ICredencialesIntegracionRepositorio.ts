@@ -1,15 +1,3 @@
-/** Proveedor de IA elegido por el profesional. */
-export type ProveedorIA = "ANTHROPIC" | "OPENROUTER";
-
-/**
- * Proveedor de voz a texto de las grabaciones de consulta.
- *
- * Se elige aparte del de IA porque son dos capacidades distintas y no las
- * cubre el mismo vendor: Anthropic —el proveedor por defecto de la app— no
- * transcribe audio.
- */
-export type ProveedorTranscripcion = "OPENAI" | "OPENROUTER";
-
 /** Criterios del nutricionista para filtrar los ingredientes de la búsqueda. */
 export interface CriteriosIngredientes {
   excluirMarcas: boolean;
@@ -18,21 +6,18 @@ export interface CriteriosIngredientes {
   excluirTexto: string[];
 }
 
-/** Credenciales de integración del inquilino, EN CLARO (el repo cifra/descifra). */
+/**
+ * Credenciales de integración del inquilino, EN CLARO (el repo cifra/descifra).
+ *
+ * Las de IA y voz a texto ya no están acá: desde la migración 71 son de la
+ * plataforma (`IConfiguracionIAGlobalRepositorio`) y las carga el SUPERADMIN.
+ */
 export interface CredencialesIntegracion {
-  /** Proveedor de IA (null = Anthropic por defecto). */
-  proveedorIA: ProveedorIA | null;
-  anthropicApiKey: string | null;
-  anthropicModelo: string | null;
   /** WhatsApp Cloud API (Meta). Sin token + phoneNumberId todo cae al enlace wa.me. */
   whatsappToken: string | null;
   whatsappPhoneNumberId: string | null;
   whatsappVerifyToken: string | null;
   whatsappAppSecret: string | null;
-  /** Voz a texto (null = sin configurar; ahí no se transcribe nada). */
-  proveedorTranscripcion: ProveedorTranscripcion | null;
-  transcripcionApiKey: string | null;
-  transcripcionModelo: string | null;
   criterios: CriteriosIngredientes;
 }
 
@@ -43,16 +28,10 @@ export interface CredencialesIntegracion {
  *   - string      → setear (se cifra si es secreto)
  */
 export interface DatosCredenciales {
-  proveedorIA?: ProveedorIA;
-  anthropicApiKey?: string | null;
-  anthropicModelo?: string | null;
   whatsappToken?: string | null;
   whatsappPhoneNumberId?: string | null;
   whatsappVerifyToken?: string | null;
   whatsappAppSecret?: string | null;
-  proveedorTranscripcion?: ProveedorTranscripcion;
-  transcripcionApiKey?: string | null;
-  transcripcionModelo?: string | null;
   /** Criterios de ingredientes (se guardan completos si se envían). */
   criterios?: CriteriosIngredientes;
 }
@@ -61,17 +40,11 @@ export interface DatosCredenciales {
  * Las integraciones que se dan de alta con credenciales, como unidad de BAJA.
  *
  * Es un vocabulario aparte de `ProveedorIntegracion` (el enum de la base) a
- * propósito: la IA es UNA integración para quien la usa, y son dos proveedores
- * —Anthropic y OpenRouter— bajo el capó. Quien aprieta «eliminar» quiere que no
- * quede ninguna clave de IA, no la del proveedor que tenga seleccionado en ese
- * momento; con el enum de la base, cambiar de proveedor dejaba la clave del
- * otro guardada y sin ninguna pantalla desde la cual borrarla.
+ * propósito: una integración puede tener varias claves, y quien aprieta
+ * «eliminar» quiere que no quede ninguna. Hoy es solo WhatsApp: la IA y la voz
+ * a texto pasaron a la plataforma (migración 71).
  */
-export const INTEGRACIONES_CREDENCIALES = [
-  "IA",
-  "TRANSCRIPCION",
-  "WHATSAPP",
-] as const;
+export const INTEGRACIONES_CREDENCIALES = ["WHATSAPP"] as const;
 export type IntegracionCredenciales =
   (typeof INTEGRACIONES_CREDENCIALES)[number];
 
@@ -80,8 +53,7 @@ export interface ICredencialesIntegracionRepositorio {
   obtener(): Promise<CredencialesIntegracion | null>;
   guardar(datos: DatosCredenciales): Promise<void>;
   /**
-   * Borra TODAS las credenciales de una integración, y las preferencias que no
-   * significan nada sin ellas (el modelo de IA). Idempotente: eliminar una
+   * Borra TODAS las credenciales de una integración. Idempotente: eliminar una
    * integración que no estaba configurada no es un error.
    */
   eliminar(integracion: IntegracionCredenciales): Promise<void>;

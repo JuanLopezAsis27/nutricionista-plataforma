@@ -48,7 +48,10 @@ import { crearServicioIA } from "./modulos/ia";
 import { crearServicioAutenticacion } from "./modulos/autenticacion";
 import { crearServicioDeportivo } from "./modulos/deportivo";
 import { crearServicioNutricion } from "./modulos/nutricion";
-import { crearServicioCredenciales } from "./modulos/credenciales";
+import {
+  crearServicioCredenciales,
+  crearServicioIAPlataforma,
+} from "./modulos/credenciales";
 import { crearServicioPromptsIA } from "./modulos/promptsIA";
 
 import { ServicioIntegraciones } from "@/aplicacion/servicios/ServicioIntegraciones";
@@ -394,10 +397,26 @@ export const servicioDeportivo = perezoso(() =>
   }),
 );
 
-/** Credenciales de integración del profesional (Claude, voz a texto, WhatsApp). */
+/** Credenciales de integración del profesional (WhatsApp y criterios). */
 export const servicioCredenciales = perezoso(() =>
   crearServicioCredenciales({
     credenciales: nucleo.repositorioCredenciales(),
+    disponibilidadIA: async () => {
+      const [ia, transcripcion] = await Promise.all([
+        nucleo.tieneIA(),
+        nucleo.transcriptorAudio().estaConfigurado(),
+      ]);
+      return { ia, transcripcion };
+    },
+  }),
+);
+
+/** IA de la plataforma: claves, saldo y uso (solo SUPERADMIN). */
+export const servicioIAPlataforma = perezoso(() =>
+  crearServicioIAPlataforma({
+    configuracion: nucleo.repositorioConfiguracionIAGlobal(),
+    registro: nucleo.repositorioRegistroUsoIA(),
+    saldo: nucleo.consultorSaldoIA(),
   }),
 );
 

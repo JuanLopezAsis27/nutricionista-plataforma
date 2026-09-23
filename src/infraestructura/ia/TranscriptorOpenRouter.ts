@@ -3,6 +3,7 @@ import type {
   ITranscriptorAudio,
   OpcionesTranscripcion,
 } from "@/dominio/servicios/ITranscriptorAudio";
+import type { ConsumoLLM } from "./IProveedorLLM";
 
 const URL = "https://openrouter.ai/api/v1/chat/completions";
 const TIEMPO_LIMITE_MS = 10 * 60 * 1000;
@@ -20,6 +21,7 @@ const FORMATOS: Record<string, string> = {
 
 interface RespuestaOpenRouter {
   choices?: Array<{ message?: { content?: string | null } }>;
+  usage?: { prompt_tokens?: number; completion_tokens?: number; cost?: number };
   error?: { message?: string };
 }
 
@@ -58,6 +60,14 @@ export class TranscriptorOpenRouter implements ITranscriptorAudio {
     audio: AudioParaTranscribir,
     opciones?: OpcionesTranscripcion,
   ): Promise<string> {
+    return (await this.transcribirConConsumo(audio, opciones)).texto;
+  }
+
+  /** Lo mismo que `transcribir`, más lo que gastó (para el registro de uso). */
+  async transcribirConConsumo(
+    audio: AudioParaTranscribir,
+    opciones?: OpcionesTranscripcion,
+  ): Promise<{ texto: string; consumo: ConsumoLLM }> {
     const formato = FORMATOS[audio.mimeType];
     if (!formato) {
       throw new Error(
@@ -78,6 +88,7 @@ export class TranscriptorOpenRouter implements ITranscriptorAudio {
 
     const cuerpo = {
       model: this.modelo,
+      usage: { include: true },
       messages: [
         {
           role: "user",
@@ -117,6 +128,14 @@ export class TranscriptorOpenRouter implements ITranscriptorAudio {
     if (json.error) {
       throw new Error(json.error.message ?? "Error de OpenRouter.");
     }
-    return (json.choices?.[0]?.message?.content ?? "").trim();
+    return {
+      texto: (json.choices?.[0]?.message?.content ?? "").trim(),
+      consumo: {
+        tokensEntrada: json.usage?.prompt_tokens ?? 0,
+        tokensSalida: json.usage?.completion_tokens ?? 0,
+        costoUsd:
+          typeof json.usage?.cost === "number" ? json.usage.cost : null,
+      },
+    };
   }
 }

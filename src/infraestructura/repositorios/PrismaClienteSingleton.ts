@@ -76,6 +76,7 @@ export const MODELOS_INQUILINO = new Set<string>([
   "ConfiguracionRecordatorios",
   "MensajeWhatsapp",
   "PlanSemanal",
+  "RegistroUsoIA",
 
   // Hijas del agregado (migración 27). Antes quedaban fuera del filtro: se
   // llegaba a ellas por id directo sin ningún control de inquilino. Los casos

@@ -1,4 +1,5 @@
-import type { ICredencialesIntegracionRepositorio } from "@/dominio/repositorios/ICredencialesIntegracionRepositorio";
+import type { IConfiguracionIAGlobalRepositorio } from "@/dominio/repositorios/IConfiguracionIAGlobalRepositorio";
+import type { IRegistroUsoIARepositorio } from "@/dominio/repositorios/IRegistroUsoIARepositorio";
 import type {
   AudioParaTranscribir,
   ITranscriptorAudio,
@@ -7,6 +8,7 @@ import type {
 import { TranscriptorOpenAI } from "./TranscriptorOpenAI";
 import { TranscriptorOpenRouter } from "./TranscriptorOpenRouter";
 import { TranscriptorStub } from "./TranscriptorStub";
+import { anotarUso } from "./registroUso";
 
 /**
  * Modelo por defecto de cada proveedor.
@@ -16,26 +18,36 @@ import { TranscriptorStub } from "./TranscriptorStub";
  * transcripción, así que el defecto es un modelo de chat que escucha (ver
  * `TranscriptorOpenRouter`).
  */
-const MODELO_OPENAI = "gpt-4o-transcribe";
-const MODELO_OPENROUTER = "google/gemini-2.5-flash";
+export const MODELO_TRANSCRIPCION_OPENAI = "gpt-4o-transcribe";
+export const MODELO_TRANSCRIPCION_OPENROUTER = "google/gemini-2.5-flash";
+
+type Transcriptor = TranscriptorOpenAI | TranscriptorOpenRouter;
+
+interface Resuelto {
+  proveedor: "OPENAI" | "OPENROUTER";
+  apiKey: string;
+  modelo: string;
+}
 
 /**
- * Resuelve el transcriptor del inquilino en curso.
+ * Resuelve el transcriptor de la plataforma.
  *
- * Es la misma mecánica que `ResolvedorConfigIA` —credenciales por consultorio,
- * caída a variable de entorno, stub si no hay nada— pero con su propia clave y
- * su propio proveedor: transcribir y conversar son capacidades distintas, y el
- * proveedor de IA por defecto de la app (Anthropic) no transcribe audio.
+ * Es la misma mecánica que `ResolvedorConfigIA` —configuración de la
+ * plataforma, caída a variable de entorno, stub si no hay nada— pero con su
+ * propio proveedor: transcribir y conversar son capacidades distintas, y el
+ * proveedor de IA por defecto de la app (Anthropic) no transcribe audio. La
+ * CLAVE sí puede ser la misma: la de OpenRouter sirve para las dos cosas.
  *
- * Se cachea por (proveedor, clave, modelo) para no reconstruir el adaptador en
- * cada grabación.
+ * Cada transcripción queda en el registro de uso. Se cachea por (proveedor,
+ * clave, modelo) para no reconstruir el adaptador en cada grabación.
  */
 export class ResolvedorTranscripcion implements ITranscriptorAudio {
-  private readonly cache = new Map<string, ITranscriptorAudio>();
+  private readonly cache = new Map<string, Transcriptor>();
   private readonly stub = new TranscriptorStub();
 
   constructor(
-    private readonly credenciales: ICredencialesIntegracionRepositorio,
+    private readonly configuracion: IConfiguracionIAGlobalRepositorio,
+    private readonly registro: IRegistroUsoIARepositorio,
   ) {}
 
   async estaConfigurado(): Promise<boolean> {
@@ -46,13 +58,45 @@ export class ResolvedorTranscripcion implements ITranscriptorAudio {
     audio: AudioParaTranscribir,
     opciones?: OpcionesTranscripcion,
   ): Promise<string> {
-    return (await this.obtener()).transcribir(audio, opciones);
+    const r = await this.resolver();
+    // El stub lanza a propósito: sin clave no hay transcripción inventada.
+    if (!r) return this.stub.transcribir(audio);
+
+    const inicio = Date.now();
+    try {
+      const { texto, consumo } = await this.obtener(r).transcribirConConsumo(
+        audio,
+        opciones,
+      );
+      await anotarUso(this.registro, {
+        capacidad: "TRANSCRIPCION",
+        proveedor: r.proveedor,
+        modelo: r.modelo,
+        operacion: "transcribir",
+        ...consumo,
+        exito: true,
+        error: null,
+        duracionMs: Date.now() - inicio,
+      });
+      return texto;
+    } catch (error) {
+      await anotarUso(this.registro, {
+        capacidad: "TRANSCRIPCION",
+        proveedor: r.proveedor,
+        modelo: r.modelo,
+        operacion: "transcribir",
+        tokensEntrada: 0,
+        tokensSalida: 0,
+        costoUsd: null,
+        exito: false,
+        error: error instanceof Error ? error.message : String(error),
+        duracionMs: Date.now() - inicio,
+      });
+      throw error;
+    }
   }
 
-  private async obtener(): Promise<ITranscriptorAudio> {
-    const r = await this.resolver();
-    if (!r) return this.stub;
-
+  private obtener(r: Resuelto): Transcriptor {
     const clave = `${r.proveedor}:${r.apiKey}:${r.modelo}`;
     let transcriptor = this.cache.get(clave);
     if (!transcriptor) {
@@ -65,36 +109,39 @@ export class ResolvedorTranscripcion implements ITranscriptorAudio {
     return transcriptor;
   }
 
-  private async resolver(): Promise<{
-    proveedor: "OPENAI" | "OPENROUTER";
-    apiKey: string;
-    modelo: string;
-  } | null> {
+  private async resolver(): Promise<Resuelto | null> {
     try {
-      const c = await this.credenciales.obtener();
-      if (c?.transcripcionApiKey) {
-        const proveedor =
-          c.proveedorTranscripcion === "OPENROUTER" ? "OPENROUTER" : "OPENAI";
+      const c = await this.configuracion.obtener();
+      const proveedor = c.proveedorTranscripcion;
+      const apiKey = c.claves[proveedor];
+      if (apiKey) {
         return {
           proveedor,
-          apiKey: c.transcripcionApiKey,
+          apiKey,
           modelo:
-            c.transcripcionModelo ??
-            (proveedor === "OPENROUTER" ? MODELO_OPENROUTER : MODELO_OPENAI),
+            c.modeloTranscripcion ??
+            (proveedor === "OPENROUTER"
+              ? MODELO_TRANSCRIPCION_OPENROUTER
+              : MODELO_TRANSCRIPCION_OPENAI),
         };
       }
-    } catch {
-      // Sin alcance de inquilino o error de lectura → probamos el entorno.
+    } catch (error) {
+      console.error(
+        "[transcripcion] no se pudo leer la configuración de IA:",
+        error,
+      );
     }
 
-    // Caída a variable de entorno, para el despliegue de un solo consultorio
-    // que prefiere no cargar la clave por pantalla.
+    // Caída a variable de entorno, para el despliegue que prefiere no cargar
+    // la clave por pantalla.
     const apiKey = process.env.OPENAI_API_KEY;
     return apiKey
       ? {
           proveedor: "OPENAI",
           apiKey,
-          modelo: process.env.OPENAI_TRANSCRIPCION_MODELO ?? MODELO_OPENAI,
+          modelo:
+            process.env.OPENAI_TRANSCRIPCION_MODELO ??
+            MODELO_TRANSCRIPCION_OPENAI,
         }
       : null;
   }

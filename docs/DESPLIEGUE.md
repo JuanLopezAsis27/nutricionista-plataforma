@@ -464,6 +464,264 @@ antes de tocar producción.
 
 ---
 
+## 8 bis. Cambiar el dominio
+
+**No se toca código.** El dominio no está escrito en ningún lado del repo: la
+URL pública se resuelve en un solo lugar (`urlPublica()`, en
+`src/infraestructura/configuracion/urlPublica.ts`) leyendo `APP_URL` con
+`AUTH_URL` como alternativa. La CSP de `next.config.ts` es toda `'self'`, el
+manifiesto de la PWA usa `start_url: "/"` y el service worker compara contra
+`self.location.origin`, así que todos siguen al origen que se les sirva. Lo que
+cambia es el `.env` del servidor, nginx, el DNS y **tres consolas ajenas**.
+
+### Qué depende de `APP_URL` en ejecución
+
+| Qué | Dónde |
+| --- | ----- |
+| El `redirect_uri` que se le manda a Google | `infraestructura/integraciones/configGoogle.ts` |
+| La vuelta del callback de Google y del renovar de sesión | `urlApp()` en los route handlers de `/api` |
+| El enlace de recuperación de contraseña | `SolicitarRecuperacionPassword` |
+| El enlace firmado de confirmar turno | `FirmaConfirmacionTurno` |
+
+Los enlaces **ya enviados** por email apuntan al dominio viejo. El token de
+confirmar turno se firma con `AUTH_SECRET` y no con el host, así que si el
+dominio viejo sigue redirigiendo esos enlaces siguen validando; si se apaga,
+mueren. Conviene hacer el corte en una franja sin turnos por confirmar y sin
+recuperaciones de contraseña en vuelo.
+
+### Orden
+
+El orden importa: cada paso deja listo lo que el siguiente necesita.
+
+```bash
+# 1. DNS: A/AAAA del dominio nuevo → IP del VPS. Esperar a que resuelva.
+dig +short NUEVO_DOMINIO
+
+# 2. Cambiar SOLO el server_name. Un sed sobre todo el archivo reescribe también
+#    las rutas de ssl_certificate que puso certbot, y ahí nginx deja de cargar
+#    (ver "Si nginx no carga por el certificado", abajo).
+sudo sed -i 's/server_name VIEJO_DOMINIO;/server_name NUEVO_DOMINIO;/g' /etc/nginx/sites-available/nutricionista
+sudo nginx -t && sudo systemctl reload nginx
+
+# 3. Certificado del dominio nuevo. certbot reescribe él mismo las dos líneas de
+#    ssl_certificate y deja el redirect 80→443 y el timer de renovación.
+sudo certbot --nginx -d NUEVO_DOMINIO
+```
+
+En el paso 2 nginx queda sirviendo el dominio nuevo con el certificado **viejo**
+—nombre que no coincide, aviso del navegador— hasta que corre el paso 3. Es
+correcto y dura minutos: el desafío HTTP-01 de certbot viaja por el puerto 80,
+que no mira el certificado. Lo que no se puede es dejar apuntadas rutas de un
+certificado que todavía no existe.
+
+#### Si nginx no carga por el certificado
+
+```
+[emerg] cannot load certificate "/etc/letsencrypt/live/NUEVO_DOMINIO/fullchain.pem":
+        BIO_new_file() failed (... No such file or directory ...)
+nginx: configuration file /etc/nginx/nginx.conf test failed
+```
+
+Es el huevo y la gallina: nginx no arranca sin el certificado y certbot no puede
+emitirlo sin nginx sirviendo el dominio nuevo en el puerto 80. **No cunde el
+pánico: un `reload` que falla no baja el nginx que ya está corriendo**, que
+sigue atendiendo con la configuración vieja que tiene en memoria. El sitio no se
+cayó; lo único que pasa es que el cambio no entró.
+
+La salida es apuntar las dos líneas al certificado viejo —que sí existe— el
+tiempo justo para que nginx cargue:
+
+```bash
+sudo certbot certificates    # confirmar el nombre del certificado viejo
+
+sudo sed -i 's|/etc/letsencrypt/live/NUEVO_DOMINIO/|/etc/letsencrypt/live/VIEJO_DOMINIO/|g' \
+  /etc/nginx/sites-available/nutricionista
+sudo nginx -t && sudo systemctl reload nginx
+
+sudo certbot --nginx -d NUEVO_DOMINIO     # emite y reescribe las dos líneas
+grep -n ssl_certificate /etc/nginx/sites-available/nutricionista   # verificar
+```
+
+Si el certificado viejo ya no está, comentar el bloque `server { listen 443 ... }`
+entero y el `return 301` del bloque `:80`, recargar, correr `certbot --nginx` y
+descomentar después: con las rutas ya válidas, nginx carga.
+
+**4. Las consolas externas, ANTES de tocar el `.env`.** Agregar la URL nueva sin
+borrar la vieja: durante la transición conviven y nada se corta.
+
+- **Google Cloud Console** → *Credenciales* → el cliente OAuth → URI de
+  redirección autorizado `https://NUEVO_DOMINIO/api/integraciones/google/callback`.
+  Sin esto, conectar Google Calendar falla con `redirect_uri_mismatch`.
+- **Meta for Developers** → WhatsApp → *Configuración* → webhook
+  `https://NUEVO_DOMINIO/api/whatsapp/webhook`, con el **mismo** verify token
+  que ya está guardado en Integraciones. Mientras apunte al viejo dejan de
+  entrar los estados de entrega (los mensajes salen igual, pero se quedan en
+  ENVIADO para siempre).
+- **Monitoreo externo** (UptimeRobot / Healthchecks) → `https://NUEVO_DOMINIO/api/salud`.
+  `MONITOR_WEBHOOK_URL` no se toca: es de salida.
+
+**5. `.env.produccion`** — los dos, no uno:
+
+```ini
+AUTH_URL=https://NUEVO_DOMINIO
+APP_URL=https://NUEVO_DOMINIO
+EMAIL_FROM=Lic. Apellido <turnos@NUEVO_DOMINIO_DE_MAIL>
+```
+
+Poner solo uno *funciona* —`urlPublica()` cae al otro— y por eso es una trampa:
+quedan dos orígenes distintos conviviendo, uno para Auth.js y otro para los
+enlaces. `SUPERADMIN_EMAIL` y `SEED_EMAIL` son cosméticos a esta altura: la
+semilla ya corrió y cambiarlos no renombra ninguna cuenta.
+
+**6. Redesplegar app y worker.** El worker también lee el `.env` — los
+recordatorios de turno salen de ahí con sus enlaces.
+
+```bash
+./scripts/desplegar.sh prod
+```
+
+### El correo
+
+Si es el mismo proveedor SMTP con un dominio nuevo, lo único que cambia en el
+`.env` es `EMAIL_FROM`; el trabajo real está en el DNS del dominio nuevo:
+
+- Verificar el dominio en el panel del proveedor y cargar los **DKIM** que
+  entregue.
+- **SPF** autorizando a ese proveedor.
+- **DMARC**, aunque sea `p=none` al principio.
+
+El `From:` de `EMAIL_FROM` tiene que estar en el dominio que firma DKIM. Si el
+dominio de mail no es el de la app, es acá donde se rompe el alineamiento de
+DMARC y todo se va a spam sin ningún error en el log — la app reporta el envío
+como exitoso porque para ella lo fue.
+
+Probar contra una casilla de Gmail y mirar *Mostrar original*: tienen que decir
+`PASS` las tres.
+
+### Contenido cargado que puede tener el dominio viejo escrito a mano
+
+Las plantillas y la biblioteca las escribe el profesional, así que pueden
+traerlo en duro. Revisar antes de apagar el viejo:
+
+```sql
+SELECT id, nombre FROM plantillas_email              WHERE "cuerpoHtml" LIKE '%VIEJO_DOMINIO%';
+SELECT id, nombre FROM plantillas_email_recordatorio WHERE "cuerpoHtml" LIKE '%VIEJO_DOMINIO%';
+SELECT id, nombre FROM plantillas_whatsapp           WHERE cuerpo       LIKE '%VIEJO_DOMINIO%';
+SELECT id, titulo FROM materiales_biblioteca         WHERE url          LIKE '%VIEJO_DOMINIO%';
+```
+
+Las plantillas de WhatsApp que estén aprobadas en Meta con una URL adentro hay
+que volver a mandarlas a aprobación: el texto aprobado es el de Meta, no el de
+la base.
+
+### Lo que se pierde en el camino, y por qué no hay nada que migrar
+
+- **Las sesiones.** Las cookies son *host-only* (no fijan `domain`), así que
+  ninguna viaja al dominio nuevo. Los tokens de refresco siguen vivos en
+  `tokens_refresco`, pero la cookie que los presenta no llega. Todos vuelven a
+  loguearse una vez. No se puede evitar y no hay nada que trasladar.
+- **La PWA instalada.** Hay que reinstalarla, y el dominio viejo no se puede
+  apagar de golpe sin dejar a la gente con un diagnóstico equivocado. Tiene su
+  propia sección: **Retirar el dominio viejo sin romper la PWA**, abajo.
+- **El descarte del cartel de instalar** (`localStorage`) es por origen, así que
+  en el dominio nuevo la app vuelve a ofrecer instalarse a todo el mundo. Es lo
+  que se quiere: hay que reinstalar.
+
+### Retirar el dominio viejo sin romper la PWA
+
+**Una instalación está atada a su origen y no hay forma de moverla.** No existe
+nada en el estándar —ni un truco— que traslade una PWA instalada de un dominio a
+otro: el atajo, el service worker, el Cache Storage, el `localStorage` y las
+cookies son todos del origen viejo. Todos van a reinstalar. El objetivo no es
+evitar eso, es que nadie se quede mirando una ventana rota sin saber qué pasó.
+
+**Por qué apagar el dominio viejo es peor que un error 404.** El `sw.js`
+resuelve las navegaciones con `fetch(pedido).catch(() => caches.match("/sin-conexion"))`.
+Si el origen viejo deja de resolver, el `fetch` falla y el worker —que sigue
+instalado en el dispositivo— sirve **la pantalla «Sin conexión» desde su
+caché**. La persona no ve un error de dominio caído: ve que la app dice que no
+hay internet, en una ventana `standalone` **sin barra de direcciones** desde la
+que no puede navegar a ningún lado. Va a revisar su WiFi, no a buscar el
+dominio nuevo. Es un diagnóstico equivocado y perfectamente convincente.
+
+**Y un `301` a secas tampoco alcanza para este caso.** Redirigir a otro origen
+saca a la navegación del `scope` del manifiesto, así que Chrome expulsa a la
+persona del modo app: la abre en el navegador o en una Custom Tab. Sirve para
+que los enlaces viejos de los emails no mueran, pero deja a alguien en el
+navegador sin entender por qué, con el ícono viejo todavía en su pantalla
+apuntando a lo que ya no es la app.
+
+La salida es que el dominio viejo **siga vivo y diga qué pasó**:
+
+| Ruta | Qué sirve el dominio viejo | Por qué |
+| ---- | -------------------------- | ------- |
+| `/` (el `start_url` de la PWA) | Una página estática «nos mudamos» con un enlace al dominio nuevo | Es lo que se abre al tocar el ícono instalado. Tiene que explicar, no redirigir |
+| `/sw.js` | Un worker de retiro (abajo) | Saca del dispositivo el worker viejo y sus cachés |
+| Todo lo demás | `301` al dominio nuevo | Los enlaces de recuperación y de confirmar turno ya enviados siguen funcionando |
+
+El worker de retiro, servido en `/sw.js` del dominio viejo. `next.config.ts` le
+pone `max-age=0, must-revalidate` a esa ruta, así que el navegador lo toma en el
+primer arranque después del corte:
+
+```js
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (evento) => {
+  evento.waitUntil(
+    caches
+      .keys()
+      .then((nombres) => Promise.all(nombres.map((n) => caches.delete(n))))
+      .then(() => self.registration.unregister())
+      .then(() => self.clients.claim()),
+  );
+});
+```
+
+Sin esto el worker viejo queda registrado con su `/sin-conexion` precacheado y
+sigue respondiendo por su cuenta aunque el dominio ya sirva otra cosa.
+
+**El aviso previo es lo único que de verdad baja el soporte.** Una o dos semanas
+antes del corte, un cartel dentro de la app en el dominio viejo diciendo la
+fecha y que va a haber que reinstalar. Después del corte nadie lee nada: la app
+ya no abre.
+
+**Cuándo apagarlo del todo.** El `301` y la página de aviso cuestan un
+`server {}` y un certificado que se renueva solo. No hay apuro: conviene
+dejarlos hasta que el log de accesos del dominio viejo esté en cero por varios
+días seguidos.
+
+**Cuándo NO hace falta nada de esto.** Todo lo de arriba resuelve con
+infraestructura un problema de comunicación: sirve cuando no se puede contactar
+a los usuarios uno por uno. Con un consultorio y un centenar de pacientes a los
+que el profesional les escribe por WhatsApp, el **corte anunciado** es
+legítimo y más simple: avisar, cortar, y dar de baja el dominio viejo.
+
+Es lo decidido para la mudanza de `app.licnicolopezasis.com.ar` a
+`app.nutrioffice.com.ar` (decisión de septiembre de 2026; el corte queda
+pendiente de fecha). Lo que hay que incluir sí o sí en
+el aviso es **que borren el ícono viejo**: si no lo hacen les queda una PWA
+fantasma que, al tocarla, muestra «Sin conexión» por lo explicado arriba — y el
+reporte llega meses después, sin que nadie conecte una cosa con la otra.
+
+Conviene además migrar **primero al profesional** y confirmar con él que entró y
+reinstaló antes de bajar el dominio viejo: es el que usa la app todos los días,
+así que cualquier cosa mal configurada aparece por ahí en minutos.
+
+### Verificación
+
+- [ ] `curl -I https://NUEVO_DOMINIO` → 200, y el certificado es del dominio nuevo.
+- [ ] `https://NUEVO_DOMINIO/api/salud` → 200.
+- [ ] Login con una cuenta real (la sesión vieja ya no vale: es el comportamiento esperado).
+- [ ] Recuperación de contraseña: pedirla y **mirar el enlace del email**, que es
+      donde aparece `APP_URL` mal puesta.
+- [ ] Conectar Google Calendar de punta a punta: es lo que falla si la consola
+      quedó sin la URI nueva.
+- [ ] Mandar un WhatsApp de prueba y verificar que pase a ENTREGADO — eso
+      confirma que el webhook nuevo está entrando.
+- [ ] Un email a Gmail: SPF, DKIM y DMARC en `PASS`.
+- [ ] Reinstalar la PWA desde el dominio nuevo.
+
+---
+
 ## 9. Checklist de seguridad
 
 - [ ] Secretos fuertes y **distintos** (`AUTH_SECRET`, `TOKENS_SECRET`, claves DB/MinIO).

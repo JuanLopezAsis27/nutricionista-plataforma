@@ -6,13 +6,20 @@ import { EnviarEmailDeBienvenida } from "./EnviarEmailDeBienvenida";
 export interface DetalleEnvioBienvenida {
   pacienteId: string;
   nombrePaciente: string;
-  estado: "ENVIADO" | "OMITIDO" | "FALLIDO";
+  /**
+   * `YA_ENVIADA` va aparte de `OMITIDO` porque pide otra respuesta: al que no
+   * tiene email no hay nada que remandarle, al que ya la recibió sí —la
+   * pantalla le ofrece reenviársela—.
+   */
+  estado: "ENVIADO" | "YA_ENVIADA" | "OMITIDO" | "FALLIDO";
   motivo: string | null;
 }
 
 /** Resumen del lote. */
 export interface ResultadoEnvioBienvenida {
   enviados: number;
+  /** Ya la tenían enviada y no se forzó: candidatos a un reenvío. */
+  yaEnviadas: number;
   omitidos: number;
   fallidos: number;
   detalles: DetalleEnvioBienvenida[];
@@ -72,7 +79,7 @@ export class EnviarBienvenidaMasiva {
         detalles.push({
           pacienteId,
           nombrePaciente: paciente.nombreCompleto,
-          estado: "OMITIDO",
+          estado: "YA_ENVIADA",
           motivo: "Ya se le había enviado la bienvenida.",
         });
         continue;
@@ -114,6 +121,7 @@ export class EnviarBienvenidaMasiva {
 
     return {
       enviados: detalles.filter((d) => d.estado === "ENVIADO").length,
+      yaEnviadas: detalles.filter((d) => d.estado === "YA_ENVIADA").length,
       omitidos: detalles.filter((d) => d.estado === "OMITIDO").length,
       fallidos: detalles.filter((d) => d.estado === "FALLIDO").length,
       detalles,

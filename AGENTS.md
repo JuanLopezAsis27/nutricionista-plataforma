@@ -51,6 +51,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/HISTORIA-CLINICA.md`   | Evoluciones, campos personalizados y el alta por documento |
 | `docs/ASISTENTE-IA.md`       | El chat analítico: herramientas, contexto e historial |
 | `docs/PROMPTS-IA.md`         | Los siete system prompts, sus marcadores y cómo se personalizan |
+| `docs/IA-PLATAFORMA.md`      | Claves de IA de la plataforma, saldo y registro de uso |
 | `docs/GRABACIONES.md`        | Grabar la consulta, transcribirla y resumirla con IA  |
 | `docs/ARCHIVOS.md`           | Cómo llega al navegador un archivo del bucket         |
 | `docs/MENSAJERIA.md`         | La bandeja, el hilo y las piezas que comparten los canales |
@@ -62,7 +63,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/WEARABLES.md`          | Importación de métricas de dispositivos               |
 | `docs/MOBILE.md`             | La app Android con Capacitor                          |
 | `docs/PWA.md`                | Instalar la web como app; qué cachea el service worker |
-| `docs/DESPLIEGUE.md`         | Producción, respaldos y nginx                         |
+| `docs/DESPLIEGUE.md`         | Producción, respaldos, nginx y el cambio de dominio    |
 
 ## Arquitectura — Clean Architecture
 
@@ -120,7 +121,8 @@ Lo que no puede es importar funciones ni casos de uso.
 
 **Dónde va cada pantalla de configuración**, que se movió más de una vez:
 Integraciones son SERVICIOS EXTERNOS con credenciales (Google, WhatsApp Cloud
-API, IA). Configuración es lo que describe al CONSULTORIO (membrete, PDF,
+API) y, de la IA, lo que es del consultorio: los prompts. Las CLAVES de IA son
+de la plataforma y se cargan en `/admin` (migración 71, `docs/IA-PLATAFORMA.md`). Configuración es lo que describe al CONSULTORIO (membrete, PDF,
 prefijo telefónico, plantillas de email que no son recordatorios) y, en su
 propia pestaña, los ESTABLECIMIENTOS, que son los lugares donde se atiende y
 cada uno lleva su agenda (días, horario, duración y paso del turno). Recordatorios es la tarea de avisar turnos, completa. La
@@ -210,8 +212,8 @@ consultorio lento bloquearía a todos los demás.
 
 ## Modelos del dominio
 
-**34 entidades**, **163 casos de uso** en 25 módulos, **36 interfaces de
-repositorio** y **17 puertos de servicio**. La fuente de verdad es el código
+**34 entidades**, **163 casos de uso** en 25 módulos, **38 interfaces de
+repositorio** y **18 puertos de servicio**. La fuente de verdad es el código
 (`/src/dominio`) y `prisma/schema.prisma`. Acá van solo los invariantes que
 cruzan módulos; el detalle de cada uno, en `/docs`.
 
@@ -219,6 +221,11 @@ cruzan módulos; el detalle de cada uno, en `/docs`.
 
 Email y teléfono son únicos POR CONSULTORIO, no globalmente: la misma persona
 puede ser paciente de dos nutricionistas. Baja lógica con `archivadoEn`.
+
+El email de bienvenida se puede **reenviar**: el envío manual nunca pisa a quien
+ya la recibió (sale como `YA_ENVIADA`, no como omitido) y la pantalla pregunta
+aparte si reenviársela, que viaja con `forzar`. El reenvío no lleva la
+contraseña: solo existe en texto plano durante el alta.
 
 ### Usuario
 
@@ -257,6 +264,16 @@ cobranza). `EliminarTurno` es borrado real y exige estado CANCELADO y sin cobro:
 un turno con precio ya entró en las estadísticas de ingresos.
 
 Ver `docs/AGENDA.md` y `docs/CALENDARIO-TURNOS.md`.
+
+### IA de la plataforma
+
+Las claves de Anthropic, OpenRouter y OpenAI son **de la plataforma**, no de
+cada consultorio (migración 71): las carga el SUPERADMIN y las usan todos. Lo
+único de cada profesional son sus prompts. Viven en `configuracion_ia_global`
+(una fila, sin inquilino, cifradas) y cada llamada queda en `registros_uso_ia`
+—tabla de inquilino, con el consultorio que la hizo— por el decorador
+`ProveedorLLMRegistrado`. El costo se guarda solo si el proveedor lo informa
+(OpenRouter); nunca se estima. Ver `docs/IA-PLATAFORMA.md`.
 
 ### Grabaciones de consulta
 
@@ -715,6 +732,13 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   en `ServicioPaciente.darLaBienvenida`. El alta desde documento no la mandaba y
   esos pacientes quedaban sin sus datos de acceso, sin ningún aviso
 - Nunca asumir que el modelo sabe qué día es: la fecha de hoy va en el prompt
+- Nunca volver a guardar claves de IA por consultorio ni leerlas de
+  `credenciales_proveedor`: son de la plataforma (`IConfiguracionIAGlobalRepositorio`).
+  Y nunca armar un proveedor de LLM sin pasar por `ResolvedorConfigIA`: es el
+  que lo envuelve en `ProveedorLLMRegistrado`, y uno suelto gasta sin dejar
+  rastro en el panel
+- Nunca estimar el costo de una llamada con una tabla de precios propia: queda
+  vieja sin avisar. `costoUsd` es solo el que informa el proveedor
 - Nunca tragarse con un `catch` vacío el fallo de una llamada de IA y devolver
   el stub: el error llega a la pantalla disfrazado de respuesta
 - Nunca hacer que un interpretador de IA persista lo que leyó de un documento:

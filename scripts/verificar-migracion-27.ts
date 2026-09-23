@@ -455,11 +455,6 @@ async function main(): Promise<void> {
     async () => {
       await ejecutarEnNutricionista(nutriA, () =>
         credenciales.guardar({
-          proveedorIA: "OPENROUTER",
-          anthropicApiKey: "sk-secreta",
-          anthropicModelo: "modelo-x",
-          proveedorTranscripcion: "OPENAI",
-          transcripcionApiKey: "voz-secreta",
           whatsappToken: "wa-token",
           whatsappPhoneNumberId: "111222333",
           whatsappAppSecret: "app-secret",
@@ -474,14 +469,9 @@ async function main(): Promise<void> {
       const l = await ejecutarEnNutricionista(nutriA, () =>
         credenciales.obtener(),
       );
-      if (l?.anthropicApiKey !== "sk-secreta")
-        throw new Error("se perdió la clave de IA");
-      if (l.proveedorIA !== "OPENROUTER")
-        throw new Error("se perdió el proveedor");
-      if (l.anthropicModelo !== "modelo-x")
-        throw new Error("se perdió el modelo");
-      if (l.transcripcionApiKey !== "voz-secreta")
-        throw new Error("se perdió la clave de voz");
+      // Las claves de IA ya no son del consultorio (migración 71).
+      if (l?.whatsappToken !== "wa-token")
+        throw new Error("se perdió el token");
       if (l.whatsappPhoneNumberId !== "111222333")
         throw new Error("se perdió el número");
       if (l.criterios.maxCaloriasPor100 !== 500)
@@ -543,8 +533,8 @@ async function main(): Promise<void> {
         credenciales.obtener(),
       );
       if (l?.whatsappToken !== null) throw new Error("el token no se borró");
-      // Otro proveedor distinto: borrar el token de WhatsApp no debe tocarlo.
-      if (l.transcripcionApiKey !== "voz-secreta")
+      // Otra clave: borrar el token de WhatsApp no debe tocarla.
+      if (l.whatsappAppSecret !== "app-secret")
         throw new Error("se borró de más");
     },
   );

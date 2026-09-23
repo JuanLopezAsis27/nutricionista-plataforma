@@ -3,6 +3,7 @@ import type {
   ITranscriptorAudio,
   OpcionesTranscripcion,
 } from "@/dominio/servicios/ITranscriptorAudio";
+import type { ConsumoLLM } from "./IProveedorLLM";
 
 const URL = "https://api.openai.com/v1/audio/transcriptions";
 
@@ -16,6 +17,11 @@ const TIEMPO_LIMITE_MS = 10 * 60 * 1000;
 
 interface RespuestaOpenAI {
   text?: string;
+  /**
+   * Los modelos `gpt-4o-*-transcribe` informan tokens; `whisper-1` informa
+   * segundos de audio (`type: "duration"`), que no son tokens y quedan en 0.
+   */
+  usage?: { type?: string; input_tokens?: number; output_tokens?: number };
   error?: { message?: string };
 }
 
@@ -43,6 +49,14 @@ export class TranscriptorOpenAI implements ITranscriptorAudio {
     audio: AudioParaTranscribir,
     opciones?: OpcionesTranscripcion,
   ): Promise<string> {
+    return (await this.transcribirConConsumo(audio, opciones)).texto;
+  }
+
+  /** Lo mismo que `transcribir`, más lo que gastó (para el registro de uso). */
+  async transcribirConConsumo(
+    audio: AudioParaTranscribir,
+    opciones?: OpcionesTranscripcion,
+  ): Promise<{ texto: string; consumo: ConsumoLLM }> {
     const formulario = new FormData();
     formulario.append(
       "file",
@@ -77,6 +91,13 @@ export class TranscriptorOpenAI implements ITranscriptorAudio {
     if (json.error) {
       throw new Error(json.error.message ?? "Error de OpenAI.");
     }
-    return (json.text ?? "").trim();
+    return {
+      texto: (json.text ?? "").trim(),
+      consumo: {
+        tokensEntrada: json.usage?.input_tokens ?? 0,
+        tokensSalida: json.usage?.output_tokens ?? 0,
+        costoUsd: null,
+      },
+    };
   }
 }

@@ -4,6 +4,7 @@ import type {
   OpcionesLLM,
   OpcionesConversacion,
   EsfuerzoLLM,
+  AlConsumirLLM,
 } from "./IProveedorLLM";
 import { extraerTexto } from "./respuestaClaude";
 import { ejecutarHerramientaSegura } from "./herramientas";
@@ -85,6 +86,7 @@ export class ProveedorLLMAnthropic implements IProveedorLLM {
         messages: [{ role: "user", content: contenido }],
       })
       .finalMessage();
+    informarConsumo(respuesta, opts.alConsumir);
 
     if (respuesta.stop_reason === "refusal") {
       throw new Error("La IA rechazó la solicitud.");
@@ -126,6 +128,7 @@ export class ProveedorLLMAnthropic implements IProveedorLLM {
           tools,
         },
         opts.alAvanzar,
+        opts.alConsumir,
       );
       if (respuesta.stop_reason === "refusal") {
         throw new Error("La IA rechazó la solicitud.");
@@ -166,6 +169,7 @@ export class ProveedorLLMAnthropic implements IProveedorLLM {
         messages,
       },
       opts.alAvanzar,
+      opts.alConsumir,
     );
     return extraerTexto(cierre);
   }
@@ -181,15 +185,41 @@ export class ProveedorLLMAnthropic implements IProveedorLLM {
   private async pedir(
     cuerpo: Anthropic.Messages.MessageCreateParamsNonStreaming,
     alAvanzar?: AlAvanzarIA,
+    alConsumir?: AlConsumirLLM,
   ): Promise<Anthropic.Messages.Message> {
-    if (!alAvanzar) return this.cliente.messages.create(cuerpo);
-
-    const flujo = this.cliente.messages.stream(cuerpo);
-    flujo.on("text", (fragmento) => {
-      if (fragmento) alAvanzar({ tipo: "texto", texto: fragmento });
-    });
-    return flujo.finalMessage();
+    let respuesta: Anthropic.Messages.Message;
+    if (!alAvanzar) {
+      respuesta = await this.cliente.messages.create(cuerpo);
+    } else {
+      const flujo = this.cliente.messages.stream(cuerpo);
+      flujo.on("text", (fragmento) => {
+        if (fragmento) alAvanzar({ tipo: "texto", texto: fragmento });
+      });
+      respuesta = await flujo.finalMessage();
+    }
+    informarConsumo(respuesta, alConsumir);
+    return respuesta;
   }
+}
+
+/**
+ * Los tokens de entrada incluyen los que se escribieron o leyeron de la caché
+ * de prompts: la API los informa aparte, pero igual son entrada procesada.
+ */
+function informarConsumo(
+  respuesta: Anthropic.Messages.Message,
+  alConsumir?: AlConsumirLLM,
+): void {
+  const u = respuesta.usage as Anthropic.Messages.Usage | undefined;
+  if (!alConsumir || !u) return;
+  alConsumir({
+    tokensEntrada:
+      u.input_tokens +
+      (u.cache_creation_input_tokens ?? 0) +
+      (u.cache_read_input_tokens ?? 0),
+    tokensSalida: u.output_tokens,
+    costoUsd: null,
+  });
 }
 
 function normalizarMime(mime: string): MediaType {

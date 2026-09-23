@@ -23,6 +23,25 @@ export type BloqueUsuario =
  */
 export type EsfuerzoLLM = "bajo" | "medio" | "alto";
 
+/**
+ * Lo que gastó UNA vuelta contra la API. Una conversación con herramientas son
+ * varias vueltas, y cada una informa la suya.
+ */
+export interface ConsumoLLM {
+  tokensEntrada: number;
+  tokensSalida: number;
+  /** Solo si el proveedor lo informa (OpenRouter); nunca se estima. */
+  costoUsd: number | null;
+}
+
+/**
+ * Callback de consumo. Viaja en las OPCIONES de cada llamada y no en el
+ * constructor del proveedor porque los proveedores se cachean y los comparten
+ * requests concurrentes: un callback de instancia mezclaría los tokens de dos
+ * consultorios.
+ */
+export type AlConsumirLLM = (consumo: ConsumoLLM) => void;
+
 export interface OpcionesLLM {
   system: string;
   usuario: BloqueUsuario[];
@@ -31,6 +50,7 @@ export interface OpcionesLLM {
   esquemaJson?: { nombre: string; esquema: Record<string, unknown> };
   /** Defecto: "bajo" (lo que usaba toda la app antes de que esto existiera). */
   esfuerzo?: EsfuerzoLLM;
+  alConsumir?: AlConsumirLLM;
 }
 
 /** Definición de una herramienta que el modelo puede invocar (sin el ejecutor). */
@@ -77,6 +97,7 @@ export interface OpcionesConversacion {
    * no muestran nada en vivo: resúmenes, importaciones, trabajos del worker).
    */
   alAvanzar?: AlAvanzarIA;
+  alConsumir?: AlConsumirLLM;
 }
 
 export interface IProveedorLLM {

@@ -1,15 +1,17 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { ICredencialesIntegracionRepositorio } from "@/dominio/repositorios/ICredencialesIntegracionRepositorio";
+import type { IConfiguracionIAGlobalRepositorio } from "@/dominio/repositorios/IConfiguracionIAGlobalRepositorio";
+import type { IRegistroUsoIARepositorio } from "@/dominio/repositorios/IRegistroUsoIARepositorio";
 import type { IProveedorLLM } from "./IProveedorLLM";
 import { ProveedorLLMAnthropic } from "./ProveedorLLMAnthropic";
 import { ProveedorLLMOpenRouter } from "./ProveedorLLMOpenRouter";
+import { ProveedorLLMRegistrado } from "./registroUso";
 import { obtenerConfigClaude } from "./configClaude";
 
-const MODELO_ANTHROPIC = "claude-opus-5";
-const MODELO_OPENROUTER = "anthropic/claude-opus-5";
+export const MODELO_ANTHROPIC = "claude-opus-5";
+export const MODELO_OPENROUTER = "anthropic/claude-opus-5";
 
 export interface IResolvedorConfigIA {
-  /** Proveedor LLM del inquilino actual, o null si no hay clave en ningún lado. */
+  /** Proveedor LLM de la plataforma, o null si no hay clave en ningún lado. */
   obtenerLLM(): Promise<IProveedorLLM | null>;
 }
 
@@ -20,16 +22,21 @@ interface ClaveResuelta {
 }
 
 /**
- * Resuelve el proveedor de IA POR REQUEST, priorizando lo que el profesional
- * cargó en la app (proveedor + clave + modelo) y cayendo a la variable de
- * entorno `ANTHROPIC_API_KEY`. Si no hay clave, devuelve null y los adaptadores
- * usan los stubs. Los proveedores se cachean por (proveedor, clave, modelo).
+ * Resuelve el proveedor de IA POR LLAMADA a partir de la configuración de la
+ * PLATAFORMA (la carga el SUPERADMIN; desde la migración 71 ya no hay claves
+ * por consultorio), cayendo a la variable de entorno `ANTHROPIC_API_KEY`. Si
+ * no hay clave, devuelve null y los adaptadores usan los stubs.
+ *
+ * Lo que devuelve va envuelto en `ProveedorLLMRegistrado`: cada llamada queda
+ * en el registro de uso con el consultorio que la hizo. Los proveedores se
+ * cachean por (proveedor, clave, modelo).
  */
 export class ResolvedorConfigIA implements IResolvedorConfigIA {
   private readonly cache = new Map<string, IProveedorLLM>();
 
   constructor(
-    private readonly credenciales: ICredencialesIntegracionRepositorio,
+    private readonly configuracion: IConfiguracionIAGlobalRepositorio,
+    private readonly registro: IRegistroUsoIARepositorio,
   ) {}
 
   /** Solo indica si hay IA configurada (sin construir el proveedor). */
@@ -44,13 +51,18 @@ export class ResolvedorConfigIA implements IResolvedorConfigIA {
     const clave = `${r.proveedor}:${r.apiKey}:${r.modelo}`;
     let proveedor = this.cache.get(clave);
     if (!proveedor) {
-      proveedor =
+      const interno =
         r.proveedor === "OPENROUTER"
           ? new ProveedorLLMOpenRouter(r.apiKey, r.modelo)
           : new ProveedorLLMAnthropic(
               new Anthropic({ apiKey: r.apiKey }),
               r.modelo,
             );
+      proveedor = new ProveedorLLMRegistrado(
+        interno,
+        r.proveedor,
+        this.registro,
+      );
       this.cache.set(clave, proveedor);
     }
     return proveedor;
@@ -58,17 +70,18 @@ export class ResolvedorConfigIA implements IResolvedorConfigIA {
 
   private async resolver(): Promise<ClaveResuelta | null> {
     try {
-      const c = await this.credenciales.obtener();
-      if (c?.anthropicApiKey) {
-        const proveedor =
-          c.proveedorIA === "OPENROUTER" ? "OPENROUTER" : "ANTHROPIC";
+      const c = await this.configuracion.obtener();
+      const apiKey = c.claves[c.proveedorIA];
+      if (apiKey) {
         const modelo =
-          c.anthropicModelo ??
-          (proveedor === "OPENROUTER" ? MODELO_OPENROUTER : MODELO_ANTHROPIC);
-        return { proveedor, apiKey: c.anthropicApiKey, modelo };
+          c.modeloIA ??
+          (c.proveedorIA === "OPENROUTER"
+            ? MODELO_OPENROUTER
+            : MODELO_ANTHROPIC);
+        return { proveedor: c.proveedorIA, apiKey, modelo };
       }
-    } catch {
-      // Sin alcance de inquilino o error de lectura → probamos el entorno.
+    } catch (error) {
+      console.error("[ia] no se pudo leer la configuración de IA:", error);
     }
     const env = obtenerConfigClaude();
     return env

@@ -132,7 +132,7 @@ export class InterpretadorHistoriaClinicaLLM implements IInterpretadorHistoriaCl
     const llm = await this.resolvedor.obtenerLLM();
     if (!llm) {
       throw new Error(
-        "No hay IA configurada para interpretar el archivo. Cargá la clave en Integraciones o completá los campos a mano.",
+        "No hay IA configurada para interpretar el archivo. La activa el administrador de la plataforma; mientras tanto, completá los campos a mano.",
       );
     }
 

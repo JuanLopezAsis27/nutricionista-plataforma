@@ -109,7 +109,7 @@ export class InterpretadorMedicionesLLM implements IInterpretadorMediciones {
     const llm = await this.resolvedor.obtenerLLM();
     if (!llm) {
       throw new Error(
-        "No hay IA configurada para leer la planilla. Cargá la clave en Integraciones o cargá las mediciones a mano.",
+        "No hay IA configurada para leer la planilla. La activa el administrador de la plataforma; mientras tanto, cargá las mediciones a mano.",
       );
     }
 

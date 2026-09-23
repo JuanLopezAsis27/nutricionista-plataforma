@@ -56,7 +56,9 @@ describe("EnviarBienvenidaMasiva", () => {
 
     const resultado = await caso.ejecutar({ pacienteIds: ["pac-1"] });
 
-    expect(resultado.omitidos).toBe(1);
+    expect(resultado.yaEnviadas).toBe(1);
+    expect(resultado.omitidos).toBe(0);
+    expect(resultado.detalles[0]!.estado).toBe("YA_ENVIADA");
     expect(pacientes.actualizar).not.toHaveBeenCalled();
   });
 

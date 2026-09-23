@@ -123,12 +123,13 @@ export type EnviarBienvenidaManualDto = z.infer<
 export const detalleEnvioBienvenidaSalidaDto = z.object({
   pacienteId: z.string(),
   nombrePaciente: z.string(),
-  estado: z.enum(["ENVIADO", "OMITIDO", "FALLIDO"]),
+  estado: z.enum(["ENVIADO", "YA_ENVIADA", "OMITIDO", "FALLIDO"]),
   motivo: z.string().nullable(),
 });
 
 export const resultadoEnvioBienvenidaSalidaDto = z.object({
   enviados: z.number(),
+  yaEnviadas: z.number(),
   omitidos: z.number(),
   fallidos: z.number(),
   detalles: z.array(detalleEnvioBienvenidaSalidaDto),

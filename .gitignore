@@ -55,3 +55,5 @@ venv/
 
 # Configuración local de Capacitor (URL del servidor de desarrollo)
 capacitor.config.local.ts
+
+/android

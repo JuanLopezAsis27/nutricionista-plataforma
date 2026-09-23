@@ -11,6 +11,7 @@ import {
   FileUp,
   FileDown,
   Send,
+  RotateCw,
 } from "lucide-react";
 import type { PacienteSalidaDto } from "@/aplicacion/dtos/paciente.dto";
 import { usePacientes } from "@/lib/hooks/usePacientes";
@@ -29,6 +30,8 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/componentes/ui/dialog";
@@ -56,6 +59,15 @@ export default function PaginaPacientes() {
     useState<PacienteSalidaDto | null>(null);
   const [documentoAbierto, setDocumentoAbierto] = useState(false);
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
+  /**
+   * Los de la selección que ya la habían recibido. El primer envío nunca los
+   * pisa: se juntan acá y se pregunta aparte si reenviársela, porque remandar
+   * los datos de acceso es una decisión, no un efecto colateral de haber
+   * tildado a todos.
+   */
+  const [paraReenviar, setParaReenviar] = useState<
+    { id: string; nombre: string }[]
+  >([]);
   const [filtroBienvenida, setFiltroBienvenida] = useState<
     "todos" | "enviada" | "no_enviada"
   >("todos");
@@ -91,7 +103,23 @@ export default function PaginaPacientes() {
   function enviarBienvenidaASeleccionados() {
     enviarBienvenidaManual.mutate(
       { pacienteIds: Array.from(seleccionados) },
-      { onSuccess: () => setSeleccionados(new Set()) },
+      {
+        onSuccess: (resultado) => {
+          setSeleccionados(new Set());
+          setParaReenviar(
+            resultado.detalles
+              .filter((d) => d.estado === "YA_ENVIADA")
+              .map((d) => ({ id: d.pacienteId, nombre: d.nombrePaciente })),
+          );
+        },
+      },
+    );
+  }
+
+  function reenviarBienvenida(ids: string[]) {
+    enviarBienvenidaManual.mutate(
+      { pacienteIds: ids, forzar: true },
+      { onSuccess: () => setParaReenviar([]) },
     );
   }
 
@@ -131,9 +159,25 @@ export default function PaginaPacientes() {
       encabezado: "Bienvenida",
       render: (p) =>
         p.bienvenidaEnviadaEn ? (
-          <Badge variant="secondary">
-            Enviada {formatearFecha(p.bienvenidaEnviadaEn)}
-          </Badge>
+          <div className="flex items-center gap-1">
+            <Badge variant="secondary">
+              Enviada {formatearFecha(p.bienvenidaEnviadaEn)}
+            </Badge>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              title="Reenviar bienvenida"
+              disabled={enviarBienvenidaManual.isPending}
+              onClick={() =>
+                setParaReenviar([
+                  { id: p.id, nombre: `${p.nombre} ${p.apellido}` },
+                ])
+              }
+            >
+              <RotateCw className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         ) : (
           <Badge variant="outline">No enviada</Badge>
         ),
@@ -256,6 +300,48 @@ export default function PaginaPacientes() {
           onCambiarSeleccionTodos={cambiarSeleccionTodos}
         />
       )}
+
+      {/* Reenvío de la bienvenida a quienes ya la habían recibido */}
+      <Dialog
+        open={paraReenviar.length > 0}
+        onOpenChange={(abierto) => !abierto && setParaReenviar([])}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reenviar la bienvenida</DialogTitle>
+            <DialogDescription>
+              {paraReenviar.length === 1
+                ? `${paraReenviar[0]!.nombre} ya recibió el email de bienvenida.`
+                : `${paraReenviar.length} pacientes ya habían recibido el email de bienvenida.`}{" "}
+              ¿Querés mandárselo de nuevo? El reenvío no puede incluir la
+              contraseña: solo existe en el momento del alta.
+            </DialogDescription>
+          </DialogHeader>
+          {paraReenviar.length > 1 && (
+            <ul className="max-h-40 overflow-y-auto text-sm text-muted-foreground">
+              {paraReenviar.map((p) => (
+                <li key={p.id}>{p.nombre}</li>
+              ))}
+            </ul>
+          )}
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setParaReenviar([])}
+              disabled={enviarBienvenidaManual.isPending}
+            >
+              No reenviar
+            </Button>
+            <Button
+              onClick={() => reenviarBienvenida(paraReenviar.map((p) => p.id))}
+              disabled={enviarBienvenidaManual.isPending}
+            >
+              <Send className="h-4 w-4" />
+              Reenviar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de alta/edición */}
       <Dialog open={formAbierto} onOpenChange={setFormAbierto}>
