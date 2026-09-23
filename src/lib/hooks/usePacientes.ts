@@ -71,11 +71,13 @@ export function usePacientes() {
             }.`,
           );
         }
+        // Los que ya la tenían no se avisan acá: la pantalla ofrece
+        // reenviársela con su propia confirmación.
         if (resultado.omitidos > 0) {
           toast.info(
             `${resultado.omitidos} paciente${
               resultado.omitidos === 1 ? "" : "s"
-            } ya la tenía enviada.`,
+            } sin email o sin plantilla de bienvenida.`,
           );
         }
         if (resultado.fallidos > 0) {
