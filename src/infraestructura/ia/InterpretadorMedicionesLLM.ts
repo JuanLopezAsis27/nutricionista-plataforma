@@ -25,8 +25,8 @@ const textoONulo = { type: ["string", "null"] };
  */
 const CAMPOS_MANUALES = [
   "kgGrasa",
-  "fuerzaPresionDerecha",
-  "fuerzaPresionIzquierda",
+  "fuerzaPrensionDerecha",
+  "fuerzaPrensionIzquierda",
 ] as const;
 
 const PROPIEDADES_MEDICION: Record<string, unknown> = {

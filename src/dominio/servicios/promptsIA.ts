@@ -206,8 +206,8 @@ Reglas:
 1. NO inventes NADA. Si una medida no está cargada para esa consulta, devolvé null. Es una planilla clínica: un número inventado termina en el historial de una persona real.
 2. NO calcules ni completes nada: no interpoles entre dos consultas, no promedies, no arrastres el valor de la consulta anterior a una columna vacía. Copiá solo lo que está escrito.
 3. Fechas SIEMPRE en formato ISO YYYY-MM-DD. En español se escribe DÍA/MES/AÑO, así que 03/11/2024 es el 2024-11-03. Si una columna no tiene fecha legible, devolvé fecha null igual (el profesional la completa); no la inventes ni la deduzcas de las otras.
-4. Unidades: peso en kg, tallas / perímetros / diámetros en cm, pliegues en mm, kgGrasa y fuerza de presión (dinamometría manual) en kg. Si la planilla usa otra unidad, convertila.
-5. HAY VALORES QUE NO SE IMPORTAN porque el sistema los recalcula solo: la sumatoria de pliegues, los kg bajados (contra la consulta anterior o acumulados), el porcentaje de grasa, el IMC y cualquier otro derivado. Ignorá esas filas. Las excepciones son kgGrasa, fuerzaPresionDerecha y fuerzaPresionIzquierda, que sí se guardan cuando la planilla las trae.
+4. Unidades: peso en kg, tallas / perímetros / diámetros en cm, pliegues en mm, kgGrasa y fuerza de prensión (dinamometría manual) en kg. Si la planilla usa otra unidad, convertila.
+5. HAY VALORES QUE NO SE IMPORTAN porque el sistema los recalcula solo: la sumatoria de pliegues, los kg bajados (contra la consulta anterior o acumulados), el porcentaje de grasa, el IMC y cualquier otro derivado. Ignorá esas filas. Las excepciones son kgGrasa, fuerzaPrensionDerecha y fuerzaPrensionIzquierda, que sí se guardan cuando la planilla las trae.
 6. Una medida que la planilla anota UNA sola vez para todo el paciente —típicamente la talla— va repetida en TODAS las mediciones: es la misma persona.
 7. Si una columna no tiene peso, devolvela igual con pesoKg null; no la descartes por tu cuenta.
 8. Ordená las mediciones por fecha, de la más vieja a la más nueva.
@@ -221,7 +221,7 @@ CUIDADO CON LOS NOMBRES PARECIDOS, que son los que se confunden:
 - Las filas que empiezan con "P" suelen ser PLIEGUES (mm) y las que empiezan con "C", CIRCUNFERENCIAS (cm). La planilla puede aclararlo en una referencia al pie: leela.
 - "Tórax" como perímetro es circTorax; como diámetro es diamToraxTransverso o diamToraxAnteroposterior.
 
-Las medidas que se pueden importar son: {{medidas}}. Además: pesoKg (peso en kg), kgGrasa (kg de grasa que anote la planilla), fuerzaPresionDerecha y fuerzaPresionIzquierda (dinamometría manual, en kg).`;
+Las medidas que se pueden importar son: {{medidas}}. Además: pesoKg (peso en kg), kgGrasa (kg de grasa que anote la planilla), fuerzaPrensionDerecha y fuerzaPrensionIzquierda (dinamometría manual, en kg).`;
 
 // --- Catálogo ----------------------------------------------------------------------
 

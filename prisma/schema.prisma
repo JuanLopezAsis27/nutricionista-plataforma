@@ -163,6 +163,16 @@ enum MetodoGrasa {
 }
 
 /// Variable de composición corporal sobre la que se plantea un objetivo.
+/// Variables de la balanza de bioimpedancia sobre las que se plantea una meta.
+/// Son las cinco que informa el equipo, sin derivados.
+enum VariableBioimpedancia {
+  PESO
+  MASA_MUSCULAR_KG
+  MASA_GRASA_KG
+  PORCENTAJE_MUSCULAR
+  PORCENTAJE_GRASA
+}
+
 enum VariableComposicion {
   PESO
   MASA_ADIPOSA_KG
@@ -312,6 +322,8 @@ model Nutricionista {
   laboratorios                Laboratorio[]
   antropometrias              Antropometria[]
   objetivosComposicion        ObjetivoComposicion[]
+  bioimpedancias              Bioimpedancia[]
+  objetivosBioimpedancia      ObjetivoBioimpedancia[]
   plantillasAntropometricas   PlantillaAntropometrica[]
   usuarios                    Usuario[]
   recetas                     Receta[]
@@ -456,6 +468,8 @@ model Paciente {
   evoluciones             Evolucion[]
   antropometrias          Antropometria[]
   objetivosComposicion    ObjetivoComposicion[]
+  bioimpedancias          Bioimpedancia[]
+  objetivosBioimpedancia  ObjetivoBioimpedancia[]
   laboratorios            Laboratorio[]
   archivos                Archivo[]
   registrosDiarios        RegistroDiario[]
@@ -1517,8 +1531,8 @@ model Antropometria {
   kgGrasa                Decimal? @db.Decimal(5, 2)
   // Dinamometría manual (kg). No alimenta ninguna ecuación de composición;
   // se registra y se muestra tal cual, como kgGrasa.
-  fuerzaPresionDerecha   Decimal? @db.Decimal(4, 1)
-  fuerzaPresionIzquierda Decimal? @db.Decimal(4, 1)
+  fuerzaPrensionDerecha   Decimal? @db.Decimal(4, 1)
+  fuerzaPrensionIzquierda Decimal? @db.Decimal(4, 1)
   observaciones          String?
   creadoEn               DateTime @default(now())
   actualizadoEn          DateTime @updatedAt
@@ -1536,6 +1550,57 @@ model Antropometria {
 /// clínico y rompería la proyección del dashboard.
 /// El valor de partida NO se guarda: es el de la primera medición posterior
 /// a la creación del objetivo, y lo resuelve el dominio al proyectar.
+/// Una consulta con la balanza de bioimpedancia (migración 72): lo que el
+/// equipo informó, tal cual. Es OTRA fuente que la antropometría y no se
+/// mezcla con ella: el % graso de la balanza y el de una ecuación de pliegues
+/// son números de métodos distintos. Nada es derivado —el equipo ya calculó la
+/// composición—, así que los porcentajes también se guardan.
+model Bioimpedancia {
+  id                 String   @id @default(uuid(4))
+  nutricionistaId    String
+  pacienteId         String
+  fecha              DateTime @db.Date
+  pesoKg             Decimal  @db.Decimal(5, 2)
+  masaMuscularKg     Decimal? @db.Decimal(5, 2)
+  masaGrasaKg        Decimal? @db.Decimal(5, 2)
+  porcentajeMuscular Decimal? @db.Decimal(4, 1)
+  porcentajeGrasa    Decimal? @db.Decimal(4, 1)
+  observaciones      String?
+  creadoEn           DateTime @default(now())
+  actualizadoEn      DateTime @updatedAt
+
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  /// Una por paciente y fecha, como la antropometría y la evolución.
+  @@unique([pacienteId, fecha])
+  @@map("bioimpedancias")
+}
+
+/// Meta numérica sobre una variable de la bioimpedancia. Aparte de
+/// `ObjetivoComposicion` porque se sigue contra la serie de la balanza, no
+/// contra la de la antropometría.
+model ObjetivoBioimpedancia {
+  id              String                @id @default(uuid(4))
+  nutricionistaId String
+  pacienteId      String
+  variable        VariableBioimpedancia
+  valorObjetivo   Decimal               @db.Decimal(7, 2)
+  fechaObjetivo   DateTime?             @db.Date
+  estado          EstadoObjetivo        @default(EN_CURSO)
+  notas           String?
+  creadoEn        DateTime              @default(now())
+  actualizadoEn   DateTime              @updatedAt
+
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  /// Una sola meta vigente por paciente y variable.
+  @@unique([pacienteId, variable])
+  @@index([nutricionistaId, pacienteId])
+  @@map("objetivos_bioimpedancia")
+}
+
 model ObjetivoComposicion {
   id              String              @id @default(uuid(4))
   nutricionistaId String

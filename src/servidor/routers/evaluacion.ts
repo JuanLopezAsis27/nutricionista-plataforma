@@ -28,6 +28,14 @@ import {
   guardarCampoEvolucionDto,
   idCampoEvolucionDto,
 } from "@/aplicacion/dtos/evaluacion.dto";
+import {
+  registrarBioimpedanciaDto,
+  actualizarBioimpedanciaDto,
+  idBioimpedanciaDto,
+  idPacienteBioimpedanciaDto,
+  guardarObjetivoBioimpedanciaDto,
+  idObjetivoBioimpedanciaDto,
+} from "@/aplicacion/dtos/bioimpedancia.dto";
 import { z } from "zod";
 
 const idDto = z.object({ id: z.string().min(1) });
@@ -247,6 +255,52 @@ export const routerEvaluacion = crearRouter({
       pacienteDeSesion(ctx.usuario),
     );
   }),
+
+  // --- Bioimpedancia ------------------------------------------------------------
+  // Lo que informa la balanza, con sus metas. Es del profesional: no se expone
+  // al portal (el paciente ve su composición por `miComposicion`, que es la
+  // antropometría).
+  obtenerBioimpedancia: nutricionistaProcedimiento
+    .input(idPacienteBioimpedanciaDto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.evaluacion.bioimpedancia.obtener(
+        input.pacienteId,
+      );
+    }),
+
+  registrarBioimpedancia: nutricionistaProcedimiento
+    .input(registrarBioimpedanciaDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.evaluacion.bioimpedancia.registrar(input);
+    }),
+
+  actualizarBioimpedancia: nutricionistaProcedimiento
+    .input(actualizarBioimpedanciaDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.evaluacion.bioimpedancia.actualizar(input);
+    }),
+
+  eliminarBioimpedancia: nutricionistaProcedimiento
+    .input(idBioimpedanciaDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.evaluacion.bioimpedancia.eliminar(input.id);
+      return { eliminado: true };
+    }),
+
+  guardarObjetivoBioimpedancia: nutricionistaProcedimiento
+    .input(guardarObjetivoBioimpedanciaDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.evaluacion.bioimpedancia.guardarObjetivo(
+        input,
+      );
+    }),
+
+  eliminarObjetivoBioimpedancia: nutricionistaProcedimiento
+    .input(idObjetivoBioimpedanciaDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.evaluacion.bioimpedancia.eliminarObjetivo(input.id);
+      return { eliminado: true };
+    }),
 
   // --- Laboratorios -------------------------------------------------------------
   obtenerLaboratorios: nutricionistaProcedimiento

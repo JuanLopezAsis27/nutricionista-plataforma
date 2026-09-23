@@ -41,9 +41,9 @@ export interface Grupo {
  * Son los números crudos, y por eso existe además de los gráficos: la paleta
  * en tema claro exige que el dato esté disponible sin depender del color.
  *
- * Los primeros cinco grupos son fijos; el de grasa por pliegues depende de
- * qué ecuaciones dejó visibles la configuración del consultorio, así que se
- * arma aparte en `construirGrupos`.
+ * Los grupos de medidas son fijos; los de resultados se ordenan en
+ * `construirGrupos`, porque el de grasa por pliegues depende de qué ecuaciones
+ * dejó visibles la configuración del consultorio.
  */
 const GRUPOS_FIJOS: Grupo[] = [
   {
@@ -66,12 +66,12 @@ const GRUPOS_FIJOS: Grupo[] = [
         valor: (m) => m.medidas.tallaSentadoCm,
       },
       {
-        etiqueta: "Fuerza de presión derecha (kg)",
-        valor: (m) => m.medidas.fuerzaPresionDerecha,
+        etiqueta: "Fuerza de prensión derecha (kg)",
+        valor: (m) => m.medidas.fuerzaPrensionDerecha,
       },
       {
-        etiqueta: "Fuerza de presión izquierda (kg)",
-        valor: (m) => m.medidas.fuerzaPresionIzquierda,
+        etiqueta: "Fuerza de prensión izquierda (kg)",
+        valor: (m) => m.medidas.fuerzaPrensionIzquierda,
       },
     ],
   },
@@ -142,73 +142,90 @@ const GRUPOS_FIJOS: Grupo[] = [
       },
     ],
   },
-  {
-    titulo: "Resultados calculados",
-    filas: [
-      {
-        etiqueta: "Masa adiposa (kg)",
-        valor: (m) => m.resultado.fraccionamiento?.adiposa.kg ?? null,
-        derivada: true,
-      },
-      {
-        etiqueta: "Masa muscular (kg)",
-        valor: (m) => m.resultado.fraccionamiento?.muscular.kg ?? null,
-        derivada: true,
-      },
-      {
-        etiqueta: "Masa residual (kg)",
-        valor: (m) => m.resultado.fraccionamiento?.residual.kg ?? null,
-        derivada: true,
-      },
-      {
-        etiqueta: "Masa ósea (kg)",
-        valor: (m) => m.resultado.fraccionamiento?.osea.kg ?? null,
-        derivada: true,
-      },
-      {
-        etiqueta: "Masa de la piel (kg)",
-        valor: (m) => m.resultado.fraccionamiento?.piel.kg ?? null,
-        derivada: true,
-      },
-      {
-        etiqueta: "IMC",
-        valor: (m) => m.resultado.indices.imc,
-        derivada: true,
-      },
-      {
-        etiqueta: "Índice cintura/cadera",
-        valor: (m) => m.resultado.indices.indiceCinturaCadera,
-        derivada: true,
-      },
-      {
-        etiqueta: "Endomorfia",
-        valor: (m) => m.resultado.somatotipo?.endomorfia ?? null,
-        derivada: true,
-      },
-      {
-        etiqueta: "Mesomorfia",
-        valor: (m) => m.resultado.somatotipo?.mesomorfia ?? null,
-        derivada: true,
-      },
-      {
-        etiqueta: "Ectomorfia",
-        valor: (m) => m.resultado.somatotipo?.ectomorfia ?? null,
-        derivada: true,
-      },
-      {
-        etiqueta: "Metabolismo basal (kcal)",
-        valor: (m) => m.resultado.energia?.metabolismoBasalKcal ?? null,
-        derivada: true,
-      },
-      {
-        etiqueta: "Gasto energético total (kcal)",
-        valor: (m) => m.resultado.energia?.gastoEnergeticoTotalKcal ?? null,
-        derivada: true,
-      },
-      { etiqueta: "Kg grasa (manual)", valor: (m) => m.medidas.kgGrasa },
-    ],
-  },
 ];
+
+/**
+ * Los resultados se parten por el modelo del que salen, en el orden en que se
+ * leen: primero el fraccionamiento de Kerr (5 componentes), después las
+ * ecuaciones de pliegues (2 componentes) y al final todo lo que no depende de
+ * ninguno de los dos modelos. Juntos bajo un solo «Resultados calculados», la
+ * masa adiposa de Kerr y el % graso de una ecuación quedaban a dos renglones
+ * como si fueran el mismo número medido dos veces, y no lo son (ver
+ * `docs/ANTROPOMETRIA.md`).
+ */
+const GRUPO_CINCO_COMPONENTES: Grupo = {
+  titulo: "Resultados · 5 componentes (Kerr)",
+  filas: [
+    {
+      etiqueta: "Masa adiposa (kg)",
+      valor: (m) => m.resultado.fraccionamiento?.adiposa.kg ?? null,
+      derivada: true,
+    },
+    {
+      etiqueta: "Masa muscular (kg)",
+      valor: (m) => m.resultado.fraccionamiento?.muscular.kg ?? null,
+      derivada: true,
+    },
+    {
+      etiqueta: "Masa residual (kg)",
+      valor: (m) => m.resultado.fraccionamiento?.residual.kg ?? null,
+      derivada: true,
+    },
+    {
+      etiqueta: "Masa ósea (kg)",
+      valor: (m) => m.resultado.fraccionamiento?.osea.kg ?? null,
+      derivada: true,
+    },
+    {
+      etiqueta: "Masa de la piel (kg)",
+      valor: (m) => m.resultado.fraccionamiento?.piel.kg ?? null,
+      derivada: true,
+    },
+  ],
+};
+
+/** Lo que no sale de ninguno de los dos modelos: índices, somatotipo, energía. */
+const GRUPO_OTROS_RESULTADOS: Grupo = {
+  titulo: "Otros resultados",
+  filas: [
+    {
+      etiqueta: "IMC",
+      valor: (m) => m.resultado.indices.imc,
+      derivada: true,
+    },
+    {
+      etiqueta: "Índice cintura/cadera",
+      valor: (m) => m.resultado.indices.indiceCinturaCadera,
+      derivada: true,
+    },
+    {
+      etiqueta: "Endomorfia",
+      valor: (m) => m.resultado.somatotipo?.endomorfia ?? null,
+      derivada: true,
+    },
+    {
+      etiqueta: "Mesomorfia",
+      valor: (m) => m.resultado.somatotipo?.mesomorfia ?? null,
+      derivada: true,
+    },
+    {
+      etiqueta: "Ectomorfia",
+      valor: (m) => m.resultado.somatotipo?.ectomorfia ?? null,
+      derivada: true,
+    },
+    {
+      etiqueta: "Metabolismo basal (kcal)",
+      valor: (m) => m.resultado.energia?.metabolismoBasalKcal ?? null,
+      derivada: true,
+    },
+    {
+      etiqueta: "Gasto energético total (kcal)",
+      valor: (m) => m.resultado.energia?.gastoEnergeticoTotalKcal ?? null,
+      derivada: true,
+    },
+    { etiqueta: "Kg grasa (manual)", valor: (m) => m.medidas.kgGrasa },
+  ],
+};
 
 /**
  * Qué ecuaciones dejó visibles la configuración, leído de la propia medición.
@@ -242,8 +259,9 @@ export function construirGrupos(
 ): Grupo[] {
   return [
     ...GRUPOS_FIJOS,
+    GRUPO_CINCO_COMPONENTES,
     {
-      titulo: "Grasa por pliegues (2 componentes)",
+      titulo: "Resultados · 2 componentes (grasa por pliegues)",
       // Una fila por ecuación: los valores de métodos distintos NO se comparan
       // entre sí, se leen en paralelo sobre las mismas medidas.
       filas: METODOS_GRASA.filter((metodo) =>
@@ -257,5 +275,6 @@ export function construirGrupos(
         derivada: true,
       })),
     },
+    GRUPO_OTROS_RESULTADOS,
   ];
 }

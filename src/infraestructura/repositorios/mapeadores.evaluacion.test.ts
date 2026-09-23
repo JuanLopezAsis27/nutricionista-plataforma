@@ -57,8 +57,8 @@ describe("mapearAntropometria", () => {
     circMusloMedial: 27,
     circPantorrilla: 28,
     kgGrasa: 29,
-    fuerzaPresionDerecha: 33,
-    fuerzaPresionIzquierda: 34,
+    fuerzaPrensionDerecha: 33,
+    fuerzaPrensionIzquierda: 34,
   } as const;
 
   const fila = {

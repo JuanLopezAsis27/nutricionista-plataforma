@@ -12,6 +12,8 @@ import type { ICampoHistoriaClinicaRepositorio } from "@/dominio/repositorios/IC
 import type { IEvolucionRepositorio } from "@/dominio/repositorios/IEvolucionRepositorio";
 import type { ICampoEvolucionRepositorio } from "@/dominio/repositorios/ICampoEvolucionRepositorio";
 import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
+import type { IBioimpedanciaRepositorio } from "@/dominio/repositorios/IBioimpedanciaRepositorio";
+import type { IObjetivoBioimpedanciaRepositorio } from "@/dominio/repositorios/IObjetivoBioimpedanciaRepositorio";
 import { ObtenerConfiguracion } from "@/aplicacion/casos-de-uso/configuracion/ObtenerConfiguracion";
 import { GuardarHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/GuardarHistoriaClinica";
 import { ObtenerHistoriaClinica } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerHistoriaClinica";
@@ -43,11 +45,18 @@ import { RegistrarLaboratorio } from "@/aplicacion/casos-de-uso/evaluacion/Regis
 import { ActualizarLaboratorio } from "@/aplicacion/casos-de-uso/evaluacion/ActualizarLaboratorio";
 import { EliminarLaboratorio } from "@/aplicacion/casos-de-uso/evaluacion/EliminarLaboratorio";
 import { ObtenerLaboratorios } from "@/aplicacion/casos-de-uso/evaluacion/ObtenerLaboratorios";
+import { RegistrarBioimpedancia } from "@/aplicacion/casos-de-uso/bioimpedancia/RegistrarBioimpedancia";
+import { ActualizarBioimpedancia } from "@/aplicacion/casos-de-uso/bioimpedancia/ActualizarBioimpedancia";
+import { EliminarBioimpedancia } from "@/aplicacion/casos-de-uso/bioimpedancia/EliminarBioimpedancia";
+import { ObtenerSeguimientoBioimpedancia } from "@/aplicacion/casos-de-uso/bioimpedancia/ObtenerSeguimientoBioimpedancia";
+import { GuardarObjetivoBioimpedancia } from "@/aplicacion/casos-de-uso/bioimpedancia/GuardarObjetivoBioimpedancia";
+import { EliminarObjetivoBioimpedancia } from "@/aplicacion/casos-de-uso/bioimpedancia/EliminarObjetivoBioimpedancia";
 import { ServicioEvaluacion } from "@/aplicacion/servicios/ServicioEvaluacion";
 import { ServicioHistoriaClinica } from "@/aplicacion/servicios/evaluacion/ServicioHistoriaClinica";
 import { ServicioEvoluciones } from "@/aplicacion/servicios/evaluacion/ServicioEvoluciones";
 import { ServicioAntropometria } from "@/aplicacion/servicios/evaluacion/ServicioAntropometria";
 import { ServicioLaboratorios } from "@/aplicacion/servicios/evaluacion/ServicioLaboratorios";
+import { ServicioBioimpedancia } from "@/aplicacion/servicios/evaluacion/ServicioBioimpedancia";
 
 /** Arma el servicio de Evaluación Integral con sus casos de uso. */
 export function crearServicioEvaluacion(deps: {
@@ -65,6 +74,8 @@ export function crearServicioEvaluacion(deps: {
   evoluciones: IEvolucionRepositorio;
   camposEvolucion: ICampoEvolucionRepositorio;
   configuracion: IConfiguracionRepositorio;
+  bioimpedancias: IBioimpedanciaRepositorio;
+  objetivosBioimpedancia: IObjetivoBioimpedanciaRepositorio;
 }): ServicioEvaluacion {
   // Cada servicio recibe SOLO los casos de uso de su subdominio. Antes esto
   // era una sola lista de 20 argumentos posicionales, donde invertir dos del
@@ -125,6 +136,21 @@ export function crearServicioEvaluacion(deps: {
         deps.almacenamiento,
       ),
       new ObtenerLaboratorios(deps.laboratorios, deps.pacientes),
+    ),
+    new ServicioBioimpedancia(
+      new RegistrarBioimpedancia(deps.bioimpedancias, deps.pacientes),
+      new ActualizarBioimpedancia(deps.bioimpedancias),
+      new EliminarBioimpedancia(deps.bioimpedancias),
+      new ObtenerSeguimientoBioimpedancia(
+        deps.bioimpedancias,
+        deps.objetivosBioimpedancia,
+        deps.pacientes,
+      ),
+      new GuardarObjetivoBioimpedancia(
+        deps.objetivosBioimpedancia,
+        deps.pacientes,
+      ),
+      new EliminarObjetivoBioimpedancia(deps.objetivosBioimpedancia),
     ),
   );
 }

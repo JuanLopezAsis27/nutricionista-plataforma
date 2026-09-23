@@ -191,6 +191,8 @@ export const servicioEvaluacion = perezoso(() =>
     evoluciones: nucleo.repositorioEvolucion(),
     camposEvolucion: nucleo.repositorioCampoEvolucion(),
     configuracion: nucleo.repositorioConfiguracion(),
+    bioimpedancias: nucleo.repositorioBioimpedancia(),
+    objetivosBioimpedancia: nucleo.repositorioObjetivoBioimpedancia(),
   }),
 );
 
