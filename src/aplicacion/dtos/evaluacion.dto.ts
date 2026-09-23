@@ -336,8 +336,8 @@ function construirMedidas(acotar: FormaDeAcotar) {
     circMusloMedial: circunferencia,
     circPantorrilla: circunferencia,
     kgGrasa: acotar(0, 150).optional().nullable(),
-    fuerzaPresionDerecha: acotar(0, 100).optional().nullable(),
-    fuerzaPresionIzquierda: acotar(0, 100).optional().nullable(),
+    fuerzaPrensionDerecha: acotar(0, 100).optional().nullable(),
+    fuerzaPrensionIzquierda: acotar(0, 100).optional().nullable(),
     observaciones: z.string().max(2000).optional().nullable(),
   });
 }
@@ -459,8 +459,8 @@ export interface MedicionEvolucionDto {
   circMusloMedial: number | null;
   circPantorrilla: number | null;
   kgGrasa: number | null;
-  fuerzaPresionDerecha: number | null;
-  fuerzaPresionIzquierda: number | null;
+  fuerzaPrensionDerecha: number | null;
+  fuerzaPrensionIzquierda: number | null;
   observaciones: string | null;
   creadoEn: Date;
   // Derivados (calculados por el dominio, nunca persistidos)

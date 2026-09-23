@@ -47,6 +47,8 @@ export const MODELOS_INQUILINO = new Set<string>([
   "MaterialBiblioteca",
   "Objetivo",
   "ObjetivoComposicion",
+  "Bioimpedancia",
+  "ObjetivoBioimpedancia",
   "PlantillaAntropometrica",
   "CampoHistoriaClinica",
   "Evolucion",

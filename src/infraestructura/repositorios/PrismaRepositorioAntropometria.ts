@@ -125,8 +125,8 @@ export function mapearAntropometria(fila: AntropometriaFila): Antropometria {
     circMusloMedial: aNumero(fila.circMusloMedial),
     circPantorrilla: aNumero(fila.circPantorrilla),
     kgGrasa: aNumero(fila.kgGrasa),
-    fuerzaPresionDerecha: aNumero(fila.fuerzaPresionDerecha),
-    fuerzaPresionIzquierda: aNumero(fila.fuerzaPresionIzquierda),
+    fuerzaPrensionDerecha: aNumero(fila.fuerzaPrensionDerecha),
+    fuerzaPrensionIzquierda: aNumero(fila.fuerzaPrensionIzquierda),
     observaciones: fila.observaciones,
     creadoEn: fila.creadoEn,
   });

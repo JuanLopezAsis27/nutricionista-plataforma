@@ -32,6 +32,7 @@ import {
 import { Skeleton } from "@/componentes/ui/skeleton";
 import { TEMAS_GRAFICO } from "@/componentes/estadisticas/paletaGraficos";
 import { MetricasDispositivo } from "./MetricasDispositivo";
+import { TarjetaMasaGrasa } from "./TarjetaMasaGrasa";
 import { TarjetasHabitos } from "@/componentes/seguimiento/TarjetasHabitos";
 
 /**
@@ -331,6 +332,15 @@ export function SeccionTracking({ pacienteId }: { pacienteId?: string }) {
             fuente={fuentePeso}
             onCambiarFuente={setFuentePeso}
           />
+          {/* Solo del lado del profesional: sus dos fuentes (antropometría y
+              bioimpedancia) se leen por procedimientos suyos. */}
+          {esNutri && (
+            <TarjetaMasaGrasa
+              pacienteId={pacienteId}
+              desde={desde}
+              hasta={hasta}
+            />
+          )}
           <TarjetaAdherencia adherencia={datos.adherencia} />
           <TarjetaConcordancia concordancia={datos.concordancia} />
           {esNutri && (

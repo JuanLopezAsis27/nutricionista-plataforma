@@ -53,6 +53,27 @@ export function ecuacionesDeLaSerie(
   return METODOS_GRASA.filter((metodo) => resueltas.has(metodo));
 }
 
+/**
+ * La ecuación favorita de la serie: la que el profesional destacó en la
+ * medición más reciente que destaca alguna (y que la serie resolvió). Sin
+ * ninguna destacada, la primera disponible.
+ *
+ * Es la selección PREDETERMINADA del gráfico: cada ecuación se mira por
+ * separado, y la que se abre es la que el profesional eligió seguir. Se toma
+ * de la última que la declara y no de la última medición a secas, porque una
+ * consulta cargada sin elegir ecuación no significa que se la haya cambiado.
+ */
+export function ecuacionFavorita(
+  mediciones: MedicionComposicionDto[],
+  disponibles: MetodoGrasa[],
+): MetodoGrasa | null {
+  for (let i = mediciones.length - 1; i >= 0; i--) {
+    const destacada = mediciones[i]!.metodoGrasa;
+    if (destacada != null && disponibles.includes(destacada)) return destacada;
+  }
+  return disponibles[0] ?? null;
+}
+
 /** Las ecuaciones a dibujar para una selección dada. */
 export function ecuacionesElegidas(
   seleccion: SeleccionEcuacion,
@@ -71,10 +92,13 @@ export function SelectorEcuacion({
   seleccion,
   disponibles,
   alCambiar,
+  favorita,
   className,
 }: {
   seleccion: SeleccionEcuacion;
   disponibles: MetodoGrasa[];
+  /** Se marca con una estrella en la lista. */
+  favorita?: MetodoGrasa | null;
   alCambiar: (seleccion: SeleccionEcuacion) => void;
   className?: string;
 }) {
@@ -95,14 +119,17 @@ export function SelectorEcuacion({
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value={TODAS_LAS_ECUACIONES}>
-          Todas las ecuaciones
-        </SelectItem>
+        {/* Cada ecuación por separado, primero; comparar todas juntas queda
+            como la última opción y no como la predeterminada. */}
         {disponibles.map((metodo) => (
           <SelectItem key={metodo} value={metodo}>
             {DEFINICIONES_METODO[metodo].etiqueta}
+            {metodo === favorita && " ★"}
           </SelectItem>
         ))}
+        <SelectItem value={TODAS_LAS_ECUACIONES}>
+          Comparar todas las ecuaciones
+        </SelectItem>
       </SelectContent>
     </Select>
   );

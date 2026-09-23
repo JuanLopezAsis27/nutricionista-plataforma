@@ -26,19 +26,22 @@ import {
  * El filtro de ecuación está acá arriba y no dentro del gráfico porque manda
  * sobre TODA la serie, y tiene dos posiciones que dicen cosas distintas:
  *
+ * - **Una** es el seguimiento: la misma fórmula de punta a punta. Es la
+ *   posición por defecto, en la ecuación favorita (la que el profesional
+ *   destacó en su última medición; ver `ecuacionFavorita`). Mezclar Yuhasz
+ *   con Durnin & Womersley a mitad de camino dibuja un salto que el paciente
+ *   no vivió.
  * - **Todas** compara las ecuaciones entre sí. Cada una se validó en otra
  *   población y da otro número para el mismo paciente; ver el ancho de la
- *   banda es lo que dice cuánto de una bajada es del paciente y cuánto de la
- *   fórmula elegida. Es la posición por defecto.
- * - **Una** es el seguimiento: la misma fórmula de punta a punta. Mezclar
- *   Yuhasz con Durnin & Womersley a mitad de camino dibuja un salto que el
- *   paciente no vivió, y eso es lo que el aviso de abajo aclara.
+ *   banda dice cuánto de una bajada es del paciente y cuánto de la fórmula.
+ *   Queda como última opción del selector.
  */
 export function TarjetasEvolucion({
   mediciones,
   seleccion,
   metodosDisponibles,
   alCambiarSeleccion,
+  favorita,
   tema,
 }: {
   mediciones: MedicionComposicionDto[];
@@ -46,6 +49,8 @@ export function TarjetasEvolucion({
   /** Ecuaciones que al menos una medición de la serie resolvió. */
   metodosDisponibles: MetodoGrasa[];
   alCambiarSeleccion: (seleccion: SeleccionEcuacion) => void;
+  /** La ecuación que el profesional destacó: la predeterminada. */
+  favorita: MetodoGrasa | null;
   tema: TemaComposicion;
 }) {
   if (mediciones.length <= 1) return null;
@@ -63,6 +68,7 @@ export function TarjetasEvolucion({
                 seleccion={seleccion}
                 disponibles={metodosDisponibles}
                 alCambiar={alCambiarSeleccion}
+                favorita={favorita}
               />
             </CardTitle>
           </CardHeader>

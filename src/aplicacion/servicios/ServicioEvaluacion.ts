@@ -2,9 +2,15 @@ import type { ServicioHistoriaClinica } from "./evaluacion/ServicioHistoriaClini
 import type { ServicioEvoluciones } from "./evaluacion/ServicioEvoluciones";
 import type { ServicioAntropometria } from "./evaluacion/ServicioAntropometria";
 import type { ServicioLaboratorios } from "./evaluacion/ServicioLaboratorios";
+import type { ServicioBioimpedancia } from "./evaluacion/ServicioBioimpedancia";
 
 /**
  * Fachada de Evaluación Integral.
+ *
+ * La bioimpedancia es un servicio aparte de la antropometría, y no una vista
+ * más de aquel: es otra fuente (la balanza), con sus propias mediciones y sus
+ * propias metas. Lo único que comparten es la regla de proyección de metas,
+ * que es del dominio (`proyectarMeta`).
  *
  * NO tiene lógica: agrupa los servicios del módulo para que el router siga
  * viendo un único punto de entrada por área funcional.
@@ -51,5 +57,6 @@ export class ServicioEvaluacion {
     readonly evoluciones: ServicioEvoluciones,
     readonly antropometria: ServicioAntropometria,
     readonly laboratorios: ServicioLaboratorios,
+    readonly bioimpedancia: ServicioBioimpedancia,
   ) {}
 }

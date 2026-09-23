@@ -41,6 +41,7 @@ import { ArchivosPaciente } from "@/componentes/evaluacion/ArchivosPaciente";
 import { DiarioPacienteVista } from "@/componentes/diario/DiarioPacienteVista";
 import { SeccionTracking } from "@/componentes/tracking/SeccionTracking";
 import { SeccionComposicionCorporal } from "@/componentes/antropometria/SeccionComposicionCorporal";
+import { SeccionBioimpedancia } from "@/componentes/bioimpedancia/SeccionBioimpedancia";
 import { SeccionSuplementos } from "@/componentes/seguimiento/SeccionSuplementos";
 import { SeccionDeportiva } from "@/componentes/deportivo/SeccionDeportiva";
 import { ObjetivosPaciente } from "@/componentes/objetivos/ObjetivosPaciente";
@@ -162,6 +163,7 @@ export default function PaginaDetallePaciente() {
         <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="evaluacion">Evaluación</TabsTrigger>
           <TabsTrigger value="antropometria">Antropometría</TabsTrigger>
+          <TabsTrigger value="bioimpedancia">Bioimpedancia</TabsTrigger>
           <TabsTrigger value="progreso">Progreso</TabsTrigger>
           <TabsTrigger value="objetivos">Objetivos</TabsTrigger>
           <TabsTrigger value="diario">Diario</TabsTrigger>
@@ -197,6 +199,10 @@ export default function PaginaDetallePaciente() {
 
         <TabsContent value="antropometria">
           <SeccionComposicionCorporal pacienteId={id} />
+        </TabsContent>
+
+        <TabsContent value="bioimpedancia">
+          <SeccionBioimpedancia pacienteId={id} />
         </TabsContent>
 
         {/* Progreso absorbió a «Informes»: mostraban los mismos hábitos y la
