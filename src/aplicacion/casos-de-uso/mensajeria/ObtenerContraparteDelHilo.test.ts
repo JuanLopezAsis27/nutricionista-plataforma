@@ -1,13 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
 import { ObtenerContraparteDelHilo } from "./ObtenerContraparteDelHilo";
-import { NOMBRE_PROFESIONAL_POR_DEFECTO } from "@/aplicacion/casos-de-uso/perfil/identidad";
 import {
   mockUsuarioRepositorio,
   mockPacienteRepositorio,
-  mockConfiguracionRepositorio,
+  mockNutricionistaRepositorio,
+  mockNutricionistaConNombre,
   usuarioEjemplo,
   pacienteEjemplo,
-  configuracionEjemplo,
 } from "../_ayudas-test";
 
 describe("ObtenerContraparteDelHilo", () => {
@@ -26,7 +25,7 @@ describe("ObtenerContraparteDelHilo", () => {
     const caso = new ObtenerContraparteDelHilo(
       usuarios,
       pacientes,
-      mockConfiguracionRepositorio(),
+      mockNutricionistaRepositorio(),
     );
 
     expect(await caso.ejecutar("pac-1", true)).toEqual({
@@ -41,37 +40,15 @@ describe("ObtenerContraparteDelHilo", () => {
         usuarioEjemplo().cambiarFotoPerfil("arc-nutri"),
       ]),
     });
-    const configuracion = mockConfiguracionRepositorio({
-      obtener: vi.fn(async () =>
-        configuracionEjemplo().actualizar({
-          nombreProfesional: "Lic. Marta Ruiz",
-        }),
-      ),
-    });
     const caso = new ObtenerContraparteDelHilo(
       usuarios,
       mockPacienteRepositorio(),
-      configuracion,
+      mockNutricionistaConNombre("Lic. Marta Ruiz"),
     );
 
     expect(await caso.ejecutar("pac-1", false)).toEqual({
       nombre: "Lic. Marta Ruiz",
       fotoArchivoId: "arc-nutri",
-    });
-  });
-
-  it("nombra al profesional aunque el consultorio no haya cargado su nombre", async () => {
-    // Un consultorio recién dado de alta no tiene `nombreProfesional`: sin
-    // respaldo, el encabezado del chat del paciente quedaba vacío.
-    const caso = new ObtenerContraparteDelHilo(
-      mockUsuarioRepositorio(),
-      mockPacienteRepositorio(),
-      mockConfiguracionRepositorio(),
-    );
-
-    expect(await caso.ejecutar("pac-1", false)).toEqual({
-      nombre: NOMBRE_PROFESIONAL_POR_DEFECTO,
-      fotoArchivoId: null,
     });
   });
 
@@ -84,7 +61,7 @@ describe("ObtenerContraparteDelHilo", () => {
     const caso = new ObtenerContraparteDelHilo(
       mockUsuarioRepositorio(),
       pacientes,
-      mockConfiguracionRepositorio(),
+      mockNutricionistaRepositorio(),
     );
 
     expect(await caso.ejecutar("pac-1", true)).toEqual({

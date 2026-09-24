@@ -33,6 +33,7 @@ set -eu
 marca=$(date +%Y%m%d-%H%M%S)
 inicio=$(date +%s)
 dir_db="/respaldos/db"
+dir_marca="/respaldos/.ultimo_exito"
 dir_metricas="${DIR_METRICAS:-/metricas}"
 mkdir -p "$dir_db"
 
@@ -156,5 +157,9 @@ nutricionista_respaldo_duracion_segundos $((fin - inicio))
 # TYPE nutricionista_respaldo_tamano_bytes gauge
 nutricionista_respaldo_tamano_bytes $tamano"
 _registrar_resultado 1
+
+# Marca del último éxito para el programador: le permite omitir el respaldo
+# inicial cuando el contenedor se recrea (deploy, reinicio) y ya hay uno reciente.
+touch "$dir_marca" 2>/dev/null || true
 
 echo "[respaldo] $(date '+%F %T') — completado en $((fin - inicio))s"

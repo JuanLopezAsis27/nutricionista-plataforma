@@ -59,6 +59,7 @@ describe("la política es la MISMA en todos los flujos", () => {
   it("el alta de cuenta la rechaza", () => {
     expect(
       crearCuentaNutricionistaDto.safeParse({
+        nombre: "Lic. Ana Gómez",
         email: "nutri@mail.com",
         password: debil,
       }).success,
@@ -75,6 +76,7 @@ describe("la política es la MISMA en todos los flujos", () => {
     const buena = "melon-tractor-lunes";
     expect(
       crearCuentaNutricionistaDto.safeParse({
+        nombre: "Lic. Ana Gómez",
         email: "nutri@mail.com",
         password: buena,
       }).success,

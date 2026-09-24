@@ -76,7 +76,6 @@ x-app-env: &app-env
   SMTP_PASS: ${SMTP_PASS:-}
   SMTP_SECURE: ${SMTP_SECURE:-false}
   EMAIL_FROM: ${EMAIL_FROM}
-  NOMBRE_PROFESIONAL: ${NOMBRE_PROFESIONAL:-}
   # Integraciones (opcionales; si faltan, la app degrada).
   TOKENS_SECRET: ${TOKENS_SECRET:-}
   GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}

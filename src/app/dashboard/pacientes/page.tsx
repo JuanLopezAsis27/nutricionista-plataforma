@@ -42,11 +42,22 @@ import {
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { FormularioPaciente } from "@/componentes/pacientes/FormularioPaciente";
 import { AltaPacienteDesdeDocumento } from "@/componentes/pacientes/AltaPacienteDesdeDocumento";
+import {
+  EleccionContrasenaBienvenida,
+  ELECCION_CONTRASENA_INICIAL,
+  contrasenaParaEnvio,
+  errorEleccionContrasena,
+  type EleccionContrasena,
+} from "@/componentes/pacientes/EleccionContrasenaBienvenida";
 
 const POR_PAGINA = 10;
 
 export default function PaginaPacientes() {
-  const { listar, eliminar, enviarBienvenidaManual } = usePacientes();
+  const { listar, eliminar, enviarBienvenidaManual, bienvenidaPideContrasena } =
+    usePacientes();
+  // Si la plantilla lleva {{contrasena}}, antes de mandar se pregunta de dónde
+  // sale: la del alta ya no existe, y la que viaje reemplaza a la de la cuenta.
+  const pideContrasena = bienvenidaPideContrasena().data ?? false;
 
   const [pagina, setPagina] = useState(1);
   const [busqueda, setBusqueda] = useState("");
@@ -68,6 +79,13 @@ export default function PaginaPacientes() {
   const [paraReenviar, setParaReenviar] = useState<
     { id: string; nombre: string }[]
   >([]);
+  /** El primer envío, esperando que se elija la contraseña. */
+  const [confirmarEnvio, setConfirmarEnvio] = useState(false);
+  const [eleccionContrasena, setEleccionContrasena] =
+    useState<EleccionContrasena>(ELECCION_CONTRASENA_INICIAL);
+  const errorContrasena = pideContrasena
+    ? errorEleccionContrasena(eleccionContrasena)
+    : null;
   const [filtroBienvenida, setFiltroBienvenida] = useState<
     "todos" | "enviada" | "no_enviada"
   >("todos");
@@ -100,11 +118,25 @@ export default function PaginaPacientes() {
     });
   }
 
+  /** Solo viaja cuando la plantilla la usa: si no, la cuenta no se toca. */
+  const contrasena = pideContrasena
+    ? contrasenaParaEnvio(eleccionContrasena)
+    : undefined;
+
   function enviarBienvenidaASeleccionados() {
+    if (pideContrasena) {
+      setConfirmarEnvio(true);
+      return;
+    }
+    enviarASeleccionados();
+  }
+
+  function enviarASeleccionados() {
     enviarBienvenidaManual.mutate(
-      { pacienteIds: Array.from(seleccionados) },
+      { pacienteIds: Array.from(seleccionados), contrasena },
       {
         onSuccess: (resultado) => {
+          setConfirmarEnvio(false);
           setSeleccionados(new Set());
           setParaReenviar(
             resultado.detalles
@@ -118,9 +150,15 @@ export default function PaginaPacientes() {
 
   function reenviarBienvenida(ids: string[]) {
     enviarBienvenidaManual.mutate(
-      { pacienteIds: ids, forzar: true },
-      { onSuccess: () => setParaReenviar([]) },
+      { pacienteIds: ids, forzar: true, contrasena },
+      { onSuccess: () => cerrarReenvio() },
     );
+  }
+
+  function cerrarReenvio() {
+    setParaReenviar([]);
+    // La escrita no queda esperando al próximo envío.
+    setEleccionContrasena(ELECCION_CONTRASENA_INICIAL);
   }
 
   function abrirNuevo() {
@@ -301,10 +339,57 @@ export default function PaginaPacientes() {
         />
       )}
 
+      {/* Primer envío: de dónde sale la contraseña que va en el email */}
+      <Dialog
+        open={confirmarEnvio}
+        onOpenChange={(abierto) => {
+          if (abierto) return;
+          setConfirmarEnvio(false);
+          setEleccionContrasena(ELECCION_CONTRASENA_INICIAL);
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Enviar la bienvenida</DialogTitle>
+            <DialogDescription>
+              La plantilla incluye los datos de acceso.{" "}
+              {seleccionados.size === 1
+                ? "Elegí qué contraseña recibe el paciente."
+                : `Elegí qué contraseña reciben los ${seleccionados.size} pacientes.`}
+            </DialogDescription>
+          </DialogHeader>
+          <EleccionContrasenaBienvenida
+            valor={eleccionContrasena}
+            onCambiar={setEleccionContrasena}
+            cantidadPacientes={seleccionados.size}
+            deshabilitado={enviarBienvenidaManual.isPending}
+          />
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setConfirmarEnvio(false);
+                setEleccionContrasena(ELECCION_CONTRASENA_INICIAL);
+              }}
+              disabled={enviarBienvenidaManual.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={enviarASeleccionados}
+              disabled={enviarBienvenidaManual.isPending || !!errorContrasena}
+            >
+              <Send className="h-4 w-4" />
+              Enviar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Reenvío de la bienvenida a quienes ya la habían recibido */}
       <Dialog
         open={paraReenviar.length > 0}
-        onOpenChange={(abierto) => !abierto && setParaReenviar([])}
+        onOpenChange={(abierto) => !abierto && cerrarReenvio()}
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -313,8 +398,7 @@ export default function PaginaPacientes() {
               {paraReenviar.length === 1
                 ? `${paraReenviar[0]!.nombre} ya recibió el email de bienvenida.`
                 : `${paraReenviar.length} pacientes ya habían recibido el email de bienvenida.`}{" "}
-              ¿Querés mandárselo de nuevo? El reenvío no puede incluir la
-              contraseña: solo existe en el momento del alta.
+              ¿Querés mandárselo de nuevo?
             </DialogDescription>
           </DialogHeader>
           {paraReenviar.length > 1 && (
@@ -324,17 +408,25 @@ export default function PaginaPacientes() {
               ))}
             </ul>
           )}
+          {pideContrasena && (
+            <EleccionContrasenaBienvenida
+              valor={eleccionContrasena}
+              onCambiar={setEleccionContrasena}
+              cantidadPacientes={paraReenviar.length}
+              deshabilitado={enviarBienvenidaManual.isPending}
+            />
+          )}
           <DialogFooter className="gap-2">
             <Button
               variant="outline"
-              onClick={() => setParaReenviar([])}
+              onClick={cerrarReenvio}
               disabled={enviarBienvenidaManual.isPending}
             >
               No reenviar
             </Button>
             <Button
               onClick={() => reenviarBienvenida(paraReenviar.map((p) => p.id))}
-              disabled={enviarBienvenidaManual.isPending}
+              disabled={enviarBienvenidaManual.isPending || !!errorContrasena}
             >
               <Send className="h-4 w-4" />
               Reenviar

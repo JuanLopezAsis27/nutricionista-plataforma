@@ -2,6 +2,7 @@ import type { IPlantillaEmailRepositorio } from "@/dominio/repositorios/IPlantil
 import type { IEmailEnviadoRepositorio } from "@/dominio/repositorios/IEmailEnviadoRepositorio";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
+import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import { EmailEnviado } from "@/dominio/entidades/EmailEnviado";
 import { ErrorPlantillaNoEncontrada } from "@/dominio/errores/ErrorPlantillaNoEncontrada";
 import { variablesEjemplo } from "./variables";
@@ -23,7 +24,8 @@ export class EnviarEmailDePrueba {
     private readonly emails: IEmailEnviadoRepositorio,
     private readonly servicioEmail: IServicioEmail,
     private readonly reloj: IRelojFecha,
-    private readonly nombreProfesional: string,
+    /** Da {{profesional}}: el nombre del consultorio que manda la prueba. */
+    private readonly nutricionistas: INutricionistaRepositorio,
   ) {}
 
   async ejecutar(plantillaId: string, para: string): Promise<ResultadoPrueba> {
@@ -34,7 +36,7 @@ export class EnviarEmailDePrueba {
 
     const { asunto, html } = plantilla.renderizar(
       variablesEjemplo(
-        this.nombreProfesional,
+        await this.nutricionistas.nombreDelActual(),
         this.reloj.hoy(),
         plantilla.clave,
       ),

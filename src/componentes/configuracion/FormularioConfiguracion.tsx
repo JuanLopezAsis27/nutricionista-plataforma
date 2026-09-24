@@ -40,9 +40,14 @@ export function FormularioConfiguracion() {
     return <Skeleton className="h-48 w-full" />;
   }
 
+  // El nombre se puede cambiar pero no vaciar: firma los emails y es el
+  // {{profesional}} de los recordatorios.
+  const sinNombre = nombre.trim() === "";
+
   function onGuardar() {
+    if (sinNombre) return;
     guardar.mutate({
-      nombreProfesional: nombre.trim() || null,
+      nombreProfesional: nombre.trim(),
       matricula: matricula.trim() || null,
     });
   }
@@ -60,10 +65,16 @@ export function FormularioConfiguracion() {
             <Label htmlFor="nombre">Nombre y apellido</Label>
             <Input
               id="nombre"
-              placeholder="Lic. López Asis Nicolás"
+              placeholder="Lic. Ana Gómez"
               value={nombre}
+              aria-invalid={sinNombre}
               onChange={(e) => setNombre(e.target.value)}
             />
+            {sinNombre && (
+              <p className="text-xs text-destructive">
+                El nombre es obligatorio.
+              </p>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="matricula">Matrícula</Label>
@@ -75,14 +86,14 @@ export function FormularioConfiguracion() {
             />
           </div>
           <p className="text-xs text-muted-foreground sm:col-span-2">
-            Es el título del encabezado de los PDF descargables. Si lo dejás
-            vacío, dice «Consultorio de Nutrición».
+            El nombre firma los emails, reemplaza a {"{{profesional}}"} en los
+            recordatorios y es el título del encabezado de los PDF descargables.
           </p>
         </CardContent>
       </Card>
 
       <div className={cn("flex justify-end")}>
-        <Button onClick={onGuardar} disabled={guardar.isPending}>
+        <Button onClick={onGuardar} disabled={guardar.isPending || sinNombre}>
           Guardar cambios
         </Button>
       </div>

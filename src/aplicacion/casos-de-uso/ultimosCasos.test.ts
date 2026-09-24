@@ -22,6 +22,7 @@ import {
   pacienteEjemplo,
   turnoEjemplo,
   plantillaWhatsappEjemplo,
+  mockNutricionistaRepositorio,
 } from "./_ayudas-test";
 
 /** Los últimos casos de uso que quedaban sin cubrir. */
@@ -150,6 +151,7 @@ describe("ObtenerVistaPreviaRecordatorio", () => {
       mockProveedorWhatsapp({ modoActual: vi.fn(async () => "API" as const) }),
       mockEstablecimientoRepositorio(),
       mockReloj(),
+      mockNutricionistaRepositorio(),
     );
   }
 
@@ -208,6 +210,7 @@ describe("ObtenerVistaPreviaRecordatorio", () => {
       mockProveedorWhatsapp(),
       mockEstablecimientoRepositorio(),
       mockReloj(),
+      mockNutricionistaRepositorio(),
     );
 
     const vista = await caso.ejecutar("tur-1");
@@ -224,6 +227,7 @@ describe("ObtenerVistaPreviaRecordatorio", () => {
       mockProveedorWhatsapp(),
       mockEstablecimientoRepositorio(),
       mockReloj(),
+      mockNutricionistaRepositorio(),
     );
 
     await expect(caso.ejecutar("tur-inexistente")).rejects.toThrow();

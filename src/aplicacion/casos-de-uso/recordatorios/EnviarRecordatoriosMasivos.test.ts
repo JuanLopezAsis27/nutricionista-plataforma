@@ -25,6 +25,8 @@ import {
   mockEnlaceConfirmacionTurno,
   mockReloj,
   plantillaEmailRecordatorioEjemplo,
+  mockNutricionistaConNombre,
+  mockNutricionistaRepositorio,
 } from "../_ayudas-test";
 
 function armar(
@@ -59,7 +61,7 @@ function armar(
     mockServicioEmail({ enviar: enviarEmail }),
     mockReloj(),
     mockConfiguracionRecordatoriosRepositorio(),
-    "Lic. Nutrición",
+    mockNutricionistaConNombre("Lic. Nutrición"),
     mockEstablecimientoRepositorio(),
     mockEnlaceConfirmacionTurno(),
   );
@@ -104,6 +106,7 @@ function armar(
       proveedor,
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     ),
     emailPorTurno,
     mockEstablecimientoRepositorio(),

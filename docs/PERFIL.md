@@ -29,13 +29,98 @@ existe.
 
 `Usuario` guarda credenciales y rol; no tiene columna de nombre. El nombre del
 paciente vive en su ficha (`Paciente.nombreCompleto`, lo carga el profesional) y
-el del profesional en `ConfiguracionConsultorio.nombreProfesional`. La pantalla
-lo MUESTRA —para que se vea de quién es la cuenta— y no deja cambiarlo: abrir
+el del profesional en `nutricionistas.nombre` (se edita en Configuración). La
+pantalla lo MUESTRA —para que se vea de quién es la cuenta— y no deja cambiarlo: abrir
 una segunda puerta al mismo dato termina en dos nombres distintos según dónde se
 lo mire.
 
 Resolver de dónde sale el nombre es todo el trabajo de `ObtenerMiPerfil`. Un
 SUPERADMIN no tiene ni ficha ni consultorio: se lo nombra por su email.
+
+## El nombre del profesional: una sola fuente, en `nutricionistas`
+
+`nutricionistas.nombre` (`TEXT NOT NULL`, migración 74) es el ÚNICO lugar de
+donde sale el nombre del nutricionista, en todos los lugares donde se lo
+inserta:
+
+| Dónde                                           | Quién lo lee                                        |
+| ----------------------------------------------- | --------------------------------------------------- |
+| `{{profesional}}` del recordatorio por WhatsApp | `armarRecordatorio`, `EnviarPlantillaWhatsapp`      |
+| `{{profesional}}` del recordatorio por email    | `EnviarRecordatoriosPorEmail`                       |
+| Email de bienvenida y email de prueba           | `EnviarEmailDeBienvenida`, `EnviarEmailDePrueba`    |
+| Firma del email de recuperación                 | `SolicitarRecuperacionPassword` (por id, ver abajo) |
+| Vista previa de las plantillas de email         | `useNombreProfesional` → `variablesEjemploCliente`  |
+| Membrete de los PDF                             | los cuatro `*Pdf.tsx`, vía `configuracion.obtener`  |
+| Encabezado del chat del paciente, «Mi perfil»   | `ObtenerContraparteDelHilo`, `ObtenerMiPerfil`      |
+
+### Por qué en `nutricionistas` y no en la configuración
+
+Estuvo un tiempo en `ConfiguracionConsultorio.nombreProfesional` y se movió,
+por razones de datos y no de gusto:
+
+- **La base no podía garantizar que existiera.** La fila de configuración es
+  0..1 por consultorio y la columna era nullable: dos niveles de ausencia, y
+  la obligatoriedad solo la sostenían el DTO y la entidad. En `nutricionistas`
+  es `NOT NULL` y lo garantiza el motor.
+- **El alta no es atómica.** `CrearCuentaNutricionista` hace tres escrituras
+  sueltas (inquilino, usuario, aprovisionamiento). Con el nombre en la
+  configuración, un fallo del aprovisionamiento dejaba una cuenta que podía
+  entrar y no tenía nombre. Ahora el nombre va en el mismo INSERT que crea al
+  inquilino (`INutricionistaRepositorio.crear(id, nombre)`).
+- **Es identidad, no una preferencia.** El resto de la configuración son
+  preferencias (colores del PDF, qué mostrar, prefijo telefónico).
+- **Las lecturas sin alcance quedan limpias.** `nutricionistas` no es tabla de
+  inquilino: la recuperación de contraseña y "Mi perfil" lo leen por id
+  (`nombreDe`), sin cruzar el filtro de la extensión.
+
+No va en `Usuario` porque `Usuario` guarda credenciales y rol, a propósito sin
+nombre; la fila de `Nutricionista` (mismo id que su cuenta) es la que
+representa al profesional.
+
+### Cómo se lee y cómo se edita
+
+Dentro de un inquilino (recordatorios, emails, chat) se pide
+`nombreDelActual()`, que resuelve el consultorio del alcance en curso como lo
+hacía `configuracion.obtener()`. La pantalla de Configuración y los PDF lo
+siguen recibiendo en `ConfiguracionSalidaDto.nombreProfesional`: el read model
+es de la pantalla, y `ServicioConfiguracion` lo SUMA a la salida y lo SEPARA
+al guardar (`CambiarNombreProfesional` para el nombre, `GuardarConfiguracion`
+para el resto). Se puede cambiar pero no vaciar
+(`nombreProfesionalValidado`, en `dominio/entidades/nombreProfesional.ts`).
+
+**Quién lo carga.** El SUPERADMIN al crear la cuenta (`/admin`: el campo
+«Nombre» es obligatorio, `crearCuentaNutricionistaDto`). Después lo edita cada
+profesional en Configuración → «Membrete del profesional».
+
+**Los consultorios que ya existían.** La migración 74 copió el nombre que
+tenían cargado en la configuración, y a los que no tenían ninguno les puso el
+provisional **«Nutricionista»**, que el profesional corrige en Configuración.
+Se eligió ese y no el email porque va adentro de mensajes que lee el paciente
+(«Te espera Nutricionista») y es lo que ya veían (el respaldo anterior era
+«tu nutricionista»).
+
+**Por qué se sacó la variable de entorno.** Antes los emails lo leían de
+`NOMBRE_PROFESIONAL` (con un nombre real de respaldo en `nucleo.ts`), y el logo
+de las pantallas públicas y la barra lateral lo tenían escrito a mano. La app
+es multi-inquilino: el recordatorio por email de cualquier consultorio salía
+firmado por el mismo profesional, y distinto del de WhatsApp. La variable ya no
+existe (se sacó de `nucleo.ts`, del compose de producción y de los
+`.env.*.example`).
+
+**La recuperación de contraseña es el caso raro.** Es pública y corre con
+alcance global, así que no hay "consultorio actual": pide
+`nombreDe(usuario.nutricionistaId)`. Un SUPERADMIN (sin consultorio) recibe el
+email SIN firma, que es mejor que firmado por otro.
+
+**Las pantallas públicas no nombran a ningún profesional.** Login, recuperar,
+restablecer, sin conexión y confirmar turno se ven antes de saber de qué
+consultorio se trata: `LogoConsultorio` muestra la marca de la plataforma
+(«NutriOffice», con «Office» en coral), la misma del manifest. La barra lateral
+del panel también dice «NutriOffice» y no el nombre del profesional. El logo,
+en los dos lados, es el isotipo de la PWA SIN su fondo oscuro
+(`IsotipoNutriOffice`, el dibujo de `assets/marca/marca.svg` inline): la tinta
+que en el ícono es blanca va en `currentColor`, porque sobre el fondo claro de
+la pantalla desaparecería.
 
 ## La foto de perfil
 

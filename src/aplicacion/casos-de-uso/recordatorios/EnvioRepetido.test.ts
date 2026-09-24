@@ -23,6 +23,8 @@ import {
   mockEnlaceConfirmacionTurno,
   mockReloj,
   plantillaEmailRecordatorioEjemplo,
+  mockNutricionistaConNombre,
+  mockNutricionistaRepositorio,
 } from "../_ayudas-test";
 
 /**
@@ -91,7 +93,7 @@ function armar(horasEntreAvisos = 24) {
     mockServicioEmail({ enviar: enviarEmail }),
     mockReloj(),
     mockConfiguracionRecordatoriosRepositorio(),
-    "Lic. Nutrición",
+    mockNutricionistaConNombre("Lic. Nutrición"),
     mockEstablecimientoRepositorio(),
     mockEnlaceConfirmacionTurno(),
   );
@@ -121,6 +123,7 @@ function armar(horasEntreAvisos = 24) {
       proveedor,
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     ),
     emailPorTurno,
     mockEstablecimientoRepositorio(),

@@ -36,14 +36,16 @@ export default function PaginaAdmin() {
   const consulta = listarNutricionistas();
   const nutris = consulta.data ?? [];
 
+  const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   function crear() {
     crearNutricionista.mutate(
-      { email: email.trim(), password },
+      { nombre: nombre.trim(), email: email.trim(), password },
       {
         onSuccess: () => {
+          setNombre("");
           setEmail("");
           setPassword("");
         },
@@ -98,7 +100,17 @@ export default function PaginaAdmin() {
                 nutricionista
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+            <CardContent className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
+              <div className="space-y-1.5">
+                {/* Cómo firma: va a los recordatorios, los emails y el PDF. */}
+                <Label htmlFor="nombre">Nombre</Label>
+                <Input
+                  id="nombre"
+                  placeholder="Lic. Ana Gómez"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                />
+              </div>
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -123,6 +135,7 @@ export default function PaginaAdmin() {
                 onClick={crear}
                 disabled={
                   crearNutricionista.isPending ||
+                  !nombre.trim() ||
                   !email.trim() ||
                   password.length < 8
                 }

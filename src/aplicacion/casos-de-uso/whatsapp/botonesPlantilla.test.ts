@@ -19,6 +19,7 @@ import {
   turnoEjemplo,
   pacienteEjemplo,
   plantillaWhatsappEjemplo,
+  mockNutricionistaRepositorio,
 } from "../_ayudas-test";
 
 /**
@@ -187,6 +188,7 @@ function armarEnvio(
     mockEnlaceConfirmacionTurno(),
     // Hoy: 14/07/2026.
     mockReloj(),
+    mockNutricionistaRepositorio(),
   );
   return { caso, mensajes, proveedor };
 }

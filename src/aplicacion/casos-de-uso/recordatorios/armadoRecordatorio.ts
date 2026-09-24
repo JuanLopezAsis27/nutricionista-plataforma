@@ -39,6 +39,8 @@ export function armarRecordatorio(
   turno: Turno,
   paciente: Paciente,
   configuracion: ConfiguracionConsultorio,
+  /** `{{profesional}}`: el nombre del consultorio (`nutricionistas.nombre`). */
+  nombreProfesional: string,
   plantilla: PlantillaWhatsapp,
   /**
    * El establecimiento del turno, para las variables `{{establecimiento}}` y
@@ -57,7 +59,7 @@ export function armarRecordatorio(
     nombrePaciente: paciente.nombreCompleto,
     fecha: turno.fecha,
     hora: turno.hora,
-    nombreProfesional: config.nombreProfesional ?? "tu nutricionista",
+    nombreProfesional,
     nombreEstablecimiento: establecimiento?.nombre,
     direccionEstablecimiento: establecimiento?.direccion,
   });

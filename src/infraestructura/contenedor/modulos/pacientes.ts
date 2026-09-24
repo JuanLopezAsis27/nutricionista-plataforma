@@ -1,4 +1,8 @@
+import type { IGeneradorContrasenas } from "@/dominio/servicios/IGeneradorContrasenas";
+import type { ITokenRefrescoRepositorio } from "@/dominio/repositorios/ITokenRefrescoRepositorio";
+import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
+import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { IPlantillaEmailRepositorio } from "@/dominio/repositorios/IPlantillaEmailRepositorio";
 import type { IHasheadorContrasena } from "@/dominio/servicios/IHasheadorContrasena";
@@ -30,9 +34,13 @@ export function crearServicioPaciente(deps: {
   usuarios: IUsuarioRepositorio;
   plantillas: IPlantillaEmailRepositorio;
   hasheador: IHasheadorContrasena;
+  /** La bienvenida manual genera una contraseña si la plantilla la pide. */
+  generadorContrasenas: IGeneradorContrasenas;
+  tokensRefresco: ITokenRefrescoRepositorio;
+  reloj: IRelojFecha;
   servicioEmail: IServicioEmail;
   configuracion: IConfiguracionRepositorio;
-  nombreProfesional: string;
+  nutricionistas: INutricionistaRepositorio;
   // El alta desde una ficha escrita crea, además del paciente, los registros
   // que el documento traía: por eso este servicio toca repositorios de
   // evaluación que en el alta manual no necesita.
@@ -53,7 +61,7 @@ export function crearServicioPaciente(deps: {
   const enviarEmailDeBienvenida = new EnviarEmailDeBienvenida(
     deps.plantillas,
     deps.servicioEmail,
-    deps.nombreProfesional,
+    deps.nutricionistas,
   );
 
   return new ServicioPaciente(
@@ -67,7 +75,15 @@ export function crearServicioPaciente(deps: {
       deps.pacientes,
       enviarEmailDeBienvenida,
     ),
-    new EnviarBienvenidaMasiva(deps.pacientes, enviarEmailDeBienvenida),
+    new EnviarBienvenidaMasiva(
+      deps.pacientes,
+      enviarEmailDeBienvenida,
+      deps.usuarios,
+      deps.hasheador,
+      deps.generadorContrasenas,
+      deps.tokensRefresco,
+      deps.reloj,
+    ),
     new ArchivarPaciente(deps.pacientes),
     new ReactivarPaciente(deps.pacientes),
     new InterpretarFichaPaciente(

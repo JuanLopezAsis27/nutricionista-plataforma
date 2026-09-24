@@ -7,6 +7,7 @@ import {
   mockServicioEmail,
   mockReloj,
   plantillaEmailEjemplo,
+  mockNutricionistaConNombre,
 } from "../_ayudas-test";
 
 describe("EnviarEmailDePrueba", () => {
@@ -20,7 +21,7 @@ describe("EnviarEmailDePrueba", () => {
       mockEmailEnviadoRepositorio({ registrar }),
       mockServicioEmail({ enviar }),
       mockReloj(),
-      "Lic. López Asis",
+      mockNutricionistaConNombre("Lic. López Asis"),
     );
 
     const resultado = await uc.ejecutar("pla-1", "prueba@mail.com");
@@ -42,7 +43,7 @@ describe("EnviarEmailDePrueba", () => {
       mockEmailEnviadoRepositorio(),
       mockServicioEmail(),
       mockReloj(),
-      "Lic. López Asis",
+      mockNutricionistaConNombre("Lic. López Asis"),
     );
 
     await expect(uc.ejecutar("x", "a@b.com")).rejects.toBeInstanceOf(

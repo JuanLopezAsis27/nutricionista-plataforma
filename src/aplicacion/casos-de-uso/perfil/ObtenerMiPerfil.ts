@@ -1,9 +1,9 @@
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
-import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
+import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import type { RolUsuario } from "@/dominio/entidades/Usuario";
 import { ErrorUsuarioNoEncontrado } from "@/dominio/errores/ErrorUsuarioNoEncontrado";
-import { type IdentidadVisible, nombreDelProfesional } from "./identidad";
+import type { IdentidadVisible } from "./identidad";
 
 /** Lo que "Mi perfil" muestra de la cuenta propia. */
 export interface MiPerfil extends IdentidadVisible {
@@ -17,11 +17,12 @@ export interface MiPerfil extends IdentidadVisible {
  *
  * El NOMBRE no vive en `Usuario` —que solo guarda credenciales y rol— sino en
  * dos lugares distintos según quién sea: el paciente lo tiene en su ficha
- * (`Paciente.nombreCompleto`) y el profesional en la configuración del
- * consultorio (`nombreProfesional`). Resolver eso es justamente lo que hace
- * este caso de uso, y es la razón de que la pantalla muestre el nombre pero no
- * deje editarlo acá: cambiarlo es editar la ficha o la configuración, y tener
- * dos puertas para el mismo dato termina en dos nombres distintos.
+ * (`Paciente.nombreCompleto`) y el profesional en el registro de inquilinos
+ * (`nutricionistas.nombre`, que se edita desde Configuración). Resolver eso es
+ * justamente lo que hace este caso de uso, y es la razón de que la pantalla
+ * muestre el nombre pero no deje editarlo acá: cambiarlo es editar la ficha o
+ * la configuración, y tener dos puertas para el mismo dato termina en dos
+ * nombres distintos.
  *
  * Un SUPERADMIN no tiene ni ficha ni consultorio, así que se lo nombra por su
  * email. No es un caso hipotético: la cuenta existe y también puede querer su
@@ -31,7 +32,7 @@ export class ObtenerMiPerfil {
   constructor(
     private readonly usuarios: IUsuarioRepositorio,
     private readonly pacientes: IPacienteRepositorio,
-    private readonly configuracion: IConfiguracionRepositorio,
+    private readonly nutricionistas: INutricionistaRepositorio,
   ) {}
 
   async ejecutar(usuarioId: string): Promise<MiPerfil> {
@@ -52,6 +53,7 @@ export class ObtenerMiPerfil {
       nombre: await this.nombreDe(
         usuario.rol,
         usuario.pacienteId,
+        usuario.nutricionistaId,
         usuario.email,
       ),
     };
@@ -60,6 +62,7 @@ export class ObtenerMiPerfil {
   private async nombreDe(
     rol: RolUsuario,
     pacienteId: string | null,
+    nutricionistaId: string | null,
     email: string,
   ): Promise<string> {
     if (rol === "PACIENTE" && pacienteId) {
@@ -69,11 +72,8 @@ export class ObtenerMiPerfil {
       // una pantalla que no dice de quién es.
       return email;
     }
-    if (rol === "NUTRICIONISTA") {
-      const config = await this.configuracion.obtener();
-      return nombreDelProfesional(
-        config?.aPrimitivos().nombreProfesional ?? null,
-      );
+    if (rol === "NUTRICIONISTA" && nutricionistaId) {
+      return (await this.nutricionistas.nombreDe(nutricionistaId)) ?? email;
     }
     return email;
   }

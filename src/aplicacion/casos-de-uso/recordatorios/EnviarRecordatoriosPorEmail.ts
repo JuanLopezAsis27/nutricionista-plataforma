@@ -3,6 +3,7 @@ import type { IEmailEnviadoRepositorio } from "@/dominio/repositorios/IEmailEnvi
 import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IConfiguracionRecordatoriosRepositorio } from "@/dominio/repositorios/IConfiguracionRecordatoriosRepositorio";
+import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import { EmailEnviado } from "@/dominio/entidades/EmailEnviado";
@@ -75,7 +76,12 @@ export class EnviarRecordatoriosPorEmail {
     private readonly servicioEmail: IServicioEmail,
     private readonly reloj: IRelojFecha,
     private readonly preferencias: IConfiguracionRecordatoriosRepositorio,
-    private readonly nombreProfesional: string,
+    /**
+     * Da {{profesional}}: el nombre del consultorio en curso, el mismo que usa
+     * el recordatorio por WhatsApp. No es un parámetro fijo del constructor
+     * porque el caso de uso lo comparten todos los consultorios.
+     */
+    private readonly nutricionistas: INutricionistaRepositorio,
     /** Da {{establecimiento}} y {{direccion}} a la plantilla del email. */
     private readonly establecimientos: IEstablecimientoRepositorio,
     /** Da el botón "Confirmar asistencia" de los turnos pendientes. */
@@ -202,7 +208,7 @@ export class EnviarRecordatoriosPorEmail {
         nombrePaciente: paciente.nombreCompleto,
         fecha: turno.fecha,
         hora: turno.hora,
-        nombreProfesional: this.nombreProfesional,
+        nombreProfesional: await this.nutricionistas.nombreDelActual(),
         nombreEstablecimiento: sede?.nombre,
         direccionEstablecimiento: sede?.direccion,
       }),

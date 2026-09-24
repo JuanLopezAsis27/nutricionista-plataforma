@@ -1,4 +1,5 @@
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
+import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
 import type { IRecordatorioWhatsappRepositorio } from "@/dominio/repositorios/IRecordatorioWhatsappRepositorio";
 import type { IMensajeWhatsappRepositorio } from "@/dominio/repositorios/IMensajeWhatsappRepositorio";
@@ -31,6 +32,7 @@ import { ServicioWhatsapp } from "@/aplicacion/servicios/ServicioWhatsapp";
 export function crearServicioWhatsapp(deps: {
   pacientes: IPacienteRepositorio;
   configuracion: IConfiguracionRepositorio;
+  nutricionistas: INutricionistaRepositorio;
   recordatorios: IRecordatorioWhatsappRepositorio;
   mensajes: IMensajeWhatsappRepositorio;
   usuarios: IUsuarioRepositorio;
@@ -99,6 +101,7 @@ export function crearServicioWhatsapp(deps: {
       deps.proveedor,
       deps.enlaceConfirmacionTurno,
       deps.reloj,
+      deps.nutricionistas,
     ),
   );
 }

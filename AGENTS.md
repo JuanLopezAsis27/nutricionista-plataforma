@@ -213,8 +213,8 @@ consultorio lento bloquearía a todos los demás.
 
 ## Modelos del dominio
 
-**36 entidades**, **169 casos de uso** en 26 módulos, **40 interfaces de
-repositorio** y **18 puertos de servicio**. La fuente de verdad es el código
+**36 entidades**, **171 casos de uso** en 26 módulos, **40 interfaces de
+repositorio** y **19 puertos de servicio**. La fuente de verdad es el código
 (`/src/dominio`) y `prisma/schema.prisma`. Acá van solo los invariantes que
 cruzan módulos; el detalle de cada uno, en `/docs`.
 
@@ -225,8 +225,19 @@ puede ser paciente de dos nutricionistas. Baja lógica con `archivadoEn`.
 
 El email de bienvenida se puede **reenviar**: el envío manual nunca pisa a quien
 ya la recibió (sale como `YA_ENVIADA`, no como omitido) y la pantalla pregunta
-aparte si reenviársela, que viaja con `forzar`. El reenvío no lleva la
-contraseña: solo existe en texto plano durante el alta.
+aparte si reenviársela, que viaja con `forzar`.
+
+La contraseña del alta no se puede volver a mandar: se guarda solo su hash
+bcrypt. Por eso, si la plantilla lleva `{{contrasena}}`, **el envío manual
+manda una NUEVA**, que el profesional elige en la pantalla
+(`ContrasenaBienvenida`): GENERADA al azar, distinta por paciente
+(`IGeneradorContrasenas`, la de por defecto), o MANUAL, escrita por él y la
+misma para todo el lote (validada con `passwordNuevaDto` en el DTO). La manda y
+RECIÉN DESPUÉS se la asigna a la cuenta y le cierra las sesiones persistentes:
+si el email falla, la cuenta queda como estaba. Sin `{{contrasena}}` en la
+plantilla, la pantalla no pregunta y la cuenta no se toca
+(`pacientes.bienvenidaPideContrasena`). Un paciente sin cuenta del portal (o
+desactivada) se omite.
 
 ### Usuario
 
@@ -237,6 +248,14 @@ para SUPERADMIN).
 **No tiene nombre**: guarda credenciales y rol. El nombre del paciente vive en
 su ficha y el del profesional en `ConfiguracionConsultorio`, y "Mi perfil" los
 muestra pero no los edita (`docs/PERFIL.md`).
+
+**El nombre del profesional sale de UN solo lugar**: `nutricionistas.nombre`
+(`NOT NULL`, migración 74), que se escribe en el mismo INSERT que crea al
+inquilino. Lo carga el SUPERADMIN al crear la cuenta (obligatorio) y lo edita el
+profesional en Configuración, que no deja vaciarlo. Recordatorios, emails, PDF y
+chat lo leen de ahí (`nombreDelActual()` dentro de un inquilino, `nombreDe(id)`
+con alcance global); ya no hay variable de entorno `NOMBRE_PROFESIONAL` ni
+nombres escritos a mano en la UI. Ver `docs/PERFIL.md`.
 
 La **foto de perfil** es `fotoPerfilId → Archivo` (migración 53), del lado de
 `usuarios` como el logo del membrete y no en el arco de dueños de `archivos`:
@@ -768,6 +787,12 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   Y nunca armar un proveedor de LLM sin pasar por `ResolvedorConfigIA`: es el
   que lo envuelve en `ProveedorLLMRegistrado`, y uno suelto gasta sin dejar
   rastro en el panel
+- Nunca leer el nombre del profesional de una variable de entorno ni
+  escribirlo en el código: la app es de muchos consultorios, y así el
+  recordatorio por email de todos salía firmado por el mismo. Va
+  `nutricionistas.nombre`, por `INutricionistaRepositorio`. Y nunca volver a
+  ponerlo en `ConfiguracionConsultorio`: ahí la base no puede garantizar que
+  exista
 - Nunca estimar el costo de una llamada con una tabla de precios propia: queda
   vieja sin avisar. `costoUsd` es solo el que informa el proveedor
 - Nunca tragarse con un `catch` vacío el fallo de una llamada de IA y devolver
@@ -788,7 +813,11 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
 - Nunca aceptar como foto de perfil un archivo de otro contexto: cambiar la foto
   BORRA la anterior, y una foto de comida aceptada acá se lleva puesto un
   registro del diario del paciente
-- Nunca guardar passwords en texto plano
+- Nunca guardar passwords en texto plano. Tampoco "para poder reenviarlas":
+  la bienvenida manual genera una provisional y se la asigna a la cuenta
+- Nunca asignar la contraseña provisional de la bienvenida ANTES de mandar el
+  email: si el envío falla, el paciente queda afuera con una contraseña que
+  nunca le llegó
 - Nunca alargar `session.maxAge` para que la gente no vuelva a loguearse: ese
   es el JWT y NO se puede revocar. Para eso está el token de refresco, que vive
   en la base y se da de baja. Y nunca guardarlo en claro: va el SHA-256, como

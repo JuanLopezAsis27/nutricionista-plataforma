@@ -65,7 +65,7 @@ async function crearInquilino(
   const id = crypto.randomUUID();
   const establecimientoId = crypto.randomUUID();
   await ejecutarGlobal(async () => {
-    await prisma.nutricionista.create({ data: { id } });
+    await prisma.nutricionista.create({ data: { id, nombre } });
     await prisma.usuario.create({
       data: {
         id,

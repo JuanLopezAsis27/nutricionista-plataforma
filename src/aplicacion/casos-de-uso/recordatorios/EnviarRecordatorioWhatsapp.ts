@@ -1,3 +1,4 @@
+import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import type { IRecordatorioWhatsappRepositorio } from "@/dominio/repositorios/IRecordatorioWhatsappRepositorio";
 import type { IMensajeWhatsappRepositorio } from "@/dominio/repositorios/IMensajeWhatsappRepositorio";
 import type { IEnlaceConfirmacionTurno } from "@/dominio/servicios/IEnlaceConfirmacionTurno";
@@ -95,6 +96,8 @@ export class EnviarRecordatorioWhatsapp {
     private readonly proveedor: IProveedorWhatsapp,
     private readonly mensajes: IMensajeWhatsappRepositorio,
     private readonly enlaces: IEnlaceConfirmacionTurno,
+    /** Da {{profesional}}: el nombre del consultorio en curso. */
+    private readonly nutricionistas: INutricionistaRepositorio,
   ) {}
 
   async ejecutar(pedido: PedidoRecordatorio): Promise<ResultadoRecordatorio> {
@@ -136,6 +139,7 @@ export class EnviarRecordatorioWhatsapp {
       pedido.turno,
       pedido.paciente,
       pedido.configuracion,
+      await this.nutricionistas.nombreDelActual(),
       pedido.plantilla,
       pedido.establecimiento,
     );
