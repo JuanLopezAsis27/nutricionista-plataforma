@@ -11,6 +11,7 @@ import {
   renderizarHtmlCliente,
   variablesEjemploCliente,
 } from "@/lib/plantillaPreview";
+import { useNombreProfesional } from "@/lib/hooks/useNombreProfesional";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { Textarea } from "@/componentes/ui/textarea";
@@ -65,7 +66,11 @@ export function FormularioPlantilla({
   const cuerpoHtml = form.watch("cuerpoHtml");
   // La vista previa reemplaza lo mismo que el envío real de ESTA plantilla: la
   // bienvenida, con usuario y contraseña de ejemplo; el resto, sin ellos.
-  const variables = variablesEjemploCliente(form.watch("clave").toUpperCase());
+  const nombreProfesional = useNombreProfesional();
+  const variables = variablesEjemploCliente(
+    nombreProfesional,
+    form.watch("clave").toUpperCase(),
+  );
 
   function insertarPlaceholder(clave: string) {
     const actual = form.getValues("cuerpoHtml");

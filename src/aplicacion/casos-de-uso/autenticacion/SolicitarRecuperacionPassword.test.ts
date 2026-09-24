@@ -7,6 +7,7 @@ import {
   mockServicioEmail,
   mockReloj,
   usuarioEjemplo,
+  mockNutricionistaConNombre,
 } from "../_ayudas-test";
 
 function armar(
@@ -28,7 +29,7 @@ function armar(
     email,
     reloj,
     "https://app.local",
-    "Lic. Ejemplo",
+    mockNutricionistaConNombre("Lic. Ejemplo"),
   );
   return { uc, usuarios, tokens, generador, email };
 }
@@ -83,5 +84,42 @@ describe("SolicitarRecuperacionPassword", () => {
 
     expect(tokens.crear).not.toHaveBeenCalled();
     expect(email.enviar).not.toHaveBeenCalled();
+  });
+
+  it("firma con el nombre del consultorio de la cuenta, no con uno fijo", async () => {
+    const usuario = usuarioEjemplo({
+      rol: "PACIENTE",
+      pacienteId: "p-1",
+      nutricionistaId: "nutri-9",
+    });
+    const configuracion = mockNutricionistaConNombre("Lic. Ana Gómez");
+    const email = mockServicioEmail();
+    await new SolicitarRecuperacionPassword(
+      mockUsuarioRepositorio({ obtenerPorEmail: vi.fn(async () => usuario) }),
+      mockTokenRecuperacionRepositorio(),
+      mockGeneradorTokens(),
+      email,
+      mockReloj(new Date("2026-07-14T12:00:00Z")),
+      "https://app.local",
+      configuracion,
+    ).ejecutar({ email: "nutri@mail.com" });
+
+    expect(configuracion.nombreDe).toHaveBeenCalledWith("nutri-9");
+    const mensaje = (email.enviar as ReturnType<typeof vi.fn>).mock
+      .calls[0]![0];
+    expect(mensaje.html).toContain("— Lic. Ana Gómez");
+  });
+
+  it("sin consultorio (SUPERADMIN) sale sin firma", async () => {
+    const admin = usuarioEjemplo({ rol: "SUPERADMIN", nutricionistaId: null });
+    const { uc, email } = armar({
+      usuarios: { obtenerPorEmail: vi.fn(async () => admin) },
+    });
+
+    await uc.ejecutar({ email: "nutri@mail.com" });
+
+    const mensaje = (email.enviar as ReturnType<typeof vi.fn>).mock
+      .calls[0]![0];
+    expect(mensaje.html).not.toContain("—");
   });
 });

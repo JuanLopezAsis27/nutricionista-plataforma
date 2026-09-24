@@ -9,6 +9,7 @@ import {
   mockServicioEmail,
   pacienteEjemplo,
   plantillaEmailEjemplo,
+  mockNutricionistaConNombre,
 } from "../_ayudas-test";
 
 function armar(configuracion: ConfiguracionConsultorio | null) {
@@ -18,7 +19,7 @@ function armar(configuracion: ConfiguracionConsultorio | null) {
       obtenerPorClave: vi.fn(async () => plantillaEmailEjemplo()),
     }),
     mockServicioEmail(),
-    "Lic. Marta",
+    mockNutricionistaConNombre("Lic. Marta"),
   );
   const caso = new EnviarBienvenidaAlAlta(
     mockConfiguracionRepositorio({ obtener: vi.fn(async () => configuracion) }),

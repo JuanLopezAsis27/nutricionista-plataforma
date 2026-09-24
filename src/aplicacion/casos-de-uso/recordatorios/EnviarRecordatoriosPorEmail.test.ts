@@ -14,6 +14,7 @@ import {
   plantillaEmailRecordatorioEjemplo,
   turnoEjemplo,
   pacienteEjemplo,
+  mockNutricionistaConNombre,
 } from "../_ayudas-test";
 
 const PROFESIONAL = "Lic. López Asis";
@@ -55,7 +56,7 @@ function armar(overrides: {
     mockServicioEmail({ enviar }),
     mockReloj(),
     mockConfiguracionRecordatoriosRepositorio(),
-    PROFESIONAL,
+    mockNutricionistaConNombre(PROFESIONAL),
     mockEstablecimientoRepositorio(),
     enlaces,
   );
@@ -78,6 +79,20 @@ describe("EnviarRecordatoriosPorEmail", () => {
         html: expect.stringContaining("Ana García"),
         asunto: expect.stringContaining("15/07/2026"),
       }),
+    );
+  });
+
+  it("{{profesional}} es el nombre del consultorio (`nutricionistas.nombre`)", async () => {
+    // La plantilla por defecto firma con {{profesional}}: antes salía de una
+    // variable de entorno, igual para todos los consultorios.
+    const turno = turnoEjemplo({ fecha: MANANA, hora: "10:00" });
+    turno.cambiarEstado("CONFIRMADO");
+    const { uc, enviar } = armar({ turnos: [turno] });
+
+    await uc.ejecutar();
+
+    expect(enviar).toHaveBeenCalledWith(
+      expect.objectContaining({ html: expect.stringContaining(PROFESIONAL) }),
     );
   });
 
@@ -215,7 +230,7 @@ describe("EnviarRecordatoriosPorEmail", () => {
       }),
       mockReloj(),
       mockConfiguracionRecordatoriosRepositorio(),
-      PROFESIONAL,
+      mockNutricionistaConNombre(PROFESIONAL),
       mockEstablecimientoRepositorio(),
       mockEnlaceConfirmacionTurno(),
     );
@@ -237,7 +252,7 @@ describe("EnviarRecordatoriosPorEmail", () => {
       mockServicioEmail(),
       mockReloj(),
       mockConfiguracionRecordatoriosRepositorio(),
-      PROFESIONAL,
+      mockNutricionistaConNombre(PROFESIONAL),
       mockEstablecimientoRepositorio(),
       mockEnlaceConfirmacionTurno(),
     );

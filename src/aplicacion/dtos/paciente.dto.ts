@@ -115,6 +115,17 @@ export const enviarBienvenidaManualDto = z.object({
   pacienteIds: z.array(z.string().min(1)).min(1).max(MAX_PACIENTES_POR_LOTE),
   /** Insiste aunque ya se le haya enviado antes. */
   forzar: z.boolean().optional(),
+  /**
+   * De dónde sale la contraseña si la plantilla lleva {{contrasena}}. Sin
+   * indicar, se genera una al azar por paciente. La escrita a mano pasa por la
+   * misma política que cualquier otra contraseña de la app.
+   */
+  contrasena: z
+    .discriminatedUnion("modo", [
+      z.object({ modo: z.literal("GENERADA") }),
+      z.object({ modo: z.literal("MANUAL"), valor: passwordNuevaDto }),
+    ])
+    .optional(),
 });
 export type EnviarBienvenidaManualDto = z.infer<
   typeof enviarBienvenidaManualDto

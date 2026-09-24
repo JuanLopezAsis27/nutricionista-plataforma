@@ -1,3 +1,4 @@
+import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
@@ -50,6 +51,7 @@ export class ObtenerVistaPreviaRecordatorio {
     private readonly proveedor: IProveedorWhatsapp,
     private readonly establecimientos: IEstablecimientoRepositorio,
     private readonly reloj: IRelojFecha,
+    private readonly nutricionistas: INutricionistaRepositorio,
   ) {}
 
   async ejecutar(
@@ -94,6 +96,7 @@ export class ObtenerVistaPreviaRecordatorio {
       turno,
       paciente,
       config,
+      await this.nutricionistas.nombreDelActual(),
       plantilla,
       establecimiento,
     );

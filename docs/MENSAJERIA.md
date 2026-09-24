@@ -106,7 +106,7 @@ extremos, así que no hace falta buscarla en la conversación—:
 | Mira          | La contraparte es | Nombre de                                      | Foto de                        |
 | ------------- | ----------------- | ---------------------------------------------- | ------------------------------ |
 | Nutricionista | El paciente       | `Paciente.nombreCompleto`                      | La cuenta del paciente         |
-| Paciente      | Su nutricionista  | `ConfiguracionConsultorio.nombreProfesional`   | La cuenta del profesional      |
+| Paciente      | Su nutricionista  | `nutricionistas.nombre`                        | La cuenta del profesional      |
 
 Tres decisiones que no se ven en el tipo:
 

@@ -8,12 +8,17 @@ import { escaparHtml } from "@/dominio/plantillas/renderizar";
  * reflejan lo que reemplaza cada envío real según la plantilla: la bienvenida
  * sus datos de acceso, el recordatorio su turno. Tener una lista propia acá
  * era dejar que la vista previa y el envío divergieran sin que nadie lo note.
+ *
+ * El `{{profesional}}` no es de ejemplo: es el nombre del consultorio
+ * (`useNombreProfesional`), el mismo que va a llevar el envío real.
  */
 export function variablesEjemploCliente(
+  nombreProfesional: string | null,
   clavePlantilla?: string,
 ): Record<string, string> {
   return variablesEjemplo(
-    "Lic. López Asis Nicolás",
+    // Solo falta mientras carga la query de la configuración.
+    nombreProfesional ?? "tu nutricionista",
     new Date(),
     clavePlantilla,
   );
@@ -27,7 +32,7 @@ export function variablesEjemploCliente(
  */
 export function renderizarPlantillaCliente(
   texto: string,
-  variables: Record<string, string> = variablesEjemploCliente(),
+  variables: Record<string, string>,
 ): string {
   return Object.entries(variables).reduce((acc, [clave, valor]) => {
     const patron = new RegExp(`{{\\s*${clave}\\s*}}`, "g");
@@ -46,7 +51,7 @@ export function renderizarPlantillaCliente(
  */
 export function renderizarHtmlCliente(
   html: string,
-  variables: Record<string, string> = variablesEjemploCliente(),
+  variables: Record<string, string>,
 ): string {
   return Object.entries(variables).reduce((acc, [clave, valor]) => {
     const patron = new RegExp(`{{\\s*${clave}\\s*}}`, "g");

@@ -1,10 +1,7 @@
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
-import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
-import {
-  type IdentidadVisible,
-  nombreDelProfesional,
-} from "@/aplicacion/casos-de-uso/perfil/identidad";
+import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
+import type { IdentidadVisible } from "@/aplicacion/casos-de-uso/perfil/identidad";
 
 /**
  * Caso de uso: quién está del OTRO lado de un hilo, con nombre y foto.
@@ -15,8 +12,8 @@ import {
  * parámetro `viewerEsNutricionista`.
  *
  * Va acá y no en el repositorio de mensajería porque no es un dato de la
- * conversación: la foto vive en `usuarios` y el nombre del profesional en la
- * configuración del consultorio. Meterlo en el `include` de la conversación
+ * conversación: la foto vive en `usuarios` y el nombre del profesional en
+ * `nutricionistas`. Meterlo en el `include` de la conversación
  * habría atado la mensajería a dos tablas que no son suyas.
  *
  * Nunca lanza: si la ficha o la cuenta del otro extremo no aparecen, devuelve
@@ -27,7 +24,7 @@ export class ObtenerContraparteDelHilo {
   constructor(
     private readonly usuarios: IUsuarioRepositorio,
     private readonly pacientes: IPacienteRepositorio,
-    private readonly configuracion: IConfiguracionRepositorio,
+    private readonly nutricionistas: INutricionistaRepositorio,
   ) {}
 
   async ejecutar(
@@ -57,14 +54,12 @@ export class ObtenerContraparteDelHilo {
   private async elProfesional(): Promise<IdentidadVisible> {
     // Dentro del alcance de inquilino, `listarPorRol` devuelve el único
     // NUTRICIONISTA del consultorio: un inquilino ES un profesional.
-    const [config, profesionales] = await Promise.all([
-      this.configuracion.obtener(),
+    const [nombre, profesionales] = await Promise.all([
+      this.nutricionistas.nombreDelActual(),
       this.usuarios.listarPorRol("NUTRICIONISTA"),
     ]);
     return {
-      nombre: nombreDelProfesional(
-        config?.aPrimitivos().nombreProfesional ?? null,
-      ),
+      nombre,
       fotoArchivoId: profesionales[0]?.fotoPerfilId ?? null,
     };
   }

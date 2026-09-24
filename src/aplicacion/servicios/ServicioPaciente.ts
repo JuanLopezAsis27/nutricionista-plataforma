@@ -7,6 +7,7 @@ import type { EnviarBienvenidaAlAlta } from "@/aplicacion/casos-de-uso/pacientes
 import type {
   EnviarBienvenidaMasiva,
   ResultadoEnvioBienvenida,
+  ContrasenaBienvenida,
 } from "@/aplicacion/casos-de-uso/pacientes/EnviarBienvenidaMasiva";
 import type { ArchivarPaciente } from "@/aplicacion/casos-de-uso/pacientes/ArchivarPaciente";
 import type { ReactivarPaciente } from "@/aplicacion/casos-de-uso/pacientes/ReactivarPaciente";
@@ -96,8 +97,17 @@ export class ServicioPaciente {
   async enviarBienvenidaManual(datos: {
     pacienteIds: string[];
     forzar?: boolean;
+    contrasena?: ContrasenaBienvenida;
   }): Promise<ResultadoEnvioBienvenida> {
     return this.enviarBienvenidaMasivaUC.ejecutar(datos);
+  }
+
+  /**
+   * Si la bienvenida lleva `{{contrasena}}`: la pantalla pregunta de dónde
+   * sale la contraseña solo cuando va a viajar en el email.
+   */
+  async bienvenidaPideContrasena(): Promise<boolean> {
+    return this.enviarBienvenidaMasivaUC.pideContrasena();
   }
 
   async obtenerPacientes(

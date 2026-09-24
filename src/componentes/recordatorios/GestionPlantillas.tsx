@@ -23,6 +23,7 @@ import type {
 } from "@/aplicacion/dtos/recordatorios.dto";
 import { useRecordatorios } from "@/lib/hooks/useRecordatorios";
 import { useCredenciales } from "@/lib/hooks/useCredenciales";
+import { useNombreProfesional } from "@/lib/hooks/useNombreProfesional";
 import {
   VARIABLES_RECORDATORIO,
   MAX_LARGO_CUERPO_PLANTILLA,
@@ -464,9 +465,12 @@ function FormularioPlantillaWhatsapp({
   const claveEfectiva =
     modo === "CREAR" && !claveTocada ? aClaveMeta(nombre) : claveMeta;
 
+  // {{profesional}} es el nombre de ESTE consultorio (`nutricionistas.nombre`),
+  // el mismo que va a llevar el envío real.
+  const nombreProfesional = useNombreProfesional();
   const vistaPrevia = renderizarPlantilla(
     cuerpo,
-    variablesEjemplo("Lic. Nutrición", new Date()),
+    variablesEjemplo(nombreProfesional ?? "tu nutricionista", new Date()),
   );
   const guardando = crearPlantilla.isPending || actualizarPlantilla.isPending;
   const conBotones = modo === "CREAR" || modo === "ADMINISTRADA";

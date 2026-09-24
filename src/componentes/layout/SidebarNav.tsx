@@ -5,15 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import type { LucideIcon } from "lucide-react";
-import {
-  Salad,
-  Menu,
-  X,
-  PanelLeftClose,
-  PanelLeftOpen,
-  LogOut,
-} from "lucide-react";
+import { Menu, X, PanelLeftClose, PanelLeftOpen, LogOut } from "lucide-react";
 import { cn } from "@/lib/utilidades";
+import { IsotipoNutriOffice } from "@/componentes/marca/MarcaNutriOffice";
 import { Button } from "@/componentes/ui/button";
 
 export interface EnlaceNav {
@@ -26,8 +20,8 @@ export interface EnlaceNav {
 }
 
 interface PropsSidebarNav {
-  /** Nombre mostrado junto al logo. */
-  marca: string;
+  /** Lo que se muestra junto al logo (un texto o la marca con sus colores). */
+  marca: ReactNode;
   enlaces: EnlaceNav[];
   email: string;
   /** Clave de localStorage donde se recuerda si está colapsada. */
@@ -93,7 +87,7 @@ export function SidebarNav({
             <Menu className="h-5 w-5" />
           </Button>
           <span className="flex items-center gap-2 font-bold">
-            <Salad className="h-5 w-5 text-primary" />
+            <IsotipoNutriOffice className="h-8 w-8" />
             {marca}
           </span>
         </div>
@@ -112,7 +106,7 @@ export function SidebarNav({
           <aside className="absolute inset-y-0 left-0 flex w-72 max-w-[85%] flex-col border-r bg-background shadow-xl">
             <div className="flex h-14 items-center justify-between border-b px-4">
               <span className="flex items-center gap-2 font-bold">
-                <Salad className="h-5 w-5 text-primary" />
+                <IsotipoNutriOffice className="h-8 w-8" />
                 {marca}
               </span>
               <Button
@@ -145,7 +139,7 @@ export function SidebarNav({
         >
           {!colapsada && (
             <span className="flex items-center gap-2 text-lg font-bold">
-              <Salad className="h-6 w-6 text-primary" />
+              <IsotipoNutriOffice className="h-[38px] w-[38px]" />
               {marca}
             </span>
           )}

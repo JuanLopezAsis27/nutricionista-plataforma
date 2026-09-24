@@ -205,6 +205,16 @@ programador que hace **un respaldo diario** a la hora `HORA_RESPALDO` (local):
    borra del destino: una eliminación accidental en la app no destruye la copia.
 3. **Retención**: borra los dumps más viejos que `RETENCION_DIAS` (local y en OVH).
 
+**Un solo respaldo por día, no uno por deploy.** Al arrancar, el programador hace
+un respaldo inicial (valida la configuración y cubre un contenedor nuevo), pero
+solo si el último exitoso tiene más de `RESPALDO_INICIAL_MIN_HORAS` horas (20 por
+defecto). El contenedor `respaldo` se recrea en **cada deploy a producción** —su
+imagen lleva el SHA del commit— y con cada reinicio del VPS; sin ese chequeo cada
+uno sumaba un respaldo completo más. "Exitoso" se mide con la marca
+`/respaldos/.ultimo_exito` que `respaldo.sh` escribe recién al terminar (dump
+subido a OVH), no con el dump del disco. En el primer arranque no hay marca y el
+respaldo corre.
+
 Así, si el VPS o el disco mueren, **la base y los archivos están fuera del
 servidor** (en OVH). Además OVH ofrece _snapshots_ de disco como red extra.
 

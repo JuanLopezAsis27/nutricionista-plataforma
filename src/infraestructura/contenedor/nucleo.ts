@@ -75,6 +75,7 @@ import { PrismaRepositorioSincronizacionTurno } from "@/infraestructura/reposito
 
 import { BcryptHasheador } from "@/infraestructura/seguridad/BcryptHasheador";
 import { GeneradorTokensCrypto } from "@/infraestructura/seguridad/GeneradorTokensCrypto";
+import { GeneradorContrasenasCrypto } from "@/infraestructura/seguridad/GeneradorContrasenasCrypto";
 import { CifradorTokens } from "@/infraestructura/seguridad/CifradorTokens";
 import { FirmaConfirmacionTurno } from "@/infraestructura/seguridad/FirmaConfirmacionTurno";
 import { AlmacenamientoMinIO } from "@/infraestructura/almacenamiento/AlmacenamientoMinIO";
@@ -132,10 +133,6 @@ import { DirectorioWhatsapp } from "@/infraestructura/whatsapp/DirectorioWhatsap
 import { ProvisionadorNutricionista } from "@/infraestructura/aprovisionamiento/ProvisionadorNutricionista";
 
 // --- Configuración de entorno -------------------------------------------------
-
-/** Nombre del profesional para membretes y firmas de emails. */
-export const NOMBRE_PROFESIONAL =
-  process.env.NOMBRE_PROFESIONAL ?? "Lic. López Asis Nicolás";
 
 /** URL pública de la app (la usan los enlaces de los emails y el OAuth). */
 export const urlApp = (): string => urlPublica();
@@ -325,6 +322,9 @@ export const repositorioRetroalimentacion = perezoso(
 
 export const hasheador = perezoso(() => new BcryptHasheador());
 export const generadorTokens = perezoso(() => new GeneradorTokensCrypto());
+export const generadorContrasenas = perezoso(
+  () => new GeneradorContrasenasCrypto(),
+);
 export const almacenamiento = perezoso(() => new AlmacenamientoMinIO());
 export const reloj = perezoso(() => new RelojSistema());
 

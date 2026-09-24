@@ -1,7 +1,7 @@
 import type { IMensajeriaRepositorio } from "@/dominio/repositorios/IMensajeriaRepositorio";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
-import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
+import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
 import type { INotificacionRepositorio } from "@/dominio/repositorios/INotificacionRepositorio";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
@@ -20,7 +20,7 @@ export function crearServicioMensajeria(deps: {
   mensajeria: IMensajeriaRepositorio;
   usuarios: IUsuarioRepositorio;
   pacientes: IPacienteRepositorio;
-  configuracion: IConfiguracionRepositorio;
+  nutricionistas: INutricionistaRepositorio;
   bus: IBusEventos;
   notificaciones: INotificacionRepositorio;
   reloj: IRelojFecha;
@@ -43,7 +43,7 @@ export function crearServicioMensajeria(deps: {
     new ObtenerContraparteDelHilo(
       deps.usuarios,
       deps.pacientes,
-      deps.configuracion,
+      deps.nutricionistas,
     ),
   );
 }

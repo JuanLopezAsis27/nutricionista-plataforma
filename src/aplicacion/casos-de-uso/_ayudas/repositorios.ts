@@ -674,6 +674,9 @@ export function mockNutricionistaRepositorio(
   return {
     crear: vi.fn(async () => {}),
     existe: vi.fn(async () => true),
+    nombreDe: vi.fn(async () => "Lic. Nutrición"),
+    nombreDelActual: vi.fn(async () => "Lic. Nutrición"),
+    renombrarActual: vi.fn(async () => {}),
     ...parcial,
   };
 }
@@ -686,6 +689,19 @@ export function mockConfiguracionRepositorio(
     guardar: vi.fn(async (c: ConfiguracionConsultorio) => c),
     ...parcial,
   };
+}
+
+/**
+ * Registro de inquilinos cuyo profesional se llama `nombre`, que es de donde
+ * lo leen los emails, los recordatorios y el chat.
+ */
+export function mockNutricionistaConNombre(
+  nombre: string,
+): INutricionistaRepositorio {
+  return mockNutricionistaRepositorio({
+    nombreDe: vi.fn(async () => nombre),
+    nombreDelActual: vi.fn(async () => nombre),
+  });
 }
 
 /**

@@ -1,5 +1,6 @@
 import type { IPlantillaEmailRepositorio } from "@/dominio/repositorios/IPlantillaEmailRepositorio";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
+import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import { CLAVE_BIENVENIDA } from "@/dominio/entidades/PlantillaEmail";
 import { variablesBienvenida } from "@/aplicacion/casos-de-uso/secretaria/variables";
 
@@ -32,8 +33,19 @@ export class EnviarEmailDeBienvenida {
   constructor(
     private readonly plantillas: IPlantillaEmailRepositorio,
     private readonly servicioEmail: IServicioEmail,
-    private readonly nombreProfesional: string,
+    /** Da {{profesional}}: el nombre del consultorio que da el alta. */
+    private readonly nutricionistas: INutricionistaRepositorio,
   ) {}
+
+  /**
+   * Si la plantilla de bienvenida lleva `{{contrasena}}`. El alta siempre tiene
+   * la contraseña en la mano; el envío manual no, y tiene que saber ANTES de
+   * mandar si le hace falta generar una.
+   */
+  async pideContrasena(): Promise<boolean> {
+    const plantilla = await this.plantillas.obtenerPorClave(CLAVE_BIENVENIDA);
+    return plantilla?.usaVariable("contrasena") ?? false;
+  }
 
   async ejecutar(datos: DatosBienvenida): Promise<boolean> {
     if (!datos.email) return false;
@@ -43,7 +55,7 @@ export class EnviarEmailDeBienvenida {
     const { asunto, html } = plantilla.renderizar(
       variablesBienvenida({
         nombrePaciente: datos.nombrePaciente,
-        nombreProfesional: this.nombreProfesional,
+        nombreProfesional: await this.nutricionistas.nombreDelActual(),
         email: datos.email,
         contrasena: datos.contrasena,
       }),

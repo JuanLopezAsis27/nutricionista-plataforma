@@ -102,5 +102,6 @@ export function usePacientes() {
     interpretarFicha,
     crearDesdeFicha,
     enviarBienvenidaManual,
+    bienvenidaPideContrasena: trpc.pacientes.bienvenidaPideContrasena.useQuery,
   };
 }

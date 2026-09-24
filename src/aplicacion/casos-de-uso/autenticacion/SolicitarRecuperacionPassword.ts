@@ -3,7 +3,9 @@ import type { ITokenRecuperacionRepositorio } from "@/dominio/repositorios/IToke
 import type { IGeneradorTokens } from "@/dominio/servicios/IGeneradorTokens";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
+import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import { TokenRecuperacion } from "@/dominio/entidades/TokenRecuperacion";
+import { escaparHtml } from "@/dominio/plantillas/renderizar";
 
 /** Entrada del caso de uso. */
 export interface EntradaSolicitarRecuperacion {
@@ -32,7 +34,12 @@ export class SolicitarRecuperacionPassword {
     private readonly servicioEmail: IServicioEmail,
     private readonly reloj: IRelojFecha,
     private readonly baseUrl: string,
-    private readonly nombreProfesional: string,
+    /**
+     * Firma del email: el nombre del consultorio al que pertenece la cuenta.
+     * Corre con alcance global (es público y todavía no hay sesión), así que
+     * se pide por id y no como "el actual".
+     */
+    private readonly nutricionistas: INutricionistaRepositorio,
   ) {}
 
   async ejecutar(entrada: EntradaSolicitarRecuperacion): Promise<void> {
@@ -64,7 +71,10 @@ export class SolicitarRecuperacionPassword {
     await this.servicioEmail.enviar({
       para: usuario.email,
       asunto: "Restablecé tu contraseña",
-      html: this.plantillaHtml(enlace),
+      html: this.plantillaHtml(
+        enlace,
+        await this.firma(usuario.nutricionistaId),
+      ),
       texto:
         `Recibimos un pedido para restablecer tu contraseña.\n\n` +
         `Abrí este enlace (válido por 1 hora): ${enlace}\n\n` +
@@ -72,7 +82,16 @@ export class SolicitarRecuperacionPassword {
     });
   }
 
-  private plantillaHtml(enlace: string): string {
+  /**
+   * El SUPERADMIN no pertenece a ningún consultorio: su email sale sin firma,
+   * que es mejor que firmarlo con el nombre de otro.
+   */
+  private async firma(nutricionistaId: string | null): Promise<string | null> {
+    if (!nutricionistaId) return null;
+    return this.nutricionistas.nombreDe(nutricionistaId);
+  }
+
+  private plantillaHtml(enlace: string, firma: string | null): string {
     return `
       <div style="font-family: system-ui, sans-serif; color: #1f2937; max-width: 480px; margin: 0 auto;">
         <h2 style="color: #111827;">Restablecé tu contraseña</h2>
@@ -84,7 +103,7 @@ export class SolicitarRecuperacionPassword {
           </a>
         </p>
         <p style="color: #6b7280; font-size: 14px;">El enlace vence en 1 hora. Si no lo solicitaste, ignorá este correo.</p>
-        <p style="color: #6b7280; font-size: 14px;">— ${this.nombreProfesional}</p>
+        ${firma ? `<p style="color: #6b7280; font-size: 14px;">— ${escaparHtml(firma)}</p>` : ""}
       </div>`;
   }
 }

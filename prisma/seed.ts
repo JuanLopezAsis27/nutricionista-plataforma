@@ -122,7 +122,10 @@ async function sembrarNutricionista(): Promise<string | null> {
   }
   const id = crypto.randomUUID();
   // El inquilino primero: `usuarios.nutricionistaId` es FK a `nutricionistas`.
-  await prisma.nutricionista.create({ data: { id } });
+  // El nombre es obligatorio desde la migración 74; se corrige en Configuración.
+  await prisma.nutricionista.create({
+    data: { id, nombre: credencial("SEED_NOMBRE", "Lic. Nutrición") },
+  });
   const usuario = Usuario.crear(
     {
       email,

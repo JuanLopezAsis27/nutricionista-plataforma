@@ -474,7 +474,6 @@ describe("mapearConfiguracion", () => {
     atencionHoraDesde: "08:00",
     atencionHoraHasta: "18:00",
     diasAtencion: [1, 2, 3, 4, 5],
-    nombreProfesional: "Lic. Ana Gomez",
     matricula: "MN 12345",
     logoArchivoId: "arch-logo",
     pdfColorPrimario: "#2563eb",
@@ -517,7 +516,6 @@ describe("mapearConfiguracion", () => {
   it("copia los datos de marca del profesional", () => {
     const datos = mapearConfiguracion(fila).aPrimitivos();
 
-    expect(datos.nombreProfesional).toBe("Lic. Ana Gomez");
     expect(datos.matricula).toBe("MN 12345");
     expect(datos.logoArchivoId).toBe("arch-logo");
     expect(datos.pdfColorPrimario).toBe("#2563eb");

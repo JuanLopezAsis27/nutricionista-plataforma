@@ -15,7 +15,8 @@ import {
  * decir "lunes y miércoles en el centro, martes y jueves en el barrio".
  */
 export interface DatosConfiguracion {
-  nombreProfesional: string | null;
+  // El nombre del profesional ya no está acá: es identidad del inquilino y
+  // vive en `nutricionistas.nombre` desde la migración 74.
   matricula: string | null;
   logoArchivoId: string | null;
   // Apariencia del PDF del plan.
@@ -70,7 +71,8 @@ export interface PropiedadesConfiguracion extends DatosConfiguracion {
 
 /**
  * Entidad de dominio ConfiguracionConsultorio: lo que describe al PROFESIONAL,
- * que es uno solo (una fila por inquilino). Membrete para PDF y emails,
+ * que es uno solo (una fila por inquilino). Membrete para PDF y emails (el
+ * nombre, no: está en `nutricionistas`, ver migración 74),
  * apariencia del plan y prefijo telefónico.
  *
  * Lo que describe al LUGAR —días y horarios de atención, duración y paso del
@@ -86,7 +88,6 @@ export class ConfiguracionConsultorio {
   static porDefecto(ahora: Date = new Date()): ConfiguracionConsultorio {
     return new ConfiguracionConsultorio({
       id: crypto.randomUUID(),
-      nombreProfesional: null,
       matricula: null,
       logoArchivoId: null,
       pdfColorPrimario: null,
@@ -124,10 +125,6 @@ export class ConfiguracionConsultorio {
       nuevo !== undefined ? nuevo : actual;
 
     const datos: DatosConfiguracion = {
-      nombreProfesional: fusionar(
-        cambios.nombreProfesional,
-        this.props.nombreProfesional,
-      ),
       matricula: fusionar(cambios.matricula, this.props.matricula),
       logoArchivoId: fusionar(cambios.logoArchivoId, this.props.logoArchivoId),
       pdfColorPrimario: fusionar(

@@ -15,6 +15,8 @@ import {
   configuracionEjemplo,
   plantillaWhatsappEjemplo,
   recordatorioWhatsappEjemplo,
+  mockNutricionistaRepositorio,
+  mockNutricionistaConNombre,
 } from "../_ayudas-test";
 
 /**
@@ -60,6 +62,7 @@ describe("EnviarRecordatorioWhatsapp — a quién NO se le manda", () => {
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
 
     // `Turno.crear` siempre nace PENDIENTE y la maquina de estados es la
@@ -83,6 +86,7 @@ describe("EnviarRecordatorioWhatsapp — a quién NO se le manda", () => {
       proveedor,
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
 
     const resultado = await caso.ejecutar(
@@ -100,6 +104,7 @@ describe("EnviarRecordatorioWhatsapp — a quién NO se le manda", () => {
         mockProveedorWhatsapp(),
         mockMensajeWhatsappRepositorio(),
         mockEnlaceConfirmacionTurno(),
+        mockNutricionistaRepositorio(),
       );
 
       const turno = turnoEjemplo();
@@ -144,6 +149,7 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
 
     const resultado = await caso.ejecutar(
@@ -167,6 +173,7 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
 
     const resultado = await caso.ejecutar(
@@ -182,6 +189,7 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
 
     const resultado = await caso.ejecutar(
@@ -202,6 +210,7 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
 
     const resultado = await caso.ejecutar(
@@ -222,6 +231,7 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
 
     await caso.ejecutar(pedidoBase({ existentes: [fallido] }));
@@ -238,6 +248,7 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
 
     await caso.ejecutar(
@@ -257,6 +268,7 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
 
     await caso.ejecutar(
@@ -285,6 +297,7 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
 
     await caso.ejecutar(
@@ -310,6 +323,7 @@ describe("EnviarRecordatorioWhatsapp — cómo sale el mensaje", () => {
       }),
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
     expect((await porApi.ejecutar(pedidoBase())).estado).toBe("ENVIADO");
 
@@ -318,6 +332,7 @@ describe("EnviarRecordatorioWhatsapp — cómo sale el mensaje", () => {
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
     const resultado = await porEnlace.ejecutar(pedidoBase());
     expect(resultado.estado).toBe("PREPARADO");
@@ -341,6 +356,7 @@ describe("EnviarRecordatorioWhatsapp — cómo sale el mensaje", () => {
       }),
       mensajes,
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
 
     await caso.ejecutar(
@@ -363,6 +379,7 @@ describe("EnviarRecordatorioWhatsapp — cómo sale el mensaje", () => {
       mockProveedorWhatsapp(),
       mensajes,
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
 
     await caso.ejecutar(pedidoBase());
@@ -377,6 +394,7 @@ describe("EnviarRecordatorioWhatsapp — cómo sale el mensaje", () => {
       proveedor,
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
 
     await caso.ejecutar(
@@ -400,6 +418,7 @@ describe("EnviarRecordatorioWhatsapp — cómo sale el mensaje", () => {
       proveedor,
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
 
     await caso.ejecutar(
@@ -425,6 +444,7 @@ describe("EnviarRecordatorioWhatsapp — cómo sale el mensaje", () => {
       proveedor,
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
 
     await caso.ejecutar(pedidoBase({ textoManual: "   " }));
@@ -449,6 +469,7 @@ describe("EnviarRecordatorioWhatsapp — cuando el proveedor falla", () => {
       proveedorQueFalla(),
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
 
     const resultado = await caso.ejecutar(pedidoBase());
@@ -466,6 +487,7 @@ describe("EnviarRecordatorioWhatsapp — cuando el proveedor falla", () => {
       proveedorQueFalla(),
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
 
     await caso.ejecutar(pedidoBase());
@@ -485,11 +507,40 @@ describe("EnviarRecordatorioWhatsapp — cuando el proveedor falla", () => {
       proveedorQueFalla(),
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     );
 
     await caso.ejecutar(pedidoBase({ diasAntes: 3, existentes: [previo] }));
 
     expect(repositorio.actualizar).toHaveBeenCalledTimes(1);
     expect(repositorio.registrar).not.toHaveBeenCalled();
+  });
+});
+
+describe("EnviarRecordatorioWhatsapp — {{profesional}}", () => {
+  it("usa el nombre del consultorio en curso (`nutricionistas.nombre`)", async () => {
+    const proveedor = mockProveedorWhatsapp();
+    const nutricionistas = mockNutricionistaConNombre("Lic. Ana Gómez");
+    const caso = new EnviarRecordatorioWhatsapp(
+      mockRecordatorioWhatsappRepositorio(),
+      proveedor,
+      mockMensajeWhatsappRepositorio(),
+      mockEnlaceConfirmacionTurno(),
+      nutricionistas,
+    );
+
+    await caso.ejecutar(
+      pedidoBase({
+        plantilla: plantillaWhatsappEjemplo({
+          cuerpo: "Te espera {{profesional}}",
+          claveMeta: null,
+        }),
+      }),
+    );
+
+    expect(nutricionistas.nombreDelActual).toHaveBeenCalled();
+    expect(proveedor.preparar).toHaveBeenCalledWith(
+      expect.objectContaining({ texto: "Te espera Lic. Ana Gómez" }),
+    );
   });
 });

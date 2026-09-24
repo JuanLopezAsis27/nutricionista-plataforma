@@ -1,3 +1,4 @@
+import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import type { IMensajeWhatsappRepositorio } from "@/dominio/repositorios/IMensajeWhatsappRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
@@ -52,6 +53,8 @@ export class EnviarPlantillaWhatsapp {
     private readonly proveedor: IProveedorWhatsapp,
     private readonly enlaces: IEnlaceConfirmacionTurno,
     private readonly reloj: IRelojFecha,
+    /** Da {{profesional}}: el nombre del consultorio en curso. */
+    private readonly nutricionistas: INutricionistaRepositorio,
   ) {}
 
   async ejecutar(
@@ -90,9 +93,16 @@ export class EnviarPlantillaWhatsapp {
     const config =
       (await this.configuracion.obtener()) ??
       ConfiguracionConsultorio.porDefecto();
+    const nombreProfesional = await this.nutricionistas.nombreDelActual();
     const { texto, envio } = turno
-      ? await this.armarConTurno(plantilla, paciente, config, turno)
-      : this.armarSinTurno(plantilla, paciente, config);
+      ? await this.armarConTurno(
+          plantilla,
+          paciente,
+          config,
+          nombreProfesional,
+          turno,
+        )
+      : this.armarSinTurno(plantilla, paciente, config, nombreProfesional);
 
     const resultado = await this.proveedor.enviarPlantilla({
       ...envio,
@@ -133,12 +143,20 @@ export class EnviarPlantillaWhatsapp {
     plantilla: PlantillaWhatsapp,
     paciente: Paciente,
     config: ConfiguracionConsultorio,
+    nombreProfesional: string,
     turno: Turno,
   ): Promise<{ texto: string; envio: PlantillaWhatsappEnvio }> {
     const sede = await this.establecimientos.obtenerPorId(
       turno.establecimientoId,
     );
-    const armado = armarRecordatorio(turno, paciente, config, plantilla, sede);
+    const armado = armarRecordatorio(
+      turno,
+      paciente,
+      config,
+      nombreProfesional,
+      plantilla,
+      sede,
+    );
     if (!armado.envioPlantilla) {
       throw new ErrorValidacion("Esa plantilla no tiene nombre en Meta.");
     }
@@ -153,6 +171,7 @@ export class EnviarPlantillaWhatsapp {
     plantilla: PlantillaWhatsapp,
     paciente: Paciente,
     config: ConfiguracionConsultorio,
+    nombreProfesional: string,
   ): { texto: string; envio: PlantillaWhatsappEnvio } {
     const c = config.aPrimitivos();
     const telefono = normalizarTelefonoE164(
@@ -161,7 +180,7 @@ export class EnviarPlantillaWhatsapp {
     );
     const variables: Record<string, string> = {
       paciente: paciente.nombreCompleto,
-      profesional: c.nombreProfesional ?? "tu nutricionista",
+      profesional: nombreProfesional,
     };
     const texto = renderizarPlantilla(plantilla.cuerpo, variables);
     return {

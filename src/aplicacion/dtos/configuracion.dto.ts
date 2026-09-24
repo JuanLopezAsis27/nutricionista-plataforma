@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { METODOS_GRASA } from "@/dominio/servicios/grasaPorPliegues";
 import { CAMPOS_PLANTILLA } from "@/dominio/entidades/PlantillaAntropometrica";
+import { LARGO_MAXIMO_NOMBRE_PROFESIONAL } from "@/dominio/entidades/nombreProfesional";
 
 /**
  * DTOs de la Configuración del consultorio: lo que describe al PROFESIONAL.
@@ -11,7 +12,15 @@ import { CAMPOS_PLANTILLA } from "@/dominio/entidades/PlantillaAntropometrica";
  */
 
 export const guardarConfiguracionDto = z.object({
-  nombreProfesional: z.string().max(200).nullable().optional(),
+  // Se puede cambiar pero no vaciar: es la firma de los emails y el
+  // {{profesional}} de los recordatorios. No es de la configuración (vive en
+  // `nutricionistas.nombre`): el servicio lo separa al guardar.
+  nombreProfesional: z
+    .string()
+    .trim()
+    .min(1, "El nombre del profesional es obligatorio")
+    .max(LARGO_MAXIMO_NOMBRE_PROFESIONAL)
+    .optional(),
   matricula: z.string().max(100).nullable().optional(),
   logoArchivoId: z.string().nullable().optional(),
   pdfColorPrimario: z
@@ -52,7 +61,8 @@ export type GuardarConfiguracionDto = z.infer<typeof guardarConfiguracionDto>;
 
 export const configuracionSalidaDto = z.object({
   id: z.string(),
-  nombreProfesional: z.string().nullable(),
+  /** De `nutricionistas.nombre`; nunca falta (migración 74). */
+  nombreProfesional: z.string(),
   matricula: z.string().nullable(),
   logoArchivoId: z.string().nullable(),
   pdfColorPrimario: z.string().nullable(),

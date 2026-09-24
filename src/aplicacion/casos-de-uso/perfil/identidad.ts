@@ -12,18 +12,3 @@ export interface IdentidadVisible {
   /** Archivo del bucket con la foto; null si la cuenta no eligió ninguna. */
   fotoArchivoId: string | null;
 }
-
-/**
- * Cómo se nombra al profesional cuando no cargó su nombre en Configuración.
- *
- * En el portal del paciente el nutricionista no tiene ficha ni apellido: lo
- * único que hay es `ConfiguracionConsultorio.nombreProfesional`, que es
- * opcional. Sin este respaldo, el encabezado del chat del paciente quedaba
- * vacío en un consultorio recién dado de alta.
- */
-export const NOMBRE_PROFESIONAL_POR_DEFECTO = "Tu nutricionista";
-
-/** El nombre del profesional, con el respaldo aplicado. */
-export function nombreDelProfesional(configurado: string | null): string {
-  return configurado?.trim() || NOMBRE_PROFESIONAL_POR_DEFECTO;
-}

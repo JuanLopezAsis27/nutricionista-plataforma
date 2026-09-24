@@ -14,6 +14,7 @@ import {
   renderizarHtmlCliente,
   variablesEjemploCliente,
 } from "@/lib/plantillaPreview";
+import { useNombreProfesional } from "@/lib/hooks/useNombreProfesional";
 import { Button } from "@/componentes/ui/button";
 import { Badge } from "@/componentes/ui/badge";
 import { Input } from "@/componentes/ui/input";
@@ -209,7 +210,7 @@ function FormularioPlantillaEmailRecordatorio({
     setIncluirBotonConfirmacion(inicial.incluirBotonConfirmacion);
   }, [inicial]);
 
-  const variables = variablesEjemploCliente();
+  const variables = variablesEjemploCliente(useNombreProfesional());
   const guardando =
     crearPlantillaEmail.isPending || actualizarPlantillaEmail.isPending;
 
