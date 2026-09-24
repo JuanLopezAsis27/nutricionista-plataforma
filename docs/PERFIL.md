@@ -52,7 +52,6 @@ inserta:
 | Vista previa de las plantillas de email         | `useNombreProfesional` → `variablesEjemploCliente`  |
 | Membrete de los PDF                             | los cuatro `*Pdf.tsx`, vía `configuracion.obtener`  |
 | Encabezado del chat del paciente, «Mi perfil»   | `ObtenerContraparteDelHilo`, `ObtenerMiPerfil`      |
-| Marca de la barra lateral del panel             | `BarraLateral` (`useNombreProfesional`)             |
 
 ### Por qué en `nutricionistas` y no en la configuración
 
@@ -116,7 +115,12 @@ email SIN firma, que es mejor que firmado por otro.
 **Las pantallas públicas no nombran a ningún profesional.** Login, recuperar,
 restablecer, sin conexión y confirmar turno se ven antes de saber de qué
 consultorio se trata: `LogoConsultorio` muestra la marca de la plataforma
-(`NOMBRE_PLATAFORMA`, «NutriOffice»), la misma del manifest.
+(«NutriOffice», con «Office» en coral), la misma del manifest. La barra lateral
+del panel también dice «NutriOffice» y no el nombre del profesional. El logo,
+en los dos lados, es el isotipo de la PWA SIN su fondo oscuro
+(`IsotipoNutriOffice`, el dibujo de `assets/marca/marca.svg` inline): la tinta
+que en el ícono es blanca va en `currentColor`, porque sobre el fondo claro de
+la pantalla desaparecería.
 
 ## La foto de perfil
 
