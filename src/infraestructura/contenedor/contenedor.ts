@@ -88,6 +88,9 @@ export const servicioPaciente = perezoso(() =>
     usuarios: nucleo.repositorioUsuario(),
     plantillas: nucleo.repositorioPlantillaEmail(),
     hasheador: nucleo.hasheador(),
+    generadorContrasenas: nucleo.generadorContrasenas(),
+    tokensRefresco: nucleo.repositorioTokenRefresco(),
+    reloj: nucleo.reloj(),
     servicioEmail: nucleo.servicioEmail(),
     // El prefijo de país del consultorio define cómo se canoniza el teléfono
     // del paciente a E.164 al darlo de alta o editarlo.

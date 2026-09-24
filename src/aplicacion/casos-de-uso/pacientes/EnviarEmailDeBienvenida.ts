@@ -37,6 +37,16 @@ export class EnviarEmailDeBienvenida {
     private readonly nutricionistas: INutricionistaRepositorio,
   ) {}
 
+  /**
+   * Si la plantilla de bienvenida lleva `{{contrasena}}`. El alta siempre tiene
+   * la contraseña en la mano; el envío manual no, y tiene que saber ANTES de
+   * mandar si le hace falta generar una.
+   */
+  async pideContrasena(): Promise<boolean> {
+    const plantilla = await this.plantillas.obtenerPorClave(CLAVE_BIENVENIDA);
+    return plantilla?.usaVariable("contrasena") ?? false;
+  }
+
   async ejecutar(datos: DatosBienvenida): Promise<boolean> {
     if (!datos.email) return false;
     const plantilla = await this.plantillas.obtenerPorClave(CLAVE_BIENVENIDA);

@@ -87,6 +87,13 @@ export const routerPacientes = crearRouter({
       return { eliminado: true };
     }),
 
+  /** Si la plantilla de bienvenida lleva {{contrasena}}. */
+  bienvenidaPideContrasena: nutricionistaProcedimiento.query(
+    async ({ ctx }) => {
+      return await ctx.servicios.paciente.bienvenidaPideContrasena();
+    },
+  ),
+
   /** Envío manual de la bienvenida a una selección de pacientes. */
   enviarBienvenidaManual: nutricionistaProcedimiento
     .input(enviarBienvenidaManualDto)

@@ -139,6 +139,16 @@ export class PlantillaEmail {
    * nombre del paciente, por ejemplo— y sin escapar se inyectaban tal cual en
    * un correo que sale hacia terceros.
    */
+  /**
+   * Si el asunto o el cuerpo llevan `{{nombre}}` (con los mismos espacios
+   * opcionales que acepta `renderizar`). Es lo que decide, por ejemplo, si la
+   * bienvenida manual tiene que generar una contraseña nueva.
+   */
+  usaVariable(nombre: string): boolean {
+    const patron = new RegExp(`{{\\s*${nombre}\\s*}}`);
+    return patron.test(this.props.asunto) || patron.test(this.props.cuerpoHtml);
+  }
+
   renderizar(variables: Record<string, string>): EmailRenderizado {
     return {
       asunto: renderizarPlantilla(this.props.asunto, variables),

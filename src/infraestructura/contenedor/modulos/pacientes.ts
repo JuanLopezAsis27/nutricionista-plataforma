@@ -1,3 +1,6 @@
+import type { IGeneradorContrasenas } from "@/dominio/servicios/IGeneradorContrasenas";
+import type { ITokenRefrescoRepositorio } from "@/dominio/repositorios/ITokenRefrescoRepositorio";
+import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
@@ -31,6 +34,10 @@ export function crearServicioPaciente(deps: {
   usuarios: IUsuarioRepositorio;
   plantillas: IPlantillaEmailRepositorio;
   hasheador: IHasheadorContrasena;
+  /** La bienvenida manual genera una contraseña si la plantilla la pide. */
+  generadorContrasenas: IGeneradorContrasenas;
+  tokensRefresco: ITokenRefrescoRepositorio;
+  reloj: IRelojFecha;
   servicioEmail: IServicioEmail;
   configuracion: IConfiguracionRepositorio;
   nutricionistas: INutricionistaRepositorio;
@@ -68,7 +75,15 @@ export function crearServicioPaciente(deps: {
       deps.pacientes,
       enviarEmailDeBienvenida,
     ),
-    new EnviarBienvenidaMasiva(deps.pacientes, enviarEmailDeBienvenida),
+    new EnviarBienvenidaMasiva(
+      deps.pacientes,
+      enviarEmailDeBienvenida,
+      deps.usuarios,
+      deps.hasheador,
+      deps.generadorContrasenas,
+      deps.tokensRefresco,
+      deps.reloj,
+    ),
     new ArchivarPaciente(deps.pacientes),
     new ReactivarPaciente(deps.pacientes),
     new InterpretarFichaPaciente(
