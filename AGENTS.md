@@ -213,7 +213,7 @@ consultorio lento bloquearía a todos los demás.
 
 ## Modelos del dominio
 
-**36 entidades**, **169 casos de uso** en 26 módulos, **40 interfaces de
+**36 entidades**, **171 casos de uso** en 26 módulos, **40 interfaces de
 repositorio** y **18 puertos de servicio**. La fuente de verdad es el código
 (`/src/dominio`) y `prisma/schema.prisma`. Acá van solo los invariantes que
 cruzan módulos; el detalle de cada uno, en `/docs`.
@@ -237,6 +237,14 @@ para SUPERADMIN).
 **No tiene nombre**: guarda credenciales y rol. El nombre del paciente vive en
 su ficha y el del profesional en `ConfiguracionConsultorio`, y "Mi perfil" los
 muestra pero no los edita (`docs/PERFIL.md`).
+
+**El nombre del profesional sale de UN solo lugar**: `nutricionistas.nombre`
+(`NOT NULL`, migración 74), que se escribe en el mismo INSERT que crea al
+inquilino. Lo carga el SUPERADMIN al crear la cuenta (obligatorio) y lo edita el
+profesional en Configuración, que no deja vaciarlo. Recordatorios, emails, PDF y
+chat lo leen de ahí (`nombreDelActual()` dentro de un inquilino, `nombreDe(id)`
+con alcance global); ya no hay variable de entorno `NOMBRE_PROFESIONAL` ni
+nombres escritos a mano en la UI. Ver `docs/PERFIL.md`.
 
 La **foto de perfil** es `fotoPerfilId → Archivo` (migración 53), del lado de
 `usuarios` como el logo del membrete y no en el arco de dueños de `archivos`:
@@ -768,6 +776,12 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   Y nunca armar un proveedor de LLM sin pasar por `ResolvedorConfigIA`: es el
   que lo envuelve en `ProveedorLLMRegistrado`, y uno suelto gasta sin dejar
   rastro en el panel
+- Nunca leer el nombre del profesional de una variable de entorno ni
+  escribirlo en el código: la app es de muchos consultorios, y así el
+  recordatorio por email de todos salía firmado por el mismo. Va
+  `nutricionistas.nombre`, por `INutricionistaRepositorio`. Y nunca volver a
+  ponerlo en `ConfiguracionConsultorio`: ahí la base no puede garantizar que
+  exista
 - Nunca estimar el costo de una llamada con una tabla de precios propia: queda
   vieja sin avisar. `costoUsd` es solo el que informa el proveedor
 - Nunca tragarse con un `catch` vacío el fallo de una llamada de IA y devolver

@@ -92,13 +92,13 @@ export const servicioPaciente = perezoso(() =>
     // El prefijo de país del consultorio define cómo se canoniza el teléfono
     // del paciente a E.164 al darlo de alta o editarlo.
     configuracion: nucleo.repositorioConfiguracion(),
-    nombreProfesional: nucleo.NOMBRE_PROFESIONAL,
     historias: nucleo.repositorioHistoriaClinica(),
     camposHistoria: nucleo.repositorioCampoHistoriaClinica(),
     antropometrias: nucleo.repositorioAntropometria(),
     laboratorios: nucleo.repositorioLaboratorio(),
     archivos: nucleo.repositorioArchivo(),
     interpretadorFicha: nucleo.interpretadorFichaPaciente(),
+    nutricionistas: nucleo.repositorioNutricionista(),
   }),
 );
 
@@ -118,6 +118,7 @@ export const servicioWhatsapp = perezoso(() =>
     establecimientos: nucleo.repositorioEstablecimiento(),
     servicioEmail: nucleo.servicioEmail(),
     enlaceConfirmacionTurno: nucleo.enlaceConfirmacionTurno(),
+    nutricionistas: nucleo.repositorioNutricionista(),
   }),
 );
 
@@ -144,9 +145,9 @@ export const servicioRecordatorios = perezoso(() =>
     servicioEmail: nucleo.servicioEmail(),
     usuarios: nucleo.repositorioUsuario(),
     bus: nucleo.busEventos(),
-    nombreProfesional: nucleo.NOMBRE_PROFESIONAL,
     enlaceConfirmacionTurno: nucleo.enlaceConfirmacionTurno(),
     administradorPlantillasMeta: nucleo.administradorPlantillasMeta(),
+    nutricionistas: nucleo.repositorioNutricionista(),
   }),
 );
 
@@ -315,7 +316,7 @@ export const servicioSecretaria = perezoso(() =>
     emails: nucleo.repositorioEmailEnviado(),
     servicioEmail: nucleo.servicioEmail(),
     reloj: nucleo.reloj(),
-    nombreProfesional: nucleo.NOMBRE_PROFESIONAL,
+    nutricionistas: nucleo.repositorioNutricionista(),
   }),
 );
 
@@ -330,10 +331,10 @@ export const servicioMensajeria = perezoso(() =>
     mensajeria: nucleo.repositorioMensajeria(),
     usuarios: nucleo.repositorioUsuario(),
     pacientes: nucleo.repositorioPaciente(),
-    configuracion: nucleo.repositorioConfiguracion(),
     bus: nucleo.busEventos(),
     notificaciones: nucleo.repositorioNotificacion(),
     reloj: nucleo.reloj(),
+    nutricionistas: nucleo.repositorioNutricionista(),
   }),
 );
 
@@ -348,12 +349,12 @@ export const servicioPerfil = perezoso(() =>
   crearServicioPerfil({
     usuarios: nucleo.repositorioUsuario(),
     pacientes: nucleo.repositorioPaciente(),
-    configuracion: nucleo.repositorioConfiguracion(),
     archivos: nucleo.repositorioArchivo(),
     almacenamiento: nucleo.almacenamiento(),
     hasheador: nucleo.hasheador(),
     tokensRefresco: nucleo.repositorioTokenRefresco(),
     reloj: nucleo.reloj(),
+    nutricionistas: nucleo.repositorioNutricionista(),
   }),
 );
 
@@ -370,6 +371,7 @@ export const servicioNotificaciones = perezoso(() =>
 export const servicioConfiguracion = perezoso(() =>
   crearServicioConfiguracion({
     configuracion: nucleo.repositorioConfiguracion(),
+    nutricionistas: nucleo.repositorioNutricionista(),
   }),
 );
 
@@ -497,7 +499,7 @@ export const servicioAutenticacion = perezoso(() =>
     servicioEmail: nucleo.servicioEmail(),
     reloj: nucleo.reloj(),
     baseUrl: nucleo.urlApp(),
-    nombreProfesional: nucleo.NOMBRE_PROFESIONAL,
+    nutricionistas: nucleo.repositorioNutricionista(),
     diasSesionPersistente: nucleo.DIAS_SESION_PERSISTENTE,
   }),
 );

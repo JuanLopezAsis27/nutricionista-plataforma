@@ -29,7 +29,6 @@ export class PrismaRepositorioConfiguracion implements IConfiguracionRepositorio
   ): Promise<ConfiguracionConsultorio> {
     const d = configuracion.aPrimitivos();
     const datos = {
-      nombreProfesional: d.nombreProfesional,
       matricula: d.matricula,
       logoArchivoId: d.logoArchivoId,
       pdfColorPrimario: d.pdfColorPrimario,
@@ -65,7 +64,6 @@ export function mapearConfiguracion(
 ): ConfiguracionConsultorio {
   return ConfiguracionConsultorio.reconstruir({
     id: fila.id,
-    nombreProfesional: fila.nombreProfesional,
     matricula: fila.matricula,
     logoArchivoId: fila.logoArchivoId,
     pdfColorPrimario: fila.pdfColorPrimario,

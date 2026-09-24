@@ -5,6 +5,7 @@ import type { IGeneradorTokens } from "@/dominio/servicios/IGeneradorTokens";
 import type { IHasheadorContrasena } from "@/dominio/servicios/IHasheadorContrasena";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
+import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import { SolicitarRecuperacionPassword } from "@/aplicacion/casos-de-uso/autenticacion/SolicitarRecuperacionPassword";
 import { RestablecerPassword } from "@/aplicacion/casos-de-uso/autenticacion/RestablecerPassword";
 import { EmitirTokenRefresco } from "@/aplicacion/casos-de-uso/autenticacion/EmitirTokenRefresco";
@@ -26,7 +27,7 @@ export function crearServicioAutenticacion(deps: {
   servicioEmail: IServicioEmail;
   reloj: IRelojFecha;
   baseUrl: string;
-  nombreProfesional: string;
+  nutricionistas: INutricionistaRepositorio;
   diasSesionPersistente: number;
 }): ServicioAutenticacion {
   return new ServicioAutenticacion(
@@ -37,7 +38,7 @@ export function crearServicioAutenticacion(deps: {
       deps.servicioEmail,
       deps.reloj,
       deps.baseUrl,
-      deps.nombreProfesional,
+      deps.nutricionistas,
     ),
     new RestablecerPassword(
       deps.usuarios,

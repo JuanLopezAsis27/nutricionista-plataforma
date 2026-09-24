@@ -19,11 +19,14 @@ import { SidebarNav, type EnlaceNav } from "@/componentes/layout/SidebarNav";
 import { ToggleTema } from "@/componentes/comunes/ToggleTema";
 import { BotonInstalarHeader } from "@/componentes/pwa/BotonInstalarHeader";
 import { useMensajeria } from "@/lib/hooks/useMensajeria";
+import { useNombreProfesional } from "@/lib/hooks/useNombreProfesional";
 
 /** Barra lateral del panel del nutricionista (colapsable, con menú móvil). */
 export function BarraLateral({ email }: { email: string }) {
   const { noLeidos } = useMensajeria();
   const sinLeer = noLeidos().data ?? 0;
+  // El nombre de ESTE consultorio, el que se edita en Configuración.
+  const nombreProfesional = useNombreProfesional();
 
   const enlaces: EnlaceNav[] = [
     {
@@ -80,7 +83,7 @@ export function BarraLateral({ email }: { email: string }) {
 
   return (
     <SidebarNav
-      marca="Lic. López Asis"
+      marca={nombreProfesional ?? "Mi consultorio"}
       enlaces={enlaces}
       email={email}
       claveAlmacen="sidebar-nutri-colapsada"

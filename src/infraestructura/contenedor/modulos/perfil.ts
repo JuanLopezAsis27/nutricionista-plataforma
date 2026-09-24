@@ -1,6 +1,6 @@
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
-import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
+import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
 import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamientoArchivos";
 import type { IHasheadorContrasena } from "@/dominio/servicios/IHasheadorContrasena";
@@ -15,7 +15,7 @@ import { ServicioPerfil } from "@/aplicacion/servicios/ServicioPerfil";
 export function crearServicioPerfil(deps: {
   usuarios: IUsuarioRepositorio;
   pacientes: IPacienteRepositorio;
-  configuracion: IConfiguracionRepositorio;
+  nutricionistas: INutricionistaRepositorio;
   archivos: IArchivoRepositorio;
   almacenamiento: IAlmacenamientoArchivos;
   hasheador: IHasheadorContrasena;
@@ -23,7 +23,7 @@ export function crearServicioPerfil(deps: {
   reloj: IRelojFecha;
 }): ServicioPerfil {
   return new ServicioPerfil(
-    new ObtenerMiPerfil(deps.usuarios, deps.pacientes, deps.configuracion),
+    new ObtenerMiPerfil(deps.usuarios, deps.pacientes, deps.nutricionistas),
     new CambiarFotoPerfil(deps.usuarios, deps.archivos, deps.almacenamiento),
     new CambiarPassword(
       deps.usuarios,

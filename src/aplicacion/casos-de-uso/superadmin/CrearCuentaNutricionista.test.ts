@@ -24,6 +24,7 @@ describe("CrearCuentaNutricionista", () => {
     );
 
     const usuario = await uc.ejecutar({
+      nombre: "  Lic. Ana Gómez ",
       email: "nuevo@consultorio.com",
       password: "clave1234",
     });
@@ -32,7 +33,11 @@ describe("CrearCuentaNutricionista", () => {
     expect(usuario.nutricionistaId).toBe(usuario.id); // self-tenant
     expect(aprovisionar).toHaveBeenCalledWith(usuario.id);
     // La fila del inquilino tiene que existir antes que su usuario: es la FK.
-    expect(nutricionistas.crear).toHaveBeenCalledWith(usuario.id);
+    // Y nace con el nombre, sin espacios de más: no hay inquilino sin nombre.
+    expect(nutricionistas.crear).toHaveBeenCalledWith(
+      usuario.id,
+      "Lic. Ana Gómez",
+    );
   });
 
   it("rechaza un email ya usado", async () => {
@@ -54,7 +59,31 @@ describe("CrearCuentaNutricionista", () => {
         mockHasheador(),
         { aprovisionar: vi.fn(async () => {}) },
         mockNutricionistaRepositorio(),
-      ).ejecutar({ email: "ocupado@consultorio.com", password: "clave1234" }),
+      ).ejecutar({
+        nombre: "Lic. Ana Gómez",
+        email: "ocupado@consultorio.com",
+        password: "clave1234",
+      }),
     ).rejects.toBeInstanceOf(ErrorValidacion);
+  });
+
+  it("rechaza el alta sin nombre antes de crear nada", async () => {
+    const nutricionistas = mockNutricionistaRepositorio();
+    const aprovisionar = vi.fn(async () => {});
+
+    await expect(
+      new CrearCuentaNutricionista(
+        mockUsuarioRepositorio({ obtenerPorEmail: vi.fn(async () => null) }),
+        mockHasheador(),
+        { aprovisionar },
+        nutricionistas,
+      ).ejecutar({
+        nombre: "   ",
+        email: "nuevo@consultorio.com",
+        password: "clave1234",
+      }),
+    ).rejects.toBeInstanceOf(ErrorValidacion);
+    expect(nutricionistas.crear).not.toHaveBeenCalled();
+    expect(aprovisionar).not.toHaveBeenCalled();
   });
 });

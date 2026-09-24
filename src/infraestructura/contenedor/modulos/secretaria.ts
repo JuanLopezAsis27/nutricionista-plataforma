@@ -2,6 +2,7 @@ import type { IPlantillaEmailRepositorio } from "@/dominio/repositorios/IPlantil
 import type { IEmailEnviadoRepositorio } from "@/dominio/repositorios/IEmailEnviadoRepositorio";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
+import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import { ListarPlantillas } from "@/aplicacion/casos-de-uso/secretaria/ListarPlantillas";
 import { ObtenerPlantilla } from "@/aplicacion/casos-de-uso/secretaria/ObtenerPlantilla";
 import { CrearPlantilla } from "@/aplicacion/casos-de-uso/secretaria/CrearPlantilla";
@@ -17,7 +18,7 @@ export function crearServicioSecretaria(deps: {
   emails: IEmailEnviadoRepositorio;
   servicioEmail: IServicioEmail;
   reloj: IRelojFecha;
-  nombreProfesional: string;
+  nutricionistas: INutricionistaRepositorio;
 }): ServicioSecretaria {
   return new ServicioSecretaria(
     new ListarPlantillas(deps.plantillas),
@@ -30,7 +31,7 @@ export function crearServicioSecretaria(deps: {
       deps.emails,
       deps.servicioEmail,
       deps.reloj,
-      deps.nombreProfesional,
+      deps.nutricionistas,
     ),
     new ListarEmailsEnviados(deps.emails),
   );

@@ -133,10 +133,6 @@ import { ProvisionadorNutricionista } from "@/infraestructura/aprovisionamiento/
 
 // --- Configuración de entorno -------------------------------------------------
 
-/** Nombre del profesional para membretes y firmas de emails. */
-export const NOMBRE_PROFESIONAL =
-  process.env.NOMBRE_PROFESIONAL ?? "Lic. López Asis Nicolás";
-
 /** URL pública de la app (la usan los enlaces de los emails y el OAuth). */
 export const urlApp = (): string => urlPublica();
 

@@ -1,4 +1,5 @@
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
+import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { IPlantillaEmailRepositorio } from "@/dominio/repositorios/IPlantillaEmailRepositorio";
 import type { IHasheadorContrasena } from "@/dominio/servicios/IHasheadorContrasena";
@@ -32,7 +33,7 @@ export function crearServicioPaciente(deps: {
   hasheador: IHasheadorContrasena;
   servicioEmail: IServicioEmail;
   configuracion: IConfiguracionRepositorio;
-  nombreProfesional: string;
+  nutricionistas: INutricionistaRepositorio;
   // El alta desde una ficha escrita crea, además del paciente, los registros
   // que el documento traía: por eso este servicio toca repositorios de
   // evaluación que en el alta manual no necesita.
@@ -53,7 +54,7 @@ export function crearServicioPaciente(deps: {
   const enviarEmailDeBienvenida = new EnviarEmailDeBienvenida(
     deps.plantillas,
     deps.servicioEmail,
-    deps.nombreProfesional,
+    deps.nutricionistas,
   );
 
   return new ServicioPaciente(

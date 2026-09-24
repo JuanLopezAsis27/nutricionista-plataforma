@@ -289,6 +289,12 @@ enum EstadoGrabacion {
 /// Su `id` es el `Usuario.id` del nutricionista (que es su propio inquilino).
 model Nutricionista {
   id       String   @id
+  /// Cómo firma el profesional: `{{profesional}}` de los recordatorios, firma
+  /// de los emails, membrete del PDF, encabezado del chat. Vive acá y no en
+  /// `ConfiguracionConsultorio` (migración 74) porque es IDENTIDAD del
+  /// inquilino, no una preferencia: tiene que existir para todo nutricionista
+  /// y se escribe en el mismo INSERT que lo crea.
+  nombre   String
   creadoEn DateTime @default(now())
 
   // Tablas de inquilino. Esta lista es la contraparte de MODELOS_INQUILINO en
@@ -2640,7 +2646,6 @@ enum OperadorAxioma {
 model ConfiguracionConsultorio {
   id                           String        @id @default(uuid(4))
   nutricionistaId              String        @unique
-  nombreProfesional            String?
   matricula                    String?
   logoArchivoId                String?
   // Apariencia del PDF del plan nutricional.

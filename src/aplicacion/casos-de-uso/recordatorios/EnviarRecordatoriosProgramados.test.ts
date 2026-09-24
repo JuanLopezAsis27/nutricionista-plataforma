@@ -23,6 +23,8 @@ import {
   mockServicioEmail,
   mockEnlaceConfirmacionTurno,
   plantillaEmailRecordatorioEjemplo,
+  mockNutricionistaConNombre,
+  mockNutricionistaRepositorio,
 } from "../_ayudas-test";
 
 // El reloj de las ayudas fija "hoy"; acá interesa la hora, porque el barrido
@@ -88,6 +90,7 @@ function armar(
       proveedor,
       mockMensajeWhatsappRepositorio(),
       mockEnlaceConfirmacionTurno(),
+      mockNutricionistaRepositorio(),
     ),
     new EnviarRecordatoriosPorEmail(
       mockPlantillaEmailRecordatorioRepositorio({
@@ -117,7 +120,7 @@ function armar(
             }),
         ),
       }),
-      "Lic. Nutrición",
+      mockNutricionistaConNombre("Lic. Nutrición"),
       mockEstablecimientoRepositorio(),
       mockEnlaceConfirmacionTurno(),
     ),

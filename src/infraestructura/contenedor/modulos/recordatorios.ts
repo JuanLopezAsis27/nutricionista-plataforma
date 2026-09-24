@@ -1,4 +1,5 @@
 import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio";
+import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
 import type { IPlantillaWhatsappRepositorio } from "@/dominio/repositorios/IPlantillaWhatsappRepositorio";
@@ -49,6 +50,8 @@ export interface DepsRecordatorios {
   turnos: ITurnoRepositorio;
   pacientes: IPacienteRepositorio;
   configuracion: IConfiguracionRepositorio;
+  /** Da {{profesional}}: el nombre del consultorio (`nutricionistas.nombre`). */
+  nutricionistas: INutricionistaRepositorio;
   plantillas: IPlantillaWhatsappRepositorio;
   /** Da el nombre y la dirección de la sede a {{establecimiento}}/{{direccion}}. */
   establecimientos: IEstablecimientoRepositorio;
@@ -67,7 +70,6 @@ export interface DepsRecordatorios {
   servicioEmail: IServicioEmail;
   usuarios: IUsuarioRepositorio;
   bus: IBusEventos;
-  nombreProfesional: string;
   enlaceConfirmacionTurno: IEnlaceConfirmacionTurno;
   /** Alta, edición y estado de las plantillas en la cuenta de Meta. */
   administradorPlantillasMeta: IAdministradorPlantillasMeta;
@@ -85,12 +87,14 @@ export function crearEnviarRecordatorioWhatsapp(deps: {
   proveedor: IProveedorWhatsapp;
   mensajes: IMensajeWhatsappRepositorio;
   enlaceConfirmacionTurno: IEnlaceConfirmacionTurno;
+  nutricionistas: INutricionistaRepositorio;
 }): EnviarRecordatorioWhatsapp {
   return new EnviarRecordatorioWhatsapp(
     deps.recordatorios,
     deps.proveedor,
     deps.mensajes,
     deps.enlaceConfirmacionTurno,
+    deps.nutricionistas,
   );
 }
 
@@ -113,7 +117,7 @@ export function crearServicioRecordatorios(
     deps.servicioEmail,
     deps.reloj,
     deps.configRecordatorios,
-    deps.nombreProfesional,
+    deps.nutricionistas,
     deps.establecimientos,
     deps.enlaceConfirmacionTurno,
   );
@@ -197,6 +201,7 @@ export function crearServicioRecordatorios(
         deps.proveedor,
         deps.establecimientos,
         deps.reloj,
+        deps.nutricionistas,
       ),
       deps.usuarios,
       deps.bus,

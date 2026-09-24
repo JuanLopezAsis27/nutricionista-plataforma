@@ -1,8 +1,16 @@
 import { Leaf } from "lucide-react";
 import { cn } from "@/lib/utilidades";
 
-export const NOMBRE_PROFESIONAL = "Lic. Nicolás López Asis";
-export const SUBTITULO_PROFESIONAL = "Nutrición deportiva y clínica";
+/**
+ * Nombre de la PLATAFORMA, no de un profesional. Las pantallas donde aparece
+ * este logo (login, recuperar contraseña, sin conexión, confirmar turno) se
+ * ven antes de saber de qué consultorio se trata, y la app es de muchos: acá
+ * decía el nombre de un nutricionista puesto a mano, y los pacientes de
+ * cualquier otro consultorio lo veían al entrar. El nombre de cada profesional
+ * vive en `nutricionistas.nombre` (migración 74).
+ */
+export const NOMBRE_PLATAFORMA = "NutriOffice";
+export const SUBTITULO_PLATAFORMA = "Gestión para nutricionistas";
 
 interface Props {
   /** "completo" = insignia + nombre + subtítulo; "compacto" = insignia + nombre. */
@@ -11,9 +19,9 @@ interface Props {
 }
 
 /**
- * Marca del consultorio: una insignia coral con hoja + el nombre del profesional.
- * Se usa en el login y en las barras de navegación para identificar la app como
- * perteneciente al Lic. Nicolás López Asis.
+ * Marca de la app: una insignia coral con hoja + el nombre de la plataforma.
+ * Se usa en las pantallas públicas, donde todavía no hay un consultorio al que
+ * nombrar.
  */
 export function LogoConsultorio({ variante = "completo", className }: Props) {
   const completo = variante === "completo";
@@ -30,11 +38,11 @@ export function LogoConsultorio({ variante = "completo", className }: Props) {
       </span>
       <div className={cn(completo && "space-y-0.5")}>
         <p className="font-semibold leading-tight tracking-tight">
-          {NOMBRE_PROFESIONAL}
+          {NOMBRE_PLATAFORMA}
         </p>
         {completo && (
           <p className="text-xs text-muted-foreground">
-            {SUBTITULO_PROFESIONAL}
+            {SUBTITULO_PLATAFORMA}
           </p>
         )}
       </div>

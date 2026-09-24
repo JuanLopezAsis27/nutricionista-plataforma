@@ -25,6 +25,7 @@ import {
   mockConversacionIARepositorio,
   mockServicioEmail,
   plantillaEmailEjemplo,
+  mockNutricionistaConNombre,
 } from "./_ayudas-test";
 
 /** Segunda tanda de lecturas y bajas: secretaría, integraciones y superadmin. */
@@ -129,7 +130,7 @@ describe("EnviarEmailDeBienvenida", () => {
     const caso = new EnviarEmailDeBienvenida(
       mockPlantillaEmailRepositorio(),
       servicioEmail,
-      "Lic. Marta",
+      mockNutricionistaConNombre("Lic. Marta"),
     );
 
     expect(await caso.ejecutar({ ...ANA, email: null })).toBe(false);
@@ -143,7 +144,7 @@ describe("EnviarEmailDeBienvenida", () => {
         obtenerPorClave: vi.fn(async () => null),
       }),
       servicioEmail,
-      "Lic. Marta",
+      mockNutricionistaConNombre("Lic. Marta"),
     );
 
     expect(await caso.ejecutar(ANA)).toBe(false);
@@ -166,7 +167,7 @@ describe("EnviarEmailDeBienvenida", () => {
         ),
       }),
       servicioEmail,
-      "Lic. Marta",
+      mockNutricionistaConNombre("Lic. Marta"),
     );
 
     await caso.ejecutar({ ...ANA, contrasena: "Clave<&>2026" });
@@ -190,7 +191,7 @@ describe("EnviarEmailDeBienvenida", () => {
         ),
       }),
       servicioEmail,
-      "Lic. Marta",
+      mockNutricionistaConNombre("Lic. Marta"),
     );
 
     expect(await caso.ejecutar(ANA)).toBe(true);

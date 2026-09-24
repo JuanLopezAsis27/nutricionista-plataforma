@@ -40,7 +40,8 @@ describe("armarRecordatorio — el texto que lee el paciente", () => {
         apellido: "García",
         telefono: "1155554444",
       }),
-      config({ nombreProfesional: "Lic. Marta Ruiz" }),
+      config(),
+      "Lic. Marta Ruiz",
       plantillaWhatsappEjemplo({
         cuerpo:
           "Hola {{paciente}}, te espero el {{fecha}} a las {{hora}}. {{profesional}}",
@@ -60,23 +61,11 @@ describe("armarRecordatorio — el texto que lee el paciente", () => {
       turnoEjemplo({ fecha: new Date("2026-03-05T00:00:00.000Z") }),
       pacienteEjemplo({ telefono: "1155554444" }),
       config(),
+      "Lic. Nutrición",
       plantillaWhatsappEjemplo({ cuerpo: "{{fecha}}" }),
     );
 
     expect(armado.mensaje).toBe("05/03/2026");
-  });
-
-  it("usa un tratamiento genérico si el consultorio no cargó el nombre", () => {
-    // Sin esto el paciente recibiría "te espera " y nada más: el campo es
-    // opcional en la configuración.
-    const armado = armarRecordatorio(
-      turnoEjemplo(),
-      pacienteEjemplo({ telefono: "1155554444" }),
-      config({ nombreProfesional: null }),
-      plantillaWhatsappEjemplo({ cuerpo: "Te espera {{profesional}}" }),
-    );
-
-    expect(armado.mensaje).toBe("Te espera tu nutricionista");
   });
 
   it("expone el nombre completo del paciente, no solo el de pila", () => {
@@ -88,6 +77,7 @@ describe("armarRecordatorio — el texto que lee el paciente", () => {
         telefono: "1155554444",
       }),
       config(),
+      "Lic. Nutrición",
       plantillaWhatsappEjemplo(),
     );
 
@@ -101,6 +91,7 @@ describe("armarRecordatorio — el teléfono de destino", () => {
       turnoEjemplo(),
       pacienteEjemplo({ telefono: "011 15 5555-4444" }),
       config(),
+      "Lic. Nutrición",
       plantillaWhatsappEjemplo(),
     );
 
@@ -114,6 +105,7 @@ describe("armarRecordatorio — el teléfono de destino", () => {
       turnoEjemplo(),
       pacienteEjemplo({ telefono: "612345678" }),
       config({ whatsappPrefijoPais: "34" }),
+      "Lic. Nutrición",
       plantillaWhatsappEjemplo(),
     );
 
@@ -129,6 +121,7 @@ describe("armarRecordatorio — envío por plantilla de Meta", () => {
       turnoEjemplo(),
       pacienteEjemplo({ telefono: "1155554444" }),
       config(),
+      "Lic. Nutrición",
       plantillaWhatsappEjemplo({ claveMeta: null }),
     );
 
@@ -149,7 +142,8 @@ describe("armarRecordatorio — envío por plantilla de Meta", () => {
         apellido: "García",
         telefono: "1155554444",
       }),
-      config({ nombreProfesional: "Lic. Marta Ruiz" }),
+      config(),
+      "Lic. Marta Ruiz",
       plantillaWhatsappEjemplo({
         claveMeta: "recordatorio_turno",
         idiomaMeta: "es_AR",
@@ -177,6 +171,7 @@ describe("armarRecordatorio — envío por plantilla de Meta", () => {
         telefono: "1155554444",
       }),
       config(),
+      "Lic. Nutrición",
       plantillaWhatsappEjemplo({
         claveMeta: "recordatorio_turno",
         variablesMeta: ["hora", "paciente"],
@@ -213,6 +208,7 @@ describe("armarRecordatorio — envío por plantilla de Meta", () => {
       turnoEjemplo(),
       pacienteEjemplo({ telefono: "1155554444" }),
       config(),
+      "Lic. Nutrición",
       plantillaWhatsappEjemplo({
         claveMeta: "recordatorio_turno",
         cuerpo: "Hola {{paciente}}",
@@ -227,6 +223,7 @@ describe("armarRecordatorio — envío por plantilla de Meta", () => {
       turnoEjemplo(),
       pacienteEjemplo({ telefono: "011 15 5555-4444" }),
       config(),
+      "Lic. Nutrición",
       plantillaWhatsappEjemplo({ claveMeta: "recordatorio_turno" }),
     );
 
@@ -250,6 +247,7 @@ describe("armarRecordatorio — dónde se atiende", () => {
       turnoEjemplo(),
       pacienteEjemplo({ telefono: "1155554444" }),
       config(),
+      "Lic. Nutrición",
       plantilla,
       sede,
     );
@@ -269,6 +267,7 @@ describe("armarRecordatorio — dónde se atiende", () => {
       turnoEjemplo(),
       pacienteEjemplo({ telefono: "1155554444" }),
       config(),
+      "Lic. Nutrición",
       plantilla,
       null,
     );
@@ -286,6 +285,7 @@ describe("armarRecordatorio — dónde se atiende", () => {
       turnoEjemplo(),
       pacienteEjemplo({ telefono: "1155554444" }),
       config(),
+      "Lic. Nutrición",
       plantilla,
       sinDireccion,
     );

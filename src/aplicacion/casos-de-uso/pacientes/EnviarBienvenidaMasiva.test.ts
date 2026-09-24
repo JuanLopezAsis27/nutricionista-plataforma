@@ -8,6 +8,7 @@ import {
   mockServicioEmail,
   pacienteEjemplo,
   plantillaEmailEjemplo,
+  mockNutricionistaConNombre,
 } from "../_ayudas-test";
 
 function armarEnviarUno() {
@@ -16,7 +17,7 @@ function armarEnviarUno() {
       obtenerPorClave: vi.fn(async () => plantillaEmailEjemplo()),
     }),
     mockServicioEmail(),
-    "Lic. Marta",
+    mockNutricionistaConNombre("Lic. Marta"),
   );
 }
 

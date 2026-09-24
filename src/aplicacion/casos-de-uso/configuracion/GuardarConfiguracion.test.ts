@@ -28,10 +28,10 @@ describe("GuardarConfiguracion", () => {
     });
 
     const resultado = await new GuardarConfiguracion(repo).ejecutar({
-      nombreProfesional: "Lic. López Asis",
+      matricula: "M.N. 1234",
     });
 
-    expect(resultado.aPrimitivos().nombreProfesional).toBe("Lic. López Asis");
+    expect(resultado.aPrimitivos().matricula).toBe("M.N. 1234");
     expect(resultado.aPrimitivos().pdfMostrarRecetas).toBe(true); // default intacto
   });
 

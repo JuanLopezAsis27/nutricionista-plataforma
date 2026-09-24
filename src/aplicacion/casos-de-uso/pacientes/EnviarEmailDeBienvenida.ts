@@ -1,5 +1,6 @@
 import type { IPlantillaEmailRepositorio } from "@/dominio/repositorios/IPlantillaEmailRepositorio";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
+import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import { CLAVE_BIENVENIDA } from "@/dominio/entidades/PlantillaEmail";
 import { variablesBienvenida } from "@/aplicacion/casos-de-uso/secretaria/variables";
 
@@ -32,7 +33,8 @@ export class EnviarEmailDeBienvenida {
   constructor(
     private readonly plantillas: IPlantillaEmailRepositorio,
     private readonly servicioEmail: IServicioEmail,
-    private readonly nombreProfesional: string,
+    /** Da {{profesional}}: el nombre del consultorio que da el alta. */
+    private readonly nutricionistas: INutricionistaRepositorio,
   ) {}
 
   async ejecutar(datos: DatosBienvenida): Promise<boolean> {
@@ -43,7 +45,7 @@ export class EnviarEmailDeBienvenida {
     const { asunto, html } = plantilla.renderizar(
       variablesBienvenida({
         nombrePaciente: datos.nombrePaciente,
-        nombreProfesional: this.nombreProfesional,
+        nombreProfesional: await this.nutricionistas.nombreDelActual(),
         email: datos.email,
         contrasena: datos.contrasena,
       }),
