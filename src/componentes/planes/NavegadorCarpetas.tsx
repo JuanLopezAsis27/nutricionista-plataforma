@@ -12,6 +12,8 @@ interface Props {
   /** Carpeta abierta, o null en la raíz. */
   carpetaId: string | null;
   onAbrir: (carpetaId: string | null) => void;
+  busqueda: string;
+  onBuscar: (texto: string) => void;
 }
 
 /**
@@ -26,7 +28,12 @@ interface Props {
  * paciente las vuelve imposibles de encontrar desde otro—, así que el número de
  * cada carpeta es siempre el de planes.
  */
-export function NavegadorCarpetas({ carpetaId, onAbrir }: Props) {
+export function NavegadorCarpetas({
+  carpetaId,
+  onAbrir,
+  busqueda,
+  onBuscar,
+}: Props) {
   const {
     grupos: listarGrupos,
     crearGrupo,
@@ -48,6 +55,8 @@ export function NavegadorCarpetas({ carpetaId, onAbrir }: Props) {
       cargando={consulta.isLoading}
       carpetaId={carpetaId}
       onAbrir={onAbrir}
+      busqueda={busqueda}
+      onBuscar={onBuscar}
       singular="plan"
       plural="planes"
       ejemplos="Julia Pérez, Descenso, Deportistas…"

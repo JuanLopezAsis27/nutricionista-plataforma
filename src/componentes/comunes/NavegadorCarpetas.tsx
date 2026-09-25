@@ -10,6 +10,7 @@ import {
   FolderPlus,
   ChevronRight,
   Pencil,
+  Search,
   Trash2,
 } from "lucide-react";
 import { Button } from "@/componentes/ui/button";
@@ -54,6 +55,12 @@ interface Props {
   carpetaId: string | null;
   onAbrir: (carpetaId: string | null) => void;
   /**
+   * Texto del buscador. Lo guarda la pantalla porque ella es la que filtra la
+   * lista de adentro; acá se dibuja y se usa para filtrar las carpetas.
+   */
+  busqueda: string;
+  onBuscar: (texto: string) => void;
+  /**
    * Cómo se llama lo que se guarda adentro. El plural va explícito: derivarlo
    * agregando "es" servía para "plan" y rompía en "receta".
    */
@@ -96,6 +103,8 @@ export function NavegadorCarpetas({
   cargando,
   carpetaId,
   onAbrir,
+  busqueda,
+  onBuscar,
   singular,
   plural,
   ejemplos,
@@ -115,6 +124,16 @@ export function NavegadorCarpetas({
   });
 
   const abierta = carpetas.find((c) => c.id === carpetaId) ?? null;
+
+  // El buscador mira lo que se VE: en la raíz, las carpetas por su nombre y los
+  // sueltos (esos los filtra la pantalla); adentro de una carpeta, solo lo que
+  // hay adentro. Las carpetas se filtran acá y no en el servidor porque ya
+  // vinieron todas: son un nivel y pocas.
+  const texto = normalizar(busqueda.trim());
+  const buscando = texto.length > 0;
+  const visibles = buscando
+    ? carpetas.filter((c) => normalizar(c.nombre).includes(texto))
+    : carpetas;
 
   function abrirNueva() {
     setEditando(null);
@@ -178,6 +197,21 @@ export function NavegadorCarpetas({
         )}
       </div>
 
+      <div className="relative w-full max-w-xs">
+        <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          aria-label="Buscar"
+          placeholder={
+            abierta
+              ? `Buscar en «${abierta.nombre}»…`
+              : `Buscar carpeta o ${singular}…`
+          }
+          className="pl-8"
+          value={busqueda}
+          onChange={(e) => onBuscar(e.target.value)}
+        />
+      </div>
+
       {abierta?.descripcion && (
         <p className="text-sm text-muted-foreground">{abierta.descripcion}</p>
       )}
@@ -187,9 +221,9 @@ export function NavegadorCarpetas({
       {!abierta &&
         (cargando ? (
           <Skeleton className="h-16 w-full" />
-        ) : carpetas.length > 0 ? (
+        ) : visibles.length > 0 ? (
           <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {carpetas.map((carpeta) => (
+            {visibles.map((carpeta) => (
               <li key={carpeta.id}>
                 <div className="group flex items-center gap-2 rounded-lg border bg-card p-3 transition-colors hover:border-primary/50">
                   <button
@@ -228,7 +262,10 @@ export function NavegadorCarpetas({
               </li>
             ))}
           </ul>
-        ) : (
+        ) : buscando ? null : (
+          // Buscando y sin carpetas que coincidan no se dice nada: la lista de
+          // abajo ya informa si tampoco hay sueltos, y un segundo "no hay"
+          // arriba se lee como que la búsqueda falló dos veces.
           <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
             Todavía no hay carpetas. Creá una para agrupar por paciente, por
             objetivo o como te sirva.
@@ -307,4 +344,13 @@ export function NavegadorCarpetas({
       />
     </div>
   );
+}
+
+/**
+ * Solo minúsculas, sin quitar tildes: es lo mismo que hace el servidor con los
+ * planes y las recetas (`contains` insensitive). Si las carpetas encontraran
+ * «julian» y los sueltos no, la misma búsqueda diría dos cosas.
+ */
+function normalizar(texto: string): string {
+  return texto.toLocaleLowerCase("es");
 }

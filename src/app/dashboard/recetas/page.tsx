@@ -2,19 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Plus,
-  Search,
-  Pencil,
-  Trash2,
-  Share2,
-  FolderInput,
-} from "lucide-react";
+import { Plus, Pencil, Trash2, Share2, FolderInput } from "lucide-react";
 import type { RecetaSalidaDto } from "@/aplicacion/dtos/receta.dto";
 import { useRecetas } from "@/lib/hooks/useRecetas";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { Button } from "@/componentes/ui/button";
-import { Input } from "@/componentes/ui/input";
 import { Skeleton } from "@/componentes/ui/skeleton";
 import {
   Dialog,
@@ -38,21 +30,29 @@ export default function PaginaRecetas() {
   const [pagina, setPagina] = useState(1);
   /** Carpeta abierta. `null` es la raíz. */
   const [carpetaId, setCarpetaId] = useState<string | null>(null);
-  const debounced = useDebounce(busqueda, 300);
+  const debounced = useDebounce(busqueda.trim(), 300);
   const buscando = debounced.length > 0;
 
-  // Buscar es una operación sobre TODO el recetario: mientras hay texto, la
-  // carpeta deja de filtrar. Si no, buscar en la raíz —que lista las sueltas—
-  // no encontraría una receta que existe solo porque está guardada en una
-  // carpeta, y eso se lee como "la búsqueda está rota".
+  // La raíz lista las SUELTAS (grupoId: null) y no todas: si mostrara todas,
+  // las recetas de las carpetas aparecerían dos veces —arriba en la carpeta y
+  // abajo en la lista— y entrar a una carpeta no cambiaría nada.
   //
-  // Sin búsqueda, la raíz lista las SUELTAS (grupoId: null) y no todas: si
-  // mostrara todas, las recetas de las carpetas aparecerían dos veces —arriba
-  // en la carpeta y abajo en la lista— y entrar a una carpeta no cambiaría nada.
-  const filtroCarpeta = buscando ? undefined : carpetaId;
+  // El buscador respeta esa misma vista, igual que en planes: en la raíz filtra
+  // las carpetas por su nombre (lo hace el navegador) y las sueltas por el
+  // suyo; adentro de una carpeta, solo sus recetas. La receta guardada en
+  // «Desayunos» se encuentra buscando la carpeta, que es como se la guardó.
+  const filtroCarpeta = carpetaId;
 
   function abrirCarpeta(id: string | null) {
     setCarpetaId(id);
+    setPagina(1);
+    // Lo escrito buscaba en el lugar que se deja: arrastrarlo adentro de la
+    // carpeta que se acaba de encontrar la mostraría vacía.
+    setBusqueda("");
+  }
+
+  function buscar(texto: string) {
+    setBusqueda(texto);
     setPagina(1);
   }
 
@@ -78,19 +78,7 @@ export default function PaginaRecetas() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="relative w-full max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar receta…"
-            className="pl-8"
-            value={busqueda}
-            onChange={(e) => {
-              setBusqueda(e.target.value);
-              setPagina(1);
-            }}
-          />
-        </div>
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <Button
           onClick={() => {
             setRecetaEditar(null);
@@ -102,11 +90,12 @@ export default function PaginaRecetas() {
         </Button>
       </div>
 
-      {/* Mientras se busca, el navegador se esconde: la búsqueda ya no está
-          mirando adentro de la carpeta y dejarlo abierto diría lo contrario. */}
-      {!buscando && (
-        <NavegadorCarpetas carpetaId={carpetaId} onAbrir={abrirCarpeta} />
-      )}
+      <NavegadorCarpetas
+        carpetaId={carpetaId}
+        onAbrir={abrirCarpeta}
+        busqueda={busqueda}
+        onBuscar={buscar}
+      />
 
       {consulta.isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -121,7 +110,9 @@ export default function PaginaRecetas() {
       ) : recetas.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           {buscando
-            ? "No hay recetas que coincidan con la búsqueda."
+            ? carpetaId
+              ? "No hay recetas en esta carpeta que coincidan con la búsqueda."
+              : "No hay recetas sueltas que coincidan con la búsqueda."
             : carpetaId
               ? "Esta carpeta está vacía. Mové una receta acá adentro desde la lista."
               : "No hay recetas sueltas. Las que estén en una carpeta se ven al abrirla."}

@@ -10,6 +10,8 @@ interface Props {
   /** Carpeta abierta, o null en la raíz. */
   carpetaId: string | null;
   onAbrir: (carpetaId: string | null) => void;
+  busqueda: string;
+  onBuscar: (texto: string) => void;
 }
 
 /**
@@ -20,7 +22,12 @@ interface Props {
  * ordenar sus recetas—, así que el dibujo vive una sola vez en
  * `comunes/NavegadorCarpetas` y acá queda solo de dónde salen las carpetas.
  */
-export function NavegadorCarpetas({ carpetaId, onAbrir }: Props) {
+export function NavegadorCarpetas({
+  carpetaId,
+  onAbrir,
+  busqueda,
+  onBuscar,
+}: Props) {
   const {
     grupos: listarGrupos,
     crearGrupo,
@@ -42,6 +49,8 @@ export function NavegadorCarpetas({ carpetaId, onAbrir }: Props) {
       cargando={consulta.isLoading}
       carpetaId={carpetaId}
       onAbrir={onAbrir}
+      busqueda={busqueda}
+      onBuscar={onBuscar}
       singular="receta"
       plural="recetas"
       ejemplos="Desayunos, Sin TACC, Julia Pérez…"
