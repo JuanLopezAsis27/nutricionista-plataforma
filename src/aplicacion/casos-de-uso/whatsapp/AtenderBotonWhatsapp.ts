@@ -77,7 +77,7 @@ export class AtenderBotonWhatsapp {
       titulo: `${paciente.nombreCompleto} pidió reprogramar su turno`,
       detalle: `El del ${fecha} a las ${turno.hora}. Escribile por WhatsApp para acordar otro horario.`,
       pacienteId: paciente.id,
-      enlace: `/dashboard/mensajes?paciente=${paciente.id}`,
+      enlace: `/dashboard/mensajes?paciente=${paciente.id}&canal=whatsapp`,
     });
     return true;
   }

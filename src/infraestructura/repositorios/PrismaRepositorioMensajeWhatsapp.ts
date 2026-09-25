@@ -2,7 +2,10 @@ import type {
   PrismaClient,
   MensajeWhatsapp as MensajeFila,
 } from "@prisma/client";
-import type { IMensajeWhatsappRepositorio } from "@/dominio/repositorios/IMensajeWhatsappRepositorio";
+import type {
+  IMensajeWhatsappRepositorio,
+  ResumenWhatsappPaciente,
+} from "@/dominio/repositorios/IMensajeWhatsappRepositorio";
 import { MensajeWhatsapp } from "@/dominio/entidades/MensajeWhatsapp";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
@@ -28,6 +31,7 @@ export class PrismaRepositorioMensajeWhatsapp implements IMensajeWhatsappReposit
         idExterno: d.idExterno,
         estado: d.estado,
         error: d.error,
+        leidoEn: d.leidoEn,
         creadoEn: d.creadoEn,
       },
     });
@@ -85,6 +89,55 @@ export class PrismaRepositorioMensajeWhatsapp implements IMensajeWhatsappReposit
     return this.ultimosPor(pacienteIds, "ENTRANTE");
   }
 
+  async contarNoLeidos(pacienteId?: string): Promise<number> {
+    return this.prisma.mensajeWhatsapp.count({
+      where: {
+        direccion: "ENTRANTE",
+        leidoEn: null,
+        ...(pacienteId ? { pacienteId } : {}),
+      },
+    });
+  }
+
+  async marcarLeidos(pacienteId: string, leidoEn: Date): Promise<number> {
+    const { count } = await this.prisma.mensajeWhatsapp.updateMany({
+      where: { pacienteId, direccion: "ENTRANTE", leidoEn: null },
+      data: { leidoEn },
+    });
+    return count;
+  }
+
+  /**
+   * Tres consultas en total, no una por paciente: quiénes tienen mensajes, el
+   * último de cada uno (con `ultimosPor`, que ya resolvía eso para la bandeja
+   * de seguimiento) y los sin leer agrupados.
+   */
+  async resumenPorPaciente(): Promise<ResumenWhatsappPaciente[]> {
+    const [conMensajes, sinLeer] = await Promise.all([
+      this.prisma.mensajeWhatsapp.groupBy({ by: ["pacienteId"] }),
+      this.prisma.mensajeWhatsapp.groupBy({
+        by: ["pacienteId"],
+        where: { direccion: "ENTRANTE", leidoEn: null },
+        _count: { _all: true },
+      }),
+    ]);
+    const pacienteIds = conMensajes.map((g) => g.pacienteId);
+    const ultimos = await this.ultimosPor(pacienteIds, undefined);
+    const noLeidos = new Map(sinLeer.map((g) => [g.pacienteId, g._count._all]));
+    const resumen: ResumenWhatsappPaciente[] = [];
+    for (const pacienteId of pacienteIds) {
+      const ultimo = ultimos.get(pacienteId);
+      if (!ultimo) continue;
+      resumen.push({
+        pacienteId,
+        ultimoMensajeTexto: ultimo.cuerpo,
+        ultimoMensajeEn: ultimo.creadoEn,
+        noLeidos: noLeidos.get(pacienteId) ?? 0,
+      });
+    }
+    return resumen;
+  }
+
   /**
    * Último mensaje de cada paciente en UNA consulta.
    *
@@ -129,6 +182,7 @@ export function mapearMensajeWhatsapp(fila: MensajeFila): MensajeWhatsapp {
     idExterno: fila.idExterno,
     estado: fila.estado,
     error: fila.error,
+    leidoEn: fila.leidoEn,
     creadoEn: fila.creadoEn,
     actualizadoEn: fila.actualizadoEn,
   });

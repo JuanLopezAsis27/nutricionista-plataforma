@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { EnviarBienvenidaAlAlta } from "./EnviarBienvenidaAlAlta";
 import { EnviarEmailDeBienvenida } from "./EnviarEmailDeBienvenida";
 import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
+import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
+import { EmitirNotificacion } from "../notificaciones/EmitirNotificacion";
 import {
   mockConfiguracionRepositorio,
   mockPacienteRepositorio,
@@ -10,23 +12,41 @@ import {
   pacienteEjemplo,
   plantillaEmailEjemplo,
   mockNutricionistaConNombre,
+  mockNotificacionRepositorio,
+  mockReloj,
 } from "../_ayudas-test";
 
-function armar(configuracion: ConfiguracionConsultorio | null) {
+function armar(
+  configuracion: ConfiguracionConsultorio | null,
+  opciones: {
+    dominioRecibe?: boolean | null;
+    enviar?: IServicioEmail["enviar"];
+  } = {},
+) {
   const pacientes = mockPacienteRepositorio();
+  const enviar = opciones.enviar ?? vi.fn(async () => {});
   const enviarUno = new EnviarEmailDeBienvenida(
     mockPlantillaEmailRepositorio({
       obtenerPorClave: vi.fn(async () => plantillaEmailEjemplo()),
     }),
-    mockServicioEmail(),
+    mockServicioEmail({ enviar }),
     mockNutricionistaConNombre("Lic. Marta"),
   );
+  const notificaciones = mockNotificacionRepositorio();
   const caso = new EnviarBienvenidaAlAlta(
     mockConfiguracionRepositorio({ obtener: vi.fn(async () => configuracion) }),
     pacientes,
     enviarUno,
+    {
+      recibeCorreo: vi.fn(async () =>
+        opciones.dominioRecibe === undefined ? true : opciones.dominioRecibe,
+      ),
+    },
+    new EmitirNotificacion(notificaciones, mockReloj()),
   );
-  return { caso, pacientes };
+  const avisos = () =>
+    vi.mocked(notificaciones.crear).mock.calls.map(([n]) => n.aPrimitivos());
+  return { caso, pacientes, enviar, avisos };
 }
 
 describe("EnviarBienvenidaAlAlta", () => {
@@ -55,5 +75,53 @@ describe("EnviarBienvenidaAlAlta", () => {
     });
 
     expect(pacientes.actualizar).not.toHaveBeenCalled();
+  });
+
+  it("si el dominio no recibe correo, no manda y avisa al profesional", async () => {
+    const { caso, pacientes, enviar, avisos } = armar(null, {
+      dominioRecibe: false,
+    });
+    const paciente = pacienteEjemplo({ email: "ana@gmial.com" });
+
+    await caso.ejecutar({ paciente, contrasena: "Clave-2026" });
+
+    expect(enviar).not.toHaveBeenCalled();
+    expect(pacientes.actualizar).not.toHaveBeenCalled();
+    const [aviso] = avisos();
+    expect(aviso).toMatchObject({
+      tipo: "BIENVENIDA_FALLIDA",
+      pacienteId: paciente.id,
+      enlace: `/dashboard/pacientes/${paciente.id}`,
+    });
+    expect(aviso!.detalle).toContain("gmial.com");
+  });
+
+  it("si el servidor de correo lo rechaza, avisa con el motivo y no lanza", async () => {
+    const { caso, pacientes, avisos } = armar(null, {
+      enviar: vi.fn(async () => {
+        throw new Error("550 5.1.1 User unknown");
+      }),
+    });
+
+    await expect(
+      caso.ejecutar({ paciente: pacienteEjemplo(), contrasena: "Clave-2026" }),
+    ).resolves.toBeUndefined();
+
+    expect(pacientes.actualizar).not.toHaveBeenCalled();
+    const [aviso] = avisos();
+    expect(aviso!.tipo).toBe("BIENVENIDA_FALLIDA");
+    expect(aviso!.detalle).toContain("550 5.1.1 User unknown");
+  });
+
+  it("si no se pudo consultar el DNS, manda igual (no inventa que no existe)", async () => {
+    const { caso, enviar, avisos } = armar(null, { dominioRecibe: null });
+
+    await caso.ejecutar({
+      paciente: pacienteEjemplo(),
+      contrasena: "Clave-2026",
+    });
+
+    expect(enviar).toHaveBeenCalledOnce();
+    expect(avisos()).toHaveLength(0);
   });
 });

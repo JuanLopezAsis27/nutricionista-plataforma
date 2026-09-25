@@ -768,6 +768,15 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
 - Nunca hacer que una respuesta rápida de WhatsApp cancele el turno: se toca
   sin querer y no tiene segundo paso. `PEDIR_CANCELACION` avisa; cancela el
   enlace, que pasa por una página de confirmación
+- Nunca volver a meter las alertas de seguimiento en la campana: son un
+  estado que se trabaja en el panel del dashboard, y en la campana tapaban los
+  avisos urgentes
+- Nunca apagar el aviso de un mensaje solo desde la campana: se da por visto
+  al abrir esa conversación por cualquier camino
+  (`MarcarAvisosDeConversacionVistos`). Y los avisos de WhatsApp enlazan con
+  `&canal=whatsapp`, o abren el chat del portal
+- Nunca contar los «sin leer» de Mensajes solo del portal: la bandeja y el
+  sidebar suman WhatsApp (`mensajes_whatsapp.leidoEn`, migración 77)
 - Nunca mandar como texto común una plantilla con botones que Meta no aprobó
   (en revisión, rechazada, pausada): le llega al paciente sin los botones.
   Queda FALLIDA con el motivo y sale cuando Meta la aprueba

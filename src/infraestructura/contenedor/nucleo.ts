@@ -13,6 +13,7 @@
  * el worker de trabajos en segundo plano).
  */
 
+import { VerificadorDominioEmailDns } from "@/infraestructura/email/VerificadorDominioEmailDns";
 import { perezoso } from "./perezoso";
 import { urlPublica } from "@/infraestructura/configuracion/urlPublica";
 
@@ -327,6 +328,9 @@ export const generadorContrasenas = perezoso(
 );
 export const almacenamiento = perezoso(() => new AlmacenamientoMinIO());
 export const reloj = perezoso(() => new RelojSistema());
+export const verificadorDominioEmail = perezoso(
+  () => new VerificadorDominioEmailDns(),
+);
 
 /**
  * Bus de eventos en tiempo real (Postgres LISTEN/NOTIFY). Lo usan los

@@ -3,7 +3,6 @@ import { z } from "zod";
 /** DTOs del Centro de Notificaciones (feed unificado del nutricionista). */
 
 export const TIPOS_NOTIFICACION = [
-  "ALERTA",
   "MENSAJE",
   "CORREO",
   "WHATSAPP",
@@ -17,7 +16,6 @@ export const notificacionDto = z.object({
   detalle: z.string(),
   fecha: z.date(),
   enlace: z.string().nullable(),
-  alertaId: z.string().nullable(),
   pacienteId: z.string().nullable(),
   noLeidos: z.number().nullable(),
   /** Id de la notificación persistida, para marcarla vista. */

@@ -1,25 +1,20 @@
-import type { IAlertaSeguimientoRepositorio } from "@/dominio/repositorios/IAlertaSeguimientoRepositorio";
 import type { IEmailEnviadoRepositorio } from "@/dominio/repositorios/IEmailEnviadoRepositorio";
 import type { INotificacionRepositorio } from "@/dominio/repositorios/INotificacionRepositorio";
-import type { TipoAlertaSeguimiento } from "@/dominio/entidades/AlertaSeguimiento";
 import type { TipoNotificacion as TipoNotificacionPersistida } from "@/dominio/entidades/Notificacion";
 
 /**
- * Origen de un ítem del centro del nutricionista.
+ * Cómo se ve cada ítem del centro del nutricionista.
  *
- * Los tres primeros son señales DERIVADAS de otras tablas (una alerta
- * pendiente, una conversación con no-leídos, un correo que falló); los dos
- * últimos salen de `notificaciones`, que es una tabla propia con estado de
- * visto. La diferencia importa al marcar algo como atendido: cada tipo se
- * apaga de una manera distinta.
+ * CORREO puede ser derivado (un correo que falló, leído de `emails_enviados`)
+ * o persistido (la bienvenida que no salió); el resto sale de
+ * `notificaciones`, que es una tabla propia con estado de visto.
  */
-export type TipoNotificacion =
-  "ALERTA" | "MENSAJE" | "CORREO" | "WHATSAPP" | "TURNO";
+export type TipoNotificacion = "MENSAJE" | "CORREO" | "WHATSAPP" | "TURNO";
 
 /**
  * Ítem del centro de notificaciones: una vista unificada de una señal que ya
- * vive en su propia tabla (alerta de seguimiento, mensaje sin leer, correo
- * enviado). No es una entidad persistida: es un read-model de solo lectura.
+ * vive en su propia tabla. No es una entidad persistida: es un read-model de
+ * solo lectura.
  */
 export interface Notificacion {
   /** Id único entre tipos (prefijado por origen) para el `key` de la UI. */
@@ -30,38 +25,29 @@ export interface Notificacion {
   fecha: Date;
   /** Ruta a la que navega el ítem (null si solo tiene acciones en el lugar). */
   enlace: string | null;
-  /** Id crudo de la alerta, para resolver/descartar desde la campana. */
-  alertaId: string | null;
   pacienteId: string | null;
   /** Mensajes sin leer de la conversación (solo para el tipo MENSAJE). */
   noLeidos: number | null;
   /**
    * Id crudo de la notificación persistida, para marcarla vista desde la
-   * campana. Null en los tipos derivados (ALERTA, MENSAJE, CORREO), que se
-   * apagan cada uno por su lado: resolviendo la alerta o leyendo el mensaje.
+   * campana. Null en los correos fallidos, que son derivados y no tienen
+   * estado de visto.
    */
   notificacionId: string | null;
-  /** Si ya se vio. Los tipos derivados no tienen este estado y van en `null`. */
+  /** Si ya se vio. Los derivados no tienen este estado y van en `null`. */
   vista: boolean | null;
 }
 
-/** Centro de notificaciones: feed ordenado + contador de pendientes accionables. */
+/** Centro de notificaciones: feed ordenado + contador de pendientes. */
 export interface CentroNotificaciones {
   items: Notificacion[];
   /**
-   * Cantidad para el badge de la campana: alertas pendientes + notificaciones
-   * sin ver (mensajes de la app, WhatsApp y turnos confirmados). Los correos
-   * son un registro informativo (no tienen estado de "leído"), así que no
-   * inflan el contador de forma permanente.
+   * Cantidad para el badge de la campana: las notificaciones sin ver. Los
+   * correos fallidos no tienen estado de "leído", así que no inflan el
+   * contador de forma permanente.
    */
   total: number;
 }
-
-const ETIQUETA_ALERTA: Record<TipoAlertaSeguimiento, string> = {
-  SIN_REGISTRO_PESO: "Sin registro de peso",
-  SIN_ACTIVIDAD: "Sin actividad",
-  TURNO_SIN_CONFIRMAR: "Turno sin confirmar",
-};
 
 /** Cuántos correos recientes se traen para el feed. */
 const LIMITE_CORREOS = 8;
@@ -77,6 +63,7 @@ const TIPO_EN_EL_FEED: Record<TipoNotificacionPersistida, TipoNotificacion> = {
   REPROGRAMACION_PEDIDA: "TURNO",
   TURNO_CANCELADO: "TURNO",
   CANCELACION_PEDIDA: "TURNO",
+  BIENVENIDA_FALLIDA: "CORREO",
 };
 
 /**
@@ -86,22 +73,26 @@ const TIPO_EN_EL_FEED: Record<TipoNotificacionPersistida, TipoNotificacion> = {
  *
  * Las fuentes son de dos clases y conviene no confundirlas:
  *
- * - **Derivadas**: alertas de seguimiento pendientes y correos fallidos. No
- *   tienen fila propia acá; se leen de su tabla y desaparecen del feed cuando
- *   se resuelve el hecho que las genera.
- * - **Persistidas** (`notificaciones`): mensaje del chat de la app, WhatsApp
- *   entrante y turno confirmado. Son hechos que ocurrieron y no se recalculan,
+ * - **Derivadas**: los correos fallidos. No tienen fila propia acá; se leen de
+ *   su tabla.
+ * - **Persistidas** (`notificaciones`): mensajes, WhatsApp, turnos y la
+ *   bienvenida que no salió. Son hechos que ocurrieron y no se recalculan,
  *   así que llevan su propio estado de "visto" y se apagan marcándolas.
+ *
+ * **Las alertas de seguimiento NO están acá.** Estuvieron, y se sacaron: son
+ * un estado del paciente («no registra el peso hace 15 días») que se trabaja
+ * con tiempo, en el panel del dashboard, y no algo que acaba de pasar. En la
+ * campana competían con los avisos que sí son urgentes (el paciente te
+ * escribió, canceló el turno) y le ganaban por cantidad.
  *
  * Los mensajes del chat ESTUVIERON del lado derivado y se movieron: mientras lo
  * que los sostenía era el contador de no leídos, abrir la conversación los
- * borraba del feed, y los otros dos avisos del mismo paciente quedaban marcados
+ * borraba del feed, y los otros avisos del mismo paciente quedaban marcados
  * como vistos. Dos señales del mismo tipo no pueden comportarse distinto en la
  * misma campana.
  */
 export class ObtenerCentroDeNotificaciones {
   constructor(
-    private readonly alertas: IAlertaSeguimientoRepositorio,
     private readonly emails: IEmailEnviadoRepositorio,
     private readonly notificaciones: INotificacionRepositorio,
   ) {}
@@ -111,11 +102,10 @@ export class ObtenerCentroDeNotificaciones {
    * y desde que los mensajes del chat son notificaciones persistidas no queda
    * nada que dependa de QUIÉN mira. Ojo con eso si alguna vez hay dos
    * profesionales en el mismo consultorio: los avisos son del consultorio, así
-   * que uno que marca visto lo marca para los dos —igual que las alertas—.
+   * que uno que marca visto lo marca para los dos.
    */
   async ejecutar(): Promise<CentroNotificaciones> {
-    const [alertas, correos, persistidas, sinVer] = await Promise.all([
-      this.alertas.listarPendientes(),
+    const [correos, persistidas, sinVer] = await Promise.all([
       this.emails.listarRecientes(LIMITE_CORREOS),
       this.notificaciones.listarRecientes(LIMITE_NOTIFICACIONES),
       // Se cuenta aparte y no sobre la lista de arriba: aquella está acotada
@@ -125,31 +115,6 @@ export class ObtenerCentroDeNotificaciones {
     ]);
 
     const items: Notificacion[] = [];
-
-    for (const alerta of alertas) {
-      const a = alerta.aPrimitivos();
-      items.push({
-        id: `alerta:${a.id}`,
-        tipo: "ALERTA",
-        titulo: ETIQUETA_ALERTA[a.tipo],
-        detalle: a.detalle,
-        fecha: a.creadoEn,
-        enlace: `/dashboard/pacientes/${a.pacienteId}`,
-        alertaId: a.id,
-        pacienteId: a.pacienteId,
-        noLeidos: null,
-        notificacionId: null,
-        vista: null,
-      });
-    }
-
-    // Los mensajes del chat de la app NO se derivan más de las conversaciones
-    // sin leer: ahora son notificaciones persistidas (`MENSAJE_APP`) y entran
-    // con el resto, más abajo. Derivarlos era lo que los hacía DESAPARECER al
-    // abrir la conversación —lo que los sostenía era el contador de no leídos—,
-    // mientras los otros dos avisos del paciente quedaban marcados como vistos.
-    // El contador sin leer no se pierde: sigue en la bandeja de Mensajes, que
-    // es donde se responde.
 
     for (const correo of correos) {
       const e = correo.aPrimitivos();
@@ -165,7 +130,6 @@ export class ObtenerCentroDeNotificaciones {
         detalle: `${e.para}: ${e.error}`,
         fecha: e.creadoEn,
         enlace: "/dashboard/recordatorios",
-        alertaId: null,
         pacienteId: e.pacienteId,
         noLeidos: null,
         notificacionId: null,
@@ -186,7 +150,6 @@ export class ObtenerCentroDeNotificaciones {
         detalle: n.detalle,
         fecha: n.creadoEn,
         enlace: n.enlace,
-        alertaId: null,
         pacienteId: n.pacienteId,
         noLeidos: null,
         notificacionId: n.id,
@@ -196,9 +159,6 @@ export class ObtenerCentroDeNotificaciones {
 
     items.sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
 
-    return {
-      items,
-      total: alertas.length + sinVer,
-    };
+    return { items, total: sinVer };
   }
 }

@@ -1,5 +1,14 @@
 import type { MensajeWhatsapp } from "../entidades/MensajeWhatsapp";
 
+/** El chat de WhatsApp de un paciente, resumido para la bandeja de Mensajes. */
+export interface ResumenWhatsappPaciente {
+  pacienteId: string;
+  ultimoMensajeTexto: string;
+  ultimoMensajeEn: Date;
+  /** Entrantes que el profesional todavía no leyó. */
+  noLeidos: number;
+}
+
 /** Contrato de persistencia del hilo de WhatsApp con los pacientes. */
 export interface IMensajeWhatsappRepositorio {
   crear(mensaje: MensajeWhatsapp): Promise<MensajeWhatsapp>;
@@ -32,4 +41,13 @@ export interface IMensajeWhatsappRepositorio {
   ultimosEntrantesPorPacientes(
     pacienteIds: string[],
   ): Promise<Map<string, MensajeWhatsapp>>;
+  /**
+   * Entrantes sin leer: los de un paciente, o los de todo el consultorio sin
+   * `pacienteId` (el número del sidebar).
+   */
+  contarNoLeidos(pacienteId?: string): Promise<number>;
+  /** Marca leídos los entrantes del paciente. Devuelve cuántos marcó. */
+  marcarLeidos(pacienteId: string, leidoEn: Date): Promise<number>;
+  /** Un resumen por cada paciente con mensajes de WhatsApp. */
+  resumenPorPaciente(): Promise<ResumenWhatsappPaciente[]>;
 }

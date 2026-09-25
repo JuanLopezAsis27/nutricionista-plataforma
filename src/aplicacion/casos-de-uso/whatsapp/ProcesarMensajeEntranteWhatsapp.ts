@@ -121,7 +121,7 @@ export class ProcesarMensajeEntranteWhatsapp {
         titulo: `${paciente.nombreCompleto} escribió por WhatsApp`,
         detalle: resumir(entrante.cuerpo),
         pacienteId: paciente.id,
-        enlace: `/dashboard/mensajes?paciente=${paciente.id}`,
+        enlace: `/dashboard/mensajes?paciente=${paciente.id}&canal=whatsapp`,
         // Se agrupa mientras no se vea, igual que el chat de la app. Por
         // WhatsApp la gente escribe en ráfaga —una idea por mensaje—, así que
         // sin esto diez mensajes de un minuto dejaban diez líneas idénticas en

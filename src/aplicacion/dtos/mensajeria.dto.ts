@@ -60,6 +60,11 @@ export const resumenConversacionDto = z.object({
   pacienteFotoArchivoId: z.string().nullable(),
   ultimoMensajeTexto: z.string().nullable(),
   ultimoMensajeEn: z.date().nullable(),
+  /** Sin leer de los dos canales juntos: el número de la fila. */
   noLeidos: z.number(),
+  noLeidosPortal: z.number(),
+  noLeidosWhatsapp: z.number(),
+  /** Por dónde llegó el último mensaje; decide qué canal abre la fila. */
+  ultimoCanal: z.enum(["PORTAL", "WHATSAPP"]).nullable(),
 });
 export type ResumenConversacionDto = z.infer<typeof resumenConversacionDto>;

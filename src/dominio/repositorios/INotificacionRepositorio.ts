@@ -31,4 +31,14 @@ export interface INotificacionRepositorio {
   marcarVista(id: string, vistoEn: Date): Promise<void>;
   /** "Marcar todas como vistas". Devuelve cuántas cambiaron. */
   marcarTodasVistas(vistoEn: Date): Promise<number>;
+  /**
+   * Las no vistas de un paciente y de esos tipos. Es lo que apaga el aviso
+   * de un mensaje cuando se abre la conversación por cualquier camino, no
+   * solo desde la campana. Devuelve cuántas cambiaron.
+   */
+  marcarVistasDePaciente(
+    pacienteId: string,
+    tipos: readonly TipoNotificacion[],
+    vistoEn: Date,
+  ): Promise<number>;
 }

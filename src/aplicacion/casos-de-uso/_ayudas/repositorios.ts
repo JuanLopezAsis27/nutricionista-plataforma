@@ -658,6 +658,9 @@ export function mockMensajeWhatsappRepositorio(
     crear: vi.fn(async (m: MensajeWhatsapp) => m),
     actualizar: vi.fn(async (m: MensajeWhatsapp) => m),
     obtenerPorIdExterno: vi.fn(async () => null),
+    contarNoLeidos: vi.fn(async () => 0),
+    marcarLeidos: vi.fn(async () => 0),
+    resumenPorPaciente: vi.fn(async () => []),
     listarPorPaciente: vi.fn(async () => []),
     ultimoEntrante: vi.fn(async () => null),
     ultimosPorPacientes: vi.fn(async () => new Map<string, MensajeWhatsapp>()),
@@ -861,6 +864,7 @@ export function mockNotificacionRepositorio(
     contarNoVistas: vi.fn(async () => 0),
     marcarVista: vi.fn(async () => {}),
     marcarTodasVistas: vi.fn(async () => 0),
+    marcarVistasDePaciente: vi.fn(async () => 0),
     ...parcial,
   };
 }

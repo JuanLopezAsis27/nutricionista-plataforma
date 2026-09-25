@@ -644,6 +644,8 @@ enum TipoNotificacion {
   TURNO_CANCELADO
   /// El paciente tocó "cancelar" en una respuesta rápida de WhatsApp.
   CANCELACION_PEDIDA
+  /// No se pudo mandar la bienvenida al dar de alta un paciente (migración 77).
+  BIENVENIDA_FALLIDA
 }
 
 /// Aviso persistido para el nutricionista, con estado de "visto".
@@ -1036,6 +1038,9 @@ model MensajeWhatsapp {
   idExterno       String?               @unique
   estado          EstadoMensajeWhatsapp @default(PENDIENTE)
   error           String?
+  /// Cuándo lo leyó el profesional (migración 77). Solo en los ENTRANTES;
+  /// NULL = sin leer, y es lo que cuentan la bandeja y el sidebar.
+  leidoEn         DateTime?
   creadoEn        DateTime              @default(now())
   actualizadoEn   DateTime              @updatedAt
 

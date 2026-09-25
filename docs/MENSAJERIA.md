@@ -21,6 +21,34 @@ Dónde aparece cada uno:
 | `/mensajes` (portal)            | El chat del paciente con su nutricionista     |
 | Inicio → «Mensajes sin leer»    | Los que esperan respuesta (`MensajesSinLeer`) |
 
+## Sin leer por los dos canales
+
+Hasta la migración 77, WhatsApp no tenía estado de leído: un mensaje entrante
+no sumaba al número de «Mensajes» del sidebar, ni a la bandeja, y un paciente
+que solo escribía por WhatsApp **ni siquiera aparecía** en la bandeja, que
+listaba conversaciones del portal. Ahora:
+
+- `mensajes_whatsapp.leidoEn`, solo en los ENTRANTES. Lo que ya existía se dio
+  por leído en la migración, para no amanecer con meses de «sin leer».
+- **La bandeja es una fila por paciente con los dos canales**
+  (`ListarConversaciones`): `noLeidos` suma, `noLeidosPortal` y
+  `noLeidosWhatsapp` van aparte, y el último mensaje es el más nuevo de
+  cualquiera de los dos (`ultimoCanal`).
+- **Al tocar una fila se abre el canal donde está lo nuevo**; si no hay nada
+  sin leer, el del último mensaje. Los botones Portal / WhatsApp del hilo y
+  las pestañas de la ficha muestran cuántos hay en cada uno.
+- **El sidebar suma los dos canales** (`ContarNoLeidos` sin paciente). El
+  portal del paciente sigue contando solo su chat: no ve WhatsApp en la app.
+- **Abrir el chat de WhatsApp lo marca leído** (`MarcarWhatsappLeidos`, desde
+  `HiloWhatsapp`), igual que el del portal, y en los dos casos se apaga el
+  aviso de la campana (ver `NOTIFICACIONES.md`). El efecto depende de la
+  cantidad de entrantes y no del objeto del hilo: marcar invalida las queries
+  y una dependencia al objeto volvería a marcar en loop.
+
+**Los enlaces a la bandeja se leen con `useSearchParams`.** Tocar un aviso de
+la campana estando YA en Mensajes cambia solo la query y Next no remonta la
+página: con un efecto de montaje, el aviso no abría nada.
+
 ## Las piezas compartidas
 
 `componentes/mensajeria/` tiene dos piezas que usan los dos hilos. Estaban

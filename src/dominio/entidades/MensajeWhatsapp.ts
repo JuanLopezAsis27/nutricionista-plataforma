@@ -43,6 +43,13 @@ export interface PropiedadesMensajeWhatsapp {
   idExterno: string | null;
   estado: EstadoMensajeWhatsapp;
   error: string | null;
+  /**
+   * Cuándo lo leyó el profesional. Solo tiene sentido en los ENTRANTES: null
+   * es «sin leer» y lo cuentan la bandeja y el sidebar. Los salientes quedan
+   * siempre en null y no se cuentan (su «leído» es el `estado` que informa
+   * Meta, que es del paciente, no del profesional).
+   */
+  leidoEn: Date | null;
   creadoEn: Date;
   actualizadoEn: Date;
 }
@@ -89,6 +96,7 @@ export class MensajeWhatsapp {
         datos.estado ??
         (datos.direccion === "ENTRANTE" ? "ENTREGADO" : "PENDIENTE"),
       error: null,
+      leidoEn: null,
       creadoEn: ahora,
       actualizadoEn: ahora,
     });
@@ -134,6 +142,9 @@ export class MensajeWhatsapp {
   }
   get cuerpo(): string {
     return this.props.cuerpo;
+  }
+  get leidoEn(): Date | null {
+    return this.props.leidoEn;
   }
   get creadoEn(): Date {
     return this.props.creadoEn;

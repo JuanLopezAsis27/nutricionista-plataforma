@@ -4,6 +4,7 @@ import type { ListarMensajes } from "@/aplicacion/casos-de-uso/mensajeria/Listar
 import type { ListarConversaciones } from "@/aplicacion/casos-de-uso/mensajeria/ListarConversaciones";
 import type { MarcarLeidos } from "@/aplicacion/casos-de-uso/mensajeria/MarcarLeidos";
 import type { ContarNoLeidos } from "@/aplicacion/casos-de-uso/mensajeria/ContarNoLeidos";
+import type { MarcarAvisosDeConversacionVistos } from "@/aplicacion/casos-de-uso/notificaciones/MarcarAvisosDeConversacionVistos";
 import type { ObtenerContraparteDelHilo } from "@/aplicacion/casos-de-uso/mensajeria/ObtenerContraparteDelHilo";
 import type { Mensaje } from "@/dominio/entidades/Mensaje";
 import type {
@@ -30,6 +31,7 @@ export class ServicioMensajeria {
     private readonly marcarLeidosUC: MarcarLeidos,
     private readonly contarNoLeidosUC: ContarNoLeidos,
     private readonly contraparteUC: ObtenerContraparteDelHilo,
+    private readonly avisosVistosUC: MarcarAvisosDeConversacionVistos,
   ) {}
 
   async enviar(datos: RemitenteMensaje): Promise<MensajeSalidaDto> {
@@ -73,6 +75,19 @@ export class ServicioMensajeria {
 
   async marcarLeidos(pacienteId: string, viewerId: string): Promise<void> {
     await this.marcarLeidosUC.ejecutar(pacienteId, viewerId);
+  }
+
+  /**
+   * El profesional abrió el chat del portal de un paciente: además de marcar
+   * leídos los mensajes, apaga el aviso de la campana, entre por donde entre.
+   * El paciente no pasa por acá: sus avisos no están en ninguna campana.
+   */
+  async abrirConversacionDelConsultorio(
+    pacienteId: string,
+    viewerId: string,
+  ): Promise<void> {
+    await this.marcarLeidosUC.ejecutar(pacienteId, viewerId);
+    await this.avisosVistosUC.ejecutar(pacienteId, "PORTAL");
   }
 
   async contarNoLeidos(viewerId: string, pacienteId?: string): Promise<number> {

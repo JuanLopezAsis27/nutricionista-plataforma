@@ -23,6 +23,8 @@ import { RegistrarEstadoWhatsapp } from "@/aplicacion/casos-de-uso/whatsapp/Regi
 import { ResolverPacientePorTelefono } from "@/aplicacion/casos-de-uso/whatsapp/ResolverPacientePorTelefono";
 import { RegistrarRespuestaDeRecordatorio } from "@/aplicacion/casos-de-uso/recordatorios/RegistrarRespuestaDeRecordatorio";
 import { EmitirNotificacion } from "@/aplicacion/casos-de-uso/notificaciones/EmitirNotificacion";
+import { MarcarAvisosDeConversacionVistos } from "@/aplicacion/casos-de-uso/notificaciones/MarcarAvisosDeConversacionVistos";
+import { MarcarWhatsappLeidos } from "@/aplicacion/casos-de-uso/whatsapp/MarcarWhatsappLeidos";
 import { ServicioWhatsapp } from "@/aplicacion/servicios/ServicioWhatsapp";
 
 /**
@@ -102,6 +104,11 @@ export function crearServicioWhatsapp(deps: {
       deps.enlacesTurno,
       deps.reloj,
       deps.nutricionistas,
+    ),
+    new MarcarWhatsappLeidos(
+      deps.mensajes,
+      new MarcarAvisosDeConversacionVistos(deps.notificaciones, deps.reloj),
+      deps.reloj,
     ),
   );
 }

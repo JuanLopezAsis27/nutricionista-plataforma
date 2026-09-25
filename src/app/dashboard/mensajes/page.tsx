@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   MessageSquare,
   ArrowLeft,
@@ -9,6 +10,7 @@ import {
   Search,
   UserRound,
 } from "lucide-react";
+import type { ResumenConversacionDto } from "@/aplicacion/dtos/mensajeria.dto";
 import { useMensajeria } from "@/lib/hooks/useMensajeria";
 import { cn } from "@/lib/utilidades";
 import { HiloMensajes } from "@/componentes/mensajeria/HiloMensajes";
@@ -30,25 +32,45 @@ import { Skeleton } from "@/componentes/ui/skeleton";
  */
 type Canal = "interno" | "whatsapp";
 
+/**
+ * Qué canal abre una fila de la bandeja: el que tiene lo que falta leer y, si
+ * no hay nada sin leer, el del último mensaje. Abrir el portal de alguien que
+ * acaba de escribir por WhatsApp muestra una conversación vieja y esconde la
+ * nueva.
+ */
+function canalDe(conversacion: ResumenConversacionDto): Canal {
+  if (conversacion.noLeidosWhatsapp > 0 && conversacion.noLeidosPortal === 0) {
+    return "whatsapp";
+  }
+  if (conversacion.noLeidosPortal > 0) return "interno";
+  return conversacion.ultimoCanal === "WHATSAPP" ? "whatsapp" : "interno";
+}
+
 export default function PaginaMensajes() {
   const { conversaciones, hiloDe, enviarA, marcarLeidosDe } = useMensajeria();
   const lista = conversaciones();
   const [pacienteId, setPacienteId] = useState<string | null>(null);
   const [canal, setCanal] = useState<Canal>("interno");
   const [busqueda, setBusqueda] = useState("");
+  const router = useRouter();
+  const buscar = useSearchParams();
+  const pacienteDelEnlace = buscar.get("paciente");
+  const canalDelEnlace = buscar.get("canal");
 
-  // Deep-link desde la campana de notificaciones (?paciente=…) y desde el
-  // seguimiento de recordatorios (&canal=whatsapp): abre esa conversación en
-  // el canal pedido al entrar, y limpia el query de la URL.
+  // Deep-link desde la campana (?paciente=…, y &canal=whatsapp en los avisos
+  // de WhatsApp) y desde el seguimiento de recordatorios: abre esa
+  // conversación en el canal pedido y limpia el query de la URL.
+  //
+  // Se lee de `useSearchParams` y no de `window.location` al montar: tocar un
+  // aviso de la campana ESTANDO en Mensajes cambia solo la query, Next no
+  // remonta la página, y el efecto de montaje no volvía a correr —el aviso
+  // quedaba sin abrir nada—.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const p = params.get("paciente");
-    if (p) {
-      setPacienteId(p);
-      if (params.get("canal") === "whatsapp") setCanal("whatsapp");
-      window.history.replaceState({}, "", "/dashboard/mensajes");
-    }
-  }, []);
+    if (!pacienteDelEnlace) return;
+    setPacienteId(pacienteDelEnlace);
+    setCanal(canalDelEnlace === "whatsapp" ? "whatsapp" : "interno");
+    router.replace("/dashboard/mensajes", { scroll: false });
+  }, [pacienteDelEnlace, canalDelEnlace, router]);
 
   const hilo = hiloDe(
     { pacienteId: pacienteId ?? "" },
@@ -140,7 +162,10 @@ export default function PaginaMensajes() {
                     <li key={conversacion.id}>
                       <button
                         type="button"
-                        onClick={() => setPacienteId(conversacion.pacienteId)}
+                        onClick={() => {
+                          setPacienteId(conversacion.pacienteId);
+                          setCanal(canalDe(conversacion));
+                        }}
                         aria-current={activa ? "true" : undefined}
                         className={cn(
                           "flex w-full items-center gap-2.5 p-3 text-left transition-colors hover:bg-muted/50",
@@ -271,12 +296,14 @@ export default function PaginaMensajes() {
                   <BotonCanal
                     activo={canal === "interno"}
                     onClick={() => setCanal("interno")}
+                    noLeidos={seleccionada?.noLeidosPortal ?? 0}
                   >
                     <MessageSquare className="h-3.5 w-3.5" /> Portal
                   </BotonCanal>
                   <BotonCanal
                     activo={canal === "whatsapp"}
                     onClick={() => setCanal("whatsapp")}
+                    noLeidos={seleccionada?.noLeidosWhatsapp ?? 0}
                   >
                     <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
                   </BotonCanal>
@@ -313,10 +340,13 @@ export default function PaginaMensajes() {
 function BotonCanal({
   activo,
   onClick,
+  noLeidos,
   children,
 }: {
   activo: boolean;
   onClick: () => void;
+  /** Sin leer de ESE canal: dice dónde está lo nuevo antes de cambiar. */
+  noLeidos: number;
   children: React.ReactNode;
 }) {
   return (
@@ -329,6 +359,18 @@ function BotonCanal({
       )}
     >
       {children}
+      {noLeidos > 0 && (
+        <span
+          className={cn(
+            "flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold",
+            activo
+              ? "bg-primary-foreground text-primary"
+              : "bg-primary text-primary-foreground",
+          )}
+        >
+          {noLeidos > 9 ? "9+" : noLeidos}
+        </span>
+      )}
     </button>
   );
 }

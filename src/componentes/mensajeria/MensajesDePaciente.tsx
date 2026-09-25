@@ -17,7 +17,10 @@ import {
  * app y, cuando la Cloud API está conectada, el hilo de WhatsApp.
  */
 export function MensajesDePaciente({ pacienteId }: { pacienteId: string }) {
-  const { hiloDe, enviarA, marcarLeidosDe } = useMensajeria();
+  const { hiloDe, enviarA, marcarLeidosDe, conversaciones } = useMensajeria();
+  // Los sin leer de cada canal salen de la bandeja, que ya los trae por
+  // paciente: así las pestañas dicen dónde está lo nuevo antes de abrirlas.
+  const fila = conversaciones().data?.find((c) => c.pacienteId === pacienteId);
   const hilo = hiloDe({ pacienteId });
   const mensajes = hilo.data?.mensajes ?? [];
   const cantidad = mensajes.length;
@@ -30,8 +33,14 @@ export function MensajesDePaciente({ pacienteId }: { pacienteId: string }) {
   return (
     <Tabs defaultValue="app" className="space-y-3">
       <TabsList>
-        <TabsTrigger value="app">Chat de la app</TabsTrigger>
-        <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
+        <TabsTrigger value="app" className="gap-1.5">
+          Chat de la app
+          <ContadorPestana cantidad={fila?.noLeidosPortal ?? 0} />
+        </TabsTrigger>
+        <TabsTrigger value="whatsapp" className="gap-1.5">
+          WhatsApp
+          <ContadorPestana cantidad={fila?.noLeidosWhatsapp ?? 0} />
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="app">
@@ -52,5 +61,14 @@ export function MensajesDePaciente({ pacienteId }: { pacienteId: string }) {
         </Card>
       </TabsContent>
     </Tabs>
+  );
+}
+
+function ContadorPestana({ cantidad }: { cantidad: number }) {
+  if (cantidad === 0) return null;
+  return (
+    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+      {cantidad > 9 ? "9+" : cantidad}
+    </span>
   );
 }

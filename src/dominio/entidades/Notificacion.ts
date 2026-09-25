@@ -16,6 +16,8 @@ export const TIPOS_NOTIFICACION = [
   "TURNO_CANCELADO",
   /** Tocó «cancelar» en una respuesta rápida de WhatsApp (el turno NO se tocó). */
   "CANCELACION_PEDIDA",
+  /** No se pudo mandar la bienvenida al dar de alta un paciente. */
+  "BIENVENIDA_FALLIDA",
 ] as const;
 
 export type TipoNotificacion = (typeof TIPOS_NOTIFICACION)[number];

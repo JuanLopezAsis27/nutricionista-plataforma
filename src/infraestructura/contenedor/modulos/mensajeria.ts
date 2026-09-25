@@ -1,4 +1,6 @@
 import type { IMensajeriaRepositorio } from "@/dominio/repositorios/IMensajeriaRepositorio";
+import type { IMensajeWhatsappRepositorio } from "@/dominio/repositorios/IMensajeWhatsappRepositorio";
+import { MarcarAvisosDeConversacionVistos } from "@/aplicacion/casos-de-uso/notificaciones/MarcarAvisosDeConversacionVistos";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
@@ -18,6 +20,8 @@ import { ServicioMensajeria } from "@/aplicacion/servicios/ServicioMensajeria";
 /** Arma el servicio de Mensajería (canal directo + tiempo real). */
 export function crearServicioMensajeria(deps: {
   mensajeria: IMensajeriaRepositorio;
+  /** La bandeja y el contador suman los dos canales. */
+  mensajesWhatsapp: IMensajeWhatsappRepositorio;
   usuarios: IUsuarioRepositorio;
   pacientes: IPacienteRepositorio;
   nutricionistas: INutricionistaRepositorio;
@@ -37,13 +41,18 @@ export function crearServicioMensajeria(deps: {
     ),
     new ObtenerConversacionDePaciente(deps.mensajeria),
     new ListarMensajes(deps.mensajeria),
-    new ListarConversaciones(deps.mensajeria),
+    new ListarConversaciones(
+      deps.mensajeria,
+      deps.mensajesWhatsapp,
+      deps.pacientes,
+    ),
     new MarcarLeidos(deps.mensajeria),
-    new ContarNoLeidos(deps.mensajeria),
+    new ContarNoLeidos(deps.mensajeria, deps.mensajesWhatsapp),
     new ObtenerContraparteDelHilo(
       deps.usuarios,
       deps.pacientes,
       deps.nutricionistas,
     ),
+    new MarcarAvisosDeConversacionVistos(deps.notificaciones, deps.reloj),
   );
 }

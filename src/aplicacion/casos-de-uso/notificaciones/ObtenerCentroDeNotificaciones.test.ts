@@ -3,10 +3,8 @@ import { ObtenerCentroDeNotificaciones } from "./ObtenerCentroDeNotificaciones";
 import { Notificacion } from "@/dominio/entidades/Notificacion";
 import { EmailEnviado } from "@/dominio/entidades/EmailEnviado";
 import {
-  mockAlertaSeguimientoRepositorio,
   mockEmailEnviadoRepositorio,
   mockNotificacionRepositorio,
-  alertaSeguimientoEjemplo,
 } from "../_ayudas-test";
 function correoEjemplo(
   cambios: { error?: string | null; creadoEn?: Date } = {},
@@ -38,13 +36,8 @@ function mensajeDeAppEjemplo(vistoEn: Date | null = null) {
 }
 
 describe("ObtenerCentroDeNotificaciones", () => {
-  it("une alertas, mensajes y correos FALLIDOS en un feed ordenado por fecha desc", async () => {
+  it("une mensajes y correos FALLIDOS en un feed ordenado por fecha desc", async () => {
     const caso = new ObtenerCentroDeNotificaciones(
-      mockAlertaSeguimientoRepositorio({
-        listarPendientes: vi.fn(async () => [
-          alertaSeguimientoEjemplo({}, "als-1"), // creadoEn 2026-07-14
-        ]),
-      }),
       mockEmailEnviadoRepositorio({
         listarRecientes: vi.fn(async () => [
           correoEjemplo({ error: "SMTP timeout" }),
@@ -58,18 +51,13 @@ describe("ObtenerCentroDeNotificaciones", () => {
 
     const centro = await caso.ejecutar();
 
-    expect(centro.items).toHaveLength(3);
-    expect(centro.items.map((n) => n.tipo)).toEqual([
-      "MENSAJE",
-      "CORREO",
-      "ALERTA",
-    ]);
-    expect(centro.total).toBe(2); // 1 alerta + 1 mensaje sin ver
+    expect(centro.items).toHaveLength(2);
+    expect(centro.items.map((n) => n.tipo)).toEqual(["MENSAJE", "CORREO"]);
+    expect(centro.total).toBe(1); // el mensaje sin ver
   });
 
   it("NO muestra los correos enviados con éxito (son log, no notificación)", async () => {
     const caso = new ObtenerCentroDeNotificaciones(
-      mockAlertaSeguimientoRepositorio(),
       mockEmailEnviadoRepositorio({
         listarRecientes: vi.fn(async () => [correoEjemplo(), correoEjemplo()]), // ambos OK
       }),
@@ -84,7 +72,6 @@ describe("ObtenerCentroDeNotificaciones", () => {
 
   it("enlaza el mensaje directo a la conversación del paciente", async () => {
     const caso = new ObtenerCentroDeNotificaciones(
-      mockAlertaSeguimientoRepositorio(),
       mockEmailEnviadoRepositorio(),
       mockNotificacionRepositorio({
         listarRecientes: vi.fn(async () => [mensajeDeAppEjemplo()]),
@@ -101,7 +88,6 @@ describe("ObtenerCentroDeNotificaciones", () => {
     // antes, leer la conversación los borraba del feed y no había forma de
     // volver a mirarlos.
     const caso = new ObtenerCentroDeNotificaciones(
-      mockAlertaSeguimientoRepositorio(),
       mockEmailEnviadoRepositorio(),
       mockNotificacionRepositorio({
         listarRecientes: vi.fn(async () => [
@@ -121,7 +107,6 @@ describe("ObtenerCentroDeNotificaciones", () => {
 
   it("marca un correo fallido con título de fallo y no lo cuenta en el total", async () => {
     const caso = new ObtenerCentroDeNotificaciones(
-      mockAlertaSeguimientoRepositorio(),
       mockEmailEnviadoRepositorio({
         listarRecientes: vi.fn(async () => [
           correoEjemplo({ error: "SMTP timeout" }),
@@ -155,7 +140,6 @@ describe("ObtenerCentroDeNotificaciones — notificaciones persistidas", () => {
 
   function armar(persistidas: Notificacion[]) {
     return new ObtenerCentroDeNotificaciones(
-      mockAlertaSeguimientoRepositorio(),
       mockEmailEnviadoRepositorio(),
       mockNotificacionRepositorio({
         listarRecientes: vi.fn(async () => persistidas),
@@ -189,14 +173,15 @@ describe("ObtenerCentroDeNotificaciones — notificaciones persistidas", () => {
     expect(centro.total).toBe(1);
   });
 
-  it("los tipos derivados no traen estado de visto", async () => {
-    // Una alerta se resuelve y un mensaje se lee: no tienen dónde anotar un
-    // "visto", y marcarlas desde la campana no tendría a qué apuntar.
+  it("los correos fallidos, que son derivados, no traen estado de visto", async () => {
+    // Un correo fallido no tiene dónde anotar un "visto": marcarlo desde la
+    // campana no tendría a qué apuntar.
     const centro = await new ObtenerCentroDeNotificaciones(
-      mockAlertaSeguimientoRepositorio({
-        listarPendientes: vi.fn(async () => [alertaSeguimientoEjemplo({})]),
+      mockEmailEnviadoRepositorio({
+        listarRecientes: vi.fn(async () => [
+          correoEjemplo({ error: "SMTP timeout" }),
+        ]),
       }),
-      mockEmailEnviadoRepositorio(),
       mockNotificacionRepositorio(),
     ).ejecutar();
 

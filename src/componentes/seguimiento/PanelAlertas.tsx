@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Check, X } from "lucide-react";
+import { Bell, Check, RefreshCw, X } from "lucide-react";
 import { useSeguimiento } from "@/lib/hooks/useSeguimiento";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
@@ -14,9 +14,17 @@ import {
 
 const MAXIMO_VISIBLE = 6;
 
-/** Panel de alertas de seguimiento pendientes para el dashboard. */
+/**
+ * Panel de alertas de seguimiento pendientes para el dashboard.
+ *
+ * Es el ÚNICO lugar donde se muestran: salieron de la campana porque son un
+ * estado del paciente que se trabaja con tiempo, no un aviso de algo que
+ * acaba de pasar. Por eso el «Revisar ahora», que vivía en la campana, está
+ * acá.
+ */
 export function PanelAlertas() {
-  const { alertasPendientes, resolverAlerta } = useSeguimiento();
+  const { alertasPendientes, resolverAlerta, generarAlertas } =
+    useSeguimiento();
   const consulta = alertasPendientes();
   const alertas = consulta.data ?? [];
 
@@ -31,6 +39,16 @@ export function PanelAlertas() {
               {alertas.length}
             </span>
           )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto h-7 gap-1 text-xs font-normal text-muted-foreground"
+            disabled={generarAlertas.isPending}
+            onClick={() => generarAlertas.mutate()}
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Revisar ahora
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent>

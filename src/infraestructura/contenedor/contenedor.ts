@@ -92,6 +92,8 @@ export const servicioPaciente = perezoso(() =>
     tokensRefresco: nucleo.repositorioTokenRefresco(),
     reloj: nucleo.reloj(),
     servicioEmail: nucleo.servicioEmail(),
+    notificaciones: nucleo.repositorioNotificacion(),
+    verificadorEmail: nucleo.verificadorDominioEmail(),
     // El prefijo de país del consultorio define cómo se canoniza el teléfono
     // del paciente a E.164 al darlo de alta o editarlo.
     configuracion: nucleo.repositorioConfiguracion(),
@@ -332,6 +334,7 @@ export const servicioEstadisticas = perezoso(() =>
 export const servicioMensajeria = perezoso(() =>
   crearServicioMensajeria({
     mensajeria: nucleo.repositorioMensajeria(),
+    mensajesWhatsapp: nucleo.repositorioMensajeWhatsapp(),
     usuarios: nucleo.repositorioUsuario(),
     pacientes: nucleo.repositorioPaciente(),
     bus: nucleo.busEventos(),
@@ -366,7 +369,6 @@ export const servicioNotificaciones = perezoso(() =>
   crearServicioNotificaciones({
     notificaciones: nucleo.repositorioNotificacion(),
     reloj: nucleo.reloj(),
-    alertas: nucleo.repositorioAlertaSeguimiento(),
     emails: nucleo.repositorioEmailEnviado(),
   }),
 );

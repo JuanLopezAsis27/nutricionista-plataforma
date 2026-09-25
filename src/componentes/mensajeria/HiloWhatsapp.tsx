@@ -36,11 +36,23 @@ import { agruparPorDia, horaChat } from "./chat";
  * escriben distinto obligan a reaprender la pantalla al cambiar de pestaña.
  */
 export function HiloWhatsapp({ pacienteId }: { pacienteId: string }) {
-  const { hiloDe, enviarMensaje } = useWhatsapp();
+  const { hiloDe, enviarMensaje, marcarLeidos } = useWhatsapp();
   const hilo = hiloDe({ pacienteId });
   const finRef = useRef<HTMLDivElement>(null);
 
   const mensajes = useMemo(() => hilo.data?.mensajes ?? [], [hilo.data]);
+
+  // Abrir el chat es leerlo: los entrantes dejan de contar y el aviso de la
+  // campana se da por visto, se haya llegado desde donde sea. Se vuelve a
+  // marcar cuando entra uno nuevo con el chat abierto. Depende de la CANTIDAD
+  // de entrantes y no de `hilo.data`: marcar invalida las queries, el hilo se
+  // vuelve a pedir y una dependencia al objeto lo marcaría otra vez, en loop.
+  const entrantes = mensajes.filter((m) => m.direccion === "ENTRANTE").length;
+  const cargado = Boolean(hilo.data?.conectado);
+  const marcar = marcarLeidos.mutate;
+  useEffect(() => {
+    if (cargado) marcar({ pacienteId });
+  }, [pacienteId, entrantes, cargado, marcar]);
   const dias = useMemo(
     () => agruparPorDia(mensajes, (m) => m.creadoEn),
     [mensajes],
