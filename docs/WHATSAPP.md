@@ -245,6 +245,21 @@ guarda siempre las respuestas rápidas primero y los enlaces después, y el
 índice de cada botón es su lugar en esa lista. Por eso `botones` es un JSONB
 ordenado y no una tabla.
 
+**Mientras Meta no la aprueba, una plantilla con botones no sale.** Una en
+revisión, rechazada o pausada no se puede mandar como plantilla, y lo único
+que queda es el texto común, que pierde los botones. Pasaba en silencio: al
+paciente le llegaba el aviso sin el confirmar ni el cancelar, y como el texto
+se parecía al de la plantilla por defecto parecía que seguía saliendo una
+plantilla ya borrada. Ahora (`PlantillaWhatsapp.noSeEnviaSinMeta`):
+
+- con botones, el recordatorio queda FALLIDO con el motivo y el barrido lo
+  reintenta: sale solo cuando Meta la aprueba;
+- sin botones, sale como texto, que es lo mismo que llegaría;
+- el texto retocado a mano en «Editar y enviar» sale igual: ahí el
+  profesional eligió mandar texto;
+- la consola de envío y la vista previa lo avisan ANTES de mandar, con el
+  mismo texto que queda como motivo (`avisoDeEnvio`).
+
 **Qué cambio la vuelve a revisión.** Solo lo que Meta revisa: cuerpo,
 categoría o botones. Los botones se comparan por lo que significan
 (`firmaDeBotones`), no por su JSON guardado: los guardados antes de un campo

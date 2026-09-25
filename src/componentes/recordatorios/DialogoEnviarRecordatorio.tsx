@@ -88,6 +88,19 @@ export function DialogoEnviarRecordatorio({
               </p>
             </div>
 
+            {/* La plantilla no puede salir normal hoy (en revisión en Meta…):
+                se dice antes de mandar, no en el resultado. */}
+            {datos.avisoPlantilla && (
+              <p className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5 text-xs">
+                <CircleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+                <span>
+                  {datos.avisoPlantilla}
+                  {datos.bloqueadaSinEditar &&
+                    " Si igual querés avisarle ahora, editá el texto: sale como mensaje común, sin botones."}
+                </span>
+              </p>
+            )}
+
             {/* Retocar el texto lo baja a mensaje libre, y eso fuera de la
                 ventana de 24 h la API lo rechaza: se avisa antes de que falle. */}
             {editado && datos.usaPlantillaAprobada && datos.modo === "API" && (
@@ -107,7 +120,12 @@ export function DialogoEnviarRecordatorio({
                 Cancelar
               </Button>
               <Button
-                disabled={mensaje.trim() === "" || enviarIndividual.isPending}
+                disabled={
+                  mensaje.trim() === "" ||
+                  enviarIndividual.isPending ||
+                  // Sin retocar, el servidor no la manda: no ofrecer el botón.
+                  (datos.bloqueadaSinEditar && !editado)
+                }
                 onClick={() =>
                   enviarIndividual.mutate(
                     {

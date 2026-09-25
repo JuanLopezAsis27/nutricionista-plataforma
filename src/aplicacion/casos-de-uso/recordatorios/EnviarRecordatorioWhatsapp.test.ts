@@ -544,3 +544,76 @@ describe("EnviarRecordatorioWhatsapp — {{profesional}}", () => {
     );
   });
 });
+
+describe("EnviarRecordatorioWhatsapp — plantilla que Meta todavía no aprobó", () => {
+  /** Dada de alta en Meta, con un botón, y vuelta a revisión. */
+  function enRevision(conBotones: boolean) {
+    return plantillaWhatsappEjemplo({
+      nombre: "Con botón",
+      cuerpo: "Hola {{paciente}}, te espero.",
+      claveMeta: "con_boton",
+      variablesMeta: ["paciente"],
+      botones: conBotones
+        ? [
+            {
+              tipo: "RESPUESTA_RAPIDA",
+              texto: "Confirmo",
+              accion: "CONFIRMAR_TURNO",
+            },
+          ]
+        : [],
+    })
+      .registrarAltaEnMeta("meta-1", "APROBADA")
+      .registrarEdicionEnMeta();
+  }
+
+  function armar() {
+    const proveedor = mockProveedorWhatsapp();
+    const caso = new EnviarRecordatorioWhatsapp(
+      mockRecordatorioWhatsappRepositorio(),
+      proveedor,
+      mockMensajeWhatsappRepositorio(),
+      mockEnlacesTurno(),
+      mockNutricionistaRepositorio(),
+    );
+    return { caso, proveedor };
+  }
+
+  it("con botones NO sale como texto: falla con el motivo, sin tocar al proveedor", async () => {
+    // Como texto saldría sin sus botones: un aviso a medias que además se
+    // confundía con la plantilla vieja, ya borrada.
+    const { caso, proveedor } = armar();
+
+    const resultado = await caso.ejecutar(
+      pedidoBase({ plantilla: enRevision(true) }),
+    );
+
+    expect(resultado).toMatchObject({ estado: "FALLIDO" });
+    expect(resultado.estado === "FALLIDO" && resultado.motivo).toContain(
+      "en revisión en Meta y tiene botones",
+    );
+    expect(proveedor.preparar).not.toHaveBeenCalled();
+    expect(proveedor.enviarPlantilla).not.toHaveBeenCalled();
+  });
+
+  it("con el texto retocado a mano, sí sale: el profesional eligió mandar texto", async () => {
+    const { caso, proveedor } = armar();
+
+    await caso.ejecutar(
+      pedidoBase({
+        plantilla: enRevision(true),
+        textoManual: "Hola, te espero mañana.",
+      }),
+    );
+
+    expect(proveedor.preparar).toHaveBeenCalled();
+  });
+
+  it("sin botones sale como texto, que es lo mismo que llega", async () => {
+    const { caso, proveedor } = armar();
+
+    await caso.ejecutar(pedidoBase({ plantilla: enRevision(false) }));
+
+    expect(proveedor.preparar).toHaveBeenCalled();
+  });
+});

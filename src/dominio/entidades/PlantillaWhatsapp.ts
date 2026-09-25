@@ -61,6 +61,14 @@ export const ESTADOS_PLANTILLA_META = [
 ] as const;
 export type EstadoPlantillaMeta = (typeof ESTADOS_PLANTILLA_META)[number];
 
+/** El estado de Meta dicho en castellano, para los avisos. */
+const ESTADO_EN_PALABRAS: Record<EstadoPlantillaMeta, string> = {
+  EN_REVISION: "en revisión",
+  APROBADA: "aprobada",
+  RECHAZADA: "rechazada",
+  PAUSADA: "pausada",
+  DESHABILITADA: "deshabilitada",
+};
 
 /**
  * Qué hace la app cuando el paciente toca una respuesta rápida. La acción
@@ -463,6 +471,39 @@ export class PlantillaWhatsapp {
       this.props.claveMeta != null &&
       (this.props.estadoMeta == null || this.props.estadoMeta === "APROBADA")
     );
+  }
+
+  /**
+   * Tiene plantilla en Meta pero hoy Meta no la deja salir: en revisión,
+   * rechazada, pausada o deshabilitada.
+   */
+  get bloqueadaEnMeta(): boolean {
+    return this.props.claveMeta != null && !this.admiteEnvioPorApi;
+  }
+
+  /**
+   * Bloqueada en Meta Y con botones: NO se manda como texto común. Sin la
+   * plantilla aprobada solo queda el texto, y ahí se pierden los botones: al
+   * paciente le llegaba un aviso «a medias», sin el confirmar ni el cancelar,
+   * que además se parecía a la plantilla vieja sin botones —y parecía que
+   * seguía saliendo una plantilla ya borrada—. Sale sola cuando Meta la
+   * aprueba: el barrido reintenta los fallidos.
+   */
+  get noSeEnviaSinMeta(): boolean {
+    return this.bloqueadaEnMeta && this.props.botones.length > 0;
+  }
+
+  /**
+   * Qué pasa hoy si se manda, en castellano, o null si sale normal. Es el
+   * MISMO texto en la consola, en la vista previa y en el motivo del
+   * recordatorio fallido.
+   */
+  avisoDeEnvio(): string | null {
+    if (!this.bloqueadaEnMeta || this.props.estadoMeta == null) return null;
+    const estado = ESTADO_EN_PALABRAS[this.props.estadoMeta];
+    return this.noSeEnviaSinMeta
+      ? `«${this.props.nombre}» está ${estado} en Meta y tiene botones: no se envía hasta que Meta la apruebe, para que al paciente no le llegue sin ellos.`
+      : `«${this.props.nombre}» está ${estado} en Meta: sale como texto común, y solo si el paciente te escribió en las últimas 24 h.`;
   }
 
   get id(): string {

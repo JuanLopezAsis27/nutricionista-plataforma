@@ -11,6 +11,7 @@ import type { Establecimiento } from "@/dominio/entidades/Establecimiento";
 import type { OrigenRecordatorio } from "@/dominio/entidades/RecordatorioWhatsapp";
 import { RecordatorioWhatsapp } from "@/dominio/entidades/RecordatorioWhatsapp";
 import { MensajeWhatsapp } from "@/dominio/entidades/MensajeWhatsapp";
+import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 import { armarRecordatorio, telefonoCancelaciones } from "./armadoRecordatorio";
 import { parametrosDeBotones } from "../whatsapp/plantillaMeta";
 
@@ -164,6 +165,16 @@ export class EnviarRecordatorioWhatsapp {
       // cancelaciones lanza si el consultorio no cargó el número, y ese fallo
       // tiene que quedar como un recordatorio FALLIDO con su motivo, no cortar
       // el barrido de todos los demás turnos.
+      //
+      // Una plantilla con botones que Meta todavía no aprobó no se manda como
+      // texto: saldría sin sus botones (ver `noSeEnviaSinMeta`). El texto
+      // retocado a mano sí sale: ahí el profesional ya eligió mandar texto.
+      if (!pedido.textoManual && pedido.plantilla.noSeEnviaSinMeta) {
+        throw new ErrorValidacion(
+          pedido.plantilla.avisoDeEnvio() ??
+            "La plantilla no está aprobada en Meta.",
+        );
+      }
       resultado = armado.envioPlantilla
         ? await this.proveedor.enviarPlantilla({
             ...armado.envioPlantilla,

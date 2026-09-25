@@ -92,5 +92,6 @@ function aSalida(plantilla: PlantillaWhatsapp): PlantillaWhatsappSalidaDto {
     enviadaAMeta: plantilla.enviadaAMeta,
     necesitaTurno: plantilla.necesitaTurno,
     admiteEnvioPorApi: plantilla.admiteEnvioPorApi,
+    avisoEnvio: plantilla.avisoDeEnvio(),
   };
 }

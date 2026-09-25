@@ -768,6 +768,10 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
 - Nunca hacer que una respuesta rápida de WhatsApp cancele el turno: se toca
   sin querer y no tiene segundo paso. `PEDIR_CANCELACION` avisa; cancela el
   enlace, que pasa por una página de confirmación
+- Nunca mandar como texto común una plantilla con botones que Meta no aprobó
+  (en revisión, rechazada, pausada): le llega al paciente sin los botones.
+  Queda FALLIDA con el motivo y sale cuando Meta la aprueba
+  (`noSeEnviaSinMeta`)
 - Nunca comparar la hora del barrido de recordatorios por igualdad: es `>=`
   ("ya pasó la hora de hoy"). Con `==`, un worker que arrancó 10:30 dejaba al
   consultorio de las 10:00 sin recordatorios TODO el día y sin ningún error.
