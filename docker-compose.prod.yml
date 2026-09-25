@@ -18,7 +18,7 @@
 #
 # --- IMÁGENES: ya NO se construyen en el servidor -----------------------------
 #
-# `app`, `worker`, `migrate` y `respaldo` se compilan en el CI y se publican en
+# `app`, `worker`, `migrate`, `respaldo` y `minio` se compilan en el CI y se publican en
 # GHCR etiquetadas con el SHA del commit. El servidor sólo hace `pull`.
 #
 # Por qué cambió:
@@ -151,10 +151,15 @@ services:
     # despliegue que "no tocó nada", que es el peor escenario para diagnosticar.
     # Actualizar es cambiar esta línea a conciencia, no un efecto secundario.
     #
-    # quay.io en vez de Docker Hub: MinIO retiró minio/minio de Docker Hub
-    # (repo archivado en 2026); quay.io/minio/minio sigue sirviendo los tags
-    # ya publicados antes del cierre.
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    # La imagen es PROPIA: se compila desde el código fuente en el CI
+    # (minio/Dockerfile) y se publica en GHCR como las demás. MinIO ya no
+    # publica imágenes: Docker Hub las retiró y quay.io/minio/* exige
+    # autenticación (401) desde 2026-09. La versión fija de MinIO vive en ese
+    # Dockerfile; la etiqueta de acá es la del commit, como app y worker.
+    image: ${REGISTRO:-ghcr.io/juanlopezasis27/nutricionista-plataforma}/minio:${IMAGE_TAG:-latest}
+    build:
+      context: ./minio
+      target: minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
@@ -174,7 +179,13 @@ services:
 
   # --- One-shot: crea el bucket si no existe ---
   crear_bucket:
-    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    # La misma imagen que `minio`, que trae mc; el entrypoint de abajo reemplaza
+    # al servidor. El `build` repetido es para CONSTRUIR_LOCAL=1: sin él,
+    # compose podría intentar bajarla antes de que `minio` la construya.
+    image: ${REGISTRO:-ghcr.io/juanlopezasis27/nutricionista-plataforma}/minio:${IMAGE_TAG:-latest}
+    build:
+      context: ./minio
+      target: minio
     environment:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}
