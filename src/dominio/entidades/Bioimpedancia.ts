@@ -11,6 +11,12 @@ export interface MedidasBioimpedancia {
   masaGrasaKg: number | null;
   porcentajeMuscular: number | null;
   porcentajeGrasa: number | null;
+  /**
+   * Nivel de grasa visceral, en la escala del equipo: un número ENTERO sin
+   * unidad (1, 2, 3…), no kilos ni porcentaje. La balanza no informa la masa
+   * de grasa visceral sino un índice, y se anota tal cual lo muestra.
+   */
+  nivelGrasaVisceral: number | null;
 }
 
 /** Datos para registrar una medición de bioimpedancia. */
@@ -22,6 +28,7 @@ export interface DatosNuevaBioimpedancia {
   masaGrasaKg?: number | null;
   porcentajeMuscular?: number | null;
   porcentajeGrasa?: number | null;
+  nivelGrasaVisceral?: number | null;
   observaciones?: string | null;
 }
 
@@ -40,13 +47,24 @@ export type CambiosBioimpedancia = Partial<
   Omit<DatosNuevaBioimpedancia, "pacienteId">
 >;
 
+/** Rango admisible, unidad y etiqueta de una medida de la balanza. */
+export interface RangoBioimpedancia {
+  min: number;
+  max: number;
+  /** Vacía en los niveles, que son una escala y no una magnitud. */
+  unidad: string;
+  etiqueta: string;
+  /** Solo admite enteros: los niveles del equipo no tienen decimales. */
+  entero?: boolean;
+}
+
 /**
  * Rango admisible de cada medida. Es el mismo que usan las metas: una meta
  * fuera de lo que una balanza puede informar no es una meta.
  */
 export const RANGOS_BIOIMPEDANCIA: Record<
   keyof MedidasBioimpedancia,
-  { min: number; max: number; unidad: string; etiqueta: string }
+  RangoBioimpedancia
 > = {
   pesoKg: { min: 20, max: 400, unidad: "kg", etiqueta: "Peso" },
   masaMuscularKg: {
@@ -68,7 +86,22 @@ export const RANGOS_BIOIMPEDANCIA: Record<
     unidad: "%",
     etiqueta: "Porcentaje graso",
   },
+  // La escala más amplia en uso es la de Tanita (1 a 59); Omron llega a 30.
+  // Se acepta la más amplia: el rango es para frenar un error de tipeo, no
+  // para decidir qué equipo usa el consultorio.
+  nivelGrasaVisceral: {
+    min: 1,
+    max: 59,
+    unidad: "",
+    etiqueta: "Grasa visceral",
+    entero: true,
+  },
 };
+
+/** «entre 1 y 59» / «entre 20 y 400 kg»: sin el espacio colgado del nivel. */
+export function describirRangoBioimpedancia(rango: RangoBioimpedancia): string {
+  return `entre ${rango.min} y ${rango.max}${rango.unidad ? ` ${rango.unidad}` : ""}`;
+}
 
 /**
  * Entidad de dominio Bioimpedancia: una medición de composición corporal
@@ -82,7 +115,7 @@ export const RANGOS_BIOIMPEDANCIA: Record<
  *
  * A diferencia de la antropometría, acá NO hay nada derivado: el equipo ya
  * calcula la composición y el profesional anota lo que informa. Por eso los
- * cinco valores se guardan tal cual, porcentajes incluidos —recalcular el
+ * valores se guardan tal cual, porcentajes incluidos —recalcular el
  * porcentaje desde los kg daría otro número que el que el paciente vio en la
  * pantalla de la balanza—.
  *
@@ -110,6 +143,7 @@ export class Bioimpedancia {
       masaGrasaKg: datos.masaGrasaKg ?? null,
       porcentajeMuscular: datos.porcentajeMuscular ?? null,
       porcentajeGrasa: datos.porcentajeGrasa ?? null,
+      nivelGrasaVisceral: datos.nivelGrasaVisceral ?? null,
       observaciones: datos.observaciones?.trim() || null,
       creadoEn: ahora,
       actualizadoEn: ahora,
@@ -144,6 +178,10 @@ export class Bioimpedancia {
         cambios.porcentajeGrasa,
         this.props.porcentajeGrasa,
       ),
+      nivelGrasaVisceral: siCambio(
+        cambios.nivelGrasaVisceral,
+        this.props.nivelGrasaVisceral,
+      ),
       observaciones:
         cambios.observaciones !== undefined
           ? cambios.observaciones?.trim() || null
@@ -170,6 +208,7 @@ export class Bioimpedancia {
       masaGrasaKg,
       porcentajeMuscular,
       porcentajeGrasa,
+      nivelGrasaVisceral,
     } = this.props;
     return {
       pesoKg,
@@ -177,6 +216,7 @@ export class Bioimpedancia {
       masaGrasaKg,
       porcentajeMuscular,
       porcentajeGrasa,
+      nivelGrasaVisceral,
     };
   }
 
@@ -202,10 +242,15 @@ function validar(props: PropiedadesBioimpedancia): void {
   ) as (keyof MedidasBioimpedancia)[]) {
     const valor = props[campo];
     if (valor == null) continue;
-    const { min, max, unidad, etiqueta } = RANGOS_BIOIMPEDANCIA[campo];
-    if (!Number.isFinite(valor) || valor < min || valor > max) {
+    const rango = RANGOS_BIOIMPEDANCIA[campo];
+    if (!Number.isFinite(valor) || valor < rango.min || valor > rango.max) {
       throw new ErrorValidacion(
-        `${etiqueta} debe estar entre ${min} y ${max} ${unidad}.`,
+        `${rango.etiqueta} debe estar ${describirRangoBioimpedancia(rango)}.`,
+      );
+    }
+    if (rango.entero && !Number.isInteger(valor)) {
+      throw new ErrorValidacion(
+        `${rango.etiqueta} es un nivel: va un número entero.`,
       );
     }
   }

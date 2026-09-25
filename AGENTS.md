@@ -487,7 +487,8 @@ Ver `docs/ANTROPOMETRIA.md`.
 
 ### Bioimpedancia
 
-Lo que informa la balanza —peso, kg y % de músculo, kg y % de grasa—, una
+Lo que informa la balanza —peso, kg y % de músculo, kg y % de grasa, y el
+nivel de grasa visceral (un ENTERO de la escala del equipo, migración 75)—, una
 medición por paciente y fecha, con dashboard y metas (migración 72). Es **otra
 fuente y no se mezcla con la antropometría**: tablas propias y metas propias
 (`ObjetivoBioimpedancia`, no variables de `ObjetivoComposicion`), porque el %

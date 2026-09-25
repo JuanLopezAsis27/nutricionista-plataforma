@@ -9,7 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Dumbbell, Droplets, Scale } from "lucide-react";
+import { Dumbbell, Droplets, Scale, Target } from "lucide-react";
 import type { MedicionBioimpedanciaDto } from "@/aplicacion/dtos/bioimpedancia.dto";
 import type { MedidasBioimpedancia } from "@/dominio/entidades/Bioimpedancia";
 import { formatearFecha, formatearMedida } from "@/lib/formato";
@@ -51,6 +51,17 @@ const SERIES_KG: Serie[] = [
     color: (t) => t.masas.muscular,
   },
   { campo: "masaGrasaKg", etiqueta: "Grasa", color: (t) => t.masas.adiposa },
+];
+/**
+ * Una sola serie: el color no identifica nada, así que va en la tinta neutra
+ * —como el peso— y el título la nombra.
+ */
+const SERIES_VISCERAL: Serie[] = [
+  {
+    campo: "nivelGrasaVisceral",
+    etiqueta: "Grasa visceral",
+    color: (t) => t.tinta,
+  },
 ];
 const SERIES_PORCENTAJE: Serie[] = [
   {
@@ -109,7 +120,7 @@ export function DashboardBioimpedancia({
     const delta = Math.round((hoy - antes) * 100) / 100;
     return delta === 0
       ? "Sin cambios vs. la anterior"
-      : `${signo(delta)} ${unidad} vs. la anterior`;
+      : `${signo(delta)}${unidad ? ` ${unidad}` : ""} vs. la anterior`;
   };
 
   return (
@@ -120,7 +131,7 @@ export function DashboardBioimpedancia({
           ` · comparada con la del ${formatearFecha(anterior.fecha)}`}
       </p>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Indicador
           icono={Scale}
           titulo="Peso"
@@ -152,6 +163,15 @@ export function DashboardBioimpedancia({
           detalle={detalle("masaGrasaKg", "kg")}
           color={tema.masas.adiposa}
         />
+        {/* Es un nivel de la escala del equipo, no kg ni %: por eso no va
+            dentro de la tarjeta de grasa ni en sus gráficos. */}
+        <Indicador
+          icono={Target}
+          titulo="Grasa visceral"
+          valor={formatearMedida(actual.nivelGrasaVisceral)}
+          unidad={actual.nivelGrasaVisceral != null ? "nivel" : ""}
+          detalle={detalle("nivelGrasaVisceral", "")}
+        />
       </div>
 
       {mediciones.length < 2 ? (
@@ -176,34 +196,43 @@ export function DashboardBioimpedancia({
               tema={tema}
             />
           </div>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">
-                Evolución del peso
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pl-0 pr-3">
-              <LineaDeTiempo
-                puntos={mediciones.map((m) => ({
-                  fecha: m.fecha,
-                  valor: m.pesoKg,
-                }))}
-                unidad="kg"
-                nombre="Peso"
-                colores={{
-                  // Una sola serie: el color no identifica nada, así que va
-                  // en la tinta neutra y el título la nombra.
-                  linea: tema.tinta,
-                  grilla: tema.grilla,
-                  tinta: tema.tinta,
-                  eje: tema.eje,
-                  superficie: tema.superficie,
-                  borde: tema.borde,
-                  texto: tema.texto,
-                }}
-              />
-            </CardContent>
-          </Card>
+          <div className="grid gap-4 xl:grid-cols-2">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold">
+                  Evolución del peso
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pl-0 pr-3">
+                <LineaDeTiempo
+                  puntos={mediciones.map((m) => ({
+                    fecha: m.fecha,
+                    valor: m.pesoKg,
+                  }))}
+                  unidad="kg"
+                  nombre="Peso"
+                  colores={{
+                    // Una sola serie: el color no identifica nada, así que va
+                    // en la tinta neutra y el título la nombra.
+                    linea: tema.tinta,
+                    grilla: tema.grilla,
+                    tinta: tema.tinta,
+                    eje: tema.eje,
+                    superficie: tema.superficie,
+                    borde: tema.borde,
+                    texto: tema.texto,
+                  }}
+                />
+              </CardContent>
+            </Card>
+            <TarjetaSerie
+              titulo="Grasa visceral (nivel)"
+              mediciones={mediciones}
+              series={SERIES_VISCERAL}
+              unidad=""
+              tema={tema}
+            />
+          </div>
         </>
       )}
     </div>
@@ -262,7 +291,8 @@ function TarjetaSerie({
                     />
                     {s.etiqueta}
                     <span className="tabular-nums text-muted-foreground">
-                      {formatearMedida(ultima[s.campo])} {unidad}
+                      {formatearMedida(ultima[s.campo])}
+                      {conUnidad(unidad)}
                     </span>
                   </li>
                 ))}
@@ -292,13 +322,13 @@ function TarjetaSerie({
                   tick={{ fill: tema.tinta, fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}
-                  unit={` ${unidad}`}
+                  unit={conUnidad(unidad)}
                 />
                 <Tooltip
                   cursor={{ fill: tema.grilla, fillOpacity: 0.35 }}
                   contentStyle={estiloTooltip(tema)}
                   formatter={(valor, nombre) => [
-                    `${formatearMedida(valor as number)} ${unidad}`,
+                    `${formatearMedida(valor as number)}${conUnidad(unidad)}`,
                     series.find((s) => s.campo === nombre)?.etiqueta ??
                       String(nombre),
                   ]}
@@ -319,4 +349,9 @@ function TarjetaSerie({
       </CardContent>
     </Card>
   );
+}
+
+/** « kg» o nada: los niveles no llevan unidad y no dejan un espacio colgado. */
+function conUnidad(unidad: string): string {
+  return unidad ? ` ${unidad}` : "";
 }

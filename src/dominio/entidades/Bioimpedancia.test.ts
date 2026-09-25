@@ -18,7 +18,21 @@ describe("Bioimpedancia", () => {
       masaGrasaKg: null,
       porcentajeMuscular: null,
       porcentajeGrasa: null,
+      nivelGrasaVisceral: null,
     });
+  });
+
+  it("la grasa visceral es un nivel: entero y dentro de la escala", () => {
+    expect(
+      Bioimpedancia.crear({ ...BASE, nivelGrasaVisceral: 9 }, "b-1").medidas
+        .nivelGrasaVisceral,
+    ).toBe(9);
+    expect(() =>
+      Bioimpedancia.crear({ ...BASE, nivelGrasaVisceral: 8.5 }, "b-1"),
+    ).toThrow(/entero/);
+    expect(() =>
+      Bioimpedancia.crear({ ...BASE, nivelGrasaVisceral: 0 }, "b-1"),
+    ).toThrow("Grasa visceral debe estar entre 1 y 59.");
   });
 
   it("guarda los porcentajes tal cual, sin recalcularlos desde los kg", () => {
@@ -67,6 +81,20 @@ describe("Bioimpedancia", () => {
 });
 
 describe("ObjetivoBioimpedancia", () => {
+  it("una meta de grasa visceral también es un nivel entero", () => {
+    const objetivo = ObjetivoBioimpedancia.crear(
+      { pacienteId: "pac-1", variable: "GRASA_VISCERAL", valorObjetivo: 7 },
+      "o-1",
+    );
+    expect(objetivo.descripcion).toBe("Grasa visceral");
+    expect(() =>
+      ObjetivoBioimpedancia.crear(
+        { pacienteId: "pac-1", variable: "GRASA_VISCERAL", valorObjetivo: 6.5 },
+        "o-1",
+      ),
+    ).toThrow(ErrorValidacion);
+  });
+
   it("toma etiqueta y rango de la medida de la que sale", () => {
     const objetivo = ObjetivoBioimpedancia.crear(
       { pacienteId: "pac-1", variable: "PORCENTAJE_GRASA", valorObjetivo: 20 },

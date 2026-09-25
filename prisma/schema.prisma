@@ -171,6 +171,7 @@ enum VariableBioimpedancia {
   MASA_GRASA_KG
   PORCENTAJE_MUSCULAR
   PORCENTAJE_GRASA
+  GRASA_VISCERAL
 }
 
 enum VariableComposicion {
@@ -1601,6 +1602,8 @@ model Bioimpedancia {
   masaGrasaKg        Decimal? @db.Decimal(5, 2)
   porcentajeMuscular Decimal? @db.Decimal(4, 1)
   porcentajeGrasa    Decimal? @db.Decimal(4, 1)
+  /// Nivel de la escala del equipo (entero, sin unidad). Migración 75.
+  nivelGrasaVisceral Int?
   observaciones      String?
   creadoEn           DateTime @default(now())
   actualizadoEn      DateTime @updatedAt
