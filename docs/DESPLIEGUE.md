@@ -266,20 +266,45 @@ time() - nutricionista_respaldo_ultimo_exito_timestamp > 26 * 3600
 Si todavía no instalaste node_exporter, el respaldo funciona igual: si el
 directorio no está montado, no se escribe nada y no falla nada.
 
-### De dónde sale `mc`
+### De dónde salen MinIO y `mc`
 
-La imagen de respaldos copia `mc` de **`quay.io/minio/mc`**, fijada al mismo
-tag que usa `crear_bucket` (`respaldos/Dockerfile`). Antes lo descargaba de
-`dl.min.io/client/mc/release/...`, una URL sin versión que MinIO retiró
-(responde **410 Gone**): es el mismo retiro que ya había obligado a pasar
-`minio/minio` de Docker Hub a quay.io.
+MinIO **ya no publica imágenes ni binarios de forma pública**, y cada retiro
+rompió algo sin que nadie tocara el repo:
 
-No se rompió el día del retiro. Se rompió cuando cambió el digest de
-`postgres:18` y el CI ya no tenía esa capa en caché: el job «Imágenes
-(respaldo)» falló sin que nadie hubiera tocado `respaldos/`. **Al subir el tag
-de `mc`, subilo en los dos lugares** —el Dockerfile y `crear_bucket` en
-`docker-compose.prod.yml`—: los dos tienen que hablar la misma versión del
-cliente.
+1. `dl.min.io/client/mc/release/...` responde **410 Gone**. No falló el día del
+   retiro sino cuando cambió el digest de `postgres:18` y el CI ya no tenía esa
+   capa en caché: el job «Imágenes (respaldo)» cayó sin cambios en `respaldos/`.
+2. `minio/minio` y `minio/mc` en Docker Hub ya no existen.
+3. `quay.io/minio/*` pasó a exigir autenticación (**401**) en 2026-09. Rompió el
+   job de respaldo del PR #62 a `main` y, sin arreglo, habría roto el `compose
+   pull` del despliegue (el servidor y `crear_bucket` venían de ahí).
+
+Por eso los dos se **compilan desde el código fuente**, fijados a un tag, con
+`go install github.com/minio/<modulo>@<tag>` en un stage `golang`. El módulo Go
+es lo único que no depende de que MinIO quiera seguir publicando:
+`proxy.golang.org` guarda la versión aunque el repo desaparezca y
+`sum.golang.org` verifica que el código sea el publicado con ese tag. Los
+binarios salen estáticos (`CGO_ENABLED=0`) y con las `ldflags` de los
+buildscripts de MinIO, así que `--version` dice el `RELEASE.…` correcto (el
+`commit-id` queda en `DEVELOPMENT.GOGET`, que es cosmético).
+
+| Imagen | Dockerfile | Qué lleva | La usan |
+| --- | --- | --- | --- |
+| `minio` | `minio/Dockerfile` | servidor + `mc` sobre Debian slim | `minio` y `crear_bucket` |
+| `respaldo` | `respaldos/Dockerfile` | `mc` sobre `postgres:18` | `respaldo` |
+
+`minio` se publica en GHCR como las demás, con la etiqueta del commit. El
+servidor lleva `mc` porque el healthcheck es `mc ready local`, igual que en la
+imagen oficial; `crear_bucket` usa la misma imagen y sobreescribe el
+entrypoint. En desarrollo, `docker-compose.yml` la construye localmente (la
+primera vez tarda unos minutos).
+
+**Al subir el tag de `mc`, subilo en los dos Dockerfiles**: tienen que hablar la
+misma versión del cliente.
+
+**Revertir a un commit anterior a este cambio no funciona tal cual**: su
+compose apunta a quay.io y el `pull` da 401. Para eso hay que usar
+`CONSTRUIR_LOCAL=1` o traer este cambio al commit de destino.
 
 ---
 

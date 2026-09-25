@@ -5,16 +5,29 @@
 # pasar `--target` de forma uniforme en los cuatro componentes, sin un caso
 # especial con el target vacío.
 
-# mc (MinIO Client) sale de la imagen OFICIAL, fijada al mismo tag que usa
-# `crear_bucket` en docker-compose.prod.yml, y NO de una descarga.
-# Antes se bajaba de https://dl.min.io/client/mc/release/linux-amd64/mc, que
-# MinIO retiró (responde 410 Gone): es el mismo retiro que ya obligó a pasar
-# minio/minio de Docker Hub a quay.io. No falló el día del retiro sino cuando
-# cambió el digest de postgres:18 y el CI dejó de encontrar esta capa en caché:
-# una URL sin versión es una dependencia que se rompe sola, sin tocar el repo.
-# quay.io sirve los tags ya publicados, y el binario es estático (Go), así que
-# corre igual sobre la Debian de postgres.
-FROM quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z AS mc
+# mc (MinIO Client) se COMPILA desde el código fuente, fijado a un tag, y no se
+# toma de una imagen ni de una descarga. MinIO fue retirando todos los canales
+# de binarios uno por uno:
+#   - https://dl.min.io/client/mc/release/... responde 410 Gone;
+#   - minio/mc en Docker Hub ya no existe;
+#   - quay.io/minio/mc pasó a exigir autenticación (401) en 2026-09, rompiendo
+#     este build sin tocar el repo, igual que las dos veces anteriores.
+# El módulo Go es lo único que queda: proxy.golang.org lo guarda aunque el repo
+# desaparezca, y la base de checksums (sum.golang.org) verifica que el código
+# sea el mismo que se publicó con ese tag. El binario es estático
+# (CGO_ENABLED=0), así que corre igual sobre la Debian de postgres.
+# Es el mismo tag que compila minio/Dockerfile (servidor y `crear_bucket`): al
+# subirlo, subilo en los dos. Las ldflags son las de los buildscripts de MinIO;
+# sin ellas mc se presenta como DEVELOPMENT.GOGET.
+FROM golang:1.24-bookworm AS mc
+ENV CGO_ENABLED=0
+ARG MC_TAG=RELEASE.2025-08-13T08-35-41Z
+ARG MC_VERSION=2025-08-13T08:35:41Z
+RUN go install -trimpath -ldflags "-s -w \
+      -X github.com/minio/mc/cmd.Version=${MC_VERSION} \
+      -X github.com/minio/mc/cmd.ReleaseTag=${MC_TAG} \
+      -X github.com/minio/mc/cmd.CopyrightYear=2025" \
+      github.com/minio/mc@${MC_TAG}
 
 FROM postgres:18 AS respaldo
 
@@ -25,7 +38,7 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates gnupg \
   && rm -rf /var/lib/apt/lists/*
 
-COPY --from=mc /usr/bin/mc /usr/local/bin/mc
+COPY --from=mc /go/bin/mc /usr/local/bin/mc
 
 COPY respaldo.sh programador.sh restaurar-db.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/respaldo.sh /usr/local/bin/programador.sh /usr/local/bin/restaurar-db.sh

@@ -299,6 +299,11 @@ jobs:
           - componente: respaldo
             contexto: ./respaldos
             target: respaldo
+          # MinIO compilado desde el código: la imagen oficial dejó de ser
+          # pública (ver minio/Dockerfile). La usan `minio` y `crear_bucket`.
+          - componente: minio
+            contexto: ./minio
+            target: minio
           # Se construye y publica aunque el servicio esté detrás del perfil
           # `ml` y no arranque todavía: así la imagen ya existe el día que se
           # habilite, sin tener que esperar un despliegue.
