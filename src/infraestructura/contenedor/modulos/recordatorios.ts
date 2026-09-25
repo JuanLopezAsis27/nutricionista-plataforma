@@ -15,7 +15,7 @@ import type { IEmailEnviadoRepositorio } from "@/dominio/repositorios/IEmailEnvi
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
-import type { IEnlaceConfirmacionTurno } from "@/dominio/servicios/IEnlaceConfirmacionTurno";
+import type { IEnlacesTurno } from "@/dominio/servicios/IEnlacesTurno";
 import type { IAdministradorPlantillasMeta } from "@/dominio/servicios/IAdministradorPlantillasMeta";
 import { SincronizarPlantillasMeta } from "@/aplicacion/casos-de-uso/recordatorios/SincronizarPlantillasMeta";
 import { RegistrarEstadosPlantillasMeta } from "@/aplicacion/casos-de-uso/recordatorios/RegistrarEstadosPlantillasMeta";
@@ -70,7 +70,7 @@ export interface DepsRecordatorios {
   servicioEmail: IServicioEmail;
   usuarios: IUsuarioRepositorio;
   bus: IBusEventos;
-  enlaceConfirmacionTurno: IEnlaceConfirmacionTurno;
+  enlacesTurno: IEnlacesTurno;
   /** Alta, edición y estado de las plantillas en la cuenta de Meta. */
   administradorPlantillasMeta: IAdministradorPlantillasMeta;
 }
@@ -86,14 +86,14 @@ export function crearEnviarRecordatorioWhatsapp(deps: {
   recordatorios: IRecordatorioWhatsappRepositorio;
   proveedor: IProveedorWhatsapp;
   mensajes: IMensajeWhatsappRepositorio;
-  enlaceConfirmacionTurno: IEnlaceConfirmacionTurno;
+  enlacesTurno: IEnlacesTurno;
   nutricionistas: INutricionistaRepositorio;
 }): EnviarRecordatorioWhatsapp {
   return new EnviarRecordatorioWhatsapp(
     deps.recordatorios,
     deps.proveedor,
     deps.mensajes,
-    deps.enlaceConfirmacionTurno,
+    deps.enlacesTurno,
     deps.nutricionistas,
   );
 }
@@ -119,7 +119,8 @@ export function crearServicioRecordatorios(
     deps.configRecordatorios,
     deps.nutricionistas,
     deps.establecimientos,
-    deps.enlaceConfirmacionTurno,
+    deps.enlacesTurno,
+    deps.configuracion,
   );
 
   // Cada servicio recibe SOLO lo de su area. Antes era una lista plana de 17
@@ -136,12 +137,12 @@ export function crearServicioRecordatorios(
       new CrearPlantillaWhatsapp(
         deps.plantillas,
         deps.administradorPlantillasMeta,
-        deps.enlaceConfirmacionTurno,
+        deps.enlacesTurno,
       ),
       new ActualizarPlantillaWhatsapp(
         deps.plantillas,
         deps.administradorPlantillasMeta,
-        deps.enlaceConfirmacionTurno,
+        deps.enlacesTurno,
       ),
       new EliminarPlantillaWhatsapp(
         deps.plantillas,

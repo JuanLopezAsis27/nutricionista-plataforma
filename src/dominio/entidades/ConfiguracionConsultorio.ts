@@ -34,6 +34,16 @@ export interface DatosConfiguracion {
   /** Prefijo internacional sin "+" para normalizar teléfonos locales, ej "54". */
   whatsappPrefijoPais: string | null;
   /**
+   * Número de WhatsApp al que escribe el paciente para cancelar un turno
+   * desde el recordatorio (botón «cancelar por WhatsApp»). Tal como lo cargó
+   * el profesional: se normaliza a E.164 con el prefijo de arriba al armar el
+   * enlace, igual que los teléfonos de los pacientes.
+   *
+   * Es aparte del número de la Cloud API a propósito: muchas veces el que
+   * manda los recordatorios no es el que el profesional usa en el día a día.
+   */
+  whatsappCancelaciones: string | null;
+  /**
    * Si el alta de un paciente nuevo manda, además, su email de bienvenida con
    * los datos de acceso. Apagarlo no afecta el envío manual desde el listado
    * de pacientes: solo el automático del alta.
@@ -98,6 +108,7 @@ export class ConfiguracionConsultorio {
       pdfMostrarEquivalencias: true,
       pdfMostrarRecomendaciones: true,
       whatsappPrefijoPais: null,
+      whatsappCancelaciones: null,
       bienvenidaAutomaticaActiva: true,
       formulasGrasaVisibles: [...METODOS_GRASA],
       camposDosComponentes: [...CAMPOS_PROTOCOLO_POR_DEFECTO.DOS_COMPONENTES],
@@ -153,6 +164,10 @@ export class ConfiguracionConsultorio {
         cambios.whatsappPrefijoPais,
         this.props.whatsappPrefijoPais,
       ),
+      whatsappCancelaciones:
+        cambios.whatsappCancelaciones !== undefined
+          ? cambios.whatsappCancelaciones?.trim() || null
+          : this.props.whatsappCancelaciones,
       bienvenidaAutomaticaActiva: fusionar(
         cambios.bienvenidaAutomaticaActiva,
         this.props.bienvenidaAutomaticaActiva,
@@ -194,6 +209,9 @@ export class ConfiguracionConsultorio {
   get whatsappPrefijoPais(): string | null {
     return this.props.whatsappPrefijoPais;
   }
+  get whatsappCancelaciones(): string | null {
+    return this.props.whatsappCancelaciones;
+  }
   get bienvenidaAutomaticaActiva(): boolean {
     return this.props.bienvenidaAutomaticaActiva;
   }
@@ -230,6 +248,14 @@ function validar(d: DatosConfiguracion): void {
   ) {
     throw new ErrorValidacion(
       'El prefijo de país debe ser solo dígitos, sin "+" (ej. 54).',
+    );
+  }
+  if (
+    d.whatsappCancelaciones != null &&
+    !/^\+?[\d\s()-]{6,25}$/.test(d.whatsappCancelaciones)
+  ) {
+    throw new ErrorValidacion(
+      "El WhatsApp para cancelaciones tiene que ser un número de teléfono.",
     );
   }
   if (d.formulasGrasaVisibles.length === 0) {

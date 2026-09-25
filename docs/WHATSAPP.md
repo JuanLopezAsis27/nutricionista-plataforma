@@ -222,17 +222,36 @@ Una plantilla creada desde la app puede llevar hasta 10 botones (2 de enlace
 como máximo, 25 caracteres de texto). Dos tipos:
 
 - **Respuesta rápida.** Al tocarla, al chat llega el texto del botón. Cada una
-  tiene una acción: **confirmar el turno**, **pedir reprogramar** o ninguna.
-- **Enlace.** Uno fijo (`https://…`) o el **enlace de confirmación del turno**,
-  el mismo enlace firmado del recordatorio por email. Ese se registra en Meta
-  como URL dinámica (`…/confirmar-turno?token={{1}}`) y en cada envío se
-  completa solo el token (`IEnlaceConfirmacionTurno.prefijo()`).
+  tiene una acción: **confirmar el turno**, **pedir reprogramar**, **pedir
+  cancelar** (migración 76) o ninguna.
+- **Enlace.** Uno de cuatro destinos:
+  - fijo (`https://…`);
+  - **confirmar el turno** y **cancelar el turno**: los mismos enlaces firmados
+    del recordatorio por email. Se registran en Meta como URL dinámica
+    (`…/confirmar-turno?token={{1}}`, `…/cancelar-turno?token={{1}}`) y en
+    cada envío se completa solo el token (`IEnlacesTurno.prefijo(accion)`);
+  - **chat de cancelaciones**: abre WhatsApp con el número de cancelaciones del
+    consultorio (Configuración → WhatsApp) y un mensaje ya escrito, propio de
+    cada botón. Existe porque el número que manda los recordatorios muchas
+    veces no es el que el profesional usa todos los días. Se registra como
+    `https://wa.me/{{1}}`: el número va en la parte dinámica junto con el
+    texto, así cambiar de número no obliga a mandar la plantilla a revisión.
+    Sin número cargado, la plantilla no se puede enviar y el recordatorio
+    queda FALLIDO con ese motivo (no corta el barrido de los demás turnos).
 
 **El orden es parte del contrato.** Meta identifica a cada botón por su
 posición al enviar, y exige que los del mismo tipo estén juntos: la entidad
 guarda siempre las respuestas rápidas primero y los enlaces después, y el
 índice de cada botón es su lugar en esa lista. Por eso `botones` es un JSONB
 ordenado y no una tabla.
+
+**Qué cambio la vuelve a revisión.** Solo lo que Meta revisa: cuerpo,
+categoría o botones. Los botones se comparan por lo que significan
+(`firmaDeBotones`), no por su JSON guardado: los guardados antes de un campo
+nuevo no lo tienen (`mensaje`, migración 76), la edición lo completa con
+`null`, y comparando el JSON crudo marcar una plantilla como predeterminada la
+mandaba a revisión otra vez sin haber cambiado nada. Si se agrega otro campo a
+un botón, va también en `firmaDeBotones`.
 
 **La acción viaja en el payload, no en el texto.** En cada envío, cada
 respuesta rápida lleva `ACCION:turnoId` como payload
@@ -249,6 +268,11 @@ Al tocar un botón (`AtenderBotonWhatsapp`):
   al profesional.
 - **Reprogramar** no toca el turno —reprogramar necesita acordar otro horario—
   y deja un aviso `REPROGRAMACION_PEDIDA` en la campana.
+- **Pedir cancelar** tampoco lo toca: deja `CANCELACION_PEDIDA` en la campana
+  y el profesional lo cancela al leerlo. Es deliberado que una respuesta
+  rápida NO cancele: se toca sin querer, no tiene segundo paso y cancelar no
+  se deshace. Para que el paciente cancele sin intervención está el enlace
+  «cancelar el turno», que pasa por una página que se lo pide confirmar.
 - El recordatorio queda CONFIRMADO o RESPONDIDO según el botón, sin pasar por
   la lista de afirmaciones: «Confirmo» no está en ella, y no tiene por qué.
 - El turno tiene que ser de ESE paciente y estar pendiente o confirmado. Si no

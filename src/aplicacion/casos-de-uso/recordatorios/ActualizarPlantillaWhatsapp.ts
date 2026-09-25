@@ -1,6 +1,6 @@
 import type { IPlantillaWhatsappRepositorio } from "@/dominio/repositorios/IPlantillaWhatsappRepositorio";
 import type { IAdministradorPlantillasMeta } from "@/dominio/servicios/IAdministradorPlantillasMeta";
-import type { IEnlaceConfirmacionTurno } from "@/dominio/servicios/IEnlaceConfirmacionTurno";
+import type { IEnlacesTurno } from "@/dominio/servicios/IEnlacesTurno";
 import type {
   DatosPlantillaWhatsapp,
   PlantillaWhatsapp,
@@ -29,7 +29,7 @@ export class ActualizarPlantillaWhatsapp {
   constructor(
     private readonly plantillas: IPlantillaWhatsappRepositorio,
     private readonly administrador: IAdministradorPlantillasMeta,
-    private readonly enlaces: IEnlaceConfirmacionTurno,
+    private readonly enlaces: IEnlacesTurno,
   ) {}
 
   async ejecutar(

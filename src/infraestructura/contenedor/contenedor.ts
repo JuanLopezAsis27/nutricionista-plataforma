@@ -74,7 +74,7 @@ export {
   proveedorGoogle,
   directorioWhatsapp,
   urlApp,
-  enlaceConfirmacionTurno,
+  enlacesTurno,
 } from "./nucleo";
 
 /** El repositorio de usuario se expone para la configuración de Auth.js. */
@@ -120,7 +120,7 @@ export const servicioWhatsapp = perezoso(() =>
     plantillas: nucleo.repositorioPlantillaWhatsapp(),
     establecimientos: nucleo.repositorioEstablecimiento(),
     servicioEmail: nucleo.servicioEmail(),
-    enlaceConfirmacionTurno: nucleo.enlaceConfirmacionTurno(),
+    enlacesTurno: nucleo.enlacesTurno(),
     nutricionistas: nucleo.repositorioNutricionista(),
   }),
 );
@@ -148,7 +148,7 @@ export const servicioRecordatorios = perezoso(() =>
     servicioEmail: nucleo.servicioEmail(),
     usuarios: nucleo.repositorioUsuario(),
     bus: nucleo.busEventos(),
-    enlaceConfirmacionTurno: nucleo.enlaceConfirmacionTurno(),
+    enlacesTurno: nucleo.enlacesTurno(),
     administradorPlantillasMeta: nucleo.administradorPlantillasMeta(),
     nutricionistas: nucleo.repositorioNutricionista(),
   }),

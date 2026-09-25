@@ -39,6 +39,7 @@ export class PrismaRepositorioConfiguracion implements IConfiguracionRepositorio
       pdfMostrarEquivalencias: d.pdfMostrarEquivalencias,
       pdfMostrarRecomendaciones: d.pdfMostrarRecomendaciones,
       whatsappPrefijoPais: d.whatsappPrefijoPais,
+      whatsappCancelaciones: d.whatsappCancelaciones,
       bienvenidaAutomaticaActiva: d.bienvenidaAutomaticaActiva,
       formulasGrasaVisibles: d.formulasGrasaVisibles,
       camposDosComponentes: d.camposDosComponentes,
@@ -74,6 +75,7 @@ export function mapearConfiguracion(
     pdfMostrarEquivalencias: fila.pdfMostrarEquivalencias,
     pdfMostrarRecomendaciones: fila.pdfMostrarRecomendaciones,
     whatsappPrefijoPais: fila.whatsappPrefijoPais,
+    whatsappCancelaciones: fila.whatsappCancelaciones,
     bienvenidaAutomaticaActiva: fila.bienvenidaAutomaticaActiva,
     // Filtra por si la fila arrastrara un método ya retirado: el enum de
     // Postgres no se toca a propósito (ver el mismo criterio en el mapeador

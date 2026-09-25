@@ -9,7 +9,7 @@ import type {
   IProveedorWhatsapp,
   PlantillaWhatsappEnvio,
 } from "@/dominio/servicios/IProveedorWhatsapp";
-import type { IEnlaceConfirmacionTurno } from "@/dominio/servicios/IEnlaceConfirmacionTurno";
+import type { IEnlacesTurno } from "@/dominio/servicios/IEnlacesTurno";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import type { Turno } from "@/dominio/entidades/Turno";
 import type { Paciente } from "@/dominio/entidades/Paciente";
@@ -23,7 +23,10 @@ import {
   normalizarTelefonoE164,
   PREFIJO_PAIS_POR_DEFECTO,
 } from "@/dominio/servicios/telefono";
-import { armarRecordatorio } from "../recordatorios/armadoRecordatorio";
+import {
+  armarRecordatorio,
+  telefonoCancelaciones,
+} from "../recordatorios/armadoRecordatorio";
 import { renderizarPlantilla } from "./plantilla";
 import { parametrosDeBotones } from "./plantillaMeta";
 
@@ -51,7 +54,7 @@ export class EnviarPlantillaWhatsapp {
     private readonly configuracion: IConfiguracionRepositorio,
     private readonly mensajes: IMensajeWhatsappRepositorio,
     private readonly proveedor: IProveedorWhatsapp,
-    private readonly enlaces: IEnlaceConfirmacionTurno,
+    private readonly enlaces: IEnlacesTurno,
     private readonly reloj: IRelojFecha,
     /** Da {{profesional}}: el nombre del consultorio en curso. */
     private readonly nutricionistas: INutricionistaRepositorio,
@@ -94,7 +97,7 @@ export class EnviarPlantillaWhatsapp {
       (await this.configuracion.obtener()) ??
       ConfiguracionConsultorio.porDefecto();
     const nombreProfesional = await this.nutricionistas.nombreDelActual();
-    const { texto, envio } = turno
+    const { texto, envio, variables } = turno
       ? await this.armarConTurno(
           plantilla,
           paciente,
@@ -106,7 +109,10 @@ export class EnviarPlantillaWhatsapp {
 
     const resultado = await this.proveedor.enviarPlantilla({
       ...envio,
-      botones: parametrosDeBotones(plantilla, turno, this.enlaces),
+      botones: parametrosDeBotones(plantilla, turno, this.enlaces, {
+        telefonoE164: telefonoCancelaciones(config),
+        variables,
+      }),
     });
     if (resultado.modo !== "API") {
       throw new ErrorValidacion("WhatsApp no está conectado a la app.");
@@ -145,7 +151,11 @@ export class EnviarPlantillaWhatsapp {
     config: ConfiguracionConsultorio,
     nombreProfesional: string,
     turno: Turno,
-  ): Promise<{ texto: string; envio: PlantillaWhatsappEnvio }> {
+  ): Promise<{
+    texto: string;
+    envio: PlantillaWhatsappEnvio;
+    variables: Record<string, string>;
+  }> {
     const sede = await this.establecimientos.obtenerPorId(
       turno.establecimientoId,
     );
@@ -160,7 +170,11 @@ export class EnviarPlantillaWhatsapp {
     if (!armado.envioPlantilla) {
       throw new ErrorValidacion("Esa plantilla no tiene nombre en Meta.");
     }
-    return { texto: armado.mensaje, envio: armado.envioPlantilla };
+    return {
+      texto: armado.mensaje,
+      envio: armado.envioPlantilla,
+      variables: armado.variables,
+    };
   }
 
   /**
@@ -172,7 +186,11 @@ export class EnviarPlantillaWhatsapp {
     paciente: Paciente,
     config: ConfiguracionConsultorio,
     nombreProfesional: string,
-  ): { texto: string; envio: PlantillaWhatsappEnvio } {
+  ): {
+    texto: string;
+    envio: PlantillaWhatsappEnvio;
+    variables: Record<string, string>;
+  } {
     const c = config.aPrimitivos();
     const telefono = normalizarTelefonoE164(
       paciente.telefono,
@@ -185,6 +203,7 @@ export class EnviarPlantillaWhatsapp {
     const texto = renderizarPlantilla(plantilla.cuerpo, variables);
     return {
       texto,
+      variables,
       envio: {
         telefono,
         nombrePlantilla: plantilla.claveMeta ?? "",

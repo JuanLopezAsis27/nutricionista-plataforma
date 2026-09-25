@@ -57,6 +57,17 @@ export function useTiempoReal() {
                 : undefined,
           });
           break;
+        case "turno.cancelado":
+          // Lo canceló el paciente desde el recordatorio: el horario quedó
+          // libre y la agenda tiene que mostrarlo ya.
+          invalidarTodo();
+          toast("Turno cancelado", {
+            description:
+              typeof evento.datos?.mensaje === "string"
+                ? evento.datos.mensaje
+                : undefined,
+          });
+          break;
         default:
           break;
       }

@@ -12,8 +12,13 @@ import { ErrorPlantillaEmailRecordatorioNoEncontrada } from "@/dominio/errores/E
 import type { Turno } from "@/dominio/entidades/Turno";
 import { variablesRecordatorio } from "../secretaria/variables";
 import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstablecimientoRepositorio";
-import type { IEnlaceConfirmacionTurno } from "@/dominio/servicios/IEnlaceConfirmacionTurno";
+import type { IEnlacesTurno } from "@/dominio/servicios/IEnlacesTurno";
+import type { IConfiguracionRepositorio } from "@/dominio/repositorios/IConfiguracionRepositorio";
+import type { PlantillaEmailRecordatorio } from "@/dominio/entidades/PlantillaEmailRecordatorio";
+import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
 import { escaparHtml } from "@/dominio/plantillas/renderizar";
+import { enlaceCancelacionPorWhatsapp } from "@/dominio/servicios/cancelacionPorWhatsapp";
+import { telefonoCancelaciones } from "./armadoRecordatorio";
 
 /** Clave de auditoría de los emails de recordatorio (independiente de qué plantilla se usó). */
 const CLAVE_RECORDATORIO_TURNO = "RECORDATORIO_TURNO";
@@ -84,8 +89,10 @@ export class EnviarRecordatoriosPorEmail {
     private readonly nutricionistas: INutricionistaRepositorio,
     /** Da {{establecimiento}} y {{direccion}} a la plantilla del email. */
     private readonly establecimientos: IEstablecimientoRepositorio,
-    /** Da el botón "Confirmar asistencia" de los turnos pendientes. */
-    private readonly enlaces: IEnlaceConfirmacionTurno,
+    /** Da los botones "Confirmar asistencia" y "Cancelar turno". */
+    private readonly enlaces: IEnlacesTurno,
+    /** Da el número de cancelaciones del botón «cancelar por WhatsApp». */
+    private readonly configuracion: IConfiguracionRepositorio,
   ) {}
 
   async ejecutar(): Promise<ResultadoRecordatoriosEmail> {
@@ -203,31 +210,21 @@ export class EnviarRecordatoriosPorEmail {
       turno.establecimientoId,
     );
 
-    const { asunto, html } = plantilla.renderizar(
-      variablesRecordatorio({
-        nombrePaciente: paciente.nombreCompleto,
-        fecha: turno.fecha,
-        hora: turno.hora,
-        nombreProfesional: await this.nutricionistas.nombreDelActual(),
-        nombreEstablecimiento: sede?.nombre,
-        direccionEstablecimiento: sede?.direccion,
-      }),
-    );
+    const variables = variablesRecordatorio({
+      nombrePaciente: paciente.nombreCompleto,
+      fecha: turno.fecha,
+      hora: turno.hora,
+      nombreProfesional: await this.nutricionistas.nombreDelActual(),
+      nombreEstablecimiento: sede?.nombre,
+      direccionEstablecimiento: sede?.direccion,
+    });
+    const { asunto, html } = plantilla.renderizar(variables);
 
-    // Fuera de la plantilla, para que también lo tengan las que ya se editaron.
-    // Es una decisión POR PLANTILLA: no todo mensaje de recordatorio tiene
-    // sentido que pida confirmar (ver `incluirBotonConfirmacion`).
+    // Los botones van fuera de la plantilla, para que también los tengan las
+    // que ya se editaron. Son una decisión POR PLANTILLA: no todo mensaje de
+    // recordatorio tiene sentido que pida confirmar o que ofrezca cancelar.
     const cuerpo =
-      turno.estado === "PENDIENTE" && plantilla.incluirBotonConfirmacion
-        ? html +
-          botonConfirmar(
-            // Vence al terminar el día del turno.
-            this.enlaces.generar(
-              turno.id,
-              new Date(turno.fecha.getTime() + DIA_MS),
-            ),
-          )
-        : html;
+      html + (await this.botones(turno, plantilla, variables)).join("");
 
     try {
       await this.servicioEmail.enviar({
@@ -260,6 +257,65 @@ export class EnviarRecordatoriosPorEmail {
     );
     return "ENVIADO";
   }
+
+  /**
+   * Los botones que lleva el email de ESTE turno, en HTML.
+   *
+   * - Confirmar: solo si el turno está PENDIENTE (uno confirmado no lo pide).
+   * - Cancelar: si el turno sigue activo y la plantilla lo ofrece. Por la app,
+   *   un enlace firmado que vence al terminar el día del turno; por WhatsApp,
+   *   el chat de cancelaciones. Sin ese número cargado el botón no sale: un
+   *   enlace a ningún lado es peor que no ofrecerlo, y el email sale igual.
+   */
+  private async botones(
+    turno: Turno,
+    plantilla: PlantillaEmailRecordatorio,
+    variables: Record<string, string>,
+  ): Promise<string[]> {
+    const vence = new Date(turno.fecha.getTime() + DIA_MS);
+    const botones: string[] = [];
+    if (turno.estado === "PENDIENTE" && plantilla.incluirBotonConfirmacion) {
+      botones.push(
+        boton(
+          this.enlaces.generar("CONFIRMAR", turno.id, vence),
+          "Confirmar asistencia",
+          COLOR_CONFIRMAR,
+        ),
+      );
+    }
+    if (plantilla.botonCancelacion === "APP") {
+      botones.push(
+        boton(
+          this.enlaces.generar("CANCELAR", turno.id, vence),
+          "Cancelar turno",
+          COLOR_CANCELAR,
+        ),
+      );
+    } else if (plantilla.botonCancelacion === "WHATSAPP") {
+      const config =
+        (await this.configuracion.obtener()) ??
+        ConfiguracionConsultorio.porDefecto();
+      const telefono = telefonoCancelaciones(config);
+      if (telefono) {
+        botones.push(
+          boton(
+            enlaceCancelacionPorWhatsapp(
+              telefono,
+              plantilla.mensajeCancelacion,
+              variables,
+            ),
+            "Cancelar turno por WhatsApp",
+            COLOR_CANCELAR,
+          ),
+        );
+      } else {
+        console.warn(
+          `[recordatorios] la plantilla «${plantilla.nombre}» ofrece cancelar por WhatsApp y no hay número de cancelaciones: el email sale sin ese botón.`,
+        );
+      }
+    }
+    return botones;
+  }
 }
 
 /**
@@ -285,11 +341,18 @@ function referenciaDe(turnoId: string, dias: number | null): string {
   return dias === 1 ? turnoId : `${turnoId}:${dias}`;
 }
 
-function botonConfirmar(enlace: string): string {
+const COLOR_CONFIRMAR = "#F4535E";
+/**
+ * Cancelar va en gris y no en el color de la marca: es la acción que no se
+ * deshace, y no tiene que competir con «Confirmar» por ser la principal.
+ */
+const COLOR_CANCELAR = "#6B7280";
+
+function boton(enlace: string, texto: string, color: string): string {
   return (
     `<p style="margin:24px 0">` +
     `<a href="${escaparHtml(enlace)}" style="display:inline-block;padding:12px 24px;` +
-    `background-color:#F4535E;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600">` +
-    `Confirmar asistencia</a></p>`
+    `background-color:${color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600">` +
+    `${escaparHtml(texto)}</a></p>`
   );
 }

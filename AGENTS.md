@@ -330,6 +330,14 @@ compartidos. Dos botones para el mismo aviso terminan mandándolo dos veces.
 El antiduplicado es del motor, no del código: `UNIQUE (nutricionistaId, turnoId,
 diasAntes)`. Ver `docs/RECORDATORIOS.md`.
 
+El recordatorio puede ofrecer **confirmar y cancelar** (migración 76). Cancelar
+por la APP (`/cancelar-turno`, `CancelarTurnoPorPaciente`) cancela y registra
+`canceladoEn` + `canceladoPor = PACIENTE`; por el CHAT de cancelaciones (el
+número `whatsappCancelaciones` del consultorio, no el de la Cloud API) solo
+abre WhatsApp con un mensaje y el turno lo cancela el profesional. Cada acción
+del enlace firma con su propia clave (`FirmaEnlacesTurno`): con una sola, el
+token de confirmar serviría para cancelar.
+
 ### Plantillas de WhatsApp
 
 Se pueden **crear desde la app** en la cuenta de WhatsApp Business del
@@ -753,6 +761,13 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   apunta a Mailpit (`localhost:1025`), que los captura y no los manda a
   Internet. Se envían, se registran y el log dice que salieron; solo que nadie
   los recibe. Se leen en http://localhost:8025
+- Nunca firmar dos acciones del enlace del turno con la misma clave: la carga
+  es idéntica, y el token de «confirmar» de un email cancelaría el turno
+  pegado en `/cancelar-turno`. Y nunca cambiar el propósito de la clave de
+  confirmar: invalida los enlaces que ya están en las bandejas
+- Nunca hacer que una respuesta rápida de WhatsApp cancele el turno: se toca
+  sin querer y no tiene segundo paso. `PEDIR_CANCELACION` avisa; cancela el
+  enlace, que pasa por una página de confirmación
 - Nunca comparar la hora del barrido de recordatorios por igualdad: es `>=`
   ("ya pasó la hora de hoy"). Con `==`, un worker que arrancó 10:30 dejaba al
   consultorio de las 10:00 sin recordatorios TODO el día y sin ningún error.

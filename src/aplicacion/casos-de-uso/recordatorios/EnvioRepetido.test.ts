@@ -20,7 +20,7 @@ import {
   mockPlantillaEmailRecordatorioRepositorio,
   mockEmailEnviadoRepositorio,
   mockServicioEmail,
-  mockEnlaceConfirmacionTurno,
+  mockEnlacesTurno,
   mockReloj,
   plantillaEmailRecordatorioEjemplo,
   mockNutricionistaConNombre,
@@ -95,7 +95,8 @@ function armar(horasEntreAvisos = 24) {
     mockConfiguracionRecordatoriosRepositorio(),
     mockNutricionistaConNombre("Lic. Nutrición"),
     mockEstablecimientoRepositorio(),
-    mockEnlaceConfirmacionTurno(),
+    mockEnlacesTurno(),
+    mockConfiguracionRepositorio(),
   );
   const recordatorios = repositorioEnMemoria();
   const proveedor = mockProveedorWhatsapp();
@@ -122,7 +123,7 @@ function armar(horasEntreAvisos = 24) {
       recordatorios,
       proveedor,
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     ),
     emailPorTurno,

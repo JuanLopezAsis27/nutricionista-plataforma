@@ -12,6 +12,10 @@ export const TIPOS_NOTIFICACION = [
   "MENSAJE_APP",
   /** Tocó «reprogramar» en un botón de la plantilla de WhatsApp. */
   "REPROGRAMACION_PEDIDA",
+  /** Canceló su turno desde el enlace del recordatorio (el turno ya está cancelado). */
+  "TURNO_CANCELADO",
+  /** Tocó «cancelar» en una respuesta rápida de WhatsApp (el turno NO se tocó). */
+  "CANCELACION_PEDIDA",
 ] as const;
 
 export type TipoNotificacion = (typeof TIPOS_NOTIFICACION)[number];

@@ -27,6 +27,8 @@ function turno(
     notas: null,
     precio: null,
     pagado: false,
+    canceladoEn: null,
+    canceladoPor: null,
     creadoEn: new Date("2026-06-01T00:00:00Z"),
   };
 }

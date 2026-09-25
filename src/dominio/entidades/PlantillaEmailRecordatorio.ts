@@ -1,4 +1,5 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
+import { MAX_LARGO_MENSAJE_CANCELACION } from "../servicios/cancelacionPorWhatsapp";
 import {
   renderizarPlantilla,
   renderizarPlantillaHtml,
@@ -6,6 +7,22 @@ import {
 
 /** Anticipación máxima admitida para `diasAntes` (ver ConfiguracionRecordatorios). */
 export const MAX_DIAS_ANTES_PLANTILLA_EMAIL = 60;
+
+/**
+ * Qué botón de cancelar lleva el email.
+ *
+ * - NINGUNO: no ofrece cancelar (el default: no todo aviso tiene por qué).
+ * - APP: enlace firmado a /cancelar-turno. El turno se cancela sin que nadie
+ *   intervenga, y queda registrado cuándo y que fue el paciente.
+ * - WHATSAPP: abre el chat con el número de cancelaciones del consultorio con
+ *   `mensajeCancelacion` ya escrito. No toca el turno: lo cancela el
+ *   profesional al leer el mensaje.
+ *
+ * Como `MetodoGrasa`, los valores solo se agregan: también es un enum de la
+ * base.
+ */
+export const BOTONES_CANCELACION = ["NINGUNO", "APP", "WHATSAPP"] as const;
+export type BotonCancelacion = (typeof BOTONES_CANCELACION)[number];
 
 /** Texto con el que arranca todo consultorio nuevo. */
 export const ASUNTO_RECORDATORIO_POR_DEFECTO =
@@ -37,10 +54,27 @@ export interface DatosPlantillaEmailRecordatorio {
    * porque no todo mensaje de recordatorio tiene sentido que lo pida.
    */
   incluirBotonConfirmacion: boolean;
+  /**
+   * Botón de cancelar. Es por plantilla, igual que el de confirmar. Opcional
+   * al dar de alta: por defecto NINGUNO.
+   */
+  botonCancelacion?: BotonCancelacion;
+  /**
+   * Solo con `botonCancelacion` WHATSAPP: el texto que queda escrito en el
+   * chat, con las variables del recordatorio. null = el texto por defecto.
+   * Se conserva aunque se cambie de modo, para no perderlo al ir y volver.
+   */
+  mensajeCancelacion?: string | null;
 }
 
+/** Datos ya normalizados: el botón de cancelar siempre presente. */
+type DatosNormalizados = DatosPlantillaEmailRecordatorio & {
+  botonCancelacion: BotonCancelacion;
+  mensajeCancelacion: string | null;
+};
+
 /** Estado completo persistido. */
-export interface PropiedadesPlantillaEmailRecordatorio extends DatosPlantillaEmailRecordatorio {
+export interface PropiedadesPlantillaEmailRecordatorio extends DatosNormalizados {
   id: string;
   creadoEn: Date;
   actualizadoEn: Date;
@@ -105,6 +139,11 @@ export class PlantillaEmailRecordatorio {
       activa: cambios.activa ?? this.props.activa,
       incluirBotonConfirmacion:
         cambios.incluirBotonConfirmacion ?? this.props.incluirBotonConfirmacion,
+      botonCancelacion: cambios.botonCancelacion ?? this.props.botonCancelacion,
+      mensajeCancelacion:
+        cambios.mensajeCancelacion !== undefined
+          ? cambios.mensajeCancelacion
+          : this.props.mensajeCancelacion,
     });
     validar(datos);
     return new PlantillaEmailRecordatorio({
@@ -173,24 +212,30 @@ export class PlantillaEmailRecordatorio {
   get incluirBotonConfirmacion(): boolean {
     return this.props.incluirBotonConfirmacion;
   }
+  get botonCancelacion(): BotonCancelacion {
+    return this.props.botonCancelacion;
+  }
+  get mensajeCancelacion(): string | null {
+    return this.props.mensajeCancelacion;
+  }
 
   aPrimitivos(): PropiedadesPlantillaEmailRecordatorio {
     return { ...this.props };
   }
 }
 
-function normalizar(
-  datos: DatosPlantillaEmailRecordatorio,
-): DatosPlantillaEmailRecordatorio {
+function normalizar(datos: DatosPlantillaEmailRecordatorio): DatosNormalizados {
   return {
     ...datos,
     nombre: datos.nombre?.trim() ?? "",
     asunto: datos.asunto?.trim() ?? "",
     cuerpoHtml: datos.cuerpoHtml?.trim() ?? "",
+    botonCancelacion: datos.botonCancelacion ?? "NINGUNO",
+    mensajeCancelacion: datos.mensajeCancelacion?.trim() || null,
   };
 }
 
-function validar(d: DatosPlantillaEmailRecordatorio): void {
+function validar(d: DatosNormalizados): void {
   if (d.nombre.length === 0) {
     throw new ErrorValidacion("La plantilla necesita un nombre.");
   }
@@ -204,6 +249,14 @@ function validar(d: DatosPlantillaEmailRecordatorio): void {
   }
   if (d.cuerpoHtml.length === 0) {
     throw new ErrorValidacion("La plantilla no puede tener un cuerpo vacío.");
+  }
+  if (!BOTONES_CANCELACION.includes(d.botonCancelacion)) {
+    throw new ErrorValidacion("El botón de cancelar no es válido.");
+  }
+  if ((d.mensajeCancelacion?.length ?? 0) > MAX_LARGO_MENSAJE_CANCELACION) {
+    throw new ErrorValidacion(
+      `El mensaje de cancelación no puede superar los ${MAX_LARGO_MENSAJE_CANCELACION} caracteres.`,
+    );
   }
   if (
     d.diasAntes != null &&

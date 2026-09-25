@@ -75,6 +75,8 @@ const TIPO_EN_EL_FEED: Record<TipoNotificacionPersistida, TipoNotificacion> = {
   TURNO_CONFIRMADO: "TURNO",
   MENSAJE_APP: "MENSAJE",
   REPROGRAMACION_PEDIDA: "TURNO",
+  TURNO_CANCELADO: "TURNO",
+  CANCELACION_PEDIDA: "TURNO",
 };
 
 /**

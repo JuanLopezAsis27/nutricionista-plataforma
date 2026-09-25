@@ -9,6 +9,14 @@ export const ESTADOS_TURNO = [
 ] as const;
 export type EstadoTurno = (typeof ESTADOS_TURNO)[number];
 
+/**
+ * Quién canceló el turno. El PACIENTE, desde el enlace del recordatorio; el
+ * CONSULTORIO, desde la agenda. Como `MetodoGrasa`, los valores solo se
+ * agregan: también es un enum de la base.
+ */
+export const ORIGENES_CANCELACION = ["PACIENTE", "CONSULTORIO"] as const;
+export type OrigenCancelacion = (typeof ORIGENES_CANCELACION)[number];
+
 /** Datos necesarios para agendar un turno nuevo. */
 export interface DatosNuevoTurno {
   pacienteId: string;
@@ -38,6 +46,12 @@ export interface PropiedadesTurno {
   notas: string | null;
   precio: number | null;
   pagado: boolean;
+  /**
+   * Cuándo se canceló. null si no está cancelado, y también en los que se
+   * cancelaron antes de la migración 76: ese dato nunca se guardó.
+   */
+  canceladoEn: Date | null;
+  canceladoPor: OrigenCancelacion | null;
   creadoEn: Date;
 }
 
@@ -88,6 +102,8 @@ export class Turno {
       notas: datos.notas?.trim() || null,
       precio: null,
       pagado: false,
+      canceladoEn: null,
+      canceladoPor: null,
       creadoEn: ahora,
     });
   }
@@ -113,8 +129,14 @@ export class Turno {
     COMPLETADO: [],
   };
 
-  /** Cambia el estado validando que la transición sea legal. */
-  cambiarEstado(nuevoEstado: EstadoTurno): void {
+  /**
+   * Cambia el estado validando que la transición sea legal.
+   *
+   * Pasar a CANCELADO por acá registra la cancelación como del CONSULTORIO:
+   * es el camino de la agenda. La del paciente entra por
+   * `cancelarPorElPaciente`, que es lo único que la marca como suya.
+   */
+  cambiarEstado(nuevoEstado: EstadoTurno, ahora: Date = new Date()): void {
     const permitidos = Turno.TRANSICIONES[this.props.estado];
     if (!permitidos.includes(nuevoEstado)) {
       throw new ErrorValidacion(
@@ -122,6 +144,20 @@ export class Turno {
       );
     }
     this.props.estado = nuevoEstado;
+    if (nuevoEstado === "CANCELADO") {
+      this.props.canceladoEn = ahora;
+      this.props.canceladoPor = "CONSULTORIO";
+    }
+  }
+
+  /**
+   * El paciente canceló desde el enlace del recordatorio. Mismas reglas que
+   * cualquier cancelación (solo PENDIENTE o CONFIRMADO); lo que cambia es que
+   * queda registrado quién fue, que es lo que le interesa al profesional.
+   */
+  cancelarPorElPaciente(ahora: Date = new Date()): void {
+    this.cambiarEstado("CANCELADO", ahora);
+    this.props.canceladoPor = "PACIENTE";
   }
 
   /** Indica si el turno puede cancelarse (solo PENDIENTE o CONFIRMADO). */
@@ -251,6 +287,12 @@ export class Turno {
   }
   get pagado(): boolean {
     return this.props.pagado;
+  }
+  get canceladoEn(): Date | null {
+    return this.props.canceladoEn;
+  }
+  get canceladoPor(): OrigenCancelacion | null {
+    return this.props.canceladoPor;
   }
   get creadoEn(): Date {
     return this.props.creadoEn;

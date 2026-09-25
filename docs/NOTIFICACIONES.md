@@ -56,6 +56,39 @@ hecho que ya ocurrió, no algo que un barrido pueda regenerar. En el feed se ve
 como un aviso de TURNO. Cuando un botón actuó, no se suma además el aviso de
 «escribió por WhatsApp»: dirían lo mismo dos veces.
 
+### La cancelación
+
+Dos avisos distintos, porque son dos hechos distintos (migración 76):
+
+- `TURNO_CANCELADO` — el paciente canceló desde el enlace del recordatorio
+  (`CancelarTurnoPorPaciente`). El turno YA está cancelado y el horario libre.
+  Además del aviso persistido sale un evento `turno.cancelado` (toast y
+  refresco de la agenda) y un email, igual que la confirmación.
+- `CANCELACION_PEDIDA` — tocó «pedir cancelar» en una respuesta rápida de
+  WhatsApp. El turno NO se tocó: el aviso dice que sigue en la agenda hasta
+  que lo cancele el profesional.
+
+### La bienvenida que no salió
+
+`BIENVENIDA_FALLIDA` (migración 77) sale cuando al dar de alta un paciente su
+email de bienvenida no se pudo mandar. Sin el aviso, el alta decía «creado» y
+nadie se enteraba de que el paciente se quedó sin sus datos de acceso. Se
+detectan dos casos:
+
+- **El dominio no recibe correo** (`ana@gmial.com`): se pregunta por DNS antes
+  de mandar (`IVerificadorDominioEmail`, MX y si no A/AAAA) y no se manda. Si
+  el DNS no contesta, se manda igual: un problema de red propio no puede
+  convertirse en «el email no existe».
+- **El servidor de correo lo rechaza** al enviar: el motivo técnico va en el
+  detalle.
+
+Lo que **no** se puede detectar: una casilla inexistente en un dominio que sí
+recibe (`anaaa@gmail.com`). El servidor la acepta y el rebote llega minutos
+después a una casilla que la app no lee.
+
+El aviso enlaza a la ficha del paciente, que es donde se corrige el email; la
+bienvenida se reenvía desde Pacientes. En el feed se ve como un CORREO.
+
 ### El agrupado: una línea por paciente, no una por mensaje
 
 Un aviso de mensaje **refresca el que esté pendiente** en vez de abrir otro

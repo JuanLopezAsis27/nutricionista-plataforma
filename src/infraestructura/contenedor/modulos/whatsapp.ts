@@ -12,7 +12,7 @@ import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio
 import type { IPlantillaWhatsappRepositorio } from "@/dominio/repositorios/IPlantillaWhatsappRepositorio";
 import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstablecimientoRepositorio";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
-import type { IEnlaceConfirmacionTurno } from "@/dominio/servicios/IEnlaceConfirmacionTurno";
+import type { IEnlacesTurno } from "@/dominio/servicios/IEnlacesTurno";
 import { EnviarPlantillaWhatsapp } from "@/aplicacion/casos-de-uso/whatsapp/EnviarPlantillaWhatsapp";
 import { AtenderBotonWhatsapp } from "@/aplicacion/casos-de-uso/whatsapp/AtenderBotonWhatsapp";
 import { ConfirmarAsistenciaTurno } from "@/aplicacion/casos-de-uso/turnos/ConfirmarAsistenciaTurno";
@@ -44,7 +44,7 @@ export function crearServicioWhatsapp(deps: {
   plantillas: IPlantillaWhatsappRepositorio;
   establecimientos: IEstablecimientoRepositorio;
   servicioEmail: IServicioEmail;
-  enlaceConfirmacionTurno: IEnlaceConfirmacionTurno;
+  enlacesTurno: IEnlacesTurno;
 }): ServicioWhatsapp {
   // El filtro de ingesta: sin paciente que matchee, el mensaje se descarta.
   const resolverPaciente = new ResolverPacientePorTelefono(
@@ -99,7 +99,7 @@ export function crearServicioWhatsapp(deps: {
       deps.configuracion,
       deps.mensajes,
       deps.proveedor,
-      deps.enlaceConfirmacionTurno,
+      deps.enlacesTurno,
       deps.reloj,
       deps.nutricionistas,
     ),

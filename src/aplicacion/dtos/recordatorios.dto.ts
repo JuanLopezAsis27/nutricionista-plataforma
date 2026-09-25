@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { BOTONES_CANCELACION } from "@/dominio/entidades/PlantillaEmailRecordatorio";
+import { MAX_LARGO_MENSAJE_CANCELACION } from "@/dominio/servicios/cancelacionPorWhatsapp";
 import {
   ESTADOS_RECORDATORIO_WHATSAPP,
   ORIGENES_RECORDATORIO,
@@ -109,6 +111,12 @@ export const botonPlantillaDto = z.discriminatedUnion("tipo", [
       .max(MAX_LARGO_TEXTO_BOTON),
     destino: z.enum(DESTINOS_BOTON_URL),
     url: z.string().max(2000).nullable(),
+    /** Solo CANCELACION_WHATSAPP: el texto que queda escrito en el chat. */
+    mensaje: z
+      .string()
+      .max(MAX_LARGO_MENSAJE_CANCELACION)
+      .nullable()
+      .optional(),
   }),
 ]);
 export type BotonPlantillaDto = z.infer<typeof botonPlantillaDto>;
@@ -202,6 +210,12 @@ export const guardarPlantillaEmailRecordatorioDto = z.object({
   predeterminada: z.boolean().optional(),
   activa: z.boolean().optional(),
   incluirBotonConfirmacion: z.boolean().optional(),
+  botonCancelacion: z.enum(BOTONES_CANCELACION).optional(),
+  mensajeCancelacion: z
+    .string()
+    .max(MAX_LARGO_MENSAJE_CANCELACION)
+    .nullable()
+    .optional(),
 });
 export type GuardarPlantillaEmailRecordatorioDto = z.infer<
   typeof guardarPlantillaEmailRecordatorioDto
@@ -228,6 +242,8 @@ export const plantillaEmailRecordatorioSalidaDto = z.object({
   predeterminada: z.boolean(),
   activa: z.boolean(),
   incluirBotonConfirmacion: z.boolean(),
+  botonCancelacion: z.enum(BOTONES_CANCELACION),
+  mensajeCancelacion: z.string().nullable(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
 });

@@ -1,4 +1,5 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
+import { MAX_LARGO_MENSAJE_CANCELACION } from "../servicios/cancelacionPorWhatsapp";
 
 /**
  * Variables que el recordatorio sabe reemplazar. Son las MISMAS que usan las
@@ -60,6 +61,7 @@ export const ESTADOS_PLANTILLA_META = [
 ] as const;
 export type EstadoPlantillaMeta = (typeof ESTADOS_PLANTILLA_META)[number];
 
+
 /**
  * Qué hace la app cuando el paciente toca una respuesta rápida. La acción
  * viaja en el `payload` del botón junto con el turno (ver
@@ -70,15 +72,38 @@ export const ACCIONES_RESPUESTA_RAPIDA = [
   "CONFIRMAR_TURNO",
   "PEDIR_REPROGRAMACION",
   "NINGUNA",
+  /**
+   * Pide cancelar: le avisa al profesional y NO toca el turno. El mensaje que
+   * le llega al chat es el texto del botón. Para que se cancele sin
+   * intervención está el enlace CANCELACION_TURNO, que pasa por una página
+   * con un segundo paso: una respuesta rápida se toca sin querer, y cancelar
+   * no se deshace.
+   */
+  "PEDIR_CANCELACION",
 ] as const;
 export type AccionRespuestaRapida = (typeof ACCIONES_RESPUESTA_RAPIDA)[number];
 
 /**
- * A dónde lleva un botón de enlace. CONFIRMACION_TURNO es el mismo enlace
- * firmado del recordatorio por email; en Meta queda registrado como URL
- * dinámica (`…?token={{1}}`) y el token se completa en cada envío.
+ * A dónde lleva un botón de enlace.
+ *
+ * - CONFIRMACION_TURNO / CANCELACION_TURNO: los mismos enlaces firmados del
+ *   recordatorio por email. En Meta quedan registrados como URL dinámica
+ *   (`…?token={{1}}`) y el token se completa en cada envío.
+ * - CANCELACION_WHATSAPP: abre el chat con el número de cancelaciones del
+ *   consultorio —que puede no ser el que manda los recordatorios— con un
+ *   mensaje ya escrito (`mensaje`). Se registra como `https://wa.me/{{1}}`:
+ *   el número va en la parte dinámica, así cambiarlo no pasa por Meta.
+ * - FIJA: una URL cualquiera, igual para todos.
+ *
+ * Como `MetodoGrasa`, los valores solo se agregan: viajan en el JSON de
+ * `botones` de las plantillas ya guardadas.
  */
-export const DESTINOS_BOTON_URL = ["CONFIRMACION_TURNO", "FIJA"] as const;
+export const DESTINOS_BOTON_URL = [
+  "CONFIRMACION_TURNO",
+  "FIJA",
+  "CANCELACION_TURNO",
+  "CANCELACION_WHATSAPP",
+] as const;
 export type DestinoBotonUrl = (typeof DESTINOS_BOTON_URL)[number];
 
 export type BotonPlantilla =
@@ -87,8 +112,14 @@ export type BotonPlantilla =
       tipo: "URL";
       texto: string;
       destino: DestinoBotonUrl;
-      /** Solo para destino FIJA; null en CONFIRMACION_TURNO. */
+      /** Solo para destino FIJA; null en los demás. */
       url: string | null;
+      /**
+       * Solo para CANCELACION_WHATSAPP: el texto que queda escrito en el chat,
+       * con las variables del recordatorio. null = el texto por defecto.
+       * Opcional porque los botones guardados antes no lo tienen.
+       */
+      mensaje?: string | null;
     };
 
 /** Límites de Meta para los botones de una plantilla. */
@@ -339,8 +370,8 @@ export class PlantillaWhatsapp {
     return (
       this.props.cuerpo !== anterior.props.cuerpo ||
       this.props.categoriaMeta !== anterior.props.categoriaMeta ||
-      JSON.stringify(this.props.botones) !==
-        JSON.stringify(anterior.props.botones)
+      firmaDeBotones(this.props.botones) !==
+        firmaDeBotones(anterior.props.botones)
     );
   }
 
@@ -407,10 +438,15 @@ export class PlantillaWhatsapp {
         VARIABLES_DEL_TURNO.includes(n),
       ) ||
       this.props.botones.some((b) =>
-        b.tipo === "URL"
-          ? b.destino === "CONFIRMACION_TURNO"
-          : b.accion !== "NINGUNA",
+        b.tipo === "URL" ? b.destino !== "FIJA" : b.accion !== "NINGUNA",
       )
+    );
+  }
+
+  /** Tiene un botón que abre el chat de cancelaciones: necesita ese número. */
+  get necesitaWhatsappCancelaciones(): boolean {
+    return this.props.botones.some(
+      (b) => b.tipo === "URL" && b.destino === "CANCELACION_WHATSAPP",
     );
   }
 
@@ -485,6 +521,24 @@ export class PlantillaWhatsapp {
   }
 }
 
+/**
+ * Los botones reducidos a lo que significan, en un orden fijo de campos, para
+ * compararlos. NO se compara el JSON tal como está guardado: los botones
+ * viejos no tienen los campos que se agregaron después (`mensaje`, migración
+ * 76), la edición los completa con `null`, y el JSON distinto hacía que
+ * marcar una plantilla como predeterminada la mandara de nuevo a revisión en
+ * Meta sin haber cambiado nada de lo que Meta revisa.
+ */
+function firmaDeBotones(botones: readonly BotonPlantilla[]): string {
+  return JSON.stringify(
+    botones.map((b) =>
+      b.tipo === "RESPUESTA_RAPIDA"
+        ? [b.tipo, b.texto, b.accion]
+        : [b.tipo, b.texto, b.destino, b.url ?? null, b.mensaje ?? null],
+    ),
+  );
+}
+
 function nombresDeVariables(cuerpo: string): string[] {
   return [...cuerpo.matchAll(PATRON_VARIABLE)].map((m) => m[1] ?? "");
 }
@@ -530,6 +584,10 @@ function normalizarBoton(boton: BotonPlantilla): BotonPlantilla {
     texto,
     destino: boton.destino,
     url: boton.destino === "FIJA" ? boton.url?.trim() || null : null,
+    mensaje:
+      boton.destino === "CANCELACION_WHATSAPP"
+        ? boton.mensaje?.trim() || null
+        : null,
   };
 }
 
@@ -571,7 +629,35 @@ function validarBotones(botones: BotonPlantilla[]): void {
       );
     }
   }
-  for (const accion of ["CONFIRMAR_TURNO", "PEDIR_REPROGRAMACION"] as const) {
+  for (const boton of botones) {
+    if (
+      boton.tipo === "URL" &&
+      (boton.mensaje?.length ?? 0) > MAX_LARGO_MENSAJE_CANCELACION
+    ) {
+      throw new ErrorValidacion(
+        `El mensaje de cancelación no puede superar los ${MAX_LARGO_MENSAJE_CANCELACION} caracteres.`,
+      );
+    }
+  }
+  for (const destino of [
+    "CONFIRMACION_TURNO",
+    "CANCELACION_TURNO",
+    "CANCELACION_WHATSAPP",
+  ] as const) {
+    const conEseDestino = botones.filter(
+      (b) => b.tipo === "URL" && b.destino === destino,
+    );
+    if (conEseDestino.length > 1) {
+      throw new ErrorValidacion(
+        "Cada enlace sobre el turno puede estar en un solo botón.",
+      );
+    }
+  }
+  for (const accion of [
+    "CONFIRMAR_TURNO",
+    "PEDIR_REPROGRAMACION",
+    "PEDIR_CANCELACION",
+  ] as const) {
     const conEsaAccion = botones.filter(
       (b) => b.tipo === "RESPUESTA_RAPIDA" && b.accion === accion,
     );

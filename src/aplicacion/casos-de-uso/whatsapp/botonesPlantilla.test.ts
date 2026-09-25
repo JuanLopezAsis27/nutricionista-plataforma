@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { AtenderBotonWhatsapp } from "./AtenderBotonWhatsapp";
 import { EnviarPlantillaWhatsapp } from "./EnviarPlantillaWhatsapp";
-import { parametrosDeBotones } from "./plantillaMeta";
+import { parametrosDeBotones, type CancelacionPorChat } from "./plantillaMeta";
 import type { ConfirmarAsistenciaTurno } from "../turnos/ConfirmarAsistenciaTurno";
 import type { EmitirNotificacion } from "../notificaciones/EmitirNotificacion";
 import type { BotonPlantilla } from "@/dominio/entidades/PlantillaWhatsapp";
@@ -14,7 +14,7 @@ import {
   mockMensajeWhatsappRepositorio,
   mockPlantillaWhatsappRepositorio,
   mockProveedorWhatsapp,
-  mockEnlaceConfirmacionTurno,
+  mockEnlacesTurno,
   mockReloj,
   turnoEjemplo,
   pacienteEjemplo,
@@ -50,6 +50,8 @@ const BOTONES: BotonPlantilla[] = [
   },
 ];
 
+const SIN_CHAT: CancelacionPorChat = { telefonoE164: null, variables: {} };
+
 function plantillaConBotones() {
   return plantillaWhatsappEjemplo({
     claveMeta: "recordatorio_botones",
@@ -64,7 +66,8 @@ describe("parametrosDeBotones", () => {
     const parametros = parametrosDeBotones(
       plantillaConBotones(),
       turnoEjemplo({}, "tur-9"),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
+      SIN_CHAT,
     );
 
     expect(parametros).toEqual([
@@ -74,6 +77,87 @@ describe("parametrosDeBotones", () => {
       // El enlace fijo (índice 3) no necesita nada.
       { indice: 4, tipo: "URL", sufijo: "tur-9" },
     ]);
+  });
+
+  it("el enlace de cancelar lleva el token de CANCELAR, no el de confirmar", () => {
+    const enlaces = mockEnlacesTurno();
+    const parametros = parametrosDeBotones(
+      plantillaWhatsappEjemplo({
+        claveMeta: "con_cancelar",
+        botones: [
+          {
+            tipo: "URL",
+            texto: "Cancelar turno",
+            destino: "CANCELACION_TURNO",
+            url: null,
+          },
+        ],
+      }),
+      turnoEjemplo({}, "tur-9"),
+      enlaces,
+      SIN_CHAT,
+    );
+
+    expect(enlaces.generar).toHaveBeenCalledWith(
+      "CANCELAR",
+      "tur-9",
+      expect.any(Date),
+    );
+    expect(parametros).toEqual([{ indice: 0, tipo: "URL", sufijo: "tur-9" }]);
+  });
+
+  it("el chat de cancelaciones lleva el número y el mensaje del turno", () => {
+    const plantilla = plantillaWhatsappEjemplo({
+      claveMeta: "con_chat",
+      botones: [
+        {
+          tipo: "URL",
+          texto: "Cancelar por chat",
+          destino: "CANCELACION_WHATSAPP",
+          url: null,
+          mensaje: "Cancelo el {{fecha}}, soy {{paciente}}",
+        },
+      ],
+    });
+
+    const [parametro] = parametrosDeBotones(
+      plantilla,
+      turnoEjemplo({}, "tur-9"),
+      mockEnlacesTurno(),
+      {
+        telefonoE164: "5491155554444",
+        variables: { fecha: "10/07/2026", paciente: "Ana" },
+      },
+    );
+
+    expect(parametro).toEqual({
+      indice: 0,
+      tipo: "URL",
+      sufijo: `5491155554444?text=${encodeURIComponent("Cancelo el 10/07/2026, soy Ana")}`,
+    });
+  });
+
+  it("sin número de cancelaciones, el chat no se puede armar y lo dice", () => {
+    const plantilla = plantillaWhatsappEjemplo({
+      claveMeta: "con_chat",
+      botones: [
+        {
+          tipo: "URL",
+          texto: "Cancelar por chat",
+          destino: "CANCELACION_WHATSAPP",
+          url: null,
+        },
+      ],
+    });
+
+    expect(() =>
+      parametrosDeBotones(
+        plantilla,
+        turnoEjemplo(),
+        mockEnlacesTurno(),
+        SIN_CHAT,
+      ),
+    ).toThrow(/número de cancelaciones/);
   });
 });
 
@@ -109,6 +193,23 @@ describe("AtenderBotonWhatsapp", () => {
 
     expect(atendido).toBe(true);
     expect(confirmar.ejecutar).toHaveBeenCalledWith("tur-1");
+  });
+
+  it("«Pedir cancelar» no toca el turno: avisa al profesional en la campana", async () => {
+    const turno = turnoEjemplo();
+    const { caso, confirmar, emitir } = armarAtender(turno);
+
+    const atendido = await caso.ejecutar(pacienteEjemplo(), {
+      accion: "PEDIR_CANCELACION",
+      turnoId: turno.id,
+    });
+
+    expect(atendido).toBe(true);
+    expect(turno.estado).toBe("PENDIENTE");
+    expect(confirmar.ejecutar).not.toHaveBeenCalled();
+    expect(emitir.ejecutar).toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: "CANCELACION_PEDIDA" }),
+    );
   });
 
   it("«Reprogramar» no toca el turno: avisa al profesional en la campana", async () => {
@@ -185,7 +286,7 @@ function armarEnvio(
     mockConfiguracionRepositorio(),
     mensajes,
     proveedor,
-    mockEnlaceConfirmacionTurno(),
+    mockEnlacesTurno(),
     // Hoy: 14/07/2026.
     mockReloj(),
     mockNutricionistaRepositorio(),

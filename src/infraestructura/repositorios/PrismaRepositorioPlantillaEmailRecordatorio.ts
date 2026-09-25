@@ -60,6 +60,8 @@ export class PrismaRepositorioPlantillaEmailRecordatorio
         predeterminada: d.predeterminada,
         activa: d.activa,
         incluirBotonConfirmacion: d.incluirBotonConfirmacion,
+        botonCancelacion: d.botonCancelacion,
+        mensajeCancelacion: d.mensajeCancelacion,
         creadoEn: d.creadoEn,
       },
     });
@@ -80,6 +82,8 @@ export class PrismaRepositorioPlantillaEmailRecordatorio
         predeterminada: d.predeterminada,
         activa: d.activa,
         incluirBotonConfirmacion: d.incluirBotonConfirmacion,
+        botonCancelacion: d.botonCancelacion,
+        mensajeCancelacion: d.mensajeCancelacion,
       },
     });
     return mapearPlantillaEmailRecordatorio(fila);
@@ -102,6 +106,8 @@ export function mapearPlantillaEmailRecordatorio(
     predeterminada: fila.predeterminada,
     activa: fila.activa,
     incluirBotonConfirmacion: fila.incluirBotonConfirmacion,
+    botonCancelacion: fila.botonCancelacion,
+    mensajeCancelacion: fila.mensajeCancelacion,
     creadoEn: fila.creadoEn,
     actualizadoEn: fila.actualizadoEn,
   });

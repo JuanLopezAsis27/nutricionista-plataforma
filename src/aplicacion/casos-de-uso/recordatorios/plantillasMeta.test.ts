@@ -6,12 +6,12 @@ import {
   RegistrarEstadosPlantillasMeta,
   MOTIVO_NO_EXISTE_EN_META,
 } from "./RegistrarEstadosPlantillasMeta";
-import type { PlantillaWhatsapp } from "@/dominio/entidades/PlantillaWhatsapp";
+import { PlantillaWhatsapp } from "@/dominio/entidades/PlantillaWhatsapp";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 import {
   mockPlantillaWhatsappRepositorio,
   mockAdministradorPlantillasMeta,
-  mockEnlaceConfirmacionTurno,
+  mockEnlacesTurno,
   plantillaWhatsappEjemplo,
 } from "../_ayudas-test";
 
@@ -58,7 +58,7 @@ describe("CrearPlantillaWhatsapp con enviarAMeta", () => {
     const caso = new CrearPlantillaWhatsapp(
       repositorio,
       administrador,
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
     );
 
     const creada = await caso.ejecutar(DATOS, { enviarAMeta: true });
@@ -97,7 +97,7 @@ describe("CrearPlantillaWhatsapp con enviarAMeta", () => {
           throw new ErrorValidacion("Meta rechazó el pedido: nombre repetido");
         }),
       }),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
     );
 
     await expect(caso.ejecutar(DATOS, { enviarAMeta: true })).rejects.toThrow(
@@ -111,7 +111,7 @@ describe("CrearPlantillaWhatsapp con enviarAMeta", () => {
     const caso = new CrearPlantillaWhatsapp(
       mockPlantillaWhatsappRepositorio(),
       administrador,
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
     );
 
     await expect(
@@ -128,7 +128,7 @@ describe("CrearPlantillaWhatsapp con enviarAMeta", () => {
     const caso = new CrearPlantillaWhatsapp(
       mockPlantillaWhatsappRepositorio(),
       administrador,
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
     );
 
     await caso.ejecutar({ ...DATOS, claveMeta: null, botones: [] });
@@ -154,7 +154,7 @@ describe("ActualizarPlantillaWhatsapp sobre una plantilla de Meta", () => {
         obtenerPorId: vi.fn(async () => enMeta()),
       }),
       administrador,
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
     );
 
     const editada = await caso.ejecutar("pla-wa-1", {
@@ -176,7 +176,43 @@ describe("ActualizarPlantillaWhatsapp sobre una plantilla de Meta", () => {
         obtenerPorId: vi.fn(async () => enMeta()),
       }),
       administrador,
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
+    );
+
+    const editada = await caso.ejecutar("pla-wa-1", { predeterminada: true });
+
+    expect(administrador.editar).not.toHaveBeenCalled();
+    expect(editada.estadoMeta).toBe("APROBADA");
+  });
+
+  it("marcarla predeterminada no la reenvía aunque sus botones sean de antes de `mensaje`", async () => {
+    // Así están guardadas las plantillas con botones anteriores a la
+    // migración 76: el JSON del botón de enlace no tiene `mensaje`. La edición
+    // lo completa con null, y comparar el JSON crudo las daba por cambiadas.
+    const original = enMeta().aPrimitivos();
+    const conBotonViejo = PlantillaWhatsapp.reconstruir({
+      ...original,
+      botones: [
+        {
+          tipo: "RESPUESTA_RAPIDA",
+          texto: "Confirmo",
+          accion: "CONFIRMAR_TURNO",
+        },
+        {
+          tipo: "URL",
+          texto: "Confirmar online",
+          destino: "CONFIRMACION_TURNO",
+          url: null,
+        },
+      ],
+    });
+    const administrador = mockAdministradorPlantillasMeta();
+    const caso = new ActualizarPlantillaWhatsapp(
+      mockPlantillaWhatsappRepositorio({
+        obtenerPorId: vi.fn(async () => conBotonViejo),
+      }),
+      administrador,
+      mockEnlacesTurno(),
     );
 
     const editada = await caso.ejecutar("pla-wa-1", { predeterminada: true });
@@ -198,7 +234,7 @@ describe("ActualizarPlantillaWhatsapp sobre una plantilla de Meta", () => {
           );
         }),
       }),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
     );
 
     await expect(

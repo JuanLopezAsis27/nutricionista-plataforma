@@ -11,7 +11,10 @@ import type { IBusEventos } from "@/dominio/servicios/IBusEventos";
 import type { IAsistenteNutricional } from "@/dominio/servicios/IAsistenteNutricional";
 import type { IAnalisisComidaIA } from "@/dominio/servicios/IAnalisisComidaIA";
 import type { IAnalisisPredictivo } from "@/dominio/servicios/IAnalisisPredictivo";
-import type { IEnlaceConfirmacionTurno } from "@/dominio/servicios/IEnlaceConfirmacionTurno";
+import type {
+  AccionEnlaceTurno,
+  IEnlacesTurno,
+} from "@/dominio/servicios/IEnlacesTurno";
 import type { IAdministradorPlantillasMeta } from "@/dominio/servicios/IAdministradorPlantillasMeta";
 
 /**
@@ -148,14 +151,21 @@ export function mockServicioEmail(
   };
 }
 
-export function mockEnlaceConfirmacionTurno(
-  parcial: Partial<IEnlaceConfirmacionTurno> = {},
-): IEnlaceConfirmacionTurno {
+function prefijoDe(accion: AccionEnlaceTurno): string {
+  return accion === "CONFIRMAR"
+    ? "https://app.test/confirmar-turno?token="
+    : "https://app.test/cancelar-turno?token=";
+}
+
+export function mockEnlacesTurno(
+  parcial: Partial<IEnlacesTurno> = {},
+): IEnlacesTurno {
   return {
     generar: vi.fn(
-      (turnoId: string) => `https://app.test/confirmar-turno?token=${turnoId}`,
+      (accion: AccionEnlaceTurno, turnoId: string) =>
+        `${prefijoDe(accion)}${turnoId}`,
     ),
-    prefijo: vi.fn(() => "https://app.test/confirmar-turno?token="),
+    prefijo: vi.fn(prefijoDe),
     ...parcial,
   };
 }

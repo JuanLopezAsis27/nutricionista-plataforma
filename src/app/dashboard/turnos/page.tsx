@@ -30,6 +30,7 @@ import {
   type ColumnaTabla,
 } from "@/componentes/comunes/TablaDatos";
 import { EstadoBadge } from "@/componentes/comunes/EstadoBadge";
+import { InfoCancelacion } from "@/componentes/turnos/InfoCancelacion";
 import { FormularioTurno } from "@/componentes/turnos/FormularioTurno";
 import { FormularioReprogramar } from "@/componentes/turnos/FormularioReprogramar";
 import { useAbrirGrabacion } from "@/componentes/turnos/ProveedorGrabacionConsulta";
@@ -147,7 +148,12 @@ export default function PaginaTurnos() {
     {
       clave: "estado",
       encabezado: "Estado",
-      render: (t) => <EstadoBadge estado={t.estado} />,
+      render: (t) => (
+        <span className="space-y-0.5">
+          <EstadoBadge estado={t.estado} />
+          <InfoCancelacion turno={t} />
+        </span>
+      ),
     },
     {
       clave: "cobro",

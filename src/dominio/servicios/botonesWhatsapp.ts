@@ -13,6 +13,7 @@ const SEPARADOR = ":";
 const ACCIONES: readonly AccionSobreTurno[] = [
   "CONFIRMAR_TURNO",
   "PEDIR_REPROGRAMACION",
+  "PEDIR_CANCELACION",
 ];
 
 /**

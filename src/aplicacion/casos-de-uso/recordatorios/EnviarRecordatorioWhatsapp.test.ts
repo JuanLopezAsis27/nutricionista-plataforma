@@ -6,7 +6,7 @@ import {
 import { RecordatorioWhatsapp } from "@/dominio/entidades/RecordatorioWhatsapp";
 import {
   mockMensajeWhatsappRepositorio,
-  mockEnlaceConfirmacionTurno,
+  mockEnlacesTurno,
   mockRecordatorioWhatsappRepositorio,
   mockProveedorWhatsapp,
   establecimientoEjemplo,
@@ -61,7 +61,7 @@ describe("EnviarRecordatorioWhatsapp — a quién NO se le manda", () => {
       mockRecordatorioWhatsappRepositorio(),
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
 
@@ -85,7 +85,7 @@ describe("EnviarRecordatorioWhatsapp — a quién NO se le manda", () => {
       mockRecordatorioWhatsappRepositorio(),
       proveedor,
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
 
@@ -103,7 +103,7 @@ describe("EnviarRecordatorioWhatsapp — a quién NO se le manda", () => {
         mockRecordatorioWhatsappRepositorio(),
         mockProveedorWhatsapp(),
         mockMensajeWhatsappRepositorio(),
-        mockEnlaceConfirmacionTurno(),
+        mockEnlacesTurno(),
         mockNutricionistaRepositorio(),
       );
 
@@ -148,7 +148,7 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
       mockRecordatorioWhatsappRepositorio(),
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
 
@@ -172,7 +172,7 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
       mockRecordatorioWhatsappRepositorio(),
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
 
@@ -188,7 +188,7 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
       mockRecordatorioWhatsappRepositorio(),
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
 
@@ -209,7 +209,7 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
       mockRecordatorioWhatsappRepositorio(),
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
 
@@ -230,7 +230,7 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
       repositorio,
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
 
@@ -247,7 +247,7 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
       repositorio,
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
 
@@ -267,7 +267,7 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
       repositorio,
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
 
@@ -296,7 +296,7 @@ describe("EnviarRecordatorioWhatsapp — el antiduplicado", () => {
       repositorio,
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
 
@@ -322,7 +322,7 @@ describe("EnviarRecordatorioWhatsapp — cómo sale el mensaje", () => {
         })),
       }),
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
     expect((await porApi.ejecutar(pedidoBase())).estado).toBe("ENVIADO");
@@ -331,7 +331,7 @@ describe("EnviarRecordatorioWhatsapp — cómo sale el mensaje", () => {
       mockRecordatorioWhatsappRepositorio(),
       mockProveedorWhatsapp(),
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
     const resultado = await porEnlace.ejecutar(pedidoBase());
@@ -355,7 +355,7 @@ describe("EnviarRecordatorioWhatsapp — cómo sale el mensaje", () => {
         })),
       }),
       mensajes,
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
 
@@ -378,7 +378,7 @@ describe("EnviarRecordatorioWhatsapp — cómo sale el mensaje", () => {
       mockRecordatorioWhatsappRepositorio(),
       mockProveedorWhatsapp(),
       mensajes,
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
 
@@ -393,7 +393,7 @@ describe("EnviarRecordatorioWhatsapp — cómo sale el mensaje", () => {
       mockRecordatorioWhatsappRepositorio(),
       proveedor,
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
 
@@ -417,7 +417,7 @@ describe("EnviarRecordatorioWhatsapp — cómo sale el mensaje", () => {
       mockRecordatorioWhatsappRepositorio(),
       proveedor,
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
 
@@ -443,7 +443,7 @@ describe("EnviarRecordatorioWhatsapp — cómo sale el mensaje", () => {
       mockRecordatorioWhatsappRepositorio(),
       proveedor,
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
 
@@ -468,7 +468,7 @@ describe("EnviarRecordatorioWhatsapp — cuando el proveedor falla", () => {
       mockRecordatorioWhatsappRepositorio(),
       proveedorQueFalla(),
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
 
@@ -486,7 +486,7 @@ describe("EnviarRecordatorioWhatsapp — cuando el proveedor falla", () => {
       repositorio,
       proveedorQueFalla(),
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
 
@@ -506,7 +506,7 @@ describe("EnviarRecordatorioWhatsapp — cuando el proveedor falla", () => {
       repositorio,
       proveedorQueFalla(),
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       mockNutricionistaRepositorio(),
     );
 
@@ -525,7 +525,7 @@ describe("EnviarRecordatorioWhatsapp — {{profesional}}", () => {
       mockRecordatorioWhatsappRepositorio(),
       proveedor,
       mockMensajeWhatsappRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
       nutricionistas,
     );
 
