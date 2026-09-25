@@ -277,6 +277,59 @@ El botón abre `/confirmar-turno?token=…`, una página pública. Al apretar
 - Es independiente del `CONFIRMADO` de WhatsApp de la sección anterior: aquel
   marca el recordatorio; este, el turno.
 
+## Cancelación desde el recordatorio
+
+Además de confirmar, el recordatorio puede ofrecer **cancelar** (migración 76).
+Es una decisión por plantilla, como el botón de confirmar, y hay dos maneras:
+
+| Modo         | Qué hace                                                   | Toca el turno |
+| ------------ | ---------------------------------------------------------- | ------------- |
+| **App**      | Enlace firmado a `/cancelar-turno`; el paciente confirma y se cancela | Sí            |
+| **WhatsApp** | Abre el chat de cancelaciones con un mensaje ya escrito    | No            |
+
+- **Email**: la plantilla elige `botonCancelacion` (NINGUNO / APP / WHATSAPP)
+  y, para WhatsApp, su `mensajeCancelacion` con las variables del recordatorio.
+  NINGUNO es el default: las plantillas que ya existían salen igual. Sale en
+  turnos pendientes Y confirmados (el de confirmar, solo en pendientes).
+- **WhatsApp**: botones de la plantilla de Meta —enlace «cancelar el turno»,
+  enlace «chat de cancelaciones» o respuesta rápida «pedir cancelar»—. Ver
+  `docs/WHATSAPP.md`.
+
+**El número de cancelaciones es del consultorio** (Configuración → WhatsApp,
+`whatsappCancelaciones`) y no el de la Cloud API: muchas veces el número que
+manda los recordatorios no es el que el profesional usa en el día a día. Se
+normaliza a E.164 con el mismo prefijo que los pacientes. Sin él, el email
+sale sin ese botón (no se cae el aviso entero por un botón) y la plantilla de
+WhatsApp no se puede enviar: ahí el botón es parte de lo que Meta aprobó.
+
+**Cancelar por la app** pasa por `CancelarTurnoPorPaciente`, la contracara de
+`ConfirmarAsistenciaTurno`:
+
+- **Pide un segundo paso**, como la confirmación: la página no cancela al
+  abrirse (los antispam visitan los enlaces) y acá importa más, porque
+  cancelar no se deshace.
+- **Queda registrado cuándo y quién**: `turnos.canceladoEn` y
+  `canceladoPor = PACIENTE`. La agenda lo muestra («Cancelado por el paciente
+  el 23/09/2026 14:10»). Toda cancelación registra la fecha desde la
+  migración 76; las anteriores quedan en NULL porque ese dato nunca se guardó.
+- **Avisa como la confirmación**: aviso `TURNO_CANCELADO` en la campana,
+  toast en tiempo real y email al profesional. Y borra el evento del
+  calendario, igual que cancelar desde la agenda.
+- **Cada acción firma con su propia clave.** La carga del token es la misma
+  (consultorio, turno, vencimiento), así que con una sola clave el enlace de
+  «confirmar» de un email serviría pegado en `/cancelar-turno`. La de
+  confirmar conserva su propósito de siempre para no invalidar los enlaces
+  que ya están en las bandejas (`FirmaEnlacesTurno`).
+
+**Cancelar corta los recordatorios que faltan.** No hay nada que dar de baja:
+los dos medios leen el estado del turno en cada barrido y saltean los que no
+están PENDIENTE o CONFIRMADO (`ESTADOS_RECORDABLES` en WhatsApp, el primer
+chequeo de `enviarParaTurno` en email). Con avisos a 3 días y el mismo día,
+un paciente que cancela desde el de 3 días no recibe el del día. Eso vale
+solo para el modo App: por el chat de WhatsApp el turno sigue activo hasta
+que el profesional lo cancele, y si no lo hace antes del barrido, el aviso
+del día sale.
+
 ## Plantillas de WhatsApp: dos caras
 
 Una plantilla guarda **el texto** y, opcionalmente, **la plantilla aprobada en

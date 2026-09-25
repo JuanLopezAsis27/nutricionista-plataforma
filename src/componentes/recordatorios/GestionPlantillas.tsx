@@ -24,6 +24,11 @@ import type {
 import { useRecordatorios } from "@/lib/hooks/useRecordatorios";
 import { useCredenciales } from "@/lib/hooks/useCredenciales";
 import { useNombreProfesional } from "@/lib/hooks/useNombreProfesional";
+import { useConfiguracion } from "@/lib/hooks/useConfiguracion";
+import {
+  MAX_LARGO_MENSAJE_CANCELACION,
+  MENSAJE_CANCELACION_POR_DEFECTO,
+} from "@/dominio/servicios/cancelacionPorWhatsapp";
 import {
   VARIABLES_RECORDATORIO,
   MAX_LARGO_CUERPO_PLANTILLA,
@@ -81,11 +86,14 @@ type ModoMeta = "NINGUNO" | "CREAR" | "VINCULAR" | "ADMINISTRADA";
 const ETIQUETA_ACCION: Record<AccionRespuestaRapida, string> = {
   CONFIRMAR_TURNO: "Confirma el turno",
   PEDIR_REPROGRAMACION: "Pide reprogramar (te avisa)",
+  PEDIR_CANCELACION: "Pide cancelar (te avisa, no lo cancela)",
   NINGUNA: "Solo responde (no hace nada)",
 };
 
 const ETIQUETA_DESTINO: Record<DestinoBotonUrl, string> = {
   CONFIRMACION_TURNO: "Enlace para confirmar el turno",
+  CANCELACION_TURNO: "Enlace para cancelar el turno (en la app)",
+  CANCELACION_WHATSAPP: "Chat de cancelaciones (otro número)",
   FIJA: "Un enlace fijo",
 };
 
@@ -818,6 +826,8 @@ function EditorBotones({
 }) {
   const enlaces = botones.filter((b) => b.tipo === "URL").length;
   const lleno = botones.length >= MAX_BOTONES_PLANTILLA;
+  const { obtener } = useConfiguracion();
+  const sinNumeroCancelaciones = obtener().data?.whatsappCancelaciones == null;
 
   function cambiar(indice: number, boton: BotonPlantillaDto) {
     onCambiar(botones.map((b, i) => (i === indice ? boton : b)));
@@ -828,7 +838,10 @@ function EditorBotones({
       <Label>Botones (opcional)</Label>
       <p className="text-xs text-muted-foreground">
         Las respuestas rápidas le mandan al chat el texto del botón; las que
-        confirman o piden reprogramar además actúan sobre el turno del aviso.
+        confirman, piden reprogramar o piden cancelar además actúan sobre el
+        turno del aviso. Para que el paciente cancele sin que intervengas, usá
+        un enlace «para cancelar el turno»: pasa por una página que le pide
+        confirmarlo.
       </p>
 
       {botones.map((boton, indice) => (
@@ -882,6 +895,10 @@ function EditorBotones({
                     ...boton,
                     destino: v as DestinoBotonUrl,
                     url: v === "FIJA" ? boton.url : null,
+                    mensaje:
+                      v === "CANCELACION_WHATSAPP"
+                        ? (boton.mensaje ?? null)
+                        : null,
                   })
                 }
               >
@@ -905,6 +922,34 @@ function EditorBotones({
                     cambiar(indice, { ...boton, url: e.target.value })
                   }
                 />
+              )}
+              {boton.destino === "CANCELACION_WHATSAPP" && (
+                <div className="space-y-1">
+                  <Textarea
+                    rows={2}
+                    maxLength={MAX_LARGO_MENSAJE_CANCELACION}
+                    placeholder={MENSAJE_CANCELACION_POR_DEFECTO}
+                    value={boton.mensaje ?? ""}
+                    onChange={(e) =>
+                      cambiar(indice, {
+                        ...boton,
+                        mensaje: e.target.value || null,
+                      })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    El mensaje que le queda escrito al paciente en el chat.
+                    Admite {"{{paciente}}"}, {"{{fecha}}"}, {"{{hora}}"} y las
+                    demás variables. No cancela el turno: lo cancelás vos al
+                    leerlo.
+                  </p>
+                  {sinNumeroCancelaciones && (
+                    <p className="text-xs text-destructive">
+                      Falta el número de cancelaciones en Configuración →
+                      WhatsApp. Sin él, esta plantilla no se puede enviar.
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           )}

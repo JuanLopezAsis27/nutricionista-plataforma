@@ -95,6 +95,18 @@ export class PrismaRepositorioNotificacion implements INotificacionRepositorio {
     });
     return count;
   }
+
+  async marcarVistasDePaciente(
+    pacienteId: string,
+    tipos: readonly TipoNotificacion[],
+    vistoEn: Date,
+  ): Promise<number> {
+    const { count } = await this.prisma.notificacion.updateMany({
+      where: { pacienteId, tipo: { in: [...tipos] }, vistoEn: null },
+      data: { vistoEn },
+    });
+    return count;
+  }
 }
 
 export function mapearNotificacion(fila: NotificacionFila): Notificacion {

@@ -226,6 +226,22 @@ esta app los formularios suelen declarar su propio esquema Zod, y
 `coherencia-formularios.test.ts` existe solo para detectar cuándo esa copia
 diverge del DTO. Acá no hace falta ese test porque no hay copia.
 
+## «Olvidé mi contraseña»: el enlace se verifica al abrirse
+
+El enlace del email vence a la hora y sirve una sola vez (`TokenRecuperacion`,
+guardado como SHA-256). Eso siempre se cumplió al GUARDAR, pero la página
+`/restablecer` mostraba el formulario sin preguntar nada: pasada la hora, el
+enlace «abría» igual y parecía que no vencía nunca, y el usuario se enteraba
+recién después de escribir las dos contraseñas.
+
+Ahora la página pregunta al abrirse (`autenticacion.verificarToken`,
+`VerificarTokenRecuperacion`, con las mismas condiciones que
+`RestablecerPassword` y sin escribir nada) y, si no sirve, dice «Este enlace
+ya no sirve» con el botón para pedir otro. No distingue si venció, ya se usó o
+la cuenta se desactivó: igual que el error del guardado, no le cuenta nada de
+la cuenta a quien tiene un token. Tiene el mismo límite por IP que el
+restablecimiento, porque también es una forma de probar tokens contra la base.
+
 ## La política de contraseñas bajó de 12 a 8
 
 `LARGO_MINIMO_PASSWORD` pasó de 12 a 8 (`aplicacion/dtos/password.ts`), que es

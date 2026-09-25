@@ -23,8 +23,15 @@ export function useWhatsapp() {
     onError: (error) => avisarError(error),
   });
 
+  // Sin toast de error: marcar leído es un efecto de abrir el chat, y si falla
+  // lo único que pasa es que el número sigue un rato más.
+  const marcarLeidos = trpc.whatsapp.marcarLeidos.useMutation({
+    onSuccess: () => invalidar(),
+  });
+
   return {
     hiloDe: trpc.whatsapp.hiloDe.useQuery,
+    marcarLeidos,
     enviarMensaje,
     enviarPlantilla,
   };

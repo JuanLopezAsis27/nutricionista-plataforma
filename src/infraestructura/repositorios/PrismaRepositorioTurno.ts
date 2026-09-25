@@ -56,6 +56,8 @@ export class PrismaRepositorioTurno
           notas: datos.notas,
           precio: datos.precio,
           pagado: datos.pagado,
+          canceladoEn: datos.canceladoEn,
+          canceladoPor: datos.canceladoPor,
           creadoEn: datos.creadoEn,
         },
       });
@@ -80,6 +82,8 @@ export class PrismaRepositorioTurno
           notas: datos.notas,
           precio: datos.precio,
           pagado: datos.pagado,
+          canceladoEn: datos.canceladoEn,
+          canceladoPor: datos.canceladoPor,
         },
       });
       return mapearTurno(fila);
@@ -149,6 +153,8 @@ export function mapearTurno(fila: TurnoFila): Turno {
     // Decimal nunca cruza infraestructura: se mapea a number.
     precio: fila.precio == null ? null : Number(fila.precio),
     pagado: fila.pagado,
+    canceladoEn: fila.canceladoEn,
+    canceladoPor: fila.canceladoPor,
     creadoEn: fila.creadoEn,
   });
 }

@@ -39,6 +39,12 @@ export const guardarConfiguracionDto = z.object({
     .regex(/^\d{1,4}$/, 'El prefijo debe ser solo dígitos, sin "+"')
     .nullable()
     .optional(),
+  whatsappCancelaciones: z
+    .string()
+    .trim()
+    .regex(/^\+?[\d\s()-]{6,25}$/, "Escribí un número de teléfono")
+    .nullable()
+    .optional(),
   bienvenidaAutomaticaActiva: z.boolean().optional(),
   formulasGrasaVisibles: z
     .array(z.enum(METODOS_GRASA))
@@ -73,6 +79,7 @@ export const configuracionSalidaDto = z.object({
   pdfMostrarEquivalencias: z.boolean(),
   pdfMostrarRecomendaciones: z.boolean(),
   whatsappPrefijoPais: z.string().nullable(),
+  whatsappCancelaciones: z.string().nullable(),
   bienvenidaAutomaticaActiva: z.boolean(),
   formulasGrasaVisibles: z.array(z.enum(METODOS_GRASA)),
   camposDosComponentes: z.array(z.enum(CAMPOS_PLANTILLA)),

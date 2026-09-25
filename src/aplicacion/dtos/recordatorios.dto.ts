@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { BOTONES_CANCELACION } from "@/dominio/entidades/PlantillaEmailRecordatorio";
+import { MAX_LARGO_MENSAJE_CANCELACION } from "@/dominio/servicios/cancelacionPorWhatsapp";
 import {
   ESTADOS_RECORDATORIO_WHATSAPP,
   ORIGENES_RECORDATORIO,
@@ -109,6 +111,12 @@ export const botonPlantillaDto = z.discriminatedUnion("tipo", [
       .max(MAX_LARGO_TEXTO_BOTON),
     destino: z.enum(DESTINOS_BOTON_URL),
     url: z.string().max(2000).nullable(),
+    /** Solo CANCELACION_WHATSAPP: el texto que queda escrito en el chat. */
+    mensaje: z
+      .string()
+      .max(MAX_LARGO_MENSAJE_CANCELACION)
+      .nullable()
+      .optional(),
   }),
 ]);
 export type BotonPlantillaDto = z.infer<typeof botonPlantillaDto>;
@@ -178,6 +186,8 @@ export const plantillaWhatsappSalidaDto = z.object({
   necesitaTurno: z.boolean(),
   /** Puede salir sola por la Cloud API fuera de la ventana de 24 h. */
   admiteEnvioPorApi: z.boolean(),
+  /** Qué pasa hoy si se manda (en revisión, rechazada…); null si sale normal. */
+  avisoEnvio: z.string().nullable(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
 });
@@ -202,6 +212,12 @@ export const guardarPlantillaEmailRecordatorioDto = z.object({
   predeterminada: z.boolean().optional(),
   activa: z.boolean().optional(),
   incluirBotonConfirmacion: z.boolean().optional(),
+  botonCancelacion: z.enum(BOTONES_CANCELACION).optional(),
+  mensajeCancelacion: z
+    .string()
+    .max(MAX_LARGO_MENSAJE_CANCELACION)
+    .nullable()
+    .optional(),
 });
 export type GuardarPlantillaEmailRecordatorioDto = z.infer<
   typeof guardarPlantillaEmailRecordatorioDto
@@ -228,6 +244,8 @@ export const plantillaEmailRecordatorioSalidaDto = z.object({
   predeterminada: z.boolean(),
   activa: z.boolean(),
   incluirBotonConfirmacion: z.boolean(),
+  botonCancelacion: z.enum(BOTONES_CANCELACION),
+  mensajeCancelacion: z.string().nullable(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
 });
@@ -281,6 +299,10 @@ export const vistaPreviaSalidaDto = z.object({
   mensaje: z.string(),
   modo: z.enum(["ENLACE", "API"]),
   usaPlantillaAprobada: z.boolean(),
+  /** La plantilla que corresponde no puede salir normal hoy: por qué. */
+  avisoPlantilla: z.string().nullable(),
+  /** Con el texto sin tocar no se va a mandar (bloqueada y con botones). */
+  bloqueadaSinEditar: z.boolean(),
 });
 export type VistaPreviaSalidaDto = z.infer<typeof vistaPreviaSalidaDto>;
 

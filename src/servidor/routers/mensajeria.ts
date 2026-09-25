@@ -45,7 +45,7 @@ export const routerMensajeria = crearRouter({
   marcarLeidosDe: nutricionistaProcedimiento
     .input(pacienteObjetivoDto)
     .mutation(async ({ ctx, input }) => {
-      await ctx.servicios.mensajeria.marcarLeidos(
+      await ctx.servicios.mensajeria.abrirConversacionDelConsultorio(
         input.pacienteId,
         ctx.usuario.id,
       );

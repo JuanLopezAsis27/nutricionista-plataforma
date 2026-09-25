@@ -35,6 +35,8 @@ export class ServicioPlantillasEmailRecordatorio {
         predeterminada: datos.predeterminada ?? false,
         activa: datos.activa ?? true,
         incluirBotonConfirmacion: datos.incluirBotonConfirmacion ?? true,
+        botonCancelacion: datos.botonCancelacion ?? "NINGUNO",
+        mensajeCancelacion: datos.mensajeCancelacion ?? null,
       }),
     );
   }

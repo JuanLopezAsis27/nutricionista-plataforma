@@ -330,6 +330,14 @@ compartidos. Dos botones para el mismo aviso terminan mandándolo dos veces.
 El antiduplicado es del motor, no del código: `UNIQUE (nutricionistaId, turnoId,
 diasAntes)`. Ver `docs/RECORDATORIOS.md`.
 
+El recordatorio puede ofrecer **confirmar y cancelar** (migración 76). Cancelar
+por la APP (`/cancelar-turno`, `CancelarTurnoPorPaciente`) cancela y registra
+`canceladoEn` + `canceladoPor = PACIENTE`; por el CHAT de cancelaciones (el
+número `whatsappCancelaciones` del consultorio, no el de la Cloud API) solo
+abre WhatsApp con un mensaje y el turno lo cancela el profesional. Cada acción
+del enlace firma con su propia clave (`FirmaEnlacesTurno`): con una sola, el
+token de confirmar serviría para cancelar.
+
 ### Plantillas de WhatsApp
 
 Se pueden **crear desde la app** en la cuenta de WhatsApp Business del
@@ -487,7 +495,8 @@ Ver `docs/ANTROPOMETRIA.md`.
 
 ### Bioimpedancia
 
-Lo que informa la balanza —peso, kg y % de músculo, kg y % de grasa—, una
+Lo que informa la balanza —peso, kg y % de músculo, kg y % de grasa, y el
+nivel de grasa visceral (un ENTERO de la escala del equipo, migración 75)—, una
 medición por paciente y fecha, con dashboard y metas (migración 72). Es **otra
 fuente y no se mezcla con la antropometría**: tablas propias y metas propias
 (`ObjetivoBioimpedancia`, no variables de `ObjetivoComposicion`), porque el %
@@ -752,6 +761,26 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   apunta a Mailpit (`localhost:1025`), que los captura y no los manda a
   Internet. Se envían, se registran y el log dice que salieron; solo que nadie
   los recibe. Se leen en http://localhost:8025
+- Nunca firmar dos acciones del enlace del turno con la misma clave: la carga
+  es idéntica, y el token de «confirmar» de un email cancelaría el turno
+  pegado en `/cancelar-turno`. Y nunca cambiar el propósito de la clave de
+  confirmar: invalida los enlaces que ya están en las bandejas
+- Nunca hacer que una respuesta rápida de WhatsApp cancele el turno: se toca
+  sin querer y no tiene segundo paso. `PEDIR_CANCELACION` avisa; cancela el
+  enlace, que pasa por una página de confirmación
+- Nunca volver a meter las alertas de seguimiento en la campana: son un
+  estado que se trabaja en el panel del dashboard, y en la campana tapaban los
+  avisos urgentes
+- Nunca apagar el aviso de un mensaje solo desde la campana: se da por visto
+  al abrir esa conversación por cualquier camino
+  (`MarcarAvisosDeConversacionVistos`). Y los avisos de WhatsApp enlazan con
+  `&canal=whatsapp`, o abren el chat del portal
+- Nunca contar los «sin leer» de Mensajes solo del portal: la bandeja y el
+  sidebar suman WhatsApp (`mensajes_whatsapp.leidoEn`, migración 77)
+- Nunca mandar como texto común una plantilla con botones que Meta no aprobó
+  (en revisión, rechazada, pausada): le llega al paciente sin los botones.
+  Queda FALLIDA con el motivo y sale cuando Meta la aprueba
+  (`noSeEnviaSinMeta`)
 - Nunca comparar la hora del barrido de recordatorios por igualdad: es `>=`
   ("ya pasó la hora de hoy"). Con `==`, un worker que arrancó 10:30 dejaba al
   consultorio de las 10:00 sin recordatorios TODO el día y sin ningún error.

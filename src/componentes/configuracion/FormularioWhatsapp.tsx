@@ -30,10 +30,12 @@ export function FormularioWhatsapp() {
   const config = consulta.data;
 
   const [prefijo, setPrefijo] = useState(PREFIJO_PAIS_POR_DEFECTO);
+  const [cancelaciones, setCancelaciones] = useState("");
 
   useEffect(() => {
     if (!config) return;
     setPrefijo(config.whatsappPrefijoPais ?? PREFIJO_PAIS_POR_DEFECTO);
+    setCancelaciones(config.whatsappCancelaciones ?? "");
   }, [config]);
 
   if (consulta.isLoading || !config) {
@@ -63,6 +65,24 @@ export function FormularioWhatsapp() {
             Sin el «+». Se usa para completar los teléfonos cargados en formato
             local (Argentina es 54). En los celulares argentinos hace falta el 9
             después del 54 y no va el 15: la app lo agrega sola.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="cancelaciones-wa">WhatsApp para cancelaciones</Label>
+          <Input
+            id="cancelaciones-wa"
+            className="w-64"
+            inputMode="tel"
+            placeholder="11 5555-4444"
+            value={cancelaciones}
+            onChange={(e) => setCancelaciones(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            El número al que le escribe el paciente cuando toca «Cancelar por
+            WhatsApp» en un recordatorio. Puede ser distinto del que manda los
+            recordatorios: poné el que usás en el día a día. Sin este número,
+            ese botón no sale.
           </p>
         </div>
 
@@ -96,7 +116,10 @@ export function FormularioWhatsapp() {
             type="button"
             disabled={guardar.isPending}
             onClick={() =>
-              guardar.mutate({ whatsappPrefijoPais: prefijo.trim() || null })
+              guardar.mutate({
+                whatsappPrefijoPais: prefijo.trim() || null,
+                whatsappCancelaciones: cancelaciones.trim() || null,
+              })
             }
           >
             Guardar

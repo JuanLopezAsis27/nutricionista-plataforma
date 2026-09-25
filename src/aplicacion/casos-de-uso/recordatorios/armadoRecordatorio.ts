@@ -19,6 +19,11 @@ export interface RecordatorioArmado {
   /** Texto final en castellano (vista previa, enlace wa.me y auditoría). */
   mensaje: string;
   /**
+   * Las variables con que se completó: también completan el mensaje del
+   * botón «cancelar por WhatsApp», que tiene que decir el mismo turno.
+   */
+  variables: Record<string, string>;
+  /**
    * Envío por plantilla aprobada, cuando la plantilla tiene clave de Meta.
    * null si solo sirve como texto: el proveedor por enlace no lo necesita y el
    * de la API lo rechazaría fuera de la ventana de 24 h.
@@ -69,6 +74,7 @@ export function armarRecordatorio(
     nombrePaciente: paciente.nombreCompleto,
     telefono,
     mensaje,
+    variables,
     envioPlantilla: plantilla.admiteEnvioPorApi
       ? {
           telefono,
@@ -84,4 +90,19 @@ export function armarRecordatorio(
         }
       : null,
   };
+}
+
+/**
+ * El número de cancelaciones del consultorio en E.164, o null si no se cargó.
+ * Se normaliza con el mismo prefijo que los teléfonos de los pacientes.
+ */
+export function telefonoCancelaciones(
+  configuracion: ConfiguracionConsultorio,
+): string | null {
+  const numero = configuracion.whatsappCancelaciones;
+  if (!numero) return null;
+  return normalizarTelefonoE164(
+    numero,
+    configuracion.whatsappPrefijoPais ?? PREFIJO_PAIS_POR_DEFECTO,
+  );
 }

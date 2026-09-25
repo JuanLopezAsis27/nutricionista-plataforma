@@ -102,8 +102,24 @@ describe("mapearTurno", () => {
     notas: "primera consulta",
     precio: decimal(15000),
     pagado: true,
+    canceladoEn: null,
+    canceladoPor: null,
     creadoEn: new Date("2026-04-01T00:00:00.000Z"),
   };
+
+  it("no cruza canceladoEn con creadoEn (dos fechas vecinas)", () => {
+    const canceladoEn = new Date("2026-04-05T12:00:00.000Z");
+    const datos = mapearTurno({
+      ...base,
+      estado: "CANCELADO",
+      canceladoEn,
+      canceladoPor: "PACIENTE",
+    } as unknown as Parameters<typeof mapearTurno>[0]).aPrimitivos();
+
+    expect(datos.canceladoEn).toEqual(canceladoEn);
+    expect(datos.canceladoPor).toBe("PACIENTE");
+    expect(datos.creadoEn).toEqual(base.creadoEn);
+  });
 
   it("convierte el precio de Decimal a number", () => {
     const datos = mapearTurno(

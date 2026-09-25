@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ESTADOS_TURNO } from "@/dominio/entidades/Turno";
+import { ESTADOS_TURNO, ORIGENES_CANCELACION } from "@/dominio/entidades/Turno";
 
 /** DTOs de Turno — esquemas Zod de entrada/salida. */
 
@@ -37,6 +37,12 @@ export const confirmarAsistenciaDto = z.object({
   token: z.string().min(1).max(1000),
 });
 export type ConfirmarAsistenciaDto = z.infer<typeof confirmarAsistenciaDto>;
+
+/** Token firmado del enlace "Cancelar turno" del recordatorio. */
+export const cancelarPorPacienteDto = z.object({
+  token: z.string().min(1).max(1000),
+});
+export type CancelarPorPacienteDto = z.infer<typeof cancelarPorPacienteDto>;
 
 export const reprogramarTurnoDto = z.object({
   id: z.string().min(1),
@@ -95,6 +101,9 @@ export const turnoSalidaDto = z.object({
   notas: z.string().nullable(),
   precio: z.number().nullable(),
   pagado: z.boolean(),
+  /** Cuándo se canceló; null si no lo está o si fue antes de la migración 76. */
+  canceladoEn: z.date().nullable(),
+  canceladoPor: z.enum(ORIGENES_CANCELACION).nullable(),
   creadoEn: z.date(),
 });
 export type TurnoSalidaDto = z.infer<typeof turnoSalidaDto>;

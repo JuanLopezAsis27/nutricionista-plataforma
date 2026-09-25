@@ -20,6 +20,7 @@ import type { PlanSalidaDto } from "@/aplicacion/dtos/plan.dto";
 import type { ModalidadPlan } from "@/dominio/entidades/PlanNutricional";
 import { esDocumentoWord } from "@/dominio/entidades/Archivo";
 import { usePlanes } from "@/lib/hooks/usePlanes";
+import { useDebounce } from "@/lib/hooks/useDebounce";
 import { Button } from "@/componentes/ui/button";
 import { Badge } from "@/componentes/ui/badge";
 import {
@@ -54,14 +55,29 @@ export default function PaginaPlanes() {
   /** Carpeta abierta. `null` es la raíz. */
   const [carpetaId, setCarpetaId] = useState<string | null>(null);
   const [planMover, setPlanMover] = useState<PlanSalidaDto | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+  const debounced = useDebounce(busqueda.trim(), 300);
 
   // La raíz lista los SUELTOS (grupoId: null), no todo: si mostrara todo, los
   // planes de las carpetas aparecerían dos veces —arriba en la carpeta y abajo
   // en la lista— y entrar a una carpeta no cambiaría nada.
+  //
+  // El buscador respeta esa misma vista: en la raíz filtra las carpetas por su
+  // nombre (lo hace el navegador) y los sueltos por el suyo; adentro de una
+  // carpeta, solo sus planes. El plan guardado en la carpeta «Julia» se
+  // encuentra buscando la carpeta, que es como se lo guardó.
   const filtroCarpeta = carpetaId;
 
   function abrirCarpeta(id: string | null) {
     setCarpetaId(id);
+    setPaginaPlanes(1);
+    // Lo escrito buscaba en el lugar que se deja: arrastrarlo adentro de la
+    // carpeta que se acaba de encontrar la mostraría vacía.
+    setBusqueda("");
+  }
+
+  function buscar(texto: string) {
+    setBusqueda(texto);
     setPaginaPlanes(1);
   }
 
@@ -69,6 +85,7 @@ export default function PaginaPlanes() {
   const consultaPlanes = listarPaginado({
     esPlantilla: false,
     incluirArchivados: true,
+    texto: debounced || undefined,
     grupoId: filtroCarpeta,
     pagina: paginaPlanes,
     porPagina: 10,
@@ -281,16 +298,25 @@ export default function PaginaPlanes() {
           </div>
 
           <TabsContent value="planes" className="space-y-4">
-            <NavegadorCarpetas carpetaId={carpetaId} onAbrir={abrirCarpeta} />
+            <NavegadorCarpetas
+              carpetaId={carpetaId}
+              onAbrir={abrirCarpeta}
+              busqueda={busqueda}
+              onBuscar={buscar}
+            />
             <TablaDatos
               columnas={columnas(false)}
               datos={planes}
               obtenerClave={(plan) => plan.id}
               cargando={consultaPlanes.isLoading}
               mensajeVacio={
-                carpetaId
-                  ? "Esta carpeta está vacía. Creá un plan acá adentro o mové uno existente."
-                  : "No hay planes sueltos. Los que estén en una carpeta se ven al abrirla."
+                debounced
+                  ? carpetaId
+                    ? "No hay planes en esta carpeta que coincidan con la búsqueda."
+                    : "No hay planes sueltos que coincidan con la búsqueda."
+                  : carpetaId
+                    ? "Esta carpeta está vacía. Creá un plan acá adentro o mové uno existente."
+                    : "No hay planes sueltos. Los que estén en una carpeta se ven al abrirla."
               }
               pagina={paginaPlanes}
               totalPaginas={consultaPlanes.data?.paginas ?? 1}

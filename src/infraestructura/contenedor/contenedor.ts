@@ -74,7 +74,7 @@ export {
   proveedorGoogle,
   directorioWhatsapp,
   urlApp,
-  enlaceConfirmacionTurno,
+  enlacesTurno,
 } from "./nucleo";
 
 /** El repositorio de usuario se expone para la configuración de Auth.js. */
@@ -92,6 +92,8 @@ export const servicioPaciente = perezoso(() =>
     tokensRefresco: nucleo.repositorioTokenRefresco(),
     reloj: nucleo.reloj(),
     servicioEmail: nucleo.servicioEmail(),
+    notificaciones: nucleo.repositorioNotificacion(),
+    verificadorEmail: nucleo.verificadorDominioEmail(),
     // El prefijo de país del consultorio define cómo se canoniza el teléfono
     // del paciente a E.164 al darlo de alta o editarlo.
     configuracion: nucleo.repositorioConfiguracion(),
@@ -120,7 +122,7 @@ export const servicioWhatsapp = perezoso(() =>
     plantillas: nucleo.repositorioPlantillaWhatsapp(),
     establecimientos: nucleo.repositorioEstablecimiento(),
     servicioEmail: nucleo.servicioEmail(),
-    enlaceConfirmacionTurno: nucleo.enlaceConfirmacionTurno(),
+    enlacesTurno: nucleo.enlacesTurno(),
     nutricionistas: nucleo.repositorioNutricionista(),
   }),
 );
@@ -148,7 +150,7 @@ export const servicioRecordatorios = perezoso(() =>
     servicioEmail: nucleo.servicioEmail(),
     usuarios: nucleo.repositorioUsuario(),
     bus: nucleo.busEventos(),
-    enlaceConfirmacionTurno: nucleo.enlaceConfirmacionTurno(),
+    enlacesTurno: nucleo.enlacesTurno(),
     administradorPlantillasMeta: nucleo.administradorPlantillasMeta(),
     nutricionistas: nucleo.repositorioNutricionista(),
   }),
@@ -332,6 +334,7 @@ export const servicioEstadisticas = perezoso(() =>
 export const servicioMensajeria = perezoso(() =>
   crearServicioMensajeria({
     mensajeria: nucleo.repositorioMensajeria(),
+    mensajesWhatsapp: nucleo.repositorioMensajeWhatsapp(),
     usuarios: nucleo.repositorioUsuario(),
     pacientes: nucleo.repositorioPaciente(),
     bus: nucleo.busEventos(),
@@ -366,7 +369,6 @@ export const servicioNotificaciones = perezoso(() =>
   crearServicioNotificaciones({
     notificaciones: nucleo.repositorioNotificacion(),
     reloj: nucleo.reloj(),
-    alertas: nucleo.repositorioAlertaSeguimiento(),
     emails: nucleo.repositorioEmailEnviado(),
   }),
 );

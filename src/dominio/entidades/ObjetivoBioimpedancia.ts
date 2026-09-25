@@ -2,12 +2,15 @@ import { ErrorValidacion } from "../errores/ErrorValidacion";
 import { ESTADOS_OBJETIVO, type EstadoObjetivo } from "./Objetivo";
 import {
   RANGOS_BIOIMPEDANCIA,
+  describirRangoBioimpedancia,
   type MedidasBioimpedancia,
+  type RangoBioimpedancia,
 } from "./Bioimpedancia";
 
 /**
  * Variables de la bioimpedancia sobre las que se puede plantear una meta: las
- * cinco que informa la balanza, sin derivados.
+ * que informa la balanza, sin derivados. Se agregan al final y nunca se
+ * renombran: son también un enum de la base.
  */
 export const VARIABLES_BIOIMPEDANCIA = [
   "PESO",
@@ -15,6 +18,7 @@ export const VARIABLES_BIOIMPEDANCIA = [
   "MASA_GRASA_KG",
   "PORCENTAJE_MUSCULAR",
   "PORCENTAJE_GRASA",
+  "GRASA_VISCERAL",
 ] as const;
 export type VariableBioimpedancia = (typeof VARIABLES_BIOIMPEDANCIA)[number];
 
@@ -28,12 +32,13 @@ export const MEDIDA_DE_VARIABLE_BIOIMPEDANCIA: Record<
   MASA_GRASA_KG: "masaGrasaKg",
   PORCENTAJE_MUSCULAR: "porcentajeMuscular",
   PORCENTAJE_GRASA: "porcentajeGrasa",
+  GRASA_VISCERAL: "nivelGrasaVisceral",
 };
 
 /** Unidad, etiqueta y rango válido: los mismos que la medición. */
 export function definicionVariableBioimpedancia(
   variable: VariableBioimpedancia,
-): { unidad: string; min: number; max: number; etiqueta: string } {
+): RangoBioimpedancia {
   return RANGOS_BIOIMPEDANCIA[MEDIDA_DE_VARIABLE_BIOIMPEDANCIA[variable]];
 }
 
@@ -181,11 +186,16 @@ export class ObjetivoBioimpedancia {
 }
 
 function validarValor(variable: VariableBioimpedancia, valor: number): void {
-  const { min, max, etiqueta, unidad } =
-    definicionVariableBioimpedancia(variable);
-  if (!Number.isFinite(valor) || valor < min || valor > max) {
+  const rango = definicionVariableBioimpedancia(variable);
+  if (!Number.isFinite(valor) || valor < rango.min || valor > rango.max) {
     throw new ErrorValidacion(
-      `El objetivo de ${etiqueta} debe estar entre ${min} ${unidad} y ${max} ${unidad}.`,
+      `El objetivo de ${rango.etiqueta} debe estar ${describirRangoBioimpedancia(rango)}.`,
+    );
+  }
+  // Una meta de nivel 8,5 no se puede alcanzar nunca: la balanza no la informa.
+  if (rango.entero && !Number.isInteger(valor)) {
+    throw new ErrorValidacion(
+      `El objetivo de ${rango.etiqueta} es un nivel: va un número entero.`,
     );
   }
 }

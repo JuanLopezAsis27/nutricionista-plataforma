@@ -9,13 +9,15 @@ import {
   mockPacienteRepositorio,
   mockEstablecimientoRepositorio,
   mockServicioEmail,
-  mockEnlaceConfirmacionTurno,
+  mockEnlacesTurno,
   mockReloj,
   plantillaEmailRecordatorioEjemplo,
   turnoEjemplo,
   pacienteEjemplo,
   mockNutricionistaConNombre,
+  mockConfiguracionRepositorio,
 } from "../_ayudas-test";
+import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
 
 const PROFESIONAL = "Lic. López Asis";
 // El reloj de ejemplo marca hoy = 2026-07-14 (UTC); mañana = 2026-07-15.
@@ -27,12 +29,14 @@ function armar(overrides: {
   yaEnviado?: boolean;
   plantillaPorDia?: ReturnType<typeof plantillaEmailRecordatorioEjemplo> | null;
   predeterminada?: ReturnType<typeof plantillaEmailRecordatorioEjemplo>;
+  /** Número de cancelaciones del consultorio; sin esto, no hay. */
+  whatsappCancelaciones?: string;
 }) {
   const predeterminada =
     overrides.predeterminada ?? plantillaEmailRecordatorioEjemplo();
   const enviar = vi.fn(async () => {});
   const registrar = vi.fn(async () => {});
-  const enlaces = mockEnlaceConfirmacionTurno();
+  const enlaces = mockEnlacesTurno();
 
   const uc = new EnviarRecordatoriosPorEmail(
     mockPlantillaEmailRecordatorioRepositorio({
@@ -59,6 +63,13 @@ function armar(overrides: {
     mockNutricionistaConNombre(PROFESIONAL),
     mockEstablecimientoRepositorio(),
     enlaces,
+    mockConfiguracionRepositorio({
+      obtener: vi.fn(async () =>
+        ConfiguracionConsultorio.porDefecto().actualizar({
+          whatsappCancelaciones: overrides.whatsappCancelaciones ?? null,
+        }),
+      ),
+    }),
   );
   return { uc, enviar, registrar, enlaces, predeterminada };
 }
@@ -128,6 +139,7 @@ describe("EnviarRecordatoriosPorEmail", () => {
 
     // El enlace vence al terminar el día del turno.
     expect(enlaces.generar).toHaveBeenCalledWith(
+      "CONFIRMAR",
       turno.id,
       new Date("2026-07-16"),
     );
@@ -173,6 +185,87 @@ describe("EnviarRecordatoriosPorEmail", () => {
     expect(enviar).toHaveBeenCalledWith(
       expect.objectContaining({
         html: expect.not.stringContaining("confirmar-turno"),
+      }),
+    );
+  });
+
+  it("sin botón de cancelar por defecto: las plantillas viejas salen igual", async () => {
+    const turno = turnoEjemplo({ fecha: MANANA });
+    const { uc, enviar } = armar({ turnos: [turno] });
+
+    await uc.ejecutar();
+
+    expect(enviar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.not.stringContaining("Cancelar turno"),
+      }),
+    );
+  });
+
+  it("cancelar por la app: un enlace firmado de CANCELAR, también en un turno confirmado", async () => {
+    const turno = turnoEjemplo({ fecha: MANANA });
+    turno.cambiarEstado("CONFIRMADO");
+    const { uc, enviar, enlaces } = armar({
+      turnos: [turno],
+      predeterminada: plantillaEmailRecordatorioEjemplo({
+        botonCancelacion: "APP",
+      }),
+    });
+
+    await uc.ejecutar();
+
+    expect(enlaces.generar).toHaveBeenCalledWith(
+      "CANCELAR",
+      turno.id,
+      new Date("2026-07-16"),
+    );
+    expect(enviar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.stringContaining(
+          'href="https://app.test/cancelar-turno?token=tur-1"',
+        ),
+      }),
+    );
+  });
+
+  it("cancelar por WhatsApp: abre el chat de cancelaciones con el mensaje del turno", async () => {
+    const turno = turnoEjemplo({ fecha: MANANA, hora: "10:00" });
+    const { uc, enviar } = armar({
+      turnos: [turno],
+      whatsappCancelaciones: "+54 9 11 5555-4444",
+      predeterminada: plantillaEmailRecordatorioEjemplo({
+        botonCancelacion: "WHATSAPP",
+        mensajeCancelacion: "Cancelo el {{fecha}} a las {{hora}}",
+      }),
+    });
+
+    await uc.ejecutar();
+
+    const texto = encodeURIComponent("Cancelo el 15/07/2026 a las 10:00");
+    expect(enviar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.stringContaining(
+          `href="https://wa.me/5491155554444?text=${texto}"`,
+        ),
+      }),
+    );
+  });
+
+  it("cancelar por WhatsApp sin número cargado: el email sale igual, sin ese botón", async () => {
+    const turno = turnoEjemplo({ fecha: MANANA });
+    const { uc, enviar } = armar({
+      turnos: [turno],
+      predeterminada: plantillaEmailRecordatorioEjemplo({
+        botonCancelacion: "WHATSAPP",
+      }),
+    });
+
+    const resultado = await uc.ejecutar();
+
+    expect(resultado.enviados).toBe(1);
+    expect(enviar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.not.stringContaining("wa.me"),
       }),
     );
   });
@@ -232,7 +325,8 @@ describe("EnviarRecordatoriosPorEmail", () => {
       mockConfiguracionRecordatoriosRepositorio(),
       mockNutricionistaConNombre(PROFESIONAL),
       mockEstablecimientoRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
+      mockConfiguracionRepositorio(),
     );
 
     const resultado = await uc.ejecutar();
@@ -254,7 +348,8 @@ describe("EnviarRecordatoriosPorEmail", () => {
       mockConfiguracionRecordatoriosRepositorio(),
       mockNutricionistaConNombre(PROFESIONAL),
       mockEstablecimientoRepositorio(),
-      mockEnlaceConfirmacionTurno(),
+      mockEnlacesTurno(),
+      mockConfiguracionRepositorio(),
     );
 
     await expect(uc.ejecutar()).rejects.toBeInstanceOf(

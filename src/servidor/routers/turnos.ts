@@ -9,7 +9,7 @@ import {
 import { pacienteConsultable } from "@/dominio/servicios/politicaAcceso";
 import { ejecutarEnNutricionista } from "@/infraestructura/multitenancy/contextoTenant";
 import { limitadorConfirmacionTurno } from "@/infraestructura/seguridad/LimitadorTasa";
-import { enlaceConfirmacionTurno } from "@/infraestructura/contenedor/contenedor";
+import { enlacesTurno } from "@/infraestructura/contenedor/contenedor";
 import {
   agendarTurnoDto,
   listarTurnosDto,
@@ -18,14 +18,46 @@ import {
   reprogramarTurnoDto,
   registrarCobroTurnoDto,
   confirmarAsistenciaDto,
+  cancelarPorPacienteDto,
 } from "@/aplicacion/dtos/turno.dto";
+import type { AccionEnlaceTurno } from "@/dominio/servicios/IEnlacesTurno";
+
+/**
+ * Consultorio y turno de un enlace del recordatorio, con el límite por IP.
+ * Lo comparten confirmar y cancelar: los dos son públicos, y la firma de cada
+ * acción es distinta, así que un token de una no pasa por la otra.
+ */
+function destinoDelEnlace(
+  accion: AccionEnlaceTurno,
+  token: string,
+  ip: string,
+): { nutricionistaId: string; turnoId: string } {
+  const porIp = limitadorConfirmacionTurno.intentar(
+    `${accion === "CONFIRMAR" ? "confirmar" : "cancelar"}-turno:${ip}`,
+  );
+  if (!porIp.permitido) {
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: "Demasiados intentos. Probá de nuevo en unos minutos.",
+    });
+  }
+  const destino = enlacesTurno().verificar(accion, token, new Date());
+  if (!destino) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "El enlace no es válido o ya venció.",
+    });
+  }
+  return destino;
+}
 
 /**
  * Router de Turnos (presentación → aplicación).
  *
  * La gestión es del NUTRICIONISTA; el paciente solo puede ver sus propios
- * turnos (obtenerPorPaciente, con procedimiento protegido) y confirmar su
- * asistencia desde el enlace del recordatorio (confirmarAsistencia, público).
+ * turnos (obtenerPorPaciente, con procedimiento protegido) y confirmar o
+ * cancelar desde el enlace del recordatorio (confirmarAsistencia y
+ * cancelarPorPaciente, públicos).
  */
 export const routerTurnos = crearRouter({
   obtenerTodos: nutricionistaProcedimiento
@@ -94,29 +126,19 @@ export const routerTurnos = crearRouter({
   confirmarAsistencia: publicoProcedimiento
     .input(confirmarAsistenciaDto)
     .mutation(async ({ ctx, input }) => {
-      const porIp = limitadorConfirmacionTurno.intentar(
-        `confirmar-turno:${ctx.ip}`,
-      );
-      if (!porIp.permitido) {
-        throw new TRPCError({
-          code: "TOO_MANY_REQUESTS",
-          message: "Demasiados intentos. Probá de nuevo en unos minutos.",
-        });
-      }
-
-      const destino = enlaceConfirmacionTurno().verificar(
-        input.token,
-        new Date(),
-      );
-      if (!destino) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "El enlace no es válido o ya venció.",
-        });
-      }
-
+      const destino = destinoDelEnlace("CONFIRMAR", input.token, ctx.ip);
       return await ejecutarEnNutricionista(destino.nutricionistaId, () =>
         ctx.servicios.turno.confirmarAsistencia(destino.turnoId),
+      );
+    }),
+
+  /** Igual que confirmar: sin sesión, el inquilino sale del enlace firmado. */
+  cancelarPorPaciente: publicoProcedimiento
+    .input(cancelarPorPacienteDto)
+    .mutation(async ({ ctx, input }) => {
+      const destino = destinoDelEnlace("CANCELAR", input.token, ctx.ip);
+      return await ejecutarEnNutricionista(destino.nutricionistaId, () =>
+        ctx.servicios.turno.cancelarPorPaciente(destino.turnoId),
       );
     }),
 });

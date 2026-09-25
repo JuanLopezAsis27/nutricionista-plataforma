@@ -151,6 +151,7 @@ const ETIQUETAS_PROPIAS: Record<string, string> = {
   masaGrasaKg: "Masa grasa",
   porcentajeMuscular: "Porcentaje muscular",
   porcentajeGrasa: "Porcentaje graso",
+  nivelGrasaVisceral: "Grasa visceral",
 };
 
 /** `circMusloMedial` → «Circ muslo medial». Último recurso. */

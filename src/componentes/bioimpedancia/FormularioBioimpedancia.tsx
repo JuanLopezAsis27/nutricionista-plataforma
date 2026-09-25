@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import type { MedicionBioimpedanciaDto } from "@/aplicacion/dtos/bioimpedancia.dto";
 import {
   RANGOS_BIOIMPEDANCIA,
+  describirRangoBioimpedancia,
   type MedidasBioimpedancia,
 } from "@/dominio/entidades/Bioimpedancia";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
@@ -17,7 +18,8 @@ type Campo = keyof MedidasBioimpedancia;
 
 /**
  * Los campos en el orden en que los muestra la balanza: el peso arriba, y
- * después cada tejido en kg y en % uno al lado del otro.
+ * después cada tejido en kg y en % uno al lado del otro. La grasa visceral va
+ * al final y sin unidad: es un nivel de la escala del equipo.
  */
 const CAMPOS: { nombre: Campo; etiqueta: string }[] = [
   { nombre: "pesoKg", etiqueta: "Peso (kg) *" },
@@ -25,6 +27,7 @@ const CAMPOS: { nombre: Campo; etiqueta: string }[] = [
   { nombre: "porcentajeMuscular", etiqueta: "Músculo (%)" },
   { nombre: "masaGrasaKg", etiqueta: "Grasa (kg)" },
   { nombre: "porcentajeGrasa", etiqueta: "Grasa (%)" },
+  { nombre: "nivelGrasaVisceral", etiqueta: "Grasa visceral (nivel)" },
 ];
 
 type DatosFormulario = Record<Campo, string> & {
@@ -68,14 +71,18 @@ export function FormularioBioimpedancia({
     for (const { nombre } of CAMPOS) {
       const texto = datos[nombre].trim();
       const valor = aNumeroONull(texto);
-      const { min, max, unidad } = RANGOS_BIOIMPEDANCIA[nombre];
+      const rango = RANGOS_BIOIMPEDANCIA[nombre];
       if (texto !== "" && valor == null) {
         form.setError(nombre, { message: "No es un número" });
         hayError = true;
-      } else if (valor != null && (valor < min || valor > max)) {
+      } else if (valor != null && (valor < rango.min || valor > rango.max)) {
+        const descripcion = describirRangoBioimpedancia(rango);
         form.setError(nombre, {
-          message: `Entre ${min} y ${max} ${unidad}`,
+          message: descripcion.charAt(0).toUpperCase() + descripcion.slice(1),
         });
+        hayError = true;
+      } else if (valor != null && rango.entero && !Number.isInteger(valor)) {
+        form.setError(nombre, { message: "Es un nivel: sin decimales" });
         hayError = true;
       }
       valores[nombre] = valor;
@@ -124,7 +131,9 @@ export function FormularioBioimpedancia({
               </Label>
               <Input
                 id={`bia-${nombre}`}
-                inputMode="decimal"
+                inputMode={
+                  RANGOS_BIOIMPEDANCIA[nombre].entero ? "numeric" : "decimal"
+                }
                 placeholder="—"
                 aria-invalid={error ? true : undefined}
                 {...form.register(nombre)}

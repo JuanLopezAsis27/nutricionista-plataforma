@@ -90,6 +90,8 @@ export function mapearBioimpedancia(fila: BioimpedanciaFila): Bioimpedancia {
     masaGrasaKg: aNumero(fila.masaGrasaKg),
     porcentajeMuscular: aNumero(fila.porcentajeMuscular),
     porcentajeGrasa: aNumero(fila.porcentajeGrasa),
+    // INTEGER, no Decimal: llega como number y no pasa por `aNumero`.
+    nivelGrasaVisceral: fila.nivelGrasaVisceral,
     observaciones: fila.observaciones,
     creadoEn: fila.creadoEn,
     actualizadoEn: fila.actualizadoEn,

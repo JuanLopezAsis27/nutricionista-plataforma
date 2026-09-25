@@ -296,6 +296,29 @@ Que la raíz liste los **sueltos** y no todo también es a propósito: si mostra
 todo, los planes de las carpetas aparecerían dos veces —arriba en su carpeta y
 abajo en la lista— y entrar a una carpeta no cambiaría nada.
 
+### El buscador busca en lo que se ve
+
+El buscador vive en el navegador de carpetas compartido, así que planes y
+recetario buscan igual:
+
+- **en la raíz** filtra las carpetas por su nombre y los sueltos por el suyo;
+- **adentro de una carpeta** filtra solo lo que hay adentro (no hay carpetas
+  dentro de carpetas que filtrar).
+
+No busca en todo el módulo a la vez, y es a propósito: lo que está en una
+carpeta se guardó ahí, y se encuentra buscando la carpeta («Julia») igual que se
+lo guardó. El recetario antes hacía lo contrario —con texto escrito dejaba de
+filtrar por carpeta y escondía el navegador— y se unificó con esta regla.
+
+Las carpetas se filtran en el navegador (ya vinieron todas: son un nivel y
+pocas) y los elementos en el servidor (`texto` del listado paginado). Los dos
+comparan en minúsculas **sin quitar tildes**, porque el `contains` insensitive
+de Postgres tampoco las quita: si las carpetas encontraran «julian» y los
+planes no, la misma búsqueda diría dos cosas. Abrir una carpeta (o volver a la
+raíz) **limpia el buscador**: lo escrito buscaba en el lugar que se dejó, y
+arrastrarlo adentro de la carpeta recién encontrada la mostraría vacía. Las
+plantillas no tienen buscador ni carpetas.
+
 **No hay carpetas dentro de carpetas.** Un nivel alcanza para el volumen de un
 consultorio, y el anidamiento traería mover carpetas, romper ciclos y migas de
 pan para un problema que nadie tiene todavía.

@@ -29,6 +29,22 @@ enum EstadoTurno {
   COMPLETADO
 }
 
+/// Quién canceló un turno (migración 76). El paciente, desde el enlace del
+/// recordatorio; el consultorio, desde la agenda.
+enum OrigenCancelacion {
+  PACIENTE
+  CONSULTORIO
+}
+
+/// Qué botón de cancelar lleva un recordatorio por email (migración 76).
+enum BotonCancelacion {
+  NINGUNO
+  /// Enlace firmado a /cancelar-turno: cancela sin intervención.
+  APP
+  /// Enlace wa.me al número de cancelaciones con un mensaje ya escrito.
+  WHATSAPP
+}
+
 /// Estado del recordatorio de turno enviado por WhatsApp. Es una escala que
 /// solo AVANZA, y cuánto avanza depende del canal:
 ///
@@ -171,6 +187,7 @@ enum VariableBioimpedancia {
   MASA_GRASA_KG
   PORCENTAJE_MUSCULAR
   PORCENTAJE_GRASA
+  GRASA_VISCERAL
 }
 
 enum VariableComposicion {
@@ -623,6 +640,12 @@ enum TipoNotificacion {
   MENSAJE_APP
   /// El paciente tocó "reprogramar" en un botón de la plantilla de WhatsApp.
   REPROGRAMACION_PEDIDA
+  /// El paciente canceló su turno desde el enlace del recordatorio.
+  TURNO_CANCELADO
+  /// El paciente tocó "cancelar" en una respuesta rápida de WhatsApp.
+  CANCELACION_PEDIDA
+  /// No se pudo mandar la bienvenida al dar de alta un paciente (migración 77).
+  BIENVENIDA_FALLIDA
 }
 
 /// Aviso persistido para el nutricionista, con estado de "visto".
@@ -684,6 +707,10 @@ model Turno {
   // ingresos cobrados vs. pendientes en las estadísticas.
   precio            Decimal?                @db.Decimal(10, 2)
   pagado            Boolean                 @default(false)
+  /// Cuándo y quién lo canceló (migración 76). NULL en los cancelados antes
+  /// de esa migración: el dato nunca se guardó.
+  canceladoEn       DateTime?
+  canceladoPor      OrigenCancelacion?
   /// Rango [inicio, fin) del turno, columna GENERADA por Postgres a partir de
   /// `fecha` + `hora` + `duracionMinutos` (ver migración 27). Sostiene el
   /// EXCLUDE que impide dos turnos superpuestos. Prisma no sabe expresar una
@@ -912,7 +939,7 @@ enum EstadoPlantillaMeta {
 /// solo texto para "3 días antes" y "1 día antes" no dejaba decir cosas
 /// distintas ("todavía estás a tiempo de reprogramar" vs. "es mañana").
 model PlantillaEmailRecordatorio {
-  id                       String   @id @default(uuid(4))
+  id                       String           @id @default(uuid(4))
   nutricionistaId          String
   nombre                   String
   asunto                   String
@@ -925,16 +952,21 @@ model PlantillaEmailRecordatorio {
   /// que le toca no tiene una plantilla propia, y siempre en los envíos
   /// manuales. Una sola por consultorio: al marcar una, el caso de uso
   /// desmarca la anterior en la misma operación.
-  predeterminada           Boolean  @default(false)
-  activa                   Boolean  @default(true)
+  predeterminada           Boolean          @default(false)
+  activa                   Boolean          @default(true)
   /// Si este mensaje suma el botón "Confirmar asistencia" (solo aplica a
   /// turnos PENDIENTE; ver EnviarRecordatoriosPorEmail). Antes salía siempre;
   /// pasa a ser una decisión por plantilla porque no todo mensaje de
   /// recordatorio tiene sentido que lo pida —un aviso de "es mañana" sí, uno
   /// más informativo de "3 días antes" puede no quererlo—.
-  incluirBotonConfirmacion Boolean  @default(true)
-  creadoEn                 DateTime @default(now())
-  actualizadoEn            DateTime @updatedAt
+  incluirBotonConfirmacion Boolean          @default(true)
+  /// Botón de cancelar (migración 76). NINGUNO por defecto.
+  botonCancelacion         BotonCancelacion @default(NINGUNO)
+  /// Texto que se carga en el chat cuando `botonCancelacion` es WHATSAPP.
+  /// Admite las variables del recordatorio. NULL = el texto por defecto.
+  mensajeCancelacion       String?
+  creadoEn                 DateTime         @default(now())
+  actualizadoEn            DateTime         @updatedAt
 
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
@@ -1006,6 +1038,9 @@ model MensajeWhatsapp {
   idExterno       String?               @unique
   estado          EstadoMensajeWhatsapp @default(PENDIENTE)
   error           String?
+  /// Cuándo lo leyó el profesional (migración 77). Solo en los ENTRANTES;
+  /// NULL = sin leer, y es lo que cuentan la bandeja y el sidebar.
+  leidoEn         DateTime?
   creadoEn        DateTime              @default(now())
   actualizadoEn   DateTime              @updatedAt
 
@@ -1601,6 +1636,8 @@ model Bioimpedancia {
   masaGrasaKg        Decimal? @db.Decimal(5, 2)
   porcentajeMuscular Decimal? @db.Decimal(4, 1)
   porcentajeGrasa    Decimal? @db.Decimal(4, 1)
+  /// Nivel de la escala del equipo (entero, sin unidad). Migración 75.
+  nivelGrasaVisceral Int?
   observaciones      String?
   creadoEn           DateTime @default(now())
   actualizadoEn      DateTime @updatedAt
@@ -2680,6 +2717,9 @@ model ConfiguracionConsultorio {
   /// Si una foto de comida del diario se analiza sola con IA al subirla.
   /// Apagado por defecto: cada análisis gasta cuota de IA del consultorio.
   analisisFotoComidaAutomatico Boolean       @default(false)
+  /// Número de WhatsApp al que escribe el paciente para cancelar (migración
+  /// 76). Puede no ser el que manda los recordatorios.
+  whatsappCancelaciones        String?
   creadoEn                     DateTime      @default(now())
   actualizadoEn                DateTime      @updatedAt
   nutricionista                Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)

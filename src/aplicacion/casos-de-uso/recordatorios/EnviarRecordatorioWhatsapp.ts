@@ -1,7 +1,7 @@
 import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import type { IRecordatorioWhatsappRepositorio } from "@/dominio/repositorios/IRecordatorioWhatsappRepositorio";
 import type { IMensajeWhatsappRepositorio } from "@/dominio/repositorios/IMensajeWhatsappRepositorio";
-import type { IEnlaceConfirmacionTurno } from "@/dominio/servicios/IEnlaceConfirmacionTurno";
+import type { IEnlacesTurno } from "@/dominio/servicios/IEnlacesTurno";
 import type { IProveedorWhatsapp } from "@/dominio/servicios/IProveedorWhatsapp";
 import type { Turno } from "@/dominio/entidades/Turno";
 import type { Paciente } from "@/dominio/entidades/Paciente";
@@ -11,7 +11,8 @@ import type { Establecimiento } from "@/dominio/entidades/Establecimiento";
 import type { OrigenRecordatorio } from "@/dominio/entidades/RecordatorioWhatsapp";
 import { RecordatorioWhatsapp } from "@/dominio/entidades/RecordatorioWhatsapp";
 import { MensajeWhatsapp } from "@/dominio/entidades/MensajeWhatsapp";
-import { armarRecordatorio } from "./armadoRecordatorio";
+import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
+import { armarRecordatorio, telefonoCancelaciones } from "./armadoRecordatorio";
 import { parametrosDeBotones } from "../whatsapp/plantillaMeta";
 
 /** Un envío concreto, con todo ya resuelto por quien orquesta el lote. */
@@ -95,7 +96,7 @@ export class EnviarRecordatorioWhatsapp {
     private readonly recordatorios: IRecordatorioWhatsappRepositorio,
     private readonly proveedor: IProveedorWhatsapp,
     private readonly mensajes: IMensajeWhatsappRepositorio,
-    private readonly enlaces: IEnlaceConfirmacionTurno,
+    private readonly enlaces: IEnlacesTurno,
     /** Da {{profesional}}: el nombre del consultorio en curso. */
     private readonly nutricionistas: INutricionistaRepositorio,
   ) {}
@@ -148,19 +149,9 @@ export class EnviarRecordatorioWhatsapp {
       ...plantillaArmada,
       mensaje: texto,
       // Texto editado a mano ya no es la plantilla que Meta aprobó.
-      envioPlantilla:
-        pedido.textoManual || !plantillaArmada.envioPlantilla
-          ? null
-          : {
-              ...plantillaArmada.envioPlantilla,
-              // Cada respuesta rápida lleva la acción y ESTE turno en su
-              // payload; el enlace de confirmación, el token de este turno.
-              botones: parametrosDeBotones(
-                pedido.plantilla,
-                pedido.turno,
-                this.enlaces,
-              ),
-            },
+      envioPlantilla: pedido.textoManual
+        ? null
+        : plantillaArmada.envioPlantilla,
     };
 
     let resultado;
@@ -169,8 +160,37 @@ export class EnviarRecordatorioWhatsapp {
       // Meta solo acepta plantillas aprobadas. Si la plantilla no tiene clave
       // de Meta se manda como texto: con la API eso funciona solo dentro de la
       // ventana, y con el enlace wa.me funciona siempre.
+      //
+      // Los botones se arman ACÁ adentro y no antes: el del chat de
+      // cancelaciones lanza si el consultorio no cargó el número, y ese fallo
+      // tiene que quedar como un recordatorio FALLIDO con su motivo, no cortar
+      // el barrido de todos los demás turnos.
+      //
+      // Una plantilla con botones que Meta todavía no aprobó no se manda como
+      // texto: saldría sin sus botones (ver `noSeEnviaSinMeta`). El texto
+      // retocado a mano sí sale: ahí el profesional ya eligió mandar texto.
+      if (!pedido.textoManual && pedido.plantilla.noSeEnviaSinMeta) {
+        throw new ErrorValidacion(
+          pedido.plantilla.avisoDeEnvio() ??
+            "La plantilla no está aprobada en Meta.",
+        );
+      }
       resultado = armado.envioPlantilla
-        ? await this.proveedor.enviarPlantilla(armado.envioPlantilla)
+        ? await this.proveedor.enviarPlantilla({
+            ...armado.envioPlantilla,
+            // Cada respuesta rápida lleva la acción y ESTE turno en su
+            // payload; los enlaces de confirmar y cancelar, el token de este
+            // turno; el chat de cancelaciones, el número y el mensaje.
+            botones: parametrosDeBotones(
+              pedido.plantilla,
+              pedido.turno,
+              this.enlaces,
+              {
+                telefonoE164: telefonoCancelaciones(pedido.configuracion),
+                variables: plantillaArmada.variables,
+              },
+            ),
+          })
         : await this.proveedor.preparar({
             telefono: armado.telefono,
             texto: armado.mensaje,

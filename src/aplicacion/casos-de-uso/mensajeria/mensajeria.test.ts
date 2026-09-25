@@ -5,7 +5,12 @@ import { ListarMensajes } from "./ListarMensajes";
 import { MarcarLeidos } from "./MarcarLeidos";
 import { ObtenerConversacionDePaciente } from "./ObtenerConversacionDePaciente";
 import { Conversacion } from "@/dominio/entidades/Conversacion";
-import { mockMensajeriaRepositorio } from "../_ayudas-test";
+import {
+  mockMensajeriaRepositorio,
+  mockMensajeWhatsappRepositorio,
+  mockPacienteRepositorio,
+  pacienteEjemplo,
+} from "../_ayudas-test";
 
 /**
  * Tests de la mensajería interna paciente ⇄ nutricionista.
@@ -24,9 +29,13 @@ describe("ContarNoLeidos", () => {
     const repositorio = mockMensajeriaRepositorio({
       contarNoLeidos: vi.fn(async () => 7),
     });
-    const caso = new ContarNoLeidos(repositorio);
+    const caso = new ContarNoLeidos(
+      repositorio,
+      mockMensajeWhatsappRepositorio({ contarNoLeidos: vi.fn(async () => 2) }),
+    );
 
-    expect(await caso.ejecutar("user-nutri")).toBe(7);
+    // Portal + WhatsApp: el número del sidebar cuenta los dos canales.
+    expect(await caso.ejecutar("user-nutri")).toBe(9);
     // Sin segundo argumento: el repositorio suma sobre todas.
     expect(repositorio.contarNoLeidos).toHaveBeenCalledWith("user-nutri");
   });
@@ -39,9 +48,12 @@ describe("ContarNoLeidos", () => {
       obtenerConversacionPorPaciente: vi.fn(async () => conversacion()),
       contarNoLeidos: vi.fn(async () => 3),
     });
-    const caso = new ContarNoLeidos(repositorio);
+    const whatsapp = mockMensajeWhatsappRepositorio();
+    const caso = new ContarNoLeidos(repositorio, whatsapp);
 
     expect(await caso.ejecutar("user-pac", "pac-1")).toBe(3);
+    // El paciente no ve WhatsApp en la app: no se le suma.
+    expect(whatsapp.contarNoLeidos).not.toHaveBeenCalled();
     expect(repositorio.contarNoLeidos).toHaveBeenCalledWith(
       "user-pac",
       "conv-1",
@@ -52,7 +64,10 @@ describe("ContarNoLeidos", () => {
     const repositorio = mockMensajeriaRepositorio({
       obtenerConversacionPorPaciente: vi.fn(async () => null),
     });
-    const caso = new ContarNoLeidos(repositorio);
+    const caso = new ContarNoLeidos(
+      repositorio,
+      mockMensajeWhatsappRepositorio(),
+    );
 
     expect(await caso.ejecutar("user-pac", "pac-1")).toBe(0);
     expect(repositorio.contarNoLeidos).not.toHaveBeenCalled();
@@ -142,10 +157,88 @@ describe("ListarConversaciones", () => {
     // El resumen incluye los no leídos de QUIEN mira: pedirlo sin viewer
     // mostraría los de otra persona.
     const repositorio = mockMensajeriaRepositorio();
-    const caso = new ListarConversaciones(repositorio);
+    const caso = new ListarConversaciones(
+      repositorio,
+      mockMensajeWhatsappRepositorio(),
+      mockPacienteRepositorio(),
+    );
 
     await caso.ejecutar("user-nutri");
 
     expect(repositorio.listarResumen).toHaveBeenCalledWith("user-nutri");
+  });
+
+  it("junta los dos canales en una fila por paciente y suma los sin leer", async () => {
+    const repositorio = mockMensajeriaRepositorio({
+      listarResumen: vi.fn(async () => [
+        {
+          id: "conv-1",
+          pacienteId: "pac-1",
+          pacienteNombre: "Ana García",
+          pacienteFotoArchivoId: null,
+          ultimoMensajeTexto: "hola por el portal",
+          ultimoMensajeEn: new Date("2026-07-10T10:00:00Z"),
+          noLeidos: 1,
+        },
+      ]),
+    });
+    const whatsapp = mockMensajeWhatsappRepositorio({
+      resumenPorPaciente: vi.fn(async () => [
+        {
+          pacienteId: "pac-1",
+          ultimoMensajeTexto: "hola por WhatsApp",
+          ultimoMensajeEn: new Date("2026-07-11T10:00:00Z"),
+          noLeidos: 2,
+        },
+      ]),
+    });
+    const caso = new ListarConversaciones(
+      repositorio,
+      whatsapp,
+      mockPacienteRepositorio(),
+    );
+
+    const [fila, ...resto] = await caso.ejecutar("user-nutri");
+
+    expect(resto).toHaveLength(0);
+    expect(fila).toMatchObject({
+      pacienteId: "pac-1",
+      noLeidos: 3,
+      noLeidosPortal: 1,
+      noLeidosWhatsapp: 2,
+      // El de WhatsApp es más nuevo: es el que se muestra y el canal que abre.
+      ultimoMensajeTexto: "hola por WhatsApp",
+      ultimoCanal: "WHATSAPP",
+    });
+  });
+
+  it("un paciente que solo escribió por WhatsApp también aparece", async () => {
+    const whatsapp = mockMensajeWhatsappRepositorio({
+      resumenPorPaciente: vi.fn(async () => [
+        {
+          pacienteId: "pac-9",
+          ultimoMensajeTexto: "¿mañana a qué hora?",
+          ultimoMensajeEn: new Date("2026-07-11T10:00:00Z"),
+          noLeidos: 1,
+        },
+      ]),
+    });
+    const caso = new ListarConversaciones(
+      mockMensajeriaRepositorio(),
+      whatsapp,
+      mockPacienteRepositorio({
+        obtenerPorIds: vi.fn(async () => [pacienteEjemplo({}, "pac-9")]),
+      }),
+    );
+
+    const [fila] = await caso.ejecutar("user-nutri");
+
+    expect(fila).toMatchObject({
+      pacienteId: "pac-9",
+      pacienteNombre: pacienteEjemplo().nombreCompleto,
+      noLeidos: 1,
+      noLeidosWhatsapp: 1,
+      ultimoCanal: "WHATSAPP",
+    });
   });
 });

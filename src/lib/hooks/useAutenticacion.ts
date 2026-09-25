@@ -8,5 +8,9 @@ export function useAutenticacion() {
     trpc.autenticacion.solicitarRecuperacion.useMutation();
   const restablecer = trpc.autenticacion.restablecer.useMutation();
 
-  return { solicitarRecuperacion, restablecer };
+  return {
+    solicitarRecuperacion,
+    restablecer,
+    verificarToken: trpc.autenticacion.verificarToken.useQuery,
+  };
 }

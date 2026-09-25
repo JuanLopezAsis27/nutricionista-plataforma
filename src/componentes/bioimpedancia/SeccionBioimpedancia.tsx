@@ -183,6 +183,7 @@ function TablaMediciones({
     { titulo: "Músculo (%)", valor: (m) => m.porcentajeMuscular },
     { titulo: "Grasa (kg)", valor: (m) => m.masaGrasaKg },
     { titulo: "Grasa (%)", valor: (m) => m.porcentajeGrasa },
+    { titulo: "Grasa visceral", valor: (m) => m.nivelGrasaVisceral },
   ];
 
   return (

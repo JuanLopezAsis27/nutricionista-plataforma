@@ -13,6 +13,7 @@
  * el worker de trabajos en segundo plano).
  */
 
+import { VerificadorDominioEmailDns } from "@/infraestructura/email/VerificadorDominioEmailDns";
 import { perezoso } from "./perezoso";
 import { urlPublica } from "@/infraestructura/configuracion/urlPublica";
 
@@ -77,7 +78,7 @@ import { BcryptHasheador } from "@/infraestructura/seguridad/BcryptHasheador";
 import { GeneradorTokensCrypto } from "@/infraestructura/seguridad/GeneradorTokensCrypto";
 import { GeneradorContrasenasCrypto } from "@/infraestructura/seguridad/GeneradorContrasenasCrypto";
 import { CifradorTokens } from "@/infraestructura/seguridad/CifradorTokens";
-import { FirmaConfirmacionTurno } from "@/infraestructura/seguridad/FirmaConfirmacionTurno";
+import { FirmaEnlacesTurno } from "@/infraestructura/seguridad/FirmaEnlacesTurno";
 import { AlmacenamientoMinIO } from "@/infraestructura/almacenamiento/AlmacenamientoMinIO";
 import { RelojSistema } from "@/infraestructura/fecha/RelojSistema";
 import { NodemailerServicioEmail } from "@/infraestructura/email/NodemailerServicioEmail";
@@ -159,8 +160,8 @@ function leerEnteroPositivo(
 }
 
 /** Firma y verifica los enlaces "Confirmar asistencia" de los recordatorios. */
-export const enlaceConfirmacionTurno = perezoso(
-  () => new FirmaConfirmacionTurno(process.env.AUTH_SECRET, urlPublica()),
+export const enlacesTurno = perezoso(
+  () => new FirmaEnlacesTurno(process.env.AUTH_SECRET, urlPublica()),
 );
 
 // --- Cliente de base de datos --------------------------------------------------
@@ -327,6 +328,9 @@ export const generadorContrasenas = perezoso(
 );
 export const almacenamiento = perezoso(() => new AlmacenamientoMinIO());
 export const reloj = perezoso(() => new RelojSistema());
+export const verificadorDominioEmail = perezoso(
+  () => new VerificadorDominioEmailDns(),
+);
 
 /**
  * Bus de eventos en tiempo real (Postgres LISTEN/NOTIFY). Lo usan los

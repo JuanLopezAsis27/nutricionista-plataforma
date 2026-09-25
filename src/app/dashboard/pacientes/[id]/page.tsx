@@ -6,6 +6,7 @@ import { ArrowLeft, Pencil, FileDown, CalendarPlus, Mic } from "lucide-react";
 import Link from "next/link";
 import { usePacientes } from "@/lib/hooks/usePacientes";
 import { useTurnos } from "@/lib/hooks/useTurnos";
+import { useMensajeria } from "@/lib/hooks/useMensajeria";
 import { formatearFecha } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import {
@@ -57,6 +58,10 @@ export default function PaginaDetallePaciente() {
 
   const { obtenerPorId } = usePacientes();
   const { porPaciente } = useTurnos();
+  // Sin leer de los dos canales, para que la pestaña avise antes de abrirla.
+  const { conversaciones } = useMensajeria();
+  const mensajesSinLeer =
+    conversaciones().data?.find((c) => c.pacienteId === id)?.noLeidos ?? 0;
 
   /**
    * El diálogo de edición se lee de la URL, NO de un `useState` inicializado
@@ -171,7 +176,14 @@ export default function PaginaDetallePaciente() {
           <TabsTrigger value="plan">Planes</TabsTrigger>
           <TabsTrigger value="suplementos">Suplementos</TabsTrigger>
           <TabsTrigger value="deporte">Deporte</TabsTrigger>
-          <TabsTrigger value="mensajes">Mensajes</TabsTrigger>
+          <TabsTrigger value="mensajes" className="gap-1.5">
+            Mensajes
+            {mensajesSinLeer > 0 && (
+              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                {mensajesSinLeer > 9 ? "9+" : mensajesSinLeer}
+              </span>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         {/* Evaluación: lo clínico que NO son medidas corporales. La

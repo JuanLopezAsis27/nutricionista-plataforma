@@ -10,6 +10,10 @@ import type {
   ConfirmarAsistenciaTurno,
   AsistenciaConfirmada,
 } from "@/aplicacion/casos-de-uso/turnos/ConfirmarAsistenciaTurno";
+import type {
+  CancelarTurnoPorPaciente,
+  TurnoCanceladoPorPaciente,
+} from "@/aplicacion/casos-de-uso/turnos/CancelarTurnoPorPaciente";
 import type { ISincronizadorCalendario } from "@/dominio/servicios/ISincronizadorCalendario";
 import type { IEstablecimientoRepositorio } from "@/dominio/repositorios/IEstablecimientoRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
@@ -46,6 +50,7 @@ export class ServicioTurno {
     private readonly sincronizador: ISincronizadorCalendario,
     private readonly establecimientos: IEstablecimientoRepositorio,
     private readonly pacientes: IPacienteRepositorio,
+    private readonly cancelarPorPacienteUC: CancelarTurnoPorPaciente,
   ) {}
 
   async agendarTurno(datos: AgendarTurnoDto): Promise<TurnoSalidaDto> {
@@ -100,6 +105,22 @@ export class ServicioTurno {
   /** El paciente confirma desde el enlace del recordatorio por email. */
   async confirmarAsistencia(turnoId: string): Promise<AsistenciaConfirmada> {
     return this.confirmarAsistenciaUC.ejecutar(turnoId);
+  }
+
+  /**
+   * El paciente cancela desde el enlace del recordatorio. El evento del
+   * calendario se borra acá, igual que en `cancelarTurno`: los dos caminos de
+   * cancelar tienen que dejar el calendario del paciente igual. Solo cuando
+   * el turno se canceló AHORA: reabrir el enlace no vuelve a tocar Google.
+   */
+  async cancelarPorPaciente(
+    turnoId: string,
+  ): Promise<TurnoCanceladoPorPaciente> {
+    const resultado = await this.cancelarPorPacienteUC.ejecutar(turnoId);
+    if (!resultado.yaEstabaCancelado) {
+      await this.sincronizador.alCancelar(turnoId);
+    }
+    return resultado;
   }
 
   async registrarCobroTurno(

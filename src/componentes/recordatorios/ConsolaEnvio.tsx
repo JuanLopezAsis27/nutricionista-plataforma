@@ -59,6 +59,14 @@ export function ConsolaEnvio() {
   const turnos = useMemo(() => consulta.data ?? [], [consulta.data]);
 
   const seleccionables = turnos.filter((t) => t.impedimento == null);
+
+  // Lo que va a pasar con la plantilla elegida (o la predeterminada) si hoy
+  // no puede salir normal. Los escalones con plantilla propia se avisan en la
+  // vista previa de cada turno y en el motivo del envío.
+  const plantillaElegida = (listaPlantillas.data ?? []).find((p) =>
+    plantillaId ? p.id === plantillaId : p.predeterminada,
+  );
+  const avisoPlantilla = plantillaElegida?.avisoEnvio ?? null;
   const todosTildados =
     seleccionables.length > 0 &&
     seleccionables.every((t) => seleccion.has(t.turnoId));
@@ -170,6 +178,13 @@ export function ConsolaEnvio() {
           </Button>
         </CardContent>
       </Card>
+
+      {avisoPlantilla && (
+        <p className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+          <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+          <span>{avisoPlantilla}</span>
+        </p>
+      )}
 
       {/* Sobrevive al cierre del resumen: es donde se declara qué salió. */}
       <PendientesDeConfirmar />

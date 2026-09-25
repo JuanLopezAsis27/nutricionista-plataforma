@@ -12,8 +12,9 @@ import type { ProyeccionMeta } from "@/dominio/servicios/proyeccionComposicion";
 
 /** El rango del esquema es el mismo de la entidad: una sola regla. */
 function acotada(campo: keyof typeof RANGOS_BIOIMPEDANCIA): z.ZodNumber {
-  const { min, max } = RANGOS_BIOIMPEDANCIA[campo];
-  return z.number().min(min).max(max);
+  const { min, max, entero } = RANGOS_BIOIMPEDANCIA[campo];
+  const numero = z.number().min(min).max(max);
+  return entero ? numero.int() : numero;
 }
 
 const medidasBioimpedanciaDto = z.object({
@@ -22,6 +23,7 @@ const medidasBioimpedanciaDto = z.object({
   masaGrasaKg: acotada("masaGrasaKg").optional().nullable(),
   porcentajeMuscular: acotada("porcentajeMuscular").optional().nullable(),
   porcentajeGrasa: acotada("porcentajeGrasa").optional().nullable(),
+  nivelGrasaVisceral: acotada("nivelGrasaVisceral").optional().nullable(),
   observaciones: z.string().max(2000).optional().nullable(),
 });
 
@@ -59,6 +61,8 @@ export interface MedicionBioimpedanciaDto {
   masaGrasaKg: number | null;
   porcentajeMuscular: number | null;
   porcentajeGrasa: number | null;
+  /** Nivel de la escala del equipo: entero y sin unidad. */
+  nivelGrasaVisceral: number | null;
   observaciones: string | null;
 }
 

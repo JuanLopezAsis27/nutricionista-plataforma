@@ -1,3 +1,6 @@
+import type { INotificacionRepositorio } from "@/dominio/repositorios/INotificacionRepositorio";
+import type { IVerificadorDominioEmail } from "@/dominio/servicios/IVerificadorDominioEmail";
+import { EmitirNotificacion } from "@/aplicacion/casos-de-uso/notificaciones/EmitirNotificacion";
 import type { IGeneradorContrasenas } from "@/dominio/servicios/IGeneradorContrasenas";
 import type { ITokenRefrescoRepositorio } from "@/dominio/repositorios/ITokenRefrescoRepositorio";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
@@ -39,6 +42,9 @@ export function crearServicioPaciente(deps: {
   tokensRefresco: ITokenRefrescoRepositorio;
   reloj: IRelojFecha;
   servicioEmail: IServicioEmail;
+  /** El aviso de la campana cuando la bienvenida del alta no sale. */
+  notificaciones: INotificacionRepositorio;
+  verificadorEmail: IVerificadorDominioEmail;
   configuracion: IConfiguracionRepositorio;
   nutricionistas: INutricionistaRepositorio;
   // El alta desde una ficha escrita crea, además del paciente, los registros
@@ -74,6 +80,8 @@ export function crearServicioPaciente(deps: {
       deps.configuracion,
       deps.pacientes,
       enviarEmailDeBienvenida,
+      deps.verificadorEmail,
+      new EmitirNotificacion(deps.notificaciones, deps.reloj),
     ),
     new EnviarBienvenidaMasiva(
       deps.pacientes,

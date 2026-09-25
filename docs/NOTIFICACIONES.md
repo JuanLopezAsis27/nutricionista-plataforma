@@ -5,11 +5,22 @@ tiene que mirar. Lo que hay que entender antes de tocarlo es que sus fuentes son
 de **dos clases distintas**, y que la diferencia no es de implementación sino de
 qué significa cada cosa.
 
+## Las alertas de seguimiento NO van en la campana
+
+Estuvieron y se sacaron. Una alerta («no registra el peso hace 15 días») es un
+estado del paciente que se trabaja con tiempo; la campana es para lo que acaba
+de pasar (te escribió, canceló el turno). Mezcladas, las alertas —que son
+muchas y se regeneran solas— tapaban los avisos urgentes y hacían que el globo
+nunca bajara de 9+. Viven solo en el panel **Alertas de seguimiento** del
+dashboard (`PanelAlertas`), que tiene además el «Revisar ahora» que antes
+estaba en la campana. Lo que sigue sobre alertas explica la diferencia de
+naturaleza, que sigue valiendo.
+
 ## Derivadas vs. persistidas
 
 | | **Derivadas** | **Persistidas** |
 | --- | --- | --- |
-| Cuáles | Alerta de seguimiento, correo fallido | Mensaje del chat, WhatsApp entrante, turno confirmado |
+| Cuáles | Correo fallido (y, en el dashboard, la alerta de seguimiento) | Mensaje del chat, WhatsApp entrante, turnos, bienvenida fallida |
 | De dónde salen | De su propia tabla, leídas al vuelo | De `notificaciones` |
 | Qué son | Un ESTADO que hoy es verdadero | Un HECHO que ya ocurrió |
 | Cómo se apagan | Resolviendo el hecho (resolver la alerta, leer el mensaje) | Marcándolas vistas |
@@ -32,6 +43,7 @@ mitad de sus filas.
 | El paciente escribe por el chat de la app | `EnviarMensaje` | sí |
 | El paciente escribe por WhatsApp | `ProcesarMensajeEntranteWhatsapp` | sí |
 | El paciente confirma el turno desde el enlace del recordatorio | `ConfirmarAsistenciaTurno` | no |
+| La bienvenida del alta no se pudo mandar | `EnviarBienvenidaAlAlta` | no |
 
 ### El mensaje del chat estuvo del lado derivado
 
@@ -55,6 +67,39 @@ Mensajes, que es donde se responde.
 hecho que ya ocurrió, no algo que un barrido pueda regenerar. En el feed se ve
 como un aviso de TURNO. Cuando un botón actuó, no se suma además el aviso de
 «escribió por WhatsApp»: dirían lo mismo dos veces.
+
+### La cancelación
+
+Dos avisos distintos, porque son dos hechos distintos (migración 76):
+
+- `TURNO_CANCELADO` — el paciente canceló desde el enlace del recordatorio
+  (`CancelarTurnoPorPaciente`). El turno YA está cancelado y el horario libre.
+  Además del aviso persistido sale un evento `turno.cancelado` (toast y
+  refresco de la agenda) y un email, igual que la confirmación.
+- `CANCELACION_PEDIDA` — tocó «pedir cancelar» en una respuesta rápida de
+  WhatsApp. El turno NO se tocó: el aviso dice que sigue en la agenda hasta
+  que lo cancele el profesional.
+
+### La bienvenida que no salió
+
+`BIENVENIDA_FALLIDA` (migración 77) sale cuando al dar de alta un paciente su
+email de bienvenida no se pudo mandar. Sin el aviso, el alta decía «creado» y
+nadie se enteraba de que el paciente se quedó sin sus datos de acceso. Se
+detectan dos casos:
+
+- **El dominio no recibe correo** (`ana@gmial.com`): se pregunta por DNS antes
+  de mandar (`IVerificadorDominioEmail`, MX y si no A/AAAA) y no se manda. Si
+  el DNS no contesta, se manda igual: un problema de red propio no puede
+  convertirse en «el email no existe».
+- **El servidor de correo lo rechaza** al enviar: el motivo técnico va en el
+  detalle.
+
+Lo que **no** se puede detectar: una casilla inexistente en un dominio que sí
+recibe (`anaaa@gmail.com`). El servidor la acepta y el rebote llega minutos
+después a una casilla que la app no lee.
+
+El aviso enlaza a la ficha del paciente, que es donde se corrige el email; la
+bienvenida se reenvía desde Pacientes. En el feed se ve como un CORREO.
 
 ### El agrupado: una línea por paciente, no una por mensaje
 
@@ -105,6 +150,16 @@ Lo que se congela es el relato de un hecho, no un cálculo clínico.
 ## Marcar como vista
 
 - **Al abrirla**: tocar la notificación navega a su pantalla y la marca vista.
+- **Al abrir la conversación, por donde sea**: el aviso de un mensaje se da
+  por visto cuando se abre ese chat desde la bandeja, la ficha o la tarjeta
+  del inicio, no solo tocando la notificación
+  (`MarcarAvisosDeConversacionVistos`). Si el mensaje ya se leyó, el aviso que
+  lo anuncia no tiene nada más que decir. Solo el aviso de ESE canal —abrir el
+  portal no atiende lo que escribió por WhatsApp— y solo los de mensajes: un
+  pedido de reprogramar o cancelar es un pendiente del turno.
+- **Los avisos de WhatsApp abren WhatsApp**: enlazan con `&canal=whatsapp`. Sin
+  eso llevaban al chat del portal, que mostraba otra conversación. La
+  migración 77 corrigió también los que ya estaban guardados.
 - **Con el tilde**: cada notificación sin ver tiene su botón, para atenderla sin
   tener que ir a la pantalla que enlaza.
 - **"Marcar vistas"**: aparece en el encabezado solo si hay alguna pendiente.
@@ -117,7 +172,7 @@ Marcarla es **idempotente**: si ya estaba vista, conserva la fecha original.
 Pisarla haría que «visto hace un mes» se volviera «visto recién» cada vez que se
 abre la campana.
 
-El globo suma: alertas pendientes + notificaciones sin ver. Los correos exitosos
+El globo cuenta las notificaciones sin ver. Los correos exitosos
 no entran (son un registro automático y llenarían la campana de ruido); los
 fallidos sí, porque un mail que no llegó al paciente es accionable, pero tampoco
 suman al globo —no tienen estado de leído—.

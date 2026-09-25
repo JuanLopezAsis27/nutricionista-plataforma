@@ -15,6 +15,12 @@ import {
   variablesEjemploCliente,
 } from "@/lib/plantillaPreview";
 import { useNombreProfesional } from "@/lib/hooks/useNombreProfesional";
+import { useConfiguracion } from "@/lib/hooks/useConfiguracion";
+import type { BotonCancelacion } from "@/dominio/entidades/PlantillaEmailRecordatorio";
+import {
+  MAX_LARGO_MENSAJE_CANCELACION,
+  MENSAJE_CANCELACION_POR_DEFECTO,
+} from "@/dominio/servicios/cancelacionPorWhatsapp";
 import { Button } from "@/componentes/ui/button";
 import { Badge } from "@/componentes/ui/badge";
 import { Input } from "@/componentes/ui/input";
@@ -108,6 +114,13 @@ export function GestionPlantillasEmailRecordatorio() {
                   {!plantilla.incluirBotonConfirmacion && (
                     <Badge variant="outline">Sin botón de confirmar</Badge>
                   )}
+                  {plantilla.botonCancelacion !== "NINGUNO" && (
+                    <Badge variant="outline">
+                      {plantilla.botonCancelacion === "APP"
+                        ? "Cancela en la app"
+                        : "Cancela por WhatsApp"}
+                    </Badge>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -198,6 +211,11 @@ function FormularioPlantillaEmailRecordatorio({
   const [activa, setActiva] = useState(true);
   const [incluirBotonConfirmacion, setIncluirBotonConfirmacion] =
     useState(true);
+  const [botonCancelacion, setBotonCancelacion] =
+    useState<BotonCancelacion>("NINGUNO");
+  const [mensajeCancelacion, setMensajeCancelacion] = useState("");
+  const sinNumeroCancelaciones =
+    useConfiguracion().obtener().data?.whatsappCancelaciones == null;
 
   useEffect(() => {
     if (!inicial) return;
@@ -208,6 +226,8 @@ function FormularioPlantillaEmailRecordatorio({
     setPredeterminada(inicial.predeterminada);
     setActiva(inicial.activa);
     setIncluirBotonConfirmacion(inicial.incluirBotonConfirmacion);
+    setBotonCancelacion(inicial.botonCancelacion);
+    setMensajeCancelacion(inicial.mensajeCancelacion ?? "");
   }, [inicial]);
 
   const variables = variablesEjemploCliente(useNombreProfesional());
@@ -227,6 +247,8 @@ function FormularioPlantillaEmailRecordatorio({
       predeterminada,
       activa,
       incluirBotonConfirmacion,
+      botonCancelacion,
+      mensajeCancelacion: mensajeCancelacion.trim() || null,
     };
     if (inicial) {
       actualizarPlantillaEmail.mutate(
@@ -361,6 +383,60 @@ function FormularioPlantillaEmailRecordatorio({
             </span>
           </span>
         </label>
+
+        <div className="space-y-1.5">
+          <Label>Botón «Cancelar turno»</Label>
+          <Select
+            value={botonCancelacion}
+            onValueChange={(v) => setBotonCancelacion(v as BotonCancelacion)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="NINGUNO">Sin botón de cancelar</SelectItem>
+              <SelectItem value="APP">
+                Cancela en la app (el turno se cancela solo)
+              </SelectItem>
+              <SelectItem value="WHATSAPP">
+                Abre un chat de WhatsApp con un mensaje
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            {botonCancelacion === "APP"
+              ? "El paciente confirma en una página y el turno queda cancelado, con la fecha en que lo hizo. Te llega un aviso."
+              : botonCancelacion === "WHATSAPP"
+                ? "Abre el chat con el número de cancelaciones de Configuración → WhatsApp. No cancela el turno: lo cancelás vos al leer el mensaje."
+                : "Se agrega al final del email, en turnos pendientes y confirmados."}
+          </p>
+        </div>
+
+        {botonCancelacion === "WHATSAPP" && (
+          <div className="space-y-1.5">
+            <Label htmlFor="ple-mensaje-cancelacion">
+              Mensaje de cancelación
+            </Label>
+            <Textarea
+              id="ple-mensaje-cancelacion"
+              rows={3}
+              maxLength={MAX_LARGO_MENSAJE_CANCELACION}
+              placeholder={MENSAJE_CANCELACION_POR_DEFECTO}
+              value={mensajeCancelacion}
+              onChange={(e) => setMensajeCancelacion(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Le queda escrito al paciente en el chat. Admite las mismas
+              variables que el email. Vacío, sale el texto de ejemplo.
+            </p>
+            {sinNumeroCancelaciones && (
+              <p className="text-xs text-destructive">
+                Falta el número de cancelaciones en Configuración → WhatsApp.
+                Sin él, el email sale sin este botón.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Columna de vista previa */}

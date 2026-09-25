@@ -17,6 +17,7 @@ import { ReprogramarTurno } from "@/aplicacion/casos-de-uso/turnos/ReprogramarTu
 import { RegistrarCobroTurno } from "@/aplicacion/casos-de-uso/turnos/RegistrarCobroTurno";
 import { EliminarTurno } from "@/aplicacion/casos-de-uso/turnos/EliminarTurno";
 import { ConfirmarAsistenciaTurno } from "@/aplicacion/casos-de-uso/turnos/ConfirmarAsistenciaTurno";
+import { CancelarTurnoPorPaciente } from "@/aplicacion/casos-de-uso/turnos/CancelarTurnoPorPaciente";
 import { ServicioTurno } from "@/aplicacion/servicios/ServicioTurno";
 
 /** Arma el servicio de Turnos con sus casos de uso. */
@@ -56,5 +57,14 @@ export function crearServicioTurno(deps: {
     deps.sincronizador,
     deps.establecimientos,
     deps.pacientes,
+    new CancelarTurnoPorPaciente(
+      deps.turnos,
+      deps.pacientes,
+      deps.usuarios,
+      deps.servicioEmail,
+      deps.bus,
+      new EmitirNotificacion(deps.notificaciones, deps.reloj),
+      deps.reloj,
+    ),
   );
 }

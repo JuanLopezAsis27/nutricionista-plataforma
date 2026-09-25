@@ -9,6 +9,7 @@ import type {
   EstadoEntregaWhatsapp,
 } from "@/aplicacion/casos-de-uso/whatsapp/RegistrarEstadoWhatsapp";
 import type { EnviarPlantillaWhatsapp } from "@/aplicacion/casos-de-uso/whatsapp/EnviarPlantillaWhatsapp";
+import type { MarcarWhatsappLeidos } from "@/aplicacion/casos-de-uso/whatsapp/MarcarWhatsappLeidos";
 import type { MensajeWhatsapp } from "@/dominio/entidades/MensajeWhatsapp";
 import type {
   HiloWhatsappSalidaDto,
@@ -30,7 +31,13 @@ export class ServicioWhatsapp {
     private readonly procesarEntranteUC: ProcesarMensajeEntranteWhatsapp,
     private readonly registrarEstadoUC: RegistrarEstadoWhatsapp,
     private readonly enviarPlantillaUC: EnviarPlantillaWhatsapp,
+    private readonly marcarLeidosUC: MarcarWhatsappLeidos,
   ) {}
+
+  /** El profesional abrió el chat: leídos, y el aviso de la campana visto. */
+  async marcarLeidos(pacienteId: string): Promise<void> {
+    await this.marcarLeidosUC.ejecutar(pacienteId);
+  }
 
   async obtenerHilo(pacienteId: string): Promise<HiloWhatsappSalidaDto> {
     const hilo = await this.hiloUC.ejecutar(pacienteId);

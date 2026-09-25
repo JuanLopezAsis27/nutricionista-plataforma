@@ -20,6 +20,17 @@ export const routerWhatsapp = crearRouter({
       return await ctx.servicios.whatsapp.obtenerHilo(input.pacienteId);
     }),
 
+  /**
+   * Abrir el chat: los entrantes pasan a leídos y el aviso de la campana a
+   * visto. Lo llama el hilo al abrirse y cuando entra un mensaje nuevo.
+   */
+  marcarLeidos: nutricionistaProcedimiento
+    .input(pacienteObjetivoDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.whatsapp.marcarLeidos(input.pacienteId);
+      return { ok: true };
+    }),
+
   enviarMensaje: nutricionistaProcedimiento
     .input(enviarMensajeWhatsappDto)
     .mutation(async ({ ctx, input }) => {

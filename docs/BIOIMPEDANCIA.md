@@ -15,6 +15,7 @@ Lo que informa el equipo, tal cual:
 | Porcentaje muscular  | %      | 1–90     |
 | Masa grasa           | kg     | 0–200    |
 | Porcentaje graso     | %      | 1–75     |
+| Grasa visceral       | nivel  | 1–59, entero |
 
 Más la fecha y observaciones. Una medición por paciente y fecha
 (`UNIQUE (pacienteId, fecha)`), como la antropometría y la evolución.
@@ -24,6 +25,28 @@ Los rangos viven una sola vez en `RANGOS_BIOIMPEDANCIA`
 formulario y las metas. Además la entidad rechaza un tejido en kg mayor que el
 peso (el error de tipeo típico al pasar los números de la pantalla de la
 balanza) y porcentajes que juntos superen el 100 %.
+
+### Grasa visceral: un nivel, no una masa (migración 75)
+
+La balanza no informa la grasa visceral en kg ni en %: la informa como un
+**nivel**, un entero de la escala del equipo. Por eso la columna es `INTEGER`
+—el resto de la tabla es `DECIMAL`— y el rango lleva `entero: true`, que
+respetan la entidad, el DTO (`.int()`), el formulario y las metas: una meta de
+nivel 8,5 no se alcanza nunca porque ninguna balanza la muestra.
+
+El rango 1–59 es el de Tanita, la escala más amplia en uso (Omron llega a 30).
+Se acepta la más amplia porque el rango está para frenar un error de tipeo, no
+para decidir qué equipo usa el consultorio. La base, además, tiene un CHECK que
+solo impide el cero y los negativos.
+
+Al no tener unidad, `RANGOS_BIOIMPEDANCIA` la deja vacía y los mensajes se
+arman con `describirRangoBioimpedancia` («entre 1 y 59», sin el espacio
+colgado). Va en su propio indicador y su propio gráfico, **nunca** junto a la
+grasa en kg o %: son magnitudes distintas y compartir eje las haría parecer
+comparables.
+
+`GRASA_VISCERAL` se agregó al final del enum `VariableBioimpedancia`
+(`ADD VALUE`); como con `MetodoGrasa`, sus valores solo se agregan.
 
 ## Por qué es un módulo aparte y no parte de la antropometría
 
@@ -62,8 +85,10 @@ otro número que el que el paciente vio en la balanza.
 
 ## El dashboard
 
-- Tres indicadores de la última medición (peso, músculo, grasa) con la
-  diferencia contra la anterior.
+- Cuatro indicadores de la última medición (peso, músculo, grasa y grasa
+  visceral) con la diferencia contra la anterior.
+- La grasa visceral tiene su propio gráfico de barras, al lado del peso y en
+  tinta neutra (una sola serie: el color no identifica nada).
 - Músculo y grasa en barras (consultas discretas, como en la antropometría),
   en **kg** y en **%**. El **peso** va aparte y como **línea de tiempo**
   (`componentes/comunes/LineaDeTiempo.tsx`): es la serie que se sigue de punta

@@ -28,6 +28,13 @@ export interface VistaPreviaRecordatorio {
    * el texto la baja a texto libre, y eso fuera de la ventana de 24 h no sale.
    */
   usaPlantillaAprobada: boolean;
+  /**
+   * La plantilla que corresponde no puede salir normal hoy (en revisión,
+   * rechazada…): qué pasa en su lugar. null si sale normal.
+   */
+  avisoPlantilla: string | null;
+  /** Sin retocar el texto no se va a mandar: bloqueada en Meta y con botones. */
+  bloqueadaSinEditar: boolean;
 }
 
 /**
@@ -109,6 +116,8 @@ export class ObtenerVistaPreviaRecordatorio {
       mensaje: armado.mensaje,
       modo: await this.proveedor.modoActual(),
       usaPlantillaAprobada: armado.envioPlantilla != null,
+      avisoPlantilla: plantilla.avisoDeEnvio(),
+      bloqueadaSinEditar: plantilla.noSeEnviaSinMeta,
     };
   }
 }

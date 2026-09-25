@@ -19,6 +19,10 @@ const ESTADOS_ACTIVOS = new Set(["PENDIENTE", "CONFIRMADO"]);
  *   distinto.
  * - PEDIR_REPROGRAMACION no toca el turno: reprogramar necesita acordar otro
  *   horario, y eso lo hace el profesional. Deja el aviso en la campana.
+ * - PEDIR_CANCELACION tampoco lo toca: avisa en la campana y el profesional
+ *   lo cancela al leerlo. Una respuesta rápida se toca sin querer y no tiene
+ *   segundo paso; la cancelación sin intervención es la del enlace
+ *   (`/cancelar-turno`), que sí lo pide.
  *
  * El turno tiene que ser de ESE paciente: el payload lo arma la app, pero
  * igual se verifica, porque es un id que viene de afuera.
@@ -57,12 +61,23 @@ export class AtenderBotonWhatsapp {
     }
 
     const fecha = formatearFechaCorta(turno.fecha);
+    if (boton.accion === "PEDIR_CANCELACION") {
+      await this.emitirNotificacion.ejecutar({
+        tipo: "CANCELACION_PEDIDA",
+        titulo: `${paciente.nombreCompleto} pidió cancelar su turno`,
+        detalle: `El del ${fecha} a las ${turno.hora}. Sigue en la agenda hasta que lo canceles vos.`,
+        pacienteId: paciente.id,
+        enlace: `/dashboard/mensajes?paciente=${paciente.id}&canal=whatsapp`,
+      });
+      return true;
+    }
+
     await this.emitirNotificacion.ejecutar({
       tipo: "REPROGRAMACION_PEDIDA",
       titulo: `${paciente.nombreCompleto} pidió reprogramar su turno`,
       detalle: `El del ${fecha} a las ${turno.hora}. Escribile por WhatsApp para acordar otro horario.`,
       pacienteId: paciente.id,
-      enlace: `/dashboard/mensajes?paciente=${paciente.id}`,
+      enlace: `/dashboard/mensajes?paciente=${paciente.id}&canal=whatsapp`,
     });
     return true;
   }

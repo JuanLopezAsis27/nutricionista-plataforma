@@ -6,7 +6,11 @@ import type {
   ObjetivoBioimpedanciaDto,
   ValorActualBioimpedanciaDto,
 } from "@/aplicacion/dtos/bioimpedancia.dto";
-import { RANGOS_BIOIMPEDANCIA } from "@/dominio/entidades/Bioimpedancia";
+import {
+  RANGOS_BIOIMPEDANCIA,
+  describirRangoBioimpedancia,
+  type RangoBioimpedancia,
+} from "@/dominio/entidades/Bioimpedancia";
 import {
   MEDIDA_DE_VARIABLE_BIOIMPEDANCIA,
   VARIABLES_BIOIMPEDANCIA,
@@ -36,12 +40,7 @@ import { TarjetaMeta } from "@/componentes/antropometria/TarjetaMeta";
 import { useTemaComposicion } from "@/componentes/antropometria/useTemaComposicion";
 
 /** Etiqueta, unidad y rango de una variable: los de la medida de la que sale. */
-function definicion(variable: VariableBioimpedancia): {
-  etiqueta: string;
-  unidad: string;
-  min: number;
-  max: number;
-} {
+function definicion(variable: VariableBioimpedancia): RangoBioimpedancia {
   return RANGOS_BIOIMPEDANCIA[MEDIDA_DE_VARIABLE_BIOIMPEDANCIA[variable]];
 }
 
@@ -201,7 +200,8 @@ function FormularioObjetivoBioimpedancia({
   const [notas, setNotas] = useState<string>(objetivoInicial?.notas ?? "");
   const [error, setError] = useState<string | null>(null);
 
-  const { etiqueta, unidad, min, max } = definicion(variable);
+  const rango = definicion(variable);
+  const { etiqueta, unidad, min, max } = rango;
   const actual = actualDe(variable);
 
   const alCambiarVariable = (nueva: VariableBioimpedancia) => {
@@ -219,7 +219,11 @@ function FormularioObjetivoBioimpedancia({
       return;
     }
     if (numero < min || numero > max) {
-      setError(`Tiene que estar entre ${min} y ${max} ${unidad}.`);
+      setError(`Tiene que estar ${describirRangoBioimpedancia(rango)}.`);
+      return;
+    }
+    if (rango.entero && !Number.isInteger(numero)) {
+      setError(`${etiqueta} es un nivel: va un número entero.`);
       return;
     }
     guardarObjetivoBioimpedancia.mutate(
@@ -266,11 +270,11 @@ function FormularioObjetivoBioimpedancia({
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="bia-meta-valor">
-            {etiqueta} objetivo ({unidad})
+            {etiqueta} objetivo ({unidad || "nivel"})
           </Label>
           <Input
             id="bia-meta-valor"
-            inputMode="decimal"
+            inputMode={rango.entero ? "numeric" : "decimal"}
             value={valor}
             onChange={(e) => {
               setValor(e.target.value);
@@ -279,7 +283,7 @@ function FormularioObjetivoBioimpedancia({
           />
           <p className="text-[11px] text-muted-foreground">
             {actual != null
-              ? `Hoy: ${formatearMedida(actual)} ${unidad}`
+              ? `Hoy: ${formatearMedida(actual)}${unidad ? ` ${unidad}` : ""}`
               : "Sin dato en la última medición"}
           </p>
         </div>

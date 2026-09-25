@@ -25,6 +25,7 @@ import {
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { EstadoBadge } from "@/componentes/comunes/EstadoBadge";
+import { InfoCancelacion } from "@/componentes/turnos/InfoCancelacion";
 
 /** Transiciones de estado permitidas (espejo de la máquina del dominio). */
 const TRANSICIONES: Record<EstadoTurno, EstadoTurno[]> = {
@@ -176,6 +177,7 @@ export function DetalleTurno({
           </Button>
         ))}
       </div>
+      <InfoCancelacion turno={turno} />
 
       {turno.notas && (
         <p className="flex items-start gap-1.5 rounded-md bg-muted/60 p-2 text-xs">
