@@ -21,3 +21,8 @@ export const restablecerPasswordDto = z.object({
   password: passwordNuevaDto,
 });
 export type RestablecerPasswordDto = z.infer<typeof restablecerPasswordDto>;
+
+/** El token del enlace, para saber si sirve antes de mostrar el formulario. */
+export const verificarTokenRecuperacionDto = z.object({
+  token: z.string().min(1).max(500),
+});

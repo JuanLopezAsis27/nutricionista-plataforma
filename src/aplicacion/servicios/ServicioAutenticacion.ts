@@ -1,5 +1,6 @@
 import type { SolicitarRecuperacionPassword } from "@/aplicacion/casos-de-uso/autenticacion/SolicitarRecuperacionPassword";
 import type { RestablecerPassword } from "@/aplicacion/casos-de-uso/autenticacion/RestablecerPassword";
+import type { VerificarTokenRecuperacion } from "@/aplicacion/casos-de-uso/autenticacion/VerificarTokenRecuperacion";
 import type { EmitirTokenRefresco } from "@/aplicacion/casos-de-uso/autenticacion/EmitirTokenRefresco";
 import type { RenovarSesion } from "@/aplicacion/casos-de-uso/autenticacion/RenovarSesion";
 import type { RevocarSesionesPersistentes } from "@/aplicacion/casos-de-uso/autenticacion/RevocarSesionesPersistentes";
@@ -36,7 +37,18 @@ export class ServicioAutenticacion {
     private readonly renovarUC: RenovarSesion,
     private readonly revocarUC: RevocarSesionesPersistentes,
     private readonly limpiarUC: LimpiarSesionesCaducadas,
+    private readonly verificarTokenUC: VerificarTokenRecuperacion,
   ) {}
+
+  /**
+   * Si el enlace de recuperación todavía sirve. Lo pregunta la página al
+   * abrirse, para no mostrar un formulario que después va a rechazar.
+   */
+  async verificarTokenRecuperacion(
+    token: string,
+  ): Promise<{ vigente: boolean }> {
+    return { vigente: await this.verificarTokenUC.ejecutar(token) };
+  }
 
   /** Siempre resuelve OK aunque el email no exista (no revela cuentas). */
   async solicitarRecuperacion(

@@ -8,6 +8,7 @@ import {
 import {
   solicitarRecuperacionDto,
   restablecerPasswordDto,
+  verificarTokenRecuperacionDto,
 } from "@/aplicacion/dtos/autenticacion.dto";
 
 /**
@@ -47,6 +48,23 @@ export const routerAutenticacion = crearRouter({
 
       return await ejecutarGlobal(() =>
         ctx.servicios.autenticacion.solicitarRecuperacion({ ...input, email }),
+      );
+    }),
+
+  // ¿El enlace todavía sirve? Lo pregunta la página al abrirse. Mismo límite
+  // por IP que restablecer: es otra forma de probar tokens contra la base.
+  verificarToken: publicoProcedimiento
+    .input(verificarTokenRecuperacionDto)
+    .query(async ({ ctx, input }) => {
+      const porIp = limitadorRestablecer.intentar(`verificar:${ctx.ip}`);
+      if (!porIp.permitido) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: "Demasiados intentos. Probá de nuevo en unos minutos.",
+        });
+      }
+      return await ejecutarGlobal(() =>
+        ctx.servicios.autenticacion.verificarTokenRecuperacion(input.token),
       );
     }),
 

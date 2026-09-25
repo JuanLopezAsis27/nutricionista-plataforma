@@ -1,3 +1,4 @@
+import { VerificarTokenRecuperacion } from "@/aplicacion/casos-de-uso/autenticacion/VerificarTokenRecuperacion";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import type { ITokenRecuperacionRepositorio } from "@/dominio/repositorios/ITokenRecuperacionRepositorio";
 import type { ITokenRefrescoRepositorio } from "@/dominio/repositorios/ITokenRefrescoRepositorio";
@@ -71,6 +72,12 @@ export function crearServicioAutenticacion(deps: {
       deps.tokensRefresco,
       deps.reloj,
       deps.diasSesionPersistente,
+    ),
+    new VerificarTokenRecuperacion(
+      deps.usuarios,
+      deps.tokens,
+      deps.generador,
+      deps.reloj,
     ),
   );
 }
