@@ -77,6 +77,13 @@ export function MiPerfil() {
           <CardTitle>Cambiar contraseña</CardTitle>
           <CardDescription>
             Escribí la que usás hoy y elegí una nueva.
+            {perfil?.passwordProvisional && (
+              <>
+                {" "}
+                La que tenés ahora la eligió tu nutricionista: te recomendamos
+                cambiarla por una que solo sepas vos.
+              </>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>

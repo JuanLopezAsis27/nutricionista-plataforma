@@ -4,6 +4,7 @@ import { CrearPaciente } from "./CrearPaciente";
 import {
   mockPacienteRepositorio,
   mockUsuarioRepositorio,
+  mockCuentaPacienteRepositorio,
   mockHistoriaClinicaRepositorio,
   mockAntropometriaRepositorio,
   mockLaboratorioRepositorio,
@@ -30,6 +31,7 @@ function armar(
   const crearPaciente = new CrearPaciente(
     mockPacienteRepositorio(),
     mockUsuarioRepositorio(),
+    mockCuentaPacienteRepositorio(),
     mockHasheador(),
     mockConfiguracionRepositorio(),
   );

@@ -1,7 +1,10 @@
 import type { IPlantillaEmailRepositorio } from "@/dominio/repositorios/IPlantillaEmailRepositorio";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
-import { CLAVE_BIENVENIDA } from "@/dominio/entidades/PlantillaEmail";
+import {
+  CLAVE_BIENVENIDA,
+  CLAVE_BIENVENIDA_CUENTA_EXISTENTE,
+} from "@/dominio/entidades/PlantillaEmail";
 import { variablesBienvenida } from "@/aplicacion/casos-de-uso/secretaria/variables";
 
 /** Lo que hace falta para darle la bienvenida a un paciente recién creado. */
@@ -11,6 +14,12 @@ export interface DatosBienvenida {
   email: string | null;
   /** Contraseña de su cuenta, tal como la cargó el profesional en el alta. */
   contrasena: string;
+  /**
+   * La cuenta no es solo de este consultorio (la persona ya la tenía, o la
+   * comparte con otro): sale la plantilla BIENVENIDA_CUENTA_EXISTENTE, que no
+   * lleva contraseña, en vez de la de siempre.
+   */
+  cuentaExistente?: boolean;
 }
 
 /**
@@ -28,6 +37,9 @@ export interface DatosBienvenida {
  *
  * Mandarla es decisión del profesional: solo sale si pone {{contrasena}} en la
  * plantilla.
+ *
+ * A quien ya tenía cuenta (paciente también de otro consultorio) le llega otra
+ * plantilla, sin contraseña: «entrá con la que ya usás».
  */
 export class EnviarEmailDeBienvenida {
   constructor(
@@ -49,7 +61,11 @@ export class EnviarEmailDeBienvenida {
 
   async ejecutar(datos: DatosBienvenida): Promise<boolean> {
     if (!datos.email) return false;
-    const plantilla = await this.plantillas.obtenerPorClave(CLAVE_BIENVENIDA);
+    const plantilla = await this.plantillas.obtenerPorClave(
+      datos.cuentaExistente
+        ? CLAVE_BIENVENIDA_CUENTA_EXISTENTE
+        : CLAVE_BIENVENIDA,
+    );
     if (!plantilla) return false;
 
     const { asunto, html } = plantilla.renderizar(
@@ -57,7 +73,8 @@ export class EnviarEmailDeBienvenida {
         nombrePaciente: datos.nombrePaciente,
         nombreProfesional: await this.nutricionistas.nombreDelActual(),
         email: datos.email,
-        contrasena: datos.contrasena,
+        // Nunca en la de cuenta existente: la contraseña es de la persona.
+        contrasena: datos.cuentaExistente ? "" : datos.contrasena,
       }),
     );
     await this.servicioEmail.enviar({ para: datos.email, asunto, html });

@@ -19,6 +19,7 @@ import { SidebarNav, type EnlaceNav } from "@/componentes/layout/SidebarNav";
 import { ToggleTema } from "@/componentes/comunes/ToggleTema";
 import { BotonInstalarHeader } from "@/componentes/pwa/BotonInstalarHeader";
 import { useMensajeria } from "@/lib/hooks/useMensajeria";
+import { SelectorConsultorio } from "@/componentes/consultorios/SelectorConsultorio";
 
 /** Barra lateral del portal del paciente (colapsable, con menú móvil). */
 export function BarraLateralPaciente({ email }: { email: string }) {
@@ -61,6 +62,8 @@ export function BarraLateralPaciente({ email }: { email: string }) {
       claveAlmacen="sidebar-paciente-colapsada"
       accionesMovil={
         <>
+          {/* Solo aparece con dos o más consultorios (migración 78). */}
+          <SelectorConsultorio />
           <BotonInstalarHeader />
           <ToggleTema />
         </>
@@ -69,6 +72,7 @@ export function BarraLateralPaciente({ email }: { email: string }) {
       // sidebar es su único lugar fijo para acciones.
       pie={
         <>
+          <SelectorConsultorio />
           <BotonInstalarHeader />
           <ToggleTema />
         </>

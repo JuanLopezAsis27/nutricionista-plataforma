@@ -44,6 +44,8 @@ export class EnviarBienvenidaAlAlta {
   async ejecutar(datos: {
     paciente: Paciente;
     contrasena: string;
+    /** Se vinculó una cuenta que la persona ya tenía (ver `CrearPaciente`). */
+    cuentaExistente?: boolean;
   }): Promise<void> {
     const config =
       (await this.configuracion.obtener()) ??
@@ -71,6 +73,7 @@ export class EnviarBienvenidaAlAlta {
         nombrePaciente: paciente.nombreCompleto,
         email,
         contrasena: datos.contrasena,
+        cuentaExistente: datos.cuentaExistente,
       });
     } catch (error) {
       console.error("[bienvenida] no se pudo enviar el email:", error);

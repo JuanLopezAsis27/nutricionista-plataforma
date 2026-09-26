@@ -10,6 +10,11 @@ export interface MiPerfil extends IdentidadVisible {
   usuarioId: string;
   email: string;
   rol: RolUsuario;
+  /**
+   * La contraseña la eligió un profesional: el portal le recomienda a la
+   * persona cambiarla (sin obligarla). Se va sola al cambiarla.
+   */
+  passwordProvisional: boolean;
 }
 
 /**
@@ -24,6 +29,11 @@ export interface MiPerfil extends IdentidadVisible {
  * la configuración, y tener dos puertas para el mismo dato termina en dos
  * nombres distintos.
  *
+ * El paciente puede tener una ficha en cada consultorio donde se atiende
+ * (migración 78): el nombre sale de la del consultorio ACTIVO de la sesión,
+ * que es la que está mirando. Por eso `pacienteId` lo pasa el router desde la
+ * sesión y no se lee de la cuenta, que ya no apunta a una ficha sola.
+ *
  * Un SUPERADMIN no tiene ni ficha ni consultorio, así que se lo nombra por su
  * email. No es un caso hipotético: la cuenta existe y también puede querer su
  * foto.
@@ -35,7 +45,10 @@ export class ObtenerMiPerfil {
     private readonly nutricionistas: INutricionistaRepositorio,
   ) {}
 
-  async ejecutar(usuarioId: string): Promise<MiPerfil> {
+  async ejecutar(
+    usuarioId: string,
+    pacienteActivoId: string | null = null,
+  ): Promise<MiPerfil> {
     const usuario = await this.usuarios.obtenerPorId(usuarioId);
     if (!usuario) {
       throw new ErrorUsuarioNoEncontrado(usuarioId);
@@ -45,6 +58,7 @@ export class ObtenerMiPerfil {
       usuarioId: usuario.id,
       email: usuario.email,
       rol: usuario.rol,
+      passwordProvisional: usuario.passwordProvisional,
       // `?? null` explícito: el DTO de salida declara `nullable()` y nadie
       // valida la salida en el borde, así que un `undefined` que se colara
       // desde el mapeador viajaría igual y llegaría al cliente como un campo
@@ -52,7 +66,7 @@ export class ObtenerMiPerfil {
       fotoArchivoId: usuario.fotoPerfilId ?? null,
       nombre: await this.nombreDe(
         usuario.rol,
-        usuario.pacienteId,
+        pacienteActivoId,
         usuario.nutricionistaId,
         usuario.email,
       ),

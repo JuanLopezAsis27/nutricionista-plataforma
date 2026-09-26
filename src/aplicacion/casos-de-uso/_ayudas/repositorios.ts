@@ -2,6 +2,7 @@ import { vi } from "vitest";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
+import type { ICuentaPacienteRepositorio } from "@/dominio/repositorios/ICuentaPacienteRepositorio";
 import type { ITokenRecuperacionRepositorio } from "@/dominio/repositorios/ITokenRecuperacionRepositorio";
 import type { ITokenRefrescoRepositorio } from "@/dominio/repositorios/ITokenRefrescoRepositorio";
 import type { INotificacionRepositorio } from "@/dominio/repositorios/INotificacionRepositorio";
@@ -155,10 +156,26 @@ export function mockUsuarioRepositorio(
     obtenerPorId: vi.fn(async () => null),
     obtenerPorEmail: vi.fn(async () => null),
     obtenerPorPacienteId: vi.fn(async () => null),
+    obtenerPorEmailGlobal: vi.fn(async () => null),
     listarPorRol: vi.fn(async () => []),
-    eliminarPorPacienteId: vi.fn(async () => {}),
+    eliminar: vi.fn(async () => {}),
     esFotoDePerfil: vi.fn(async () => false),
     emailYaRegistrado: vi.fn(async () => false),
+    ...parcial,
+  };
+}
+
+/**
+ * Por defecto, cada cuenta tiene UN acceso: la exclusiva de un solo
+ * consultorio, que es el caso de casi todos los pacientes.
+ */
+export function mockCuentaPacienteRepositorio(
+  parcial: Partial<ICuentaPacienteRepositorio> = {},
+): ICuentaPacienteRepositorio {
+  return {
+    vincular: vi.fn(async () => {}),
+    contarDeUsuario: vi.fn(async () => 1),
+    listarDeUsuario: vi.fn(async () => []),
     ...parcial,
   };
 }

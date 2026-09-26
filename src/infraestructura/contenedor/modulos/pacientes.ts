@@ -7,6 +7,7 @@ import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
+import type { ICuentaPacienteRepositorio } from "@/dominio/repositorios/ICuentaPacienteRepositorio";
 import type { IPlantillaEmailRepositorio } from "@/dominio/repositorios/IPlantillaEmailRepositorio";
 import type { IHasheadorContrasena } from "@/dominio/servicios/IHasheadorContrasena";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
@@ -35,6 +36,8 @@ import { ServicioPaciente } from "@/aplicacion/servicios/ServicioPaciente";
 export function crearServicioPaciente(deps: {
   pacientes: IPacienteRepositorio;
   usuarios: IUsuarioRepositorio;
+  /** Una cuenta de paciente puede tener varios consultorios (migración 78). */
+  cuentas: ICuentaPacienteRepositorio;
   plantillas: IPlantillaEmailRepositorio;
   hasheador: IHasheadorContrasena;
   /** La bienvenida manual genera una contraseña si la plantilla la pide. */
@@ -60,6 +63,7 @@ export function crearServicioPaciente(deps: {
   const crearPaciente = new CrearPaciente(
     deps.pacientes,
     deps.usuarios,
+    deps.cuentas,
     deps.hasheador,
     deps.configuracion,
   );
@@ -74,8 +78,13 @@ export function crearServicioPaciente(deps: {
     crearPaciente,
     new ObtenerPacientes(deps.pacientes),
     new ObtenerPacientePorId(deps.pacientes),
-    new ActualizarPaciente(deps.pacientes, deps.usuarios, deps.configuracion),
-    new EliminarPaciente(deps.pacientes, deps.usuarios),
+    new ActualizarPaciente(
+      deps.pacientes,
+      deps.usuarios,
+      deps.cuentas,
+      deps.configuracion,
+    ),
+    new EliminarPaciente(deps.pacientes, deps.usuarios, deps.cuentas),
     new EnviarBienvenidaAlAlta(
       deps.configuracion,
       deps.pacientes,
@@ -87,6 +96,7 @@ export function crearServicioPaciente(deps: {
       deps.pacientes,
       enviarEmailDeBienvenida,
       deps.usuarios,
+      deps.cuentas,
       deps.hasheador,
       deps.generadorContrasenas,
       deps.tokensRefresco,

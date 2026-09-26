@@ -1,5 +1,9 @@
 import { TRPCError } from "@trpc/server";
-import { crearRouter, publicoProcedimiento } from "../trpc";
+import {
+  crearRouter,
+  protegidoProcedimiento,
+  publicoProcedimiento,
+} from "../trpc";
 import { ejecutarGlobal } from "@/infraestructura/multitenancy/contextoTenant";
 import {
   limitadorRecuperacion,
@@ -12,13 +16,29 @@ import {
 } from "@/aplicacion/dtos/autenticacion.dto";
 
 /**
- * Router de autenticación: recuperación de contraseña.
+ * Router de autenticación: recuperación de contraseña y los consultorios de
+ * la cuenta (el cambio de consultorio es un route handler, porque reemite la
+ * cookie de sesión: `/api/autenticacion/consultorio`).
  *
  * Son procedimientos PÚBLICOS (sin sesión). Como el flujo consulta/actualiza la
  * tabla de usuarios (que es de inquilino) sin un inquilino resuelto, se corre
  * con alcance GLOBAL — igual que el login (ver auth.ts).
  */
 export const routerAutenticacion = crearRouter({
+  /**
+   * Los consultorios donde se atiende quien está mirando, marcando el activo.
+   * El `usuarioId` sale de la sesión: no se pueden pedir los de otra cuenta.
+   * Vacío para quien no es paciente. El servicio lee con alcance global por
+   * dentro, porque la sesión puede no tener todavía un consultorio elegido.
+   */
+  misConsultorios: protegidoProcedimiento.query(async ({ ctx }) => {
+    if (ctx.usuario.rol !== "PACIENTE") return [];
+    return await ctx.servicios.autenticacion.misConsultorios(
+      ctx.usuario.id,
+      ctx.usuario.pacienteId,
+    );
+  }),
+
   // Pide el enlace de recuperación. Siempre responde OK (no revela si el email
   // existe), para no permitir enumeración de cuentas.
   solicitarRecuperacion: publicoProcedimiento

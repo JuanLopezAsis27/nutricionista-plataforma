@@ -6,6 +6,13 @@ import type { Usuario, RolUsuario } from "../entidades/Usuario";
  * Lo consume Auth.js (a través del contenedor) para autenticar por email,
  * y los casos de uso de pacientes (que crean/actualizan/eliminan la cuenta
  * del paciente junto con su ficha).
+ *
+ * **Qué cuentas ve un consultorio.** La suya (la del NUTRICIONISTA) y las de
+ * los pacientes que tienen acceso a alguna de SUS fichas. La cuenta de un
+ * paciente no es de ningún consultorio (migración 78), así que el filtro de
+ * inquilino no alcanza: la implementación lo resuelve por las fichas
+ * (`pacientes.usuarioId`).
+ * Con alcance global, todas.
  */
 export interface IUsuarioRepositorio {
   crear(usuario: Usuario): Promise<Usuario>;
@@ -28,10 +35,19 @@ export interface IUsuarioRepositorio {
    * de quién es. Devolver la cuenta filtraría datos de otro consultorio.
    */
   emailYaRegistrado(email: string): Promise<boolean>;
+  /**
+   * La cuenta con ese email en TODA la plataforma. Existe para UNA cosa:
+   * vincular a un paciente que ya tiene cuenta (`CrearPaciente`). Nunca se
+   * devuelve hacia la pantalla: de la cuenta de otro consultorio, al
+   * profesional solo le llega que "ya tenía cuenta".
+   */
+  obtenerPorEmailGlobal(email: string): Promise<Usuario | null>;
+  /** La cuenta dueña de esa ficha (`pacientes.usuarioId`). */
   obtenerPorPacienteId(pacienteId: string): Promise<Usuario | null>;
   /** Usuarios con un rol dado (ej. los NUTRICIONISTA para notificarles). */
   listarPorRol(rol: RolUsuario): Promise<Usuario[]>;
-  eliminarPorPacienteId(pacienteId: string): Promise<void>;
+  /** Borra la cuenta y sus sesiones; sus fichas quedan sin portal (SET NULL). */
+  eliminar(id: string): Promise<void>;
   /**
    * ¿Este archivo es la foto de perfil de alguna cuenta del consultorio?
    *

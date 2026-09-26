@@ -4,6 +4,8 @@ import type { IGeneradorTokens } from "@/dominio/servicios/IGeneradorTokens";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
+import type { ICuentaPacienteRepositorio } from "@/dominio/repositorios/ICuentaPacienteRepositorio";
+import type { Usuario } from "@/dominio/entidades/Usuario";
 import { TokenRecuperacion } from "@/dominio/entidades/TokenRecuperacion";
 import { escaparHtml } from "@/dominio/plantillas/renderizar";
 
@@ -40,6 +42,8 @@ export class SolicitarRecuperacionPassword {
      * se pide por id y no como "el actual".
      */
     private readonly nutricionistas: INutricionistaRepositorio,
+    /** Los consultorios de un paciente: su cuenta no es de ninguno. */
+    private readonly cuentas: ICuentaPacienteRepositorio,
   ) {}
 
   async ejecutar(entrada: EntradaSolicitarRecuperacion): Promise<void> {
@@ -73,7 +77,7 @@ export class SolicitarRecuperacionPassword {
       asunto: "Restablecé tu contraseña",
       html: this.plantillaHtml(
         enlace,
-        await this.firma(usuario.nutricionistaId),
+        await this.firma(usuario),
       ),
       texto:
         `Recibimos un pedido para restablecer tu contraseña.\n\n` +
@@ -84,11 +88,19 @@ export class SolicitarRecuperacionPassword {
 
   /**
    * El SUPERADMIN no pertenece a ningún consultorio: su email sale sin firma,
-   * que es mejor que firmarlo con el nombre de otro.
+   * que es mejor que firmarlo con el nombre de otro. Lo mismo el paciente que
+   * se atiende en varios: la contraseña es una sola para todos, y firmar con
+   * uno solo de ellos diría que es de ese consultorio.
    */
-  private async firma(nutricionistaId: string | null): Promise<string | null> {
-    if (!nutricionistaId) return null;
-    return this.nutricionistas.nombreDe(nutricionistaId);
+  private async firma(usuario: Usuario): Promise<string | null> {
+    if (usuario.esPaciente) {
+      const consultorios = await this.cuentas.listarDeUsuario(usuario.id);
+      return consultorios.length === 1
+        ? consultorios[0]!.nombreProfesional
+        : null;
+    }
+    if (!usuario.nutricionistaId) return null;
+    return this.nutricionistas.nombreDe(usuario.nutricionistaId);
   }
 
   private plantillaHtml(enlace: string, firma: string | null): string {

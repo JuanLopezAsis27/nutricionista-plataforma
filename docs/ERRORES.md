@@ -58,6 +58,13 @@ profesional tiene que hacer después no es lo mismo en los tres casos:
 | El email es de otra cuenta de este consultorio | «Ya está usado por otra cuenta de este consultorio» |
 | El email tiene cuenta en la plataforma | «Ya tiene una cuenta. Usá otro» |
 
+**Desde la migración 78 el tercer caso ya no rechaza a un paciente**: si la
+cuenta es de un paciente de otro consultorio, `CrearPaciente` la vincula a la
+ficha nueva (ver `docs/CUENTAS-PACIENTE.md`). Sigue rechazando si la cuenta es
+de un profesional, con el mismo cuidado de no decir de quién es. Y
+`ActualizarPaciente` hace la misma pregunta ANTES de guardar la ficha (antes la
+descubría contra el índice, con la ficha ya guardada).
+
 El tercero usa `emailYaRegistrado`, que consulta **sin** filtro de inquilino y
 devuelve un **booleano**. Es deliberado: lo único que cruza el límite entre
 consultorios es un sí/no. Devolver la cuenta diría de quién es, y eso sí sería

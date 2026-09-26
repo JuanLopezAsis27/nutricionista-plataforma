@@ -68,12 +68,17 @@ export class EnviarMensaje {
     conversacion.registrarUltimoMensaje(props.cuerpo, props.creadoEn);
     await this.repositorio.actualizarConversacion(conversacion);
 
-    // Notificar al otro extremo en tiempo real.
+    // Notificar al otro extremo en tiempo real. Va la ficha: el canal es la
+    // CUENTA, y la de un paciente puede estar en varios consultorios; con la
+    // ficha, su portal sabe si el mensaje es del consultorio que está mirando.
     for (const usuarioId of await this.destinatarios(datos)) {
       await this.bus.publicar({
         tipo: "mensaje.nuevo",
         usuarioId,
-        datos: { conversacionId: conversacion.id },
+        datos: {
+          conversacionId: conversacion.id,
+          pacienteId: datos.pacienteId,
+        },
       });
     }
 

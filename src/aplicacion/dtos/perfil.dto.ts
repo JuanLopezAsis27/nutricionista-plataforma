@@ -11,6 +11,8 @@ export const perfilSalidaDto = z.object({
   /** Nombre para mostrar; sale de la ficha o de la configuración, no de Usuario. */
   nombre: z.string(),
   fotoArchivoId: z.string().nullable(),
+  /** La contraseña la eligió un profesional: se recomienda cambiarla. */
+  passwordProvisional: z.boolean(),
 });
 export type PerfilSalidaDto = z.infer<typeof perfilSalidaDto>;
 

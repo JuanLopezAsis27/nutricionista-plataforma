@@ -21,6 +21,7 @@ import { PrismaClienteSingleton } from "@/infraestructura/repositorios/PrismaCli
 import { PrismaRepositorioPaciente } from "@/infraestructura/repositorios/PrismaRepositorioPaciente";
 import { PrismaRepositorioTurno } from "@/infraestructura/repositorios/PrismaRepositorioTurno";
 import { PrismaRepositorioUsuario } from "@/infraestructura/repositorios/PrismaRepositorioUsuario";
+import { PrismaRepositorioCuentaPaciente } from "@/infraestructura/repositorios/PrismaRepositorioCuentaPaciente";
 import { PrismaRepositorioTokenRecuperacion } from "@/infraestructura/repositorios/PrismaRepositorioTokenRecuperacion";
 import { PrismaRepositorioTokenRefresco } from "@/infraestructura/repositorios/PrismaRepositorioTokenRefresco";
 import { PrismaRepositorioNotificacion } from "@/infraestructura/repositorios/PrismaRepositorioNotificacion";
@@ -178,6 +179,9 @@ export const repositorioTurno = perezoso(
 );
 export const repositorioUsuario = perezoso(
   () => new PrismaRepositorioUsuario(prisma()),
+);
+export const repositorioCuentaPaciente = perezoso(
+  () => new PrismaRepositorioCuentaPaciente(prisma()),
 );
 export const repositorioTokenRecuperacion = perezoso(
   () => new PrismaRepositorioTokenRecuperacion(prisma()),

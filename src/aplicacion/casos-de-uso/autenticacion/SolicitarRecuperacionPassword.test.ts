@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { SolicitarRecuperacionPassword } from "./SolicitarRecuperacionPassword";
 import {
   mockUsuarioRepositorio,
+  mockCuentaPacienteRepositorio,
   mockTokenRecuperacionRepositorio,
   mockGeneradorTokens,
   mockServicioEmail,
@@ -30,6 +31,7 @@ function armar(
     reloj,
     "https://app.local",
     mockNutricionistaConNombre("Lic. Ejemplo"),
+    mockCuentaPacienteRepositorio(),
   );
   return { uc, usuarios, tokens, generador, email };
 }
@@ -87,11 +89,7 @@ describe("SolicitarRecuperacionPassword", () => {
   });
 
   it("firma con el nombre del consultorio de la cuenta, no con uno fijo", async () => {
-    const usuario = usuarioEjemplo({
-      rol: "PACIENTE",
-      pacienteId: "p-1",
-      nutricionistaId: "nutri-9",
-    });
+    const usuario = usuarioEjemplo({}, "nutri-9");
     const configuracion = mockNutricionistaConNombre("Lic. Ana Gómez");
     const email = mockServicioEmail();
     await new SolicitarRecuperacionPassword(
@@ -102,6 +100,7 @@ describe("SolicitarRecuperacionPassword", () => {
       mockReloj(new Date("2026-07-14T12:00:00Z")),
       "https://app.local",
       configuracion,
+      mockCuentaPacienteRepositorio(),
     ).ejecutar({ email: "nutri@mail.com" });
 
     expect(configuracion.nombreDe).toHaveBeenCalledWith("nutri-9");
@@ -121,5 +120,51 @@ describe("SolicitarRecuperacionPassword", () => {
     const mensaje = (email.enviar as ReturnType<typeof vi.fn>).mock
       .calls[0]![0];
     expect(mensaje.html).not.toContain("—");
+  });
+
+  describe("paciente (su cuenta no es de un consultorio)", () => {
+    const paciente = usuarioEjemplo({ rol: "PACIENTE" }, "usr-pac");
+
+    async function firmaCon(
+      consultorios: { nombreProfesional: string }[],
+    ): Promise<string> {
+      const email = mockServicioEmail();
+      await new SolicitarRecuperacionPassword(
+        mockUsuarioRepositorio({ obtenerPorEmail: vi.fn(async () => paciente) }),
+        mockTokenRecuperacionRepositorio(),
+        mockGeneradorTokens(),
+        email,
+        mockReloj(new Date("2026-07-14T12:00:00Z")),
+        "https://app.local",
+        mockNutricionistaConNombre("no se usa"),
+        mockCuentaPacienteRepositorio({
+          listarDeUsuario: vi.fn(async () =>
+            consultorios.map((c, i) => ({
+              pacienteId: `pac-${i}`,
+              nutricionistaId: `nutri-${i}`,
+              fotoProfesionalId: null,
+              nombreProfesional: c.nombreProfesional,
+            })),
+          ),
+        }),
+      ).ejecutar({ email: "pac@mail.com" });
+      return (email.enviar as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+        .html as string;
+    }
+
+    it("con un solo consultorio, firma con ese", async () => {
+      expect(await firmaCon([{ nombreProfesional: "Lic. Sola" }])).toContain(
+        "— Lic. Sola",
+      );
+    });
+
+    it("con varios, no firma: la contraseña es de todos", async () => {
+      const html = await firmaCon([
+        { nombreProfesional: "Lic. Uno" },
+        { nombreProfesional: "Lic. Dos" },
+      ]);
+      expect(html).not.toContain("Lic. Uno");
+      expect(html).not.toContain("Lic. Dos");
+    });
   });
 });

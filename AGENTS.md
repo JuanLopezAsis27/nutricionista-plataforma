@@ -59,6 +59,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/NOTIFICACIONES.md`     | La campana: qué llega ahí y cómo se apaga cada cosa    |
 | `docs/ERRORES.md`            | Qué mensaje de error ve el usuario, y por qué          |
 | `docs/PERFIL.md`             | Mi perfil: foto de la cuenta, cambio de contraseña y su política |
+| `docs/CUENTAS-PACIENTE.md`   | Una cuenta, varios consultorios: fichas, exclusividad y consultorio activo |
 | `docs/SESIONES.md`           | Las dos credenciales: el JWT de 12 h y el refresco de 30 días |
 | `docs/WHATSAPP.md`           | Cloud API, plantillas de Meta, webhook                |
 | `docs/WEARABLES.md`          | Importación de métricas de dispositivos               |
@@ -223,6 +224,18 @@ cruzan módulos; el detalle de cada uno, en `/docs`.
 Email y teléfono son únicos POR CONSULTORIO, no globalmente: la misma persona
 puede ser paciente de dos nutricionistas. Baja lógica con `archivadoEn`.
 
+**Una persona, una cuenta, varios consultorios** (migración 78): son dos
+fichas y UNA cuenta: `pacientes` es la relación persona ↔ consultorio y cada
+ficha dice de qué cuenta es (`pacientes.usuarioId`, una por consultorio). Si el
+email del alta ya tiene cuenta de paciente, `CrearPaciente` la VINCULA en vez
+de rechazar, y no toca su contraseña. La regla que gobierna todo: **un
+consultorio solo fija la contraseña o cambia el email de login de una cuenta
+EXCLUSIVA suya** (`esCuentaExclusiva`); si no, podría entrar como el paciente
+y leer la ficha del otro. La sesión lleva el consultorio ACTIVO
+(`ResolverConsultorioActivo`), el paciente elige en `/mis-consultorios` o desde
+el selector del portal, y la elección se recuerda por dispositivo. Ver
+`docs/CUENTAS-PACIENTE.md`.
+
 El email de bienvenida se puede **reenviar**: el envío manual nunca pisa a quien
 ya la recibió (sale como `YA_ENVIADA`, no como omitido) y la pantalla pregunta
 aparte si reenviársela, que viaja con `forzar`.
@@ -237,13 +250,24 @@ RECIÉN DESPUÉS se la asigna a la cuenta y le cierra las sesiones persistentes:
 si el email falla, la cuenta queda como estaba. Sin `{{contrasena}}` en la
 plantilla, la pantalla no pregunta y la cuenta no se toca
 (`pacientes.bienvenidaPideContrasena`). Un paciente sin cuenta del portal (o
-desactivada) se omite.
+desactivada) se omite. A una cuenta COMPARTIDA con otro consultorio no se le
+toca la contraseña: le sale la plantilla `BIENVENIDA_CUENTA_EXISTENTE`, la
+misma que recibe quien ya tenía cuenta al darlo de alta. La contraseña que
+asigna un profesional queda provisional.
 
 ### Usuario
 
-Roles: SUPERADMIN | NUTRICIONISTA | PACIENTE. Si el rol es PACIENTE debe tener
-`pacienteId`; `nutricionistaId` indica a qué consultorio pertenece (null solo
-para SUPERADMIN).
+Roles: SUPERADMIN | NUTRICIONISTA | PACIENTE. `nutricionistaId` es el
+consultorio del NUTRICIONISTA (su propio id); el SUPERADMIN y el PACIENTE no
+tienen (null, con CHECK en la base). La cuenta de un paciente no apunta a una
+ficha: son sus fichas las que apuntan a ella (`pacientes.usuarioId`), y un
+consultorio la ve solo si es dueña de alguna de SUS fichas
+(`PrismaRepositorioUsuario.visibles`).
+
+La **contraseña provisional** (`passwordProvisional`) marca la que eligió un
+profesional —alta de una cuenta nueva, bienvenida manual—: el portal advierte
+que conviene cambiarla, **sin obligar**, y cualquier cambio de la persona la
+limpia.
 
 **No tiene nombre**: guarda credenciales y rol. El nombre del paciente vive en
 su ficha y el del profesional en `ConfiguracionConsultorio`, y "Mi perfil" los
@@ -842,6 +866,18 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
 - Nunca aceptar como foto de perfil un archivo de otro contexto: cambiar la foto
   BORRA la anterior, y una foto de comida aceptada acá se lleva puesto un
   registro del diario del paciente
+- Nunca fijar la contraseña ni cambiar el email de login de una cuenta de
+  paciente que no sea EXCLUSIVA del consultorio (`esCuentaExclusiva`): la
+  cuenta abre las fichas de todos sus consultorios, y el que la fija podría
+  entrar como el paciente a la del otro. Tampoco borrarla al eliminar una
+  ficha sin contar sus fichas
+- Nunca copiar al JWT lo que manda `update()` de la sesión: cualquier script
+  de la página lo puede llamar. Es una preferencia de consultorio, y la
+  identidad se vuelve a resolver con `ResolverConsultorioActivo`
+- Nunca darle `nutricionistaId` a la cuenta de un PACIENTE ni volver a colgarla
+  de una ficha (`usuarios.pacienteId`): se llega a ella por
+  `pacientes.usuarioId`, y en `usuarios` se busca
+  con el filtro `visibles` del repositorio (el automático la esconde)
 - Nunca guardar passwords en texto plano. Tampoco "para poder reenviarlas":
   la bienvenida manual genera una provisional y se la asigna a la cuenta
 - Nunca asignar la contraseña provisional de la bienvenida ANTES de mandar el

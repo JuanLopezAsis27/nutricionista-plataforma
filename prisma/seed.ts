@@ -86,7 +86,6 @@ async function sembrarSuperAdmin(): Promise<void> {
       email,
       passwordHash: await bcrypt.hash(password, RONDAS),
       rol: "SUPERADMIN",
-      pacienteId: null,
       nutricionistaId: null,
     },
     crypto.randomUUID(),
@@ -98,7 +97,6 @@ async function sembrarSuperAdmin(): Promise<void> {
       email: d.email,
       passwordHash: d.passwordHash,
       rol: d.rol,
-      pacienteId: null,
       nutricionistaId: null,
       activo: true,
       creadoEn: d.creadoEn,
@@ -131,7 +129,6 @@ async function sembrarNutricionista(): Promise<string | null> {
       email,
       passwordHash: await bcrypt.hash(password, RONDAS),
       rol: "NUTRICIONISTA",
-      pacienteId: null,
       nutricionistaId: id, // el nutricionista es su propio inquilino
     },
     id,
@@ -143,7 +140,6 @@ async function sembrarNutricionista(): Promise<string | null> {
       email: d.email,
       passwordHash: d.passwordHash,
       rol: d.rol,
-      pacienteId: null,
       nutricionistaId: d.nutricionistaId,
       activo: true,
       creadoEn: d.creadoEn,
@@ -163,6 +159,19 @@ const PLANTILLAS_SISTEMA = [
   <p>Hola <strong>{{paciente}}</strong>,</p>
   <p>¡Bienvenido/a! Ya podés acceder a tu portal para ver tu plan, tus turnos y cargar tu diario.</p>
   <p>Cualquier duda, escribinos.</p>
+  <p>Saludos,<br/>{{profesional}}</p>
+</div>`,
+  },
+  {
+    clave: "BIENVENIDA_CUENTA_EXISTENTE",
+    nombre: "Bienvenida (ya tiene cuenta)",
+    asunto: "¡Bienvenido/a, {{paciente}}!",
+    descripcion:
+      "Bienvenida para pacientes que ya tenían cuenta en la plataforma (sin contraseña).",
+    cuerpoHtml: `<div style="font-family:sans-serif;color:#222;line-height:1.5">
+  <p>Hola <strong>{{paciente}}</strong>,</p>
+  <p>{{profesional}} te sumó a su consultorio. Como ya tenés una cuenta, entrás con tu email ({{email}}) y la contraseña que ya usás.</p>
+  <p>Si te atendés con más de un profesional, al entrar vas a poder elegir en qué consultorio trabajar.</p>
   <p>Saludos,<br/>{{profesional}}</p>
 </div>`,
   },

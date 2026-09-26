@@ -10,6 +10,7 @@ import {
   mockPlantillaEmailRepositorio,
   mockServicioEmail,
   mockUsuarioRepositorio,
+  mockCuentaPacienteRepositorio,
   mockHasheador,
   mockTokenRefrescoRepositorio,
   mockReloj,
@@ -36,6 +37,8 @@ function armar(
     usuarios?: IUsuarioRepositorio;
     email?: IServicioEmail;
     conContrasena?: boolean;
+    /** En cuántos consultorios tiene acceso la cuenta (1 = exclusiva). */
+    fichas?: number;
   } = {},
 ) {
   const pacientes = opciones.pacientes ?? mockPacienteRepositorio();
@@ -44,16 +47,28 @@ function armar(
   const tokensRefresco = mockTokenRefrescoRepositorio();
   const generador = { generar: vi.fn(() => "provisoria-XyZ7") };
   const plantilla = plantillaBienvenida(opciones.conContrasena ?? false);
+  const plantillaCuentaExistente = plantillaEmailEjemplo({
+    clave: "BIENVENIDA_CUENTA_EXISTENTE",
+    asunto: "¡Bienvenido/a, {{paciente}}!",
+    cuerpoHtml: "<p>Entrá con tu contraseña de siempre, {{paciente}}.</p>",
+  });
   const caso = new EnviarBienvenidaMasiva(
     pacientes,
     new EnviarEmailDeBienvenida(
       mockPlantillaEmailRepositorio({
-        obtenerPorClave: vi.fn(async () => plantilla),
+        obtenerPorClave: vi.fn(async (clave: string) =>
+          clave === "BIENVENIDA_CUENTA_EXISTENTE"
+            ? plantillaCuentaExistente
+            : plantilla,
+        ),
       }),
       email,
       mockNutricionistaConNombre("Lic. Marta"),
     ),
     usuarios,
+    mockCuentaPacienteRepositorio({
+      contarDeUsuario: vi.fn(async () => opciones.fichas ?? 1),
+    }),
     mockHasheador(),
     generador,
     tokensRefresco,
@@ -70,7 +85,7 @@ function conPaciente(paciente = pacienteEjemplo()) {
 
 function cuentaDelPaciente(activa = true) {
   const cuenta = usuarioEjemplo(
-    { rol: "PACIENTE", pacienteId: "pac-1", passwordHash: "hash:la-de-antes" },
+    { rol: "PACIENTE", passwordHash: "hash:la-de-antes" },
     "usr-pac",
   );
   return activa ? cuenta : cuenta.cambiarActivo(false);
@@ -159,6 +174,8 @@ describe("EnviarBienvenidaMasiva", () => {
       const guardada = (usuarios.actualizar as ReturnType<typeof vi.fn>).mock
         .calls[0]![0];
       expect(guardada.passwordHash).toBe("hash:provisoria-XyZ7");
+      // La eligió el profesional: el portal le recomienda cambiarla.
+      expect(guardada.passwordProvisional).toBe(true);
       // Como cualquier cambio de contraseña: se cierran las sesiones
       // persistentes que tuviera abiertas con la anterior.
       expect(tokensRefresco.revocarDeUsuario).toHaveBeenCalledWith(
@@ -274,5 +291,34 @@ describe("EnviarBienvenidaMasiva", () => {
     expect(generador.generar).not.toHaveBeenCalled();
     expect(usuarios.actualizar).not.toHaveBeenCalled();
     expect(tokensRefresco.revocarDeUsuario).not.toHaveBeenCalled();
+  });
+
+  describe("cuenta compartida con otro consultorio", () => {
+    it("no genera ni asigna contraseña aunque la plantilla la pida", async () => {
+      // Fijarla le daría a este consultorio la llave de la ficha del otro.
+      const usuarios = mockUsuarioRepositorio({
+        obtenerPorPacienteId: vi.fn(async () => cuentaDelPaciente()),
+      });
+      const { caso, generador, tokensRefresco, email } = armar({
+        pacientes: conPaciente(),
+        usuarios,
+        conContrasena: true,
+        fichas: 2,
+      });
+
+      const resultado = await caso.ejecutar({
+        pacienteIds: ["pac-1"],
+        contrasena: { modo: "MANUAL", valor: "la-que-yo-quiero" },
+      });
+
+      expect(resultado.enviados).toBe(1);
+      expect(generador.generar).not.toHaveBeenCalled();
+      expect(usuarios.actualizar).not.toHaveBeenCalled();
+      expect(tokensRefresco.revocarDeUsuario).not.toHaveBeenCalled();
+      // Sale la plantilla de «ya tenés cuenta», y el detalle dice por qué.
+      expect(htmlEnviado(email)).toContain("contraseña de siempre");
+      expect(htmlEnviado(email)).not.toContain("la-que-yo-quiero");
+      expect(resultado.detalles[0]!.motivo).toContain("otro consultorio");
+    });
   });
 });

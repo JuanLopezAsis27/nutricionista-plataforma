@@ -67,24 +67,25 @@ describe("mapearPaciente", () => {
 });
 
 describe("mapearUsuario", () => {
-  it("no cruza pacienteId con nutricionistaId", () => {
-    // Ambos son `string | null` y ambos son identificadores de persona.
-    // Cruzarlos en un mapeador de IDENTIDAD es un problema de acceso, no de
-    // presentacion: decide que ve cada quien.
+  it("no cruza los booleanos ni el inquilino", () => {
+    // `activo` y `passwordProvisional` son los dos booleanos de la cuenta, y
+    // cruzarlos en un mapeador de IDENTIDAD es un problema de acceso, no de
+    // presentación: una cuenta dada de baja volvería a entrar.
     const datos = mapearUsuario({
       id: "user-1",
       email: "ana@ejemplo.test",
       passwordHash: "$2a$10$hash",
-      rol: "PACIENTE",
-      pacienteId: "pac-1",
+      rol: "NUTRICIONISTA",
       nutricionistaId: "nutri-1",
       activo: true,
+      passwordProvisional: false,
+      fotoPerfilId: null,
       creadoEn: new Date("2026-01-01T00:00:00.000Z"),
-    } as unknown as Parameters<typeof mapearUsuario>[0]).aPrimitivos();
+    }).aPrimitivos();
 
-    expect(datos.pacienteId).toBe("pac-1");
     expect(datos.nutricionistaId).toBe("nutri-1");
-    expect(datos.rol).toBe("PACIENTE");
+    expect(datos.passwordProvisional).toBe(false);
+    expect(datos.rol).toBe("NUTRICIONISTA");
     expect(datos.activo).toBe(true);
     expect(datos.passwordHash).toBe("$2a$10$hash");
   });

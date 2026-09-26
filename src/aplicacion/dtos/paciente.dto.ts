@@ -103,6 +103,15 @@ export const pacienteSalidaDto = z.object({
 });
 export type PacienteSalidaDto = z.infer<typeof pacienteSalidaDto>;
 
+/**
+ * Resultado del alta: la ficha, y si la persona ya tenía cuenta en la
+ * plataforma (paciente de otro consultorio). En ese caso se la vinculó y
+ * conserva su contraseña: la que se cargó en el formulario no se usó.
+ */
+export type AltaPacienteSalidaDto = PacienteSalidaDto & {
+  cuentaExistente: boolean;
+};
+
 /** Resultado paginado de un listado de pacientes. */
 export interface PacientesPaginados {
   pacientes: PacienteSalidaDto[];
@@ -245,5 +254,7 @@ export type CrearPacienteDesdeFichaDto = z.infer<
 /** El paciente creado más lo que no se pudo guardar, para avisar en pantalla. */
 export interface AltaDesdeFichaSalidaDto {
   paciente: PacienteSalidaDto;
+  /** Ver `AltaPacienteSalidaDto`. */
+  cuentaExistente: boolean;
   advertencias: string[];
 }

@@ -36,6 +36,8 @@ export interface DatosPacienteDesdeFicha extends DatosNuevoPacienteConAcceso {
 
 export interface ResultadoAltaDesdeFicha {
   paciente: Paciente;
+  /** Se vinculó una cuenta que la persona ya tenía (ver `CrearPaciente`). */
+  cuentaExistente: boolean;
   /**
    * Lo que no se pudo guardar, en castellano y para mostrar.
    *
@@ -70,7 +72,8 @@ export class CrearPacienteDesdeFicha {
   async ejecutar(
     datos: DatosPacienteDesdeFicha,
   ): Promise<ResultadoAltaDesdeFicha> {
-    const paciente = await this.crearPacienteUC.ejecutar(datos);
+    const { paciente, cuentaExistente } =
+      await this.crearPacienteUC.ejecutar(datos);
     const pacienteId = paciente.id;
     const advertencias: string[] = [];
 
@@ -128,7 +131,7 @@ export class CrearPacienteDesdeFicha {
       });
     }
 
-    return { paciente, advertencias };
+    return { paciente, cuentaExistente, advertencias };
   }
 
   private async intentar(
