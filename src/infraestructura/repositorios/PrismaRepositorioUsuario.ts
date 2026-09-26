@@ -5,6 +5,7 @@ import type {
 } from "@prisma/client";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
 import { Usuario, type RolUsuario } from "@/dominio/entidades/Usuario";
+import { normalizarNombreUsuario } from "@/dominio/servicios/nombreUsuario";
 import {
   alcanceActual,
   ejecutarGlobal,
@@ -12,7 +13,7 @@ import {
 
 /**
  * Implementación con Prisma del repositorio de Usuario.
- * Lo usa Auth.js (vía contenedor) para autenticar por email.
+ * Lo usa Auth.js (vía contenedor) para autenticar por email o por usuario.
  *
  * ## Por qué casi todo corre con alcance global
  *
@@ -35,6 +36,7 @@ export class PrismaRepositorioUsuario implements IUsuarioRepositorio {
     const data = {
       id: datos.id,
       email: datos.email,
+      nombreUsuario: datos.nombreUsuario,
       passwordHash: datos.passwordHash,
       passwordProvisional: datos.passwordProvisional,
       rol: datos.rol,
@@ -63,6 +65,7 @@ export class PrismaRepositorioUsuario implements IUsuarioRepositorio {
         where: { id: datos.id, AND: [filtro] },
         data: {
           email: datos.email,
+          nombreUsuario: datos.nombreUsuario,
           passwordHash: datos.passwordHash,
           passwordProvisional: datos.passwordProvisional,
           rol: datos.rol,
@@ -118,6 +121,31 @@ export class PrismaRepositorioUsuario implements IUsuarioRepositorio {
       }),
     );
     return fila ? mapearUsuario(fila) : null;
+  }
+
+  async obtenerPorNombreUsuario(
+    nombreUsuario: string,
+  ): Promise<Usuario | null> {
+    const fila = await this.visibles((filtro) =>
+      this.prisma.usuario.findFirst({
+        where: {
+          nombreUsuario: normalizarNombreUsuario(nombreUsuario),
+          ...filtro,
+        },
+      }),
+    );
+    return fila ? mapearUsuario(fila) : null;
+  }
+
+  /** Global por lo mismo que `emailYaRegistrado`: el índice único lo es. */
+  async nombreUsuarioYaRegistrado(nombreUsuario: string): Promise<boolean> {
+    return ejecutarGlobal(async () => {
+      const fila = await this.prisma.usuario.findUnique({
+        where: { nombreUsuario: normalizarNombreUsuario(nombreUsuario) },
+        select: { id: true },
+      });
+      return fila !== null;
+    });
   }
 
   /**
@@ -199,6 +227,7 @@ export function mapearUsuario(fila: UsuarioFila): Usuario {
   return Usuario.reconstruir({
     id: fila.id,
     email: fila.email,
+    nombreUsuario: fila.nombreUsuario,
     passwordHash: fila.passwordHash,
     rol: fila.rol,
     nutricionistaId: fila.nutricionistaId,

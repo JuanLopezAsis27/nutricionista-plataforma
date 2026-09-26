@@ -46,8 +46,8 @@ export interface OpcionesEnvioManual {
 /** Resumen del barrido de recordatorios. */
 export interface ResultadoRecordatoriosEmail {
   enviados: number;
-  omitidos: number; // ya tenían recordatorio (idempotencia)
-  fallidos: number; // sin email o error de envío
+  omitidos: number; // ya tenían recordatorio (idempotencia) o no tienen email
+  fallidos: number; // error de envío
 }
 
 /**
@@ -121,8 +121,11 @@ export class EnviarRecordatoriosPorEmail {
       for (const turno of await this.turnos.obtenerEnFecha(fecha)) {
         const resultado = await this.enviarParaTurno(turno, dias);
         if (resultado === "ENVIADO") enviados += 1;
-        else if (resultado === "OMITIDO") omitidos += 1;
-        else fallidos += 1; // FALLIDO o sin email cargado
+        // Sin email no es una falla: desde la migración 79 hay pacientes que
+        // no lo tienen, y contarlos como fallidos ensuciaba cada barrido.
+        else if (resultado === "OMITIDO" || resultado === "SIN_EMAIL")
+          omitidos += 1;
+        else fallidos += 1;
       }
     }
 

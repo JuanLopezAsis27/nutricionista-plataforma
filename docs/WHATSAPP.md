@@ -69,6 +69,52 @@ Es descarte en la ingesta, no filtrado en la vista: un filtro de vista dejaría
 los chats personales guardados en la base, que es exactamente lo que hay que
 evitar.
 
+### Un número de varias fichas
+
+Desde la migración 81 el teléfono **no es único** por consultorio: dos
+hermanos pueden llevar el de la madre, un chico el de su abuelo. El número dice
+quién ESCRIBE, no de quién se habla, así que cuando matchean varias fichas el
+mensaje va a una sola, elegida con pistas (`elegirFichaDelTelefono`, en
+`dominio/servicios/fichaPorTelefono.ts`):
+
+1. **El turno del botón**: un botón de plantilla lleva el turno en el payload,
+   y el turno es de una ficha. No hay duda.
+2. **La conversación en curso**: la ficha a la que se le escribió por última
+   vez a ese número (`ultimoSalienteAlTelefono`). Si salió el recordatorio de
+   Sofía, lo que contesta la madre es, casi siempre, sobre Sofía.
+3. **La ficha más antigua**: estable, para que el mismo número no se reparta
+   al azar entre hilos.
+
+Las pistas solo se buscan si hay más de una ficha: con una sola, la ingesta
+cuesta lo mismo que antes.
+
+**El hilo es del NÚMERO, no de la ficha.** La asignación decide a qué ficha
+queda el mensaje (el aviso de la campana, el recordatorio que contesta, el
+turno del botón), pero la conversación se ve ENTERA desde cualquiera de las
+fichas que comparten el número (`ObtenerHiloWhatsapp`, con
+`numeroCompartido.ts`): arriba dice «número compartido con Tomás Pérez» y cada
+mensaje de otra ficha lleva «en la ficha de Tomás». Así, si la regla eligió
+mal —la madre contesta el recordatorio de Sofía hablando de Tomás—, el
+profesional lo ve igual desde la ficha de Tomás. Por el mismo motivo:
+
+- **La ventana de 24 h es del número**, como la cuenta Meta: si la madre
+  escribió en la ficha de Tomás, desde la de Sofía también se puede contestar
+  con texto libre.
+- **Abrir el hilo desde cualquiera de las fichas da por leído todo el número**
+  y apaga los avisos de todas (`MarcarWhatsappLeidos`).
+
+**En la bandeja de Mensajes es UNA fila** (`NUMERO_COMPARTIDO`, en
+`ListarConversaciones`): «Sofía Pérez · Tomás Pérez», con el último mensaje del
+número y la suma de sus sin leer. Al abrirla, el encabezado dice «WhatsApp
+compartido por» con un enlace a cada ficha, no hay selector de canal (es solo
+WhatsApp) y cada mensaje lleva el nombre de su ficha. El chat del PORTAL de
+cada una sigue en su propia fila —ese sí es de cada persona—, que ya no suma
+este WhatsApp. Un enlace a la conversación de WhatsApp de cualquiera de ellas
+(la campana, «Mensajes sin leer») abre el chat del número.
+
+Todo sigue acotado al consultorio: el mismo número en otro consultorio es otra
+conversación.
+
 ### Seguridad del webhook
 
 Es el único endpoint de la app que recibe datos sin sesión.

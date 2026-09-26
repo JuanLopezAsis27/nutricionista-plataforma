@@ -11,13 +11,24 @@ import { EleccionConsultorio } from "@/componentes/consultorios/EleccionConsulto
  * la protección del middleware (sin sesión, al login).
  *
  * También se llega desde el selector de la barra lateral («Ver todos»), con un
- * consultorio ya activo: no se redirige, se elige otro.
+ * consultorio ya activo: no se redirige, se elige otro. Y desde el email de
+ * invitación y «Mi perfil», para sumar un consultorio con un código.
  */
-export default async function PaginaMisConsultorios() {
+export default async function PaginaMisConsultorios({
+  searchParams,
+}: {
+  searchParams: Promise<{ codigo?: string | string[] }>;
+}) {
   const sesion = await auth();
   if (!sesion?.user) redirect("/login");
   if (sesion.user.rol === "NUTRICIONISTA") redirect("/dashboard");
   if (sesion.user.rol === "SUPERADMIN") redirect("/admin");
 
-  return <EleccionConsultorio />;
+  // El enlace del email de invitación trae el código (migración 80).
+  const { codigo } = await searchParams;
+  return (
+    <EleccionConsultorio
+      codigoInicial={typeof codigo === "string" ? codigo : undefined}
+    />
+  );
 }

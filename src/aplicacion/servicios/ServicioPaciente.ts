@@ -1,4 +1,8 @@
-import type { CrearPaciente } from "@/aplicacion/casos-de-uso/pacientes/CrearPaciente";
+import type {
+  AccesoAlta,
+  CrearPaciente,
+} from "@/aplicacion/casos-de-uso/pacientes/CrearPaciente";
+import type { GenerarInvitacionPortal } from "@/aplicacion/casos-de-uso/acceso-portal/GenerarInvitacionPortal";
 import type { ObtenerPacientes } from "@/aplicacion/casos-de-uso/pacientes/ObtenerPacientes";
 import type { ObtenerPacientePorId } from "@/aplicacion/casos-de-uso/pacientes/ObtenerPacientePorId";
 import type { ActualizarPaciente } from "@/aplicacion/casos-de-uso/pacientes/ActualizarPaciente";
@@ -26,6 +30,7 @@ import type {
   CrearPacienteDesdeFichaDto,
   AltaDesdeFichaSalidaDto,
 } from "../dtos/paciente.dto";
+import type { ResultadoAccesoSalidaDto } from "../dtos/acceso-portal.dto";
 
 /**
  * Servicio de aplicación de Pacientes.
@@ -47,14 +52,68 @@ export class ServicioPaciente {
     private readonly reactivarUC: ReactivarPaciente,
     private readonly interpretarFichaUC: InterpretarFichaPaciente,
     private readonly crearDesdeFichaUC: CrearPacienteDesdeFicha,
+    private readonly generarInvitacionUC: GenerarInvitacionPortal,
   ) {}
 
   async crearPaciente(
     datos: CrearPacienteConAccesoDto,
   ): Promise<AltaPacienteSalidaDto> {
-    const { paciente, cuentaExistente } = await this.crearUC.ejecutar(datos);
-    await this.darLaBienvenida(paciente, datos.password, cuentaExistente);
-    return { ...ServicioPaciente.aSalida(paciente), cuentaExistente };
+    const { paciente, acceso } = await this.crearUC.ejecutar(datos);
+    return {
+      ...ServicioPaciente.aSalida(paciente),
+      acceso: await this.despuesDelAlta(
+        paciente,
+        acceso,
+        datos.acceso?.password ?? "",
+      ),
+    };
+  }
+
+  /**
+   * Lo que sigue a un alta, igual para los dos caminos que crean un paciente
+   * (el formulario y la ficha en documento):
+   *
+   * - **Cuenta nueva**: la bienvenida con sus datos de acceso (si el
+   *   consultorio la manda sola y la ficha tiene email).
+   * - **Ya tenía cuenta** en otro consultorio: el código de invitación, que se
+   *   devuelve para la pantalla y, con la misma política que la bienvenida, se
+   *   manda por email. La ficha NO quedó en su cuenta: eso lo hace la persona
+   *   canjeándolo (ver `DarAccesoPortal`).
+   *
+   * Nunca hace fallar el alta: la ficha ya está creada.
+   */
+  private async despuesDelAlta(
+    paciente: Paciente,
+    acceso: AccesoAlta,
+    contrasena: string,
+  ): Promise<ResultadoAccesoSalidaDto> {
+    if (acceso.tipo === "CUENTA_NUEVA") {
+      await this.darLaBienvenida(
+        paciente,
+        contrasena,
+        acceso.cuenta.identificador,
+      );
+      return {
+        tipo: "CUENTA_NUEVA",
+        identificador: acceso.cuenta.identificador,
+      };
+    }
+    if (acceso.tipo === "INVITACION") {
+      try {
+        return {
+          tipo: "INVITACION",
+          invitacion: await this.generarInvitacionUC.ejecutar({
+            pacienteId: paciente.id,
+            enviarPorEmail: await this.enviarBienvenidaUC.automaticaActiva(),
+          }),
+        };
+      } catch (error) {
+        console.error("[invitacion] no se pudo emitir en el alta:", error);
+        // Se puede emitir de nuevo desde la ficha.
+        return { tipo: "INVITACION", invitacion: null };
+      }
+    }
+    return { tipo: "SIN_CUENTA" };
   }
 
   /**
@@ -77,7 +136,7 @@ export class ServicioPaciente {
   private async darLaBienvenida(
     paciente: Paciente,
     contrasena: string,
-    cuentaExistente: boolean,
+    usuario: string,
   ): Promise<void> {
     try {
       await this.enviarBienvenidaUC.ejecutar({
@@ -86,9 +145,7 @@ export class ServicioPaciente {
         // cuenta ya la guardó hasheada. Por eso la bienvenida es el único
         // mensaje que puede llevarla.
         contrasena,
-        // Ya tenía cuenta: otra plantilla, sin contraseña (la suya no se
-        // tocó, y la que se cargó en el alta no es la de su cuenta).
-        cuentaExistente,
+        usuario,
       });
     } catch (error) {
       console.error(
@@ -186,7 +243,7 @@ export class ServicioPaciente {
   async crearPacienteDesdeFicha(
     datos: CrearPacienteDesdeFichaDto,
   ): Promise<AltaDesdeFichaSalidaDto> {
-    const { paciente, cuentaExistente, advertencias } =
+    const { paciente, acceso, advertencias } =
       await this.crearDesdeFichaUC.ejecutar({
         ...datos,
         antropometria: datos.antropometria
@@ -213,11 +270,13 @@ export class ServicioPaciente {
     // datos de acceso y nadie lo notaba hasta que el paciente no podía entrar.
     // Que se mande o no es del consultorio y se decide con el interruptor
     // `bienvenidaAutomaticaActiva`, no del formulario que se haya usado.
-    await this.darLaBienvenida(paciente, datos.password, cuentaExistente);
-
     return {
       paciente: ServicioPaciente.aSalida(paciente),
-      cuentaExistente,
+      acceso: await this.despuesDelAlta(
+        paciente,
+        acceso,
+        datos.acceso?.password ?? "",
+      ),
       advertencias,
     };
   }

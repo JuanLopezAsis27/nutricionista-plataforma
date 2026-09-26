@@ -6,15 +6,6 @@ import { useInvalidar } from "@/lib/hooks/useInvalidar";
 import { avisarError } from "@/lib/errores";
 
 /**
- * Aviso de que el alta VINCULÓ una cuenta que ya existía: la persona es
- * paciente de otro consultorio y entra con su contraseña de siempre, así que
- * la que se cargó en el formulario no se usó. No dice de qué consultorio: eso
- * es de la otra ficha.
- */
-const AVISO_CUENTA_EXISTENTE =
-  "Ya tenía una cuenta en la plataforma: se la vinculó a esta ficha y sigue entrando con su contraseña de siempre (la que cargaste no se usó).";
-
-/**
  * Encapsula todas las llamadas tRPC de pacientes.
  *
  * Las queries se devuelven como referencias de hook (el componente las invoca
@@ -27,8 +18,9 @@ export function usePacientes() {
 
   const crear = trpc.pacientes.crear.useMutation({
     onSuccess: (resultado) => {
-      toast.success("Paciente creado correctamente.");
-      if (resultado.cuentaExistente) toast.info(AVISO_CUENTA_EXISTENTE);
+      // Cómo quedó el acceso al portal (credenciales, código de invitación)
+      // lo muestra el formulario: son datos para copiar, no para un toast.
+      toast.success(`${resultado.nombre} ${resultado.apellido} quedó creado.`);
       invalidar();
     },
     onError: (error) => avisarError(error),
@@ -61,7 +53,6 @@ export function usePacientes() {
   const crearDesdeFicha = trpc.pacientes.crearDesdeFicha.useMutation({
     onSuccess: (resultado) => {
       toast.success("Paciente creado a partir del documento.");
-      if (resultado.cuentaExistente) toast.info(AVISO_CUENTA_EXISTENTE);
       // Lo que no se pudo guardar se avisa uno por uno: el paciente YA existe
       // y el profesional tiene que saber qué le falta cargar a mano.
       for (const advertencia of resultado.advertencias) {
@@ -100,7 +91,7 @@ export function usePacientes() {
           toast.info(
             `${resultado.omitidos} paciente${
               resultado.omitidos === 1 ? "" : "s"
-            } sin email o sin plantilla de bienvenida.`,
+            } sin email o sin cuenta: no se les mandó nada.`,
           );
         }
         if (resultado.fallidos > 0) {

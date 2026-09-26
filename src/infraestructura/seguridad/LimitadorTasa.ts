@@ -134,3 +134,10 @@ export const limitadorIaInquilino = new LimitadorTasa(300, 60 * 60 * 1000);
  * que el tope evita que alguien pruebe enlaces a máxima velocidad.
  */
 export const limitadorConfirmacionTurno = new LimitadorTasa(20, 60 * 60 * 1000);
+
+/**
+ * Códigos de invitación al portal: 20 intentos por hora, por cuenta y por IP.
+ * Un código tiene ~8,5 × 10¹¹ combinaciones y vence a los 7 días; con este
+ * tope, probarlos a ciegas no termina nunca.
+ */
+export const limitadorInvitacionPortal = new LimitadorTasa(20, 60 * 60 * 1000);

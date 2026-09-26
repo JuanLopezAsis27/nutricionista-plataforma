@@ -60,12 +60,12 @@ describe("variables de plantilla", () => {
 
   it("las variables de la bienvenida y las de su ejemplo tienen las MISMAS claves", () => {
     // Lo mismo para la bienvenida: la prueba de la plantilla tiene que
-    // reemplazar {{email}} y {{contrasena}} igual que el alta real, y un
-    // recordatorio no, porque su envío real no los tiene.
+    // reemplazar {{usuario}}, {{email}} y {{contrasena}} igual que el alta
+    // real, y un recordatorio no, porque su envío real no los tiene.
     const reales = variablesBienvenida({
       nombrePaciente: "Ana García",
       nombreProfesional: "Lic. Marta",
-      email: "ana@ejemplo.test",
+      usuario: "ana@ejemplo.test",
       contrasena: "Clave-Segura-2026",
     });
     const ejemplo = variablesEjemplo("Lic. Marta", new Date(), "BIENVENIDA");
@@ -120,6 +120,7 @@ describe("EnviarEmailDeBienvenida", () => {
   const ANA = {
     nombrePaciente: "Ana García",
     email: "ana@ejemplo.test",
+    usuario: "ana@ejemplo.test",
     contrasena: "Clave-Segura-2026",
   };
 
@@ -179,6 +180,35 @@ describe("EnviarEmailDeBienvenida", () => {
     );
   });
 
+  it("con usuario en vez de email: {{usuario}} y {{email}} dicen con qué entra, y va al email de contacto", async () => {
+    // Un hermano con el email de la madre entra con su usuario. {{email}}
+    // siempre significó «con qué inicia sesión» en las plantillas guardadas.
+    const servicioEmail = mockServicioEmail();
+    const caso = new EnviarEmailDeBienvenida(
+      mockPlantillaEmailRepositorio({
+        obtenerPorClave: vi.fn(async () =>
+          plantillaEmailEjemplo({
+            asunto: "Bienvenida",
+            cuerpoHtml: "<p>{{usuario}} / {{email}}</p>",
+          }),
+        ),
+      }),
+      servicioEmail,
+      mockNutricionistaConNombre("Lic. Marta"),
+    );
+
+    await caso.ejecutar({
+      ...ANA,
+      email: "mama@ejemplo.test",
+      usuario: "sofi.garcia",
+    });
+
+    const [enviado] = (servicioEmail.enviar as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [{ para: string; html: string }];
+    expect(enviado.para).toBe("mama@ejemplo.test");
+    expect(enviado.html).toBe("<p>sofi.garcia / sofi.garcia</p>");
+  });
+
   it("envía con las variables reemplazadas cuando están las dos cosas", async () => {
     const servicioEmail = mockServicioEmail();
     const caso = new EnviarEmailDeBienvenida(
@@ -234,6 +264,7 @@ describe("Superadmin", () => {
     return Usuario.reconstruir({
       id: "user-1",
       email: "nutri@ejemplo.test",
+      nombreUsuario: null,
       passwordHash: "hash",
       rol: "NUTRICIONISTA",
       nutricionistaId: "nutri-1",

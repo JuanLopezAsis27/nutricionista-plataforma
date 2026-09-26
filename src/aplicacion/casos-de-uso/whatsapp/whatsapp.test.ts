@@ -74,6 +74,7 @@ describe("ObtenerHiloWhatsapp", () => {
       mockProveedorWhatsapp({
         modoActual: vi.fn(async () => "ENLACE" as const),
       }),
+      mockPacienteRepositorio(),
     );
 
     return caso.ejecutar("pac-1", AHORA).then((hilo) => {
@@ -90,6 +91,7 @@ describe("ObtenerHiloWhatsapp", () => {
         ultimoEntrante: vi.fn(async () => entrante(3 * HORA)),
       }),
       mockProveedorWhatsapp({ modoActual: vi.fn(async () => "API" as const) }),
+      mockPacienteRepositorio(),
     );
 
     const hilo = await caso.ejecutar("pac-1", AHORA);
@@ -107,6 +109,7 @@ describe("ObtenerHiloWhatsapp", () => {
         ultimoEntrante: vi.fn(async () => entrante(25 * HORA)),
       }),
       mockProveedorWhatsapp({ modoActual: vi.fn(async () => "API" as const) }),
+      mockPacienteRepositorio(),
     );
 
     const hilo = await caso.ejecutar("pac-1", AHORA);
@@ -124,12 +127,73 @@ describe("ObtenerHiloWhatsapp", () => {
         ultimoEntrante: vi.fn(async () => null),
       }),
       mockProveedorWhatsapp({ modoActual: vi.fn(async () => "API" as const) }),
+      mockPacienteRepositorio(),
     );
 
     const hilo = await caso.ejecutar("pac-1", AHORA);
 
     expect(hilo.ventanaAbierta).toBe(false);
     expect(hilo.ventanaVenceEn).toBeNull();
+  });
+
+  it("con el número compartido, trae los mensajes de todo el número y dice con quién", async () => {
+    // Dos hermanos con el teléfono de la madre: la conversación es una sola.
+    const sofia = pacienteEjemplo(
+      { nombre: "Sofía", apellido: "Pérez", telefono: "11 5555 4444" },
+      "pac-1",
+    );
+    const tomas = pacienteEjemplo(
+      { nombre: "Tomás", apellido: "Pérez", telefono: "11 5555 4444" },
+      "pac-2",
+    );
+    const mensajes = mockMensajeWhatsappRepositorio();
+    const caso = new ObtenerHiloWhatsapp(
+      mensajes,
+      mockProveedorWhatsapp({ modoActual: vi.fn(async () => "API" as const) }),
+      mockPacienteRepositorio({
+        obtenerPorId: vi.fn(async () => sofia),
+        listarPorTelefonoE164: vi.fn(async () => [sofia, tomas]),
+      }),
+    );
+
+    const hilo = await caso.ejecutar("pac-1", AHORA);
+
+    expect(hilo.compartidoCon).toEqual([
+      { pacienteId: "pac-2", nombre: "Tomás Pérez" },
+    ]);
+    expect(mensajes.listarPorPaciente).toHaveBeenCalledWith(
+      "pac-1",
+      undefined,
+      sofia.telefonoE164,
+    );
+    // La ventana de 24 h es del número: cuenta si la madre escribió en la
+    // ficha de Tomás.
+    expect(mensajes.ultimoEntrante).toHaveBeenCalledWith(
+      "pac-1",
+      sofia.telefonoE164,
+    );
+  });
+
+  it("con el número de una sola ficha, el hilo es el de siempre", async () => {
+    const mensajes = mockMensajeWhatsappRepositorio();
+    const sola = pacienteEjemplo({ telefono: "11 5555 4444" }, "pac-1");
+    const caso = new ObtenerHiloWhatsapp(
+      mensajes,
+      mockProveedorWhatsapp({ modoActual: vi.fn(async () => "API" as const) }),
+      mockPacienteRepositorio({
+        obtenerPorId: vi.fn(async () => sola),
+        listarPorTelefonoE164: vi.fn(async () => [sola]),
+      }),
+    );
+
+    const hilo = await caso.ejecutar("pac-1", AHORA);
+
+    expect(hilo.compartidoCon).toEqual([]);
+    expect(mensajes.listarPorPaciente).toHaveBeenCalledWith(
+      "pac-1",
+      undefined,
+      null,
+    );
   });
 });
 

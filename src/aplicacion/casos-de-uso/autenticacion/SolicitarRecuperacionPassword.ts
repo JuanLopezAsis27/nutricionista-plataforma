@@ -8,10 +8,12 @@ import type { ICuentaPacienteRepositorio } from "@/dominio/repositorios/ICuentaP
 import type { Usuario } from "@/dominio/entidades/Usuario";
 import { TokenRecuperacion } from "@/dominio/entidades/TokenRecuperacion";
 import { escaparHtml } from "@/dominio/plantillas/renderizar";
+import { esIdentificadorEmail } from "@/dominio/servicios/nombreUsuario";
 
 /** Entrada del caso de uso. */
 export interface EntradaSolicitarRecuperacion {
-  email: string;
+  /** El email o el nombre de usuario de la cuenta (migración 80). */
+  identificador: string;
 }
 
 /** Duración de validez del enlace de recuperación (1 hora). */
@@ -27,6 +29,11 @@ const VALIDEZ_MS = 60 * 60 * 1000;
  * IMPORTANTE (privacidad): NUNCA revela si el email existe. Si no hay usuario
  * (o está inactivo), termina en silencio con éxito aparente. Así un atacante no
  * puede enumerar cuentas registradas.
+ *
+ * Se puede pedir con el email o con el nombre de usuario. Una cuenta SIN email
+ * (un paciente que entra con usuario) no tiene a dónde recibir el enlace:
+ * también termina en silencio, y la pantalla —que dice siempre lo mismo— le
+ * explica que en ese caso la contraseña se la restablece su profesional.
  */
 export class SolicitarRecuperacionPassword {
   constructor(
@@ -47,13 +54,16 @@ export class SolicitarRecuperacionPassword {
   ) {}
 
   async ejecutar(entrada: EntradaSolicitarRecuperacion): Promise<void> {
-    const email = entrada.email.trim().toLowerCase();
-    const usuario = await this.usuarios.obtenerPorEmail(email);
+    const identificador = entrada.identificador.trim().toLowerCase();
+    const usuario = esIdentificadorEmail(identificador)
+      ? await this.usuarios.obtenerPorEmail(identificador)
+      : await this.usuarios.obtenerPorNombreUsuario(identificador);
 
     // No revelar la existencia de la cuenta: salir en silencio.
-    if (!usuario || !usuario.activo) {
+    if (!usuario || !usuario.activo || !usuario.email) {
       return;
     }
+    const email = usuario.email;
 
     // Un solo token válido por usuario: invalidar los anteriores.
     await this.tokens.eliminarDeUsuario(usuario.id);
@@ -73,7 +83,7 @@ export class SolicitarRecuperacionPassword {
 
     const enlace = `${this.baseUrl.replace(/\/$/, "")}/restablecer?token=${encodeURIComponent(token)}`;
     await this.servicioEmail.enviar({
-      para: usuario.email,
+      para: email,
       asunto: "Restablecé tu contraseña",
       html: this.plantillaHtml(enlace, await this.firma(usuario)),
       texto:

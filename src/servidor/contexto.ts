@@ -1,6 +1,7 @@
 import { usuarioDeSesion } from "@/lib/autenticacion/sesion";
 import {
   servicioPaciente,
+  servicioAccesoPortal,
   servicioTurno,
   servicioArchivo,
   servicioEvaluacion,
@@ -108,6 +109,7 @@ export async function crearContexto(peticion?: Request) {
     busEventos: busEventos(),
     servicios: {
       paciente: servicioPaciente(),
+      accesoPortal: servicioAccesoPortal(),
       turno: servicioTurno(),
       archivo: servicioArchivo(),
       evaluacion: servicioEvaluacion(),

@@ -104,6 +104,9 @@ export class CancelarTurnoPorPaciente {
           usuarioId: nutri.id,
           datos: { turnoId: turno.id, mensaje },
         });
+        // La cuenta de un profesional siempre tiene email (CHECK de la
+        // migración 80); el tipo lo admite nulo por la de los pacientes.
+        if (!nutri.email) continue;
         await this.servicioEmail.enviar({
           para: nutri.email,
           asunto: `${nombre} canceló su turno del ${fecha}`,

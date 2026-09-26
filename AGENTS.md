@@ -214,24 +214,36 @@ consultorio lento bloquearía a todos los demás.
 
 ## Modelos del dominio
 
-**36 entidades**, **171 casos de uso** en 26 módulos, **40 interfaces de
-repositorio** y **19 puertos de servicio**. La fuente de verdad es el código
+**37 entidades**, **179 casos de uso** en 27 módulos, **41 interfaces de
+repositorio** y **20 puertos de servicio**. La fuente de verdad es el código
 (`/src/dominio`) y `prisma/schema.prisma`. Acá van solo los invariantes que
 cruzan módulos; el detalle de cada uno, en `/docs`.
 
 ### Paciente
 
-Email y teléfono son únicos POR CONSULTORIO, no globalmente: la misma persona
-puede ser paciente de dos nutricionistas. Baja lógica con `archivadoEn`.
+El **email es de CONTACTO, opcional y repetible** (migración 79): hay
+pacientes sin email (niños, personas mayores) y hermanos con el de la madre. Es
+a dónde se le escribe, no con qué se entra. El **teléfono tampoco es único**
+(migración 81): cuando varias fichas comparten un número, el WhatsApp que llega
+queda asignado a una sola según `elegirFichaDelTelefono` (turno del botón,
+última ficha a la que se le escribió, la más antigua), pero el hilo, la
+ventana de 24 h y el «leído» son del NÚMERO, y en la bandeja es UN solo chat
+que nombra a todas las fichas (el portal de cada una sigue aparte). Baja lógica con
+`archivadoEn`. Solo nombre y apellido son obligatorios: el turno ofrece un
+**alta rápida** (nombre, apellido, teléfono; sin email ni portal) para agendar
+a alguien que viene por primera vez.
 
 **Una persona, una cuenta, varios consultorios** (migración 78): son dos
 fichas y UNA cuenta: `pacientes` es la relación persona ↔ consultorio y cada
-ficha dice de qué cuenta es (`pacientes.usuarioId`, una por consultorio). Si el
-email del alta ya tiene cuenta de paciente, `CrearPaciente` la VINCULA en vez
-de rechazar, y no toca su contraseña. La regla que gobierna todo: **un
-consultorio solo fija la contraseña o cambia el email de login de una cuenta
-EXCLUSIVA suya** (`esCuentaExclusiva`); si no, podría entrar como el paciente
-y leer la ficha del otro. La sesión lleva el consultorio ACTIVO
+ficha dice de qué cuenta es (`pacientes.usuarioId`, una por consultorio). El
+acceso al portal es **opcional** y lo da `DarAccesoPortal` (en el alta o desde
+la ficha), que **nunca asocia la ficha a una cuenta que ya existe**: si el
+email es la cuenta de un paciente de otro consultorio, se emite un **código de
+invitación** que la persona canjea desde su cuenta (migración 80). Ningún dato
+que tipea el profesional alcanza para asociar una ficha a la cuenta de otro.
+La regla que gobierna todo: **un consultorio solo fija la contraseña o cambia
+el email de login de una cuenta EXCLUSIVA suya** (`esCuentaExclusiva`); si no,
+podría entrar como el paciente y leer la ficha del otro. La sesión lleva el consultorio ACTIVO
 (`ResolverConsultorioActivo`), el paciente elige en `/mis-consultorios` o desde
 el selector del portal, y la elección se recuerda por dispositivo. Ver
 `docs/CUENTAS-PACIENTE.md`.
@@ -251,11 +263,23 @@ si el email falla, la cuenta queda como estaba. Sin `{{contrasena}}` en la
 plantilla, la pantalla no pregunta y la cuenta no se toca
 (`pacientes.bienvenidaPideContrasena`). Un paciente sin cuenta del portal (o
 desactivada) se omite. A una cuenta COMPARTIDA con otro consultorio no se le
-toca la contraseña: le sale la plantilla `BIENVENIDA_CUENTA_EXISTENTE`, la
-misma que recibe quien ya tenía cuenta al darlo de alta. La contraseña que
-asigna un profesional queda provisional.
+toca la contraseña: le sale la plantilla `BIENVENIDA_CUENTA_EXISTENTE`. La
+contraseña que asigna un profesional queda provisional. `{{usuario}}` (y
+`{{email}}`, que dice lo mismo) es con qué entra la cuenta; el email sale al
+de contacto de la ficha, y sin email las credenciales se dan en mano (el alta
+las muestra una vez, con copiar e imprimir).
 
 ### Usuario
+
+**Se entra con email o con nombre de usuario** (migración 80): la cuenta tiene
+uno, el otro o los dos (CHECK), y solo la de un PACIENTE puede no tener email.
+El usuario es único en la plataforma, en minúsculas y sin `@`, que es lo que
+le deja al login saber qué le escribieron. Sin email no hay «olvidé mi
+contraseña»: la restablece el profesional desde la ficha
+(`RestablecerPasswordPaciente`, solo cuentas exclusivas). La persona cambia su
+email y su usuario en «Mi perfil» (con su contraseña, aunque la cuenta sea
+compartida); el profesional, solo el usuario de una cuenta exclusiva. Ver
+`docs/CUENTAS-PACIENTE.md`.
 
 Roles: SUPERADMIN | NUTRICIONISTA | PACIENTE. `nutricionistaId` es el
 consultorio del NUTRICIONISTA (su propio id); el SUPERADMIN y el PACIENTE no
@@ -567,7 +591,7 @@ plan ni su historial.
 
 ## Errores de dominio
 
-Siempre lanzar errores tipados del dominio, nunca strings genéricos. Hay ~26 en
+Siempre lanzar errores tipados del dominio, nunca strings genéricos. Hay ~27 en
 `/src/dominio/errores`, todos extienden `ErrorDominio` con un `codigo` semántico:
 VALIDACION, NO_ENCONTRADO, CONFLICTO, ACCESO_DENEGADO, NO_AUTENTICADO.
 
@@ -874,6 +898,16 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
 - Nunca copiar al JWT lo que manda `update()` de la sesión: cualquier script
   de la página lo puede llamar. Es una preferencia de consultorio, y la
   identidad se vuelve a resolver con `ResolverConsultorioActivo`
+- Nunca asociar una ficha a una cuenta que ya existe por un dato que cargó el
+  profesional (email, usuario, DNI, teléfono): un error de tipeo le abre la
+  ficha a otra persona. Solo el canje de un código de invitación, que hace la
+  persona con su contraseña (`CanjearInvitacionPortal`). Una persona con dos
+  cuentas es incómodo; dos personas en una cuenta es una filtración
+- Nunca volver a hacer único el email de la FICHA: es de contacto, y dos
+  hermanos pueden llevar el de la madre. El único es el de la cuenta. Y nunca
+  aceptar un nombre de usuario con `@`: el login no podría distinguirlo
+- Nunca contar como FALLIDO un recordatorio que no salió porque el paciente no
+  tiene email: es un caso normal desde la migración 79, y se cuenta omitido
 - Nunca darle `nutricionistaId` a la cuenta de un PACIENTE ni volver a colgarla
   de una ficha (`usuarios.pacienteId`): se llega a ella por
   `pacientes.usuarioId`, y en `usuarios` se busca

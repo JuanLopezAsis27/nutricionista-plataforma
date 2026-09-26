@@ -8,8 +8,20 @@ import { passwordNuevaDto } from "./password";
  * borde. La longitud mínima de la contraseña coincide con el alta de paciente.
  */
 
+/**
+ * Con qué se identifica alguien al entrar: su email o su nombre de usuario
+ * (migración 80). No se valida la forma de ninguno de los dos: decir «ese
+ * usuario no tiene un formato válido» es una pista gratis sobre qué cuentas
+ * pueden existir, y una búsqueda que no encuentra nada responde igual.
+ */
+export const identificadorLoginDto = z
+  .string()
+  .trim()
+  .min(1, "Ingresá tu email o tu nombre de usuario")
+  .max(254);
+
 export const solicitarRecuperacionDto = z.object({
-  email: z.string().email("Email inválido"),
+  identificador: identificadorLoginDto,
 });
 export type SolicitarRecuperacionDto = z.infer<typeof solicitarRecuperacionDto>;
 

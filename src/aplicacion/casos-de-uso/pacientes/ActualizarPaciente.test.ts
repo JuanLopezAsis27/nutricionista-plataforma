@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { ActualizarPaciente } from "./ActualizarPaciente";
 import { ErrorPacienteNoEncontrado } from "@/dominio/errores/ErrorPacienteNoEncontrado";
-import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 import {
   mockPacienteRepositorio,
   mockUsuarioRepositorio,
@@ -115,13 +114,10 @@ describe("ActualizarPaciente", () => {
     ).rejects.toBeInstanceOf(ErrorPacienteNoEncontrado);
   });
 
-  it("lanza ErrorValidacion si el nuevo email pertenece a otro paciente", async () => {
+  it("acepta el email de otro paciente: es de contacto (hermanos con el de la madre)", async () => {
     const repositorio = mockPacienteRepositorio({
       obtenerPorId: vi.fn(async () =>
         pacienteEjemplo({ email: "ana@mail.com" }, "pac-1"),
-      ),
-      obtenerPorEmail: vi.fn(async () =>
-        pacienteEjemplo({ email: "otro@mail.com" }, "pac-2"),
       ),
     });
     const casoUso = new ActualizarPaciente(
@@ -131,9 +127,33 @@ describe("ActualizarPaciente", () => {
       mockConfiguracionRepositorio(),
     );
 
-    await expect(
-      casoUso.ejecutar({ id: "pac-1", email: "otro@mail.com" }),
-    ).rejects.toBeInstanceOf(ErrorValidacion);
+    const guardado = await casoUso.ejecutar({
+      id: "pac-1",
+      email: "mama@mail.com",
+    });
+
+    expect(guardado.email).toBe("mama@mail.com");
+  });
+
+  it("puede quedar sin email", async () => {
+    const repositorio = mockPacienteRepositorio({
+      obtenerPorId: vi.fn(async () =>
+        pacienteEjemplo({ email: "ana@mail.com" }, "pac-1"),
+      ),
+    });
+    const usuarios = mockUsuarioRepositorio();
+    const casoUso = new ActualizarPaciente(
+      repositorio,
+      usuarios,
+      mockCuentaPacienteRepositorio(),
+      mockConfiguracionRepositorio(),
+    );
+
+    const guardado = await casoUso.ejecutar({ id: "pac-1", email: null });
+
+    expect(guardado.email).toBeNull();
+    // Borrarlo de la ficha no le quita a la cuenta con qué entrar.
+    expect(usuarios.actualizar).not.toHaveBeenCalled();
   });
 
   describe("el email de la cuenta (una cuenta, varios consultorios)", () => {
@@ -187,15 +207,39 @@ describe("ActualizarPaciente", () => {
       expect(usuarios.actualizar).not.toHaveBeenCalled();
     });
 
-    it("rechaza un email que ya tiene cuenta ANTES de guardar la ficha", async () => {
-      // Antes el choque aparecía contra el índice, con la ficha ya guardada y
-      // la cuenta con el email viejo.
-      const { caso, repositorio } = armar({ emailTomado: true });
+    it("si el email nuevo ya es de otra cuenta, cambia el de contacto y no el login", async () => {
+      // El de ingreso es único en la plataforma; el de contacto se puede
+      // repetir (migración 79). Antes esto se rechazaba.
+      const { caso, usuarios, repositorio } = armar({ emailTomado: true });
 
-      await expect(
-        caso.ejecutar({ id: "pac-1", email: "tomado@mail.com" }),
-      ).rejects.toBeInstanceOf(ErrorValidacion);
-      expect(repositorio.actualizar).not.toHaveBeenCalled();
+      await caso.ejecutar({ id: "pac-1", email: "tomado@mail.com" });
+
+      expect(repositorio.actualizar).toHaveBeenCalledOnce();
+      expect(usuarios.actualizar).not.toHaveBeenCalled();
+    });
+
+    it("no toca una cuenta que entra con otra cosa (usuario u otro email)", async () => {
+      const conUsuario = usuarioEjemplo(
+        { email: null, nombreUsuario: "ana.gomez", rol: "PACIENTE" },
+        "usr-2",
+      );
+      const usuarios = mockUsuarioRepositorio({
+        obtenerPorPacienteId: vi.fn(async () => conUsuario),
+      });
+      const caso = new ActualizarPaciente(
+        mockPacienteRepositorio({
+          obtenerPorId: vi.fn(async () =>
+            pacienteEjemplo({ email: "ana@mail.com" }, "pac-1"),
+          ),
+        }),
+        usuarios,
+        mockCuentaPacienteRepositorio(),
+        mockConfiguracionRepositorio(),
+      );
+
+      await caso.ejecutar({ id: "pac-1", email: "nueva@mail.com" });
+
+      expect(usuarios.actualizar).not.toHaveBeenCalled();
     });
   });
 });

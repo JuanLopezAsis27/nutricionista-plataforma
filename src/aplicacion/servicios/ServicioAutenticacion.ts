@@ -96,11 +96,11 @@ export class ServicioAutenticacion {
     return { vigente: await this.verificarTokenUC.ejecutar(token) };
   }
 
-  /** Siempre resuelve OK aunque el email no exista (no revela cuentas). */
+  /** Siempre resuelve OK aunque la cuenta no exista (no revela cuentas). */
   async solicitarRecuperacion(
     datos: SolicitarRecuperacionDto,
   ): Promise<{ enviado: true }> {
-    await this.solicitarUC.ejecutar({ email: datos.email });
+    await this.solicitarUC.ejecutar({ identificador: datos.identificador });
     return { enviado: true };
   }
 

@@ -373,6 +373,23 @@ Hay siempre **una predeterminada** y no se puede borrar: es la que usa el
 barrido automático, y quedarse sin ella se descubre el día en que los avisos no
 salieron. Para reemplazarla, primero se marca otra.
 
+## Pacientes sin email
+
+Desde la migración 79 el email del paciente es opcional (niños, personas
+mayores) y es de CONTACTO: se puede repetir entre fichas (hermanos con el de la
+madre). Cada medio sale si el paciente tiene el dato que ese medio necesita:
+
+| Medio      | Necesita | Sin el dato                                     |
+| ---------- | -------- | ----------------------------------------------- |
+| WhatsApp   | teléfono | se saltea                                       |
+| Email      | email    | se saltea (`SIN_EMAIL`)                         |
+| Calendario | email    | el evento se crea sin invitado                  |
+
+**Saltearlo no es una falla.** El barrido cuenta `SIN_EMAIL` como omitido, no
+como fallido: contarlo como falla ensuciaba cada corrida con pacientes que
+nunca van a tener email. El envío manual lo dice con su motivo («no tiene email
+cargado») y no con el «ya se le había enviado» de antes, que era falso.
+
 ## Calendario: el paciente como invitado
 
 Al agendar un turno se crea el evento en el Google Calendar del consultorio. Lo

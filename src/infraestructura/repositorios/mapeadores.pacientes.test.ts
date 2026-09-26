@@ -74,6 +74,7 @@ describe("mapearUsuario", () => {
     const datos = mapearUsuario({
       id: "user-1",
       email: "ana@ejemplo.test",
+      nombreUsuario: "ana.gomez",
       passwordHash: "$2a$10$hash",
       rol: "NUTRICIONISTA",
       nutricionistaId: "nutri-1",
@@ -88,6 +89,9 @@ describe("mapearUsuario", () => {
     expect(datos.rol).toBe("NUTRICIONISTA");
     expect(datos.activo).toBe(true);
     expect(datos.passwordHash).toBe("$2a$10$hash");
+    // Las dos credenciales de ingreso son strings vecinos (migración 80).
+    expect(datos.email).toBe("ana@ejemplo.test");
+    expect(datos.nombreUsuario).toBe("ana.gomez");
   });
 });
 

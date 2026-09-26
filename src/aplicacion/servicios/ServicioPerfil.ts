@@ -1,7 +1,12 @@
 import type { ObtenerMiPerfil } from "@/aplicacion/casos-de-uso/perfil/ObtenerMiPerfil";
 import type { CambiarFotoPerfil } from "@/aplicacion/casos-de-uso/perfil/CambiarFotoPerfil";
 import type { CambiarPassword } from "@/aplicacion/casos-de-uso/perfil/CambiarPassword";
-import type { CambiarPasswordDto, PerfilSalidaDto } from "../dtos/perfil.dto";
+import type { CambiarMisDatosIngreso } from "@/aplicacion/casos-de-uso/perfil/CambiarMisDatosIngreso";
+import type {
+  CambiarDatosIngresoDto,
+  CambiarPasswordDto,
+  PerfilSalidaDto,
+} from "../dtos/perfil.dto";
 
 /**
  * Servicio de aplicación de "Mi perfil": la cuenta propia.
@@ -21,6 +26,7 @@ export class ServicioPerfil {
     private readonly obtenerUC: ObtenerMiPerfil,
     private readonly cambiarFotoUC: CambiarFotoPerfil,
     private readonly cambiarPasswordUC: CambiarPassword,
+    private readonly cambiarIngresoUC: CambiarMisDatosIngreso,
   ) {}
 
   async obtener(
@@ -50,5 +56,20 @@ export class ServicioPerfil {
       passwordNueva: datos.passwordNueva,
     });
     return { cambiada: true };
+  }
+
+  /** Con qué entra: email y nombre de usuario. Devuelve el perfil actualizado. */
+  async cambiarDatosIngreso(
+    usuarioId: string,
+    pacienteActivoId: string | null,
+    datos: CambiarDatosIngresoDto,
+  ): Promise<PerfilSalidaDto> {
+    await this.cambiarIngresoUC.ejecutar({
+      usuarioId,
+      passwordActual: datos.passwordActual,
+      email: datos.email,
+      nombreUsuario: datos.nombreUsuario,
+    });
+    return this.obtenerUC.ejecutar(usuarioId, pacienteActivoId);
   }
 }

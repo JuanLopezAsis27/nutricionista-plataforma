@@ -4,7 +4,10 @@ import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsu
 import {
   mockPacienteRepositorio,
   mockConfiguracionRepositorio,
+  mockMensajeWhatsappRepositorio,
+  mockTurnoRepositorio,
   pacienteEjemplo,
+  turnoEjemplo,
 } from "../_ayudas-test";
 
 /**
@@ -25,13 +28,18 @@ import {
 describe("ResolverPacientePorTelefono", () => {
   function armar(pacienteEncontrado = pacienteEjemplo()) {
     const pacientes = mockPacienteRepositorio({
-      obtenerPorTelefonoE164: vi.fn(async () => pacienteEncontrado),
+      listarPorTelefonoE164: vi.fn(async () => [pacienteEncontrado]),
     });
     const configuracion = mockConfiguracionRepositorio({
       obtener: vi.fn(async () => ConfiguracionConsultorio.porDefecto()),
     });
     return {
-      caso: new ResolverPacientePorTelefono(pacientes, configuracion),
+      caso: new ResolverPacientePorTelefono(
+        pacientes,
+        configuracion,
+        mockMensajeWhatsappRepositorio(),
+        mockTurnoRepositorio(),
+      ),
       pacientes,
       configuracion,
     };
@@ -45,7 +53,7 @@ describe("ResolverPacientePorTelefono", () => {
     // Lo que llega a la consulta es la forma normalizada: si se buscara el
     // texto crudo, un paciente cargado con otro formato nunca aparecería.
     const [buscado] = (
-      pacientes.obtenerPorTelefonoE164 as ReturnType<typeof vi.fn>
+      pacientes.listarPorTelefonoE164 as ReturnType<typeof vi.fn>
     ).mock.calls[0] as [string];
     expect(buscado).not.toContain(" ");
     expect(buscado).not.toContain("-");
@@ -67,7 +75,7 @@ describe("ResolverPacientePorTelefono", () => {
       const { caso, pacientes } = armar();
       await caso.ejecutar(forma);
       const [buscado] = (
-        pacientes.obtenerPorTelefonoE164 as ReturnType<typeof vi.fn>
+        pacientes.listarPorTelefonoE164 as ReturnType<typeof vi.fn>
       ).mock.calls[0] as [string];
       buscados.push(buscado);
     }
@@ -86,20 +94,22 @@ describe("ResolverPacientePorTelefono", () => {
     const resultado = await caso.ejecutar("no-es-un-telefono");
 
     expect(resultado).toBeNull();
-    expect(pacientes.obtenerPorTelefonoE164).not.toHaveBeenCalled();
+    expect(pacientes.listarPorTelefonoE164).not.toHaveBeenCalled();
   });
 
   it("devuelve null cuando el número no es de ningún paciente", async () => {
     // Este es el caso que protege la privacidad: el mensaje de un familiar al
     // WhatsApp del profesional no encuentra paciente y no se persiste.
     const pacientes = mockPacienteRepositorio({
-      obtenerPorTelefonoE164: vi.fn(async () => null),
+      listarPorTelefonoE164: vi.fn(async () => []),
     });
     const caso = new ResolverPacientePorTelefono(
       pacientes,
       mockConfiguracionRepositorio({
         obtener: vi.fn(async () => ConfiguracionConsultorio.porDefecto()),
       }),
+      mockMensajeWhatsappRepositorio(),
+      mockTurnoRepositorio(),
     );
 
     expect(await caso.ejecutar("+54 9 11 9999 8888")).toBeNull();
@@ -111,11 +121,13 @@ describe("ResolverPacientePorTelefono", () => {
     // fallaría justo en el consultorio recién dado de alta.
     const paciente = pacienteEjemplo();
     const pacientes = mockPacienteRepositorio({
-      obtenerPorTelefonoE164: vi.fn(async () => paciente),
+      listarPorTelefonoE164: vi.fn(async () => [paciente]),
     });
     const caso = new ResolverPacientePorTelefono(
       pacientes,
       mockConfiguracionRepositorio({ obtener: vi.fn(async () => null) }),
+      mockMensajeWhatsappRepositorio(),
+      mockTurnoRepositorio(),
     );
 
     expect(await caso.ejecutar("11 5555 4444")).toBe(paciente);
@@ -130,18 +142,86 @@ describe("ResolverPacientePorTelefono", () => {
       whatsappPrefijoPais: "34",
     });
     const pacientes = mockPacienteRepositorio({
-      obtenerPorTelefonoE164: vi.fn(async () => null),
+      listarPorTelefonoE164: vi.fn(async () => []),
     });
     const caso = new ResolverPacientePorTelefono(
       pacientes,
       mockConfiguracionRepositorio({ obtener: vi.fn(async () => conPrefijo) }),
+      mockMensajeWhatsappRepositorio(),
+      mockTurnoRepositorio(),
     );
 
     await caso.ejecutar("612345678");
 
     const [buscado] = (
-      pacientes.obtenerPorTelefonoE164 as ReturnType<typeof vi.fn>
+      pacientes.listarPorTelefonoE164 as ReturnType<typeof vi.fn>
     ).mock.calls[0] as [string];
     expect(buscado.startsWith("34")).toBe(true);
+  });
+
+  describe("un número de varias fichas (hermanos con el teléfono de la madre)", () => {
+    const sofia = pacienteEjemplo({ nombre: "Sofía" }, "pac-sofia");
+    const tomas = pacienteEjemplo({ nombre: "Tomás" }, "pac-tomas");
+
+    function armarHermanos({
+      turnoDe = null as string | null,
+      ultimoSalienteA = null as string | null,
+    } = {}) {
+      const mensajes = mockMensajeWhatsappRepositorio({
+        ultimoSalienteAlTelefono: vi.fn(async () =>
+          ultimoSalienteA ? ({ pacienteId: ultimoSalienteA } as never) : null,
+        ),
+      });
+      const turnos = mockTurnoRepositorio({
+        obtenerPorId: vi.fn(async () =>
+          turnoDe ? turnoEjemplo({ pacienteId: turnoDe }) : null,
+        ),
+      });
+      const caso = new ResolverPacientePorTelefono(
+        mockPacienteRepositorio({
+          listarPorTelefonoE164: vi.fn(async () => [sofia, tomas]),
+        }),
+        mockConfiguracionRepositorio(),
+        mensajes,
+        turnos,
+      );
+      return { caso, mensajes };
+    }
+
+    it("un botón va a la ficha de su turno", async () => {
+      const { caso } = armarHermanos({
+        turnoDe: "pac-tomas",
+        ultimoSalienteA: "pac-sofia",
+      });
+
+      expect(await caso.ejecutar("11 5555 4444", "tur-1")).toBe(tomas);
+    });
+
+    it("un texto va a la ficha a la que se le escribió por última vez", async () => {
+      const { caso } = armarHermanos({ ultimoSalienteA: "pac-tomas" });
+
+      expect(await caso.ejecutar("11 5555 4444")).toBe(tomas);
+    });
+
+    it("sin pistas, a la más antigua", async () => {
+      const { caso } = armarHermanos();
+
+      expect(await caso.ejecutar("11 5555 4444")).toBe(sofia);
+    });
+
+    it("con una sola ficha no busca pistas", async () => {
+      const mensajes = mockMensajeWhatsappRepositorio();
+      const caso = new ResolverPacientePorTelefono(
+        mockPacienteRepositorio({
+          listarPorTelefonoE164: vi.fn(async () => [sofia]),
+        }),
+        mockConfiguracionRepositorio(),
+        mensajes,
+        mockTurnoRepositorio(),
+      );
+
+      expect(await caso.ejecutar("11 5555 4444")).toBe(sofia);
+      expect(mensajes.ultimoSalienteAlTelefono).not.toHaveBeenCalled();
+    });
   });
 });

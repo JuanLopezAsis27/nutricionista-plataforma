@@ -22,6 +22,8 @@ import {
 import { ID_PROVEEDOR_REFRESCO } from "./cookieRefresco";
 import { CODIGO_LOGIN_BLOQUEADO, CODIGO_LOGIN_INACTIVA } from "./codigosLogin";
 import { consultorioPreferido } from "./consultorioActivo";
+import { identificadorLoginDto } from "@/aplicacion/dtos/autenticacion.dto";
+import { esIdentificadorEmail } from "@/dominio/servicios/nombreUsuario";
 
 /**
  * IP de origen de la request.
@@ -70,7 +72,7 @@ function ipDeSolicitud(peticion: Request | undefined): string {
  *   - signIn / signOut → acciones de servidor
  */
 const credencialesDto = z.object({
-  email: z.string().email(),
+  identificador: identificadorLoginDto,
   password: z.string().min(1),
 });
 
@@ -142,7 +144,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   providers: [
     Credentials({
       credentials: {
-        email: { label: "Email", type: "email" },
+        identificador: { label: "Email o usuario", type: "text" },
         password: { label: "Contraseña", type: "password" },
       },
       async authorize(credenciales, peticion) {
@@ -151,36 +153,44 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
           return null;
         }
 
-        const { email, password } = resultado.data;
+        const { password } = resultado.data;
+        const identificador = resultado.data.identificador.toLowerCase();
         const claveIp = `ip:${ipDeSolicitud(peticion)}`;
-        const claveEmail = `email:${email.trim().toLowerCase()}`;
+        // Por lo que se escribió, sea email o usuario: el bloqueo es por cuenta
+        // intentada, exista o no.
+        const claveCuenta = `cuenta:${identificador}`;
 
-        // Rate-limiting anti fuerza bruta: si la IP o el email están bloqueados
+        // Rate-limiting anti fuerza bruta: si la IP o la cuenta están bloqueadas
         // por demasiados fallos, se rechaza sin siquiera verificar la contraseña
         // (evita también el gasto de CPU de bcrypt como vector de DoS).
         if (
           limitadorLogin.estaBloqueada(claveIp).bloqueada ||
-          limitadorLogin.estaBloqueada(claveEmail).bloqueada
+          limitadorLogin.estaBloqueada(claveCuenta).bloqueada
         ) {
           // Con motivo: el bloqueo no dice nada de ninguna cuenta y, sin
           // saberlo, la persona sigue probando contra una puerta trabada.
           throw new ErrorLoginConMotivo(CODIGO_LOGIN_BLOQUEADO);
         }
 
-        // El login busca por email GLOBALMENTE (aún no hay inquilino resuelto).
+        // El login busca GLOBALMENTE (aún no hay inquilino resuelto). Con
+        // arroba es un email; sin, un nombre de usuario (que no puede tenerla).
         const usuario = await ejecutarGlobal(() =>
-          repositorioUsuarioCompartido().obtenerPorEmail(email),
+          esIdentificadorEmail(identificador)
+            ? repositorioUsuarioCompartido().obtenerPorEmail(identificador)
+            : repositorioUsuarioCompartido().obtenerPorNombreUsuario(
+                identificador,
+              ),
         );
         if (!usuario) {
           limitadorLogin.registrarFallo(claveIp);
-          limitadorLogin.registrarFallo(claveEmail);
+          limitadorLogin.registrarFallo(claveCuenta);
           return null;
         }
 
         const coincide = await bcrypt.compare(password, usuario.passwordHash);
         if (!coincide) {
           limitadorLogin.registrarFallo(claveIp);
-          limitadorLogin.registrarFallo(claveEmail);
+          limitadorLogin.registrarFallo(claveCuenta);
           return null;
         }
 
@@ -192,13 +202,13 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         // confirmarle a un desconocido que la cuenta existe.
         if (!usuario.activo) {
           limitadorLogin.registrarFallo(claveIp);
-          limitadorLogin.registrarFallo(claveEmail);
+          limitadorLogin.registrarFallo(claveCuenta);
           throw new ErrorLoginConMotivo(CODIGO_LOGIN_INACTIVA);
         }
 
-        // Login correcto: limpiar los contadores de esta IP/email.
+        // Login correcto: limpiar los contadores de esta IP/cuenta.
         limitadorLogin.registrarExito(claveIp);
-        limitadorLogin.registrarExito(claveEmail);
+        limitadorLogin.registrarExito(claveCuenta);
 
         // Re-hasheo transparente: si la contraseña quedó guardada con un costo
         // más bajo que el actual, se regraba con el nuevo. Es el único momento

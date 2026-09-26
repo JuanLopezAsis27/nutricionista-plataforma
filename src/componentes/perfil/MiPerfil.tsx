@@ -1,6 +1,8 @@
 "use client";
 
-import { UserRound } from "lucide-react";
+import Link from "next/link";
+import { Building2, UserRound } from "lucide-react";
+import { Button } from "@/componentes/ui/button";
 import {
   Card,
   CardHeader,
@@ -12,6 +14,7 @@ import { Skeleton } from "@/componentes/ui/skeleton";
 import { usePerfil } from "@/lib/hooks/usePerfil";
 import { FotoDePerfil } from "./FotoDePerfil";
 import { FormularioPassword } from "./FormularioPassword";
+import { FormularioDatosIngreso } from "./FormularioDatosIngreso";
 
 /**
  * "Mi perfil": la cuenta propia. Es EL MISMO componente para el nutricionista y
@@ -40,7 +43,7 @@ export function MiPerfil() {
           <UserRound className="h-6 w-6 text-primary" /> Mi perfil
         </h1>
         <p className="text-sm text-muted-foreground">
-          Tu foto y tu contraseña.
+          Tu foto, con qué entrás y tu contraseña.
         </p>
       </div>
 
@@ -50,7 +53,10 @@ export function MiPerfil() {
           <CardDescription>
             {perfil ? (
               <>
-                {perfil.nombre} · {perfil.email}
+                {perfil.nombre} ·{" "}
+                {[perfil.email, perfil.nombreUsuario]
+                  .filter(Boolean)
+                  .join(" · ")}
               </>
             ) : (
               "Cargando tus datos…"
@@ -74,6 +80,27 @@ export function MiPerfil() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Con qué entrás</CardTitle>
+          <CardDescription>
+            Tu email y tu nombre de usuario: podés entrar con cualquiera de los
+            dos.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {perfil ? (
+            <FormularioDatosIngreso
+              // Se remonta si cambian desde afuera, para no editar valores viejos.
+              key={`${perfil.email}|${perfil.nombreUsuario}`}
+              perfil={perfil}
+            />
+          ) : (
+            <Skeleton className="h-40 w-full" />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Cambiar contraseña</CardTitle>
           <CardDescription>
             Escribí la que usás hoy y elegí una nueva.
@@ -90,6 +117,28 @@ export function MiPerfil() {
           <FormularioPassword />
         </CardContent>
       </Card>
+
+      {/* Sumar un consultorio con un código (migración 80). Con uno solo, el
+          selector de la barra no se dibuja: esta es la puerta para llegar. */}
+      {perfil?.rol === "PACIENTE" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>¿Te atendés con otro profesional?</CardTitle>
+            <CardDescription>
+              Si te dio un código de invitación, sumalo a esta misma cuenta: vas
+              a entrar a los dos consultorios con el mismo usuario.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline">
+              <Link href="/mis-consultorios">
+                <Building2 className="h-4 w-4" />
+                Mis consultorios
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

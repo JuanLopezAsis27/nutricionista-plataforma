@@ -30,9 +30,17 @@ export function usePerfil() {
     onSuccess: () => invalidar(),
   });
 
+  // Email y usuario de la cuenta propia. Invalida: la pantalla y la barra
+  // muestran con qué se entra.
+  const cambiarDatosIngreso = trpc.perfil.cambiarDatosIngreso.useMutation({
+    onSuccess: () => invalidar(),
+    onError: (error) => avisarError(error),
+  });
+
   return {
     mio: trpc.perfil.mio.useQuery,
     cambiarFoto,
     cambiarPassword,
+    cambiarDatosIngreso,
   };
 }

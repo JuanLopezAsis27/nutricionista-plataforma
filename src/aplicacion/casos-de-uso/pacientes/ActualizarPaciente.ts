@@ -9,7 +9,6 @@ import {
 } from "@/dominio/entidades/Paciente";
 import { PREFIJO_PAIS_POR_DEFECTO } from "@/dominio/servicios/telefono";
 import { ErrorPacienteNoEncontrado } from "@/dominio/errores/ErrorPacienteNoEncontrado";
-import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 import type { Usuario } from "@/dominio/entidades/Usuario";
 
 /** Entrada del dominio: id + cambios parciales a aplicar. */
@@ -25,15 +24,22 @@ export interface DatosActualizarPaciente extends Partial<DatosNuevoPaciente> {
 /**
  * Caso de uso: actualizar los datos de un paciente.
  *
- * Verifica que el paciente exista; si cambia el email, verifica que no lo use
- * otro paciente ni otra cuenta, y sincroniza el email en la cuenta de acceso
- * del paciente (para que siga pudiendo iniciar sesión).
+ * El email de la ficha es de CONTACTO (migración 79): se puede repetir entre
+ * fichas —hermanos con el de la madre— y se puede borrar. Con qué se entra al
+ * portal es de la cuenta.
  *
- * **Solo si la cuenta es exclusiva de este consultorio.** Si la persona se
- * atiende también en otro, su email de inicio de sesión es de ella y no de
- * esta ficha: cambiarlo desde acá le cambiaría el login en los dos lados. En
- * ese caso cambia el email de la ficha (a dónde le escribe ESTE consultorio) y
- * la cuenta queda como estaba.
+ * Aun así, si la cuenta entraba con ESTE mismo email, cambiarlo en la ficha le
+ * cambia también el de ingreso: casi siempre es la corrección de un email mal
+ * escrito, y dejarlos distintos sería sorprender a la persona en el login. Eso
+ * solo pasa si:
+ *
+ * - la cuenta es EXCLUSIVA de este consultorio. Si la persona se atiende
+ *   también en otro, su email de ingreso es de ella y no de esta ficha:
+ *   cambiarlo desde acá le cambiaría el login en los dos lados;
+ * - el email nuevo no es ya el de otra cuenta (el de ingreso es único en la
+ *   plataforma). Si lo es, cambia solo el de contacto;
+ * - el email nuevo no está vacío. Borrarlo de la ficha no le quita a la cuenta
+ *   con qué entrar.
  */
 export class ActualizarPaciente {
   constructor(
@@ -51,35 +57,14 @@ export class ActualizarPaciente {
       throw new ErrorPacienteNoEncontrado(id);
     }
 
-    const emailNuevo = cambios.email?.trim().toLowerCase();
-    const cambiaEmail = Boolean(emailNuevo && emailNuevo !== existente.email);
-
-    // La cuenta se sincroniza solo si es de este consultorio y de nadie más.
-    let cuentaASincronizar: Usuario | null = null;
-    if (cambiaEmail) {
-      const conMismoEmail = await this.repositorio.obtenerPorEmail(emailNuevo!);
-      if (conMismoEmail && conMismoEmail.id !== id) {
-        throw new ErrorValidacion("Ya existe otro paciente con ese email.");
-      }
-      const cuenta = await this.usuarios.obtenerPorPacienteId(id);
-      if (
-        cuenta &&
-        esCuentaExclusiva(await this.cuentas.contarDeUsuario(cuenta.id))
-      ) {
-        cuentaASincronizar = cuenta;
-        // `usuarios.email` es único en TODA la plataforma: se pregunta ANTES
-        // de guardar la ficha. Si no, el choque aparecía recién contra el
-        // índice, con la ficha ya guardada y la cuenta con el email viejo.
-        if (
-          emailNuevo !== cuenta.email &&
-          (await this.usuarios.emailYaRegistrado(emailNuevo!))
-        ) {
-          throw new ErrorValidacion(
-            "Ese email ya tiene una cuenta en la plataforma. Usá otro para el inicio de sesión del paciente.",
-          );
-        }
-      }
-    }
+    const emailNuevo =
+      cambios.email === undefined
+        ? existente.email
+        : cambios.email?.trim().toLowerCase() || null;
+    const cuentaASincronizar =
+      emailNuevo && existente.email && emailNuevo !== existente.email
+        ? await this.cuentaQueEntraCon(id, existente.email, emailNuevo)
+        : null;
 
     const config = await this.configuracion.obtener();
     const actualizado = existente.actualizar(
@@ -89,13 +74,30 @@ export class ActualizarPaciente {
     );
     const guardado = await this.repositorio.actualizar(actualizado, esperadoEn);
 
-    // Sincroniza el email en la cuenta de acceso del paciente.
-    if (cuentaASincronizar && cuentaASincronizar.email !== guardado.email) {
+    if (cuentaASincronizar && guardado.email) {
       await this.usuarios.actualizar(
         cuentaASincronizar.cambiarEmail(guardado.email),
       );
     }
 
     return guardado;
+  }
+
+  /**
+   * La cuenta de la ficha, si hay que llevarle el email nuevo (ver la clase).
+   * Se pregunta ANTES de guardar la ficha para no dejar una a medias.
+   */
+  private async cuentaQueEntraCon(
+    pacienteId: string,
+    emailAnterior: string,
+    emailNuevo: string,
+  ): Promise<Usuario | null> {
+    const cuenta = await this.usuarios.obtenerPorPacienteId(pacienteId);
+    if (!cuenta || cuenta.email !== emailAnterior) return null;
+    if (!esCuentaExclusiva(await this.cuentas.contarDeUsuario(cuenta.id))) {
+      return null;
+    }
+    if (await this.usuarios.emailYaRegistrado(emailNuevo)) return null;
+    return cuenta;
   }
 }

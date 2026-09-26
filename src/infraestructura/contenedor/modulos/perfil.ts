@@ -9,9 +9,10 @@ import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import { ObtenerMiPerfil } from "@/aplicacion/casos-de-uso/perfil/ObtenerMiPerfil";
 import { CambiarFotoPerfil } from "@/aplicacion/casos-de-uso/perfil/CambiarFotoPerfil";
 import { CambiarPassword } from "@/aplicacion/casos-de-uso/perfil/CambiarPassword";
+import { CambiarMisDatosIngreso } from "@/aplicacion/casos-de-uso/perfil/CambiarMisDatosIngreso";
 import { ServicioPerfil } from "@/aplicacion/servicios/ServicioPerfil";
 
-/** Arma el servicio de "Mi perfil" (foto y contraseña de la cuenta propia). */
+/** Arma el servicio de "Mi perfil" (foto, contraseña y datos de ingreso). */
 export function crearServicioPerfil(deps: {
   usuarios: IUsuarioRepositorio;
   pacientes: IPacienteRepositorio;
@@ -31,5 +32,6 @@ export function crearServicioPerfil(deps: {
       deps.tokensRefresco,
       deps.reloj,
     ),
+    new CambiarMisDatosIngreso(deps.usuarios, deps.hasheador),
   );
 }

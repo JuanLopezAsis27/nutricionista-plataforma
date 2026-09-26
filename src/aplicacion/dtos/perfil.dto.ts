@@ -1,12 +1,15 @@
 import { z } from "zod";
 import { ROLES_USUARIO } from "@/dominio/entidades/Usuario";
 import { passwordNuevaDto } from "./password";
+import { nombreUsuarioDto } from "./acceso-portal.dto";
 
 /** DTOs de "Mi perfil" — la cuenta propia: foto y contraseña. */
 
 export const perfilSalidaDto = z.object({
   usuarioId: z.string(),
-  email: z.string(),
+  /** Null en la cuenta de un paciente que entra con usuario (migración 80). */
+  email: z.string().nullable(),
+  nombreUsuario: z.string().nullable(),
   rol: z.enum(ROLES_USUARIO),
   /** Nombre para mostrar; sale de la ficha o de la configuración, no de Usuario. */
   nombre: z.string(),
@@ -58,3 +61,21 @@ export const cambiarPasswordDto = z
     path: ["passwordNueva"],
   });
 export type CambiarPasswordDto = z.infer<typeof cambiarPasswordDto>;
+
+/**
+ * Con qué entra la persona a su cuenta: email y nombre de usuario (migración
+ * 80). Vacío es "sin"; que quede al menos uno lo decide la entidad, que sabe
+ * además que un profesional no puede quedarse sin email.
+ */
+export const cambiarDatosIngresoDto = z.object({
+  passwordActual: z.string().min(1, "Escribí tu contraseña actual"),
+  email: z
+    .union([z.literal(""), z.string().trim().email("Email inválido")])
+    .nullable()
+    .transform((valor) => valor || null),
+  nombreUsuario: z
+    .union([z.literal(""), nombreUsuarioDto])
+    .nullable()
+    .transform((valor) => valor || null),
+});
+export type CambiarDatosIngresoDto = z.infer<typeof cambiarDatosIngresoDto>;

@@ -286,6 +286,7 @@ function FormularioTurnoInterno({
                   <SelectorPaciente
                     valor={field.value || null}
                     onCambiar={field.onChange}
+                    permitirAltaRapida
                   />
                 </FormControl>
                 <FormMessage />

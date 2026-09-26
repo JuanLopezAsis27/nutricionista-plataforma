@@ -29,9 +29,14 @@ export const PLACEHOLDERS_PLANTILLA = [
   { clave: "hora", descripcion: "Hora del turno (ej. 10:00)" },
   { clave: "profesional", descripcion: "Nombre del profesional" },
   {
+    clave: "usuario",
+    descripcion:
+      "Con qué inicia sesión el paciente: su email o su nombre de usuario (solo en la bienvenida)",
+  },
+  {
     clave: "email",
     descripcion:
-      "Email con el que el paciente inicia sesión (solo en la bienvenida)",
+      "Igual que {{usuario}}; se mantiene por las plantillas que ya lo usaban (solo en la bienvenida)",
   },
   {
     clave: "contrasena",

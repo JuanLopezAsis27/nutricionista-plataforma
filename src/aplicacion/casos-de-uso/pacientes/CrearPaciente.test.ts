@@ -3,17 +3,16 @@ import {
   CrearPaciente,
   type DatosNuevoPacienteConAcceso,
 } from "./CrearPaciente";
+import { DarAccesoPortal } from "../acceso-portal/DarAccesoPortal";
 import { Paciente } from "@/dominio/entidades/Paciente";
-import type { Usuario } from "@/dominio/entidades/Usuario";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 import {
   mockPacienteRepositorio,
   mockUsuarioRepositorio,
   mockCuentaPacienteRepositorio,
   mockHasheador,
-  pacienteEjemplo,
-  usuarioEjemplo,
   mockConfiguracionRepositorio,
+  usuarioEjemplo,
 } from "../_ayudas-test";
 
 const datos: DatosNuevoPacienteConAcceso = {
@@ -23,183 +22,105 @@ const datos: DatosNuevoPacienteConAcceso = {
   telefono: null,
   fechaNacimiento: null,
   notas: null,
-  password: "secreta123",
+  acceso: { password: "secreta123" },
 };
 
+/**
+ * `CrearPaciente` con el `DarAccesoPortal` real: el alta y la ficha dan el
+ * acceso por el MISMO camino, y es esa composición la que se prueba. Las
+ * reglas finas del acceso están en `DarAccesoPortal.test.ts`.
+ */
 function armar({
-  pacientes = mockPacienteRepositorio(),
   usuarios = mockUsuarioRepositorio(),
   cuentas = mockCuentaPacienteRepositorio(),
-  hasheador = mockHasheador(),
 } = {}) {
-  return {
-    caso: new CrearPaciente(
-      pacientes,
-      usuarios,
-      cuentas,
-      hasheador,
-      mockConfiguracionRepositorio(),
+  const creados: Paciente[] = [];
+  const pacientes = mockPacienteRepositorio({
+    crear: vi.fn(async (p: Paciente) => {
+      creados.push(p);
+      return p;
+    }),
+    obtenerPorId: vi.fn(
+      async (id: string) => creados.find((p) => p.id === id) ?? null,
     ),
+  });
+  const caso = new CrearPaciente(
     pacientes,
-    usuarios,
-    cuentas,
-    hasheador,
-  };
+    mockConfiguracionRepositorio(),
+    new DarAccesoPortal(pacientes, usuarios, cuentas, mockHasheador()),
+  );
+  return { caso, pacientes, usuarios, cuentas };
 }
 
 describe("CrearPaciente", () => {
-  it("crea el paciente y su cuenta, y se la asigna, cuando el email es nuevo", async () => {
-    const { caso, pacientes, usuarios, cuentas, hasheador } = armar();
+  it("crea la ficha y la cuenta, y se la asigna", async () => {
+    const { caso, pacientes, usuarios, cuentas } = armar();
 
-    const { paciente, cuentaExistente } = await caso.ejecutar(datos);
+    const { paciente, acceso } = await caso.ejecutar(datos);
 
     expect(paciente).toBeInstanceOf(Paciente);
-    expect(cuentaExistente).toBe(false);
+    expect(acceso.tipo).toBe("CUENTA_NUEVA");
     expect(pacientes.crear).toHaveBeenCalledOnce();
-    expect(hasheador.hashear).toHaveBeenCalledWith("secreta123");
-    expect(usuarios.crear).toHaveBeenCalledOnce();
     const cuenta = vi.mocked(usuarios.crear).mock.calls[0]![0];
+    expect(cuenta.email).toBe("ana@mail.com");
     expect(cuentas.vincular).toHaveBeenCalledWith(cuenta.id, paciente.id);
   });
 
-  it("la cuenta nueva es de paciente, sin consultorio propio y con contraseña provisional", async () => {
-    // La eligió el profesional: el portal le recomienda cambiarla.
+  it("sin acceso, crea solo la ficha (alta rápida, sin portal)", async () => {
     const { caso, usuarios } = armar();
 
-    await caso.ejecutar(datos);
-
-    const cuenta: Usuario = vi.mocked(usuarios.crear).mock.calls[0]![0];
-    expect(cuenta.rol).toBe("PACIENTE");
-    expect(cuenta.nutricionistaId).toBeNull();
-    expect(cuenta.passwordProvisional).toBe(true);
-  });
-
-  it("lanza ErrorValidacion si ya existe un paciente con ese email", async () => {
-    const { caso, pacientes, usuarios } = armar({
-      pacientes: mockPacienteRepositorio({
-        obtenerPorEmail: vi.fn(async () => pacienteEjemplo({}, "existente")),
-      }),
+    const { acceso } = await caso.ejecutar({
+      nombre: "Juan",
+      apellido: "Pérez",
+      acceso: null,
     });
 
-    await expect(caso.ejecutar(datos)).rejects.toBeInstanceOf(ErrorValidacion);
-    expect(pacientes.crear).not.toHaveBeenCalled();
+    expect(acceso.tipo).toBe("SIN_CUENTA");
     expect(usuarios.crear).not.toHaveBeenCalled();
   });
 
-  it("compensa eliminando el paciente si falla la creación de la cuenta", async () => {
-    const { caso, pacientes } = armar({
-      usuarios: mockUsuarioRepositorio({
-        crear: vi.fn(async () => {
-          throw new Error("fallo al crear usuario");
-        }),
-      }),
+  it("un paciente sin email es válido", async () => {
+    const { caso } = armar();
+
+    const { paciente } = await caso.ejecutar({
+      nombre: "Juan",
+      apellido: "Pérez",
+      email: null,
+      acceso: null,
     });
 
-    await expect(caso.ejecutar(datos)).rejects.toThrow();
-    expect(pacientes.eliminar).toHaveBeenCalledOnce();
+    expect(paciente.email).toBeNull();
   });
 
-  it("si falla el vínculo, borra la ficha y la cuenta recién creada", async () => {
-    // Una cuenta sin ficha no le sirve a nadie y deja el email tomado.
-    const { caso, pacientes, usuarios } = armar({
-      cuentas: mockCuentaPacienteRepositorio({
-        vincular: vi.fn(async () => {
-          throw new Error("fallo al vincular");
-        }),
-      }),
-    });
+  it("si el acceso falla, borra la ficha recién creada", async () => {
+    // Sin email y sin usuario, no hay con qué entrar: el profesional corrige
+    // y reenvía, sin una ficha a medias.
+    const { caso, pacientes } = armar();
 
-    await expect(caso.ejecutar(datos)).rejects.toThrow();
-    const cuenta = vi.mocked(usuarios.crear).mock.calls[0]![0];
-    expect(usuarios.eliminar).toHaveBeenCalledWith(cuenta.id);
-    expect(pacientes.eliminar).toHaveBeenCalledOnce();
+    await expect(
+      caso.ejecutar({ ...datos, email: null, acceso: { password: "x" } }),
+    ).rejects.toBeInstanceOf(ErrorValidacion);
+    const creada = vi.mocked(pacientes.crear).mock.calls[0]![0];
+    expect(pacientes.eliminar).toHaveBeenCalledWith(creada.id);
   });
-});
 
-describe("CrearPaciente — paciente de otro consultorio (una cuenta, varios consultorios)", () => {
-  const cuentaDeOtroConsultorio = usuarioEjemplo(
-    { email: "ana@mail.com", rol: "PACIENTE", passwordHash: "hash:suya" },
-    "usr-ana",
-  );
-
-  it("vincula la cuenta que ya existe en vez de rechazar el alta", async () => {
+  it("si el email ya es de un paciente de otro consultorio, NO lo vincula: pide invitación", async () => {
+    const deOtro = usuarioEjemplo(
+      { email: "ana@mail.com", rol: "PACIENTE" },
+      "usr-otro",
+    );
     const { caso, usuarios, cuentas } = armar({
       usuarios: mockUsuarioRepositorio({
-        obtenerPorEmailGlobal: vi.fn(async () => cuentaDeOtroConsultorio),
+        obtenerPorEmailGlobal: vi.fn(async () => deOtro),
+        // No tiene ficha en este consultorio.
+        obtenerPorId: vi.fn(async () => null),
       }),
     });
 
-    const { paciente, cuentaExistente } = await caso.ejecutar(datos);
+    const { acceso } = await caso.ejecutar(datos);
 
-    expect(cuentaExistente).toBe(true);
+    expect(acceso.tipo).toBe("INVITACION");
     expect(usuarios.crear).not.toHaveBeenCalled();
-    expect(cuentas.vincular).toHaveBeenCalledWith("usr-ana", paciente.id);
-  });
-
-  it("no toca la contraseña de la cuenta que ya existía", async () => {
-    // Si este consultorio pudiera fijarla, podría entrar como el paciente y
-    // leer los datos del otro.
-    const { caso, usuarios, hasheador } = armar({
-      usuarios: mockUsuarioRepositorio({
-        obtenerPorEmailGlobal: vi.fn(async () => cuentaDeOtroConsultorio),
-      }),
-    });
-
-    await caso.ejecutar(datos);
-
-    expect(hasheador.hashear).not.toHaveBeenCalled();
-    expect(usuarios.actualizar).not.toHaveBeenCalled();
-  });
-
-  it("si el email es de una cuenta de profesional, rechaza sin crear nada", async () => {
-    const { caso, pacientes } = armar({
-      usuarios: mockUsuarioRepositorio({
-        obtenerPorEmailGlobal: vi.fn(async () =>
-          usuarioEjemplo({ email: "ana@mail.com" }, "nutri-2"),
-        ),
-      }),
-    });
-
-    await caso.ejecutar(datos).then(
-      () => expect.unreachable("tenía que rechazar el alta"),
-      (error: Error) => {
-        expect(error).toBeInstanceOf(ErrorValidacion);
-        expect(error.message).toContain("ya tiene una cuenta en la plataforma");
-        // Y NO dice de quién es: sería filtrar datos de otro consultorio.
-        expect(error.message).not.toMatch(/consultorio de|pertenece a/i);
-      },
-    );
-    // Se corta ANTES de escribir: si no, habría que compensar borrándolo.
-    expect(pacientes.crear).not.toHaveBeenCalled();
-  });
-
-  it("si el email ya es de una cuenta de ESTE consultorio, lo dice", async () => {
-    const { caso } = armar({
-      usuarios: mockUsuarioRepositorio({
-        obtenerPorEmail: vi.fn(async () => usuarioEjemplo()),
-      }),
-    });
-
-    await expect(caso.ejecutar(datos)).rejects.toThrow(
-      "ya está usado por otra cuenta de este consultorio",
-    );
-  });
-
-  it("si ya hay un paciente con ese email, lo nombra", async () => {
-    // El mensaje tiene que decir CON QUIÉN choca: sin eso el profesional no
-    // sabe si es la misma persona (y tiene que editarla) o un homónimo.
-    const { caso } = armar({
-      pacientes: mockPacienteRepositorio({
-        obtenerPorEmail: vi.fn(async () => pacienteEjemplo()),
-      }),
-    });
-
-    await caso.ejecutar(datos).then(
-      () => expect.unreachable("tenía que rechazar el alta"),
-      (error: Error) => {
-        expect(error.message).toContain("ana@mail.com");
-        expect(error.message).toContain("editá su ficha");
-      },
-    );
+    expect(cuentas.vincular).not.toHaveBeenCalled();
   });
 });

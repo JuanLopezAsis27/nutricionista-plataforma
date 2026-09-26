@@ -146,8 +146,9 @@ export class SincronizadorCalendarioGoogle implements ISincronizadorCalendario {
       : undefined;
     // Sin email no hay a quién invitar: el evento se crea igual, en el
     // calendario del consultorio, que es lo que hacía antes de esta feature.
-    const invitar =
-      config.calendarioInvitarPaciente && Boolean(paciente?.email);
+    const emailInvitado = config.calendarioInvitarPaciente
+      ? (paciente?.email ?? null)
+      : null;
 
     return {
       titulo: `Turno — ${nombre}`,
@@ -155,7 +156,7 @@ export class SincronizadorCalendarioGoogle implements ISincronizadorCalendario {
       ubicacion,
       inicio,
       fin,
-      invitados: invitar ? [paciente!.email] : [],
+      invitados: emailInvitado ? [emailInvitado] : [],
       recordatoriosMinutos: config.calendarioMinutosAntes,
     };
   }

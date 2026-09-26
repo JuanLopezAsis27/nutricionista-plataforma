@@ -41,12 +41,23 @@ export interface IPacienteRepositorio {
    * simplemente no vuelven; el orden no está garantizado.
    */
   obtenerPorIds(ids: readonly string[]): Promise<Paciente[]>;
-  obtenerPorEmail(email: string): Promise<Paciente | null>;
   /**
-   * Busca por la forma canónica del teléfono (E.164 sin "+"). Es la consulta
-   * que usa la ingesta de WhatsApp: va por índice único, no recorre la tabla.
+   * Las fichas con ese teléfono (E.164 sin "+"), de la más antigua a la más
+   * nueva. Pueden ser varias desde la migración 81: dos hermanos con el
+   * teléfono de la madre. Cuál recibe un WhatsApp lo decide
+   * `elegirFichaDelTelefono`.
    */
-  obtenerPorTelefonoE164(telefonoE164: string): Promise<Paciente | null>;
+  listarPorTelefonoE164(telefonoE164: string): Promise<Paciente[]>;
+  /**
+   * Lo mismo para varios números en UNA consulta (la bandeja de Mensajes
+   * agrupa por número compartido). Mismo orden: la más antigua primero.
+   */
+  listarPorTelefonosE164(telefonos: readonly string[]): Promise<Paciente[]>;
+  /**
+   * Las fichas del consultorio con ese email de contacto. Puede haber varias
+   * (migración 79: hermanos con el de la madre); el formulario lo avisa.
+   */
+  listarPorEmail(email: string): Promise<Paciente[]>;
   listar(filtro?: FiltroPacientes): Promise<Paciente[]>;
   contar(filtro?: FiltroPacientes): Promise<number>;
 }

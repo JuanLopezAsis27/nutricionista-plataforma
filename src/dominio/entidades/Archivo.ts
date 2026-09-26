@@ -93,7 +93,7 @@ export const CONTEXTOS_ARCHIVO = {
     maxBytes: 2 * MB,
   },
   /**
-   * Foto de progreso del paciente: la que se compara en "antes y después".
+   * Foto de progreso del paciente: la de su línea de tiempo.
    *
    * Colgaba de una evolución de control (contexto `evolucion`, migración 51) y
    * eso ataba la foto a que la consulta estuviera ESCRITA. Ahora es del
@@ -204,8 +204,8 @@ export interface PropiedadesArchivo {
   subidoPorId: string | null;
   /**
    * Qué día muestra la foto, que NO es `creadoEn`: una foto de hace seis meses
-   * se sube hoy y tiene que ubicarse en su lugar de la línea de tiempo de
-   * "antes y después". Null en todo lo que no es una foto de progreso.
+   * se sube hoy y tiene que ubicarse en su lugar de la línea de tiempo.
+   * Null en todo lo que no es una foto de progreso.
    */
   fechaProgreso: Date | null;
   creadoEn: Date;

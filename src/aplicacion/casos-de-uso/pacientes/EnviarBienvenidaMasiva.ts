@@ -184,6 +184,8 @@ export class EnviarBienvenidaMasiva {
         const enviado = await this.enviarUno.ejecutar({
           nombrePaciente: paciente.nombreCompleto,
           email: paciente.email,
+          // Sin cuenta, el email de la ficha: es con lo que se le crearía.
+          usuario: cuenta?.identificador ?? paciente.email ?? "",
           contrasena: acceso?.contrasena ?? "",
           cuentaExistente: compartida,
         });
@@ -192,7 +194,9 @@ export class EnviarBienvenidaMasiva {
             pacienteId,
             nombrePaciente: paciente.nombreCompleto,
             estado: "OMITIDO",
-            motivo: "No tiene email o no hay plantilla de bienvenida.",
+            motivo: paciente.email
+              ? "No hay plantilla de bienvenida."
+              : "No tiene email: sus datos de acceso se los das vos.",
           });
           continue;
         }

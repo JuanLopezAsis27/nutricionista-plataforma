@@ -54,8 +54,8 @@ export function ArchivosPaciente({ pacienteId }: { pacienteId: string }) {
   const [eliminando, setEliminando] = useState<ArchivoSalidaDto | null>(null);
 
   // Las fotos de progreso cuelgan del paciente igual que un consentimiento,
-  // pero tienen su propia sección ("Fotos: antes y después") con su línea de
-  // tiempo y su comparación. Listarlas también acá sería mostrar dos veces lo
+  // pero tienen su propia sección ("Fotos de progreso") con su línea de
+  // tiempo. Listarlas también acá sería mostrar dos veces lo
   // mismo, en un lugar donde no se pueden mirar en orden.
   const todos = (archivos.data ?? []).filter(
     (archivo) => archivo.contexto !== "progreso",
