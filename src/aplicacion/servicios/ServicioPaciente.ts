@@ -19,6 +19,7 @@ import type {
   ActualizarPacienteDto,
   ListarPacientesDto,
   PacienteSalidaDto,
+  AltaPacienteSalidaDto,
   PacientesPaginados,
   InterpretarFichaPacienteDto,
   FichaPacienteSugeridaDto,
@@ -50,10 +51,10 @@ export class ServicioPaciente {
 
   async crearPaciente(
     datos: CrearPacienteConAccesoDto,
-  ): Promise<PacienteSalidaDto> {
-    const paciente = await this.crearUC.ejecutar(datos);
-    await this.darLaBienvenida(paciente, datos.password);
-    return ServicioPaciente.aSalida(paciente);
+  ): Promise<AltaPacienteSalidaDto> {
+    const { paciente, cuentaExistente } = await this.crearUC.ejecutar(datos);
+    await this.darLaBienvenida(paciente, datos.password, cuentaExistente);
+    return { ...ServicioPaciente.aSalida(paciente), cuentaExistente };
   }
 
   /**
@@ -76,6 +77,7 @@ export class ServicioPaciente {
   private async darLaBienvenida(
     paciente: Paciente,
     contrasena: string,
+    cuentaExistente: boolean,
   ): Promise<void> {
     try {
       await this.enviarBienvenidaUC.ejecutar({
@@ -84,6 +86,9 @@ export class ServicioPaciente {
         // cuenta ya la guardó hasheada. Por eso la bienvenida es el único
         // mensaje que puede llevarla.
         contrasena,
+        // Ya tenía cuenta: otra plantilla, sin contraseña (la suya no se
+        // tocó, y la que se cargó en el alta no es la de su cuenta).
+        cuentaExistente,
       });
     } catch (error) {
       console.error(
@@ -181,7 +186,8 @@ export class ServicioPaciente {
   async crearPacienteDesdeFicha(
     datos: CrearPacienteDesdeFichaDto,
   ): Promise<AltaDesdeFichaSalidaDto> {
-    const { paciente, advertencias } = await this.crearDesdeFichaUC.ejecutar({
+    const { paciente, cuentaExistente, advertencias } =
+      await this.crearDesdeFichaUC.ejecutar({
       ...datos,
       antropometria: datos.antropometria
         ? {
@@ -207,9 +213,13 @@ export class ServicioPaciente {
     // datos de acceso y nadie lo notaba hasta que el paciente no podía entrar.
     // Que se mande o no es del consultorio y se decide con el interruptor
     // `bienvenidaAutomaticaActiva`, no del formulario que se haya usado.
-    await this.darLaBienvenida(paciente, datos.password);
+    await this.darLaBienvenida(paciente, datos.password, cuentaExistente);
 
-    return { paciente: ServicioPaciente.aSalida(paciente), advertencias };
+    return {
+      paciente: ServicioPaciente.aSalida(paciente),
+      cuentaExistente,
+      advertencias,
+    };
   }
 
   /** Mapea la entidad de dominio al DTO de salida. */

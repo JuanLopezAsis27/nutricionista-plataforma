@@ -38,6 +38,19 @@ const PLANTILLAS_SISTEMA = [
   <p>Saludos,<br/>{{profesional}}</p>
 </div>`,
   },
+  {
+    clave: "BIENVENIDA_CUENTA_EXISTENTE",
+    nombre: "Bienvenida (ya tiene cuenta)",
+    asunto: "¡Bienvenido/a, {{paciente}}!",
+    descripcion:
+      "Bienvenida para pacientes que ya tenían cuenta en la plataforma (sin contraseña).",
+    cuerpoHtml: `<div style="font-family:sans-serif;color:#222;line-height:1.5">
+  <p>Hola <strong>{{paciente}}</strong>,</p>
+  <p>{{profesional}} te sumó a su consultorio. Como ya tenés una cuenta, entrás con tu email ({{email}}) y la contraseña que ya usás.</p>
+  <p>Si te atendés con más de un profesional, al entrar vas a poder elegir en qué consultorio trabajar.</p>
+  <p>Saludos,<br/>{{profesional}}</p>
+</div>`,
+  },
 ] as const;
 
 /** Axiomas de ejemplo con los que arranca la base de conocimiento del nutri. */

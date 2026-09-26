@@ -11,6 +11,12 @@ import {
  */
 export const CLAVE_RECORDATORIO_TURNO = "RECORDATORIO_TURNO";
 export const CLAVE_BIENVENIDA = "BIENVENIDA";
+/**
+ * La bienvenida de quien YA tenía cuenta en la plataforma (otro consultorio
+ * se la creó): no lleva `{{contrasena}}` porque la contraseña es de la
+ * persona y este consultorio no la toca (migración 78).
+ */
+export const CLAVE_BIENVENIDA_CUENTA_EXISTENTE = "BIENVENIDA_CUENTA_EXISTENTE";
 
 /**
  * Placeholders disponibles en las plantillas de email. Se documentan para la

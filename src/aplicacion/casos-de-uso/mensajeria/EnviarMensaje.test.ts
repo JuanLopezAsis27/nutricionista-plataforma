@@ -21,9 +21,9 @@ const usuarioNutri = Usuario.reconstruir({
   email: "nutri@demo.com",
   passwordHash: "x",
   rol: "NUTRICIONISTA",
-  pacienteId: null,
   nutricionistaId: "usr-nutri",
   activo: true,
+  passwordProvisional: false,
   fotoPerfilId: null,
   creadoEn: new Date(),
 });
@@ -32,9 +32,9 @@ const usuarioPaciente = Usuario.reconstruir({
   email: "pac@demo.com",
   passwordHash: "x",
   rol: "PACIENTE",
-  pacienteId: "pac-1",
-  nutricionistaId: "usr-nutri",
+  nutricionistaId: null,
   activo: true,
+  passwordProvisional: false,
   fotoPerfilId: null,
   creadoEn: new Date(),
 });

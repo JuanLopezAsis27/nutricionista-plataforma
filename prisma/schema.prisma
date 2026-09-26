@@ -482,11 +482,16 @@ model Paciente {
   /// establecimiento se le puede dar un turno. El lugar de la consulta vive en
   /// `Turno.establecimientoId`, que es lo que efectivamente pasó.
   establecimientoHabitualId String?
+  /// La cuenta con la que la persona entra al portal (migración 78). Null =
+  /// ficha sin portal. La tabla de pacientes es la relación persona ↔
+  /// consultorio: la misma cuenta puede tener una ficha en cada consultorio
+  /// donde se atiende, y nunca dos en el mismo. SetNull: dar de baja la cuenta
+  /// deja la ficha clínica intacta, sin portal.
+  usuarioId                 String?
   creadoEn                  DateTime       @default(now())
   actualizadoEn             DateTime       @updatedAt
 
   turnos                  Turno[]
-  usuario                 Usuario?
   historiaClinica         HistoriaClinica?
   evoluciones             Evolucion[]
   antropometrias          Antropometria[]
@@ -517,6 +522,7 @@ model Paciente {
   /// paciente" desde su ficha (migración 56). Null si nunca se usó ese flujo.
   carpetaPlan             GrupoPlan?
   nutricionista           Nutricionista           @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  usuario                 Usuario?                @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
   // SetNull: archivar una sede no puede dejar fichas apuntando a un
   // establecimiento que ya no se ofrece. Perder la preferencia no rompe nada.
   establecimientoHabitual Establecimiento?        @relation(fields: [establecimientoHabitualId], references: [id], onDelete: SetNull)
@@ -526,6 +532,9 @@ model Paciente {
   // paciente de dos consultorios distintos.
   @@unique([nutricionistaId, email])
   @@unique([nutricionistaId, telefonoE164])
+  // Una ficha por consultorio y por cuenta, igual que el email.
+  @@unique([nutricionistaId, usuarioId])
+  @@index([usuarioId])
   @@index([nutricionistaId, apellido, nombre])
   @@map("pacientes")
 }
@@ -1735,12 +1744,17 @@ model Usuario {
   id              String     @id @default(uuid(4))
   email           String     @unique
   passwordHash    String
+  /// La contraseña la eligió un PROFESIONAL (alta o bienvenida manual), no la
+  /// persona. El portal le recomienda cambiarla mientras siga así; no obliga
+  /// (migración 78). Cualquier cambio hecho por la persona la limpia.
+  passwordProvisional Boolean @default(false)
   rol             RolUsuario @default(PACIENTE)
   // Tenant: el NUTRICIONISTA es su propio inquilino (nutricionistaId = su id);
-  // un PACIENTE apunta al id de su nutricionista; el SUPERADMIN es global (null).
+  // el SUPERADMIN y el PACIENTE son globales (null). La cuenta de un paciente
+  // no es de ningún consultorio: lo son sus fichas (`pacientes.usuarioId`,
+  // migración 78), porque la misma persona puede ser paciente de varios.
   nutricionistaId String?
   activo          Boolean    @default(true)
-  pacienteId      String?    @unique
   /// Foto de perfil: un Archivo del bucket, igual que el logo del membrete
   /// (migración 53). La FK vive acá y no en `archivos` a propósito: el arco
   /// exclusivo de dueños describe "de qué cosa es este archivo", y una foto de
@@ -1749,11 +1763,12 @@ model Usuario {
   fotoPerfilId    String?
   creadoEn        DateTime   @default(now())
 
-  paciente Paciente? @relation(fields: [pacienteId], references: [id], onDelete: SetNull)
-
   tokensRecuperacion    TokenRecuperacion[]
   tokensRefresco        TokenRefresco[]
   recordatoriosWhatsapp RecordatorioWhatsapp[]
+  /// Las fichas de esta persona, una por consultorio donde se atiende (solo
+  /// PACIENTE). Ver `Paciente.usuarioId`.
+  fichas                Paciente[]
   nutricionista         Nutricionista?         @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
   fotoPerfil            Archivo?               @relation("FotoDePerfil", fields: [fotoPerfilId], references: [id], onDelete: SetNull)
 

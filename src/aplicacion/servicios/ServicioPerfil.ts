@@ -12,7 +12,9 @@ import type { CambiarPasswordDto, PerfilSalidaDto } from "../dtos/perfil.dto";
  * eso en dos servicios habría duplicado también la política de contraseñas.
  *
  * El `usuarioId` siempre lo pone el router desde la sesión, nunca el cliente:
- * no hay ningún procedimiento acá que reciba de quién es el perfil.
+ * no hay ningún procedimiento acá que reciba de quién es el perfil. Lo mismo
+ * `pacienteActivoId`: la ficha del consultorio que la sesión tiene abierto, de
+ * donde sale el nombre del paciente.
  */
 export class ServicioPerfil {
   constructor(
@@ -21,17 +23,21 @@ export class ServicioPerfil {
     private readonly cambiarPasswordUC: CambiarPassword,
   ) {}
 
-  async obtener(usuarioId: string): Promise<PerfilSalidaDto> {
-    return this.obtenerUC.ejecutar(usuarioId);
+  async obtener(
+    usuarioId: string,
+    pacienteActivoId: string | null,
+  ): Promise<PerfilSalidaDto> {
+    return this.obtenerUC.ejecutar(usuarioId, pacienteActivoId);
   }
 
   /** `archivoId` en null quita la foto (y borra la anterior del bucket). */
   async cambiarFoto(
     usuarioId: string,
+    pacienteActivoId: string | null,
     archivoId: string | null,
   ): Promise<PerfilSalidaDto> {
     await this.cambiarFotoUC.ejecutar({ usuarioId, archivoId });
-    return this.obtenerUC.ejecutar(usuarioId);
+    return this.obtenerUC.ejecutar(usuarioId, pacienteActivoId);
   }
 
   async cambiarPassword(

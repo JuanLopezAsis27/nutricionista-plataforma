@@ -8,6 +8,7 @@ import {
   opcionesBorradoCookieRefresco,
 } from "./cookieRefresco";
 import type { RolUsuario } from "@/dominio/entidades/Usuario";
+import { consultorioPreferido } from "./consultorioActivo";
 
 /**
  * El puente entre Auth.js y el servicio de sesiones persistentes.
@@ -26,7 +27,10 @@ import type { RolUsuario } from "@/dominio/entidades/Usuario";
  * igual que `TokenRecuperacion`.
  */
 
-/** Lo que Auth.js necesita para armar el JWT. */
+/**
+ * Lo que Auth.js necesita para armar el JWT. Para un paciente, `pacienteId` y
+ * `nutricionistaId` son los del consultorio en el que arranca la sesión.
+ */
 export interface IdentidadRenovada {
   id: string;
   email: string;
@@ -88,11 +92,13 @@ export async function renovarDesdeCookie(
   const token = almacen.get(NOMBRE_COOKIE_REFRESCO)?.value;
   if (!token) return null;
 
+  const pacientePreferidoId = await consultorioPreferido();
   try {
     const renovada = await ejecutarGlobal(() =>
       servicioAutenticacion().renovarSesion({
         token,
         dispositivo: dispositivoDe(peticion),
+        pacientePreferidoId,
       }),
     );
     almacen.set(

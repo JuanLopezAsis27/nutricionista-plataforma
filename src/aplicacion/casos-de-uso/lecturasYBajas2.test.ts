@@ -236,9 +236,9 @@ describe("Superadmin", () => {
       email: "nutri@ejemplo.test",
       passwordHash: "hash",
       rol: "NUTRICIONISTA",
-      pacienteId: null,
       nutricionistaId: "nutri-1",
       activo,
+      passwordProvisional: false,
       fotoPerfilId: null,
       creadoEn: new Date("2026-01-01T00:00:00.000Z"),
     });

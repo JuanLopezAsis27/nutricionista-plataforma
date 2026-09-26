@@ -1,5 +1,8 @@
 import { auth } from "./auth";
-import { repositorioUsuarioCompartido } from "@/infraestructura/contenedor/contenedor";
+import {
+  repositorioUsuarioCompartido,
+  servicioAutenticacion,
+} from "@/infraestructura/contenedor/contenedor";
 import { ejecutarGlobal } from "@/infraestructura/multitenancy/contextoTenant";
 import type { RolUsuario } from "@/dominio/entidades/Usuario";
 
@@ -36,6 +39,13 @@ import type { RolUsuario } from "@/dominio/entidades/Usuario";
  * esto, degradar a alguien de NUTRICIONISTA a PACIENTE no le sacaba los
  * permisos viejos hasta que venciera el token.
  *
+ * Para un PACIENTE el inquilino no se compara contra la cuenta —que no tiene,
+ * porque puede atenderse en varios consultorios (migración 78)— sino contra
+ * sus FICHAS: el par ficha/consultorio del token tiene que ser una de ellas.
+ * Es la red de seguridad del cambio de consultorio: aunque alguien lograra un
+ * token con la ficha de otra persona, la sesión se corta en la request
+ * siguiente. Y si le borran la ficha del consultorio activo, también.
+  *
  * ## Por qué no vive en `auth.config.ts`
  *
  * Porque ese archivo lo importa `proxy.ts`, que corre en el Edge Runtime, donde
@@ -56,6 +66,8 @@ interface EntradaCache {
   vigente: boolean;
   rol: RolUsuario | null;
   nutricionistaId: string | null;
+  /** Para un paciente, `pacienteId:nutricionistaId` de cada ficha suya. */
+  fichas: Set<string>;
 }
 
 const cache = new Map<string, EntradaCache>();
@@ -96,45 +108,67 @@ export function olvidarTodasLasSesiones(): void {
 export async function sesionSigueVigente(usuario: {
   id: string;
   rol: RolUsuario;
+  pacienteId: string | null;
   nutricionistaId: string | null;
 }): Promise<boolean> {
   const ahora = Date.now();
   const cacheada = cache.get(usuario.id);
 
   if (cacheada && cacheada.hasta > ahora) {
-    return (
-      cacheada.vigente &&
-      cacheada.rol === usuario.rol &&
-      cacheada.nutricionistaId === usuario.nutricionistaId
-    );
+    return coincide(cacheada, usuario);
   }
 
-  let registro;
+  let entrada: EntradaCache;
   try {
     // Alcance global: el login todavía no resolvió inquilino y `Usuario` es una
     // tabla de inquilino, así que sin esto la extensión de Prisma falla cerrado.
-    registro = await ejecutarGlobal(() =>
-      repositorioUsuarioCompartido().obtenerPorId(usuario.id),
-    );
+    entrada = await ejecutarGlobal(async () => {
+      const registro = await repositorioUsuarioCompartido().obtenerPorId(
+        usuario.id,
+      );
+      const consultorios =
+        registro?.rol === "PACIENTE"
+          ? await servicioAutenticacion().misConsultorios(registro.id, null)
+          : [];
+      return {
+        hasta: ahora + TTL_MS,
+        vigente: Boolean(registro?.activo),
+        rol: registro?.rol ?? null,
+        nutricionistaId: registro?.nutricionistaId ?? null,
+        fichas: new Set(
+          consultorios.map((c) => `${c.pacienteId}:${c.nutricionistaId}`),
+        ),
+      };
+    });
   } catch {
     return true; // ver el comentario del encabezado
   }
 
-  const entrada: EntradaCache = {
-    hasta: ahora + TTL_MS,
-    vigente: Boolean(registro?.activo),
-    rol: registro?.rol ?? null,
-    nutricionistaId: registro?.nutricionistaId ?? null,
-  };
-
   if (cache.size >= MAX_ENTRADAS) podar(ahora);
   cache.set(usuario.id, entrada);
 
-  return (
-    entrada.vigente &&
-    entrada.rol === usuario.rol &&
-    entrada.nutricionistaId === usuario.nutricionistaId
-  );
+  return coincide(entrada, usuario);
+}
+
+/** ¿Lo que dice el token es lo que dice la base? */
+function coincide(
+  entrada: EntradaCache,
+  usuario: {
+    rol: RolUsuario;
+    pacienteId: string | null;
+    nutricionistaId: string | null;
+  },
+): boolean {
+  if (!entrada.vigente || entrada.rol !== usuario.rol) return false;
+  if (usuario.rol !== "PACIENTE") {
+    return entrada.nutricionistaId === usuario.nutricionistaId;
+  }
+  // Sin consultorio elegido (tiene varios y todavía no eligió): la sesión vale,
+  // y sin inquilino no puede tocar ningún dato (la extensión falla cerrado).
+  if (usuario.pacienteId === null && usuario.nutricionistaId === null) {
+    return true;
+  }
+  return entrada.fichas.has(`${usuario.pacienteId}:${usuario.nutricionistaId}`);
 }
 
 /**

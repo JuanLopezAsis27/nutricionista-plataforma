@@ -246,7 +246,8 @@ export function usuarioEjemplo(
       email: "nutri@mail.com",
       passwordHash: "hash:vieja",
       rol: "NUTRICIONISTA",
-      nutricionistaId: id,
+      // La cuenta de un paciente no tiene consultorio (migración 78).
+      nutricionistaId: cambios.rol === "PACIENTE" ? null : id,
       ...cambios,
     },
     id,

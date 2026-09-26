@@ -23,7 +23,12 @@ export function usePerfil() {
   // Sin `onError` con toast: los errores de este formulario son de CAMPO —la
   // contraseña actual no coincide, la nueva es previsible— y van debajo del
   // input que hay que corregir, no en una notificación que tapa el formulario.
-  const cambiarPassword = trpc.perfil.cambiarPassword.useMutation();
+  //
+  // Sí invalida al terminar: cambiarla apaga el aviso de contraseña
+  // provisional (`AvisoContrasenaProvisional`), que lee `perfil.mio`.
+  const cambiarPassword = trpc.perfil.cambiarPassword.useMutation({
+    onSuccess: () => invalidar(),
+  });
 
   return {
     mio: trpc.perfil.mio.useQuery,

@@ -29,6 +29,8 @@ const globalParaPrisma = globalThis as unknown as {
  */
 export const MODELOS_INQUILINO = new Set<string>([
   "Paciente",
+  // La cuenta de un PACIENTE no tiene inquilino (migración 78); su
+  // repositorio escribe el filtro a mano. Ver PrismaRepositorioUsuario.
   "Usuario",
   "Suplemento",
   "AlertaSeguimiento",

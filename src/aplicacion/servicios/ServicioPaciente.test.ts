@@ -35,9 +35,13 @@ function doble<T>(ejecutar: ReturnType<typeof vi.fn>): T {
   return { ejecutar } as unknown as T;
 }
 
-const crear = vi.fn(async () => PACIENTE);
+const crear = vi.fn(async () => ({
+  paciente: PACIENTE,
+  cuentaExistente: false,
+}));
 const crearDesdeFicha = vi.fn(async () => ({
   paciente: PACIENTE,
+  cuentaExistente: false,
   advertencias: [] as string[],
 }));
 const enviarBienvenida = vi.fn(async () => {});
@@ -110,7 +114,25 @@ describe("ServicioPaciente — el email de bienvenida", () => {
     expect(enviarBienvenida).toHaveBeenCalledWith({
       paciente: PACIENTE,
       contrasena: "arroz-con-leche-2026",
+      cuentaExistente: false,
     });
+  });
+
+  it("si la persona ya tenía cuenta, la bienvenida lo sabe y el alta lo informa", async () => {
+    // Otra plantilla, sin contraseña: la suya no se tocó.
+    crear.mockResolvedValueOnce({ paciente: PACIENTE, cuentaExistente: true });
+
+    const salida = await armar().crearPaciente({
+      nombre: "Ana",
+      apellido: "García",
+      email: "ana@mail.com",
+      password: "arroz-con-leche-2026",
+    });
+
+    expect(salida.cuentaExistente).toBe(true);
+    expect(enviarBienvenida).toHaveBeenCalledWith(
+      expect.objectContaining({ cuentaExistente: true }),
+    );
   });
 
   it("si la bienvenida falla, el alta desde documento NO falla", async () => {

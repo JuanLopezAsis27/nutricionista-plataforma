@@ -5,7 +5,9 @@ import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 import {
   mockPacienteRepositorio,
   mockUsuarioRepositorio,
+  mockCuentaPacienteRepositorio,
   pacienteEjemplo,
+  usuarioEjemplo,
   mockConfiguracionRepositorio,
 } from "../_ayudas-test";
 
@@ -17,6 +19,7 @@ describe("ActualizarPaciente", () => {
     const casoUso = new ActualizarPaciente(
       repositorio,
       mockUsuarioRepositorio(),
+      mockCuentaPacienteRepositorio(),
       mockConfiguracionRepositorio(),
     );
 
@@ -40,6 +43,7 @@ describe("ActualizarPaciente", () => {
     const casoUso = new ActualizarPaciente(
       repositorio,
       mockUsuarioRepositorio(),
+      mockCuentaPacienteRepositorio(),
       mockConfiguracionRepositorio(),
     );
     const abiertaEn = new Date("2026-03-01T10:00:00.000Z");
@@ -63,6 +67,7 @@ describe("ActualizarPaciente", () => {
     const casoUso = new ActualizarPaciente(
       repositorio,
       mockUsuarioRepositorio(),
+      mockCuentaPacienteRepositorio(),
       mockConfiguracionRepositorio(),
     );
 
@@ -82,6 +87,7 @@ describe("ActualizarPaciente", () => {
     const casoUso = new ActualizarPaciente(
       repositorio,
       mockUsuarioRepositorio(),
+      mockCuentaPacienteRepositorio(),
       mockConfiguracionRepositorio(),
     );
     const abiertaEn = new Date("2020-01-01T00:00:00.000Z");
@@ -100,6 +106,7 @@ describe("ActualizarPaciente", () => {
     const casoUso = new ActualizarPaciente(
       repositorio,
       mockUsuarioRepositorio(),
+      mockCuentaPacienteRepositorio(),
       mockConfiguracionRepositorio(),
     );
 
@@ -120,6 +127,7 @@ describe("ActualizarPaciente", () => {
     const casoUso = new ActualizarPaciente(
       repositorio,
       mockUsuarioRepositorio(),
+      mockCuentaPacienteRepositorio(),
       mockConfiguracionRepositorio(),
     );
 
@@ -128,32 +136,66 @@ describe("ActualizarPaciente", () => {
     ).rejects.toBeInstanceOf(ErrorValidacion);
   });
 
-  it("sincroniza el email de la cuenta del paciente al cambiarlo", async () => {
-    const usuario = (await import("@/dominio/entidades/Usuario")).Usuario.crear(
-      {
-        email: "ana@mail.com",
-        passwordHash: "h",
-        rol: "PACIENTE",
-        pacienteId: "pac-1",
-      },
+  describe("el email de la cuenta (una cuenta, varios consultorios)", () => {
+    const cuenta = usuarioEjemplo(
+      { email: "ana@mail.com", rol: "PACIENTE" },
       "usr-1",
     );
-    const usuarios = mockUsuarioRepositorio({
-      obtenerPorPacienteId: vi.fn(async () => usuario),
-    });
-    const repositorio = mockPacienteRepositorio({
-      obtenerPorId: vi.fn(async () =>
-        pacienteEjemplo({ email: "ana@mail.com" }, "pac-1"),
-      ),
-    });
-    const casoUso = new ActualizarPaciente(
-      repositorio,
-      usuarios,
-      mockConfiguracionRepositorio(),
-    );
 
-    await casoUso.ejecutar({ id: "pac-1", email: "nueva@mail.com" });
+    function armar({
+      fichas = 1,
+      emailTomado = false,
+    }: { fichas?: number; emailTomado?: boolean } = {}) {
+      const usuarios = mockUsuarioRepositorio({
+        obtenerPorPacienteId: vi.fn(async () => cuenta),
+        emailYaRegistrado: vi.fn(async () => emailTomado),
+      });
+      const repositorio = mockPacienteRepositorio({
+        obtenerPorId: vi.fn(async () =>
+          pacienteEjemplo({ email: "ana@mail.com" }, "pac-1"),
+        ),
+      });
+      const caso = new ActualizarPaciente(
+        repositorio,
+        usuarios,
+        mockCuentaPacienteRepositorio({
+          contarDeUsuario: vi.fn(async () => fichas),
+        }),
+        mockConfiguracionRepositorio(),
+      );
+      return { caso, usuarios, repositorio };
+    }
 
-    expect(usuarios.actualizar).toHaveBeenCalledOnce();
+    it("sincroniza el email de la cuenta si es solo de este consultorio", async () => {
+      const { caso, usuarios } = armar();
+
+      await caso.ejecutar({ id: "pac-1", email: "nueva@mail.com" });
+
+      expect(usuarios.actualizar).toHaveBeenCalledOnce();
+      const guardada = vi.mocked(usuarios.actualizar).mock.calls[0]![0];
+      expect(guardada.email).toBe("nueva@mail.com");
+    });
+
+    it("con la cuenta compartida cambia la ficha y NO el login", async () => {
+      // El login es de la persona: cambiarlo desde acá se lo cambiaría en el
+      // otro consultorio también.
+      const { caso, usuarios, repositorio } = armar({ fichas: 2 });
+
+      await caso.ejecutar({ id: "pac-1", email: "nueva@mail.com" });
+
+      expect(repositorio.actualizar).toHaveBeenCalledOnce();
+      expect(usuarios.actualizar).not.toHaveBeenCalled();
+    });
+
+    it("rechaza un email que ya tiene cuenta ANTES de guardar la ficha", async () => {
+      // Antes el choque aparecía contra el índice, con la ficha ya guardada y
+      // la cuenta con el email viejo.
+      const { caso, repositorio } = armar({ emailTomado: true });
+
+      await expect(
+        caso.ejecutar({ id: "pac-1", email: "tomado@mail.com" }),
+      ).rejects.toBeInstanceOf(ErrorValidacion);
+      expect(repositorio.actualizar).not.toHaveBeenCalled();
+    });
   });
 });
