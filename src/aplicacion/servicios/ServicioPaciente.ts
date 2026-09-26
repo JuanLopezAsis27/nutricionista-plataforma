@@ -188,24 +188,24 @@ export class ServicioPaciente {
   ): Promise<AltaDesdeFichaSalidaDto> {
     const { paciente, cuentaExistente, advertencias } =
       await this.crearDesdeFichaUC.ejecutar({
-      ...datos,
-      antropometria: datos.antropometria
-        ? {
-            ...datos.antropometria,
-            // La fecha llega como ISO `YYYY-MM-DD` (o falta): la medición se
-            // fecha hoy si el documento no decía cuándo se tomó.
-            fecha: datos.antropometria.fecha
-              ? new Date(`${datos.antropometria.fecha}T00:00:00.000Z`)
-              : new Date(),
-          }
-        : null,
-      laboratorios: datos.laboratorios.map((laboratorio) => ({
-        ...laboratorio,
-        fecha: laboratorio.fecha
-          ? new Date(`${laboratorio.fecha}T00:00:00.000Z`)
-          : new Date(),
-      })),
-    });
+        ...datos,
+        antropometria: datos.antropometria
+          ? {
+              ...datos.antropometria,
+              // La fecha llega como ISO `YYYY-MM-DD` (o falta): la medición se
+              // fecha hoy si el documento no decía cuándo se tomó.
+              fecha: datos.antropometria.fecha
+                ? new Date(`${datos.antropometria.fecha}T00:00:00.000Z`)
+                : new Date(),
+            }
+          : null,
+        laboratorios: datos.laboratorios.map((laboratorio) => ({
+          ...laboratorio,
+          fecha: laboratorio.fecha
+            ? new Date(`${laboratorio.fecha}T00:00:00.000Z`)
+            : new Date(),
+        })),
+      });
 
     // La misma bienvenida que el alta por formulario. Antes acá no se mandaba
     // —el razonamiento era que esta alta se hace con el paciente enfrente—,
