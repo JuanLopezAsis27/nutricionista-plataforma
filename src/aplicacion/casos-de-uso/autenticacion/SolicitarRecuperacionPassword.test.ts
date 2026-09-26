@@ -130,7 +130,9 @@ describe("SolicitarRecuperacionPassword", () => {
     ): Promise<string> {
       const email = mockServicioEmail();
       await new SolicitarRecuperacionPassword(
-        mockUsuarioRepositorio({ obtenerPorEmail: vi.fn(async () => paciente) }),
+        mockUsuarioRepositorio({
+          obtenerPorEmail: vi.fn(async () => paciente),
+        }),
         mockTokenRecuperacionRepositorio(),
         mockGeneradorTokens(),
         email,

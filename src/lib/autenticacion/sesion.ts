@@ -45,7 +45,7 @@ import type { RolUsuario } from "@/dominio/entidades/Usuario";
  * Es la red de seguridad del cambio de consultorio: aunque alguien lograra un
  * token con la ficha de otra persona, la sesión se corta en la request
  * siguiente. Y si le borran la ficha del consultorio activo, también.
-  *
+ *
  * ## Por qué no vive en `auth.config.ts`
  *
  * Porque ese archivo lo importa `proxy.ts`, que corre en el Edge Runtime, donde

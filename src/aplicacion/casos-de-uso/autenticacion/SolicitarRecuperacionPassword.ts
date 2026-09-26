@@ -75,10 +75,7 @@ export class SolicitarRecuperacionPassword {
     await this.servicioEmail.enviar({
       para: usuario.email,
       asunto: "Restablecé tu contraseña",
-      html: this.plantillaHtml(
-        enlace,
-        await this.firma(usuario),
-      ),
+      html: this.plantillaHtml(enlace, await this.firma(usuario)),
       texto:
         `Recibimos un pedido para restablecer tu contraseña.\n\n` +
         `Abrí este enlace (válido por 1 hora): ${enlace}\n\n` +

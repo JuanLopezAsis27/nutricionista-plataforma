@@ -123,8 +123,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
       if (parametros.trigger !== "update" || !token.id) return token;
 
       const pedido: unknown = parametros.session;
-      const preferido =
-        fichaPedida(pedido) ?? (await consultorioPreferido());
+      const preferido = fichaPedida(pedido) ?? (await consultorioPreferido());
       const identidad = await ejecutarGlobal(() =>
         servicioAutenticacion().identidadDeSesion(token.id, preferido),
       );
