@@ -192,7 +192,7 @@ Una evolución **sin fecha** llega igual a la revisión, desmarcada: descartarla
 perdería una consulta que el documento sí traía, y la fecha la completa el
 profesional.
 
-## Fotos: antes y después
+## Fotos de progreso
 
 Es una sección propia de la pestaña Evaluación (`FotosProgreso`), y las fotos
 son **del paciente**, no de una evolución.
@@ -221,14 +221,14 @@ migración es un paso que puede fallar a la mitad. La migración 63 mueve las
 fotos que ya existían al paciente copiándoles la fecha de su evolución: sin eso
 se ordenarían por el día en que se subieron, no por el que muestran.
 
-La sección tiene **las dos cosas a la vez**, que antes eran solo la segunda:
+La sección es **solo la línea de tiempo**: TODAS las fotos, en orden, con su
+fecha, y cada una se abre en grande con el visor. Es lo que se recorre en la
+consulta.
 
-- **La línea de tiempo**: TODAS las fotos, en orden, con su fecha. Antes se
-  veían dos y solo dos —las de los selectores—, así que no había forma de mirar
-  el recorrido completo, que es lo que se muestra en la consulta.
-- **La comparación**: dos de esas fotos lado a lado. Arranca con la primera
-  contra la última y cada foto de la línea de tiempo se manda a cualquiera de
-  los dos lugares.
+Hubo además una comparación «antes / después» (dos fotos elegidas, lado a
+lado). Se sacó a pedido del profesional: mira el recorrido entero, no dos
+puntos, y los botones de cada miniatura eran ruido. Antes de eso, la sección
+mostraba dos fotos y solo dos, sin forma de ver el recorrido completo.
 
 ## Campos personalizados
 

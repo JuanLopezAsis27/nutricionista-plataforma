@@ -14,7 +14,7 @@ export interface DatosSubida {
   /**
    * Qué día muestra la foto (contexto `progreso`), como "2026-03-10". No es
    * cuándo se sube: una foto de hace seis meses se carga hoy y va en su lugar
-   * de la línea de tiempo de "antes y después".
+   * de la línea de tiempo de fotos de progreso.
    */
   fechaProgreso?: string;
 }
