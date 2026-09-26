@@ -13,13 +13,15 @@ export interface DatosNuevoUsuario {
   email: string;
   passwordHash: string;
   rol: RolUsuario;
-  pacienteId?: string | null;
   /**
-   * Inquilino (tenant): el NUTRICIONISTA es su propio inquilino (= su id); un
-   * PACIENTE apunta al id de su nutricionista; el SUPERADMIN es global (null).
+   * Inquilino (tenant): el NUTRICIONISTA es su propio inquilino (= su id); el
+   * SUPERADMIN y el PACIENTE son globales (null). Los consultorios de un
+   * paciente son los de sus fichas (`pacientes.usuarioId`), no su cuenta.
    */
   nutricionistaId?: string | null;
   activo?: boolean;
+  /** La contraseña la eligió un profesional y no la persona (ver la clase). */
+  passwordProvisional?: boolean;
 }
 
 /** Estado completo de un usuario persistido. */
@@ -28,9 +30,9 @@ export interface PropiedadesUsuario {
   email: string;
   passwordHash: string;
   rol: RolUsuario;
-  pacienteId: string | null;
   nutricionistaId: string | null;
   activo: boolean;
+  passwordProvisional: boolean;
   /** Archivo del bucket que se muestra como foto de perfil; null si no eligió. */
   fotoPerfilId: string | null;
   creadoEn: Date;
@@ -41,10 +43,17 @@ const PATRON_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /**
  * Entidad de dominio Usuario.
  *
- * Invariante de negocio clave: si el rol es PACIENTE debe tener un
- * pacienteId asociado; si es NUTRICIONISTA no debe tenerlo. El hasheo de la
- * contraseña ocurre fuera del dominio (infraestructura/bcrypt); acá solo se
- * almacena el hash, nunca la contraseña en texto plano.
+ * Es la CUENTA: email, contraseña, rol y foto. La de un PACIENTE no pertenece
+ * a ningún consultorio (`nutricionistaId` null): la misma persona puede ser
+ * paciente de varios, y sus fichas son las que apuntan a ella (`usuarioId`)
+ * (migración 78). El hasheo de la contraseña ocurre fuera del dominio
+ * (infraestructura/bcrypt); acá solo se almacena el hash.
+ *
+ * **Contraseña provisional.** Cuando la contraseña la eligió un profesional
+ * —en el alta o en la bienvenida manual— la persona no la conoce por elección
+ * propia y el profesional sí. Se marca, y el portal le recomienda cambiarla.
+ * No obliga: la defensa real es que un profesional solo puede fijarla en una
+ * cuenta EXCLUSIVA de su consultorio (ver `cuentaPaciente.ts`).
  */
 export class Usuario {
   private constructor(private readonly props: PropiedadesUsuario) {}
@@ -63,16 +72,16 @@ export class Usuario {
         "El usuario debe tener una contraseña hasheada.",
       );
     }
-    Usuario.validarCoherenciaRol(datos.rol, datos.pacienteId ?? null);
+    Usuario.validarCoherenciaRol(datos.rol, datos.nutricionistaId ?? null);
 
     return new Usuario({
       id,
       email,
       passwordHash: datos.passwordHash,
       rol: datos.rol,
-      pacienteId: datos.pacienteId ?? null,
       nutricionistaId: datos.nutricionistaId ?? null,
       activo: datos.activo ?? true,
+      passwordProvisional: datos.passwordProvisional ?? false,
       fotoPerfilId: null,
       creadoEn: ahora,
     });
@@ -97,17 +106,48 @@ export class Usuario {
   }
 
   /**
-   * Devuelve una copia del usuario con una contraseña nueva (ya hasheada).
-   * El hasheo ocurre en infraestructura; acá solo se guarda el hash, nunca
-   * la contraseña en texto plano.
+   * Devuelve una copia del usuario con una contraseña nueva (ya hasheada) que
+   * eligió LA PERSONA: deja de ser provisional. El hasheo ocurre en
+   * infraestructura; acá solo se guarda el hash, nunca la contraseña en texto
+   * plano.
    */
   cambiarPassword(nuevoHash: string): Usuario {
-    if (!nuevoHash || nuevoHash.length === 0) {
+    Usuario.validarHash(nuevoHash);
+    return new Usuario({
+      ...this.props,
+      passwordHash: nuevoHash,
+      passwordProvisional: false,
+    });
+  }
+
+  /**
+   * Contraseña que eligió un PROFESIONAL (la bienvenida manual): queda
+   * marcada como provisional hasta que la persona la cambie.
+   */
+  fijarPasswordProvisional(nuevoHash: string): Usuario {
+    Usuario.validarHash(nuevoHash);
+    return new Usuario({
+      ...this.props,
+      passwordHash: nuevoHash,
+      passwordProvisional: true,
+    });
+  }
+
+  /**
+   * El mismo hash con un costo de bcrypt más alto (re-hasheo del login): la
+   * contraseña es la misma, así que la marca de provisional no cambia.
+   */
+  rehashearPassword(nuevoHash: string): Usuario {
+    Usuario.validarHash(nuevoHash);
+    return new Usuario({ ...this.props, passwordHash: nuevoHash });
+  }
+
+  private static validarHash(hash: string): void {
+    if (!hash || hash.length === 0) {
       throw new ErrorValidacion(
         "El usuario debe tener una contraseña hasheada.",
       );
     }
-    return new Usuario({ ...this.props, passwordHash: nuevoHash });
   }
 
   /**
@@ -121,19 +161,18 @@ export class Usuario {
     return new Usuario({ ...this.props, fotoPerfilId: archivoId ?? null });
   }
 
-  /** Garantiza que el rol y el pacienteId sean coherentes entre sí. */
+  /**
+   * La cuenta de un PACIENTE no es de ningún consultorio: si lo fuera, la
+   * extensión de inquilino la escondería de todos los demás, y la persona no
+   * podría entrar a su segundo consultorio con el mismo email.
+   */
   private static validarCoherenciaRol(
     rol: RolUsuario,
-    pacienteId: string | null,
+    nutricionistaId: string | null,
   ): void {
-    if (rol === "PACIENTE" && !pacienteId) {
+    if (rol === "PACIENTE" && nutricionistaId) {
       throw new ErrorValidacion(
-        "Un usuario con rol PACIENTE debe tener un paciente asociado.",
-      );
-    }
-    if (rol !== "PACIENTE" && pacienteId) {
-      throw new ErrorValidacion(
-        "Solo un usuario con rol PACIENTE puede tener un paciente asociado.",
+        "La cuenta de un paciente no pertenece a un consultorio: sus consultorios son los de sus fichas.",
       );
     }
   }
@@ -150,6 +189,12 @@ export class Usuario {
   get activo(): boolean {
     return this.props.activo;
   }
+  get esPaciente(): boolean {
+    return this.props.rol === "PACIENTE";
+  }
+  get passwordProvisional(): boolean {
+    return this.props.passwordProvisional;
+  }
 
   get id(): string {
     return this.props.id;
@@ -162,9 +207,6 @@ export class Usuario {
   }
   get rol(): RolUsuario {
     return this.props.rol;
-  }
-  get pacienteId(): string | null {
-    return this.props.pacienteId;
   }
   get fotoPerfilId(): string | null {
     return this.props.fotoPerfilId;

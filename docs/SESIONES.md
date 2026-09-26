@@ -139,6 +139,17 @@ en el navegador; y el service worker no cachea páginas ni `/api/*`
 (`docs/PWA.md`), así que no hay respuestas viejas que interfieran con la
 redirección.
 
+## El consultorio activo del paciente
+
+Un paciente puede atenderse en varios consultorios con la misma cuenta
+(migración 78). La sesión lleva el consultorio ACTIVO en `pacienteId` y
+`nutricionistaId`, y los tres momentos que emiten una sesión —login,
+renovación y cambio de consultorio— lo deciden con `ResolverConsultorioActivo`
+y la cookie `consultorio` del dispositivo. La renovación toma las fichas de
+HOY: una ficha borrada no sigue abierta por 30 días. `sesionSigueVigente`
+valida al paciente contra sus fichas, no contra la cuenta. Ver
+`docs/CUENTAS-PACIENTE.md`.
+
 ## Lo que NO hay que hacer
 
 - **Nunca alargar `session.maxAge` "ya que estamos".** Es el JWT, no se puede

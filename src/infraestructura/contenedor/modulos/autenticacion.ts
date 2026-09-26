@@ -7,6 +7,10 @@ import type { IHasheadorContrasena } from "@/dominio/servicios/IHasheadorContras
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import type { INutricionistaRepositorio } from "@/dominio/repositorios/INutricionistaRepositorio";
+import type { ICuentaPacienteRepositorio } from "@/dominio/repositorios/ICuentaPacienteRepositorio";
+import { ResolverConsultorioActivo } from "@/aplicacion/casos-de-uso/autenticacion/ResolverConsultorioActivo";
+import { CambiarConsultorioActivo } from "@/aplicacion/casos-de-uso/autenticacion/CambiarConsultorioActivo";
+import { ListarMisConsultorios } from "@/aplicacion/casos-de-uso/autenticacion/ListarMisConsultorios";
 import { SolicitarRecuperacionPassword } from "@/aplicacion/casos-de-uso/autenticacion/SolicitarRecuperacionPassword";
 import { RestablecerPassword } from "@/aplicacion/casos-de-uso/autenticacion/RestablecerPassword";
 import { EmitirTokenRefresco } from "@/aplicacion/casos-de-uso/autenticacion/EmitirTokenRefresco";
@@ -21,6 +25,8 @@ import { ServicioAutenticacion } from "@/aplicacion/servicios/ServicioAutenticac
  */
 export function crearServicioAutenticacion(deps: {
   usuarios: IUsuarioRepositorio;
+  /** Los consultorios de una cuenta de paciente (migración 78). */
+  cuentas: ICuentaPacienteRepositorio;
   tokens: ITokenRecuperacionRepositorio;
   tokensRefresco: ITokenRefrescoRepositorio;
   generador: IGeneradorTokens;
@@ -40,6 +46,7 @@ export function crearServicioAutenticacion(deps: {
       deps.reloj,
       deps.baseUrl,
       deps.nutricionistas,
+      deps.cuentas,
     ),
     new RestablecerPassword(
       deps.usuarios,
@@ -79,5 +86,8 @@ export function crearServicioAutenticacion(deps: {
       deps.generador,
       deps.reloj,
     ),
+    new ResolverConsultorioActivo(deps.usuarios, deps.cuentas),
+    new CambiarConsultorioActivo(deps.cuentas),
+    new ListarMisConsultorios(deps.cuentas),
   );
 }

@@ -86,6 +86,7 @@ export const servicioPaciente = perezoso(() =>
   crearServicioPaciente({
     pacientes: nucleo.repositorioPaciente(),
     usuarios: nucleo.repositorioUsuario(),
+    cuentas: nucleo.repositorioCuentaPaciente(),
     plantillas: nucleo.repositorioPlantillaEmail(),
     hasheador: nucleo.hasheador(),
     generadorContrasenas: nucleo.generadorContrasenas(),
@@ -497,6 +498,7 @@ export const servicioIA = perezoso(() =>
 export const servicioAutenticacion = perezoso(() =>
   crearServicioAutenticacion({
     usuarios: nucleo.repositorioUsuario(),
+    cuentas: nucleo.repositorioCuentaPaciente(),
     tokens: nucleo.repositorioTokenRecuperacion(),
     tokensRefresco: nucleo.repositorioTokenRefresco(),
     generador: nucleo.generadorTokens(),

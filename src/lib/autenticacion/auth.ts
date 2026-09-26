@@ -4,7 +4,10 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 import { authConfig } from "./auth.config";
-import { repositorioUsuarioCompartido } from "@/infraestructura/contenedor/contenedor";
+import {
+  repositorioUsuarioCompartido,
+  servicioAutenticacion,
+} from "@/infraestructura/contenedor/contenedor";
 import { ejecutarGlobal } from "@/infraestructura/multitenancy/contextoTenant";
 import { limitadorLogin } from "@/infraestructura/seguridad/LimitadorIntentos";
 import {
@@ -18,6 +21,7 @@ import {
 } from "./sesionPersistente";
 import { ID_PROVEEDOR_REFRESCO } from "./cookieRefresco";
 import { CODIGO_LOGIN_BLOQUEADO, CODIGO_LOGIN_INACTIVA } from "./codigosLogin";
+import { consultorioPreferido } from "./consultorioActivo";
 
 /**
  * IP de origen de la request.
@@ -85,16 +89,52 @@ class ErrorLoginConMotivo extends CredentialsSignin {
   }
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+/** La ficha que nombra un `update({ user: { pacienteId } })`, si la nombra. */
+function fichaPedida(pedido: unknown): string | null {
+  if (typeof pedido !== "object" || pedido === null) return null;
+  const usuario = (pedido as { user?: unknown }).user;
+  if (typeof usuario !== "object" || usuario === null) return null;
+  const pacienteId = (usuario as { pacienteId?: unknown }).pacienteId;
+  return typeof pacienteId === "string" && pacienteId ? pacienteId : null;
+}
+
+export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   ...authConfig,
-  /**
-   * El logger por defecto de Auth.js vuelca el stack completo (y a veces un
-   * `[auth][details]` con JSON) por cada error, incluido `JWTSessionError`
-   * —que dispara con cualquier cookie de sesión vieja, cifrada con un
-   * `AUTH_SECRET` anterior (p. ej. después de rotarlo)— y es un caso
-   * esperado, no una falla. Una sola línea con nombre + mensaje alcanza para
-   * diagnosticar; el resto es ruido que tapa el log real.
-   */
+  callbacks: {
+    ...authConfig.callbacks,
+    /**
+     * Sobre el `jwt` de `auth.config.ts`, la reemisión por cambio de
+     * consultorio (`trigger === "update"`, la dispara
+     * `/api/autenticacion/consultorio`).
+     *
+     * **Lo que manda el cliente es solo una PREFERENCIA.** `update(datos)`
+     * también se puede llamar desde cualquier script de la página, con lo que
+     * quiera; por eso `datos` nunca se copia al token. Se lee la ficha que
+     * nombra (o, si no nombra ninguna, la cookie del consultorio elegido) y la
+     * identidad se vuelve a resolver desde la base: `ResolverConsultorioActivo`
+     * solo acepta una ficha de ESTA cuenta. Nombrar la de
+     * otra persona no abre nada; a lo sumo deja la sesión sin consultorio.
+     *
+     * Vive acá y no en `auth.config.ts` porque necesita la base: aquel archivo
+     * lo importa el middleware, que corre en Edge.
+     */
+    async jwt(parametros) {
+      const token = authConfig.callbacks.jwt(parametros);
+      if (parametros.trigger !== "update" || !token.id) return token;
+
+      const pedido: unknown = parametros.session;
+      const preferido =
+        fichaPedida(pedido) ?? (await consultorioPreferido());
+      const identidad = await ejecutarGlobal(() =>
+        servicioAutenticacion().identidadDeSesion(token.id, preferido),
+      );
+      if (!identidad) return token;
+      token.rol = identidad.rol;
+      token.pacienteId = identidad.pacienteId;
+      token.nutricionistaId = identidad.nutricionistaId;
+      return token;
+    },
+  },
   logger: {
     error(error) {
       console.error(`[auth] ${error.name}: ${error.message}`);
@@ -174,7 +214,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             const nuevoHash = await bcrypt.hash(password, RONDAS_BCRYPT);
             await ejecutarGlobal(() =>
               repositorioUsuarioCompartido().actualizar(
-                usuario.cambiarPassword(nuevoHash),
+                // La misma contraseña con otro costo: no deja de ser
+                // provisional por esto.
+                usuario.rehashearPassword(nuevoHash),
               ),
             );
           } catch {
@@ -188,13 +230,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         await abrirSesionPersistente(usuario.id, peticion);
 
         // El objeto devuelto alimenta el callback jwt (ver auth.config.ts).
-        return {
-          id: usuario.id,
-          email: usuario.email,
-          rol: usuario.rol,
-          pacienteId: usuario.pacienteId,
-          nutricionistaId: usuario.nutricionistaId,
-        };
+        // Para un paciente, `pacienteId`/`nutricionistaId` son los del
+        // consultorio en el que arranca: el único que tiene, o el que eligió
+        // la última vez en este dispositivo. Con varios y sin elección, van en
+        // null y el portal le pide que elija.
+        const identidad = await ejecutarGlobal(async () =>
+          servicioAutenticacion().identidadDeSesion(
+            usuario.id,
+            await consultorioPreferido(),
+          ),
+        );
+        return identidad;
       },
     }),
 

@@ -26,6 +26,12 @@ sentado frente a una pantalla grande durante la consulta.
 | `/asistente`       | El asistente de IA                                   |
 | `/mi-perfil`       | Su foto y su contraseña (`docs/PERFIL.md`)           |
 
+Hay una pantalla más, fuera del layout del portal: **`/mis-consultorios`**
+(«Elegí tu consultorio»), para quien se atiende con varios profesionales y
+todavía no eligió en ese dispositivo. El layout manda ahí a toda sesión sin
+consultorio activo; con uno elegido, se cambia desde el ícono del pie de la
+barra lateral, que solo aparece con dos o más. Ver `docs/CUENTAS-PACIENTE.md`.
+
 Todas leen procedimientos «míos» (`misPlanes`, `miDia`, `miTracking`,
 `obtenerMiPlanSemanal`…), que toman el paciente de la sesión con
 `pacienteDeSesion`. Ninguna recibe un `pacienteId`: donde no hay nada que

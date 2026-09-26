@@ -5,29 +5,33 @@ import type { EmitirTokenRefresco } from "@/aplicacion/casos-de-uso/autenticacio
 import type { RenovarSesion } from "@/aplicacion/casos-de-uso/autenticacion/RenovarSesion";
 import type { RevocarSesionesPersistentes } from "@/aplicacion/casos-de-uso/autenticacion/RevocarSesionesPersistentes";
 import type { LimpiarSesionesCaducadas } from "@/aplicacion/casos-de-uso/autenticacion/LimpiarSesionesCaducadas";
-import type { RolUsuario } from "@/dominio/entidades/Usuario";
+import type {
+  ResolverConsultorioActivo,
+  IdentidadDeSesion,
+} from "@/aplicacion/casos-de-uso/autenticacion/ResolverConsultorioActivo";
+import { ErrorTokenInvalido } from "@/dominio/errores/ErrorTokenInvalido";
+import type { CambiarConsultorioActivo } from "@/aplicacion/casos-de-uso/autenticacion/CambiarConsultorioActivo";
+import type { ListarMisConsultorios } from "@/aplicacion/casos-de-uso/autenticacion/ListarMisConsultorios";
 import type {
   SolicitarRecuperacionDto,
   RestablecerPasswordDto,
+  ConsultorioSalidaDto,
 } from "../dtos/autenticacion.dto";
+
+export type { IdentidadDeSesion };
 
 /** Lo que necesita el JWT de Auth.js, más la credencial para la próxima vez. */
 export interface SesionRefrescada {
-  usuario: {
-    id: string;
-    email: string;
-    rol: RolUsuario;
-    pacienteId: string | null;
-    nutricionistaId: string | null;
-  };
+  usuario: IdentidadDeSesion;
   /** Token de refresco NUEVO: hay que guardarlo en la cookie. */
   token: string;
   expiraEn: Date;
 }
 
 /**
- * Servicio de aplicación de autenticación: recuperación de contraseña y
- * sesiones persistentes (tokens de refresco).
+ * Servicio de aplicación de autenticación: recuperación de contraseña,
+ * sesiones persistentes (tokens de refresco) y el consultorio en el que
+ * trabaja un paciente que se atiende en varios.
  */
 export class ServicioAutenticacion {
   constructor(
@@ -38,7 +42,49 @@ export class ServicioAutenticacion {
     private readonly revocarUC: RevocarSesionesPersistentes,
     private readonly limpiarUC: LimpiarSesionesCaducadas,
     private readonly verificarTokenUC: VerificarTokenRecuperacion,
+    private readonly resolverConsultorioUC: ResolverConsultorioActivo,
+    private readonly cambiarConsultorioUC: CambiarConsultorioActivo,
+    private readonly listarConsultoriosUC: ListarMisConsultorios,
   ) {}
+
+  /**
+   * La identidad con la que se emite una sesión: la usan el login, la
+   * renovación y el cambio de consultorio, así los tres deciden igual.
+   * `pacientePreferidoId` es la última elección del dispositivo (una cookie):
+   * se revalida contra las fichas de la cuenta.
+   */
+  async identidadDeSesion(
+    usuarioId: string,
+    pacientePreferidoId: string | null,
+  ): Promise<IdentidadDeSesion | null> {
+    return this.resolverConsultorioUC.ejecutar(usuarioId, pacientePreferidoId);
+  }
+
+  /** Los consultorios de la cuenta, marcando el de la sesión en curso. */
+  async misConsultorios(
+    usuarioId: string,
+    pacienteActivoId: string | null,
+  ): Promise<ConsultorioSalidaDto[]> {
+    const consultorios = await this.listarConsultoriosUC.ejecutar(usuarioId);
+    return consultorios.map((c) => ({
+      pacienteId: c.pacienteId,
+      nutricionistaId: c.nutricionistaId,
+      nombreProfesional: c.nombreProfesional,
+      fotoProfesionalId: c.fotoProfesionalId,
+      activo: c.pacienteId === pacienteActivoId,
+    }));
+  }
+
+  /**
+   * Valida que la cuenta tenga acceso a esa ficha. Lanza
+   * `ErrorAccesoDenegado` si no. Recordarla y reemitir la sesión es del borde.
+   */
+  async cambiarConsultorio(
+    usuarioId: string,
+    pacienteId: string,
+  ): Promise<void> {
+    await this.cambiarConsultorioUC.ejecutar(usuarioId, pacienteId);
+  }
 
   /**
    * Si el enlace de recuperación todavía sirve. Lo pregunta la página al
@@ -96,6 +142,8 @@ export class ServicioAutenticacion {
   async renovarSesion(datos: {
     token: string;
     dispositivo?: string | null;
+    /** Última elección de consultorio en este dispositivo (cookie). */
+    pacientePreferidoId?: string | null;
   }): Promise<SesionRefrescada> {
     const { usuario, familia } = await this.renovarUC.ejecutar({
       token: datos.token,
@@ -107,14 +155,16 @@ export class ServicioAutenticacion {
       familia,
     });
 
+    // El consultorio sale de las fichas de HOY, no de los del login: una
+    // ficha borrada en el medio no puede seguir abierta por 30 días.
+    const identidad = await this.resolverConsultorioUC.ejecutar(
+      usuario.id,
+      datos.pacientePreferidoId ?? null,
+    );
+    if (!identidad) throw new ErrorTokenInvalido();
+
     return {
-      usuario: {
-        id: usuario.id,
-        email: usuario.email,
-        rol: usuario.rol,
-        pacienteId: usuario.pacienteId,
-        nutricionistaId: usuario.nutricionistaId,
-      },
+      usuario: identidad,
       token: emitido.token,
       expiraEn: emitido.expiraEn,
     };

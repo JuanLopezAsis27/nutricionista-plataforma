@@ -16,10 +16,7 @@ describe("ObtenerContraparteDelHilo", () => {
     });
     const usuarios = mockUsuarioRepositorio({
       obtenerPorPacienteId: vi.fn(async () =>
-        usuarioEjemplo({
-          rol: "PACIENTE",
-          pacienteId: "pac-1",
-        }).cambiarFotoPerfil("arc-pac"),
+        usuarioEjemplo({ rol: "PACIENTE" }).cambiarFotoPerfil("arc-pac"),
       ),
     });
     const caso = new ObtenerContraparteDelHilo(

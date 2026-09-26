@@ -26,3 +26,23 @@ export type RestablecerPasswordDto = z.infer<typeof restablecerPasswordDto>;
 export const verificarTokenRecuperacionDto = z.object({
   token: z.string().min(1).max(500),
 });
+
+/**
+ * Elegir el consultorio en el que trabaja el paciente (migración 78). Viaja
+ * la ficha elegida; que sea de un acceso de la cuenta lo revalida
+ * `CambiarConsultorioActivo`.
+ */
+export const cambiarConsultorioDto = z.object({
+  pacienteId: z.string().min(1).max(100),
+});
+export type CambiarConsultorioDto = z.infer<typeof cambiarConsultorioDto>;
+
+/** Un consultorio de la cuenta, para elegir en cuál trabajar. */
+export interface ConsultorioSalidaDto {
+  pacienteId: string;
+  nutricionistaId: string;
+  nombreProfesional: string;
+  fotoProfesionalId: string | null;
+  /** El de la sesión en curso. */
+  activo: boolean;
+}

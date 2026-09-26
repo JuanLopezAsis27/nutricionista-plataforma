@@ -1,6 +1,7 @@
 "use client";
 
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { TIPO_RECONEXION } from "@/dominio/servicios/IBusEventos";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
@@ -13,6 +14,9 @@ import { useInvalidar } from "@/lib/hooks/useInvalidar";
 export function useTiempoReal() {
   const utils = trpc.useUtils();
   const invalidarTodo = useInvalidar();
+  const { data: sesion } = useSession();
+  const rol = sesion?.user.rol;
+  const pacienteActivoId = sesion?.user.pacienteId ?? null;
 
   trpc.tiempoReal.suscribirse.useSubscription(undefined, {
     onData: (evento) => {
@@ -20,6 +24,17 @@ export function useTiempoReal() {
         case "mensaje.nuevo":
           void utils.mensajeria.invalidate();
           void utils.notificaciones.centro.invalidate();
+          // Un paciente que se atiende en varios consultorios recibe los
+          // mensajes de todos en el mismo canal (es de la cuenta). El aviso
+          // sale solo si es del consultorio que está mirando: «tenés un
+          // mensaje sin leer» y abrir Mensajes sin encontrarlo confunde.
+          if (
+            rol === "PACIENTE" &&
+            typeof evento.datos?.pacienteId === "string" &&
+            evento.datos.pacienteId !== pacienteActivoId
+          ) {
+            break;
+          }
           toast("Nuevo mensaje", { description: "Tenés un mensaje sin leer." });
           break;
         case "whatsapp.mensaje":

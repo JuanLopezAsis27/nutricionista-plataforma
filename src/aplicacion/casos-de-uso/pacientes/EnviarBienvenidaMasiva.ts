@@ -1,5 +1,7 @@
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
+import type { ICuentaPacienteRepositorio } from "@/dominio/repositorios/ICuentaPacienteRepositorio";
+import { esCuentaExclusiva } from "@/dominio/servicios/cuentaPaciente";
 import type { ITokenRefrescoRepositorio } from "@/dominio/repositorios/ITokenRefrescoRepositorio";
 import type { IHasheadorContrasena } from "@/dominio/servicios/IHasheadorContrasena";
 import type { IGeneradorContrasenas } from "@/dominio/servicios/IGeneradorContrasenas";
@@ -66,6 +68,15 @@ export const MAX_PACIENTES_POR_LOTE = 100;
  * `passwordNuevaDto` en el borde, como en `CambiarPassword`: el caso de uso no
  * importa DTOs.
  *
+ * La contraseña nueva queda PROVISIONAL (la eligió el profesional), y el
+ * portal le recomienda a la persona cambiarla.
+ *
+ * **Nunca en una cuenta compartida.** Si la persona es paciente también de
+ * otro consultorio, su contraseña abre las dos fichas: fijarla desde acá le
+ * daría a este consultorio la llave de los datos del otro. A esa cuenta no se
+ * le toca la contraseña y le llega la plantilla de «ya tenés cuenta», con el
+ * motivo en el detalle para que el profesional sepa por qué.
+ *
  * El orden importa: primero se MANDA y después se GUARDA. Si el email falla,
  * la cuenta queda como estaba y el paciente sigue entrando con la suya; al
  * revés, un fallo del SMTP lo dejaría afuera con una contraseña que nunca le
@@ -77,6 +88,7 @@ export class EnviarBienvenidaMasiva {
     private readonly pacientes: IPacienteRepositorio,
     private readonly enviarUno: EnviarEmailDeBienvenida,
     private readonly usuarios: IUsuarioRepositorio,
+    private readonly cuentas: ICuentaPacienteRepositorio,
     private readonly hasheador: IHasheadorContrasena,
     private readonly generador: IGeneradorContrasenas,
     private readonly tokensRefresco: ITokenRefrescoRepositorio,
@@ -143,8 +155,11 @@ export class EnviarBienvenidaMasiva {
           contrasena: string;
           hash: string;
         } | null = null;
-        if (pideContrasena) {
-          const cuenta = await this.usuarios.obtenerPorPacienteId(paciente.id);
+        const cuenta = await this.usuarios.obtenerPorPacienteId(paciente.id);
+        const compartida =
+          cuenta !== null &&
+          !esCuentaExclusiva(await this.cuentas.contarDeUsuario(cuenta.id));
+        if (pideContrasena && !compartida) {
           // Sin cuenta no hay contraseña que mandar, y la plantilla la pide:
           // mandarla igual sería decirle «Contraseña:» y nada.
           if (!cuenta || !cuenta.activo) {
@@ -170,6 +185,7 @@ export class EnviarBienvenidaMasiva {
           nombrePaciente: paciente.nombreCompleto,
           email: paciente.email,
           contrasena: acceso?.contrasena ?? "",
+          cuentaExistente: compartida,
         });
         if (!enviado) {
           detalles.push({
@@ -184,7 +200,7 @@ export class EnviarBienvenidaMasiva {
         // de la cuenta (ver el comentario de la clase).
         if (acceso) {
           await this.usuarios.actualizar(
-            acceso.cuenta.cambiarPassword(acceso.hash),
+            acceso.cuenta.fijarPasswordProvisional(acceso.hash),
           );
           await this.tokensRefresco.revocarDeUsuario(acceso.cuenta.id, ahora);
         }
@@ -195,7 +211,10 @@ export class EnviarBienvenidaMasiva {
           pacienteId,
           nombrePaciente: paciente.nombreCompleto,
           estado: "ENVIADO",
-          motivo: null,
+          motivo:
+            compartida && pideContrasena
+              ? "Comparte su cuenta con otro consultorio: la bienvenida salió sin contraseña y sigue entrando con la suya."
+              : null,
         });
       } catch (error) {
         detalles.push({

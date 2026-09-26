@@ -1,4 +1,7 @@
-import { CLAVE_BIENVENIDA } from "@/dominio/entidades/PlantillaEmail";
+import {
+  CLAVE_BIENVENIDA,
+  CLAVE_BIENVENIDA_CUENTA_EXISTENTE,
+} from "@/dominio/entidades/PlantillaEmail";
 
 /**
  * Helpers para armar las variables que reemplazan los placeholders de una
@@ -81,6 +84,15 @@ export function variablesEjemplo(
       email: "juan.perez@ejemplo.com",
       contrasena: "contraseña-de-ejemplo",
     });
+  }
+  if (clavePlantilla === CLAVE_BIENVENIDA_CUENTA_EXISTENTE) {
+    // Sin contraseña: el envío real no la tiene (la cuenta ya era de la
+    // persona), así que la vista previa tampoco la reemplaza.
+    return {
+      paciente: "Juan Pérez",
+      profesional: nombreProfesional,
+      email: "juan.perez@ejemplo.com",
+    };
   }
   return {
     paciente: "Juan Pérez",

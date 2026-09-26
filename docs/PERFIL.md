@@ -110,7 +110,18 @@ existe (se sacó de `nucleo.ts`, del compose de producción y de los
 **La recuperación de contraseña es el caso raro.** Es pública y corre con
 alcance global, así que no hay "consultorio actual": pide
 `nombreDe(usuario.nutricionistaId)`. Un SUPERADMIN (sin consultorio) recibe el
-email SIN firma, que es mejor que firmado por otro.
+email SIN firma, que es mejor que firmado por otro. Un paciente firma con su
+único consultorio; si se atiende en varios, va sin firma: la contraseña es de
+todos (ver `docs/CUENTAS-PACIENTE.md`).
+
+**El nombre del paciente sale de la ficha del consultorio ACTIVO** de la
+sesión: con varios consultorios hay varias fichas, y cada una puede tener el
+nombre escrito distinto. El router pasa `ctx.usuario.pacienteId`.
+
+**Contraseña provisional.** Si la contraseña la eligió el profesional, la
+tarjeta de contraseña lo dice y el portal muestra una advertencia arriba de
+todo (`AvisoContrasenaProvisional`). No obliga a cambiarla; cambiarla acá la
+apaga (la mutación invalida `perfil.mio`).
 
 **Las pantallas públicas no nombran a ningún profesional.** Login, recuperar,
 restablecer, sin conexión y confirmar turno se ven antes de saber de qué

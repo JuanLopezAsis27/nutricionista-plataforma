@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/autenticacion/auth";
 import { BarraLateralPaciente } from "@/componentes/layout/BarraLateralPaciente";
 import { TiempoReal } from "@/componentes/tiempo-real/TiempoReal";
+import { AvisoContrasenaProvisional } from "@/componentes/perfil/AvisoContrasenaProvisional";
 
 /**
  * Layout del portal del paciente.
@@ -9,6 +10,11 @@ import { TiempoReal } from "@/componentes/tiempo-real/TiempoReal";
  * Verifica la sesión en el servidor: sin sesión redirige a /login; si el
  * usuario es NUTRICIONISTA lo manda al panel. Sidebar colapsable (como el
  * panel del nutricionista) y contenido ancho.
+ *
+ * Todo el portal lee la ficha del consultorio ACTIVO de la sesión. Quien se
+ * atiende en varios y todavía no eligió no tiene ninguno: se lo manda a
+ * elegir (`/mis-consultorios`) antes de dibujar nada, porque sin inquilino
+ * cualquier pantalla fallaría al pedir sus datos.
  */
 export default async function LayoutPaciente({
   children,
@@ -26,13 +32,19 @@ export default async function LayoutPaciente({
   if (sesion.user.rol === "SUPERADMIN") {
     redirect("/admin");
   }
+  if (!sesion.user.pacienteId) {
+    redirect("/mis-consultorios");
+  }
 
   return (
     <div className="min-h-dvh bg-muted/30 md:flex md:h-dvh md:overflow-hidden">
       <TiempoReal />
       <BarraLateralPaciente email={sesion.user.email} />
       <main className="min-h-0 min-w-0 flex-1 md:overflow-y-auto">
-        <div className="mx-auto w-full max-w-6xl p-4 md:p-6">{children}</div>
+        <div className="mx-auto w-full max-w-6xl p-4 md:p-6">
+          <AvisoContrasenaProvisional />
+          {children}
+        </div>
       </main>
     </div>
   );

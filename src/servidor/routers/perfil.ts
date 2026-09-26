@@ -17,7 +17,10 @@ import {
  */
 export const routerPerfil = crearRouter({
   mio: protegidoProcedimiento.query(async ({ ctx }) => {
-    return await ctx.servicios.perfil.obtener(ctx.usuario.id);
+    return await ctx.servicios.perfil.obtener(
+      ctx.usuario.id,
+      ctx.usuario.pacienteId,
+    );
   }),
 
   cambiarFoto: protegidoProcedimiento
@@ -25,6 +28,7 @@ export const routerPerfil = crearRouter({
     .mutation(async ({ ctx, input }) => {
       return await ctx.servicios.perfil.cambiarFoto(
         ctx.usuario.id,
+        ctx.usuario.pacienteId,
         input.archivoId,
       );
     }),

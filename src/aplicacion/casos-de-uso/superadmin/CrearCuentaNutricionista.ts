@@ -49,7 +49,6 @@ export class CrearCuentaNutricionista {
         email,
         passwordHash: await this.hasheador.hashear(datos.password),
         rol: "NUTRICIONISTA",
-        pacienteId: null,
         nutricionistaId: id, // es su propio inquilino
       },
       id,
