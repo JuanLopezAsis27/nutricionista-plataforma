@@ -11,7 +11,12 @@ import type { EnviarBienvenidaMasiva } from "@/aplicacion/casos-de-uso/pacientes
 import type { ArchivarPaciente } from "@/aplicacion/casos-de-uso/pacientes/ArchivarPaciente";
 import type { ReactivarPaciente } from "@/aplicacion/casos-de-uso/pacientes/ReactivarPaciente";
 import type { InterpretarFichaPaciente } from "@/aplicacion/casos-de-uso/pacientes/InterpretarFichaPaciente";
-import { pacienteEjemplo } from "@/aplicacion/casos-de-uso/_ayudas-test";
+import type { GenerarInvitacionPortal } from "@/aplicacion/casos-de-uso/acceso-portal/GenerarInvitacionPortal";
+import type { AccesoAlta } from "@/aplicacion/casos-de-uso/pacientes/CrearPaciente";
+import {
+  pacienteEjemplo,
+  usuarioEjemplo,
+} from "@/aplicacion/casos-de-uso/_ayudas-test";
 
 /**
  * El email de bienvenida es una decisión del SERVICIO, no del caso de uso: los
@@ -30,21 +35,32 @@ import { pacienteEjemplo } from "@/aplicacion/casos-de-uso/_ayudas-test";
  */
 
 const PACIENTE = pacienteEjemplo();
+const CUENTA = usuarioEjemplo({ rol: "PACIENTE", email: "ana@mail.com" });
+const CUENTA_NUEVA: AccesoAlta = { tipo: "CUENTA_NUEVA", cuenta: CUENTA };
 
 function doble<T>(ejecutar: ReturnType<typeof vi.fn>): T {
   return { ejecutar } as unknown as T;
 }
 
-const crear = vi.fn(async () => ({
-  paciente: PACIENTE,
-  cuentaExistente: false,
-}));
+const crear = vi.fn(
+  async (): Promise<{ paciente: typeof PACIENTE; acceso: AccesoAlta }> => ({
+    paciente: PACIENTE,
+    acceso: CUENTA_NUEVA,
+  }),
+);
 const crearDesdeFicha = vi.fn(async () => ({
   paciente: PACIENTE,
-  cuentaExistente: false,
+  acceso: CUENTA_NUEVA,
   advertencias: [] as string[],
 }));
 const enviarBienvenida = vi.fn(async () => {});
+const automaticaActiva = vi.fn(async () => true);
+const generarInvitacion = vi.fn(async () => ({
+  codigo: "K7PM-X3QD",
+  expiraEn: new Date("2026-10-03T00:00:00Z"),
+  enviadaA: "ana@mail.com",
+  falloEnvio: null,
+}));
 
 function armar() {
   const noUsado = vi.fn();
@@ -54,12 +70,16 @@ function armar() {
     doble<ObtenerPacientePorId>(noUsado),
     doble<ActualizarPaciente>(noUsado),
     doble<EliminarPaciente>(noUsado),
-    doble<EnviarBienvenidaAlAlta>(enviarBienvenida),
+    {
+      ejecutar: enviarBienvenida,
+      automaticaActiva,
+    } as unknown as EnviarBienvenidaAlAlta,
     doble<EnviarBienvenidaMasiva>(noUsado),
     doble<ArchivarPaciente>(noUsado),
     doble<ReactivarPaciente>(noUsado),
     doble<InterpretarFichaPaciente>(noUsado),
     doble<CrearPacienteDesdeFicha>(crearDesdeFicha),
+    doble<GenerarInvitacionPortal>(generarInvitacion),
   );
 }
 
@@ -68,7 +88,7 @@ const DATOS_FICHA = {
   nombre: "Ana",
   apellido: "García",
   email: "ana@mail.com",
-  password: "arroz-con-leche-2026",
+  acceso: { password: "arroz-con-leche-2026" },
   telefono: null,
   fechaNacimiento: null,
   sexo: null,
@@ -86,6 +106,7 @@ describe("ServicioPaciente — el email de bienvenida", () => {
     crear.mockClear();
     crearDesdeFicha.mockClear();
     enviarBienvenida.mockClear();
+    generarInvitacion.mockClear();
   });
 
   it("el alta por formulario manda la bienvenida", async () => {
@@ -93,7 +114,7 @@ describe("ServicioPaciente — el email de bienvenida", () => {
       nombre: "Ana",
       apellido: "García",
       email: "ana@mail.com",
-      password: "arroz-con-leche-2026",
+      acceso: { password: "arroz-con-leche-2026" },
     });
 
     expect(enviarBienvenida).toHaveBeenCalledTimes(1);
@@ -114,25 +135,51 @@ describe("ServicioPaciente — el email de bienvenida", () => {
     expect(enviarBienvenida).toHaveBeenCalledWith({
       paciente: PACIENTE,
       contrasena: "arroz-con-leche-2026",
-      cuentaExistente: false,
+      usuario: "ana@mail.com",
     });
   });
 
-  it("si la persona ya tenía cuenta, la bienvenida lo sabe y el alta lo informa", async () => {
-    // Otra plantilla, sin contraseña: la suya no se tocó.
-    crear.mockResolvedValueOnce({ paciente: PACIENTE, cuentaExistente: true });
+  it("si ya tenía cuenta en otro consultorio, no hay bienvenida: sale el código de invitación", async () => {
+    crear.mockResolvedValueOnce({
+      paciente: PACIENTE,
+      acceso: { tipo: "INVITACION" },
+    });
 
     const salida = await armar().crearPaciente({
       nombre: "Ana",
       apellido: "García",
       email: "ana@mail.com",
-      password: "arroz-con-leche-2026",
+      acceso: { password: "arroz-con-leche-2026" },
     });
 
-    expect(salida.cuentaExistente).toBe(true);
-    expect(enviarBienvenida).toHaveBeenCalledWith(
-      expect.objectContaining({ cuentaExistente: true }),
-    );
+    expect(enviarBienvenida).not.toHaveBeenCalled();
+    expect(generarInvitacion).toHaveBeenCalledWith({
+      pacienteId: PACIENTE.id,
+      // Misma política que la bienvenida del consultorio.
+      enviarPorEmail: true,
+    });
+    expect(salida.acceso).toMatchObject({
+      tipo: "INVITACION",
+      invitacion: { codigo: "K7PM-X3QD" },
+    });
+  });
+
+  it("sin acceso al portal, no manda nada", async () => {
+    crear.mockResolvedValueOnce({
+      paciente: PACIENTE,
+      acceso: { tipo: "SIN_CUENTA" },
+    });
+
+    const salida = await armar().crearPaciente({
+      nombre: "Ana",
+      apellido: "García",
+      email: null,
+      acceso: null,
+    });
+
+    expect(salida.acceso.tipo).toBe("SIN_CUENTA");
+    expect(enviarBienvenida).not.toHaveBeenCalled();
+    expect(generarInvitacion).not.toHaveBeenCalled();
   });
 
   it("si la bienvenida falla, el alta desde documento NO falla", async () => {

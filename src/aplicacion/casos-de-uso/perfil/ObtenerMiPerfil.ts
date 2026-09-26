@@ -8,7 +8,9 @@ import type { IdentidadVisible } from "./identidad";
 /** Lo que "Mi perfil" muestra de la cuenta propia. */
 export interface MiPerfil extends IdentidadVisible {
   usuarioId: string;
-  email: string;
+  /** Null en la cuenta de un paciente que entra con usuario (migración 80). */
+  email: string | null;
+  nombreUsuario: string | null;
   rol: RolUsuario;
   /**
    * La contraseña la eligió un profesional: el portal le recomienda a la
@@ -57,6 +59,7 @@ export class ObtenerMiPerfil {
     return {
       usuarioId: usuario.id,
       email: usuario.email,
+      nombreUsuario: usuario.nombreUsuario,
       rol: usuario.rol,
       passwordProvisional: usuario.passwordProvisional,
       // `?? null` explícito: el DTO de salida declara `nullable()` y nadie
@@ -68,7 +71,7 @@ export class ObtenerMiPerfil {
         usuario.rol,
         pacienteActivoId,
         usuario.nutricionistaId,
-        usuario.email,
+        usuario.identificador,
       ),
     };
   }
@@ -77,6 +80,7 @@ export class ObtenerMiPerfil {
     rol: RolUsuario,
     pacienteId: string | null,
     nutricionistaId: string | null,
+    /** Con qué entra: el nombre de último recurso. */
     email: string,
   ): Promise<string> {
     if (rol === "PACIENTE" && pacienteId) {

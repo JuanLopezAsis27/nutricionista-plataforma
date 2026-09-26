@@ -6,8 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { FileText, Loader2, RotateCcw } from "lucide-react";
-import type { FichaPacienteSugeridaDto } from "@/aplicacion/dtos/paciente.dto";
-import { LARGO_MINIMO_PASSWORD } from "@/aplicacion/dtos/password";
+import type {
+  AltaDesdeFichaSalidaDto,
+  FichaPacienteSugeridaDto,
+} from "@/aplicacion/dtos/paciente.dto";
 import { SEXOS_BIOLOGICOS } from "@/dominio/servicios/composicionCorporal";
 import { usePacientes } from "@/lib/hooks/usePacientes";
 import { useEstablecimientos } from "@/lib/hooks/useEstablecimientos";
@@ -32,6 +34,9 @@ import {
 } from "@/componentes/ui/select";
 import { SubidorArchivo } from "@/componentes/comunes/SubidorArchivo";
 import { crearEsquemaPaciente } from "./FormularioPaciente";
+import { CamposAccesoPortal, accesoDelFormulario } from "./CamposAccesoPortal";
+import { ResultadoAccesoPortal } from "./ResultadoAccesoPortal";
+import { AvisoEmailRepetido } from "./AvisoEmailRepetido";
 
 const SIN_SEXO = "SIN_DATO";
 
@@ -47,6 +52,8 @@ const ETIQUETAS_CAMPO: Record<string, string> = {
   nombre: "Nombre",
   apellido: "Apellido",
   email: "Email",
+  nombreUsuario: "Nombre de usuario",
+  usuarioObligatorio: "Nombre de usuario",
   password: "Contraseña de acceso",
   telefono: "Teléfono",
   fechaNacimiento: "Fecha de nacimiento",
@@ -81,8 +88,8 @@ const CAMPOS_HISTORIA = [
  *
  * El documento se sube, la IA lo lee y el formulario queda PRECARGADO: nada se
  * guarda hasta que el profesional revisa y aprieta el botón. Es deliberado y no
- * un paso de más —el email y la contraseña de acceso casi nunca están en una
- * ficha escrita, así que un alta automática tendría que inventarlos—, y además
+ * un paso de más —el acceso al portal casi nunca está en una ficha escrita,
+ * así que un alta automática tendría que inventarlo—, y además
  * lo que sale de un modelo entra a la historia clínica de una persona real.
  *
  * Lo que el documento traiga además del paciente (historia clínica —con las
@@ -105,6 +112,11 @@ export function AltaPacienteDesdeDocumento({
   const [labsDescartados, setLabsDescartados] = useState<Set<number>>(
     new Set(),
   );
+  // Credenciales o código para entregar, después de crear.
+  const [alta, setAlta] = useState<{
+    resultado: AltaDesdeFichaSalidaDto;
+    contrasena: string | null;
+  } | null>(null);
 
   const esquema = crearEsquemaPaciente(false);
   type DatosFormulario = z.infer<typeof esquema>;
@@ -120,6 +132,9 @@ export function AltaPacienteDesdeDocumento({
       sexo: SIN_SEXO,
       establecimientoHabitualId: SIN_SEDE,
       notas: "",
+      darAcceso: true,
+      nombreUsuario: "",
+      usuarioObligatorio: false,
       password: "",
     },
   });
@@ -144,6 +159,9 @@ export function AltaPacienteDesdeDocumento({
             // frena sin decir por qué.
             establecimientoHabitualId: SIN_SEDE,
             notas: leida.paciente.notas ?? "",
+            darAcceso: true,
+            nombreUsuario: "",
+            usuarioObligatorio: false,
             password: "",
           });
           setConservarHistoria(true);
@@ -190,12 +208,13 @@ export function AltaPacienteDesdeDocumento({
         }
       : null;
 
+    const acceso = accesoDelFormulario(datos);
     crearDesdeFicha.mutate(
       {
         nombre: datos.nombre,
         apellido: datos.apellido,
-        email: datos.email,
-        password: datos.password ?? "",
+        email: datos.email.trim() || null,
+        acceso,
         telefono: datos.telefono?.trim() ? datos.telefono : null,
         fechaNacimiento: datos.fechaNacimiento
           ? new Date(datos.fechaNacimiento)
@@ -214,7 +233,25 @@ export function AltaPacienteDesdeDocumento({
         ),
         archivoId,
       },
-      { onSuccess: onTerminado },
+      {
+        onSuccess: (resultado) => {
+          if (resultado.acceso.tipo === "SIN_CUENTA") onTerminado();
+          else setAlta({ resultado, contrasena: acceso?.password ?? null });
+        },
+      },
+    );
+  }
+
+  // --- Paso 3: lo que hay que entregarle (credenciales o código) -------------
+  if (alta) {
+    const { paciente } = alta.resultado;
+    return (
+      <ResultadoAccesoPortal
+        nombrePaciente={`${paciente.nombre} ${paciente.apellido}`}
+        resultado={alta.resultado.acceso}
+        contrasena={alta.contrasena}
+        onListo={onTerminado}
+      />
     );
   }
 
@@ -307,38 +344,22 @@ export function AltaPacienteDesdeDocumento({
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>Email de contacto</FormLabel>
               <FormControl>
                 <Input type="email" {...field} />
               </FormControl>
-              {!ficha.paciente.email && (
-                <p className="text-xs text-muted-foreground">
-                  El documento no traía email. Es obligatorio: con él inicia
-                  sesión el paciente.
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground">
+                {ficha.paciente.email
+                  ? "Leído del documento: revisá que esté bien escrito."
+                  : "El documento no traía email. Es opcional: sin él no le llegan avisos por email, y para el portal le elegís un usuario."}
+              </p>
+              <AvisoEmailRepetido email={field.value} />
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Contraseña de acceso del paciente</FormLabel>
-              <FormControl>
-                <Input
-                  type="text"
-                  placeholder={`Mínimo ${LARGO_MINIMO_PASSWORD} caracteres`}
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <CamposAccesoPortal />
 
         <div className="grid grid-cols-2 gap-4">
           <FormField

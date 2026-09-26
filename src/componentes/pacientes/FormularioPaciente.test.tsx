@@ -28,6 +28,29 @@ vi.mock("@/lib/hooks/useEstablecimientos", () => ({
   useEstablecimientos: () => ({ listar: () => ({ data: [] }) }),
 }));
 
+// Los campos de acceso piden una sugerencia de usuario al servidor; acá no
+// hay servidor, y la sugerencia no participa de ningún caso.
+vi.mock("@/lib/hooks/useAccesoPortal", () => ({
+  useAccesoPortal: () => ({
+    sugerirNombreUsuario: () => ({ data: undefined }),
+  }),
+}));
+
+// Lo que el servidor contesta sobre el email: cada test lo fija. Por defecto,
+// un email libre (se entra con él, el usuario es opcional).
+const revision = {
+  valor: undefined as
+    | {
+        otrasFichas: { pacienteId: string; nombre: string }[];
+        esIngresoDeOtraCuenta: boolean;
+        ingresoDe: string | null;
+      }
+    | undefined,
+};
+vi.mock("@/lib/hooks/useRevisionEmail", () => ({
+  useRevisionEmail: () => revision.valor,
+}));
+
 const { FormularioPaciente } = await import("./FormularioPaciente");
 const { LARGO_MINIMO_PASSWORD } = await import("@/aplicacion/dtos/password");
 
@@ -35,13 +58,17 @@ describe("FormularioPaciente (alta)", () => {
   beforeEach(() => {
     crear.mutate.mockClear();
     actualizar.mutate.mockClear();
+    revision.valor = undefined;
   });
 
   /** Completa los campos obligatorios menos la contraseña. */
   async function completarBase(usuario: ReturnType<typeof userEvent.setup>) {
     await usuario.type(screen.getByLabelText("Nombre"), "Ana");
     await usuario.type(screen.getByLabelText("Apellido"), "Gomez");
-    await usuario.type(screen.getByLabelText("Email"), "ana@ejemplo.test");
+    await usuario.type(
+      screen.getByLabelText("Email de contacto"),
+      "ana@ejemplo.test",
+    );
   }
 
   it("muestra el mínimo real de la política en el placeholder", () => {
@@ -98,11 +125,80 @@ describe("FormularioPaciente (alta)", () => {
     expect(datos.nombre).toBe("Ana");
     expect(datos.apellido).toBe("Gomez");
     expect(datos.email).toBe("ana@ejemplo.test");
-    expect(datos.password).toBe("arroz-con-leche-2026");
+    expect(datos.acceso).toEqual({
+      nombreUsuario: null,
+      password: "arroz-con-leche-2026",
+    });
     // Los opcionales vacíos viajan como null, no como "": la entidad
     // distingue "sin teléfono" de "teléfono vacío".
     expect(datos.telefono).toBeNull();
     expect(datos.notas).toBeNull();
+  });
+
+  it("con un email libre no pide nombre de usuario: lo ofrece como opcional", async () => {
+    const usuario = userEvent.setup();
+    render(<FormularioPaciente onTerminado={vi.fn()} />);
+
+    await completarBase(usuario);
+
+    expect(
+      screen.queryByLabelText(/nombre de usuario/i),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/va a entrar con su email/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: /agregar también un nombre de usuario/i,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("sin email, el nombre de usuario es obligatorio y no deja crear sin él", async () => {
+    const usuario = userEvent.setup();
+    render(<FormularioPaciente onTerminado={vi.fn()} />);
+
+    await usuario.type(screen.getByLabelText("Nombre"), "Ana");
+    await usuario.type(screen.getByLabelText("Apellido"), "Gomez");
+    await usuario.type(
+      screen.getByLabelText("Contraseña de acceso del paciente"),
+      "arroz-con-leche-2026",
+    );
+    await usuario.click(screen.getByRole("button", { name: /guardar|crear/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/sin email, elegí un nombre de usuario/i),
+      ).toBeInTheDocument();
+    });
+    expect(crear.mutate).not.toHaveBeenCalled();
+  });
+
+  it("si el email ya es el ingreso de otra cuenta, pide el usuario y avisa de quién es", async () => {
+    revision.valor = {
+      otrasFichas: [{ pacienteId: "pac-9", nombre: "Sofía Gomez" }],
+      esIngresoDeOtraCuenta: true,
+      ingresoDe: "Sofía Gomez",
+    };
+    const usuario = userEvent.setup();
+    render(<FormularioPaciente onTerminado={vi.fn()} />);
+
+    await completarBase(usuario);
+    await usuario.type(
+      screen.getByLabelText("Contraseña de acceso del paciente"),
+      "arroz-con-leche-2026",
+    );
+
+    // El aviso del email repetido y el de acceso nombran a la otra ficha.
+    expect(screen.getAllByText(/Sofía Gomez/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/ya es con lo que entra/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/nombre de usuario/i)).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole("button", { name: /guardar|crear/i }));
+    await waitFor(() => {
+      expect(
+        screen.getByText(/ya lo usa otra cuenta para entrar/i),
+      ).toBeInTheDocument();
+    });
+    expect(crear.mutate).not.toHaveBeenCalled();
   });
 
   it("no pide contraseña al editar un paciente existente", () => {

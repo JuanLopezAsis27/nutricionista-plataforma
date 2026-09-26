@@ -19,6 +19,7 @@ import {
 const usuarioNutri = Usuario.reconstruir({
   id: "usr-nutri",
   email: "nutri@demo.com",
+  nombreUsuario: null,
   passwordHash: "x",
   rol: "NUTRICIONISTA",
   nutricionistaId: "usr-nutri",
@@ -30,6 +31,7 @@ const usuarioNutri = Usuario.reconstruir({
 const usuarioPaciente = Usuario.reconstruir({
   id: "usr-pac",
   email: "pac@demo.com",
+  nombreUsuario: null,
   passwordHash: "x",
   rol: "PACIENTE",
   nutricionistaId: null,

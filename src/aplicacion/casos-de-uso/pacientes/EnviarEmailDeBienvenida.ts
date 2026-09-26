@@ -10,8 +10,14 @@ import { variablesBienvenida } from "@/aplicacion/casos-de-uso/secretaria/variab
 /** Lo que hace falta para darle la bienvenida a un paciente recién creado. */
 export interface DatosBienvenida {
   nombrePaciente: string;
-  /** Email del paciente, que es también el usuario con el que inicia sesión. */
+  /**
+   * A dónde se manda: el email de CONTACTO de la ficha, que puede no ser con
+   * qué entra (dos hermanos con el de la madre; migración 79). Sin email, no
+   * sale nada.
+   */
   email: string | null;
+  /** Con qué inicia sesión: email o nombre de usuario (`{{usuario}}`). */
+  usuario: string;
   /** Contraseña de su cuenta, tal como la cargó el profesional en el alta. */
   contrasena: string;
   /**
@@ -28,7 +34,8 @@ export interface DatosBienvenida {
  * (hay email y plantilla).
  *
  * Además del nombre del paciente y del profesional, la plantilla puede llevar
- * sus datos de acceso: {{email}} y {{contrasena}}. Es el ÚNICO momento en que
+ * sus datos de acceso: {{usuario}} (o {{email}}, que dice lo mismo) y
+ * {{contrasena}}. Es el ÚNICO momento en que
  * la contraseña se puede mandar: existe en texto plano solo durante el alta
  * —la escribe el profesional y la cuenta la guarda hasheada acto seguido—, así
  * que un reenvío posterior ya no la tendría. Tampoco queda escrita en el
@@ -72,7 +79,7 @@ export class EnviarEmailDeBienvenida {
       variablesBienvenida({
         nombrePaciente: datos.nombrePaciente,
         nombreProfesional: await this.nutricionistas.nombreDelActual(),
-        email: datos.email,
+        usuario: datos.usuario,
         // Nunca en la de cuenta existente: la contraseña es de la persona.
         contrasena: datos.cuentaExistente ? "" : datos.contrasena,
       }),

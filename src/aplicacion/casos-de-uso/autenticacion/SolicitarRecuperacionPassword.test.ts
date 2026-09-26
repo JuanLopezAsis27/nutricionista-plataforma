@@ -43,7 +43,7 @@ describe("SolicitarRecuperacionPassword", () => {
       usuarios: { obtenerPorEmail: vi.fn(async () => usuario) },
     });
 
-    await uc.ejecutar({ email: "  NUTRI@mail.com " });
+    await uc.ejecutar({ identificador: "  NUTRI@mail.com " });
 
     // Invalida los tokens anteriores del usuario.
     expect(tokens.eliminarDeUsuario).toHaveBeenCalledWith(usuario.id);
@@ -70,7 +70,47 @@ describe("SolicitarRecuperacionPassword", () => {
       usuarios: { obtenerPorEmail: vi.fn(async () => null) },
     });
 
-    await uc.ejecutar({ email: "desconocido@mail.com" });
+    await uc.ejecutar({ identificador: "desconocido@mail.com" });
+
+    expect(tokens.crear).not.toHaveBeenCalled();
+    expect(email.enviar).not.toHaveBeenCalled();
+  });
+
+  it("con el nombre de usuario: busca por usuario y manda al email de la cuenta", async () => {
+    const cuenta = usuarioEjemplo({
+      rol: "PACIENTE",
+      email: "mama@mail.com",
+      nombreUsuario: "juan.perez",
+    });
+    const obtenerPorEmail = vi.fn(async () => null);
+    const { uc, email } = armar({
+      usuarios: {
+        obtenerPorEmail,
+        obtenerPorNombreUsuario: vi.fn(async () => cuenta),
+      },
+    });
+
+    await uc.ejecutar({ identificador: " Juan.Perez " });
+
+    expect(obtenerPorEmail).not.toHaveBeenCalled();
+    const mensaje = (email.enviar as ReturnType<typeof vi.fn>).mock
+      .calls[0]![0] as { para: string };
+    expect(mensaje.para).toBe("mama@mail.com");
+  });
+
+  it("una cuenta sin email (entra con usuario) no recibe nada, y no lo revela", async () => {
+    const sinEmail = usuarioEjemplo({
+      rol: "PACIENTE",
+      email: null,
+      nombreUsuario: "juan.perez",
+    });
+    const { uc, tokens, email } = armar({
+      usuarios: { obtenerPorNombreUsuario: vi.fn(async () => sinEmail) },
+    });
+
+    await expect(
+      uc.ejecutar({ identificador: "juan.perez" }),
+    ).resolves.toBeUndefined();
 
     expect(tokens.crear).not.toHaveBeenCalled();
     expect(email.enviar).not.toHaveBeenCalled();
@@ -82,7 +122,7 @@ describe("SolicitarRecuperacionPassword", () => {
       usuarios: { obtenerPorEmail: vi.fn(async () => inactivo) },
     });
 
-    await uc.ejecutar({ email: "nutri@mail.com" });
+    await uc.ejecutar({ identificador: "nutri@mail.com" });
 
     expect(tokens.crear).not.toHaveBeenCalled();
     expect(email.enviar).not.toHaveBeenCalled();
@@ -101,7 +141,7 @@ describe("SolicitarRecuperacionPassword", () => {
       "https://app.local",
       configuracion,
       mockCuentaPacienteRepositorio(),
-    ).ejecutar({ email: "nutri@mail.com" });
+    ).ejecutar({ identificador: "nutri@mail.com" });
 
     expect(configuracion.nombreDe).toHaveBeenCalledWith("nutri-9");
     const mensaje = (email.enviar as ReturnType<typeof vi.fn>).mock
@@ -115,7 +155,7 @@ describe("SolicitarRecuperacionPassword", () => {
       usuarios: { obtenerPorEmail: vi.fn(async () => admin) },
     });
 
-    await uc.ejecutar({ email: "nutri@mail.com" });
+    await uc.ejecutar({ identificador: "nutri@mail.com" });
 
     const mensaje = (email.enviar as ReturnType<typeof vi.fn>).mock
       .calls[0]![0];
@@ -149,7 +189,7 @@ describe("SolicitarRecuperacionPassword", () => {
             })),
           ),
         }),
-      ).ejecutar({ email: "pac@mail.com" });
+      ).ejecutar({ identificador: "pac@mail.com" });
       return (email.enviar as ReturnType<typeof vi.fn>).mock.calls[0]![0]
         .html as string;
     }

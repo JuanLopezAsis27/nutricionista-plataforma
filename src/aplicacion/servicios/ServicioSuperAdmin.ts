@@ -39,6 +39,12 @@ export class ServicioSuperAdmin {
 
   private static aSalida(usuario: Usuario): NutricionistaSalidaDto {
     const d = usuario.aPrimitivos();
-    return { id: d.id, email: d.email, activo: d.activo, creadoEn: d.creadoEn };
+    // El profesional siempre tiene email (CHECK de la migración 80).
+    return {
+      id: d.id,
+      email: usuario.identificador,
+      activo: d.activo,
+      creadoEn: d.creadoEn,
+    };
   }
 }

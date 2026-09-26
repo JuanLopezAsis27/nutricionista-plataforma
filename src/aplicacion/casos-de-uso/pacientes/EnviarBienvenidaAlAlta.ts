@@ -41,21 +41,29 @@ export class EnviarBienvenidaAlAlta {
     private readonly emitirNotificacion: EmitirNotificacion,
   ) {}
 
-  async ejecutar(datos: {
-    paciente: Paciente;
-    contrasena: string;
-    /** Se vinculó una cuenta que la persona ya tenía (ver `CrearPaciente`). */
-    cuentaExistente?: boolean;
-  }): Promise<void> {
+  /**
+   * Si el consultorio manda solo la bienvenida del alta. Lo pregunta también
+   * la invitación al portal del alta, que sigue la misma política.
+   */
+  async automaticaActiva(): Promise<boolean> {
     const config =
       (await this.configuracion.obtener()) ??
       ConfiguracionConsultorio.porDefecto();
-    if (!config.bienvenidaAutomaticaActiva) return;
+    return config.bienvenidaAutomaticaActiva;
+  }
+
+  async ejecutar(datos: {
+    paciente: Paciente;
+    contrasena: string;
+    /** Con qué entra la cuenta recién creada: email o nombre de usuario. */
+    usuario: string;
+  }): Promise<void> {
+    if (!(await this.automaticaActiva())) return;
 
     const { paciente } = datos;
     const email = paciente.email;
-    // Sin email no hay a quién mandarle nada: no es una falla, es un alta sin
-    // portal por email.
+    // Sin email no hay a quién mandarle nada: no es una falla. Los datos de
+    // acceso se los da el profesional, que los vio en pantalla al crearla.
     if (!email) return;
 
     if ((await this.verificador.recibeCorreo(email)) === false) {
@@ -72,8 +80,8 @@ export class EnviarBienvenidaAlAlta {
       enviado = await this.enviarUno.ejecutar({
         nombrePaciente: paciente.nombreCompleto,
         email,
+        usuario: datos.usuario,
         contrasena: datos.contrasena,
-        cuentaExistente: datos.cuentaExistente,
       });
     } catch (error) {
       console.error("[bienvenida] no se pudo enviar el email:", error);

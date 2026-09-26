@@ -80,7 +80,12 @@ export function MensajesSinLeer() {
                 {/* Al paciente, no a la bandeja: el motivo del clic es ESA
                     conversación, y la página la abre con ?paciente=. */}
                 <Link
-                  href={`/dashboard/mensajes?paciente=${conversacion.pacienteId}`}
+                  href={`/dashboard/mensajes?paciente=${conversacion.pacienteId}${
+                    // El de un número compartido abre ese chat (WhatsApp).
+                    conversacion.tipo === "NUMERO_COMPARTIDO"
+                      ? "&canal=whatsapp"
+                      : ""
+                  }`}
                   className="flex items-start justify-between gap-3"
                 >
                   <div className="flex min-w-0 items-center gap-2.5">

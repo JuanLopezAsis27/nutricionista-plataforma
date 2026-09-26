@@ -9,6 +9,7 @@ import {
   MessageCircle,
   Search,
   UserRound,
+  Users,
 } from "lucide-react";
 import type { ResumenConversacionDto } from "@/aplicacion/dtos/mensajeria.dto";
 import { useMensajeria } from "@/lib/hooks/useMensajeria";
@@ -39,6 +40,8 @@ type Canal = "interno" | "whatsapp";
  * nueva.
  */
 function canalDe(conversacion: ResumenConversacionDto): Canal {
+  // El chat de un número compartido es solo WhatsApp.
+  if (conversacion.tipo === "NUMERO_COMPARTIDO") return "whatsapp";
   if (conversacion.noLeidosWhatsapp > 0 && conversacion.noLeidosPortal === 0) {
     return "whatsapp";
   }
@@ -50,6 +53,9 @@ export default function PaginaMensajes() {
   const { conversaciones, hiloDe, enviarA, marcarLeidosDe } = useMensajeria();
   const lista = conversaciones();
   const [pacienteId, setPacienteId] = useState<string | null>(null);
+  // La fila elegida. Hace falta además del paciente porque una ficha puede
+  // estar en dos filas: la suya (el portal) y la del número que comparte.
+  const [filaId, setFilaId] = useState<string | null>(null);
   const [canal, setCanal] = useState<Canal>("interno");
   const [busqueda, setBusqueda] = useState("");
   const router = useRouter();
@@ -68,6 +74,7 @@ export default function PaginaMensajes() {
   useEffect(() => {
     if (!pacienteDelEnlace) return;
     setPacienteId(pacienteDelEnlace);
+    setFilaId(null);
     setCanal(canalDelEnlace === "whatsapp" ? "whatsapp" : "interno");
     router.replace("/dashboard/mensajes", { scroll: false });
   }, [pacienteDelEnlace, canalDelEnlace, router]);
@@ -86,9 +93,19 @@ export default function PaginaMensajes() {
   }, [pacienteId, cantidad, hilo.data, marcar]);
 
   const conversacionesLista = useMemo(() => lista.data ?? [], [lista.data]);
-  const seleccionada = conversacionesLista.find(
-    (c) => c.pacienteId === pacienteId,
-  );
+  // Sin fila elegida (se llegó por un enlace), un WhatsApp de una ficha que
+  // comparte número se muestra en el chat de ese número, no en la suya.
+  const seleccionada = filaId
+    ? conversacionesLista.find((c) => c.id === filaId)
+    : ((canal === "whatsapp"
+        ? conversacionesLista.find((c) =>
+            c.integrantes.some((i) => i.pacienteId === pacienteId),
+          )
+        : undefined) ??
+      conversacionesLista.find(
+        (c) => c.tipo === "PACIENTE" && c.pacienteId === pacienteId,
+      ));
+  const compartida = seleccionada?.tipo === "NUMERO_COMPARTIDO";
 
   // El buscador filtra por nombre y también por el texto del último mensaje:
   // muchas veces se vuelve a una conversación por lo que se dijo ("el análisis
@@ -156,7 +173,9 @@ export default function PaginaMensajes() {
             ) : (
               <ul className="divide-y">
                 {filtradas.map((conversacion) => {
-                  const activa = pacienteId === conversacion.pacienteId;
+                  const activa = seleccionada?.id === conversacion.id;
+                  const esCompartida =
+                    conversacion.tipo === "NUMERO_COMPARTIDO";
                   const noLeidos = conversacion.noLeidos > 0;
                   return (
                     <li key={conversacion.id}>
@@ -164,6 +183,7 @@ export default function PaginaMensajes() {
                         type="button"
                         onClick={() => {
                           setPacienteId(conversacion.pacienteId);
+                          setFilaId(conversacion.id);
                           setCanal(canalDe(conversacion));
                         }}
                         aria-current={activa ? "true" : undefined}
@@ -179,14 +199,26 @@ export default function PaginaMensajes() {
                         {/* Con foto se ve la cara; sin foto, las iniciales.
                             El anillo marca los no leídos, que es lo que antes
                             hacía el fondo del círculo de iniciales. */}
-                        <AvatarPerfil
-                          nombre={conversacion.pacienteNombre}
-                          fotoArchivoId={conversacion.pacienteFotoArchivoId}
-                          className={cn(
-                            "h-9 w-9",
-                            noLeidos && "ring-2 ring-primary ring-offset-1",
-                          )}
-                        />
+                        {esCompartida ? (
+                          <span
+                            className={cn(
+                              "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground",
+                              noLeidos && "ring-2 ring-primary ring-offset-1",
+                            )}
+                            title="Número de WhatsApp compartido"
+                          >
+                            <Users className="h-4 w-4" />
+                          </span>
+                        ) : (
+                          <AvatarPerfil
+                            nombre={conversacion.pacienteNombre}
+                            fotoArchivoId={conversacion.pacienteFotoArchivoId}
+                            className={cn(
+                              "h-9 w-9",
+                              noLeidos && "ring-2 ring-primary ring-offset-1",
+                            )}
+                          />
+                        )}
 
                         <div className="min-w-0 flex-1">
                           <p className="flex items-baseline justify-between gap-2">
@@ -219,6 +251,9 @@ export default function PaginaMensajes() {
                                 : "text-muted-foreground",
                             )}
                           >
+                            {esCompartida && (
+                              <MessageCircle className="mr-1 inline h-3 w-3 align-[-2px]" />
+                            )}
                             {conversacion.ultimoMensajeTexto ?? "—"}
                           </p>
                         </div>
@@ -260,61 +295,82 @@ export default function PaginaMensajes() {
                   variant="ghost"
                   size="icon"
                   className="md:hidden"
-                  onClick={() => setPacienteId(null)}
+                  onClick={() => {
+                    setPacienteId(null);
+                    setFilaId(null);
+                  }}
                   aria-label="Volver a la lista"
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
 
-                <AvatarPerfil
-                  nombre={
-                    hilo.data?.contraparte.nombre ??
-                    seleccionada?.pacienteNombre ??
-                    "Paciente"
-                  }
-                  fotoArchivoId={
-                    hilo.data?.contraparte.fotoArchivoId ??
-                    seleccionada?.pacienteFotoArchivoId
-                  }
-                  className="h-8 w-8"
-                />
-                <p className="min-w-0 truncate font-medium">
-                  {seleccionada?.pacienteNombre ?? "Paciente"}
-                </p>
+                {compartida && seleccionada ? (
+                  <EncabezadoCompartido
+                    integrantes={seleccionada.integrantes}
+                  />
+                ) : (
+                  <>
+                    <AvatarPerfil
+                      nombre={
+                        hilo.data?.contraparte.nombre ??
+                        seleccionada?.pacienteNombre ??
+                        "Paciente"
+                      }
+                      fotoArchivoId={
+                        hilo.data?.contraparte.fotoArchivoId ??
+                        seleccionada?.pacienteFotoArchivoId
+                      }
+                      className="h-8 w-8"
+                    />
+                    <p className="min-w-0 truncate font-medium">
+                      {seleccionada?.pacienteNombre ?? "Paciente"}
+                    </p>
 
-                {/* La conversación casi siempre lleva a mirar algo de la ficha
+                    {/* La conversación casi siempre lleva a mirar algo de la ficha
                     (el plan, la última medición): sin esto había que volver a
                     Pacientes y buscarlo de nuevo. */}
-                <Button asChild variant="ghost" size="sm" className="shrink-0">
-                  <Link href={`/dashboard/pacientes/${pacienteId}`}>
-                    <UserRound className="h-4 w-4" />
-                    <span className="hidden sm:inline">Ver ficha</span>
-                  </Link>
-                </Button>
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="sm"
+                      className="shrink-0"
+                    >
+                      <Link href={`/dashboard/pacientes/${pacienteId}`}>
+                        <UserRound className="h-4 w-4" />
+                        <span className="hidden sm:inline">Ver ficha</span>
+                      </Link>
+                    </Button>
+                  </>
+                )}
 
-                <div className="ml-auto flex rounded-md border p-0.5 text-xs">
-                  <BotonCanal
-                    activo={canal === "interno"}
-                    onClick={() => setCanal("interno")}
-                    noLeidos={seleccionada?.noLeidosPortal ?? 0}
-                  >
-                    <MessageSquare className="h-3.5 w-3.5" /> Portal
-                  </BotonCanal>
-                  <BotonCanal
-                    activo={canal === "whatsapp"}
-                    onClick={() => setCanal("whatsapp")}
-                    noLeidos={seleccionada?.noLeidosWhatsapp ?? 0}
-                  >
-                    <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
-                  </BotonCanal>
-                </div>
+                {!compartida && (
+                  <div className="ml-auto flex rounded-md border p-0.5 text-xs">
+                    <BotonCanal
+                      activo={canal === "interno"}
+                      onClick={() => setCanal("interno")}
+                      noLeidos={seleccionada?.noLeidosPortal ?? 0}
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" /> Portal
+                    </BotonCanal>
+                    <BotonCanal
+                      activo={canal === "whatsapp"}
+                      onClick={() => setCanal("whatsapp")}
+                      noLeidos={seleccionada?.noLeidosWhatsapp ?? 0}
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                    </BotonCanal>
+                  </div>
+                )}
               </header>
 
               <div className="min-h-0 flex-1 p-3">
                 {canal === "whatsapp" ? (
                   <HiloWhatsapp
-                    key={`wa-${pacienteId}`}
+                    key={`wa-${seleccionada?.id ?? pacienteId}`}
                     pacienteId={pacienteId}
+                    integrantes={
+                      compartida ? seleccionada?.integrantes : undefined
+                    }
                   />
                 ) : (
                   <HiloMensajes
@@ -372,5 +428,39 @@ function BotonCanal({
         </span>
       )}
     </button>
+  );
+}
+
+/**
+ * El encabezado del chat de un número compartido: de quiénes es, con un
+ * enlace a la ficha de cada uno.
+ */
+function EncabezadoCompartido({
+  integrantes,
+}: {
+  integrantes: { pacienteId: string; nombre: string }[];
+}) {
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-2">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <Users className="h-4 w-4" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] text-muted-foreground">
+          WhatsApp compartido por
+        </p>
+        <p className="flex flex-wrap gap-x-2 text-sm font-medium">
+          {integrantes.map((i) => (
+            <Link
+              key={i.pacienteId}
+              href={`/dashboard/pacientes/${i.pacienteId}`}
+              className="underline-offset-2 hover:underline"
+            >
+              {i.nombre}
+            </Link>
+          ))}
+        </p>
+      </div>
+    </div>
   );
 }

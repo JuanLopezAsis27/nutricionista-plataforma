@@ -367,6 +367,7 @@ model Nutricionista {
   axiomasNutricionales        AxiomaNutricional[]
   planesSemanales             PlanSemanal[]
   establecimientos            Establecimiento[]
+  invitacionesPortal          InvitacionPortal[]
 
   // Hijas del agregado: heredan el inquilino de su padre, pero lo llevan
   // materializado para que la extensión pueda filtrarlas por id directo.
@@ -457,12 +458,17 @@ model Paciente {
   nutricionistaId           String
   nombre                    String
   apellido                  String
-  email                     String
+  /// Email de CONTACTO (migración 79): a dónde le escribe este consultorio.
+  /// Opcional —niños y personas mayores sin email— y repetible: dos hermanos
+  /// pueden llevar el de la madre. No es el usuario con el que se entra al
+  /// portal: eso vive en la cuenta (`usuarios.email` / `nombreUsuario`).
+  email                     String?
   telefono                  String?
   /// Teléfono normalizado a E.164 sin "+", derivado de `telefono` al guardar.
   /// Existe para que la ingesta de WhatsApp resuelva al paciente con un índice
   /// en vez de traer la tabla entera y normalizar en memoria. Null cuando el
-  /// teléfono está vacío o no se puede interpretar (no bloquea el alta).
+  /// teléfono está vacío o no se puede interpretar (no bloquea el alta). No es
+  /// único (migración 81): varias fichas pueden compartir un número.
   telefonoE164              String?
   fechaNacimiento           DateTime?
   /// Necesario para la antropometría (masa de la piel, peso ideal, MB).
@@ -518,6 +524,7 @@ model Paciente {
   metricasDispositivo     MetricaDispositivo[]
   mensajesWhatsapp        MensajeWhatsapp[]
   recordatoriosWhatsapp   RecordatorioWhatsapp[]
+  invitacionesPortal      InvitacionPortal[]
   /// La carpeta de planes que se le auto-creó al pedir "crear plan para este
   /// paciente" desde su ficha (migración 56). Null si nunca se usó ese flujo.
   carpetaPlan             GrupoPlan?
@@ -528,11 +535,13 @@ model Paciente {
   establecimientoHabitual Establecimiento?        @relation(fields: [establecimientoHabitualId], references: [id], onDelete: SetNull)
 
   @@unique([nutricionistaId, id])
-  // El email es único POR INQUILINO, no global: una misma persona puede ser
-  // paciente de dos consultorios distintos.
-  @@unique([nutricionistaId, email])
-  @@unique([nutricionistaId, telefonoE164])
-  // Una ficha por consultorio y por cuenta, igual que el email.
+  // El email es de CONTACTO y se puede repetir (hermanos con el de la madre,
+  // migración 79): solo un índice para buscar por él.
+  @@index([nutricionistaId, email])
+  // El teléfono tampoco es único (migración 81): dos hermanos pueden llevar el
+  // de la madre. A qué ficha va un WhatsApp lo decide elegirFichaDelTelefono.
+  @@index([nutricionistaId, telefonoE164])
+  // Una ficha por consultorio y por cuenta.
   @@unique([nutricionistaId, usuarioId])
   @@index([usuarioId])
   @@index([nutricionistaId, apellido, nombre])
@@ -1742,7 +1751,14 @@ model PlantillaAntropometrica {
 /// Si el rol es PACIENTE debe tener un pacienteId asociado.
 model Usuario {
   id              String     @id @default(uuid(4))
-  email           String     @unique
+  /// Con qué se entra: el email, el nombre de usuario o cualquiera de los dos
+  /// (migración 80). Al menos uno de los dos existe (CHECK en la base). El
+  /// PACIENTE puede no tener email —niños, personas mayores— y entra con su
+  /// usuario; el NUTRICIONISTA y el SUPERADMIN siempre tienen email.
+  email           String?    @unique
+  /// Siempre en minúsculas y sin `@` (así el login distingue uno de otro).
+  /// Único en TODA la plataforma: la cuenta de un paciente es global.
+  nombreUsuario   String?    @unique
   passwordHash    String
   /// La contraseña la eligió un PROFESIONAL (alta o bienvenida manual), no la
   /// persona. El portal le recomienda cambiarla mientras siga así; no obliga
@@ -1778,6 +1794,33 @@ model Usuario {
   // nutricionista (ver PuedeVerArchivoPaciente).
   @@index([nutricionistaId, fotoPerfilId])
   @@map("usuarios")
+}
+
+/// Código de invitación al portal (migración 80): la ÚNICA manera de que una
+/// ficha quede en una cuenta que ya existe. Lo genera el profesional desde la
+/// ficha y lo canjea la persona entrando con SU cuenta: quien vincula demuestra
+/// que la cuenta es suya. Ningún dato que tipee el profesional (email, usuario)
+/// alcanza para asociar una ficha a la cuenta de otro.
+///
+/// Sirve también para juntar una cuenta duplicada: si la ficha ya tenía una
+/// cuenta EXCLUSIVA de este consultorio, al canjear se muda y la vieja se borra.
+///
+/// Como los tokens, se guarda solo el hash (SHA-256) del código. Uno vigente
+/// por ficha: generar otro borra los anteriores.
+model InvitacionPortal {
+  id              String    @id @default(uuid(4))
+  nutricionistaId String
+  pacienteId      String
+  codigoHash      String    @unique
+  expiraEn        DateTime
+  usadaEn         DateTime?
+  creadoEn        DateTime  @default(now())
+
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@index([nutricionistaId, pacienteId])
+  @@map("invitaciones_portal")
 }
 
 /// Token de un solo uso para restablecer la contraseña. Se guarda solo el hash

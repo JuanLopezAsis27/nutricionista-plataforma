@@ -1,18 +1,18 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import type { PacienteSalidaDto } from "@/aplicacion/dtos/paciente.dto";
-import {
-  passwordNuevaDto,
-  LARGO_MINIMO_PASSWORD,
-} from "@/aplicacion/dtos/password";
+import type {
+  AltaPacienteSalidaDto,
+  PacienteSalidaDto,
+} from "@/aplicacion/dtos/paciente.dto";
 import { SEXOS_BIOLOGICOS } from "@/dominio/servicios/composicionCorporal";
 import { usePacientes } from "@/lib/hooks/usePacientes";
 import { useEstablecimientos } from "@/lib/hooks/useEstablecimientos";
 import { aFechaISO } from "@/lib/formato";
+import { cn } from "@/lib/utilidades";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { Textarea } from "@/componentes/ui/textarea";
@@ -31,6 +31,14 @@ import {
   SelectContent,
   SelectItem,
 } from "@/componentes/ui/select";
+import {
+  CamposAccesoPortal,
+  accesoDelFormulario,
+  camposAccesoEsquema,
+  validarCamposAcceso,
+} from "./CamposAccesoPortal";
+import { ResultadoAccesoPortal } from "./ResultadoAccesoPortal";
+import { AvisoEmailRepetido } from "./AvisoEmailRepetido";
 
 /**
  * Esquema del formulario de paciente.
@@ -42,15 +50,19 @@ import {
  * una regla propia. Antes había acá un `min(6, "Mínimo 6 caracteres")` mientras
  * el servidor exigía 12 y rechazaba las obvias: el formulario aceptaba lo que
  * la mutación después tiraba, y el nutricionista veía un error que su pantalla
- * decía que no correspondía.
+ * decía que no correspondía. Ahora esa regla, y la del nombre de usuario, viven
+ * en `validarCamposAcceso` (migración 80: el acceso al portal es opcional).
  *
- * @param editando al editar no se pide contraseña (no se cambia desde acá).
+ * El email es de CONTACTO y opcional (migración 79).
+ *
+ * @param editando al editar no se piden datos de acceso: la cuenta se
+ * administra desde «Acceso al portal», en la ficha.
  */
 export function crearEsquemaPaciente(editando: boolean) {
-  return z.object({
+  const esquema = z.object({
     nombre: z.string().min(1, "El nombre es obligatorio"),
     apellido: z.string().min(1, "El apellido es obligatorio"),
-    email: z.string().email("Email inválido"),
+    email: z.union([z.literal(""), z.string().trim().email("Email inválido")]),
     telefono: z.string().optional(),
     fechaNacimiento: z.string().optional(),
     sexo: z.enum([...SEXOS_BIOLOGICOS, SIN_SEXO]),
@@ -71,7 +83,10 @@ export function crearEsquemaPaciente(editando: boolean) {
      */
     establecimientoHabitualId: z.string().optional(),
     notas: z.string().optional(),
-    password: editando ? z.string().optional() : passwordNuevaDto,
+    ...camposAccesoEsquema,
+  });
+  return esquema.superRefine((datos, ctx) => {
+    if (!editando) validarCamposAcceso(datos, ctx);
   });
 }
 
@@ -103,12 +118,18 @@ export function FormularioPaciente({
   onTerminado,
 }: PropsFormularioPaciente) {
   const { crear, actualizar } = usePacientes();
+  // Después del alta, lo que hay que entregarle a la persona (credenciales o
+  // código). Se muestra acá mismo, antes de cerrar.
+  const [alta, setAlta] = useState<{
+    resultado: AltaPacienteSalidaDto;
+    contrasena: string | null;
+  } | null>(null);
   const { listar: listarSedes } = useEstablecimientos();
   const sedes = listarSedes().data ?? [];
   const editando = Boolean(pacienteInicial);
 
-  // En el alta la contraseña es obligatoria (se crea la cuenta del paciente);
-  // en la edición no se pide (no se cambia la contraseña acá).
+  // En el alta se pregunta por el acceso al portal; en la edición no (la
+  // cuenta se administra desde la ficha).
   const esquema = useMemo(() => crearEsquemaPaciente(editando), [editando]);
   type DatosFormulario = z.infer<typeof esquema>;
 
@@ -124,6 +145,9 @@ export function FormularioPaciente({
       establecimientoHabitualId:
         pacienteInicial?.establecimientoHabitualId ?? SIN_SEDE,
       notas: pacienteInicial?.notas ?? "",
+      darAcceso: true,
+      nombreUsuario: "",
+      usuarioObligatorio: false,
       password: "",
     },
   });
@@ -134,7 +158,7 @@ export function FormularioPaciente({
     const base = {
       nombre: datos.nombre,
       apellido: datos.apellido,
-      email: datos.email,
+      email: datos.email.trim() || null,
       telefono: datos.telefono?.trim() ? datos.telefono : null,
       fechaNacimiento: datos.fechaNacimiento
         ? new Date(datos.fechaNacimiento)
@@ -163,192 +187,213 @@ export function FormularioPaciente({
         { onSuccess: onTerminado },
       );
     } else {
+      const acceso = accesoDelFormulario(datos);
       crear.mutate(
-        { ...base, password: datos.password ?? "" },
-        { onSuccess: onTerminado },
+        { ...base, acceso },
+        {
+          onSuccess: (resultado) => {
+            if (resultado.acceso.tipo === "SIN_CUENTA") onTerminado();
+            else setAlta({ resultado, contrasena: acceso?.password ?? null });
+          },
+        },
       );
     }
+  }
+
+  if (alta) {
+    return (
+      <ResultadoAccesoPortal
+        nombrePaciente={`${alta.resultado.nombre} ${alta.resultado.apellido}`}
+        resultado={alta.resultado.acceso}
+        contrasena={alta.contrasena}
+        onListo={onTerminado}
+      />
+    );
   }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(alEnviar)} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="nombre"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nombre</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="apellido"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Apellido</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input type="email" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+        {/* En el alta, dos columnas en desktop: los datos a la izquierda y el
+            acceso al portal a la derecha. Abajo de todo, en una sola columna,
+            quedaba fuera de la vista y un profesional nuevo no lo encontraba. */}
+        <div
+          className={cn(
+            !editando && "grid gap-6 md:grid-cols-2 md:items-start",
           )}
-        />
+        >
+          <div className="space-y-4">
+            {!editando && <TituloSeccion>Datos del paciente</TituloSeccion>}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="nombre"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="apellido"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Apellido</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-        {!editando && (
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Contraseña de acceso del paciente</FormLabel>
-                <FormControl>
-                  <Input
-                    type="text"
-                    // Derivado de la constante, no escrito a mano: el
-                    // placeholder anterior decía 6 y el servidor exigía 12.
-                    placeholder={`Mínimo ${LARGO_MINIMO_PASSWORD} caracteres`}
-                    {...field}
-                  />
-                </FormControl>
-                <p className="text-xs text-muted-foreground">
-                  El paciente iniciará sesión con su email y esta contraseña. Si
-                  el email de bienvenida incluye los datos de acceso, se los
-                  mandamos por ahí.
-                </p>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="telefono"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Teléfono</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="fechaNacimiento"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Fecha de nacimiento</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="sexo"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Sexo biológico</FormLabel>
-              <Select value={field.value} onValueChange={field.onChange}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value={SIN_SEXO}>Sin especificar</SelectItem>
-                  {SEXOS_BIOLOGICOS.map((sexo) => (
-                    <SelectItem key={sexo} value={sexo}>
-                      {ETIQUETAS_SEXO[sexo]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Lo usa la antropometría: el fraccionamiento en 5 masas, el peso
-                ideal y el metabolismo basal tienen constantes distintas por
-                sexo.
-              </p>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Con una sola sede no se pregunta: no hay preferencia que expresar. */}
-        {sedes.length > 1 && (
-          <FormField
-            control={form.control}
-            name="establecimientoHabitualId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Establecimiento habitual</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email de contacto</FormLabel>
                   <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                    <Input type="email" {...field} />
                   </FormControl>
-                  <SelectContent>
-                    <SelectItem value={SIN_SEDE}>Sin preferencia</SelectItem>
-                    {sedes.map((sede) => (
-                      <SelectItem key={sede.id} value={sede.id}>
-                        {sede.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Solo precarga el formulario de turno. El paciente puede
-                  atenderse en cualquier establecimiento.
-                </p>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
+                  <p className="text-xs text-muted-foreground">
+                    Opcional. Es a dónde le escribimos (bienvenida,
+                    recordatorios); sin email, esos avisos no le llegan por este
+                    medio. Puede ser el de un familiar y repetirse entre
+                    pacientes.
+                  </p>
+                  <AvisoEmailRepetido
+                    email={field.value}
+                    pacienteId={pacienteInicial?.id}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="notas"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Notas</FormLabel>
-              <FormControl>
-                <Textarea rows={3} {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="telefono"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Teléfono</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="fechaNacimiento"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fecha de nacimiento</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="sexo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sexo biológico</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value={SIN_SEXO}>Sin especificar</SelectItem>
+                      {SEXOS_BIOLOGICOS.map((sexo) => (
+                        <SelectItem key={sexo} value={sexo}>
+                          {ETIQUETAS_SEXO[sexo]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Lo usa la antropometría: el fraccionamiento en 5 masas, el
+                    peso ideal y el metabolismo basal tienen constantes
+                    distintas por sexo.
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Con una sola sede no se pregunta: no hay preferencia que expresar. */}
+            {sedes.length > 1 && (
+              <FormField
+                control={form.control}
+                name="establecimientoHabitualId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Establecimiento habitual</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={SIN_SEDE}>
+                          Sin preferencia
+                        </SelectItem>
+                        {sedes.map((sede) => (
+                          <SelectItem key={sede.id} value={sede.id}>
+                            {sede.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Solo precarga el formulario de turno. El paciente puede
+                      atenderse en cualquier establecimiento.
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            <FormField
+              control={form.control}
+              name="notas"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notas</FormLabel>
+                  <FormControl>
+                    <Textarea rows={3} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {!editando && (
+            <div className="space-y-4 md:border-l md:pl-6">
+              <TituloSeccion>Acceso al portal</TituloSeccion>
+              <CamposAccesoPortal />
+            </div>
           )}
-        />
+        </div>
 
         <div className="flex justify-end gap-2">
           <Button
@@ -369,5 +414,11 @@ export function FormularioPaciente({
         </div>
       </form>
     </Form>
+  );
+}
+
+function TituloSeccion({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-sm font-semibold text-muted-foreground">{children}</h3>
   );
 }

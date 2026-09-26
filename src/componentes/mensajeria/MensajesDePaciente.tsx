@@ -20,7 +20,15 @@ export function MensajesDePaciente({ pacienteId }: { pacienteId: string }) {
   const { hiloDe, enviarA, marcarLeidosDe, conversaciones } = useMensajeria();
   // Los sin leer de cada canal salen de la bandeja, que ya los trae por
   // paciente: así las pestañas dicen dónde está lo nuevo antes de abrirlas.
-  const fila = conversaciones().data?.find((c) => c.pacienteId === pacienteId);
+  const filas = conversaciones().data ?? [];
+  const fila = filas.find(
+    (c) => c.tipo === "PACIENTE" && c.pacienteId === pacienteId,
+  );
+  // Si comparte el número con otras fichas, su WhatsApp es el chat de ese
+  // número (una fila aparte en la bandeja), y de ahí salen los sin leer.
+  const filaDelNumero = filas.find((c) =>
+    c.integrantes.some((i) => i.pacienteId === pacienteId),
+  );
   const hilo = hiloDe({ pacienteId });
   const mensajes = hilo.data?.mensajes ?? [];
   const cantidad = mensajes.length;
@@ -39,7 +47,9 @@ export function MensajesDePaciente({ pacienteId }: { pacienteId: string }) {
         </TabsTrigger>
         <TabsTrigger value="whatsapp" className="gap-1.5">
           WhatsApp
-          <ContadorPestana cantidad={fila?.noLeidosWhatsapp ?? 0} />
+          <ContadorPestana
+            cantidad={(filaDelNumero ?? fila)?.noLeidosWhatsapp ?? 0}
+          />
         </TabsTrigger>
       </TabsList>
 

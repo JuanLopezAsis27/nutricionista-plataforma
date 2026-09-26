@@ -20,6 +20,10 @@ import { perezoso } from "./perezoso";
 import * as nucleo from "./nucleo";
 
 import { crearServicioPaciente } from "./modulos/pacientes";
+import {
+  crearServicioAccesoPortal,
+  type DependenciasAccesoPortal,
+} from "./modulos/accesoPortal";
 import { crearServicioTurno } from "./modulos/turnos";
 import { crearServicioEstablecimiento } from "./modulos/establecimientos";
 import { crearServicioWhatsapp } from "./modulos/whatsapp";
@@ -82,6 +86,28 @@ export const repositorioUsuarioCompartido = nucleo.repositorioUsuario;
 
 // --- Servicios de aplicación (armados por módulo) ---------------------------------
 
+/** Lo que necesita el acceso al portal, lo use el alta o la ficha. */
+function dependenciasAccesoPortal(): DependenciasAccesoPortal {
+  return {
+    pacientes: nucleo.repositorioPaciente(),
+    usuarios: nucleo.repositorioUsuario(),
+    cuentas: nucleo.repositorioCuentaPaciente(),
+    invitaciones: nucleo.repositorioInvitacionPortal(),
+    nutricionistas: nucleo.repositorioNutricionista(),
+    tokensRefresco: nucleo.repositorioTokenRefresco(),
+    hasheador: nucleo.hasheador(),
+    generadorContrasenas: nucleo.generadorContrasenas(),
+    generadorCodigos: nucleo.generadorCodigoInvitacion(),
+    servicioEmail: nucleo.servicioEmail(),
+    reloj: nucleo.reloj(),
+    baseUrl: nucleo.urlApp(),
+  };
+}
+
+export const servicioAccesoPortal = perezoso(() =>
+  crearServicioAccesoPortal(dependenciasAccesoPortal()),
+);
+
 export const servicioPaciente = perezoso(() =>
   crearServicioPaciente({
     pacientes: nucleo.repositorioPaciente(),
@@ -105,6 +131,7 @@ export const servicioPaciente = perezoso(() =>
     archivos: nucleo.repositorioArchivo(),
     interpretadorFicha: nucleo.interpretadorFichaPaciente(),
     nutricionistas: nucleo.repositorioNutricionista(),
+    accesoPortal: dependenciasAccesoPortal(),
   }),
 );
 

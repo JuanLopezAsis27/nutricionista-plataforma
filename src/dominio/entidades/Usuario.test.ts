@@ -47,3 +47,54 @@ describe("Usuario — contraseña provisional", () => {
     expect(cuenta.passwordProvisional).toBe(true);
   });
 });
+
+describe("Usuario — con qué se entra (migración 80)", () => {
+  const crear = (datos: {
+    email?: string | null;
+    nombreUsuario?: string | null;
+    rol?: "PACIENTE" | "NUTRICIONISTA";
+  }) =>
+    Usuario.crear(
+      {
+        passwordHash: "hash",
+        rol: datos.rol ?? "PACIENTE",
+        nutricionistaId: datos.rol === "NUTRICIONISTA" ? "nutri-1" : null,
+        email: datos.email,
+        nombreUsuario: datos.nombreUsuario,
+      },
+      "usr-1",
+    );
+
+  it("un paciente puede entrar solo con un nombre de usuario, que se normaliza", () => {
+    const cuenta = crear({ email: null, nombreUsuario: "  Juan.Perez " });
+    expect(cuenta.email).toBeNull();
+    expect(cuenta.nombreUsuario).toBe("juan.perez");
+    expect(cuenta.identificador).toBe("juan.perez");
+  });
+
+  it("con los dos, se muestra el email", () => {
+    const cuenta = crear({ email: "ana@mail.com", nombreUsuario: "ana.g" });
+    expect(cuenta.identificador).toBe("ana@mail.com");
+  });
+
+  it("sin email ni usuario no hay con qué entrar", () => {
+    expect(() => crear({ email: null, nombreUsuario: null })).toThrow(
+      ErrorValidacion,
+    );
+  });
+
+  it("un profesional siempre tiene email", () => {
+    expect(() =>
+      crear({ rol: "NUTRICIONISTA", email: null, nombreUsuario: "lic.marta" }),
+    ).toThrow(ErrorValidacion);
+  });
+
+  it.each(["juan@perez", "ab", "juan perez", ".juan", "juán"])(
+    "rechaza el usuario «%s» (sin arroba, 3 a 30, sin espacios ni acentos)",
+    (nombreUsuario) => {
+      expect(() => crear({ email: null, nombreUsuario })).toThrow(
+        ErrorValidacion,
+      );
+    },
+  );
+});

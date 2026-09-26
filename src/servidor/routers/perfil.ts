@@ -1,5 +1,6 @@
 import { crearRouter, protegidoProcedimiento } from "../trpc";
 import {
+  cambiarDatosIngresoDto,
   cambiarFotoPerfilDto,
   cambiarPasswordDto,
 } from "@/aplicacion/dtos/perfil.dto";
@@ -37,5 +38,16 @@ export const routerPerfil = crearRouter({
     .input(cambiarPasswordDto)
     .mutation(async ({ ctx, input }) => {
       return await ctx.servicios.perfil.cambiarPassword(ctx.usuario.id, input);
+    }),
+
+  /** Email y nombre de usuario de la cuenta propia (migración 80). */
+  cambiarDatosIngreso: protegidoProcedimiento
+    .input(cambiarDatosIngresoDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.perfil.cambiarDatosIngreso(
+        ctx.usuario.id,
+        ctx.usuario.pacienteId,
+        input,
+      );
     }),
 });

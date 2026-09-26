@@ -52,6 +52,8 @@ export function crearServicioWhatsapp(deps: {
   const resolverPaciente = new ResolverPacientePorTelefono(
     deps.pacientes,
     deps.configuracion,
+    deps.mensajes,
+    deps.turnos,
   );
 
   const emitirNotificacion = new EmitirNotificacion(
@@ -60,7 +62,7 @@ export function crearServicioWhatsapp(deps: {
   );
 
   return new ServicioWhatsapp(
-    new ObtenerHiloWhatsapp(deps.mensajes, deps.proveedor),
+    new ObtenerHiloWhatsapp(deps.mensajes, deps.proveedor, deps.pacientes),
     new EnviarMensajeWhatsapp(
       deps.mensajes,
       deps.pacientes,
@@ -109,6 +111,7 @@ export function crearServicioWhatsapp(deps: {
       deps.mensajes,
       new MarcarAvisosDeConversacionVistos(deps.notificaciones, deps.reloj),
       deps.reloj,
+      deps.pacientes,
     ),
   );
 }

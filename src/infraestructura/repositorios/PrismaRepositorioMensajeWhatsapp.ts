@@ -1,4 +1,5 @@
 import type {
+  Prisma,
   PrismaClient,
   MensajeWhatsapp as MensajeFila,
 } from "@prisma/client";
@@ -59,9 +60,10 @@ export class PrismaRepositorioMensajeWhatsapp implements IMensajeWhatsappReposit
   async listarPorPaciente(
     pacienteId: string,
     limite = 200,
+    telefono: string | null = null,
   ): Promise<MensajeWhatsapp[]> {
     const filas = await this.prisma.mensajeWhatsapp.findMany({
-      where: { pacienteId },
+      where: deLaConversacion(pacienteId, telefono),
       orderBy: { creadoEn: "desc" },
       take: limite,
     });
@@ -69,9 +71,25 @@ export class PrismaRepositorioMensajeWhatsapp implements IMensajeWhatsappReposit
     return filas.reverse().map((fila) => mapearMensajeWhatsapp(fila));
   }
 
-  async ultimoEntrante(pacienteId: string): Promise<MensajeWhatsapp | null> {
+  async ultimoEntrante(
+    pacienteId: string,
+    telefono: string | null = null,
+  ): Promise<MensajeWhatsapp | null> {
     const fila = await this.prisma.mensajeWhatsapp.findFirst({
-      where: { pacienteId, direccion: "ENTRANTE" },
+      where: {
+        ...deLaConversacion(pacienteId, telefono),
+        direccion: "ENTRANTE",
+      },
+      orderBy: { creadoEn: "desc" },
+    });
+    return fila ? mapearMensajeWhatsapp(fila) : null;
+  }
+
+  async ultimoSalienteAlTelefono(
+    telefono: string,
+  ): Promise<MensajeWhatsapp | null> {
+    const fila = await this.prisma.mensajeWhatsapp.findFirst({
+      where: { telefono, direccion: "SALIENTE" },
       orderBy: { creadoEn: "desc" },
     });
     return fila ? mapearMensajeWhatsapp(fila) : null;
@@ -99,9 +117,17 @@ export class PrismaRepositorioMensajeWhatsapp implements IMensajeWhatsappReposit
     });
   }
 
-  async marcarLeidos(pacienteId: string, leidoEn: Date): Promise<number> {
+  async marcarLeidos(
+    pacienteId: string,
+    leidoEn: Date,
+    telefono: string | null = null,
+  ): Promise<number> {
     const { count } = await this.prisma.mensajeWhatsapp.updateMany({
-      where: { pacienteId, direccion: "ENTRANTE", leidoEn: null },
+      where: {
+        ...deLaConversacion(pacienteId, telefono),
+        direccion: "ENTRANTE",
+        leidoEn: null,
+      },
       data: { leidoEn },
     });
     return count;
@@ -186,4 +212,16 @@ export function mapearMensajeWhatsapp(fila: MensajeFila): MensajeWhatsapp {
     creadoEn: fila.creadoEn,
     actualizadoEn: fila.actualizadoEn,
   });
+}
+
+/**
+ * Los mensajes de una conversación: los de la ficha y, si se da el número, los
+ * de ese número en cualquier otra ficha del consultorio (el filtro de
+ * inquilino lo pone la extensión).
+ */
+function deLaConversacion(
+  pacienteId: string,
+  telefono: string | null,
+): Prisma.MensajeWhatsappWhereInput {
+  return telefono ? { OR: [{ pacienteId }, { telefono }] } : { pacienteId };
 }

@@ -33,7 +33,9 @@ import {
 } from "@/lib/autenticacion/codigosLogin";
 
 const esquemaLogin = z.object({
-  email: z.string().email("Email inválido"),
+  // Email o nombre de usuario (migración 80): sin validar la forma, igual que
+  // el servidor (ver `identificadorLoginDto`).
+  identificador: z.string().trim().min(1, "Ingresá tu email o tu usuario"),
   password: z.string().min(1, "La contraseña es obligatoria"),
 });
 type DatosLogin = z.infer<typeof esquemaLogin>;
@@ -53,11 +55,11 @@ function mensajeDeLogin(codigo: string | undefined): string {
     case CODIGO_LOGIN_INACTIVA:
       return "Tu cuenta está desactivada. Escribile a tu nutricionista para que vuelva a habilitarla.";
     default:
-      return "Email o contraseña incorrectos.";
+      return "Usuario o contraseña incorrectos.";
   }
 }
 
-/** Formulario de inicio de sesión (email + password). */
+/** Formulario de inicio de sesión (email o usuario + password). */
 export function FormularioLogin() {
   const router = useRouter();
   const [enviando, setEnviando] = useState(false);
@@ -65,14 +67,14 @@ export function FormularioLogin() {
 
   const form = useForm<DatosLogin>({
     resolver: zodResolver(esquemaLogin),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { identificador: "", password: "" },
   });
 
   async function alEnviar(datos: DatosLogin) {
     setEnviando(true);
     try {
       const resultado = await signIn("credentials", {
-        email: datos.email,
+        identificador: datos.identificador,
         password: datos.password,
         redirect: false,
       });
@@ -109,22 +111,25 @@ export function FormularioLogin() {
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="text-2xl">Iniciar sesión</CardTitle>
-          <CardDescription>Ingresá con tu email y contraseña.</CardDescription>
+          <CardDescription>
+            Ingresá con tu email o tu usuario y tu contraseña.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(alEnviar)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="email"
+                name="identificador"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Email o usuario</FormLabel>
                     <FormControl>
                       <Input
-                        type="email"
+                        type="text"
                         placeholder="vos@ejemplo.com"
-                        autoComplete="email"
+                        autoComplete="username"
+                        autoCapitalize="none"
                         {...field}
                       />
                     </FormControl>

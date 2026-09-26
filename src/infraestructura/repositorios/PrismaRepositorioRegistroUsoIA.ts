@@ -236,8 +236,8 @@ export class PrismaRepositorioRegistroUsoIA implements IRegistroUsoIARepositorio
     });
     return new Map(
       cuentas
-        .filter((c) => c.nutricionistaId !== null)
-        .map((c) => [c.nutricionistaId!, c.email]),
+        .filter((c) => c.nutricionistaId !== null && c.email !== null)
+        .map((c) => [c.nutricionistaId!, c.email!]),
     );
   }
 }

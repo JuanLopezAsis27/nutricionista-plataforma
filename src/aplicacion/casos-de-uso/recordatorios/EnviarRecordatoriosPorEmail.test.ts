@@ -292,13 +292,14 @@ describe("EnviarRecordatoriosPorEmail", () => {
     expect(enviar).not.toHaveBeenCalled();
   });
 
-  it("cuenta como fallido un paciente sin email", async () => {
+  it("omite (no cuenta como fallido) un paciente sin email", async () => {
     const turno = turnoEjemplo({ fecha: MANANA });
     const { uc, registrar } = armar({ turnos: [turno], paciente: null });
 
     const resultado = await uc.ejecutar();
 
-    expect(resultado.fallidos).toBe(1);
+    expect(resultado.omitidos).toBe(1);
+    expect(resultado.fallidos).toBe(0);
     expect(registrar).not.toHaveBeenCalled();
   });
 

@@ -12,7 +12,12 @@ import {
 export interface DatosNuevoPaciente {
   nombre: string;
   apellido: string;
-  email: string;
+  /**
+   * Email de CONTACTO (migración 79): opcional y repetible entre fichas (dos
+   * hermanos con el de la madre). No es el usuario del portal: ese vive en la
+   * cuenta. Sin email, simplemente no se le escribe por ese medio.
+   */
+  email?: string | null;
   telefono?: string | null;
   fechaNacimiento?: Date | null;
   /**
@@ -37,7 +42,8 @@ export interface PropiedadesPaciente {
   id: string;
   nombre: string;
   apellido: string;
-  email: string;
+  /** Email de contacto; null si no tiene (ver `DatosNuevoPaciente`). */
+  email: string | null;
   telefono: string | null;
   /**
    * Forma canónica del teléfono (E.164 sin "+"), derivada de `telefono`.
@@ -64,10 +70,10 @@ const PATRON_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /**
  * Entidad de dominio Paciente.
  *
- * Encapsula las reglas de negocio propias de un paciente. La unicidad del
- * email (que requiere consultar el almacén) NO se valida acá: es
- * responsabilidad del caso de uso junto al repositorio. Acá solo viven los
- * invariantes que pueden comprobarse con los datos de la propia entidad.
+ * Encapsula las reglas de negocio propias de un paciente. Acá solo viven los
+ * invariantes que pueden comprobarse con los datos de la propia entidad. El
+ * email es de contacto y no es único (migración 79): lo único que se exige es
+ * que, si está, tenga forma de email.
  */
 export class Paciente {
   private constructor(private readonly props: PropiedadesPaciente) {}
@@ -81,7 +87,7 @@ export class Paciente {
   ): Paciente {
     const nombre = datos.nombre?.trim() ?? "";
     const apellido = datos.apellido?.trim() ?? "";
-    const email = datos.email?.trim().toLowerCase() ?? "";
+    const email = datos.email?.trim().toLowerCase() || null;
 
     if (nombre.length === 0) {
       throw new ErrorValidacion("El nombre del paciente es obligatorio.");
@@ -89,7 +95,7 @@ export class Paciente {
     if (apellido.length === 0) {
       throw new ErrorValidacion("El apellido del paciente es obligatorio.");
     }
-    if (!PATRON_EMAIL.test(email)) {
+    if (email !== null && !PATRON_EMAIL.test(email)) {
       throw new ErrorValidacion("El email del paciente no es válido.");
     }
     if (
@@ -140,7 +146,7 @@ export class Paciente {
     const datos: DatosNuevoPaciente = {
       nombre: cambios.nombre ?? this.props.nombre,
       apellido: cambios.apellido ?? this.props.apellido,
-      email: cambios.email ?? this.props.email,
+      email: cambios.email !== undefined ? cambios.email : this.props.email,
       telefono:
         cambios.telefono !== undefined ? cambios.telefono : this.props.telefono,
       fechaNacimiento:
@@ -233,7 +239,7 @@ export class Paciente {
   get nombreCompleto(): string {
     return `${this.props.nombre} ${this.props.apellido}`;
   }
-  get email(): string {
+  get email(): string | null {
     return this.props.email;
   }
   get telefono(): string | null {

@@ -196,14 +196,15 @@ export class EnviarRecordatoriosMasivos {
       // El email va PRIMERO y por su cuenta: es el medio que sale solo, sin
       // depender de que el profesional después abra un chat. Que WhatsApp se
       // omita por duplicado no puede dejar al paciente sin ningún aviso.
-      const emailEnviado = preferencias.emailActivo
-        ? (await this.enviarEmail.enviarParaTurno(turno, null, {
+      const resultadoEmail = preferencias.emailActivo
+        ? await this.enviarEmail.enviarParaTurno(turno, null, {
             forzar: datos.forzar ?? false,
             horasEntreAvisos: preferencias.horasEntreAvisos,
             ahora,
             diasParaPlantilla: diasFaltantes,
-          })) === "ENVIADO"
-        : false;
+          })
+        : null;
+      const emailEnviado = resultadoEmail === "ENVIADO";
 
       if (!preferencias.whatsappActivo || plantillaElegida == null) {
         detalles.push({
@@ -211,7 +212,7 @@ export class EnviarRecordatoriosMasivos {
           pacienteId: paciente.id,
           nombrePaciente: paciente.nombreCompleto,
           estado: emailEnviado ? "ENVIADO" : "OMITIDO",
-          motivo: emailEnviado ? null : "Ya se le había enviado el email.",
+          motivo: emailEnviado ? null : motivoSinEmail(resultadoEmail),
           enlace: null,
           emailEnviado,
         });
@@ -273,4 +274,17 @@ function sinPaciente(turnoId: string, motivo: string): DetalleEnvioMasivo {
     enlace: null,
     emailEnviado: false,
   };
+}
+
+/**
+ * Por qué no salió el email de un turno, para el detalle del envío manual.
+ * Antes decía siempre «ya se le había enviado», también a quien no tiene
+ * email: desde la migración 79 un paciente sin email es un caso normal.
+ */
+function motivoSinEmail(
+  resultado: "ENVIADO" | "OMITIDO" | "FALLIDO" | "SIN_EMAIL" | null,
+): string {
+  if (resultado === "SIN_EMAIL") return "No tiene email cargado.";
+  if (resultado === "FALLIDO") return "No se pudo enviar el email.";
+  return "Ya se le había enviado el email.";
 }

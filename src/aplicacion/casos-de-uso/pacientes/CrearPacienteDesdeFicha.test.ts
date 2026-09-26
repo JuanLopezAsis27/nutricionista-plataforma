@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { CrearPacienteDesdeFicha } from "./CrearPacienteDesdeFicha";
 import { CrearPaciente } from "./CrearPaciente";
+import { DarAccesoPortal } from "../acceso-portal/DarAccesoPortal";
 import {
   mockPacienteRepositorio,
   mockUsuarioRepositorio,
@@ -28,12 +29,17 @@ function armar(
     sobrescribir.laboratorios ?? mockLaboratorioRepositorio();
   const archivos = sobrescribir.archivos ?? mockArchivoRepositorio();
 
+  // El alta de estos tests no pide acceso al portal: lo que se prueba acá es
+  // lo que el documento trae además del paciente.
   const crearPaciente = new CrearPaciente(
     mockPacienteRepositorio(),
-    mockUsuarioRepositorio(),
-    mockCuentaPacienteRepositorio(),
-    mockHasheador(),
     mockConfiguracionRepositorio(),
+    new DarAccesoPortal(
+      mockPacienteRepositorio(),
+      mockUsuarioRepositorio(),
+      mockCuentaPacienteRepositorio(),
+      mockHasheador(),
+    ),
   );
 
   return {
@@ -55,7 +61,7 @@ const BASE = {
   nombre: "Ana",
   apellido: "Pérez",
   email: "ana@ejemplo.com",
-  password: "una-clave-larguisima",
+  acceso: null,
 };
 
 describe("CrearPacienteDesdeFicha", () => {

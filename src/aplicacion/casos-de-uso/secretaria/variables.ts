@@ -47,17 +47,25 @@ export function variablesRecordatorio(datos: {
 /**
  * Variables del email de bienvenida de un paciente recién creado: además de
  * los nombres, sus datos de acceso al portal.
+ *
+ * `usuario` es con qué entra: su email o su nombre de usuario (migración 80).
+ * `{{email}}` lleva lo MISMO: es la variable que usaban las plantillas
+ * guardadas antes de que existiera el usuario, y siempre significó «con qué
+ * inicia sesión». Si pasara a ser el email de contacto, la bienvenida de un
+ * paciente que entra con usuario le diría un email que no le sirve para
+ * entrar.
  */
 export function variablesBienvenida(datos: {
   nombrePaciente: string;
   nombreProfesional: string;
-  email: string;
+  usuario: string;
   contrasena: string;
 }): Record<string, string> {
   return {
     paciente: datos.nombrePaciente,
     profesional: datos.nombreProfesional,
-    email: datos.email,
+    usuario: datos.usuario,
+    email: datos.usuario,
     contrasena: datos.contrasena,
   };
 }
@@ -81,7 +89,7 @@ export function variablesEjemplo(
     return variablesBienvenida({
       nombrePaciente: "Juan Pérez",
       nombreProfesional,
-      email: "juan.perez@ejemplo.com",
+      usuario: "juan.perez@ejemplo.com",
       contrasena: "contraseña-de-ejemplo",
     });
   }
@@ -91,6 +99,7 @@ export function variablesEjemplo(
     return {
       paciente: "Juan Pérez",
       profesional: nombreProfesional,
+      usuario: "juan.perez@ejemplo.com",
       email: "juan.perez@ejemplo.com",
     };
   }

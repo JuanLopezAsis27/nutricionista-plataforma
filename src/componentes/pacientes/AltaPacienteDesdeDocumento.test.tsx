@@ -33,6 +33,29 @@ vi.mock("@/lib/hooks/useEstablecimientos", () => ({
   useEstablecimientos: () => ({ listar: () => ({ data: sedes }) }),
 }));
 
+// Los campos de acceso piden una sugerencia de usuario al servidor; acá no
+// hay servidor, y la sugerencia no participa de ningún caso.
+vi.mock("@/lib/hooks/useAccesoPortal", () => ({
+  useAccesoPortal: () => ({
+    sugerirNombreUsuario: () => ({ data: undefined }),
+  }),
+}));
+
+// Lo que el servidor contesta sobre el email: cada test lo fija. Por defecto,
+// un email libre (se entra con él, el usuario es opcional).
+const revision = {
+  valor: undefined as
+    | {
+        otrasFichas: { pacienteId: string; nombre: string }[];
+        esIngresoDeOtraCuenta: boolean;
+        ingresoDe: string | null;
+      }
+    | undefined,
+};
+vi.mock("@/lib/hooks/useRevisionEmail", () => ({
+  useRevisionEmail: () => revision.valor,
+}));
+
 vi.mock("sonner", () => ({
   toast: { error: toastError, success: vi.fn(), warning: vi.fn() },
 }));
@@ -114,7 +137,10 @@ describe("AltaPacienteDesdeDocumento", () => {
       Record<string, unknown>,
     ];
     expect(datos.email).toBe("ana@ejemplo.test");
-    expect(datos.password).toBe("arroz-con-leche-2026");
+    expect(datos.acceso).toEqual({
+      nombreUsuario: null,
+      password: "arroz-con-leche-2026",
+    });
     expect(datos.archivoId).toBe("arch-1");
     // Con una sola sede no se preguntó, así que viaja sin preferencia.
     expect(datos.establecimientoHabitualId).toBeNull();

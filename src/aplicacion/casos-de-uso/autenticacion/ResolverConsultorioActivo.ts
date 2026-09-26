@@ -6,6 +6,11 @@ import { consultorioInicial } from "@/dominio/servicios/cuentaPaciente";
 /** Lo que la sesión necesita saber de quién entra y dónde trabaja. */
 export interface IdentidadDeSesion {
   id: string;
+  /**
+   * Con qué entra la cuenta, para mostrarlo: el email, o el nombre de usuario
+   * si no tiene (migración 80). Se llama `email` porque es el campo de la
+   * sesión de Auth.js, que solo se usa para mostrar.
+   */
   email: string;
   rol: RolUsuario;
   /**
@@ -48,7 +53,7 @@ export class ResolverConsultorioActivo {
 
     const base = {
       id: usuario.id,
-      email: usuario.email,
+      email: usuario.identificador,
       rol: usuario.rol,
     };
     if (!usuario.esPaciente) {

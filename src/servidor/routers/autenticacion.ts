@@ -44,7 +44,7 @@ export const routerAutenticacion = crearRouter({
   solicitarRecuperacion: publicoProcedimiento
     .input(solicitarRecuperacionDto)
     .mutation(async ({ ctx, input }) => {
-      // Límite de tasa por email Y por IP.
+      // Límite de tasa por cuenta (email o usuario) Y por IP.
       //
       // Es público y cada llamada dispara un correo, así que sin tope alcanza
       // con un bucle para inundar la casilla de una persona y, de paso, quemar
@@ -54,8 +54,10 @@ export const routerAutenticacion = crearRouter({
       // Por email protege a la víctima; por IP corta al que barre muchas
       // direcciones desde un mismo origen. Se comprueban los dos antes de
       // hacer nada.
-      const email = input.email.trim().toLowerCase();
-      const porEmail = limitadorRecuperacion.intentar(`email:${email}`);
+      const identificador = input.identificador.trim().toLowerCase();
+      const porEmail = limitadorRecuperacion.intentar(
+        `cuenta:${identificador}`,
+      );
       const porIp = limitadorRecuperacion.intentar(`ip:${ctx.ip}`);
 
       if (!porEmail.permitido || !porIp.permitido) {
@@ -67,7 +69,7 @@ export const routerAutenticacion = crearRouter({
       }
 
       return await ejecutarGlobal(() =>
-        ctx.servicios.autenticacion.solicitarRecuperacion({ ...input, email }),
+        ctx.servicios.autenticacion.solicitarRecuperacion({ identificador }),
       );
     }),
 

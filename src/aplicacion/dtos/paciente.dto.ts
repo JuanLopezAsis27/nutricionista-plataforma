@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { MAX_PACIENTES_POR_LOTE } from "@/aplicacion/casos-de-uso/pacientes/EnviarBienvenidaMasiva";
 import { passwordNuevaDto } from "./password";
+import {
+  datosAccesoPortalDto,
+  type ResultadoAccesoSalidaDto,
+} from "./acceso-portal.dto";
 import { SEXOS_BIOLOGICOS } from "@/dominio/servicios/composicionCorporal";
 import {
   campoPersonalizadoHistoriaDto,
@@ -18,7 +22,15 @@ import {
 export const crearPacienteDto = z.object({
   nombre: z.string().min(1, "El nombre es obligatorio").max(100),
   apellido: z.string().min(1, "El apellido es obligatorio").max(100),
-  email: z.string().email("Email inválido"),
+  /**
+   * De CONTACTO, opcional y repetible (migración 79). Vacío es "sin email":
+   * el formulario manda "" cuando el campo queda en blanco.
+   */
+  email: z
+    .union([z.literal(""), z.string().trim().email("Email inválido")])
+    .optional()
+    .nullable()
+    .transform((valor) => valor || null),
   telefono: z.string().max(30).optional().nullable(),
   fechaNacimiento: z.coerce.date().optional().nullable(),
   /** Lo necesita la antropometría; opcional para no frenar el alta rápida. */
@@ -33,14 +45,12 @@ export const crearPacienteDto = z.object({
 export type CrearPacienteDto = z.infer<typeof crearPacienteDto>;
 
 /**
- * Alta de paciente con su cuenta de acceso (la app es multiusuario: el
- * paciente también inicia sesión). El nutricionista define la contraseña.
+ * Alta de paciente con, opcionalmente, su acceso al portal (migración 80).
+ * Sin `acceso` la ficha queda sin portal y se le puede dar después desde ella.
+ * La contraseña pasa por la política única de la app (ver dtos/password.ts).
  */
 export const crearPacienteConAccesoDto = crearPacienteDto.extend({
-  // Política única para toda la app (ver dtos/password.ts). Antes acá el
-  // mínimo era 6 y en el alta de nutricionista 8: dos criterios para la misma
-  // decisión.
-  password: passwordNuevaDto,
+  acceso: datosAccesoPortalDto.optional().nullable(),
 });
 export type CrearPacienteConAccesoDto = z.infer<
   typeof crearPacienteConAccesoDto
@@ -88,7 +98,7 @@ export const pacienteSalidaDto = z.object({
   id: z.string(),
   nombre: z.string(),
   apellido: z.string(),
-  email: z.string(),
+  email: z.string().nullable(),
   telefono: z.string().nullable(),
   telefonoE164: z.string().nullable(),
   fechaNacimiento: z.date().nullable(),
@@ -103,13 +113,9 @@ export const pacienteSalidaDto = z.object({
 });
 export type PacienteSalidaDto = z.infer<typeof pacienteSalidaDto>;
 
-/**
- * Resultado del alta: la ficha, y si la persona ya tenía cuenta en la
- * plataforma (paciente de otro consultorio). En ese caso se la vinculó y
- * conserva su contraseña: la que se cargó en el formulario no se usó.
- */
+/** Resultado del alta: la ficha y cómo quedó su acceso al portal. */
 export type AltaPacienteSalidaDto = PacienteSalidaDto & {
-  cuentaExistente: boolean;
+  acceso: ResultadoAccesoSalidaDto;
 };
 
 /** Resultado paginado de un listado de pacientes. */
@@ -189,9 +195,8 @@ const antropometriaSugeridaDto = medidasAntropometricasDto.extend({
  * Lo que la IA reconoció en el documento. Nada de esto está guardado: es lo
  * que precarga el formulario de alta para que el profesional lo revise.
  *
- * Todos los datos del paciente son nullable —incluido el email, que la entidad
- * exige— porque una ficha en papel casi nunca lo trae y quien lo completa es
- * el profesional.
+ * Todos los datos del paciente son nullable porque una ficha en papel casi
+ * nunca trae el email, y quien lo completa (o no) es el profesional.
  */
 export const fichaPacienteSugeridaDto = z.object({
   paciente: z.object({
@@ -222,7 +227,7 @@ export const fichaPacienteSugeridaDto = z.object({
 export type FichaPacienteSugeridaDto = z.infer<typeof fichaPacienteSugeridaDto>;
 
 /**
- * Alta confirmada por el profesional: el paciente con su cuenta, más los
+ * Alta confirmada por el profesional: el paciente (con su acceso si se pidió), más los
  * registros asociados que decidió conservar de lo que trajo el documento.
  */
 export const crearPacienteDesdeFichaDto = crearPacienteConAccesoDto.extend({
@@ -255,6 +260,6 @@ export type CrearPacienteDesdeFichaDto = z.infer<
 export interface AltaDesdeFichaSalidaDto {
   paciente: PacienteSalidaDto;
   /** Ver `AltaPacienteSalidaDto`. */
-  cuentaExistente: boolean;
+  acceso: ResultadoAccesoSalidaDto;
   advertencias: string[];
 }

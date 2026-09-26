@@ -181,7 +181,7 @@ export default function PaginaPacientes() {
         </span>
       ),
     },
-    { clave: "email", encabezado: "Email", render: (p) => p.email },
+    { clave: "email", encabezado: "Email", render: (p) => p.email ?? "—" },
     {
       clave: "telefono",
       encabezado: "Teléfono",
@@ -437,7 +437,9 @@ export default function PaginaPacientes() {
 
       {/* Modal de alta/edición */}
       <Dialog open={formAbierto} onOpenChange={setFormAbierto}>
-        <DialogContent>
+        {/* El alta va en dos columnas en desktop (datos y acceso al portal):
+            necesita el ancho. La edición no tiene la segunda columna. */}
+        <DialogContent className={pacienteEditar ? undefined : "md:max-w-4xl"}>
           <DialogHeader>
             <DialogTitle>
               {pacienteEditar ? "Editar paciente" : "Nuevo paciente"}

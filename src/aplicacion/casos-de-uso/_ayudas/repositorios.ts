@@ -123,8 +123,9 @@ export function mockPacienteRepositorio(
     eliminar: vi.fn(async () => {}),
     obtenerPorId: vi.fn(async () => null),
     obtenerPorIds: vi.fn(async () => []),
-    obtenerPorEmail: vi.fn(async () => null),
-    obtenerPorTelefonoE164: vi.fn(async () => null),
+    listarPorTelefonoE164: vi.fn(async () => []),
+    listarPorTelefonosE164: vi.fn(async () => []),
+    listarPorEmail: vi.fn(async () => []),
     listar: vi.fn(async () => []),
     contar: vi.fn(async () => 0),
     ...parcial,
@@ -161,6 +162,8 @@ export function mockUsuarioRepositorio(
     eliminar: vi.fn(async () => {}),
     esFotoDePerfil: vi.fn(async () => false),
     emailYaRegistrado: vi.fn(async () => false),
+    obtenerPorNombreUsuario: vi.fn(async () => null),
+    nombreUsuarioYaRegistrado: vi.fn(async () => false),
     ...parcial,
   };
 }
@@ -679,6 +682,7 @@ export function mockMensajeWhatsappRepositorio(
     marcarLeidos: vi.fn(async () => 0),
     resumenPorPaciente: vi.fn(async () => []),
     listarPorPaciente: vi.fn(async () => []),
+    ultimoSalienteAlTelefono: vi.fn(async () => null),
     ultimoEntrante: vi.fn(async () => null),
     ultimosPorPacientes: vi.fn(async () => new Map<string, MensajeWhatsapp>()),
     ultimosEntrantesPorPacientes: vi.fn(

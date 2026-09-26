@@ -89,21 +89,32 @@ export class PrismaRepositorioPaciente implements IPacienteRepositorio {
     return filas.map((fila) => mapearPaciente(fila));
   }
 
-  async obtenerPorEmail(email: string): Promise<Paciente | null> {
-    // El email dejó de ser único global (una persona puede ser paciente de dos
-    // consultorios). La unicidad es (nutricionistaId, email) y el filtro de
-    // inquilino lo agrega la extensión, así que acá alcanza con findFirst.
-    const fila = await this.prisma.paciente.findFirst({
-      where: { email: email.trim().toLowerCase() },
+  async listarPorTelefonoE164(telefonoE164: string): Promise<Paciente[]> {
+    const filas = await this.prisma.paciente.findMany({
+      where: { telefonoE164 },
+      // Desempate estable: la más antigua primero (ver fichaPorTelefono.ts).
+      orderBy: [{ creadoEn: "asc" }, { id: "asc" }],
     });
-    return fila ? mapearPaciente(fila) : null;
+    return filas.map((fila) => mapearPaciente(fila));
   }
 
-  async obtenerPorTelefonoE164(telefonoE164: string): Promise<Paciente | null> {
-    const fila = await this.prisma.paciente.findFirst({
-      where: { telefonoE164 },
+  async listarPorTelefonosE164(
+    telefonos: readonly string[],
+  ): Promise<Paciente[]> {
+    if (telefonos.length === 0) return [];
+    const filas = await this.prisma.paciente.findMany({
+      where: { telefonoE164: { in: [...telefonos] } },
+      orderBy: [{ creadoEn: "asc" }, { id: "asc" }],
     });
-    return fila ? mapearPaciente(fila) : null;
+    return filas.map((fila) => mapearPaciente(fila));
+  }
+
+  async listarPorEmail(email: string): Promise<Paciente[]> {
+    const filas = await this.prisma.paciente.findMany({
+      where: { email: email.trim().toLowerCase() },
+      orderBy: [{ creadoEn: "asc" }, { id: "asc" }],
+    });
+    return filas.map((fila) => mapearPaciente(fila));
   }
 
   async listar(filtro: FiltroPacientes = {}): Promise<Paciente[]> {

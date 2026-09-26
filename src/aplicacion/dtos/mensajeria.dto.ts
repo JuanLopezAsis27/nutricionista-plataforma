@@ -66,5 +66,13 @@ export const resumenConversacionDto = z.object({
   noLeidosWhatsapp: z.number(),
   /** Por dónde llegó el último mensaje; decide qué canal abre la fila. */
   ultimoCanal: z.enum(["PORTAL", "WHATSAPP"]).nullable(),
+  /**
+   * `NUMERO_COMPARTIDO`: el WhatsApp de un número que tienen varias fichas
+   * (migración 81). Es un solo chat; `integrantes` dice de quiénes es.
+   */
+  tipo: z.enum(["PACIENTE", "NUMERO_COMPARTIDO"]),
+  integrantes: z.array(
+    z.object({ pacienteId: z.string(), nombre: z.string() }),
+  ),
 });
 export type ResumenConversacionDto = z.infer<typeof resumenConversacionDto>;

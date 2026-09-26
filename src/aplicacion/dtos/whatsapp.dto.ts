@@ -43,5 +43,9 @@ export const hiloWhatsappSalidaDto = z.object({
   /** Meta solo permite texto libre dentro de las 24 h del último mensaje del paciente. */
   ventanaAbierta: z.boolean(),
   ventanaVenceEn: z.date().nullable(),
+  /** Otras fichas con el mismo número: el hilo trae también sus mensajes. */
+  compartidoCon: z.array(
+    z.object({ pacienteId: z.string(), nombre: z.string() }),
+  ),
 });
 export type HiloWhatsappSalidaDto = z.infer<typeof hiloWhatsappSalidaDto>;

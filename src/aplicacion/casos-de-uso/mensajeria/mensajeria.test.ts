@@ -241,4 +241,109 @@ describe("ListarConversaciones", () => {
       ultimoCanal: "WHATSAPP",
     });
   });
+
+  describe("un número de WhatsApp compartido por varias fichas", () => {
+    // Sofía y Tomás llevan el teléfono de la madre; Ana tiene el suyo.
+    const sofia = pacienteEjemplo(
+      { nombre: "Sofía", apellido: "Pérez", telefono: "11 5555 4444" },
+      "pac-sofia",
+    );
+    const tomas = pacienteEjemplo(
+      { nombre: "Tomás", apellido: "Pérez", telefono: "11 5555 4444" },
+      "pac-tomas",
+    );
+    const ana = pacienteEjemplo(
+      { nombre: "Ana", apellido: "Gómez", telefono: "11 4444 3333" },
+      "pac-ana",
+    );
+    const todas = [sofia, tomas, ana];
+
+    function armar(
+      portal: Awaited<
+        ReturnType<
+          ReturnType<typeof mockMensajeriaRepositorio>["listarResumen"]
+        >
+      > = [],
+    ) {
+      return new ListarConversaciones(
+        mockMensajeriaRepositorio({ listarResumen: vi.fn(async () => portal) }),
+        mockMensajeWhatsappRepositorio({
+          resumenPorPaciente: vi.fn(async () => [
+            {
+              pacienteId: "pac-sofia",
+              ultimoMensajeTexto: "¿Sofía viene el martes?",
+              ultimoMensajeEn: new Date("2026-07-10T10:00:00Z"),
+              noLeidos: 1,
+            },
+            {
+              pacienteId: "pac-tomas",
+              ultimoMensajeTexto: "Tomás no puede mañana",
+              ultimoMensajeEn: new Date("2026-07-11T10:00:00Z"),
+              noLeidos: 2,
+            },
+            {
+              pacienteId: "pac-ana",
+              ultimoMensajeTexto: "gracias",
+              ultimoMensajeEn: new Date("2026-07-09T10:00:00Z"),
+              noLeidos: 0,
+            },
+          ]),
+        }),
+        mockPacienteRepositorio({
+          obtenerPorIds: vi.fn(async (ids: readonly string[]) =>
+            todas.filter((p) => ids.includes(p.id)),
+          ),
+          listarPorTelefonosE164: vi.fn(async (tels: readonly string[]) =>
+            todas.filter((p) => tels.includes(p.telefonoE164!)),
+          ),
+        }),
+      );
+    }
+
+    it("es UN chat con los nombres de todos, no uno por ficha", async () => {
+      const filas = await armar().ejecutar("user-nutri");
+
+      expect(filas).toHaveLength(2);
+      const [compartida, deAna] = filas;
+      expect(compartida).toMatchObject({
+        tipo: "NUMERO_COMPARTIDO",
+        pacienteNombre: "Sofía Pérez · Tomás Pérez",
+        integrantes: [
+          { pacienteId: "pac-sofia", nombre: "Sofía Pérez" },
+          { pacienteId: "pac-tomas", nombre: "Tomás Pérez" },
+        ],
+        // Suma los sin leer de las dos fichas y muestra el último del número.
+        noLeidos: 3,
+        noLeidosWhatsapp: 3,
+        ultimoMensajeTexto: "Tomás no puede mañana",
+        ultimoCanal: "WHATSAPP",
+      });
+      expect(deAna).toMatchObject({ tipo: "PACIENTE", pacienteId: "pac-ana" });
+    });
+
+    it("el chat del portal de cada ficha sigue en su propia fila, sin ese WhatsApp", async () => {
+      const filas = await armar([
+        {
+          id: "conv-sofia",
+          pacienteId: "pac-sofia",
+          pacienteNombre: "Sofía Pérez",
+          pacienteFotoArchivoId: null,
+          ultimoMensajeTexto: "hola desde el portal",
+          ultimoMensajeEn: new Date("2026-07-08T10:00:00Z"),
+          noLeidos: 1,
+        },
+      ]).ejecutar("user-nutri");
+
+      const deSofia = filas.find((f) => f.id === "conv-sofia");
+      expect(deSofia).toMatchObject({
+        tipo: "PACIENTE",
+        noLeidos: 1,
+        noLeidosWhatsapp: 0,
+        ultimoCanal: "PORTAL",
+      });
+      expect(filas.filter((f) => f.tipo === "NUMERO_COMPARTIDO")).toHaveLength(
+        1,
+      );
+    });
+  });
 });

@@ -20,6 +20,18 @@ export interface IUsuarioRepositorio {
   obtenerPorId(id: string): Promise<Usuario | null>;
   obtenerPorEmail(email: string): Promise<Usuario | null>;
   /**
+   * La cuenta con ese nombre de usuario (migración 80), con la misma
+   * visibilidad que `obtenerPorEmail`: con alcance global —el login—, en toda
+   * la plataforma.
+   */
+  obtenerPorNombreUsuario(nombreUsuario: string): Promise<Usuario | null>;
+  /**
+   * ¿Ese nombre de usuario ya lo tiene alguna cuenta EN TODA la plataforma?
+   * Booleano por el mismo motivo que `emailYaRegistrado`: para sugerir o
+   * rechazar uno alcanza con saber si está libre, no de quién es.
+   */
+  nombreUsuarioYaRegistrado(nombreUsuario: string): Promise<boolean>;
+  /**
    * ¿Ese email ya tiene una cuenta EN TODA la plataforma?
    *
    * `obtenerPorEmail` mira solo el consultorio en curso, porque la extensión de

@@ -1,5 +1,6 @@
 import { crearRouter, crearCallerFactory } from "./trpc";
 import { routerPacientes } from "./routers/pacientes";
+import { routerAccesoPortal } from "./routers/accesoPortal";
 import { routerTurnos } from "./routers/turnos";
 import { routerEvaluacion } from "./routers/evaluacion";
 import { routerArchivos } from "./routers/archivos";
@@ -40,6 +41,7 @@ import { routerRecordatorios } from "./routers/recordatorios";
  */
 export const routerApp = crearRouter({
   pacientes: routerPacientes,
+  accesoPortal: routerAccesoPortal,
   turnos: routerTurnos,
   evaluacion: routerEvaluacion,
   archivos: routerArchivos,

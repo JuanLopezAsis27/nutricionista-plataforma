@@ -37,6 +37,7 @@ import { AlergiasPaciente } from "@/componentes/evaluacion/AlergiasPaciente";
 import { FormularioHistoriaClinica } from "@/componentes/evaluacion/FormularioHistoriaClinica";
 import { EvolucionesPaciente } from "@/componentes/evaluacion/EvolucionesPaciente";
 import { FotosProgreso } from "@/componentes/evaluacion/FotosProgreso";
+import { AccesoPortalPaciente } from "@/componentes/pacientes/AccesoPortalPaciente";
 import { ListaLaboratorios } from "@/componentes/evaluacion/ListaLaboratorios";
 import { ArchivosPaciente } from "@/componentes/evaluacion/ArchivosPaciente";
 import { DiarioPacienteVista } from "@/componentes/diario/DiarioPacienteVista";
@@ -60,8 +61,15 @@ export default function PaginaDetallePaciente() {
   const { porPaciente } = useTurnos();
   // Sin leer de los dos canales, para que la pestaña avise antes de abrirla.
   const { conversaciones } = useMensajeria();
-  const mensajesSinLeer =
-    conversaciones().data?.find((c) => c.pacienteId === id)?.noLeidos ?? 0;
+  // Su fila, más el WhatsApp del número que comparte con otras fichas si lo
+  // comparte (esa es una fila aparte en la bandeja).
+  const mensajesSinLeer = (conversaciones().data ?? [])
+    .filter((c) =>
+      c.tipo === "PACIENTE"
+        ? c.pacienteId === id
+        : c.integrantes.some((i) => i.pacienteId === id),
+    )
+    .reduce((total, c) => total + c.noLeidos, 0);
 
   /**
    * El diálogo de edición se lee de la URL, NO de un `useState` inicializado
@@ -137,7 +145,9 @@ export default function PaginaDetallePaciente() {
             <CardTitle className="text-2xl">
               {p.nombre} {p.apellido}
             </CardTitle>
-            <p className="text-sm text-muted-foreground">{p.email}</p>
+            <p className="text-sm text-muted-foreground">
+              {p.email ?? "Sin email"}
+            </p>
             {/* Alergias e intolerancias: visibles SIEMPRE, en cualquier pestaña. */}
             <AlergiasPaciente pacienteId={id} />
           </div>
@@ -161,6 +171,12 @@ export default function PaginaDetallePaciente() {
               {p.notas}
             </p>
           )}
+          <AccesoPortalPaciente
+            pacienteId={id}
+            nombre={p.nombre}
+            apellido={p.apellido}
+            emailPaciente={p.email}
+          />
         </CardContent>
       </Card>
 

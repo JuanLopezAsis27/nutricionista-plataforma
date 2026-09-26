@@ -22,6 +22,7 @@ import { PrismaRepositorioPaciente } from "@/infraestructura/repositorios/Prisma
 import { PrismaRepositorioTurno } from "@/infraestructura/repositorios/PrismaRepositorioTurno";
 import { PrismaRepositorioUsuario } from "@/infraestructura/repositorios/PrismaRepositorioUsuario";
 import { PrismaRepositorioCuentaPaciente } from "@/infraestructura/repositorios/PrismaRepositorioCuentaPaciente";
+import { PrismaRepositorioInvitacionPortal } from "@/infraestructura/repositorios/PrismaRepositorioInvitacionPortal";
 import { PrismaRepositorioTokenRecuperacion } from "@/infraestructura/repositorios/PrismaRepositorioTokenRecuperacion";
 import { PrismaRepositorioTokenRefresco } from "@/infraestructura/repositorios/PrismaRepositorioTokenRefresco";
 import { PrismaRepositorioNotificacion } from "@/infraestructura/repositorios/PrismaRepositorioNotificacion";
@@ -77,6 +78,7 @@ import { PrismaRepositorioSincronizacionTurno } from "@/infraestructura/reposito
 
 import { BcryptHasheador } from "@/infraestructura/seguridad/BcryptHasheador";
 import { GeneradorTokensCrypto } from "@/infraestructura/seguridad/GeneradorTokensCrypto";
+import { GeneradorCodigoInvitacionCrypto } from "@/infraestructura/seguridad/GeneradorCodigoInvitacionCrypto";
 import { GeneradorContrasenasCrypto } from "@/infraestructura/seguridad/GeneradorContrasenasCrypto";
 import { CifradorTokens } from "@/infraestructura/seguridad/CifradorTokens";
 import { FirmaEnlacesTurno } from "@/infraestructura/seguridad/FirmaEnlacesTurno";
@@ -179,6 +181,9 @@ export const repositorioTurno = perezoso(
 );
 export const repositorioUsuario = perezoso(
   () => new PrismaRepositorioUsuario(prisma()),
+);
+export const repositorioInvitacionPortal = perezoso(
+  () => new PrismaRepositorioInvitacionPortal(prisma()),
 );
 export const repositorioCuentaPaciente = perezoso(
   () => new PrismaRepositorioCuentaPaciente(prisma()),
@@ -327,6 +332,9 @@ export const repositorioRetroalimentacion = perezoso(
 
 export const hasheador = perezoso(() => new BcryptHasheador());
 export const generadorTokens = perezoso(() => new GeneradorTokensCrypto());
+export const generadorCodigoInvitacion = perezoso(
+  () => new GeneradorCodigoInvitacionCrypto(),
+);
 export const generadorContrasenas = perezoso(
   () => new GeneradorContrasenasCrypto(),
 );

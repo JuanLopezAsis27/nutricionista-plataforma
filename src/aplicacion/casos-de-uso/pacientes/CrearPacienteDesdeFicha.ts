@@ -18,6 +18,7 @@ import {
 } from "@/dominio/entidades/Laboratorio";
 import {
   CrearPaciente,
+  type AccesoAlta,
   type DatosNuevoPacienteConAcceso,
 } from "./CrearPaciente";
 
@@ -36,8 +37,8 @@ export interface DatosPacienteDesdeFicha extends DatosNuevoPacienteConAcceso {
 
 export interface ResultadoAltaDesdeFicha {
   paciente: Paciente;
-  /** Se vinculó una cuenta que la persona ya tenía (ver `CrearPaciente`). */
-  cuentaExistente: boolean;
+  /** Cómo quedó su acceso al portal (ver `CrearPaciente`). */
+  acceso: AccesoAlta;
   /**
    * Lo que no se pudo guardar, en castellano y para mostrar.
    *
@@ -51,7 +52,7 @@ export interface ResultadoAltaDesdeFicha {
 /**
  * Caso de uso: dar de alta un paciente con todo lo que se leyó de su ficha.
  *
- * Es el alta normal (`CrearPaciente`, con su cuenta de acceso) más los
+ * Es el alta normal (`CrearPaciente`, con su acceso si se pidió) más los
  * registros asociados que el documento traía y el profesional confirmó:
  * historia clínica —alergias incluidas, como texto—, la medición inicial y los
  * laboratorios.
@@ -72,8 +73,7 @@ export class CrearPacienteDesdeFicha {
   async ejecutar(
     datos: DatosPacienteDesdeFicha,
   ): Promise<ResultadoAltaDesdeFicha> {
-    const { paciente, cuentaExistente } =
-      await this.crearPacienteUC.ejecutar(datos);
+    const { paciente, acceso } = await this.crearPacienteUC.ejecutar(datos);
     const pacienteId = paciente.id;
     const advertencias: string[] = [];
 
@@ -131,7 +131,7 @@ export class CrearPacienteDesdeFicha {
       });
     }
 
-    return { paciente, cuentaExistente, advertencias };
+    return { paciente, acceso, advertencias };
   }
 
   private async intentar(

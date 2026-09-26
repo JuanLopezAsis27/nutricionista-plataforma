@@ -31,6 +31,11 @@ import { ReactivarPaciente } from "@/aplicacion/casos-de-uso/pacientes/Reactivar
 import { InterpretarFichaPaciente } from "@/aplicacion/casos-de-uso/pacientes/InterpretarFichaPaciente";
 import { CrearPacienteDesdeFicha } from "@/aplicacion/casos-de-uso/pacientes/CrearPacienteDesdeFicha";
 import { ServicioPaciente } from "@/aplicacion/servicios/ServicioPaciente";
+import {
+  crearDarAccesoPortal,
+  crearGenerarInvitacionPortal,
+  type DependenciasAccesoPortal,
+} from "./accesoPortal";
 
 /** Arma el servicio de Pacientes con sus casos de uso. */
 export function crearServicioPaciente(deps: {
@@ -59,13 +64,13 @@ export function crearServicioPaciente(deps: {
   laboratorios: ILaboratorioRepositorio;
   archivos: IArchivoRepositorio;
   interpretadorFicha: IInterpretadorFichaPaciente;
+  /** El alta da el acceso al portal por el mismo camino que la ficha. */
+  accesoPortal: DependenciasAccesoPortal;
 }): ServicioPaciente {
   const crearPaciente = new CrearPaciente(
     deps.pacientes,
-    deps.usuarios,
-    deps.cuentas,
-    deps.hasheador,
     deps.configuracion,
+    crearDarAccesoPortal(deps.accesoPortal),
   );
 
   const enviarEmailDeBienvenida = new EnviarEmailDeBienvenida(
@@ -116,5 +121,6 @@ export function crearServicioPaciente(deps: {
       deps.laboratorios,
       deps.archivos,
     ),
+    crearGenerarInvitacionPortal(deps.accesoPortal),
   );
 }

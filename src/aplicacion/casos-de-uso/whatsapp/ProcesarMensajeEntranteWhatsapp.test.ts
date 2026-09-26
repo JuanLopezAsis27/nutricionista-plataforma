@@ -19,6 +19,7 @@ import {
   pacienteEjemplo,
   usuarioEjemplo,
   recordatorioWhatsappEjemplo,
+  mockTurnoRepositorio,
 } from "../_ayudas-test";
 
 const ENTRANTE = {
@@ -46,16 +47,17 @@ function armar(
     mensajes,
     new ResolverPacientePorTelefono(
       // El repositorio real resuelve por el E.164 persistido en el paciente
-      // (índice único por inquilino), no recorriendo la tabla. El mock imita
-      // esa búsqueda: la canonización del teléfono ya la hizo la entidad al
-      // crearlo, que es donde ahora vive.
+      // (con índice), no recorriendo la tabla. El mock imita esa búsqueda: la
+      // canonización del teléfono ya la hizo la entidad al crearlo, que es
+      // donde ahora vive.
       mockPacienteRepositorio({
-        obtenerPorTelefonoE164: vi.fn(
-          async (e164: string) =>
-            pacientes.find((p) => p.telefonoE164 === e164) ?? null,
+        listarPorTelefonoE164: vi.fn(async (e164: string) =>
+          pacientes.filter((p) => p.telefonoE164 === e164),
         ),
       }),
       mockConfiguracionRepositorio(),
+      mensajes,
+      mockTurnoRepositorio(),
     ),
     mockUsuarioRepositorio({
       listarPorRol: vi.fn(async () => [usuarioEjemplo({}, "usr-nutri")]),

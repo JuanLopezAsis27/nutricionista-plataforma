@@ -13,6 +13,7 @@ import {
 import { LogoConsultorio } from "@/componentes/marca/LogoConsultorio";
 import { AvatarPerfil } from "@/componentes/comunes/AvatarPerfil";
 import { useConsultorios } from "@/lib/hooks/useConsultorios";
+import { AgregarConsultorio } from "./AgregarConsultorio";
 
 /**
  * «Elegí tu consultorio»: la pantalla que ve, después del login, quien se
@@ -22,20 +23,32 @@ import { useConsultorios } from "@/lib/hooks/useConsultorios";
  * La foto de cada profesional puede no cargar —la autorización de archivos
  * mira el consultorio de la sesión, y acá todavía no hay ninguno—: el avatar
  * cae solo a las iniciales, que es lo que se ve la mayoría de las veces.
+ *
+ * Es también donde se suma un consultorio con un código de invitación
+ * (migración 80): a esta pantalla lleva el enlace del email (`?codigo=`), y se
+ * llega desde «Mi perfil» aunque la persona tenga un solo consultorio.
  */
-export function EleccionConsultorio() {
+export function EleccionConsultorio({
+  codigoInicial,
+}: {
+  codigoInicial?: string;
+}) {
   const { misConsultorios, cambiar, cambiando } = useConsultorios();
   const { data: consultorios, isLoading } = misConsultorios();
+  const varios = (consultorios?.length ?? 0) > 1;
 
   return (
     <div className="flex w-full max-w-sm flex-col items-center gap-6">
       <LogoConsultorio />
       <Card className="w-full">
         <CardHeader>
-          <CardTitle className="text-2xl">Elegí tu consultorio</CardTitle>
+          <CardTitle className="text-2xl">
+            {varios ? "Elegí tu consultorio" : "Tus consultorios"}
+          </CardTitle>
           <CardDescription>
-            Te atendés con más de un profesional. Elegí con cuál querés trabajar
-            ahora; después podés cambiar desde el menú.
+            {varios
+              ? "Te atendés con más de un profesional. Elegí con cuál querés trabajar ahora; después podés cambiar desde el menú."
+              : "Los profesionales con los que te atendés con esta cuenta."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -46,8 +59,8 @@ export function EleccionConsultorio() {
           )}
           {consultorios?.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              Tu cuenta no tiene ningún consultorio activo. Consultá con tu
-              nutricionista.
+              Tu cuenta no tiene ningún consultorio activo. Si tu nutricionista
+              te dio un código, cargalo acá abajo.
             </p>
           )}
           {consultorios?.map((c) => (
@@ -73,6 +86,12 @@ export function EleccionConsultorio() {
               )}
             </button>
           ))}
+          <div className="pt-2">
+            <AgregarConsultorio
+              codigoInicial={codigoInicial}
+              onAgregado={(pacienteId) => void cambiar(pacienteId)}
+            />
+          </div>
           <Button
             variant="ghost"
             size="sm"

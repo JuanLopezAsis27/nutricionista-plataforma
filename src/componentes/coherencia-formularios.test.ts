@@ -52,19 +52,26 @@ describe("FormularioPaciente vs crearPacienteConAccesoDto", () => {
     // El formulario siempre manda un valor: el id de la sede o SIN_SEDE.
     establecimientoHabitualId: "SIN_SEDE",
     notas: "",
+    // El acceso al portal es opcional desde la migración 80; el alta lo
+    // ofrece marcado.
+    darAcceso: true,
+    nombreUsuario: "",
   };
+
+  /** Lo mismo que manda el formulario, en la forma del DTO. */
+  const enServidor = (acceso: Record<string, unknown> | null) =>
+    crearPacienteConAccesoDto.safeParse({
+      nombre: "Ana",
+      apellido: "Gomez",
+      email: "ana@ejemplo.test",
+      acceso,
+    });
 
   it.each(RECHAZADAS)(
     "el formulario rechaza la contraseña %s, igual que el servidor",
     (_caso, password) => {
       // El servidor la rechaza...
-      const enServidor = crearPacienteConAccesoDto.safeParse({
-        nombre: "Ana",
-        apellido: "Gomez",
-        email: "ana@ejemplo.test",
-        password,
-      });
-      expect(enServidor.success).toBe(false);
+      expect(enServidor({ password }).success).toBe(false);
 
       // ...y el formulario también, ANTES de enviarla.
       const enFormulario = esquemaAlta.safeParse({
@@ -79,15 +86,14 @@ describe("FormularioPaciente vs crearPacienteConAccesoDto", () => {
     expect(
       esquemaAlta.safeParse({ ...pacienteBase, password: VALIDA }).success,
     ).toBe(true);
+    expect(enServidor({ password: VALIDA }).success).toBe(true);
+  });
 
+  it("sin acceso al portal, ninguno pide contraseña", () => {
     expect(
-      crearPacienteConAccesoDto.safeParse({
-        nombre: "Ana",
-        apellido: "Gomez",
-        email: "ana@ejemplo.test",
-        password: VALIDA,
-      }).success,
+      esquemaAlta.safeParse({ ...pacienteBase, darAcceso: false }).success,
     ).toBe(true);
+    expect(enServidor(null).success).toBe(true);
   });
 
   it("al editar no se pide contraseña: es otro flujo", () => {
@@ -99,20 +105,60 @@ describe("FormularioPaciente vs crearPacienteConAccesoDto", () => {
     expect(esquemaAlta.safeParse(pacienteBase).success).toBe(false);
   });
 
-  it("el formulario exige nombre, apellido y email, igual que el DTO", () => {
+  it("el formulario exige nombre y apellido, igual que el DTO", () => {
     for (const campo of ["nombre", "apellido"] as const) {
       const datos = { ...pacienteBase, password: VALIDA, [campo]: "" };
       expect(esquemaAlta.safeParse(datos).success, `campo ${campo}`).toBe(
         false,
       );
     }
+  });
+
+  it("el email es opcional en los dos, pero si está tiene que ser un email", () => {
+    const sinEmail = {
+      ...pacienteBase,
+      email: "",
+      darAcceso: false,
+    };
+    expect(esquemaAlta.safeParse(sinEmail).success).toBe(true);
+    expect(
+      crearPacienteConAccesoDto.safeParse({
+        nombre: "Ana",
+        apellido: "Gomez",
+        email: "",
+      }).success,
+    ).toBe(true);
 
     expect(
-      esquemaAlta.safeParse({
-        ...pacienteBase,
-        password: VALIDA,
+      esquemaAlta.safeParse({ ...sinEmail, email: "no-es-un-email" }).success,
+    ).toBe(false);
+    expect(
+      crearPacienteConAccesoDto.safeParse({
+        nombre: "Ana",
+        apellido: "Gomez",
         email: "no-es-un-email",
       }).success,
+    ).toBe(false);
+  });
+
+  it("sin email y con acceso, los dos exigen un nombre de usuario válido", () => {
+    const sinEmail = { ...pacienteBase, email: "", password: VALIDA };
+    // Sin usuario no hay con qué entrar (el servidor lo dice en el caso de
+    // uso; el formulario lo frena antes).
+    expect(esquemaAlta.safeParse(sinEmail).success).toBe(false);
+    expect(
+      esquemaAlta.safeParse({ ...sinEmail, nombreUsuario: "juan.perez" })
+        .success,
+    ).toBe(true);
+
+    // Un usuario con arroba es inválido en los dos: el login no podría
+    // distinguirlo de un email.
+    expect(
+      esquemaAlta.safeParse({ ...sinEmail, nombreUsuario: "juan@perez" })
+        .success,
+    ).toBe(false);
+    expect(
+      enServidor({ nombreUsuario: "juan@perez", password: VALIDA }).success,
     ).toBe(false);
   });
 });

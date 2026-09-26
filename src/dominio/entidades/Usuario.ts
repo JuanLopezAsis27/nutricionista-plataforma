@@ -1,4 +1,9 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
+import {
+  esNombreUsuarioValido,
+  normalizarNombreUsuario,
+  REGLA_NOMBRE_USUARIO,
+} from "../servicios/nombreUsuario";
 
 /** Roles de acceso al sistema. */
 export const ROLES_USUARIO = [
@@ -10,7 +15,10 @@ export type RolUsuario = (typeof ROLES_USUARIO)[number];
 
 /** Datos para crear un usuario nuevo (la contraseña ya viene hasheada). */
 export interface DatosNuevoUsuario {
-  email: string;
+  /** Obligatorio salvo para un PACIENTE que entra con `nombreUsuario`. */
+  email?: string | null;
+  /** Credencial alternativa al email (migración 80); ver `nombreUsuario.ts`. */
+  nombreUsuario?: string | null;
   passwordHash: string;
   rol: RolUsuario;
   /**
@@ -27,7 +35,8 @@ export interface DatosNuevoUsuario {
 /** Estado completo de un usuario persistido. */
 export interface PropiedadesUsuario {
   id: string;
-  email: string;
+  email: string | null;
+  nombreUsuario: string | null;
   passwordHash: string;
   rol: RolUsuario;
   nutricionistaId: string | null;
@@ -43,7 +52,8 @@ const PATRON_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /**
  * Entidad de dominio Usuario.
  *
- * Es la CUENTA: email, contraseña, rol y foto. La de un PACIENTE no pertenece
+ * Es la CUENTA: con qué se entra (email, nombre de usuario o los dos),
+ * contraseña, rol y foto. Solo un PACIENTE puede no tener email (migración 80). La de un PACIENTE no pertenece
  * a ningún consultorio (`nutricionistaId` null): la misma persona puede ser
  * paciente de varios, y sus fichas son las que apuntan a ella (`usuarioId`)
  * (migración 78). El hasheo de la contraseña ocurre fuera del dominio
@@ -63,8 +73,14 @@ export class Usuario {
     id: string,
     ahora: Date = new Date(),
   ): Usuario {
-    const email = datos.email?.trim().toLowerCase() ?? "";
-    if (!PATRON_EMAIL.test(email)) {
+    const email = Usuario.validarEmail(datos.email);
+    const nombreUsuario = Usuario.validarNombreUsuario(datos.nombreUsuario);
+    if (!email && !nombreUsuario) {
+      throw new ErrorValidacion(
+        "La cuenta necesita un email o un nombre de usuario para poder entrar.",
+      );
+    }
+    if (!email && datos.rol !== "PACIENTE") {
       throw new ErrorValidacion("El email del usuario no es válido.");
     }
     if (!datos.passwordHash || datos.passwordHash.length === 0) {
@@ -77,6 +93,7 @@ export class Usuario {
     return new Usuario({
       id,
       email,
+      nombreUsuario,
       passwordHash: datos.passwordHash,
       rol: datos.rol,
       nutricionistaId: datos.nutricionistaId ?? null,
@@ -93,11 +110,59 @@ export class Usuario {
 
   /** Devuelve una copia del usuario con el email cambiado (revalidado). */
   cambiarEmail(nuevoEmail: string): Usuario {
-    const email = nuevoEmail?.trim().toLowerCase() ?? "";
-    if (!PATRON_EMAIL.test(email)) {
+    const email = Usuario.validarEmail(nuevoEmail);
+    if (!email) {
       throw new ErrorValidacion("El email del usuario no es válido.");
     }
     return new Usuario({ ...this.props, email });
+  }
+
+  /**
+   * Devuelve una copia con otras credenciales de ingreso (migración 80). Las
+   * mismas reglas que al crearla: al menos una de las dos, y solo un PACIENTE
+   * puede quedarse sin email. Que no las use otra cuenta lo verifica quien
+   * llama, contra el repositorio.
+   */
+  cambiarIngreso(email: string | null, nombreUsuario: string | null): Usuario {
+    const nuevoEmail = Usuario.validarEmail(email);
+    const nuevoUsuario = Usuario.validarNombreUsuario(nombreUsuario);
+    if (!nuevoEmail && !nuevoUsuario) {
+      throw new ErrorValidacion(
+        "La cuenta necesita un email o un nombre de usuario para poder entrar.",
+      );
+    }
+    if (!nuevoEmail && this.props.rol !== "PACIENTE") {
+      throw new ErrorValidacion(
+        "La cuenta de un profesional necesita un email.",
+      );
+    }
+    return new Usuario({
+      ...this.props,
+      email: nuevoEmail,
+      nombreUsuario: nuevoUsuario,
+    });
+  }
+
+  /** Email vacío o nulo → null; con contenido, tiene que tener forma de email. */
+  private static validarEmail(valor: string | null | undefined): string | null {
+    const email = valor?.trim().toLowerCase() || null;
+    if (email !== null && !PATRON_EMAIL.test(email)) {
+      throw new ErrorValidacion("El email del usuario no es válido.");
+    }
+    return email;
+  }
+
+  private static validarNombreUsuario(
+    valor: string | null | undefined,
+  ): string | null {
+    const nombre = valor ? normalizarNombreUsuario(valor) : "";
+    if (!nombre) return null;
+    if (!esNombreUsuarioValido(nombre)) {
+      throw new ErrorValidacion(
+        `El nombre de usuario no es válido. ${REGLA_NOMBRE_USUARIO}`,
+      );
+    }
+    return nombre;
   }
 
   /** Devuelve una copia del usuario activado/desactivado. */
@@ -199,8 +264,18 @@ export class Usuario {
   get id(): string {
     return this.props.id;
   }
-  get email(): string {
+  get email(): string | null {
     return this.props.email;
+  }
+  get nombreUsuario(): string | null {
+    return this.props.nombreUsuario;
+  }
+  /**
+   * Con qué entra, para mostrarlo: el email si tiene, si no el usuario. Uno de
+   * los dos siempre existe (lo exige `crear` y un CHECK de la base).
+   */
+  get identificador(): string {
+    return (this.props.email ?? this.props.nombreUsuario)!;
   }
   get passwordHash(): string {
     return this.props.passwordHash;

@@ -27,14 +27,16 @@ import { LogoConsultorio } from "@/componentes/marca/LogoConsultorio";
 import { useAutenticacion } from "@/lib/hooks/useAutenticacion";
 
 const esquema = z.object({
-  email: z.string().email("Email inválido"),
+  identificador: z.string().trim().min(1, "Ingresá tu email o tu usuario"),
 });
 type Datos = z.infer<typeof esquema>;
 
 /**
- * Formulario "¿Olvidaste tu contraseña?": pide el email y dispara el envío del
- * enlace de recuperación. Muestra siempre un mensaje neutro (no revela si el
- * email existe) para no permitir enumeración de cuentas.
+ * Formulario "¿Olvidaste tu contraseña?": pide el email o el usuario y dispara
+ * el envío del enlace de recuperación. Muestra siempre un mensaje neutro (no
+ * revela si la cuenta existe ni si tiene email) para no permitir enumeración
+ * de cuentas. Una cuenta sin email no recibe nada: el mensaje le dice que en
+ * ese caso la restablece su profesional.
  */
 export function FormularioRecuperar() {
   const { solicitarRecuperacion } = useAutenticacion();
@@ -42,11 +44,13 @@ export function FormularioRecuperar() {
 
   const form = useForm<Datos>({
     resolver: zodResolver(esquema),
-    defaultValues: { email: "" },
+    defaultValues: { identificador: "" },
   });
 
   async function alEnviar(datos: Datos) {
-    await solicitarRecuperacion.mutateAsync({ email: datos.email });
+    await solicitarRecuperacion.mutateAsync({
+      identificador: datos.identificador,
+    });
     setEnviado(true);
   }
 
@@ -62,8 +66,12 @@ export function FormularioRecuperar() {
             <div className="space-y-1">
               <p className="font-medium">Revisá tu correo</p>
               <p className="text-sm text-muted-foreground">
-                Si el email pertenece a una cuenta, te enviamos un enlace para
+                Si la cuenta existe y tiene email, te enviamos un enlace para
                 elegir una contraseña nueva. Vence en 1 hora.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Si entrás con un nombre de usuario y no tenés email, pedile a tu
+                profesional que te restablezca la contraseña.
               </p>
             </div>
             <Button asChild variant="outline" className="w-full">
@@ -78,7 +86,8 @@ export function FormularioRecuperar() {
             <CardHeader>
               <CardTitle className="text-2xl">Recuperar contraseña</CardTitle>
               <CardDescription>
-                Ingresá tu email y te enviamos un enlace para restablecerla.
+                Ingresá tu email o tu usuario y te enviamos un enlace para
+                restablecerla.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -89,15 +98,16 @@ export function FormularioRecuperar() {
                 >
                   <FormField
                     control={form.control}
-                    name="email"
+                    name="identificador"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel>Email o usuario</FormLabel>
                         <FormControl>
                           <Input
-                            type="email"
+                            type="text"
                             placeholder="vos@ejemplo.com"
-                            autoComplete="email"
+                            autoComplete="username"
+                            autoCapitalize="none"
                             {...field}
                           />
                         </FormControl>

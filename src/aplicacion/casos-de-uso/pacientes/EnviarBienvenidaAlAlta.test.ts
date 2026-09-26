@@ -54,7 +54,11 @@ describe("EnviarBienvenidaAlAlta", () => {
     const { caso, pacientes } = armar(null);
     const paciente = pacienteEjemplo();
 
-    await caso.ejecutar({ paciente, contrasena: "Clave-2026" });
+    await caso.ejecutar({
+      paciente,
+      contrasena: "Clave-2026",
+      usuario: "ana@mail.com",
+    });
 
     expect(pacientes.actualizar).toHaveBeenCalledOnce();
     const [pacienteActualizado] = (
@@ -72,6 +76,7 @@ describe("EnviarBienvenidaAlAlta", () => {
     await caso.ejecutar({
       paciente: pacienteEjemplo(),
       contrasena: "Clave-2026",
+      usuario: "ana@mail.com",
     });
 
     expect(pacientes.actualizar).not.toHaveBeenCalled();
@@ -83,7 +88,11 @@ describe("EnviarBienvenidaAlAlta", () => {
     });
     const paciente = pacienteEjemplo({ email: "ana@gmial.com" });
 
-    await caso.ejecutar({ paciente, contrasena: "Clave-2026" });
+    await caso.ejecutar({
+      paciente,
+      contrasena: "Clave-2026",
+      usuario: "ana@mail.com",
+    });
 
     expect(enviar).not.toHaveBeenCalled();
     expect(pacientes.actualizar).not.toHaveBeenCalled();
@@ -104,7 +113,11 @@ describe("EnviarBienvenidaAlAlta", () => {
     });
 
     await expect(
-      caso.ejecutar({ paciente: pacienteEjemplo(), contrasena: "Clave-2026" }),
+      caso.ejecutar({
+        paciente: pacienteEjemplo(),
+        contrasena: "Clave-2026",
+        usuario: "ana@mail.com",
+      }),
     ).resolves.toBeUndefined();
 
     expect(pacientes.actualizar).not.toHaveBeenCalled();
@@ -113,12 +126,39 @@ describe("EnviarBienvenidaAlAlta", () => {
     expect(aviso!.detalle).toContain("550 5.1.1 User unknown");
   });
 
+  it("sin email en la ficha no manda nada ni avisa: los datos se dan en mano", async () => {
+    const { caso, enviar, avisos } = armar(null);
+
+    await caso.ejecutar({
+      paciente: pacienteEjemplo({ email: null }),
+      contrasena: "Clave-2026",
+      usuario: "juan.perez",
+    });
+
+    expect(enviar).not.toHaveBeenCalled();
+    expect(avisos()).toHaveLength(0);
+  });
+
+  it("el email lleva con qué entra la cuenta, aunque no sea el email de contacto", async () => {
+    const { caso, enviar } = armar(null);
+
+    await caso.ejecutar({
+      paciente: pacienteEjemplo({ email: "mama@mail.com" }),
+      contrasena: "Clave-2026",
+      usuario: "sofi.perez",
+    });
+
+    const [mensaje] = vi.mocked(enviar).mock.calls[0]!;
+    expect(mensaje.para).toBe("mama@mail.com");
+  });
+
   it("si no se pudo consultar el DNS, manda igual (no inventa que no existe)", async () => {
     const { caso, enviar, avisos } = armar(null, { dominioRecibe: null });
 
     await caso.ejecutar({
       paciente: pacienteEjemplo(),
       contrasena: "Clave-2026",
+      usuario: "ana@mail.com",
     });
 
     expect(enviar).toHaveBeenCalledOnce();

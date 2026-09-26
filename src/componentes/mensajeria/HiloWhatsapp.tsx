@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   MessageCircle,
   Send,
+  Users,
 } from "lucide-react";
 import type { MensajeWhatsappSalidaDto } from "@/aplicacion/dtos/whatsapp.dto";
 import { useWhatsapp } from "@/lib/hooks/useWhatsapp";
@@ -35,7 +36,18 @@ import { agruparPorDia, horaChat } from "./chat";
  * la misma conversación desde la cabeza del profesional, y dos chats que se
  * escriben distinto obligan a reaprender la pantalla al cambiar de pestaña.
  */
-export function HiloWhatsapp({ pacienteId }: { pacienteId: string }) {
+export function HiloWhatsapp({
+  pacienteId,
+  integrantes,
+}: {
+  pacienteId: string;
+  /**
+   * Abierto como el chat de un número compartido (la bandeja): de quiénes es.
+   * Entonces cada mensaje dice de qué ficha es, y el aviso de arriba sobra
+   * porque el encabezado ya los nombra.
+   */
+  integrantes?: { pacienteId: string; nombre: string }[];
+}) {
   const { hiloDe, enviarMensaje, marcarLeidos } = useWhatsapp();
   const hilo = hiloDe({ pacienteId });
   const finRef = useRef<HTMLDivElement>(null);
@@ -81,9 +93,35 @@ export function HiloWhatsapp({ pacienteId }: { pacienteId: string }) {
   }
 
   const ventanaAbierta = hilo.data.ventanaAbierta;
+  // Otras fichas con el mismo número (hermanos con el teléfono de la madre):
+  // el hilo es el de todo el número, y cada mensaje dice de qué ficha quedó.
+  const compartido = hilo.data.compartidoCon;
+  const nombreDeFicha = new Map(
+    (integrantes ?? compartido).map((c) => [c.pacienteId, c.nombre] as const),
+  );
+  // En el chat compartido, cada mensaje dice su ficha; abierto desde la ficha
+  // de uno, solo los que quedaron en otra.
+  const etiquetaDeFicha = (id: string): string | null => {
+    const nombre = nombreDeFicha.get(id);
+    if (!nombre) return null;
+    return integrantes ? nombre : `En la ficha de ${nombre}`;
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      {compartido.length > 0 && !integrantes && (
+        <p className="mx-1 mb-2 flex items-start gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          <Users className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>
+            Número compartido con{" "}
+            <strong className="text-foreground">
+              {compartido.map((c) => c.nombre).join(", ")}
+            </strong>
+            . Acá se ve toda la conversación con ese número; los mensajes de
+            otra ficha lo dicen arriba.
+          </span>
+        </p>
+      )}
       <div className="min-h-0 flex-1 overflow-y-auto px-1 pb-2">
         {mensajes.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 px-6 py-8 text-center">
@@ -101,7 +139,11 @@ export function HiloWhatsapp({ pacienteId }: { pacienteId: string }) {
                 </span>
               </div>
               {dia.mensajes.map((mensaje) => (
-                <Burbuja key={mensaje.id} mensaje={mensaje} />
+                <Burbuja
+                  key={mensaje.id}
+                  mensaje={mensaje}
+                  deOtraFicha={etiquetaDeFicha(mensaje.pacienteId)}
+                />
               ))}
             </section>
           ))
@@ -202,7 +244,14 @@ function EnviarPlantilla({ pacienteId }: { pacienteId: string }) {
   );
 }
 
-function Burbuja({ mensaje }: { mensaje: MensajeWhatsappSalidaDto }) {
+function Burbuja({
+  mensaje,
+  deOtraFicha,
+}: {
+  mensaje: MensajeWhatsappSalidaDto;
+  /** De qué ficha es el mensaje, cuando hay que decirlo. */
+  deOtraFicha: string | null;
+}) {
   const mio = mensaje.direccion === "SALIENTE";
   return (
     <div className={cn("mb-2 flex", mio ? "justify-end" : "justify-start")}>
@@ -214,6 +263,16 @@ function Burbuja({ mensaje }: { mensaje: MensajeWhatsappSalidaDto }) {
             : "rounded-bl-sm bg-muted",
         )}
       >
+        {deOtraFicha && (
+          <p
+            className={cn(
+              "mb-0.5 text-[10px] font-medium",
+              mio ? "text-primary-foreground/80" : "text-muted-foreground",
+            )}
+          >
+            {deOtraFicha}
+          </p>
+        )}
         <p className="whitespace-pre-wrap break-words">{mensaje.cuerpo}</p>
         <p
           className={cn(

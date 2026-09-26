@@ -65,7 +65,13 @@ export class ProcesarMensajeEntranteWhatsapp {
   ) {}
 
   async ejecutar(entrante: MensajeEntranteWhatsapp): Promise<ResultadoIngesta> {
-    const paciente = await this.resolverPaciente.ejecutar(entrante.telefono);
+    // El botón se lee primero: su turno es la pista más firme de a qué ficha
+    // va el mensaje cuando el número lo comparten varias (hermanos).
+    const boton = leerPayloadDeBoton(entrante.payloadBoton);
+    const paciente = await this.resolverPaciente.ejecutar(
+      entrante.telefono,
+      boton?.turnoId ?? null,
+    );
     if (!paciente) {
       return { estado: "DESCARTADO", motivo: "SIN_PACIENTE" };
     }
@@ -97,7 +103,6 @@ export class ProcesarMensajeEntranteWhatsapp {
     // Con un botón no hay nada que interpretar: la acción la dice el payload,
     // no el texto («Confirmar» no está entre las afirmaciones, y no tiene por
     // qué estar: el profesional le pone al botón el texto que quiera).
-    const boton = leerPayloadDeBoton(entrante.payloadBoton);
     const respuesta = await this.registrarRespuesta.ejecutar(
       paciente.id,
       entrante.cuerpo,
