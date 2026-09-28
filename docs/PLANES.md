@@ -539,8 +539,81 @@ La tarjeta "Tu plan ahora" del inicio, en cambio, junta las franjas de todos en
 una sola bolsa —qué toca comer ahora no depende de en cuál de sus planes esté
 escrito— y manda a «Mi plan» para verlos separados.
 
+## Macros de las opciones y combinaciones del día (migración 82)
+
+Cada opción de una franja se describe con cualquier combinación de tres cosas:
+**texto** (lo que lee el paciente), **una receta** del recetario con sus
+**porciones**, y **alimentos sueltos** del buscador (gramos + macros por 100 g,
+en `items_opcion_comida`). El texto dejó de ser obligatorio: una opción vale
+con texto, con receta o con alimentos. Las pantallas que muestran la opción
+como texto (inicio del paciente, PDF, asistente de IA) usan
+`descripcionDeOpcion`, que arma «Tarta (2 porciones) + Manzana (150 g)» cuando
+no hay texto.
+
+### Receta + alimentos: se suman, sin contar la receta dos veces
+
+La pregunta que resolvió el diseño: ¿qué pasa si una opción tiene alimentos
+cargados y además una receta que ya tiene sus propios alimentos?
+
+`macrosDeOpcion` (dominio, en `PlanNutricional.ts`) suma **los alimentos
+sueltos + los macros POR PORCIÓN de la receta × porciones**. Los macros por
+porción de la receta ya salen de SUS ingredientes (los calcula `Receta` al
+guardarla), así que los ingredientes nunca se suman aparte: hacerlo sería
+contar la receta dos veces. Un alimento suelto que TAMBIÉN está en la receta sí
+suma —un huevo extra es comida de más, a propósito—, pero la evaluación lo
+avisa (`avisos` de `EvaluarCombinacionesPlan`, por nombre sin tildes ni
+mayúsculas) por si fue un error de carga.
+
+Los macros de un alimento se **copian** a la opción al elegirlo, no se
+referencian: editar o borrar un alimento del catálogo no puede cambiar en
+silencio un plan ya entregado.
+
+### Metas con tipo: aproximada, mínimo o máximo
+
+Cada meta diaria lleva su tipo (`caloriasMetaTipo`… enum `TipoMetaMacro`):
+
+- `APROXIMADO` — la lectura de siempre, ±10 % (`TOLERANCIA_META`). Es el
+  default y el valor de todas las metas anteriores a la migración.
+- `MINIMO` — un piso: 120 g de proteína «como mínimo» se cumple con 150.
+- `MAXIMO` — un techo: 60 g de grasa «como máximo» se cumple con 40.
+
+Piso y techo son estrictos (115 no cumple «mínimo 120»): si el profesional
+quiere margen, lo pone en el número. `compararConMetas` recibe los tipos en
+`MetasDiarias.tipos`, y la comparación del plan semanal los usa también.
+
+En el formulario cada meta es un deslizador (rango de un plan real, no el tope
+del DTO) + el número exacto + el selector de tipo. Llevar el deslizador a 0
+deja la meta vacía.
+
+### Las tres mejores combinaciones
+
+Un día concreto es UNA opción por franja. Con varias opciones hay muchos días
+posibles (4 franjas × 3 opciones = 81) y cada uno suma distinto, así que el
+panel «Combinaciones del día» del formulario muestra las **tres que mejor
+cumplen las metas**, la mejor destacada.
+
+- La cuenta la hace el servidor: `planes.evaluarCombinaciones` recibe el
+  BORRADOR (no hace falta guardar) y `EvaluarCombinacionesPlan` lee las recetas
+  del recetario para sus macros por porción. La pantalla solo pide con un
+  retraso de 600 ms y conserva el resultado anterior mientras llega el nuevo.
+- El orden lo decide `mejoresCombinaciones` (`dominio/servicios/
+  combinacionesPlan.ts`): un puntaje que suma, por macro con meta, el desvío
+  relativo; lo que INCUMPLE pesa ×10, el desvío dentro de un APROXIMADO pesa
+  entero (prefiere el centro) y la holgura de un piso o techo cumplido pesa
+  ×0,1 (desempata hacia el límite). Una meta sin dato cuenta como incumplida.
+- Hasta 50.000 combinaciones se recorren todas (exacto). Más allá se usa una
+  búsqueda por haz de 2.000, estimando lo que falta con el promedio de las
+  franjas restantes, y el resultado lo dice (`exhaustivo: false`).
+- Sin metas cargadas no se ordena nada: el panel pide cargar una.
+
 ## Al tocar esto
 
+- **Si tocás cómo suma una opción, tocá las dos cuentas**: `macrosDeOpcion`
+  (dominio, la que manda y la que usan las combinaciones) y `ResumenOpcion` en
+  `SeccionComidas` (el espejo que muestra el total mientras se escribe).
+- Un campo nuevo de la opción va en el `create` anidado de `crear` Y de
+  `actualizar` del repositorio, en `clonar` de la entidad y en `aSalida` del
+  servicio. Las porciones y los alimentos se sumaron en los cuatro.
 - Los archivos entran al modelo como `Archivo`, no como columnas. Si hace falta
   otro dueño, se suma al mismo arco y se actualiza el CHECK
   `archivos_un_solo_dueno` (sigue siendo `<= 1`).

@@ -45,7 +45,8 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/ESTABLECIMIENTOS.md`   | Varias sedes: qué es del lugar y qué del profesional  |
 | `docs/CALENDARIO-TURNOS.md`  | La vista de calendario: grilla semanal y globos       |
 | `docs/RECORDATORIOS.md`      | Los tres medios de aviso y su política única          |
-| `docs/PLANES.md`             | Modalidades, archivos, carpetas e historial           |
+| `docs/PLANES.md`             | Modalidades, archivos, carpetas, historial y combinaciones del día |
+| `docs/CATALOGO-BASE.md`      | Alimentos y recetas predeterminados de la plataforma  |
 | `docs/PLANES-SEMANALES.md`   | El menú de la semana, sus alternativas y la comparación |
 | `docs/ANTROPOMETRIA.md`      | Ecuaciones de grasa, distribución y sitios de pliegue |
 | `docs/BIOIMPEDANCIA.md`      | La balanza: mediciones, dashboard y metas; por qué no se mezcla con la antropometría |
@@ -214,7 +215,7 @@ consultorio lento bloquearía a todos los demás.
 
 ## Modelos del dominio
 
-**37 entidades**, **179 casos de uso** en 27 módulos, **41 interfaces de
+**37 entidades**, **191 casos de uso** en 28 módulos, **43 interfaces de
 repositorio** y **20 puertos de servicio**. La fuente de verdad es el código
 (`/src/dominio`) y `prisma/schema.prisma`. Acá van solo los invariantes que
 cruzan módulos; el detalle de cada uno, en `/docs`.
@@ -458,6 +459,45 @@ asocia, desasocia y muestra lo asignado hoy) y se escribe en UN solo lugar: la
 transacción de `desasignarDePaciente`. Cualquier camino nuevo para sacarle un
 plan a alguien tiene que pasar por ahí o el registro queda con huecos. Ver
 `docs/PLANES.md`.
+
+**Cada opción suma macros** (migración 82): una receta con sus porciones y/o
+alimentos sueltos (`items_opcion_comida`, macros COPIADOS al elegirlos), y el
+texto es opcional si hay alguno de los dos. `macrosDeOpcion` suma **alimentos
++ receta POR PORCIÓN × porciones**; los ingredientes de la receta nunca se
+suman aparte (ya están en sus macros por porción). Cada meta diaria dice si es
+`APROXIMADO` (±10 %, el default), `MINIMO` o `MAXIMO`, y el formulario muestra
+las **tres combinaciones del día** (una opción por franja) que mejor las
+cumplen, calculadas en el servidor sobre el borrador
+(`planes.evaluarCombinaciones`, `dominio/servicios/combinacionesPlan.ts`).
+
+### Catálogo de la plataforma
+
+Alimentos y recetas **predeterminados** que carga el SUPERADMIN y ven todos los
+consultorios (`alimentos_base`, `recetas_base`, migración 82). **No son tablas
+de inquilino.** Los alimentos se buscan junto con la lista propia del
+consultorio (la propia primero); lo que agrega un profesional va a SU lista.
+Las recetas **se copian** al recetario del consultorio
+(`recetas.recetaBaseId`, único por consultorio: copiar dos veces devuelve la
+misma copia) y desde ahí son suyas; editar la de la plataforma no toca las
+copias.
+
+Un alimento no se carga dos veces en la misma lista: mismo nombre y marca, sin
+mayúsculas, tildes ni espacios de más (`claveIdentidad`, única por consultorio
+y global en el catálogo, migración 83). Los alimentos tienen una CATEGORÍA de
+lista fija (enum, para filtrar el buscador; las recetas siguen con etiquetas
+libres) y una IMAGEN que no es un `Archivo`: es una clave en la fila del
+alimento, servida por `/api/alimentos/[id]/imagen` y
+`/api/catalogo/alimentos/[id]/imagen` (migración 84). La búsqueda de alimentos
+y de recetas es un modal con filtros.
+
+**Los alimentos se COPIAN a donde se usan, no se referencian**: la opción del
+plan, el ingrediente de la receta y la comida del plan semanal guardan su
+propia copia de nombre, gramos y macros. Es duplicación deliberada —un plan
+entregado es un documento y no cambia porque se edite o borre el alimento—.
+Cada copia guarda además `alimentoOrigenId` (migración 85, SIN FK) solo para
+saber dónde se usa un alimento y avisarlo antes de editarlo o borrarlo. Un
+alimento propio puede ser igual a uno de la plataforma (su versión): se avisa,
+no se bloquea. Ver `docs/CATALOGO-BASE.md`.
 
 ### Plan Semanal
 
@@ -755,6 +795,31 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   son alternativas entre sí y suma la principal (`orden = 0`). Y si tocás esa
   cuenta, tocá las dos —el dominio y el espejo de la grilla—: `totales.test.ts`
   compara las dos y es lo único que las mantiene diciendo lo mismo
+- Nunca sumar los ingredientes de una receta a una opción del plan además de
+  la receta: entra por sus macros POR PORCIÓN × porciones, que ya salen de
+  ellos (`macrosDeOpcion`). Y las combinaciones del día son UNA opción por
+  franja: sumar las opciones de una franja es comer tres almuerzos
+- Nunca agregar `nutricionistaId` a `alimentos_base` ni a `recetas_base`, ni
+  sumarlas a `MODELOS_INQUILINO`: son de la plataforma, y la extensión las
+  filtraría hasta dejarlas invisibles para todos. Tampoco colgar una FK a
+  `recetas_base` desde una tabla de inquilino: la receta se COPIA al recetario
+  (`CopiarRecetaBaseAlRecetario`), o un cambio del admin reescribiría planes
+  ya entregados
+- Nunca guardar una clave del bucket en una tabla que no sea `archivos` sin
+  sumarla a `otrasFuentes` de `LimpiarArchivosHuerfanos`: el barrido borra
+  todo objeto sin fila en `archivos`. Las imágenes de los alimentos viven así
+  (migración 84) y el barrido las pregunta a sus repositorios; olvidarse de
+  una tabla nueva vacía sus imágenes el domingo siguiente, sin ningún error
+- Nunca convertir `alimentoOrigenId` en una FK ni hacer que editar un
+  alimento propague sus macros a los planes que lo usan: el plan entregado es
+  un documento y la copia es a propósito. Actualizar desde la fuente, si algún
+  día hace falta, es una acción explícita sobre un plan. Y todo camino nuevo
+  que copie un alimento tiene que llevar `alimentoOrigenId`, o sus usos no se
+  cuentan
+- Nunca comparar alimentos por `nombreNormalizado` para decidir si ya están:
+  ese campo es para BUSCAR (solo minúsculas). La identidad es
+  `claveIdentidad` (nombre + marca, sin tildes ni espacios de más), y es la
+  que tiene el índice único
 - Nunca embeber un archivo del bucket por su URL firmada: es otro origen, no es
   alcanzable en producción y la CSP lo bloquea. Va `/api/archivos/<id>/ver`
 - Nunca hacer que `TranscribirGrabacion` lance ante un fallo del proveedor: la
