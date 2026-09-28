@@ -24,7 +24,12 @@ export class ServicioNutricion {
     datos: BuscarAlimentoDto,
   ): Promise<AlimentoNutricionalSalidaDto[]> {
     const criterio = await this.resolverCriterio();
-    return this.proveedor.buscar(datos.termino, datos.limite ?? 10, criterio);
+    return this.proveedor.buscar(
+      datos.termino,
+      datos.limite ?? 10,
+      criterio,
+      datos.categoria,
+    );
   }
 
   /** Criterios guardados del inquilino (o `undefined` si no hay/está vacío). */

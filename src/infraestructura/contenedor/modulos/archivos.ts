@@ -8,7 +8,10 @@ import { SubirArchivo } from "@/aplicacion/casos-de-uso/archivos/SubirArchivo";
 import { ObtenerUrlArchivo } from "@/aplicacion/casos-de-uso/archivos/ObtenerUrlArchivo";
 import { ObtenerContenidoArchivo } from "@/aplicacion/casos-de-uso/archivos/ObtenerContenidoArchivo";
 import { EliminarArchivo } from "@/aplicacion/casos-de-uso/archivos/EliminarArchivo";
-import { LimpiarArchivosHuerfanos } from "@/aplicacion/casos-de-uso/archivos/LimpiarArchivosHuerfanos";
+import {
+  LimpiarArchivosHuerfanos,
+  type FuenteDeClaves,
+} from "@/aplicacion/casos-de-uso/archivos/LimpiarArchivosHuerfanos";
 import { ObtenerArchivosDeDueno } from "@/aplicacion/casos-de-uso/archivos/ObtenerArchivosDeDueno";
 import { PuedeVerArchivoPaciente } from "@/aplicacion/casos-de-uso/archivos/PuedeVerArchivoPaciente";
 import { ServicioArchivo } from "@/aplicacion/servicios/ServicioArchivo";
@@ -21,13 +24,19 @@ export function crearServicioArchivo(deps: {
   planes: IAsignacionPlanRepositorio;
   usuarios: IUsuarioRepositorio;
   almacenamiento: IAlmacenamientoArchivos;
+  /** Tablas que guardan claves del bucket sin ser `Archivo` (imágenes de alimentos). */
+  otrasFuentesDeClaves: FuenteDeClaves[];
 }): ServicioArchivo {
   return new ServicioArchivo(
     new SubirArchivo(deps.archivos, deps.almacenamiento),
     new ObtenerUrlArchivo(deps.archivos, deps.almacenamiento),
     new ObtenerContenidoArchivo(deps.archivos, deps.almacenamiento),
     new EliminarArchivo(deps.archivos, deps.almacenamiento),
-    new LimpiarArchivosHuerfanos(deps.archivos, deps.almacenamiento),
+    new LimpiarArchivosHuerfanos(
+      deps.archivos,
+      deps.almacenamiento,
+      deps.otrasFuentesDeClaves,
+    ),
     new ObtenerArchivosDeDueno(deps.archivos),
     new PuedeVerArchivoPaciente(
       deps.archivos,

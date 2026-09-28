@@ -25,10 +25,14 @@ import {
 } from "@/componentes/ui/tabs";
 import { ConfiguracionIAPlataforma } from "@/componentes/superadmin/ConfiguracionIAPlataforma";
 import { UsoIAPlataforma } from "@/componentes/superadmin/UsoIAPlataforma";
+import { CatalogoRecetas } from "@/componentes/superadmin/CatalogoRecetas";
+import { ImportadorAlimentos } from "@/componentes/configuracion/ImportadorAlimentos";
+import { ListaAlimentosPropios } from "@/componentes/configuracion/ListaAlimentosPropios";
 
 /**
- * Panel del SUPERADMIN: las cuentas de nutricionista y la IA de la
- * plataforma (claves que comparten todos los consultorios, su saldo y su uso).
+ * Panel del SUPERADMIN: las cuentas de nutricionista, la IA de la plataforma
+ * (claves que comparten todos los consultorios, su saldo y su uso) y el
+ * catálogo predeterminado de alimentos y recetas.
  */
 export default function PaginaAdmin() {
   const { listarNutricionistas, crearNutricionista, cambiarEstado } =
@@ -82,7 +86,20 @@ export default function PaginaAdmin() {
           <TabsTrigger value="cuentas">Cuentas</TabsTrigger>
           <TabsTrigger value="uso-ia">Uso de la IA</TabsTrigger>
           <TabsTrigger value="config-ia">Configuración de IA</TabsTrigger>
+          <TabsTrigger value="alimentos">Alimentos predeterminados</TabsTrigger>
+          <TabsTrigger value="recetas">Recetas predeterminadas</TabsTrigger>
         </TabsList>
+
+        {/* Catálogo de la plataforma (migración 82): lo ven todos los
+            consultorios. Cada profesional suma lo suyo aparte. */}
+        <TabsContent value="alimentos" className="mt-4 space-y-4">
+          <ImportadorAlimentos origen="plataforma" />
+          <ListaAlimentosPropios origen="plataforma" />
+        </TabsContent>
+
+        <TabsContent value="recetas" className="mt-4">
+          <CatalogoRecetas />
+        </TabsContent>
 
         <TabsContent value="uso-ia" className="mt-4">
           <UsoIAPlataforma />

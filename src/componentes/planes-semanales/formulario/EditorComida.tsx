@@ -211,6 +211,7 @@ export function EditorComida({
                   grasasPor100: textoDe(alimento.grasasPor100),
                   fuente: alimento.fuente ?? "MANUAL",
                   referenciaExterna: alimento.referenciaExterna ?? "",
+                  alimentoOrigenId: alimento.id ?? "",
                 })
               }
             />

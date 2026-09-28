@@ -41,6 +41,12 @@ function Envoltorio({
       proteinasMetaG: "",
       carbohidratosMetaG: "",
       grasasMetaG: "",
+      tiposMeta: {
+        calorias: "APROXIMADO",
+        proteinasG: "APROXIMADO",
+        carbohidratosG: "APROXIMADO",
+        grasasG: "APROXIMADO",
+      },
       contactosUtiles: "",
       comidas: [],
       equivalencias: [],

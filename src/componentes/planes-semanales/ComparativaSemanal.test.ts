@@ -20,6 +20,7 @@ function dia(
     meta: null,
     diferencia: null,
     estado: "SIN_META" as const,
+    tipo: "APROXIMADO" as const,
   };
   return {
     dia: nombre,

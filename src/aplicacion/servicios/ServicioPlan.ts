@@ -14,13 +14,16 @@ import type { ObtenerPlanesDelPaciente } from "@/aplicacion/casos-de-uso/planes/
 import type { ObtenerPacientesDePlan } from "@/aplicacion/casos-de-uso/planes/ObtenerPacientesDePlan";
 import type { SincronizarRecetasDePlan } from "@/aplicacion/casos-de-uso/planes/SincronizarRecetasDePlan";
 import type { MoverPlanAGrupo } from "@/aplicacion/casos-de-uso/planes/MoverPlanAGrupo";
+import type { EvaluarCombinacionesPlan } from "@/aplicacion/casos-de-uso/planes/EvaluarCombinacionesPlan";
 import type { CrearGrupoPlan } from "@/aplicacion/casos-de-uso/grupos-plan/CrearGrupoPlan";
 import type { ActualizarGrupoPlan } from "@/aplicacion/casos-de-uso/grupos-plan/ActualizarGrupoPlan";
 import type { EliminarGrupoPlan } from "@/aplicacion/casos-de-uso/grupos-plan/EliminarGrupoPlan";
 import type { ObtenerGruposPlan } from "@/aplicacion/casos-de-uso/grupos-plan/ObtenerGruposPlan";
-import type {
-  PlanNutricional,
-  ArchivoDelPlan,
+import {
+  macrosDeOpcion,
+  descripcionDeOpcion,
+  type PlanNutricional,
+  type ArchivoDelPlan,
 } from "@/dominio/entidades/PlanNutricional";
 import type { AsignacionPlan } from "@/dominio/repositorios/IPlanRepositorio";
 import type {
@@ -43,6 +46,8 @@ import type {
   ActualizarGrupoPlanDto,
   GrupoPlanSalidaDto,
   MoverPlanDto,
+  EvaluarCombinacionesDto,
+  ResultadoCombinacionesDto,
 } from "../dtos/plan.dto";
 
 /**
@@ -71,6 +76,7 @@ export class ServicioPlan {
     private readonly actualizarGrupoUC: ActualizarGrupoPlan,
     private readonly eliminarGrupoUC: EliminarGrupoPlan,
     private readonly obtenerGruposUC: ObtenerGruposPlan,
+    private readonly evaluarUC: EvaluarCombinacionesPlan,
   ) {}
 
   async crearPlan(datos: CrearPlanDto): Promise<PlanSalidaDto> {
@@ -207,6 +213,26 @@ export class ServicioPlan {
     await this.eliminarGrupoUC.ejecutar(id);
   }
 
+  /**
+   * Las tres combinaciones del borrador que mejor cumplen sus metas. Las metas
+   * vacías no cuentan: un plan sin metas no tiene contra qué ordenarse.
+   */
+  evaluarCombinaciones(
+    datos: EvaluarCombinacionesDto,
+  ): Promise<ResultadoCombinacionesDto> {
+    const valores = {
+      calorias: datos.caloriasMeta ?? null,
+      proteinasG: datos.proteinasMetaG ?? null,
+      carbohidratosG: datos.carbohidratosMetaG ?? null,
+      grasasG: datos.grasasMetaG ?? null,
+    };
+    const hayMetas = Object.values(valores).some((v) => v != null);
+    return this.evaluarUC.ejecutar({
+      comidas: datos.comidas,
+      metas: hayMetas ? { ...valores, tipos: datos.tiposMeta } : null,
+    });
+  }
+
   private static aSalida(plan: PlanNutricional): PlanSalidaDto {
     const { archivos, documentoIds, ...resto } = plan.aPrimitivos();
     void archivos;
@@ -216,6 +242,16 @@ export class ServicioPlan {
     // decidir por su cuenta cuál de los archivos es el plan.
     return {
       ...resto,
+      // Cada opción viaja con lo que suma: la pantalla no vuelve a hacer la
+      // cuenta de receta × porciones + alimentos.
+      comidas: resto.comidas.map((comida) => ({
+        ...comida,
+        opciones: comida.opciones.map((opcion) => ({
+          ...opcion,
+          macros: macrosDeOpcion(opcion),
+          descripcion: descripcionDeOpcion(opcion),
+        })),
+      })),
       documentos: plan.documentos.map(fichaDeArchivo),
       adjuntos: plan.adjuntos.map(fichaDeArchivo),
     };

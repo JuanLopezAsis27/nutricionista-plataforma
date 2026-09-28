@@ -6,6 +6,7 @@ import {
   compararConMetas,
   type ComparacionDia,
   type MetasDiarias,
+  type TiposMeta,
 } from "@/dominio/servicios/comparacionMacros";
 
 /** Un día del plan semanal con su total y cómo quedó frente a las metas. */
@@ -95,13 +96,16 @@ function metasDe(plan: {
   proteinasMetaG: number | null;
   carbohidratosMetaG: number | null;
   grasasMetaG: number | null;
+  tiposMeta: TiposMeta;
 }): MetasDiarias | null {
-  const metas: MetasDiarias = {
+  const valores = {
     calorias: plan.caloriasMeta,
     proteinasG: plan.proteinasMetaG,
     carbohidratosG: plan.carbohidratosMetaG,
     grasasG: plan.grasasMetaG,
   };
-  const hayAlguna = Object.values(metas).some((valor) => valor != null);
-  return hayAlguna ? metas : null;
+  const hayAlguna = Object.values(valores).some((valor) => valor != null);
+  // Los tipos viajan con las metas: «120 g de proteína como mínimo» no se
+  // lee igual que «unos 120 g», tampoco en la semana.
+  return hayAlguna ? { ...valores, tipos: plan.tiposMeta } : null;
 }

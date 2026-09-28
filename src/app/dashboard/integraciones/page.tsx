@@ -67,7 +67,7 @@ export default function PaginaIntegraciones() {
           <TabsTrigger value="google">Google</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="ia">IA e ingredientes</TabsTrigger>
-          <TabsTrigger value="alimentos">Alimentos propios</TabsTrigger>
+          <TabsTrigger value="alimentos">Alimentos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="google" className="mt-4">
@@ -85,6 +85,21 @@ export default function PaginaIntegraciones() {
         <TabsContent value="alimentos" className="mt-4 space-y-4">
           <ImportadorAlimentos />
           <ListaAlimentosPropios />
+          {/* Los de la plataforma se USAN (aparecen en el buscador) pero no se
+              editan: lo que agrega el profesional va a su propia lista. */}
+          <section className="space-y-3 rounded-lg border p-4">
+            <div>
+              <h3 className="font-semibold">
+                Predeterminados de la plataforma
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Los ven todos los consultorios en el buscador de alimentos. Si
+                querés otros macros para alguno, agregalo a tu lista: el tuyo
+                aparece primero.
+              </p>
+            </div>
+            <ListaAlimentosPropios origen="predeterminados" />
+          </section>
         </TabsContent>
       </Tabs>
 

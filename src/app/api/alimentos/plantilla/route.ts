@@ -13,6 +13,8 @@ const COLUMNAS = [
   { header: "Proteínas", key: "proteinas", width: 12 },
   { header: "Carbohidratos", key: "carbohidratos", width: 14 },
   { header: "Grasas", key: "grasas", width: 12 },
+  // Opcional: Carnes, Lácteos, Cereales, Frutas… (ver NOMBRES_CATEGORIA_ALIMENTO).
+  { header: "Categoría", key: "categoria", width: 22 },
 ];
 
 /**
@@ -29,7 +31,9 @@ export function GET(): Promise<NextResponse> {
         { status: 401 },
       );
     }
-    if (usuario.rol !== "NUTRICIONISTA") {
+    // El modelo es el mismo para la lista de un consultorio y para el catálogo
+    // de la plataforma, que carga el SUPERADMIN.
+    if (usuario.rol !== "NUTRICIONISTA" && usuario.rol !== "SUPERADMIN") {
       return NextResponse.json({ error: "No tenés permiso." }, { status: 403 });
     }
 
@@ -45,6 +49,7 @@ export function GET(): Promise<NextResponse> {
         proteinas: 31,
         carbohidratos: 0,
         grasas: 3.6,
+        categoria: "Carnes",
       });
 
       const buffer = await libro.xlsx.writeBuffer();

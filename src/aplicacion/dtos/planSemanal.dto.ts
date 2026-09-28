@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { DIAS_SEMANA } from "@/dominio/entidades/PlanSemanal";
-import { ESTADOS_META } from "@/dominio/servicios/comparacionMacros";
+import {
+  ESTADOS_META,
+  TIPOS_META,
+} from "@/dominio/servicios/comparacionMacros";
 
 /** DTOs de Plan Semanal — esquemas Zod de entrada/salida. */
 
@@ -28,6 +31,8 @@ export const itemComidaSemanalDto = z.object({
    */
   fuente: z.string().max(40).optional().nullable(),
   referenciaExterna: z.string().max(200).optional().nullable(),
+  /** Alimento de la lista del que se copió (migración 85). */
+  alimentoOrigenId: z.string().max(64).nullable().optional(),
 });
 
 export const comidaSemanalDto = z.object({
@@ -111,6 +116,7 @@ const itemSalida = z.object({
   grasasPor100: z.number().nullable(),
   fuente: z.string().nullable(),
   referenciaExterna: z.string().nullable(),
+  alimentoOrigenId: z.string().nullable(),
   orden: z.number(),
 });
 
@@ -172,6 +178,8 @@ const comparacionMacroDto = z.object({
   meta: z.number().nullable(),
   diferencia: z.number().nullable(),
   estado: z.enum(ESTADOS_META),
+  /** Cómo se leyó la meta: aproximada, piso o techo. */
+  tipo: z.enum(TIPOS_META),
 });
 
 const diaComparadoDto = z.object({

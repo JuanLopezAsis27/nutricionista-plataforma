@@ -14,6 +14,7 @@ import type {
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import type { AlAvanzarIA } from "@/dominio/servicios/avanceIA";
 import { ConversacionIA } from "@/dominio/entidades/ConversacionIA";
+import { descripcionDeOpcion } from "@/dominio/entidades/PlanNutricional";
 import { ErrorPacienteNoEncontrado } from "@/dominio/errores/ErrorPacienteNoEncontrado";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 import { verificarDueno } from "./GestionarConversacionesIA";
@@ -190,7 +191,7 @@ export class PreguntarAlAsistente {
                 },
                 comidas: p.comidas.map((c) => ({
                   franja: c.nombre,
-                  opciones: c.opciones.map((o) => o.contenido),
+                  opciones: c.opciones.map(descripcionDeOpcion),
                 })),
                 recomendaciones: p.recomendaciones.map((r) => r.texto),
               };

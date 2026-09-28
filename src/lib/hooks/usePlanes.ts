@@ -136,6 +136,7 @@ export function usePlanes() {
     pacientesDelPlan: trpc.planes.obtenerPacientesDePlan.useQuery,
     grupos: trpc.planes.obtenerGrupos.useQuery,
     misPlanes: trpc.planes.obtenerMisPlanes.useQuery,
+    evaluarCombinaciones: trpc.planes.evaluarCombinaciones.useQuery,
     crear,
     actualizar,
     eliminar,

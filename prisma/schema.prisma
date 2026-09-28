@@ -111,6 +111,39 @@ enum ModalidadPlan {
   PDF
 }
 
+/// Rubro de un alimento (migración 84). Lista FIJA y no etiquetas libres: es
+/// lo que se filtra en el buscador de todos los consultorios, y «Lácteos»,
+/// «lacteos» y «Lácteo» serían tres filtros. Los valores solo se agregan.
+enum CategoriaAlimento {
+  CARNES
+  PESCADOS
+  HUEVOS
+  LACTEOS
+  CEREALES
+  LEGUMBRES
+  VERDURAS
+  FRUTAS
+  FRUTOS_SECOS
+  ACEITES_GRASAS
+  AZUCARES_DULCES
+  BEBIDAS
+  SUPLEMENTOS
+  OTROS
+  /// Migración 86. Al final: los valores de un enum de Postgres solo se
+  /// agregan. El orden en pantalla lo da CATEGORIAS_ALIMENTO, no este.
+  EMBUTIDOS
+}
+
+/// Cómo se lee una meta diaria del plan (migración 82). APROXIMADO es la
+/// lectura de siempre (±10 %) y el default de las metas que ya existían;
+/// MINIMO y MAXIMO son pisos y techos: 120 g de proteína "como mínimo" se
+/// cumple con 150, y 60 g de grasa "como máximo" con 40.
+enum TipoMetaMacro {
+  APROXIMADO
+  MINIMO
+  MAXIMO
+}
+
 /// Día de la semana de una comida del plan semanal. Es un enum y no un 0-6
 /// porque el día acá no es una fecha: el plan semanal es de referencia («los
 /// lunes») y no arranca en ninguna semana concreta. Con un número habría que
@@ -391,6 +424,7 @@ model Nutricionista {
   comidasSemanales     ComidaSemanal[]
   itemsComidaSemanal   ItemComidaSemanal[]
   asignacionesSemanal  AsignacionPlanSemanal[]
+  itemsOpcionComida    ItemOpcionComida[]
 
   @@map("nutricionistas")
 }
@@ -535,14 +569,14 @@ model Paciente {
   establecimientoHabitual Establecimiento?        @relation(fields: [establecimientoHabitualId], references: [id], onDelete: SetNull)
 
   @@unique([nutricionistaId, id])
+  // Una ficha por consultorio y por cuenta.
+  @@unique([nutricionistaId, usuarioId])
   // El email es de CONTACTO y se puede repetir (hermanos con el de la madre,
   // migración 79): solo un índice para buscar por él.
   @@index([nutricionistaId, email])
   // El teléfono tampoco es único (migración 81): dos hermanos pueden llevar el
   // de la madre. A qué ficha va un WhatsApp lo decide elegirFichaDelTelefono.
   @@index([nutricionistaId, telefonoE164])
-  // Una ficha por consultorio y por cuenta.
-  @@unique([nutricionistaId, usuarioId])
   @@index([usuarioId])
   @@index([nutricionistaId, apellido, nombre])
   @@map("pacientes")
@@ -1352,20 +1386,115 @@ model RetroalimentacionInsight {
 /// inquilino tiene al menos uno, la búsqueda de ingredientes usa SU lista y se
 /// desactiva la búsqueda externa. Macros por 100 g. Tenant-scoped por nutricionistaId.
 model AlimentoPropio {
-  id                  String        @id @default(uuid(4))
+  id                  String             @id @default(uuid(4))
   nutricionistaId     String
   nombre              String
   nombreNormalizado   String // minúsculas/trim, para búsqueda case-insensitive
+  /// Nombre + marca sin mayúsculas, tildes ni espacios de más: qué hace que
+  /// dos alimentos sean el mismo (migración 83). Ver AlimentoPropio.claveIdentidad.
+  claveIdentidad      String
   marca               String?
-  caloriasPor100      Decimal?      @db.Decimal(7, 2)
-  proteinasPor100     Decimal?      @db.Decimal(7, 2)
-  carbohidratosPor100 Decimal?      @db.Decimal(7, 2)
-  grasasPor100        Decimal?      @db.Decimal(7, 2)
-  creadoEn            DateTime      @default(now())
-  nutricionista       Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  caloriasPor100      Decimal?           @db.Decimal(7, 2)
+  proteinasPor100     Decimal?           @db.Decimal(7, 2)
+  carbohidratosPor100 Decimal?           @db.Decimal(7, 2)
+  grasasPor100        Decimal?           @db.Decimal(7, 2)
+  /// Rubro del alimento, para filtrar la búsqueda (migración 84).
+  categoria           CategoriaAlimento?
+  /// Clave en el bucket de su imagen (migración 84). No es un `Archivo`: ver
+  /// docs/CATALOGO-BASE.md, «Imágenes».
+  imagenClave         String?
+  creadoEn            DateTime           @default(now())
+  nutricionista       Nutricionista      @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
+  @@unique([nutricionistaId, claveIdentidad])
   @@index([nutricionistaId, nombreNormalizado])
+  @@index([nutricionistaId, categoria])
   @@map("alimentos_propios")
+}
+
+// ---------------------------------------------------------------------------
+// Catálogo de la plataforma (migración 82)
+// ---------------------------------------------------------------------------
+
+/// Alimento PREDETERMINADO de la plataforma: lo carga el SUPERADMIN y lo ven
+/// todos los consultorios en el buscador, junto a sus alimentos propios.
+///
+/// NO es tabla de inquilino (no lleva `nutricionistaId` ni está en
+/// MODELOS_INQUILINO): es de todos y de nadie. Un consultorio lo LEE; lo que
+/// agrega el profesional va a `alimentos_propios` y es solo suyo.
+model AlimentoBase {
+  id                  String             @id @default(uuid(4))
+  nombre              String
+  nombreNormalizado   String
+  /// Ver AlimentoPropio.claveIdentidad. Única en toda la plataforma.
+  claveIdentidad      String             @unique
+  marca               String?
+  caloriasPor100      Decimal?           @db.Decimal(7, 2)
+  proteinasPor100     Decimal?           @db.Decimal(7, 2)
+  carbohidratosPor100 Decimal?           @db.Decimal(7, 2)
+  grasasPor100        Decimal?           @db.Decimal(7, 2)
+  /// Ver AlimentoPropio.categoria e imagenClave (migración 84).
+  categoria           CategoriaAlimento?
+  imagenClave         String?
+  creadoEn            DateTime           @default(now())
+  actualizadoEn       DateTime           @updatedAt
+
+  @@index([nombreNormalizado])
+  @@index([categoria])
+  @@map("alimentos_base")
+}
+
+/// Receta PREDETERMINADA de la plataforma. Un consultorio no la usa en su
+/// lugar: la COPIA a su recetario (`recetas.recetaBaseId`) y desde ahí es suya
+/// —la edita, la comparte, la vincula a un plan— con todo lo que ya sabe hacer
+/// una receta. Por eso editar la de la plataforma no cambia las copias.
+model RecetaBase {
+  id             String   @id @default(uuid(4))
+  nombre         String
+  descripcion    String?
+  porciones      Int?
+  preparacion    String?
+  etiquetas      String[] @default([])
+  enlaces        String[] @default([])
+  /// Macros POR PORCIÓN (calculados de los ingredientes o cargados a mano).
+  calorias       Decimal? @db.Decimal(7, 2)
+  proteinasG     Decimal? @db.Decimal(7, 2)
+  carbohidratosG Decimal? @db.Decimal(7, 2)
+  grasasG        Decimal? @db.Decimal(7, 2)
+  creadoEn       DateTime @default(now())
+  actualizadoEn  DateTime @updatedAt
+
+  ingredientes IngredienteRecetaBase[]
+  copias       Receta[]
+
+  @@index([nombre])
+  @@map("recetas_base")
+}
+
+/// Ingrediente de una receta de la plataforma. Misma forma que
+/// `IngredienteReceta`, sin inquilino.
+model IngredienteRecetaBase {
+  id                  String   @id @default(uuid(4))
+  recetaId            String
+  nombre              String
+  cantidadGramos      Decimal? @db.Decimal(8, 1)
+  caloriasPor100      Decimal? @db.Decimal(7, 2)
+  proteinasPor100     Decimal? @db.Decimal(7, 2)
+  carbohidratosPor100 Decimal? @db.Decimal(7, 2)
+  grasasPor100        Decimal? @db.Decimal(7, 2)
+  fuente              String?
+  referenciaExterna   String?
+  /// Id del alimento de la lista de la que se copió (migración 85), para saber
+  /// DÓNDE se usa un alimento. Sin FK a propósito: los macros ya están
+  /// copiados acá, y borrar el alimento no puede tocar esta fila.
+  alimentoOrigenId    String?
+  orden               Int      @default(0)
+
+  receta RecetaBase @relation(fields: [recetaId], references: [id], onDelete: Cascade)
+
+  @@index([recetaId])
+  @@index([alimentoOrigenId])
+  @@map("ingredientes_receta_base")
 }
 
 /// Comida registrada por el paciente en su diario, con foto opcional
@@ -1750,34 +1879,34 @@ model PlantillaAntropometrica {
 /// Credenciales y rol de acceso al sistema.
 /// Si el rol es PACIENTE debe tener un pacienteId asociado.
 model Usuario {
-  id              String     @id @default(uuid(4))
+  id                  String     @id @default(uuid(4))
   /// Con qué se entra: el email, el nombre de usuario o cualquiera de los dos
   /// (migración 80). Al menos uno de los dos existe (CHECK en la base). El
   /// PACIENTE puede no tener email —niños, personas mayores— y entra con su
   /// usuario; el NUTRICIONISTA y el SUPERADMIN siempre tienen email.
-  email           String?    @unique
+  email               String?    @unique
   /// Siempre en minúsculas y sin `@` (así el login distingue uno de otro).
   /// Único en TODA la plataforma: la cuenta de un paciente es global.
-  nombreUsuario   String?    @unique
-  passwordHash    String
+  nombreUsuario       String?    @unique
+  passwordHash        String
   /// La contraseña la eligió un PROFESIONAL (alta o bienvenida manual), no la
   /// persona. El portal le recomienda cambiarla mientras siga así; no obliga
   /// (migración 78). Cualquier cambio hecho por la persona la limpia.
-  passwordProvisional Boolean @default(false)
-  rol             RolUsuario @default(PACIENTE)
+  passwordProvisional Boolean    @default(false)
+  rol                 RolUsuario @default(PACIENTE)
   // Tenant: el NUTRICIONISTA es su propio inquilino (nutricionistaId = su id);
   // el SUPERADMIN y el PACIENTE son globales (null). La cuenta de un paciente
   // no es de ningún consultorio: lo son sus fichas (`pacientes.usuarioId`,
   // migración 78), porque la misma persona puede ser paciente de varios.
-  nutricionistaId String?
-  activo          Boolean    @default(true)
+  nutricionistaId     String?
+  activo              Boolean    @default(true)
   /// Foto de perfil: un Archivo del bucket, igual que el logo del membrete
   /// (migración 53). La FK vive acá y no en `archivos` a propósito: el arco
   /// exclusivo de dueños describe "de qué cosa es este archivo", y una foto de
   /// perfil es algo que el usuario TIENE, no un adjunto de la cuenta. SetNull
   /// para que borrar la foto deje la cuenta sin foto, no con un id inexistente.
-  fotoPerfilId    String?
-  creadoEn        DateTime   @default(now())
+  fotoPerfilId        String?
+  creadoEn            DateTime   @default(now())
 
   tokensRecuperacion    TokenRecuperacion[]
   tokensRefresco        TokenRefresco[]
@@ -1901,9 +2030,14 @@ model Receta {
   fotoPrincipalId String?
   /// Carpeta en la que está guardada (opcional). Ver GrupoReceta.
   grupoId         String?
+  /// Receta de la plataforma de la que se copió (migración 82). Es lo que
+  /// impide copiarla dos veces al mismo recetario. SET NULL: si el admin la
+  /// borra del catálogo, la copia del consultorio sigue siendo suya.
+  recetaBaseId    String?
   creadoEn        DateTime @default(now())
   actualizadoEn   DateTime @updatedAt
 
+  recetaBase       RecetaBase?         @relation(fields: [recetaBaseId], references: [id], onDelete: SetNull)
   fotos            Archivo[]           @relation("ArchivosDeReceta")
   fotoPrincipal    Archivo?            @relation("FotoPrincipalReceta", fields: [fotoPrincipalId], references: [id], onDelete: SetNull)
   opciones         OpcionComida[]
@@ -1917,6 +2051,7 @@ model Receta {
   grupo            GrupoReceta?        @relation(fields: [grupoId], references: [id], onDelete: SetNull)
 
   @@unique([nutricionistaId, id])
+  @@unique([nutricionistaId, recetaBaseId])
   @@index([nutricionistaId, nombre])
   @@index([nutricionistaId, grupoId])
   @@index([etiquetas], type: Gin)
@@ -1963,12 +2098,17 @@ model IngredienteReceta {
   grasasPor100        Decimal? @db.Decimal(7, 2)
   fuente              String? // "OFF" (Open Food Facts) | "MANUAL"
   referenciaExterna   String? // código de barras / id en la fuente
+  /// Id del alimento de la lista de la que se copió (migración 85), para saber
+  /// DÓNDE se usa un alimento. Sin FK a propósito: los macros ya están
+  /// copiados acá, y borrar el alimento no puede tocar esta fila.
+  alimentoOrigenId    String?
   orden               Int      @default(0)
 
   receta        Receta        @relation(fields: [recetaId], references: [id], onDelete: Cascade)
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@index([nutricionistaId, recetaId])
+  @@index([nutricionistaId, alimentoOrigenId])
   @@map("ingredientes_receta")
 }
 
@@ -1993,25 +2133,30 @@ model AsignacionReceta {
 /// concreto, con metas de macros, comidas por franja con opciones, tabla de
 /// equivalencias y recomendaciones. Reemplaza al módulo Dieta.
 model PlanNutricional {
-  id                 String        @id @default(uuid(4))
-  nutricionistaId    String
-  nombre             String
-  descripcion        String?
-  esPlantilla        Boolean       @default(false)
+  id                    String        @id @default(uuid(4))
+  nutricionistaId       String
+  nombre                String
+  descripcion           String?
+  esPlantilla           Boolean       @default(false)
   /// APP (se carga en la app) o PDF (el plan ES el archivo). Ver ModalidadPlan.
-  modalidad          ModalidadPlan @default(APP)
+  modalidad             ModalidadPlan @default(APP)
   /// Carpeta en la que está guardado (opcional). Ver GrupoPlan.
-  grupoId            String?
-  planOrigenId       String? // plantilla de la que se clonó (informativo)
-  archivado          Boolean       @default(false)
+  grupoId               String?
+  planOrigenId          String? // plantilla de la que se clonó (informativo)
+  archivado             Boolean       @default(false)
   // Metas de macros del plan (opcionales)
-  caloriasMeta       Int?
-  proteinasMetaG     Decimal?      @db.Decimal(7, 2)
-  carbohidratosMetaG Decimal?      @db.Decimal(7, 2)
-  grasasMetaG        Decimal?      @db.Decimal(7, 2)
-  contactosUtiles    String? // teléfonos/contactos útiles del profesional
-  creadoEn           DateTime      @default(now())
-  actualizadoEn      DateTime      @updatedAt
+  caloriasMeta          Int?
+  proteinasMetaG        Decimal?      @db.Decimal(7, 2)
+  carbohidratosMetaG    Decimal?      @db.Decimal(7, 2)
+  grasasMetaG           Decimal?      @db.Decimal(7, 2)
+  /// Si cada meta es un piso, un techo o un objetivo aproximado (migración 82).
+  caloriasMetaTipo      TipoMetaMacro @default(APROXIMADO)
+  proteinasMetaTipo     TipoMetaMacro @default(APROXIMADO)
+  carbohidratosMetaTipo TipoMetaMacro @default(APROXIMADO)
+  grasasMetaTipo        TipoMetaMacro @default(APROXIMADO)
+  contactosUtiles       String? // teléfonos/contactos útiles del profesional
+  creadoEn              DateTime      @default(now())
+  actualizadoEn         DateTime      @updatedAt
 
   comidas           ComidaPlan[]
   equivalencias     EquivalenciaPlan[]
@@ -2105,24 +2250,69 @@ model ComidaPlan {
   @@map("comidas_plan")
 }
 
-/// Opción intercambiable de una franja (Opción 1, 2, 3…), texto rico y una
-/// receta vinculada opcional.
+/// Opción intercambiable de una franja (Opción 1, 2, 3…): texto, una receta
+/// vinculada opcional con sus porciones y alimentos sueltos (migración 82).
+///
+/// Receta y alimentos SE SUMAN y no se pisan: la receta aporta sus macros por
+/// porción × `porciones` (que ya salen de SUS ingredientes) y cada alimento
+/// suelto aporta los suyos. Los ingredientes de la receta nunca se suman
+/// aparte: contarlos de nuevo sería contar la receta dos veces.
 model OpcionComida {
-  id              String  @id @default(uuid(4))
+  id              String   @id @default(uuid(4))
   nutricionistaId String
   comidaId        String
-  numero          Int     @default(1)
-  contenido       String // texto rico (varias líneas)
+  numero          Int      @default(1)
+  /// Texto para el paciente. Vacío si la opción se describe con su receta o
+  /// sus alimentos (migración 82).
+  contenido       String   @default("")
   recetaId        String?
-  orden           Int     @default(0)
+  /// Porciones de la receta vinculada (null = 1). Sin receta no aplica.
+  porciones       Decimal? @db.Decimal(6, 2)
+  orden           Int      @default(0)
 
-  comida        ComidaPlan    @relation(fields: [comidaId], references: [id], onDelete: Cascade)
-  receta        Receta?       @relation(fields: [recetaId], references: [id], onDelete: SetNull)
-  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  comida        ComidaPlan         @relation(fields: [comidaId], references: [id], onDelete: Cascade)
+  receta        Receta?            @relation(fields: [recetaId], references: [id], onDelete: SetNull)
+  items         ItemOpcionComida[]
+  nutricionista Nutricionista      @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@index([nutricionistaId, comidaId])
   @@index([nutricionistaId, recetaId])
   @@map("opciones_comida")
+}
+
+/// Alimento suelto de una opción del plan (migración 82): gramos + macros por
+/// 100 g, copiados del buscador al elegirlo. Es la misma forma que
+/// `ItemComidaSemanal` y que `IngredienteReceta`, y se suma con la misma regla
+/// (`dominio/servicios/macrosAlimentos`).
+///
+/// Los macros se COPIAN y no se referencian al alimento de origen: editar o
+/// borrar un alimento del catálogo no puede cambiar en silencio un plan que ya
+/// se le entregó a un paciente.
+model ItemOpcionComida {
+  id                  String   @id @default(uuid(4))
+  nutricionistaId     String
+  opcionId            String
+  nombre              String
+  cantidadGramos      Decimal? @db.Decimal(8, 1)
+  caloriasPor100      Decimal? @db.Decimal(7, 2)
+  proteinasPor100     Decimal? @db.Decimal(7, 2)
+  carbohidratosPor100 Decimal? @db.Decimal(7, 2)
+  grasasPor100        Decimal? @db.Decimal(7, 2)
+  /// "PROPIO" | "BASE" | "OFF" | "MANUAL".
+  fuente              String?
+  referenciaExterna   String?
+  /// Id del alimento de la lista de la que se copió (migración 85), para saber
+  /// DÓNDE se usa un alimento. Sin FK a propósito: los macros ya están
+  /// copiados acá, y borrar el alimento no puede tocar esta fila.
+  alimentoOrigenId    String?
+  orden               Int      @default(0)
+
+  opcion        OpcionComida  @relation(fields: [opcionId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@index([nutricionistaId, opcionId])
+  @@index([nutricionistaId, alimentoOrigenId])
+  @@map("items_opcion_comida")
 }
 
 /// Receta vinculada directamente a un plan, sin pasar por una franja
@@ -2281,12 +2471,17 @@ model ItemComidaSemanal {
   /// esa integración se eliminó, pero el valor persiste en los planes guardados.
   fuente              String?
   referenciaExterna   String?
+  /// Id del alimento de la lista de la que se copió (migración 85), para saber
+  /// DÓNDE se usa un alimento. Sin FK a propósito: los macros ya están
+  /// copiados acá, y borrar el alimento no puede tocar esta fila.
+  alimentoOrigenId    String?
   orden               Int      @default(0)
 
   comida        ComidaSemanal @relation(fields: [comidaId], references: [id], onDelete: Cascade)
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@index([nutricionistaId, comidaId])
+  @@index([nutricionistaId, alimentoOrigenId])
   @@map("items_comida_semanal")
 }
 

@@ -1,3 +1,4 @@
+import type { CategoriaAlimento } from "@/dominio/entidades/AlimentoPropio";
 import type {
   IProveedorDatosNutricionales,
   AlimentoNutricional,
@@ -40,7 +41,11 @@ export class ProveedorOpenFoodFacts implements IProveedorDatosNutricionales {
     termino: string,
     limite = 10,
     criterio?: CriterioAlimentos,
+    categoria?: CategoriaAlimento,
   ): Promise<AlimentoNutricional[]> {
+    // No puede cumplir un filtro por nuestras categorías: mejor nada que
+    // resultados de cualquier rubro bajo el filtro «Lácteos».
+    if (categoria) return [];
     const consulta = termino.trim();
     if (consulta.length < 2) return [];
 
@@ -108,6 +113,11 @@ export class ProveedorOpenFoodFacts implements IProveedorDatosNutricionales {
       proteinasPor100: numero(n["proteins_100g"]),
       carbohidratosPor100: numero(n["carbohydrates_100g"]),
       grasasPor100: numero(n["fat_100g"]),
+      // Open Food Facts no conoce nuestras categorías ni tiene imágenes
+      // nuestras (las suyas son de otro origen y la CSP las bloquea).
+      id: null,
+      categoria: null,
+      imagenVersion: null,
     };
 
     // Descarta productos sin ningún macro útil (no aportan al cálculo).

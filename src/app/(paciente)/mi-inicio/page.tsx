@@ -141,7 +141,7 @@ export default function PaginaMiInicio() {
                   nombre: franjaActual.nombre,
                   horaDesde: franjaActual.horaDesde,
                   horaHasta: franjaActual.horaHasta,
-                  contenido: franjaActual.opciones[0]?.contenido ?? null,
+                  contenido: franjaActual.opciones[0]?.descripcion ?? null,
                 }
               : null
           }

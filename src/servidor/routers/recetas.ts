@@ -19,6 +19,10 @@ import {
   actualizarGrupoRecetaDto,
   idGrupoRecetaDto,
 } from "@/aplicacion/dtos/receta.dto";
+import {
+  idRecetaBaseDto,
+  listarRecetasBaseDto,
+} from "@/aplicacion/dtos/recetaBase.dto";
 
 /**
  * Router del Recetario (presentación → aplicación).
@@ -27,6 +31,32 @@ import {
  * fueron compartidas (obtenerMisRecetas, con pacienteId tomado de la sesión).
  */
 export const routerRecetas = crearRouter({
+  // --- Recetas de la plataforma (migración 82) --------------------------------
+  // El consultorio las VE y las COPIA a su recetario; no las edita.
+
+  listarRecetasBase: nutricionistaProcedimiento
+    .input(listarRecetasBaseDto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.recetasBase.listar(input);
+    }),
+
+  etiquetasRecetasBase: nutricionistaProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.recetasBase.etiquetas();
+  }),
+
+  obtenerRecetaBase: nutricionistaProcedimiento
+    .input(idRecetaBaseDto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.recetasBase.obtener(input.id);
+    }),
+
+  /** Idempotente: si ya estaba copiada, devuelve esa copia. */
+  copiarRecetaBase: nutricionistaProcedimiento
+    .input(idRecetaBaseDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.recetasBase.copiarAlRecetario(input.id);
+    }),
+
   // Lista completa (sin paginar): la usan los selectores (ej. editor de planes).
   obtenerTodas: nutricionistaProcedimiento
     .input(filtroRecetasDto)

@@ -1,4 +1,8 @@
 import { z } from "zod";
+import { CATEGORIAS_ALIMENTO } from "@/dominio/entidades/AlimentoPropio";
+
+/** Rubro del alimento (migración 84). */
+const categoria = z.enum(CATEGORIAS_ALIMENTO).nullable().optional();
 
 /** DTOs de los alimentos propios del nutricionista (Excel de macros). */
 
@@ -12,6 +16,7 @@ export const filaAlimentoPropioDto = z.object({
   proteinasPor100: macro,
   carbohidratosPor100: macro,
   grasasPor100: macro,
+  categoria,
 });
 export type FilaAlimentoPropioDto = z.infer<typeof filaAlimentoPropioDto>;
 
@@ -36,6 +41,7 @@ export const crearAlimentoPropioDto = z.object({
   proteinasPor100: macro,
   carbohidratosPor100: macro,
   grasasPor100: macro,
+  categoria,
 });
 export type CrearAlimentoPropioDto = z.infer<typeof crearAlimentoPropioDto>;
 
@@ -51,6 +57,7 @@ export const idAlimentoPropioDto = z.object({ id: z.string().min(1) });
 
 export const listarAlimentosPropiosDto = z.object({
   busqueda: z.string().optional(),
+  categoria: z.enum(CATEGORIAS_ALIMENTO).optional(),
   pagina: z.number().int().positive().default(1),
   porPagina: z.number().int().positive().max(100).default(20),
 });
@@ -66,6 +73,12 @@ export const alimentoPropioSalidaDto = z.object({
   proteinasPor100: z.number().nullable(),
   carbohidratosPor100: z.number().nullable(),
   grasasPor100: z.number().nullable(),
+  categoria: z.enum(CATEGORIAS_ALIMENTO).nullable(),
+  /**
+   * Cambia con cada imagen nueva; null si no tiene. La pantalla arma la URL
+   * de la imagen con el id y esta versión (ver `urlImagenAlimento`).
+   */
+  imagenVersion: z.string().nullable(),
 });
 export type AlimentoPropioSalidaDto = z.infer<typeof alimentoPropioSalidaDto>;
 
@@ -75,3 +88,9 @@ export interface AlimentosPropiosPaginados {
   total: number;
   paginas: number;
 }
+
+/** Nombre y marca a comparar contra el catálogo de la plataforma. */
+export const coincidenciaEnCatalogoDto = z.object({
+  nombre: z.string().max(200),
+  marca: z.string().max(120).nullable().optional(),
+});

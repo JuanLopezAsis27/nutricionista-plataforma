@@ -67,6 +67,9 @@ import { PrismaRepositorioConfiguracionRecordatorios } from "@/infraestructura/r
 import { PrismaRepositorioAxioma } from "@/infraestructura/repositorios/PrismaRepositorioAxioma";
 import { PrismaRepositorioMetricaDispositivo } from "@/infraestructura/repositorios/PrismaRepositorioMetricaDispositivo";
 import { PrismaRepositorioAlimentoPropio } from "@/infraestructura/repositorios/PrismaRepositorioAlimentoPropio";
+import { PrismaRepositorioAlimentoBase } from "@/infraestructura/repositorios/PrismaRepositorioAlimentoBase";
+import { PrismaRepositorioRecetaBase } from "@/infraestructura/repositorios/PrismaRepositorioRecetaBase";
+import { PrismaRepositorioUsosDeAlimento } from "@/infraestructura/repositorios/PrismaRepositorioUsosDeAlimento";
 import { PrismaRepositorioRetroalimentacionInsight } from "@/infraestructura/repositorios/PrismaRepositorioRetroalimentacionInsight";
 import { PrismaRepositorioCredenciales } from "@/infraestructura/repositorios/PrismaRepositorioCredenciales";
 import { PrismaRepositorioConfiguracionIAGlobal } from "@/infraestructura/repositorios/PrismaRepositorioConfiguracionIAGlobal";
@@ -324,6 +327,18 @@ export const repositorioMetrica = perezoso(
 export const repositorioAlimentoPropio = perezoso(
   () => new PrismaRepositorioAlimentoPropio(prisma()),
 );
+/** Alimentos predeterminados de la plataforma (sin inquilino, migración 82). */
+export const repositorioAlimentoBase = perezoso(
+  () => new PrismaRepositorioAlimentoBase(prisma()),
+);
+/** Recetas predeterminadas de la plataforma (sin inquilino, migración 82). */
+export const repositorioRecetaBase = perezoso(
+  () => new PrismaRepositorioRecetaBase(prisma()),
+);
+/** Dónde se usa un alimento (migración 85). */
+export const repositorioUsosDeAlimento = perezoso(
+  () => new PrismaRepositorioUsosDeAlimento(prisma()),
+);
 export const repositorioRetroalimentacion = perezoso(
   () => new PrismaRepositorioRetroalimentacionInsight(prisma()),
 );
@@ -547,12 +562,27 @@ export const proveedorNutricion = perezoso((): IProveedorDatosNutricionales => {
     ? new ProveedorOpenFoodFacts(configNutricion)
     : new ProveedorNutricionNulo();
 
-  // Si el nutricionista cargó su Excel, la búsqueda usa SU lista y no sale a
-  // internet. El despachador decide por request.
+  // Si hay alimentos cargados —los del consultorio o los predeterminados de
+  // la plataforma—, la búsqueda usa ESAS listas y no sale a internet. El
+  // despachador decide por request.
   return new ProveedorNutricionDespachador(
-    new ProveedorNutricionPropio(repositorioAlimentoPropio()),
+    [
+      {
+        proveedor: new ProveedorNutricionPropio(
+          repositorioAlimentoPropio(),
+          "PROPIO",
+        ),
+        repositorio: repositorioAlimentoPropio(),
+      },
+      {
+        proveedor: new ProveedorNutricionPropio(
+          repositorioAlimentoBase(),
+          "BASE",
+        ),
+        repositorio: repositorioAlimentoBase(),
+      },
+    ],
     externo,
-    repositorioAlimentoPropio(),
   );
 });
 

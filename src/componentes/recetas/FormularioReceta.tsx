@@ -93,6 +93,7 @@ export function FormularioReceta({
         grasasPor100: ing.grasasPor100?.toString() ?? "",
         fuente: ing.fuente ?? "MANUAL",
         referenciaExterna: ing.referenciaExterna ?? "",
+        alimentoOrigenId: ing.alimentoOrigenId ?? "",
       })),
       preparacion: recetaInicial?.preparacion ?? "",
       etiquetas: (recetaInicial?.etiquetas ?? []).join(", "),
@@ -128,6 +129,7 @@ export function FormularioReceta({
       grasasPor100: alimento.grasasPor100?.toString() ?? "",
       fuente: alimento.fuente,
       referenciaExterna: alimento.referenciaExterna ?? "",
+      alimentoOrigenId: alimento.id ?? "",
     });
   }
 
@@ -149,6 +151,7 @@ export function FormularioReceta({
           grasasPor100: aNumero(ing.grasasPor100),
           fuente: ing.fuente.trim() || null,
           referenciaExterna: ing.referenciaExterna.trim() || null,
+          alimentoOrigenId: ing.alimentoOrigenId || null,
         })),
       // Los mismos helpers que usa el esquema: si el corte cambiara solo acá,
       // la validación estaría mirando una lista distinta de la que se envía.

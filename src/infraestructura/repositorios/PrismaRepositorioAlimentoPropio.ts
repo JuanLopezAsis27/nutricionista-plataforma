@@ -1,15 +1,22 @@
 import type {
   PrismaClient,
-  Prisma,
   AlimentoPropio as AlimentoPropioFila,
 } from "@prisma/client";
 import type {
   IAlimentoPropioRepositorio,
   FiltroAlimentosPropios,
 } from "@/dominio/repositorios/IAlimentoPropioRepositorio";
-import { AlimentoPropio } from "@/dominio/entidades/AlimentoPropio";
+import type {
+  AlimentoPropio,
+  CategoriaAlimento,
+} from "@/dominio/entidades/AlimentoPropio";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
+import {
+  datosDeAlimento,
+  mapearFilaAlimento,
+  dondeAlimento,
+} from "./base/filasAlimento";
 
 const TAMANO_LOTE = 500; // filas por INSERT (evita el límite de parámetros de PG)
 
@@ -19,16 +26,6 @@ const TAMANO_LOTE = 500; // filas por INSERT (evita el límite de parámetros de
  * borra la lista del inquilino e inserta la nueva de forma atómica; `crear`,
  * `actualizar` y `eliminar` son la gestión manual de un alimento individual.
  */
-/** Decimal nunca cruza infraestructura: se mapea a number. */
-function aNumero(valor: Prisma.Decimal | null): number | null {
-  return valor === null ? null : valor.toNumber();
-}
-
-function dondeBuscar(filtro?: FiltroAlimentosPropios) {
-  const t = filtro?.busqueda?.trim().toLowerCase();
-  return t ? { nombreNormalizado: { contains: t } } : {};
-}
-
 export class PrismaRepositorioAlimentoPropio
   extends RepositorioPrismaBase<AlimentoPropioFila, AlimentoPropio>
   implements IAlimentoPropioRepositorio
@@ -38,20 +35,7 @@ export class PrismaRepositorioAlimentoPropio
   }
 
   async reemplazarTodos(alimentos: AlimentoPropio[]): Promise<number> {
-    const filas = alimentos.map((a) => {
-      const p = a.aPrimitivos();
-      return {
-        id: p.id,
-        nombre: p.nombre,
-        nombreNormalizado: a.nombreNormalizado,
-        marca: p.marca,
-        caloriasPor100: p.caloriasPor100,
-        proteinasPor100: p.proteinasPor100,
-        carbohidratosPor100: p.carbohidratosPor100,
-        grasasPor100: p.grasasPor100,
-      };
-    });
-
+    const filas = alimentos.map(datosDeAlimento);
     const lotes: (typeof filas)[] = [];
     for (let i = 0; i < filas.length; i += TAMANO_LOTE) {
       lotes.push(filas.slice(i, i + TAMANO_LOTE));
@@ -69,43 +53,49 @@ export class PrismaRepositorioAlimentoPropio
   }
 
   async crear(alimento: AlimentoPropio): Promise<AlimentoPropio> {
-    const p = alimento.aPrimitivos();
     const fila = await this.prisma.alimentoPropio.create({
       data: {
-        id: p.id,
+        ...datosDeAlimento(alimento),
         nutricionistaId: inquilinoActual(),
-        nombre: p.nombre,
-        nombreNormalizado: alimento.nombreNormalizado,
-        marca: p.marca,
-        caloriasPor100: p.caloriasPor100,
-        proteinasPor100: p.proteinasPor100,
-        carbohidratosPor100: p.carbohidratosPor100,
-        grasasPor100: p.grasasPor100,
       },
     });
-    return mapearAlimentoPropio(fila);
+    return mapearFilaAlimento(fila);
   }
 
   async actualizar(alimento: AlimentoPropio): Promise<AlimentoPropio> {
-    const p = alimento.aPrimitivos();
+    const { id, ...datos } = datosDeAlimento(alimento);
     const fila = await this.prisma.alimentoPropio.update({
-      where: { id: p.id },
-      data: {
-        nombre: p.nombre,
-        nombreNormalizado: alimento.nombreNormalizado,
-        marca: p.marca,
-        caloriasPor100: p.caloriasPor100,
-        proteinasPor100: p.proteinasPor100,
-        carbohidratosPor100: p.carbohidratosPor100,
-        grasasPor100: p.grasasPor100,
-      },
+      where: { id },
+      data: datos,
     });
-    return mapearAlimentoPropio(fila);
+    return mapearFilaAlimento(fila);
+  }
+
+  async obtenerPorClave(clave: string): Promise<AlimentoPropio | null> {
+    // Único por consultorio: el filtro de inquilino de la extensión lo acota.
+    const fila = await this.prisma.alimentoPropio.findFirst({
+      where: { claveIdentidad: clave },
+    });
+    return fila ? mapearFilaAlimento(fila) : null;
+  }
+
+  async clavesExistentes(claves: string[]): Promise<string[]> {
+    const existentes: string[] = [];
+    // De a lotes: una planilla puede traer miles, y un IN enorme pasa el
+    // límite de parámetros de Postgres.
+    for (let i = 0; i < claves.length; i += TAMANO_LOTE) {
+      const filas = await this.prisma.alimentoPropio.findMany({
+        where: { claveIdentidad: { in: claves.slice(i, i + TAMANO_LOTE) } },
+        select: { claveIdentidad: true },
+      });
+      existentes.push(...filas.map((f) => f.claveIdentidad));
+    }
+    return existentes;
   }
 
   async listar(filtro?: FiltroAlimentosPropios): Promise<AlimentoPropio[]> {
     const filas = await this.prisma.alimentoPropio.findMany({
-      where: dondeBuscar(filtro),
+      where: dondeAlimento(filtro),
       orderBy: { nombreNormalizado: "asc" },
       take: filtro?.limite,
       skip: filtro?.desplazamiento,
@@ -113,38 +103,32 @@ export class PrismaRepositorioAlimentoPropio
     return this.mapearTodas(filas);
   }
 
-  async buscar(termino: string, limite: number): Promise<AlimentoPropio[]> {
-    const t = termino.trim().toLowerCase();
-    if (t.length === 0) return [];
-    const filas = await this.prisma.alimentoPropio.findMany({
-      where: { nombreNormalizado: { contains: t } },
-      orderBy: { nombreNormalizado: "asc" },
-      take: limite,
-    });
-    return this.mapearTodas(filas);
+  async buscar(
+    termino: string,
+    limite: number,
+    categoria?: CategoriaAlimento,
+  ): Promise<AlimentoPropio[]> {
+    if (termino.trim().length === 0 && !categoria) return [];
+    return this.listar({ busqueda: termino, categoria, limite });
   }
 
   contar(filtro?: FiltroAlimentosPropios): Promise<number> {
-    return this.prisma.alimentoPropio.count({ where: dondeBuscar(filtro) });
+    return this.prisma.alimentoPropio.count({ where: dondeAlimento(filtro) });
   }
 
   async vaciar(): Promise<void> {
     await this.prisma.alimentoPropio.deleteMany({});
   }
 
-  protected override mapear(fila: AlimentoPropioFila): AlimentoPropio {
-    return mapearAlimentoPropio(fila);
+  async listarClavesDeImagen(): Promise<string[]> {
+    const filas = await this.prisma.alimentoPropio.findMany({
+      where: { imagenClave: { not: null } },
+      select: { imagenClave: true },
+    });
+    return filas.flatMap((f) => (f.imagenClave ? [f.imagenClave] : []));
   }
-}
 
-function mapearAlimentoPropio(fila: AlimentoPropioFila): AlimentoPropio {
-  return AlimentoPropio.reconstruir({
-    id: fila.id,
-    nombre: fila.nombre,
-    marca: fila.marca,
-    caloriasPor100: aNumero(fila.caloriasPor100),
-    proteinasPor100: aNumero(fila.proteinasPor100),
-    carbohidratosPor100: aNumero(fila.carbohidratosPor100),
-    grasasPor100: aNumero(fila.grasasPor100),
-  });
+  protected override mapear(fila: AlimentoPropioFila): AlimentoPropio {
+    return mapearFilaAlimento(fila);
+  }
 }

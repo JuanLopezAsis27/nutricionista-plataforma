@@ -43,6 +43,7 @@ function datosIngrediente(ing: IngredienteDeReceta, orden: number) {
     grasasPor100: ing.grasasPor100,
     fuente: ing.fuente,
     referenciaExterna: ing.referenciaExterna,
+    alimentoOrigenId: ing.alimentoOrigenId,
     orden,
   };
 }
@@ -74,6 +75,7 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
           carbohidratosG: d.carbohidratosG,
           grasasG: d.grasasG,
           grupoId: d.grupoId,
+          recetaBaseId: d.recetaBaseId,
           creadoEn: d.creadoEn,
           actualizadoEn: d.actualizadoEn,
           ingredientes: { create: d.ingredientes.map(datosIngrediente) },
@@ -141,6 +143,16 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
   async obtenerPorId(id: string): Promise<Receta | null> {
     const fila = await this.prisma.receta.findUnique({
       where: { id },
+      include: INCLUIR,
+    });
+    return fila ? mapearReceta(fila) : null;
+  }
+
+  async obtenerPorRecetaBase(recetaBaseId: string): Promise<Receta | null> {
+    // Único por consultorio (migración 82): el filtro de inquilino de la
+    // extensión lo acota al consultorio actual.
+    const fila = await this.prisma.receta.findFirst({
+      where: { recetaBaseId },
       include: INCLUIR,
     });
     return fila ? mapearReceta(fila) : null;
@@ -253,6 +265,7 @@ export function mapearReceta(fila: RecetaConDetalle): Receta {
       grasasPor100: aNumero(ing.grasasPor100),
       fuente: ing.fuente,
       referenciaExterna: ing.referenciaExterna,
+      alimentoOrigenId: ing.alimentoOrigenId,
     })),
     etiquetas: fila.etiquetas,
     fotoPrincipalId: fila.fotoPrincipalId,
@@ -279,6 +292,7 @@ export function mapearReceta(fila: RecetaConDetalle): Receta {
       })),
     grupoId: fila.grupoId,
     grupoNombre: fila.grupo?.nombre ?? null,
+    recetaBaseId: fila.recetaBaseId,
     creadoEn: fila.creadoEn,
     actualizadoEn: fila.actualizadoEn,
   });

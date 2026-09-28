@@ -10,6 +10,10 @@ import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 import type { AlAvanzarIA } from "@/dominio/servicios/avanceIA";
 import type { IConversacionIARepositorio } from "@/dominio/repositorios/IConversacionIARepositorio";
 import { ConversacionIA } from "@/dominio/entidades/ConversacionIA";
+import {
+  descripcionDeOpcion,
+  type OpcionDelPlan,
+} from "@/dominio/entidades/PlanNutricional";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 import type { HerramientaAsistente } from "@/dominio/servicios/IAsistenteNutricional";
 
@@ -311,7 +315,7 @@ function detallePlan(d: {
     nombre: string;
     horaDesde: string | null;
     horaHasta: string | null;
-    opciones: { contenido: string }[];
+    opciones: OpcionDelPlan[];
   }[];
   recomendaciones: { texto: string }[];
 }) {
@@ -331,7 +335,9 @@ function detallePlan(d: {
       franja: c.nombre,
       desde: c.horaDesde,
       hasta: c.horaHasta,
-      opciones: c.opciones.map((o) => o.contenido),
+      // Una opción puede no tener texto y estar armada con una receta y
+      // alimentos (migración 82): la descripción dice lo que eligió.
+      opciones: c.opciones.map(descripcionDeOpcion),
     })),
     recomendaciones: d.recomendaciones.map((r) => r.texto),
   };

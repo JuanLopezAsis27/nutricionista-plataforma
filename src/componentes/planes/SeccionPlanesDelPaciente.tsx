@@ -33,6 +33,7 @@ import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { VistaPlan } from "@/componentes/planes/VistaPlan";
 import { TarjetaPlanAsignado } from "@/componentes/planes/TarjetaPlanAsignado";
 import { FormularioPlan } from "@/componentes/planes/FormularioPlan";
+import { CLASES_DIALOGO_PLAN } from "@/componentes/planes/formulario/dialogo";
 import { FormularioAsignacionPlan } from "@/componentes/planes/FormularioAsignacionPlan";
 import { PlanSemanalDelPaciente } from "@/componentes/planes-semanales/PlanSemanalDelPaciente";
 
@@ -260,7 +261,7 @@ export function SeccionPlanesDelPaciente({
         open={crearModalidad !== null}
         onOpenChange={(abierto) => !abierto && setCrearModalidad(null)}
       >
-        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+        <DialogContent className={CLASES_DIALOGO_PLAN}>
           <DialogHeader>
             <DialogTitle>
               {crearModalidad === "PDF"

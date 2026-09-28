@@ -26,6 +26,7 @@ import {
   FRANJAS_INICIALES,
   SIN_RECETA,
   SIN_CARPETA,
+  TIPOS_META_INICIALES,
   type DatosFormulario,
 } from "./formulario/esquema";
 import { SeccionDatosGenerales } from "./formulario/SeccionDatosGenerales";
@@ -34,7 +35,11 @@ import {
   SeccionDocumentosDelPlan,
   SeccionAdjuntos,
 } from "./formulario/SeccionArchivos";
-import { SeccionComidas } from "./formulario/SeccionComidas";
+import {
+  SeccionComidas,
+  type RecetaElegible,
+} from "./formulario/SeccionComidas";
+import { SeccionCombinaciones } from "./formulario/SeccionCombinaciones";
 import { SeccionRecetasVinculadas } from "./formulario/SeccionRecetasVinculadas";
 import {
   SeccionEquivalencias,
@@ -114,6 +119,21 @@ export function FormularioPlan({
   const esPlantilla = planInicial?.esPlantilla ?? comoPlantilla ?? false;
   const { listar: listarRecetas } = useRecetas();
   const recetas = listarRecetas(undefined);
+  // Con sus macros por porción —cada opción muestra lo que suma mientras se
+  // edita (receta × porciones + alimentos)— y sus etiquetas y foto, para el
+  // buscador de recetas.
+  const recetasElegibles: RecetaElegible[] = (recetas.data ?? []).map((r) => ({
+    id: r.id,
+    nombre: r.nombre,
+    etiquetas: r.etiquetas,
+    fotoId: r.fotoPrincipalId,
+    macros: {
+      calorias: r.calorias,
+      proteinasG: r.proteinasG,
+      carbohidratosG: r.carbohidratosG,
+      grasasG: r.grasasG,
+    },
+  }));
   const enviando =
     crear.isPending || actualizar.isPending || crearParaPaciente.isPending;
 
@@ -128,6 +148,7 @@ export function FormularioPlan({
           proteinasMetaG: planInicial.proteinasMetaG?.toString() ?? "",
           carbohidratosMetaG: planInicial.carbohidratosMetaG?.toString() ?? "",
           grasasMetaG: planInicial.grasasMetaG?.toString() ?? "",
+          tiposMeta: { ...planInicial.tiposMeta },
           contactosUtiles: planInicial.contactosUtiles ?? "",
           comidas: planInicial.comidas.map((comida) => ({
             nombre: comida.nombre,
@@ -136,6 +157,18 @@ export function FormularioPlan({
             opciones: comida.opciones.map((opcion) => ({
               contenido: opcion.contenido,
               recetaId: opcion.recetaId ?? SIN_RECETA,
+              porciones: opcion.porciones?.toString() ?? "",
+              items: opcion.items.map((item) => ({
+                nombre: item.nombre,
+                cantidadGramos: item.cantidadGramos?.toString() ?? "",
+                caloriasPor100: item.caloriasPor100?.toString() ?? "",
+                proteinasPor100: item.proteinasPor100?.toString() ?? "",
+                carbohidratosPor100: item.carbohidratosPor100?.toString() ?? "",
+                grasasPor100: item.grasasPor100?.toString() ?? "",
+                fuente: item.fuente ?? "MANUAL",
+                referenciaExterna: item.referenciaExterna ?? "",
+                alimentoOrigenId: item.alimentoOrigenId ?? "",
+              })),
             })),
           })),
           equivalencias: planInicial.equivalencias.map((e) => ({
@@ -159,6 +192,7 @@ export function FormularioPlan({
           proteinasMetaG: "",
           carbohidratosMetaG: "",
           grasasMetaG: "",
+          tiposMeta: { ...TIPOS_META_INICIALES },
           contactosUtiles: "",
           comidas: modalidad === "APP" ? FRANJAS_INICIALES : [],
           equivalencias: [],
@@ -193,15 +227,32 @@ export function FormularioPlan({
       proteinasMetaG: aNumero(datos.proteinasMetaG),
       carbohidratosMetaG: aNumero(datos.carbohidratosMetaG),
       grasasMetaG: aNumero(datos.grasasMetaG),
+      tiposMeta: datos.tiposMeta,
       contactosUtiles: datos.contactosUtiles.trim() || null,
       comidas: datos.comidas.map((comida) => ({
         nombre: comida.nombre,
         horaDesde: comida.horaDesde || null,
         horaHasta: comida.horaHasta || null,
-        opciones: comida.opciones.map((opcion) => ({
-          contenido: opcion.contenido,
-          recetaId: opcion.recetaId === SIN_RECETA ? null : opcion.recetaId,
-        })),
+        opciones: comida.opciones.map((opcion) => {
+          const recetaId =
+            opcion.recetaId === SIN_RECETA ? null : opcion.recetaId;
+          return {
+            contenido: opcion.contenido.trim(),
+            recetaId,
+            porciones: recetaId ? aNumero(opcion.porciones) : null,
+            items: opcion.items.map((item) => ({
+              nombre: item.nombre.trim(),
+              cantidadGramos: aNumero(item.cantidadGramos),
+              caloriasPor100: aNumero(item.caloriasPor100),
+              proteinasPor100: aNumero(item.proteinasPor100),
+              carbohidratosPor100: aNumero(item.carbohidratosPor100),
+              grasasPor100: aNumero(item.grasasPor100),
+              fuente: item.fuente || null,
+              referenciaExterna: item.referenciaExterna || null,
+              alimentoOrigenId: item.alimentoOrigenId || null,
+            })),
+          };
+        }),
       })),
       equivalencias: datos.equivalencias,
       recomendaciones: datos.recomendaciones,
@@ -284,13 +335,8 @@ export function FormularioPlan({
             invitaría a armar dos planes en el mismo registro. */}
         {esApp && (
           <>
-            <SeccionComidas
-              form={form}
-              recetas={(recetas.data ?? []).map((r) => ({
-                id: r.id,
-                nombre: r.nombre,
-              }))}
-            />
+            <SeccionComidas form={form} recetas={recetasElegibles} />
+            <SeccionCombinaciones control={form.control} />
             <SeccionEquivalencias control={form.control} />
             <SeccionRecomendaciones control={form.control} />
           </>
@@ -310,7 +356,11 @@ export function FormularioPlan({
           )}
         />
 
-        <div className="flex justify-end gap-2">
+        {/* En el celular la barra queda fija abajo: el formulario es largo y
+            para guardar había que bajar hasta el final. Los márgenes negativos
+            compensan el padding del diálogo (p-4) para que ocupe todo el ancho
+            y tape el contenido que pasa por debajo. */}
+        <div className="sticky -bottom-4 -mx-4 -mb-4 flex justify-end gap-2 border-t bg-background px-4 py-3 sm:static sm:mx-0 sm:mb-0 sm:border-0 sm:bg-transparent sm:p-0">
           <Button
             type="button"
             variant="outline"

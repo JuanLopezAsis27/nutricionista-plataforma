@@ -22,6 +22,7 @@ const INCLUIR_HIJOS = {
       opciones: {
         orderBy: { orden: "asc" },
         include: {
+          items: { orderBy: { orden: "asc" } },
           receta: {
             select: {
               nombre: true,
@@ -103,6 +104,10 @@ export class PrismaRepositorioPlan
           proteinasMetaG: d.proteinasMetaG,
           carbohidratosMetaG: d.carbohidratosMetaG,
           grasasMetaG: d.grasasMetaG,
+          caloriasMetaTipo: d.tiposMeta.calorias,
+          proteinasMetaTipo: d.tiposMeta.proteinasG,
+          carbohidratosMetaTipo: d.tiposMeta.carbohidratosG,
+          grasasMetaTipo: d.tiposMeta.grasasG,
           contactosUtiles: d.contactosUtiles,
           creadoEn: d.creadoEn,
           actualizadoEn: d.actualizadoEn,
@@ -121,7 +126,15 @@ export class PrismaRepositorioPlan
                   numero: opcion.numero,
                   contenido: opcion.contenido,
                   recetaId: opcion.recetaId,
+                  porciones: opcion.porciones,
                   orden: opcion.orden,
+                  items: {
+                    create: opcion.items.map((item, orden) => ({
+                      nutricionistaId: inquilino,
+                      ...item,
+                      orden,
+                    })),
+                  },
                 })),
               },
             })),
@@ -188,6 +201,10 @@ export class PrismaRepositorioPlan
             proteinasMetaG: d.proteinasMetaG,
             carbohidratosMetaG: d.carbohidratosMetaG,
             grasasMetaG: d.grasasMetaG,
+            caloriasMetaTipo: d.tiposMeta.calorias,
+            proteinasMetaTipo: d.tiposMeta.proteinasG,
+            carbohidratosMetaTipo: d.tiposMeta.carbohidratosG,
+            grasasMetaTipo: d.tiposMeta.grasasG,
             contactosUtiles: d.contactosUtiles,
             comidas: {
               create: d.comidas.map((comida) => ({
@@ -204,7 +221,15 @@ export class PrismaRepositorioPlan
                     numero: opcion.numero,
                     contenido: opcion.contenido,
                     recetaId: opcion.recetaId,
+                    porciones: opcion.porciones,
                     orden: opcion.orden,
+                    items: {
+                      create: opcion.items.map((item, orden) => ({
+                        nutricionistaId: inquilino,
+                        ...item,
+                        orden,
+                      })),
+                    },
                   })),
                 },
               })),
@@ -510,6 +535,12 @@ export function mapearPlan(fila: PlanConHijos): PlanNutricional {
     proteinasMetaG: aNumero(fila.proteinasMetaG),
     carbohidratosMetaG: aNumero(fila.carbohidratosMetaG),
     grasasMetaG: aNumero(fila.grasasMetaG),
+    tiposMeta: {
+      calorias: fila.caloriasMetaTipo,
+      proteinasG: fila.proteinasMetaTipo,
+      carbohidratosG: fila.carbohidratosMetaTipo,
+      grasasG: fila.grasasMetaTipo,
+    },
     contactosUtiles: fila.contactosUtiles,
     comidas: fila.comidas.map((comida) => ({
       id: comida.id,
@@ -531,6 +562,18 @@ export function mapearPlan(fila: PlanConHijos): PlanNutricional {
               grasasG: aNumero(opcion.receta.grasasG),
             }
           : null,
+        porciones: aNumero(opcion.porciones),
+        items: opcion.items.map((item) => ({
+          nombre: item.nombre,
+          cantidadGramos: aNumero(item.cantidadGramos),
+          caloriasPor100: aNumero(item.caloriasPor100),
+          proteinasPor100: aNumero(item.proteinasPor100),
+          carbohidratosPor100: aNumero(item.carbohidratosPor100),
+          grasasPor100: aNumero(item.grasasPor100),
+          fuente: item.fuente,
+          referenciaExterna: item.referenciaExterna,
+          alimentoOrigenId: item.alimentoOrigenId,
+        })),
         orden: opcion.orden,
       })),
     })),
