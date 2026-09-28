@@ -83,6 +83,11 @@ export interface ItemDeComidaSemanal {
    */
   fuente: string | null;
   referenciaExterna: string | null;
+  /**
+   * Id del alimento de la lista de la que se copió (migración 85). Solo
+   * dice DÓNDE se usa un alimento: los macros ya están copiados acá.
+   */
+  alimentoOrigenId: string | null;
   orden: number;
 }
 
@@ -142,6 +147,7 @@ export interface DatosItemComidaSemanal {
   grasasPor100?: number | null;
   fuente?: string | null;
   referenciaExterna?: string | null;
+  alimentoOrigenId?: string | null;
 }
 
 export interface DatosComidaSemanal {
@@ -461,6 +467,7 @@ function normalizarItems(
         ),
         fuente: item.fuente?.trim() || null,
         referenciaExterna: item.referenciaExterna?.trim() || null,
+        alimentoOrigenId: item.alimentoOrigenId?.trim() || null,
         orden: 0,
       };
     })

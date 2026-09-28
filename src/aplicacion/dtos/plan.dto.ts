@@ -2,7 +2,12 @@ import { z } from "zod";
 import {
   TIPOS_RECOMENDACION,
   MODALIDADES_PLAN,
+  MAXIMO_ITEMS_POR_OPCION,
 } from "@/dominio/entidades/PlanNutricional";
+import {
+  TIPOS_META,
+  ESTADOS_META,
+} from "@/dominio/servicios/comparacionMacros";
 
 /** DTOs de Plan Nutricional — esquemas Zod de entrada/salida. */
 
@@ -10,10 +15,45 @@ const hora = z
   .string()
   .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "La hora debe tener formato HH:mm");
 
-export const opcionPlanDto = z.object({
-  contenido: z.string().min(1, "La opción no puede estar vacía").max(2000),
-  recetaId: z.string().min(1).optional().nullable(),
+const macroPor100 = z.number().min(0).max(2000).nullable().optional();
+
+/** Alimento suelto de una opción: gramos + macros por 100 g. */
+export const itemOpcionDto = z.object({
+  nombre: z.string().trim().min(1, "El alimento necesita un nombre").max(200),
+  cantidadGramos: z.number().min(0).max(5000).nullable().optional(),
+  caloriasPor100: macroPor100,
+  proteinasPor100: macroPor100,
+  carbohidratosPor100: macroPor100,
+  grasasPor100: macroPor100,
+  fuente: z.string().max(20).nullable().optional(),
+  referenciaExterna: z.string().max(120).nullable().optional(),
+  /** Alimento de la lista del que se copió (migración 85). */
+  alimentoOrigenId: z.string().max(64).nullable().optional(),
 });
+export type ItemOpcionDto = z.infer<typeof itemOpcionDto>;
+
+/**
+ * Una opción vale con texto, con receta o con alimentos (migración 82): la
+ * receta o la lista ya le dicen al paciente qué comer.
+ */
+export const opcionPlanDto = z
+  .object({
+    contenido: z.string().max(2000).optional().nullable(),
+    recetaId: z.string().min(1).optional().nullable(),
+    /** Porciones de la receta (null = 1). */
+    porciones: z.number().positive().max(20).optional().nullable(),
+    items: z.array(itemOpcionDto).max(MAXIMO_ITEMS_POR_OPCION).optional(),
+  })
+  .refine(
+    (o) =>
+      (o.contenido ?? "").trim().length > 0 ||
+      !!o.recetaId ||
+      (o.items ?? []).length > 0,
+    {
+      message: "La opción no puede estar vacía",
+      path: ["contenido"],
+    },
+  );
 
 export const comidaPlanDto = z.object({
   nombre: z.string().min(1, "La comida debe tener un nombre").max(80),
@@ -40,11 +80,20 @@ export const recomendacionPlanDto = z.object({
   texto: z.string().min(1).max(1000),
 });
 
+const tiposMetaDto = z.object({
+  calorias: z.enum(TIPOS_META),
+  proteinasG: z.enum(TIPOS_META),
+  carbohidratosG: z.enum(TIPOS_META),
+  grasasG: z.enum(TIPOS_META),
+});
+
 const metas = {
   caloriasMeta: z.number().int().min(0).max(100000).optional().nullable(),
   proteinasMetaG: z.number().min(0).max(10000).optional().nullable(),
   carbohidratosMetaG: z.number().min(0).max(10000).optional().nullable(),
   grasasMetaG: z.number().min(0).max(10000).optional().nullable(),
+  /** Cómo se lee cada meta. Ausente = aproximada (como se leyeron siempre). */
+  tiposMeta: tiposMetaDto.partial().optional(),
 };
 
 const planBase = z.object({
@@ -216,20 +265,41 @@ const archivoDelPlanDto = z.object({
 });
 export type ArchivoDelPlanDto = z.infer<typeof archivoDelPlanDto>;
 
+const macrosDto = z.object({
+  calorias: z.number().nullable(),
+  proteinasG: z.number().nullable(),
+  carbohidratosG: z.number().nullable(),
+  grasasG: z.number().nullable(),
+});
+export type MacrosDto = z.infer<typeof macrosDto>;
+
+const itemOpcionSalida = z.object({
+  nombre: z.string(),
+  cantidadGramos: z.number().nullable(),
+  caloriasPor100: z.number().nullable(),
+  proteinasPor100: z.number().nullable(),
+  carbohidratosPor100: z.number().nullable(),
+  grasasPor100: z.number().nullable(),
+  fuente: z.string().nullable(),
+  referenciaExterna: z.string().nullable(),
+  alimentoOrigenId: z.string().nullable(),
+});
+
 const opcionSalida = z.object({
   id: z.string(),
   numero: z.number(),
   contenido: z.string(),
   recetaId: z.string().nullable(),
   recetaNombre: z.string().nullable(),
-  recetaMacros: z
-    .object({
-      calorias: z.number().nullable(),
-      proteinasG: z.number().nullable(),
-      carbohidratosG: z.number().nullable(),
-      grasasG: z.number().nullable(),
-    })
-    .nullable(),
+  /** Macros POR PORCIÓN de la receta vinculada. */
+  recetaMacros: macrosDto.nullable(),
+  /** Porciones de la receta (null = 1). */
+  porciones: z.number().nullable(),
+  items: z.array(itemOpcionSalida),
+  /** Lo que suma la opción: alimentos + receta × porciones. */
+  macros: macrosDto,
+  /** La opción en una línea: el texto, o la receta y los alimentos si no hay. */
+  descripcion: z.string(),
   orden: z.number(),
 });
 
@@ -253,6 +323,7 @@ export const planSalidaDto = z.object({
   proteinasMetaG: z.number().nullable(),
   carbohidratosMetaG: z.number().nullable(),
   grasasMetaG: z.number().nullable(),
+  tiposMeta: tiposMetaDto,
   contactosUtiles: z.string().nullable(),
   comidas: z.array(comidaSalida),
   equivalencias: z.array(
@@ -352,3 +423,81 @@ export const moverPlanDto = z.object({
   grupoId: z.string().min(1).nullable(),
 });
 export type MoverPlanDto = z.infer<typeof moverPlanDto>;
+
+// --- Evaluación de combinaciones ---------------------------------------------
+
+/**
+ * El BORRADOR del plan que se está editando, para evaluar sus combinaciones
+ * sin guardarlo. Es lo justo para sumar macros: franjas, opciones (receta,
+ * porciones y alimentos) y metas. Sin la validación de "opción vacía": una
+ * opción a medio cargar se evalúa igual, suma lo que tiene.
+ */
+export const evaluarCombinacionesDto = z.object({
+  comidas: z
+    .array(
+      z.object({
+        nombre: z.string().max(80),
+        opciones: z
+          .array(
+            z.object({
+              recetaId: z.string().min(1).optional().nullable(),
+              porciones: z.number().positive().max(20).optional().nullable(),
+              items: z
+                .array(itemOpcionDto)
+                .max(MAXIMO_ITEMS_POR_OPCION)
+                .optional(),
+            }),
+          )
+          .max(20),
+      }),
+    )
+    .max(15),
+  ...metas,
+});
+export type EvaluarCombinacionesDto = z.infer<typeof evaluarCombinacionesDto>;
+
+const comparacionMacroDto = z.object({
+  valor: z.number().nullable(),
+  meta: z.number().nullable(),
+  diferencia: z.number().nullable(),
+  estado: z.enum(ESTADOS_META),
+  tipo: z.enum(TIPOS_META),
+});
+
+export const combinacionDto = z.object({
+  elecciones: z.array(z.object({ franja: z.string(), opcion: z.number() })),
+  macros: macrosDto,
+  comparacion: z.object({
+    calorias: comparacionMacroDto,
+    proteinasG: comparacionMacroDto,
+    carbohidratosG: comparacionMacroDto,
+    grasasG: comparacionMacroDto,
+  }),
+  metasCumplidas: z.number(),
+  puntaje: z.number(),
+});
+export type CombinacionDto = z.infer<typeof combinacionDto>;
+
+/**
+ * Aviso de un alimento suelto que también es ingrediente de la receta de la
+ * misma opción. No es un error —un huevo extra es comida de más a propósito—,
+ * pero sí la señal de que puede estar cargado dos veces.
+ */
+export const avisoDuplicadoDto = z.object({
+  franja: z.string(),
+  opcion: z.number(),
+  alimento: z.string(),
+  receta: z.string(),
+});
+export type AvisoDuplicadoDto = z.infer<typeof avisoDuplicadoDto>;
+
+export const resultadoCombinacionesDto = z.object({
+  total: z.number(),
+  metasCargadas: z.number(),
+  exhaustivo: z.boolean(),
+  mejores: z.array(combinacionDto),
+  avisos: z.array(avisoDuplicadoDto),
+});
+export type ResultadoCombinacionesDto = z.infer<
+  typeof resultadoCombinacionesDto
+>;

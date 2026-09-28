@@ -47,7 +47,20 @@ describe("ProveedorOpenFoodFacts", () => {
       proteinasPor100: 7,
       carbohidratosPor100: 78,
       grasasPor100: 0.6,
+      id: null,
+      categoria: null,
+      imagenVersion: null,
     });
+  });
+
+  it("con un filtro de categoría no consulta: no conoce nuestras categorías", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const proveedor = new ProveedorOpenFoodFacts(config);
+    expect(await proveedor.buscar("leche", 10, undefined, "LACTEOS")).toEqual(
+      [],
+    );
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it("descarta productos sin nombre o sin ningún macro útil", async () => {

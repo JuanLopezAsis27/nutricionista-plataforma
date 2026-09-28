@@ -67,3 +67,51 @@ describe("compararConMetas", () => {
     expect(comparacion.calorias.diferencia).toBeNull();
   });
 });
+
+describe("compararConMetas con tipo de meta (migración 82)", () => {
+  const macros = {
+    calorias: 2300,
+    proteinasG: 150,
+    carbohidratosG: 180,
+    grasasG: 70,
+  };
+
+  it("un MÍNIMO se cumple desde la meta para arriba, sin margen hacia abajo", () => {
+    const tipos = { proteinasG: "MINIMO" as const };
+    const metas = { ...metasBase(), proteinasG: 120, tipos };
+    expect(compararConMetas(macros, metas).proteinasG.estado).toBe("EN_RANGO");
+    expect(
+      compararConMetas({ ...macros, proteinasG: 115 }, metas).proteinasG.estado,
+    ).toBe("POR_DEBAJO");
+  });
+
+  it("un MÁXIMO se cumple desde la meta para abajo, sin margen hacia arriba", () => {
+    const metas = {
+      ...metasBase(),
+      grasasG: 60,
+      tipos: { grasasG: "MAXIMO" as const },
+    };
+    const comparacion = compararConMetas(macros, metas);
+    expect(comparacion.grasasG.estado).toBe("POR_ENCIMA");
+    expect(comparacion.grasasG.tipo).toBe("MAXIMO");
+    expect(
+      compararConMetas({ ...macros, grasasG: 20 }, metas).grasasG.estado,
+    ).toBe("EN_RANGO");
+  });
+
+  it("sin tipo, la meta se sigue leyendo como aproximada (±10 %)", () => {
+    const metas = { ...metasBase(), calorias: 2000 };
+    const comparacion = compararConMetas(macros, metas);
+    expect(comparacion.calorias.tipo).toBe("APROXIMADO");
+    expect(comparacion.calorias.estado).toBe("POR_ENCIMA");
+  });
+});
+
+function metasBase() {
+  return {
+    calorias: null,
+    proteinasG: null,
+    carbohidratosG: null,
+    grasasG: null,
+  };
+}

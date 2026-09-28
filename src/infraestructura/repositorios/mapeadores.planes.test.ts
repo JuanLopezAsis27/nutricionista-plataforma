@@ -29,6 +29,10 @@ describe("mapearPlan", () => {
     proteinasMetaG: decimal(150),
     carbohidratosMetaG: decimal(200),
     grasasMetaG: decimal(60),
+    caloriasMetaTipo: "APROXIMADO",
+    proteinasMetaTipo: "MINIMO",
+    carbohidratosMetaTipo: "APROXIMADO",
+    grasasMetaTipo: "MAXIMO",
     contactosUtiles: "nutricionista de guardia",
     modalidad: "APP",
     grupoId: "grupo-1",
@@ -48,7 +52,25 @@ describe("mapearPlan", () => {
             numero: 1,
             contenido: "Avena con fruta",
             recetaId: "rec-1",
+            porciones: decimal(1.5),
             orden: 1,
+            items: [
+              {
+                id: "item-1",
+                nutricionistaId: "nutri-1",
+                opcionId: "op-1",
+                nombre: "Banana",
+                cantidadGramos: decimal(120),
+                caloriasPor100: decimal(89),
+                proteinasPor100: decimal(1.1),
+                carbohidratosPor100: decimal(23),
+                grasasPor100: decimal(0.3),
+                fuente: "BASE",
+                referenciaExterna: null,
+                alimentoOrigenId: "ali-base-7",
+                orden: 0,
+              },
+            ],
             receta: {
               nombre: "Avena base",
               calorias: decimal(310),
@@ -62,7 +84,9 @@ describe("mapearPlan", () => {
             numero: 2,
             contenido: "Tostadas",
             recetaId: null,
+            porciones: null,
             orden: 2,
+            items: [],
             receta: null,
           },
         ],
@@ -121,6 +145,38 @@ describe("mapearPlan", () => {
     expect(datos.proteinasMetaG).toBe(150);
     expect(datos.carbohidratosMetaG).toBe(200);
     expect(datos.grasasMetaG).toBe(60);
+  });
+
+  it("no cruza los cuatro tipos de meta entre si (migración 82)", () => {
+    // Cuatro enums consecutivos con nombres casi iguales: cruzarlos deja la
+    // proteína como techo y la grasa como piso, y nada falla.
+    const datos = mapearPlan(fila).aPrimitivos();
+
+    expect(datos.tiposMeta).toEqual({
+      calorias: "APROXIMADO",
+      proteinasG: "MINIMO",
+      carbohidratosG: "APROXIMADO",
+      grasasG: "MAXIMO",
+    });
+  });
+
+  it("mapea los alimentos sueltos y las porciones de la opción", () => {
+    const opcion = mapearPlan(fila).aPrimitivos().comidas[0]!.opciones[0]!;
+
+    expect(opcion.porciones).toBe(1.5);
+    expect(opcion.items).toEqual([
+      {
+        nombre: "Banana",
+        cantidadGramos: 120,
+        caloriasPor100: 89,
+        proteinasPor100: 1.1,
+        carbohidratosPor100: 23,
+        grasasPor100: 0.3,
+        fuente: "BASE",
+        referenciaExterna: null,
+        alimentoOrigenId: "ali-base-7",
+      },
+    ]);
   });
 
   it("conserva la jerarquia comidas -> opciones sin aplanarla", () => {

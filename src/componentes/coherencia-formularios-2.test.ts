@@ -346,13 +346,21 @@ describe("FormularioPlan vs crearPlanDto", () => {
     proteinasMetaG: "",
     carbohidratosMetaG: "",
     grasasMetaG: "",
+    tiposMeta: {
+      calorias: "APROXIMADO" as const,
+      proteinasG: "MINIMO" as const,
+      carbohidratosG: "APROXIMADO" as const,
+      grasasG: "MAXIMO" as const,
+    },
     contactosUtiles: "",
     comidas: [
       {
         nombre: "Desayuno",
         horaDesde: "",
         horaHasta: "",
-        opciones: [{ contenido: "Avena", recetaId: "" }],
+        opciones: [
+          { contenido: "Avena", recetaId: "", porciones: "", items: [] },
+        ],
       },
     ],
     modalidad: "APP" as const,

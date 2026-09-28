@@ -33,6 +33,8 @@ const ETIQUETAS_CAMPO: Record<string, string> = {
   fecha: "fecha",
   pacienteId: "paciente",
   nutricionistaId: "consultorio",
+  // Nombre + marca normalizados de un alimento (migración 83).
+  claveIdentidad: "nombre y marca",
 };
 
 export function traducirErrorPrisma(

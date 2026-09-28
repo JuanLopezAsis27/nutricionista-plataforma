@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { MODALIDADES_PLAN } from "@/dominio/entidades/PlanNutricional";
+import {
+  MODALIDADES_PLAN,
+  MAXIMO_ITEMS_POR_OPCION,
+} from "@/dominio/entidades/PlanNutricional";
+import {
+  TIPOS_META,
+  TIPOS_META_POR_DEFECTO,
+} from "@/dominio/servicios/comparacionMacros";
 import { numeroEnRango } from "@/lib/validacionListas";
 
 /**
@@ -16,6 +23,27 @@ import { numeroEnRango } from "@/lib/validacionListas";
 export const SIN_RECETA = "__ninguna__";
 /** Ídem para "sin carpeta": estar suelto es una opción, no la ausencia de una. */
 export const SIN_CARPETA = "__suelto__";
+
+/**
+ * Un alimento suelto de una opción, como lo tiene el formulario: los números
+ * como texto (los inputs pueden estar vacíos). Cumple `AlimentoEnFormulario`,
+ * así que se suma con el mismo espejo que el recetario y el plan semanal.
+ */
+const itemOpcion = z.object({
+  nombre: z.string().trim().min(1, "Nombre obligatorio").max(200),
+  cantidadGramos: z.string(),
+  caloriasPor100: z.string(),
+  proteinasPor100: z.string(),
+  carbohidratosPor100: z.string(),
+  grasasPor100: z.string(),
+  fuente: z.string(),
+  referenciaExterna: z.string(),
+  /** Alimento de la lista del que salió (migración 85); vacío si se cargó a mano. */
+  alimentoOrigenId: z.string(),
+});
+export type ItemOpcionFormulario = z.infer<typeof itemOpcion>;
+
+const tipoMeta = z.enum(TIPOS_META);
 
 const hora = z
   .string()
@@ -34,6 +62,13 @@ export const esquema = z
     proteinasMetaG: numeroEnRango(0, 10_000),
     carbohidratosMetaG: numeroEnRango(0, 10_000),
     grasasMetaG: numeroEnRango(0, 10_000),
+    /** Si cada meta es aproximada, un piso o un techo. */
+    tiposMeta: z.object({
+      calorias: tipoMeta,
+      proteinasG: tipoMeta,
+      carbohidratosG: tipoMeta,
+      grasasG: tipoMeta,
+    }),
     contactosUtiles: z.string().max(2000),
     comidas: z.array(
       z.object({
@@ -42,13 +77,38 @@ export const esquema = z
         horaHasta: hora,
         opciones: z
           .array(
-            z.object({
-              contenido: z
-                .string()
-                .min(1, "La opción no puede estar vacía")
-                .max(2000),
-              recetaId: z.string(),
-            }),
+            z
+              .object({
+                contenido: z.string().max(2000),
+                recetaId: z.string(),
+                /** Porciones de la receta; vacío = 1. */
+                porciones: z.string(),
+                items: z
+                  .array(itemOpcion)
+                  .max(
+                    MAXIMO_ITEMS_POR_OPCION,
+                    `Hasta ${MAXIMO_ITEMS_POR_OPCION} alimentos por opción`,
+                  ),
+              })
+              // Espejo de `opcionPlanDto`: texto, receta o alimentos.
+              .refine(
+                (o) =>
+                  o.contenido.trim().length > 0 ||
+                  o.recetaId !== SIN_RECETA ||
+                  o.items.length > 0,
+                {
+                  message:
+                    "La opción no puede estar vacía: escribí qué come, o elegí una receta o alimentos",
+                  path: ["contenido"],
+                },
+              )
+              .refine(
+                (o) =>
+                  o.porciones.trim() === "" ||
+                  ((aNumero(o.porciones) ?? 0) > 0 &&
+                    (aNumero(o.porciones) ?? 0) <= 20),
+                { message: "Entre 0 y 20", path: ["porciones"] },
+              ),
           )
           .min(1),
       }),
@@ -99,30 +159,37 @@ export const esquema = z
   });
 export type DatosFormulario = z.infer<typeof esquema>;
 
+/** Una opción recién agregada: todo vacío, sin receta. */
+export function opcionVacia(): DatosFormulario["comidas"][number]["opciones"][number] {
+  return { contenido: "", recetaId: SIN_RECETA, porciones: "", items: [] };
+}
+
+export const TIPOS_META_INICIALES = TIPOS_META_POR_DEFECTO;
+
 export const FRANJAS_INICIALES: DatosFormulario["comidas"] = [
   {
     nombre: "Desayuno",
     horaDesde: "08:00",
     horaHasta: "09:00",
-    opciones: [{ contenido: "", recetaId: SIN_RECETA }],
+    opciones: [opcionVacia()],
   },
   {
     nombre: "Almuerzo",
     horaDesde: "12:30",
     horaHasta: "13:30",
-    opciones: [{ contenido: "", recetaId: SIN_RECETA }],
+    opciones: [opcionVacia()],
   },
   {
     nombre: "Merienda",
     horaDesde: "17:00",
     horaHasta: "17:30",
-    opciones: [{ contenido: "", recetaId: SIN_RECETA }],
+    opciones: [opcionVacia()],
   },
   {
     nombre: "Cena",
     horaDesde: "21:00",
     horaHasta: "22:00",
-    opciones: [{ contenido: "", recetaId: SIN_RECETA }],
+    opciones: [opcionVacia()],
   },
 ];
 

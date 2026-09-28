@@ -1,11 +1,22 @@
 import { z } from "zod";
+import { CATEGORIAS_ALIMENTO } from "@/dominio/entidades/AlimentoPropio";
 
 /** DTOs de la búsqueda de datos nutricionales de ingredientes. */
 
-export const buscarAlimentoDto = z.object({
-  termino: z.string().min(2, "Escribí al menos 2 caracteres").max(120),
-  limite: z.number().int().min(1).max(25).optional(),
-});
+/**
+ * Con categoría, el término puede venir vacío: es «mostrame los lácteos»
+ * (migración 84). Sin categoría hacen falta al menos 2 caracteres.
+ */
+export const buscarAlimentoDto = z
+  .object({
+    termino: z.string().max(120),
+    limite: z.number().int().min(1).max(40).optional(),
+    categoria: z.enum(CATEGORIAS_ALIMENTO).optional(),
+  })
+  .refine((d) => d.categoria || d.termino.trim().length >= 2, {
+    message: "Escribí al menos 2 caracteres",
+    path: ["termino"],
+  });
 export type BuscarAlimentoDto = z.infer<typeof buscarAlimentoDto>;
 
 export const alimentoNutricionalSalidaDto = z.object({
@@ -17,6 +28,9 @@ export const alimentoNutricionalSalidaDto = z.object({
   proteinasPor100: z.number().nullable(),
   carbohidratosPor100: z.number().nullable(),
   grasasPor100: z.number().nullable(),
+  id: z.string().nullable(),
+  categoria: z.enum(CATEGORIAS_ALIMENTO).nullable(),
+  imagenVersion: z.string().nullable(),
 });
 export type AlimentoNutricionalSalidaDto = z.infer<
   typeof alimentoNutricionalSalidaDto

@@ -32,6 +32,7 @@ import { crearServicioArchivo } from "./modulos/archivos";
 import { crearServicioEvaluacion } from "./modulos/evaluacion";
 import { crearServicioDiario } from "./modulos/diario";
 import { crearServicioReceta } from "./modulos/recetas";
+import { crearServicioRecetasBase } from "./modulos/recetasBase";
 import { crearServicioGrabaciones } from "./modulos/grabaciones";
 import { crearServicioPlan } from "./modulos/planes";
 import { crearServicioPlanSemanal } from "./modulos/planes-semanales";
@@ -64,6 +65,7 @@ import { GuardarConexionGoogle } from "@/aplicacion/casos-de-uso/integraciones/G
 import { DesconectarGoogle } from "@/aplicacion/casos-de-uso/integraciones/DesconectarGoogle";
 
 import { ServicioAlimentosPropios } from "@/aplicacion/servicios/ServicioAlimentosPropios";
+import type { IAlimentoPropioRepositorio } from "@/dominio/repositorios/IAlimentoPropioRepositorio";
 import { ImportarAlimentos } from "@/aplicacion/casos-de-uso/nutricion/ImportarAlimentos";
 import { ObtenerEstadoAlimentosPropios } from "@/aplicacion/casos-de-uso/nutricion/ObtenerEstadoAlimentosPropios";
 import { VaciarAlimentosPropios } from "@/aplicacion/casos-de-uso/nutricion/VaciarAlimentosPropios";
@@ -71,6 +73,11 @@ import { CrearAlimentoPropio } from "@/aplicacion/casos-de-uso/nutricion/CrearAl
 import { ActualizarAlimentoPropio } from "@/aplicacion/casos-de-uso/nutricion/ActualizarAlimentoPropio";
 import { EliminarAlimentoPropio } from "@/aplicacion/casos-de-uso/nutricion/EliminarAlimentoPropio";
 import { ListarAlimentosPropios } from "@/aplicacion/casos-de-uso/nutricion/ListarAlimentosPropios";
+import { CambiarImagenAlimento } from "@/aplicacion/casos-de-uso/nutricion/CambiarImagenAlimento";
+import { QuitarImagenAlimento } from "@/aplicacion/casos-de-uso/nutricion/QuitarImagenAlimento";
+import { ObtenerImagenAlimento } from "@/aplicacion/casos-de-uso/nutricion/ObtenerImagenAlimento";
+import { ContarUsosDeAlimento } from "@/aplicacion/casos-de-uso/nutricion/ContarUsosDeAlimento";
+import { BuscarCoincidenciaEnCatalogo } from "@/aplicacion/casos-de-uso/nutricion/BuscarCoincidenciaEnCatalogo";
 
 // --- Reexportes del núcleo que consume la presentación --------------------------
 export {
@@ -212,6 +219,11 @@ export const servicioArchivo = perezoso(() =>
     planes: nucleo.repositorioPlan(),
     usuarios: nucleo.repositorioUsuario(),
     almacenamiento: nucleo.almacenamiento(),
+    // Sin estas dos, el barrido borraría las imágenes de los alimentos.
+    otrasFuentesDeClaves: [
+      nucleo.repositorioAlimentoPropio(),
+      nucleo.repositorioAlimentoBase(),
+    ],
   }),
 );
 
@@ -299,18 +311,58 @@ export const servicioNutricion = perezoso(() =>
   }),
 );
 
+/**
+ * Una lista de alimentos gestionable: importar, ver, editar y vaciar. La del
+ * consultorio y la de la plataforma son la misma colección con otro dueño, así
+ * que comparten casos de uso y cambian solo el repositorio.
+ */
+function servicioDeListaDeAlimentos(
+  repositorio: IAlimentoPropioRepositorio,
+  prefijoImagenes: string,
+  /** El catálogo de la plataforma, para los avisos de coincidencia. Null en el catálogo mismo. */
+  catalogo: IAlimentoPropioRepositorio | null,
+): ServicioAlimentosPropios {
+  const almacenamiento = nucleo.almacenamiento();
+  return new ServicioAlimentosPropios(
+    new ImportarAlimentos(repositorio, catalogo),
+    new ObtenerEstadoAlimentosPropios(repositorio),
+    new VaciarAlimentosPropios(repositorio),
+    new CrearAlimentoPropio(repositorio),
+    new ActualizarAlimentoPropio(repositorio),
+    new EliminarAlimentoPropio(repositorio),
+    new ListarAlimentosPropios(repositorio),
+    new CambiarImagenAlimento(repositorio, almacenamiento, prefijoImagenes),
+    new QuitarImagenAlimento(repositorio, almacenamiento),
+    new ObtenerImagenAlimento(repositorio, almacenamiento),
+    new ContarUsosDeAlimento(nucleo.repositorioUsosDeAlimento()),
+    catalogo ? new BuscarCoincidenciaEnCatalogo(catalogo) : null,
+  );
+}
+
 /** Alimentos propios del profesional (su Excel), que desplazan a Open Food Facts. */
-export const servicioAlimentosPropios = perezoso(
-  () =>
-    new ServicioAlimentosPropios(
-      new ImportarAlimentos(nucleo.repositorioAlimentoPropio()),
-      new ObtenerEstadoAlimentosPropios(nucleo.repositorioAlimentoPropio()),
-      new VaciarAlimentosPropios(nucleo.repositorioAlimentoPropio()),
-      new CrearAlimentoPropio(nucleo.repositorioAlimentoPropio()),
-      new ActualizarAlimentoPropio(nucleo.repositorioAlimentoPropio()),
-      new EliminarAlimentoPropio(nucleo.repositorioAlimentoPropio()),
-      new ListarAlimentosPropios(nucleo.repositorioAlimentoPropio()),
-    ),
+export const servicioAlimentosPropios = perezoso(() =>
+  servicioDeListaDeAlimentos(
+    nucleo.repositorioAlimentoPropio(),
+    "alimentos-propios",
+    nucleo.repositorioAlimentoBase(),
+  ),
+);
+
+/** Alimentos predeterminados de la plataforma: los gestiona el SUPERADMIN. */
+export const servicioAlimentosBase = perezoso(() =>
+  servicioDeListaDeAlimentos(
+    nucleo.repositorioAlimentoBase(),
+    "alimentos-base",
+    null,
+  ),
+);
+
+/** Recetas predeterminadas de la plataforma y su copia a cada recetario. */
+export const servicioRecetasBase = perezoso(() =>
+  crearServicioRecetasBase({
+    catalogo: nucleo.repositorioRecetaBase(),
+    recetario: nucleo.repositorioReceta(),
+  }),
 );
 
 export const servicioObjetivo = perezoso(() =>

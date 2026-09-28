@@ -5,6 +5,7 @@ import {
   actualizarAlimentoPropioDto,
   idAlimentoPropioDto,
   listarAlimentosPropiosDto,
+  coincidenciaEnCatalogoDto,
 } from "@/aplicacion/dtos/alimentoPropio.dto";
 
 /**
@@ -56,5 +57,30 @@ export const routerNutricion = crearRouter({
     .mutation(async ({ ctx, input }) => {
       await ctx.servicios.alimentosPropios.eliminar(input.id);
       return { eliminado: true };
+    }),
+
+  // Los predeterminados de la plataforma: el consultorio los ve (y los usa en
+  // el buscador) pero no los edita. Los que agrega van a su lista propia.
+  // Dónde se usa un alimento de SU lista: el aviso antes de editar o borrar.
+  usosDeAlimento: nutricionistaProcedimiento
+    .input(idAlimentoPropioDto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.alimentosPropios.usos(input.id);
+    }),
+
+  // Si lo que está cargando ya está en la plataforma (aviso, no bloqueo).
+  coincidenciaEnCatalogo: nutricionistaProcedimiento
+    .input(coincidenciaEnCatalogoDto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.alimentosPropios.coincidenciaEnCatalogo(
+        input.nombre,
+        input.marca ?? null,
+      );
+    }),
+
+  listarAlimentosBase: nutricionistaProcedimiento
+    .input(listarAlimentosPropiosDto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.alimentosBase.listar(input);
     }),
 });

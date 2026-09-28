@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, Share2, FolderInput } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Share2,
+  FolderInput,
+  Library,
+} from "lucide-react";
 import type { RecetaSalidaDto } from "@/aplicacion/dtos/receta.dto";
 import { useRecetas } from "@/lib/hooks/useRecetas";
 import { useDebounce } from "@/lib/hooks/useDebounce";
@@ -21,6 +28,7 @@ import { FormularioReceta } from "@/componentes/recetas/FormularioReceta";
 import { CompartirReceta } from "@/componentes/recetas/CompartirReceta";
 import { NavegadorCarpetas } from "@/componentes/recetas/NavegadorCarpetas";
 import { MoverRecetaACarpeta } from "@/componentes/recetas/MoverRecetaACarpeta";
+import { RecetasDeLaPlataforma } from "@/componentes/recetas/RecetasDeLaPlataforma";
 
 export default function PaginaRecetas() {
   const { listarPaginado, eliminar } = useRecetas();
@@ -73,12 +81,17 @@ export default function PaginaRecetas() {
     null,
   );
   const [recetaMover, setRecetaMover] = useState<RecetaSalidaDto | null>(null);
+  const [catalogoAbierto, setCatalogoAbierto] = useState(false);
 
   const recetas = consulta.data?.recetas ?? [];
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button variant="outline" onClick={() => setCatalogoAbierto(true)}>
+          <Library className="h-4 w-4" />
+          Recetas de la plataforma
+        </Button>
         <Button
           onClick={() => {
             setRecetaEditar(null);
@@ -209,6 +222,22 @@ export default function PaginaRecetas() {
         receta={recetaMover}
         onCerrar={() => setRecetaMover(null)}
       />
+
+      {/* Catálogo de la plataforma: agregar una receta la COPIA al recetario
+          y la abre, para que el profesional la ajuste si quiere. */}
+      <Dialog open={catalogoAbierto} onOpenChange={setCatalogoAbierto}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Recetas de la plataforma</DialogTitle>
+          </DialogHeader>
+          <RecetasDeLaPlataforma
+            alAgregar={(recetaId) => {
+              setCatalogoAbierto(false);
+              router.push(`/dashboard/recetas/${recetaId}`);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Confirmación de eliminación */}
       <ModalConfirmacion

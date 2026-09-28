@@ -30,6 +30,8 @@ const ingredienteEsquema = z.object({
   grasasPor100: numeroOpcional,
   fuente: z.string(),
   referenciaExterna: z.string(),
+  /** Alimento de la lista del que salió (migración 85); vacío si se cargó a mano. */
+  alimentoOrigenId: z.string(),
 });
 
 /**
@@ -72,4 +74,5 @@ export const INGREDIENTE_VACIO: IngredienteFormulario = {
   grasasPor100: "",
   fuente: "MANUAL",
   referenciaExterna: "",
+  alimentoOrigenId: "",
 };

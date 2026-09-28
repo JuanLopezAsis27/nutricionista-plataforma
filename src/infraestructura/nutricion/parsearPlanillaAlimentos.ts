@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import type { FilaAlimentoPropioDto } from "@/aplicacion/dtos/alimentoPropio.dto";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
+import { categoriaDesdeTexto } from "@/dominio/entidades/AlimentoPropio";
 
 /**
  * Parsea una planilla de alimentos (.xlsx o .csv) a filas `{nombre, marca,
@@ -40,6 +41,10 @@ export async function parsearPlanillaAlimentos(
       proteinasPor100: numero(celdas[col.proteinas]),
       carbohidratosPor100: numero(celdas[col.carbohidratos]),
       grasasPor100: numero(celdas[col.grasas]),
+      // Opcional (migración 84): una planilla vieja sin la columna sigue
+      // sirviendo, y un rubro que no se reconoce entra sin categoría.
+      categoria:
+        col.categoria >= 0 ? categoriaDesdeTexto(celdas[col.categoria]) : null,
     });
   }
   return filas;
@@ -52,6 +57,7 @@ interface Columnas {
   proteinas: number;
   carbohidratos: number;
   grasas: number;
+  categoria: number;
 }
 
 function mapearColumnas(encabezado: string[]): Columnas {
@@ -64,6 +70,7 @@ function mapearColumnas(encabezado: string[]): Columnas {
     proteinas: buscar(["proteina", "prot"]),
     carbohidratos: buscar(["carbohidrato", "carbo", "hidrato", "carbs", "hc"]),
     grasas: buscar(["grasa", "lipido", "fat"]),
+    categoria: buscar(["categoria", "rubro", "grupo"]),
   };
 }
 

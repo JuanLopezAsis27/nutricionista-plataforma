@@ -38,6 +38,8 @@ export interface IRecetaRepositorio {
   ): Promise<Receta>;
   eliminar(id: string): Promise<void>;
   obtenerPorId(id: string): Promise<Receta | null>;
+  /** La copia de una receta de la plataforma en este recetario, si ya existe. */
+  obtenerPorRecetaBase(recetaBaseId: string): Promise<Receta | null>;
   listar(filtro?: FiltroRecetas): Promise<Receta[]>;
   /** Cuenta las recetas que matchean el filtro (ignora la paginación). */
   contar(filtro?: FiltroRecetas): Promise<number>;

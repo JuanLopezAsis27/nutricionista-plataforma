@@ -23,9 +23,17 @@ import { mensajeDeError } from "@/lib/errores";
 /**
  * Importa un Excel/CSV de alimentos con sus macros. Si hay una lista cargada, la
  * búsqueda de ingredientes usa ESA lista y no se consulta ninguna API externa.
+ *
+ * Sirve a la lista del consultorio y a la predeterminada de la plataforma
+ * (`origen="plataforma"`, solo SUPERADMIN): misma planilla, otro dueño.
  */
-export function ImportadorAlimentos() {
-  const { estado, importar, importando, vaciar } = useAlimentosPropios();
+export function ImportadorAlimentos({
+  origen = "consultorio",
+}: {
+  origen?: "consultorio" | "plataforma";
+}) {
+  const deLaPlataforma = origen === "plataforma";
+  const { estado, importar, importando, vaciar } = useAlimentosPropios(origen);
   const consulta = estado();
   const e = consulta.data;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -35,9 +43,28 @@ export function ImportadorAlimentos() {
     if (!archivo) return;
     setError(null);
     try {
-      const importados = await importar(archivo);
+      const { importados, repetidos, enPlataforma } = await importar(archivo);
+      // Las filas repetidas no frenan la importación (queda la última), pero
+      // se dicen: si la planilla tenía el mismo alimento dos veces, el
+      // profesional tiene que saber que uno quedó afuera.
+      const aviso =
+        repetidos > 0
+          ? ` ${repetidos} ${repetidos === 1 ? "fila repetía" : "filas repetían"} un alimento y se descart${repetidos === 1 ? "ó" : "aron"} (quedó la última).`
+          : "";
+      // Coincidir con la plataforma no es un error (puede ser su versión, con
+      // otros macros), pero conviene saberlo: si los macros son los mismos,
+      // esas filas no aportan nada.
+      const coincidencias =
+        enPlataforma > 0
+          ? ` ${enPlataforma} ya ${enPlataforma === 1 ? "existía" : "existían"} en la plataforma: en tu buscador aparece tu versión.`
+          : "";
       toast.success(
-        `${importados} alimentos importados. La búsqueda usa solo tu lista.`,
+        (deLaPlataforma
+          ? `${importados} alimentos importados al catálogo de la plataforma.`
+          : `${importados} alimentos importados.`) +
+          aviso +
+          coincidencias,
+        { duration: coincidencias || aviso ? 10_000 : undefined },
       );
     } catch (err) {
       const mensaje = mensajeDeError(err, "No se pudo importar.");
@@ -53,8 +80,10 @@ export function ImportadorAlimentos() {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between gap-2 text-base">
           <span className="flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5 text-primary" /> Mis alimentos
-            (Excel)
+            <FileSpreadsheet className="h-5 w-5 text-primary" />
+            {deLaPlataforma
+              ? "Alimentos predeterminados (Excel)"
+              : "Mis alimentos (Excel)"}
           </span>
           {consulta.isLoading ? null : e?.activo ? (
             <span className="flex items-center gap-1 text-xs font-normal text-primary">
@@ -64,18 +93,32 @@ export function ImportadorAlimentos() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm text-muted-foreground">
-          Subí un <strong>Excel (.xlsx) o CSV</strong> con tus alimentos e
-          insumos y sus macros. Si cargás una lista, la búsqueda de ingredientes
-          usa <strong>solo esa lista</strong> y{" "}
-          <strong>no se consulta ninguna API externa</strong>.
-        </p>
+        {deLaPlataforma ? (
+          <p className="text-sm text-muted-foreground">
+            Subí un <strong>Excel (.xlsx) o CSV</strong> con los alimentos que
+            ven <strong>todos los consultorios</strong> en el buscador. Cada
+            profesional puede sumar los suyos, que quedan solo para él.
+            Reemplaza el catálogo anterior; los planes y recetas que ya usan un
+            alimento no cambian, porque copian sus macros al elegirlo.
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Subí un <strong>Excel (.xlsx) o CSV</strong> con tus alimentos e
+            insumos y sus macros. Se suman a los predeterminados de la
+            plataforma, quedan solo para vos y aparecen primero en el buscador.
+            Si hay alimentos cargados (tuyos o predeterminados),{" "}
+            <strong>no se consulta ninguna API externa</strong>.
+          </p>
+        )}
         <p className="text-xs text-muted-foreground">
           Columnas esperadas (con encabezado, en cualquier orden):{" "}
           <code>Nombre</code>, <code>Marca</code> (opcional),{" "}
           <code>Calorías</code>, <code>Proteínas</code>,{" "}
-          <code>Carbohidratos</code>, <code>Grasas</code>. Los valores se toman
-          por 100 g.
+          <code>Carbohidratos</code>, <code>Grasas</code> y{" "}
+          <code>Categoría</code> (opcional: Carnes, Lácteos, Cereales, Frutas…).
+          Los valores se toman por 100 g. Al reemplazar la lista, los alimentos
+          que ya estaban conservan su imagen (y su categoría si la planilla no
+          trae una).
         </p>
 
         <Button variant="outline" size="sm" asChild>
@@ -93,9 +136,8 @@ export function ImportadorAlimentos() {
               <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 p-2 text-sm">
                 <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
                 <span>
-                  Tenés <strong>{e.cantidad}</strong> alimentos cargados. La
-                  búsqueda usa solo tu lista. Volvé a subir un archivo para
-                  reemplazarla.
+                  Hay <strong>{e.cantidad}</strong> alimentos cargados. Volvé a
+                  subir un archivo para reemplazar la lista.
                 </span>
               </div>
             )}

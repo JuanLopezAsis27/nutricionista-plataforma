@@ -5,7 +5,19 @@ import type { CrearAlimentoPropio } from "@/aplicacion/casos-de-uso/nutricion/Cr
 import type { ActualizarAlimentoPropio } from "@/aplicacion/casos-de-uso/nutricion/ActualizarAlimentoPropio";
 import type { EliminarAlimentoPropio } from "@/aplicacion/casos-de-uso/nutricion/EliminarAlimentoPropio";
 import type { ListarAlimentosPropios } from "@/aplicacion/casos-de-uso/nutricion/ListarAlimentosPropios";
+import type {
+  CambiarImagenAlimento,
+  ImagenSubida,
+} from "@/aplicacion/casos-de-uso/nutricion/CambiarImagenAlimento";
+import type { QuitarImagenAlimento } from "@/aplicacion/casos-de-uso/nutricion/QuitarImagenAlimento";
+import type {
+  ObtenerImagenAlimento,
+  ImagenAlimento,
+} from "@/aplicacion/casos-de-uso/nutricion/ObtenerImagenAlimento";
 import type { AlimentoPropio } from "@/dominio/entidades/AlimentoPropio";
+import type { ContarUsosDeAlimento } from "@/aplicacion/casos-de-uso/nutricion/ContarUsosDeAlimento";
+import type { BuscarCoincidenciaEnCatalogo } from "@/aplicacion/casos-de-uso/nutricion/BuscarCoincidenciaEnCatalogo";
+import type { UsosDeAlimento } from "@/dominio/repositorios/IUsosDeAlimentoRepositorio";
 import type {
   EstadoAlimentosPropiosDto,
   ImportarAlimentosDto,
@@ -30,10 +42,37 @@ export class ServicioAlimentosPropios {
     private readonly actualizarUC: ActualizarAlimentoPropio,
     private readonly eliminarUC: EliminarAlimentoPropio,
     private readonly listarUC: ListarAlimentosPropios,
+    private readonly cambiarImagenUC: CambiarImagenAlimento,
+    private readonly quitarImagenUC: QuitarImagenAlimento,
+    private readonly obtenerImagenUC: ObtenerImagenAlimento,
+    private readonly usosUC: ContarUsosDeAlimento,
+    /**
+     * Solo en la lista del consultorio: si lo que carga ya está en el
+     * catálogo de la plataforma. En el catálogo mismo no aplica (null).
+     */
+    private readonly coincidenciaUC: BuscarCoincidenciaEnCatalogo | null = null,
   ) {}
 
-  async importar(filas: ImportarAlimentosDto): Promise<{ importados: number }> {
-    const importados = await this.importarUC.ejecutar(
+  /** Dónde se usa el alimento: para avisar antes de editarlo o borrarlo. */
+  usos(id: string): Promise<UsosDeAlimento> {
+    return this.usosUC.ejecutar(id);
+  }
+
+  /** El alimento de la plataforma que coincide con este nombre y marca, o null. */
+  async coincidenciaEnCatalogo(
+    nombre: string,
+    marca: string | null,
+  ): Promise<{ etiqueta: string } | null> {
+    if (!this.coincidenciaUC) return null;
+    const alimento = await this.coincidenciaUC.ejecutar(nombre, marca);
+    return alimento ? { etiqueta: alimento.etiqueta } : null;
+  }
+
+  /** Cuántos quedaron y cuántas filas se descartaron por repetidas. */
+  importar(
+    filas: ImportarAlimentosDto,
+  ): Promise<{ importados: number; repetidos: number; enPlataforma: number }> {
+    return this.importarUC.ejecutar(
       filas.map((f) => ({
         nombre: f.nombre,
         marca: f.marca ?? null,
@@ -41,9 +80,9 @@ export class ServicioAlimentosPropios {
         proteinasPor100: f.proteinasPor100 ?? null,
         carbohidratosPor100: f.carbohidratosPor100 ?? null,
         grasasPor100: f.grasasPor100 ?? null,
+        categoria: f.categoria ?? null,
       })),
     );
-    return { importados };
   }
 
   estado(): Promise<EstadoAlimentosPropiosDto> {
@@ -73,6 +112,7 @@ export class ServicioAlimentosPropios {
       proteinasPor100: datos.proteinasPor100 ?? null,
       carbohidratosPor100: datos.carbohidratosPor100 ?? null,
       grasasPor100: datos.grasasPor100 ?? null,
+      categoria: datos.categoria ?? null,
     });
     return ServicioAlimentosPropios.aSalida(alimento);
   }
@@ -89,7 +129,29 @@ export class ServicioAlimentosPropios {
     return this.eliminarUC.ejecutar(id);
   }
 
+  async cambiarImagen(
+    id: string,
+    imagen: ImagenSubida,
+  ): Promise<AlimentoPropioSalidaDto> {
+    return ServicioAlimentosPropios.aSalida(
+      await this.cambiarImagenUC.ejecutar(id, imagen),
+    );
+  }
+
+  async quitarImagen(id: string): Promise<AlimentoPropioSalidaDto> {
+    return ServicioAlimentosPropios.aSalida(
+      await this.quitarImagenUC.ejecutar(id),
+    );
+  }
+
+  obtenerImagen(id: string): Promise<ImagenAlimento> {
+    return this.obtenerImagenUC.ejecutar(id);
+  }
+
   private static aSalida(alimento: AlimentoPropio): AlimentoPropioSalidaDto {
-    return alimento.aPrimitivos();
+    // La clave del bucket no sale: la pantalla pide la imagen por la ruta del
+    // alimento, con la versión para no mostrar una vieja de la caché.
+    const { imagenClave: _clave, ...resto } = alimento.aPrimitivos();
+    return { ...resto, imagenVersion: alimento.imagenVersion };
   }
 }

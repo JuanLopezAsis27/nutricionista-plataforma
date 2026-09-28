@@ -1,4 +1,15 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
+import {
+  sumarPorGramos,
+  sumarMacros,
+  escalarMacros,
+  type Macros,
+} from "../servicios/macrosAlimentos";
+import {
+  TIPOS_META_POR_DEFECTO,
+  type MetasDiarias,
+  type TiposMeta,
+} from "../servicios/comparacionMacros";
 
 /** Tipos de recomendación de un plan. */
 export const TIPOS_RECOMENDACION = ["NUTRICIONAL", "SALUD"] as const;
@@ -31,14 +42,40 @@ export interface MacrosOpcion {
   grasasG: number | null;
 }
 
+/**
+ * Alimento suelto de una opción: gramos + macros por 100 g, copiados del
+ * buscador. Misma forma que el ingrediente de una receta.
+ */
+export interface ItemDeOpcion {
+  nombre: string;
+  cantidadGramos: number | null;
+  caloriasPor100: number | null;
+  proteinasPor100: number | null;
+  carbohidratosPor100: number | null;
+  grasasPor100: number | null;
+  fuente: string | null;
+  referenciaExterna: string | null;
+  /**
+   * Id del alimento de la lista de la que se copió (migración 85). Solo
+   * dice DÓNDE se usa un alimento: los macros ya están copiados acá.
+   */
+  alimentoOrigenId: string | null;
+}
+
 /** Opción intercambiable de una franja (nombre y macros de la receta los completa el repositorio). */
 export interface OpcionDelPlan {
   id: string;
   numero: number;
+  /** Texto para el paciente. Puede ir vacío si hay receta o alimentos. */
   contenido: string;
   recetaId: string | null;
   recetaNombre: string | null;
+  /** Macros POR PORCIÓN de la receta vinculada. */
   recetaMacros: MacrosOpcion | null;
+  /** Porciones de la receta que entran en la opción (null = 1). */
+  porciones: number | null;
+  /** Alimentos sueltos, además de la receta. */
+  items: ItemDeOpcion[];
   orden: number;
 }
 
@@ -106,6 +143,8 @@ export interface PropiedadesPlan {
   proteinasMetaG: number | null;
   carbohidratosMetaG: number | null;
   grasasMetaG: number | null;
+  /** Si cada meta es aproximada, un piso o un techo (migración 82). */
+  tiposMeta: TiposMeta;
   contactosUtiles: string | null;
   comidas: ComidaDelPlan[];
   equivalencias: EquivalenciaDelPlan[];
@@ -130,9 +169,23 @@ export interface PropiedadesPlan {
 
 // --- Datos de entrada --------------------------------------------------------
 
+export interface DatosItemOpcion {
+  nombre: string;
+  cantidadGramos?: number | null;
+  caloriasPor100?: number | null;
+  proteinasPor100?: number | null;
+  carbohidratosPor100?: number | null;
+  grasasPor100?: number | null;
+  fuente?: string | null;
+  referenciaExterna?: string | null;
+  alimentoOrigenId?: string | null;
+}
+
 export interface DatosOpcionPlan {
-  contenido: string;
+  contenido?: string | null;
   recetaId?: string | null;
+  porciones?: number | null;
+  items?: DatosItemOpcion[];
 }
 
 export interface DatosComidaPlan {
@@ -162,6 +215,8 @@ export interface DatosNuevoPlan {
   proteinasMetaG?: number | null;
   carbohidratosMetaG?: number | null;
   grasasMetaG?: number | null;
+  /** Ausente (o una clave ausente) = APROXIMADO, como se leyeron siempre. */
+  tiposMeta?: Partial<TiposMeta>;
   contactosUtiles?: string | null;
   comidas: DatosComidaPlan[];
   equivalencias?: DatosEquivalenciaPlan[];
@@ -265,18 +320,41 @@ export class PlanNutricional {
         const opciones: OpcionDelPlan[] = comida.opciones.map(
           (opcion, indiceOpcion) => {
             const contenido = opcion.contenido?.trim() ?? "";
-            if (contenido.length === 0) {
+            const recetaId = opcion.recetaId ?? null;
+            if ((opcion.items ?? []).length > MAXIMO_ITEMS_POR_OPCION) {
               throw new ErrorValidacion(
-                `Las opciones de «${nombreComida}» no pueden estar vacías.`,
+                `Una opción de «${nombreComida}» puede tener hasta ${MAXIMO_ITEMS_POR_OPCION} alimentos.`,
+              );
+            }
+            const items = (opcion.items ?? []).map((item) =>
+              normalizarItem(item, nombreComida),
+            );
+            // El texto dejó de ser lo único que describe una opción: una
+            // receta o una lista de alimentos también le dicen al paciente
+            // qué comer (migración 82). Vacía es la que no tiene nada.
+            if (
+              contenido.length === 0 &&
+              recetaId === null &&
+              items.length === 0
+            ) {
+              throw new ErrorValidacion(
+                `Las opciones de «${nombreComida}» no pueden estar vacías: escribí qué come, o elegí una receta o alimentos.`,
               );
             }
             return {
               id: generarId(),
               numero: indiceOpcion + 1,
               contenido,
-              recetaId: opcion.recetaId ?? null,
+              recetaId,
               recetaNombre: null,
               recetaMacros: null,
+              // Sin receta las porciones no significan nada: se descartan
+              // para que no reaparezcan si después se elige una.
+              porciones:
+                recetaId === null
+                  ? null
+                  : validarPorciones(opcion.porciones, nombreComida),
+              items,
               orden: indiceOpcion,
             };
           },
@@ -331,6 +409,7 @@ export class PlanNutricional {
       proteinasMetaG: datos.proteinasMetaG ?? null,
       carbohidratosMetaG: datos.carbohidratosMetaG ?? null,
       grasasMetaG: datos.grasasMetaG ?? null,
+      tiposMeta: { ...TIPOS_META_POR_DEFECTO, ...datos.tiposMeta },
       contactosUtiles: datos.contactosUtiles?.trim() || null,
       comidas,
       equivalencias,
@@ -426,6 +505,7 @@ export class PlanNutricional {
         proteinasMetaG: this.props.proteinasMetaG,
         carbohidratosMetaG: this.props.carbohidratosMetaG,
         grasasMetaG: this.props.grasasMetaG,
+        tiposMeta: { ...this.props.tiposMeta },
         contactosUtiles: this.props.contactosUtiles,
         comidas: this.props.comidas.map((comida) => ({
           nombre: comida.nombre,
@@ -434,6 +514,8 @@ export class PlanNutricional {
           opciones: comida.opciones.map((opcion) => ({
             contenido: opcion.contenido,
             recetaId: opcion.recetaId,
+            porciones: opcion.porciones,
+            items: opcion.items.map((item) => ({ ...item })),
           })),
         })),
         equivalencias: this.props.equivalencias.map((e) => ({
@@ -479,6 +561,25 @@ export class PlanNutricional {
   get recetasVinculadas(): ReadonlyArray<RecetaDelPlan> {
     return this.props.recetasVinculadas;
   }
+  get tiposMeta(): TiposMeta {
+    return this.props.tiposMeta;
+  }
+
+  /**
+   * Las metas del plan como metas diarias, con su tipo, o null si no declara
+   * ninguna. Null y «las cuatro en null» no son lo mismo para una pantalla: el
+   * primero es «este plan no fija macros».
+   */
+  get metasDiarias(): MetasDiarias | null {
+    const valores = {
+      calorias: this.props.caloriasMeta,
+      proteinasG: this.props.proteinasMetaG,
+      carbohidratosG: this.props.carbohidratosMetaG,
+      grasasG: this.props.grasasMetaG,
+    };
+    if (Object.values(valores).every((v) => v == null)) return null;
+    return { ...valores, tipos: { ...this.props.tiposMeta } };
+  }
 
   /**
    * Los archivos que SON el plan, en orden. Vacío si el plan se carga en la
@@ -504,9 +605,13 @@ export class PlanNutricional {
   aPrimitivos(): PropiedadesPlan {
     return {
       ...this.props,
+      tiposMeta: { ...this.props.tiposMeta },
       comidas: this.props.comidas.map((comida) => ({
         ...comida,
-        opciones: comida.opciones.map((opcion) => ({ ...opcion })),
+        opciones: comida.opciones.map((opcion) => ({
+          ...opcion,
+          items: opcion.items.map((item) => ({ ...item })),
+        })),
       })),
       equivalencias: this.props.equivalencias.map((e) => ({ ...e })),
       recomendaciones: this.props.recomendaciones.map((r) => ({ ...r })),
@@ -515,6 +620,113 @@ export class PlanNutricional {
       recetasVinculadas: this.props.recetasVinculadas.map((r) => ({ ...r })),
     };
   }
+}
+
+/**
+ * Lo que suma UNA opción: sus alimentos sueltos más la receta por sus
+ * porciones.
+ *
+ * Es la respuesta a "¿y si la opción tiene alimentos y además una receta con
+ * sus propios alimentos?": se suman las dos cosas, pero la receta entra con
+ * sus macros POR PORCIÓN —que ya salen de sus ingredientes— y nunca con los
+ * ingredientes sueltos. Contarlos aparte sería sumar la receta dos veces. Un
+ * alimento suelto que también esté en la receta (un huevo extra) sí suma: es
+ * comida de más, a propósito.
+ *
+ * `null` sigue significando SIN DATO: una receta sin macros cargados no baja
+ * el total a cero, lo deja sin ese aporte (ver `macrosAlimentos`).
+ */
+export function macrosDeOpcion(opcion: {
+  items: ReadonlyArray<ItemDeOpcion>;
+  recetaMacros: MacrosOpcion | null;
+  porciones: number | null;
+}): Macros {
+  const deItems = sumarPorGramos([...opcion.items]);
+  if (!opcion.recetaMacros) return deItems;
+  return sumarMacros(
+    deItems,
+    escalarMacros(opcion.recetaMacros, opcion.porciones ?? 1),
+  );
+}
+
+/**
+ * La opción en una línea de texto: lo que escribió el profesional o, si no
+ * escribió nada (migración 82), lo que eligió —«Tarta de acelga (2 porciones)
+ * + Manzana (150 g)»—.
+ *
+ * Existe para los lugares que muestran la opción como TEXTO (el resumen del
+ * inicio del paciente, el asistente de IA, el PDF): antes el texto era
+ * obligatorio y una opción armada solo con alimentos se vería vacía ahí.
+ */
+export function descripcionDeOpcion(opcion: {
+  contenido: string;
+  recetaNombre: string | null;
+  porciones: number | null;
+  items: ReadonlyArray<Pick<ItemDeOpcion, "nombre" | "cantidadGramos">>;
+}): string {
+  if (opcion.contenido.trim().length > 0) return opcion.contenido;
+  const partes: string[] = [];
+  if (opcion.recetaNombre) {
+    const porciones = opcion.porciones ?? 1;
+    partes.push(
+      porciones === 1
+        ? opcion.recetaNombre
+        : `${opcion.recetaNombre} (${porciones} porciones)`,
+    );
+  }
+  for (const item of opcion.items) {
+    partes.push(
+      item.cantidadGramos != null
+        ? `${item.nombre} (${item.cantidadGramos} g)`
+        : item.nombre,
+    );
+  }
+  return partes.join(" + ");
+}
+
+/** Tope de alimentos por opción: más de esto no es una opción, es una lista de compras. */
+export const MAXIMO_ITEMS_POR_OPCION = 30;
+
+function normalizarItem(item: DatosItemOpcion, franja: string): ItemDeOpcion {
+  const nombre = item.nombre?.trim() ?? "";
+  if (nombre.length === 0) {
+    throw new ErrorValidacion(
+      `Cada alimento de «${franja}» tiene que tener un nombre.`,
+    );
+  }
+  const numero = (valor: number | null | undefined): number | null => {
+    if (valor == null) return null;
+    if (!Number.isFinite(valor) || valor < 0) {
+      throw new ErrorValidacion(
+        `Los valores de «${nombre}» no pueden ser negativos.`,
+      );
+    }
+    return valor;
+  };
+  return {
+    nombre,
+    cantidadGramos: numero(item.cantidadGramos),
+    caloriasPor100: numero(item.caloriasPor100),
+    proteinasPor100: numero(item.proteinasPor100),
+    carbohidratosPor100: numero(item.carbohidratosPor100),
+    grasasPor100: numero(item.grasasPor100),
+    fuente: item.fuente?.trim() || null,
+    referenciaExterna: item.referenciaExterna?.trim() || null,
+    alimentoOrigenId: item.alimentoOrigenId?.trim() || null,
+  };
+}
+
+function validarPorciones(
+  porciones: number | null | undefined,
+  franja: string,
+): number | null {
+  if (porciones == null) return null;
+  if (!Number.isFinite(porciones) || porciones <= 0) {
+    throw new ErrorValidacion(
+      `Las porciones de la receta en «${franja}» tienen que ser mayores que cero.`,
+    );
+  }
+  return porciones;
 }
 
 function validarHora(hora: string | null | undefined, franja: string): void {

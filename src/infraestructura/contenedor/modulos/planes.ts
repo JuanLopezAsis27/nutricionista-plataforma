@@ -19,6 +19,7 @@ import { ObtenerPlanesDelPaciente } from "@/aplicacion/casos-de-uso/planes/Obten
 import { ObtenerPacientesDePlan } from "@/aplicacion/casos-de-uso/planes/ObtenerPacientesDePlan";
 import { SincronizarRecetasDePlan } from "@/aplicacion/casos-de-uso/planes/SincronizarRecetasDePlan";
 import { MoverPlanAGrupo } from "@/aplicacion/casos-de-uso/planes/MoverPlanAGrupo";
+import { EvaluarCombinacionesPlan } from "@/aplicacion/casos-de-uso/planes/EvaluarCombinacionesPlan";
 import { CrearGrupoPlan } from "@/aplicacion/casos-de-uso/grupos-plan/CrearGrupoPlan";
 import { ActualizarGrupoPlan } from "@/aplicacion/casos-de-uso/grupos-plan/ActualizarGrupoPlan";
 import { EliminarGrupoPlan } from "@/aplicacion/casos-de-uso/grupos-plan/EliminarGrupoPlan";
@@ -61,5 +62,6 @@ export function crearServicioPlan(deps: {
     new ActualizarGrupoPlan(deps.grupos),
     new EliminarGrupoPlan(deps.grupos),
     new ObtenerGruposPlan(deps.grupos),
+    new EvaluarCombinacionesPlan(deps.recetas),
   );
 }

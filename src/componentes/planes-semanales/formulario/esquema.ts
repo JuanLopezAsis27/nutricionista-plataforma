@@ -31,6 +31,8 @@ const itemEsquema = z.object({
   grasasPor100: numeroEnRango(0, 10_000),
   fuente: z.string(),
   referenciaExterna: z.string(),
+  /** Alimento de la lista del que salió (migración 85); vacío si se cargó a mano. */
+  alimentoOrigenId: z.string(),
 });
 export type ItemFormulario = z.infer<typeof itemEsquema>;
 
@@ -127,6 +129,7 @@ export function itemVacio(): ItemFormulario {
     grasasPor100: "",
     fuente: "MANUAL",
     referenciaExterna: "",
+    alimentoOrigenId: "",
   };
 }
 

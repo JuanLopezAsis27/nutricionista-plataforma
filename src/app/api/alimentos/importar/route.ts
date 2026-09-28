@@ -58,10 +58,10 @@ export function POST(request: Request): Promise<NextResponse> {
         );
       }
 
-      const { importados } = await servicioAlimentosPropios().importar(
+      const resultado = await servicioAlimentosPropios().importar(
         validado.data,
       );
-      return NextResponse.json({ importados }, { status: 201 });
+      return NextResponse.json(resultado, { status: 201 });
     } catch (error) {
       // Antes se devolvía `error.message` tal cual. Eso está bien para el
       // mensaje que escribimos nosotros ("falta la columna Nombre"), pero

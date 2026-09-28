@@ -19,9 +19,16 @@ const ingredienteEntradaDto = z.object({
   grasasPor100: z.number().min(0).max(100).optional().nullable(),
   fuente: z.string().max(20).optional().nullable(),
   referenciaExterna: z.string().max(100).optional().nullable(),
+  /** Alimento de la lista del que se copió (migración 85). */
+  alimentoOrigenId: z.string().max(64).nullable().optional(),
 });
 
-const recetaBase = z.object({
+/**
+ * Los campos de una receta que no son de un consultorio (sin fotos ni
+ * carpeta). Exportados porque las recetas de la plataforma son exactamente
+ * esto (ver recetaBase.dto).
+ */
+export const camposRecetaDto = z.object({
   nombre: z.string().min(1, "El nombre es obligatorio").max(160),
   descripcion: z.string().max(1000).optional().nullable(),
   porciones: z.number().int().min(1).max(100).optional().nullable(),
@@ -51,7 +58,7 @@ const fotoPrincipalElegida = z.string().min(1).optional();
  */
 const carpetaElegida = z.string().min(1).nullable().optional();
 
-export const crearRecetaDto = recetaBase.extend({
+export const crearRecetaDto = camposRecetaDto.extend({
   fotoIds: z.array(z.string().min(1)).max(10).optional(),
   documentoIds: z.array(z.string().min(1)).max(10).optional(),
   fotoPrincipalId: fotoPrincipalElegida,
@@ -59,7 +66,7 @@ export const crearRecetaDto = recetaBase.extend({
 });
 export type CrearRecetaDto = z.infer<typeof crearRecetaDto>;
 
-export const actualizarRecetaDto = recetaBase.extend({
+export const actualizarRecetaDto = camposRecetaDto.extend({
   id: z.string().min(1),
   fotoIdsNuevos: z.array(z.string().min(1)).max(10).optional(),
   documentoIdsNuevos: z.array(z.string().min(1)).max(10).optional(),
@@ -133,6 +140,7 @@ const ingredienteSalidaDto = z.object({
   grasasPor100: z.number().nullable(),
   fuente: z.string().nullable(),
   referenciaExterna: z.string().nullable(),
+  alimentoOrigenId: z.string().nullable(),
 });
 
 const macrosSalidaDto = z.object({
@@ -170,6 +178,8 @@ export const recetaSalidaDto = z.object({
   grupoId: z.string().nullable(),
   /** Nombre de la carpeta, para mostrarlo sin una consulta aparte. */
   grupoNombre: z.string().nullable(),
+  /** Receta de la plataforma de la que es copia (null si es propia). */
+  recetaBaseId: z.string().nullable(),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
 });

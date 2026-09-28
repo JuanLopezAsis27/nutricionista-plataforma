@@ -166,21 +166,22 @@ function PlanNutricionalPdf({
   const mostrarRecetas =
     (config?.pdfMostrarRecetas ?? true) && recetas.length > 0;
 
+  const prefijo = { APROXIMADO: "", MINIMO: ">= ", MAXIMO: "<= " } as const;
   const metas = [
     plan.caloriasMeta != null && {
-      valor: `${plan.caloriasMeta} kcal`,
+      valor: `${prefijo[plan.tiposMeta.calorias]}${plan.caloriasMeta} kcal`,
       etiqueta: "Calorías",
     },
     plan.proteinasMetaG != null && {
-      valor: `${plan.proteinasMetaG} g`,
+      valor: `${prefijo[plan.tiposMeta.proteinasG]}${plan.proteinasMetaG} g`,
       etiqueta: "Proteínas",
     },
     plan.carbohidratosMetaG != null && {
-      valor: `${plan.carbohidratosMetaG} g`,
+      valor: `${prefijo[plan.tiposMeta.carbohidratosG]}${plan.carbohidratosMetaG} g`,
       etiqueta: "Carbohidratos",
     },
     plan.grasasMetaG != null && {
-      valor: `${plan.grasasMetaG} g`,
+      valor: `${prefijo[plan.tiposMeta.grasasG]}${plan.grasasMetaG} g`,
       etiqueta: "Grasas",
     },
   ].filter((meta): meta is { valor: string; etiqueta: string } =>
@@ -254,11 +255,28 @@ function PlanNutricionalPdf({
                       Opción {opcion.numero} ·{" "}
                     </Text>
                   )}
-                  {opcion.contenido}
+                  {/* Sin texto propio, la opción se lee de lo que eligió
+                      (receta y alimentos): `descripcion` ya lo resuelve. */}
+                  {opcion.descripcion}
                 </Text>
-                {opcion.recetaNombre && (
+                {opcion.contenido && opcion.recetaNombre && (
                   <Text style={estilos.opcionReceta}>
                     Receta: {opcion.recetaNombre}
+                    {opcion.porciones != null && opcion.porciones !== 1
+                      ? ` (${opcion.porciones} porciones)`
+                      : ""}
+                  </Text>
+                )}
+                {opcion.contenido && opcion.items.length > 0 && (
+                  <Text style={estilos.opcionReceta}>
+                    Alimentos:{" "}
+                    {opcion.items
+                      .map((i) =>
+                        i.cantidadGramos != null
+                          ? `${i.nombre} (${i.cantidadGramos} g)`
+                          : i.nombre,
+                      )
+                      .join(", ")}
                   </Text>
                 )}
               </View>

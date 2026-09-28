@@ -31,6 +31,12 @@ export function planDeEjemplo(
     proteinasMetaG: null,
     carbohidratosMetaG: null,
     grasasMetaG: null,
+    tiposMeta: {
+      calorias: "APROXIMADO",
+      proteinasG: "APROXIMADO",
+      carbohidratosG: "APROXIMADO",
+      grasasG: "APROXIMADO",
+    },
     contactosUtiles: null,
     comidas: [
       {
@@ -47,6 +53,15 @@ export function planDeEjemplo(
             recetaId: null,
             recetaNombre: null,
             recetaMacros: null,
+            porciones: null,
+            items: [],
+            descripcion: `Opción de ${nombre}`,
+            macros: {
+              calorias: null,
+              proteinasG: null,
+              carbohidratosG: null,
+              grasasG: null,
+            },
             orden: 0,
           },
         ],

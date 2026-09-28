@@ -35,6 +35,11 @@ export interface IngredienteDeReceta {
   grasasPor100: number | null;
   fuente: string | null;
   referenciaExterna: string | null;
+  /**
+   * Id del alimento de la lista de la que se copió (migración 85). Solo
+   * dice DÓNDE se usa un alimento: los macros ya están copiados acá.
+   */
+  alimentoOrigenId: string | null;
 }
 
 /** Datos de entrada de un ingrediente (los numéricos pueden faltar). */
@@ -47,6 +52,7 @@ export interface DatosIngredienteReceta {
   grasasPor100?: number | null;
   fuente?: string | null;
   referenciaExterna?: string | null;
+  alimentoOrigenId?: string | null;
 }
 
 /** Datos para crear/editar una receta. */
@@ -61,6 +67,8 @@ export interface DatosNuevaReceta {
   enlaces?: string[];
   /** Carpeta en la que se guarda (null = suelta). Ver GrupoReceta. */
   grupoId?: string | null;
+  /** Receta de la plataforma de la que es copia (solo al copiarla). */
+  recetaBaseId?: string | null;
   /** Macros por porción cargados a mano (fallback si no hay datos de ingredientes). */
   calorias?: number | null;
   proteinasG?: number | null;
@@ -97,6 +105,11 @@ export interface PropiedadesReceta {
    * repositorio al leer; en una receta recién creada viene null.
    */
   grupoNombre: string | null;
+  /**
+   * Receta de la plataforma de la que se copió, o null si es del consultorio
+   * desde el principio. Es lo que evita copiarla dos veces.
+   */
+  recetaBaseId: string | null;
   creadoEn: Date;
   actualizadoEn: Date;
 }
@@ -172,6 +185,7 @@ export class Receta {
       // El nombre de la carpeta lo llena el repositorio al leer: la entidad no
       // tiene con qué resolverlo y guardarlo acá sería un cache que se vence.
       grupoNombre: null,
+      recetaBaseId: datos.recetaBaseId ?? null,
       creadoEn: ahora,
       actualizadoEn: ahora,
     });
@@ -196,6 +210,8 @@ export class Receta {
           ? this.props.grupoId
           : (datos.grupoId ?? null),
       grupoNombre: this.props.grupoNombre,
+      // De dónde se copió no cambia por editarla: sigue siendo esa copia.
+      recetaBaseId: this.props.recetaBaseId,
       creadoEn: this.props.creadoEn,
     });
   }
@@ -235,6 +251,9 @@ export class Receta {
   }
   get grupoId(): string | null {
     return this.props.grupoId;
+  }
+  get recetaBaseId(): string | null {
+    return this.props.recetaBaseId;
   }
   get etiquetas(): ReadonlyArray<string> {
     return this.props.etiquetas;
@@ -358,6 +377,7 @@ function normalizarIngredientes(
         ),
         fuente: ing.fuente?.trim() || null,
         referenciaExterna: ing.referenciaExterna?.trim() || null,
+        alimentoOrigenId: ing.alimentoOrigenId?.trim() || null,
       };
     })
     .filter((ing) => ing.nombre.length > 0);

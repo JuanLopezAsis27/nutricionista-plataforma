@@ -19,6 +19,13 @@ import { VisorArchivo } from "@/componentes/comunes/VisorArchivo";
 import { rutaParaLeer } from "@/componentes/comunes/rutaParaLeer";
 import { formatearTamano } from "@/lib/formato";
 
+/** Cómo se lee cada meta, delante del número. */
+const PREFIJO_TIPO = {
+  APROXIMADO: "",
+  MINIMO: "≥ ",
+  MAXIMO: "≤ ",
+} as const;
+
 /**
  * Vista de solo lectura de un plan nutricional, organizada por franjas.
  * Reutilizada en el detalle del plan, la ficha del paciente y el portal.
@@ -49,21 +56,28 @@ export function VistaPlan({
   plan: PlanSalidaDto;
   onVerReceta?: (recetaId: string) => void;
 }) {
+  // El tipo de la meta va delante del número: «≥ 120 g» de proteína no dice
+  // lo mismo que «120 g», y quien lee el plan tiene que saber cuál es.
+  const conTipo = (tipo: keyof typeof PREFIJO_TIPO, valor: string) =>
+    `${PREFIJO_TIPO[tipo]}${valor}`;
   const metas = [
     plan.caloriasMeta != null && {
-      valor: `${plan.caloriasMeta} kcal`,
+      valor: conTipo(plan.tiposMeta.calorias, `${plan.caloriasMeta} kcal`),
       etiqueta: "Calorías",
     },
     plan.proteinasMetaG != null && {
-      valor: `${plan.proteinasMetaG} g`,
+      valor: conTipo(plan.tiposMeta.proteinasG, `${plan.proteinasMetaG} g`),
       etiqueta: "Proteínas",
     },
     plan.carbohidratosMetaG != null && {
-      valor: `${plan.carbohidratosMetaG} g`,
+      valor: conTipo(
+        plan.tiposMeta.carbohidratosG,
+        `${plan.carbohidratosMetaG} g`,
+      ),
       etiqueta: "Carbohidratos",
     },
     plan.grasasMetaG != null && {
-      valor: `${plan.grasasMetaG} g`,
+      valor: conTipo(plan.tiposMeta.grasasG, `${plan.grasasMetaG} g`),
       etiqueta: "Grasas",
     },
   ].filter((meta): meta is { valor: string; etiqueta: string } =>
@@ -209,7 +223,9 @@ export function VistaPlan({
                         Opción {opcion.numero}
                       </p>
                     )}
-                    <p className="whitespace-pre-line">{opcion.contenido}</p>
+                    {opcion.contenido && (
+                      <p className="whitespace-pre-line">{opcion.contenido}</p>
+                    )}
                     {opcion.recetaNombre && (
                       <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
                         <BookOpen className="h-3.5 w-3.5" /> Receta:{" "}
@@ -224,6 +240,9 @@ export function VistaPlan({
                         ) : (
                           opcion.recetaNombre
                         )}
+                        {opcion.porciones != null && opcion.porciones !== 1 && (
+                          <span>× {opcion.porciones} porciones</span>
+                        )}
                         {opcion.recetaMacros &&
                           macrosReceta(opcion.recetaMacros) && (
                             <span className="text-muted-foreground/80">
@@ -232,6 +251,28 @@ export function VistaPlan({
                           )}
                       </p>
                     )}
+                    {/* Los alimentos sueltos: además de la receta, no en
+                        lugar de ella. */}
+                    {opcion.items.length > 0 && (
+                      <ul className="mt-1 space-y-0.5 text-xs">
+                        {opcion.items.map((item, i) => (
+                          <li key={i} className="flex justify-between gap-2">
+                            <span>{item.nombre}</span>
+                            {item.cantidadGramos != null && (
+                              <span className="shrink-0 text-muted-foreground">
+                                {item.cantidadGramos} g
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {(opcion.items.length > 0 || opcion.recetaNombre) &&
+                      macrosReceta(opcion.macros) && (
+                        <p className="mt-1.5 border-t pt-1.5 text-xs text-muted-foreground">
+                          Total de la opción: {macrosReceta(opcion.macros)}
+                        </p>
+                      )}
                   </div>
                 ))}
               </CardContent>

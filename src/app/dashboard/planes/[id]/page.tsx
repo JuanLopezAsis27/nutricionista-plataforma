@@ -15,6 +15,7 @@ import {
 } from "@/componentes/ui/dialog";
 import { VistaPlan } from "@/componentes/planes/VistaPlan";
 import { FormularioPlan } from "@/componentes/planes/FormularioPlan";
+import { CLASES_DIALOGO_PLAN } from "@/componentes/planes/formulario/dialogo";
 import { FormularioAsignacionPlan } from "@/componentes/planes/FormularioAsignacionPlan";
 import { PacientesDelPlan } from "@/componentes/planes/PacientesDelPlan";
 
@@ -128,7 +129,7 @@ export default function PaginaDetallePlan() {
       </Dialog>
 
       <Dialog open={editar} onOpenChange={setEditar}>
-        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+        <DialogContent className={CLASES_DIALOGO_PLAN}>
           <DialogHeader>
             <DialogTitle>Editar plan</DialogTitle>
           </DialogHeader>

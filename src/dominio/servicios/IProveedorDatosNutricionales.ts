@@ -1,3 +1,5 @@
+import type { CategoriaAlimento } from "../entidades/AlimentoPropio";
+
 /**
  * Puerto de dominio: fuente externa de datos nutricionales de alimentos
  * (p. ej. Open Food Facts). Se usa para autocompletar los ingredientes de una
@@ -18,6 +20,15 @@ export interface AlimentoNutricional {
   proteinasPor100: number | null;
   carbohidratosPor100: number | null;
   grasasPor100: number | null;
+  /**
+   * Id del alimento en su lista (PROPIO o BASE), para pedir su imagen. Null
+   * en una fuente externa, que no tiene imágenes nuestras.
+   */
+  id: string | null;
+  /** Rubro, si la fuente lo conoce (solo las listas propias, migración 84). */
+  categoria: CategoriaAlimento | null;
+  /** Versión de su imagen, o null si no tiene (ver `AlimentoPropio.imagenVersion`). */
+  imagenVersion: string | null;
 }
 
 /**
@@ -46,5 +57,11 @@ export interface IProveedorDatosNutricionales {
     termino: string,
     limite?: number,
     criterio?: CriterioAlimentos,
+    /**
+     * Solo los de ese rubro. Con categoría el término puede venir vacío («ver
+     * los lácteos»). Una fuente que no conoce nuestras categorías (Open Food
+     * Facts) devuelve [] cuando se pide una: no puede cumplir el filtro.
+     */
+    categoria?: CategoriaAlimento,
   ): Promise<AlimentoNutricional[]>;
 }

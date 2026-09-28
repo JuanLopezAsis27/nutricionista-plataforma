@@ -26,7 +26,7 @@ describe("ImportarAlimentos", () => {
       { nombre: "Pollo", proteinasPor100: 27 },
     ]);
 
-    expect(total).toBe(2);
+    expect(total).toEqual({ importados: 2, repetidos: 0, enPlataforma: 0 });
     const enviados = reemplazarTodos.mock.calls[0]![0];
     expect(enviados.map((x) => x.aPrimitivos().nombre)).toEqual([
       "Arroz",

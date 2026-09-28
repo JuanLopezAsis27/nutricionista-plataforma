@@ -21,6 +21,7 @@ import {
   actualizarGrupoPlanDto,
   idGrupoPlanDto,
   moverPlanDto,
+  evaluarCombinacionesDto,
 } from "@/aplicacion/dtos/plan.dto";
 
 /**
@@ -30,6 +31,15 @@ import {
  * asignados (obtenerMisPlanes, con pacienteId tomado de la sesión).
  */
 export const routerPlanes = crearRouter({
+  // Las mejores combinaciones del plan que se está editando, sin guardarlo.
+  // Es una query aunque reciba el borrador: no escribe nada y así la
+  // pantalla la cachea y la descarta como cualquier lectura.
+  evaluarCombinaciones: nutricionistaProcedimiento
+    .input(evaluarCombinacionesDto)
+    .query(async ({ ctx, input }) => {
+      return await ctx.servicios.plan.evaluarCombinaciones(input);
+    }),
+
   // Lista completa (sin paginar): para selectores.
   obtenerTodos: nutricionistaProcedimiento
     .input(filtroPlanesDto)
