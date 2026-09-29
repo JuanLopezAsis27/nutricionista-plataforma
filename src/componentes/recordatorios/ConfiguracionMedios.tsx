@@ -36,7 +36,7 @@ import {
  * consultorio. Se exporta porque las plantillas (WhatsApp y email) asignan su
  * texto a uno de estos mismos días.
  */
-export const DIAS_OFRECIDOS = [0, 1, 2, 3, 5, 7, 14];
+export const DIAS_OFRECIDOS = [0, 1, 2, 3, 4, 5, 7, 14];
 /** Avisos del evento de calendario, en minutos antes del turno. */
 const AVISOS_CALENDARIO = [
   { minutos: 2880, etiqueta: "2 días antes" },
