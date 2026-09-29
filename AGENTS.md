@@ -59,6 +59,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/MENSAJERIA.md`         | La bandeja, el hilo y las piezas que comparten los canales |
 | `docs/NOTIFICACIONES.md`     | La campana: qué llega ahí y cómo se apaga cada cosa    |
 | `docs/ERRORES.md`            | Qué mensaje de error ve el usuario, y por qué          |
+| `docs/NAVEGACION.md`         | Por qué cada carpeta con subpáginas lleva `loading.tsx` |
 | `docs/PERFIL.md`             | Mi perfil: foto de la cuenta, cambio de contraseña y su política |
 | `docs/CUENTAS-PACIENTE.md`   | Una cuenta, varios consultorios: fichas, exclusividad y consultorio activo |
 | `docs/SESIONES.md`           | Las dos credenciales: el JWT de 12 h y el refresco de 30 días |

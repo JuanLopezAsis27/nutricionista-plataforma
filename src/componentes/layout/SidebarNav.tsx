@@ -1,11 +1,18 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import type { LucideIcon } from "lucide-react";
-import { Menu, X, PanelLeftClose, PanelLeftOpen, LogOut } from "lucide-react";
+import {
+  Menu,
+  X,
+  PanelLeftClose,
+  PanelLeftOpen,
+  LogOut,
+  Loader2,
+} from "lucide-react";
 import { cn } from "@/lib/utilidades";
 import { IsotipoNutriOffice } from "@/componentes/marca/MarcaNutriOffice";
 import { Button } from "@/componentes/ui/button";
@@ -58,7 +65,10 @@ export function SidebarNav({
     setColapsada(localStorage.getItem(claveAlmacen) === "1");
   }, [claveAlmacen]);
 
-  // Navegar cierra el panel móvil.
+  // Navegar cierra el panel móvil. Además se cierra al TOCAR el enlace (ver
+  // `alNavegar` en `Enlaces`): esperar al cambio de ruta dejaba el panel
+  // abierto y quieto mientras el servidor respondía, y no se distinguía un
+  // toque que no entró de una pantalla que está cargando.
   useEffect(() => {
     setAbiertaMovil(false);
   }, [ruta]);
@@ -118,7 +128,12 @@ export function SidebarNav({
                 <X className="h-5 w-5" />
               </Button>
             </div>
-            <Enlaces conEtiquetas enlaces={enlaces} esActivo={esActivo} />
+            <Enlaces
+              conEtiquetas
+              enlaces={enlaces}
+              esActivo={esActivo}
+              alNavegar={() => setAbiertaMovil(false)}
+            />
             <Pie conEtiquetas email={email} pie={pie} />
           </aside>
         </div>
@@ -181,10 +196,12 @@ function Enlaces({
   conEtiquetas,
   enlaces,
   esActivo,
+  alNavegar,
 }: {
   conEtiquetas: boolean;
   enlaces: EnlaceNav[];
   esActivo: (enlace: EnlaceNav) => boolean;
+  alNavegar?: () => void;
 }) {
   return (
     <nav className="flex-1 space-y-1 overflow-y-auto p-3">
@@ -197,6 +214,7 @@ function Enlaces({
             key={enlace.href}
             href={enlace.href}
             title={enlace.etiqueta}
+            onClick={alNavegar}
             className={cn(
               "relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
               !conEtiquetas && "justify-center px-2",
@@ -205,7 +223,7 @@ function Enlaces({
                 : "text-muted-foreground hover:bg-secondary hover:text-foreground",
             )}
           >
-            <Icono className="h-4 w-4 shrink-0" />
+            <IconoEnlace icono={Icono} />
             {conEtiquetas && (
               <span className="flex-1 truncate">{enlace.etiqueta}</span>
             )}
@@ -233,6 +251,22 @@ function Enlaces({
         );
       })}
     </nav>
+  );
+}
+
+/**
+ * El ícono del enlace, que gira mientras su navegación está pendiente.
+ *
+ * Tiene que ser un componente hijo del `Link`: `useLinkStatus` lee el estado
+ * del `Link` más cercano hacia arriba. El reemplazo tiene el mismo tamaño que
+ * el ícono, así que no corre nada de lugar.
+ */
+function IconoEnlace({ icono: Icono }: { icono: LucideIcon }) {
+  const { pending } = useLinkStatus();
+  return pending ? (
+    <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+  ) : (
+    <Icono className="h-4 w-4 shrink-0" />
   );
 }
 
