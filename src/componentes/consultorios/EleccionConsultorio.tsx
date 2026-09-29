@@ -16,9 +16,9 @@ import { useConsultorios } from "@/lib/hooks/useConsultorios";
 import { AgregarConsultorio } from "./AgregarConsultorio";
 
 /**
- * «Elegí tu consultorio»: la pantalla que ve, después del login, quien se
- * atiende con más de un profesional y todavía no eligió en este dispositivo
- * (migración 78).
+ * «Elegí tu consultorio»: la pantalla que ve, después de CADA login con
+ * contraseña, quien se atiende con más de un profesional (migración 78; la
+ * renovación silenciosa de la sesión no lo vuelve a traer acá).
  *
  * La foto de cada profesional puede no cargar —la autorización de archivos
  * mira el consultorio de la sesión, y acá todavía no hay ninguno—: el avatar

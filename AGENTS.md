@@ -246,7 +246,9 @@ La regla que gobierna todo: **un consultorio solo fija la contraseña o cambia
 el email de login de una cuenta EXCLUSIVA suya** (`esCuentaExclusiva`); si no,
 podría entrar como el paciente y leer la ficha del otro. La sesión lleva el consultorio ACTIVO
 (`ResolverConsultorioActivo`), el paciente elige en `/mis-consultorios` o desde
-el selector del portal, y la elección se recuerda por dispositivo. Ver
+el selector del portal. Con varios consultorios **elige en cada login con
+contraseña**; la elección se recuerda por dispositivo solo para la renovación
+silenciosa de la sesión, que no lo vuelve a mandar a elegir. Ver
 `docs/CUENTAS-PACIENTE.md`.
 
 El email de bienvenida se puede **reenviar**: el envío manual nunca pisa a quien
