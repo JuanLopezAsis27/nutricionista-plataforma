@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { signOut } from "next-auth/react";
-import { Shield, Plus, LogOut, UserCheck, UserX } from "lucide-react";
+import { Shield, Plus, LogOut, UserCheck, UserX, KeyRound } from "lucide-react";
 import { useSuperAdmin } from "@/lib/hooks/useSuperAdmin";
 import { formatearFecha } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
@@ -28,11 +28,13 @@ import { UsoIAPlataforma } from "@/componentes/superadmin/UsoIAPlataforma";
 import { CatalogoRecetas } from "@/componentes/superadmin/CatalogoRecetas";
 import { ImportadorAlimentos } from "@/componentes/configuracion/ImportadorAlimentos";
 import { ListaAlimentosPropios } from "@/componentes/configuracion/ListaAlimentosPropios";
+import { FormularioPassword } from "@/componentes/perfil/FormularioPassword";
 
 /**
  * Panel del SUPERADMIN: las cuentas de nutricionista, la IA de la plataforma
  * (claves que comparten todos los consultorios, su saldo y su uso) y el
- * catálogo predeterminado de alimentos y recetas.
+ * catálogo predeterminado de alimentos y recetas, y el cambio de su propia
+ * contraseña.
  */
 export default function PaginaAdmin() {
   const { listarNutricionistas, crearNutricionista, cambiarEstado } =
@@ -88,7 +90,29 @@ export default function PaginaAdmin() {
           <TabsTrigger value="config-ia">Configuración de IA</TabsTrigger>
           <TabsTrigger value="alimentos">Alimentos predeterminados</TabsTrigger>
           <TabsTrigger value="recetas">Recetas predeterminadas</TabsTrigger>
+          <TabsTrigger value="mi-cuenta">Mi contraseña</TabsTrigger>
         </TabsList>
+
+        {/* El mismo formulario de "Mi perfil" (`perfil.cambiarPassword`, que
+            sirve a cualquier rol): el SUPERADMIN no tiene la pantalla entera
+            porque no tiene ficha ni consultorio de donde sacar el nombre. */}
+        <TabsContent value="mi-cuenta" className="mt-4">
+          <Card className="max-w-lg">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <KeyRound className="h-5 w-5 text-primary" /> Cambiar mi
+                contraseña
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Al cambiarla se cierran las sesiones recordadas en todos tus
+                dispositivos.
+              </p>
+              <FormularioPassword />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Catálogo de la plataforma (migración 82): lo ven todos los
             consultorios. Cada profesional suma lo suyo aparte. */}

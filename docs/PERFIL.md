@@ -230,6 +230,19 @@ contraseña en otro lado.
 Lo mismo hace el restablecimiento por email, que es el otro camino que usa quien
 sospecha algo.
 
+### El SUPERADMIN la cambia desde `/admin`
+
+El SUPERADMIN no tiene «Mi perfil»: no tiene ficha ni consultorio, y la
+pantalla entera (foto, nombre, datos de ingreso) no tiene de dónde leerle nada.
+Lo que sí necesita es cambiar su contraseña, y para eso el panel `/admin` tiene
+la pestaña **«Mi contraseña»**, que monta el MISMO `FormularioPassword`.
+
+No hizo falta tocar el servidor: `perfil.cambiarPassword` es
+`protegidoProcedimiento` (cualquier rol) y toma el `usuarioId` de la sesión. El
+SUPERADMIN corre con alcance global, que deja pasar la lectura y el `update`
+de `usuarios` sin filtro de inquilino; y como en el resto de los roles, el
+cambio revoca sus tokens de refresco.
+
 ### El formulario no tiene esquema propio
 
 `FormularioPassword` usa `cambiarPasswordDto` directamente como resolver. En
