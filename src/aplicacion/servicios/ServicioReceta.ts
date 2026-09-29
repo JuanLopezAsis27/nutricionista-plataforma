@@ -9,7 +9,11 @@ import type { MarcarFotoPrincipal } from "@/aplicacion/casos-de-uso/recetas/Marc
 import type { AsignarRecetaAPaciente } from "@/aplicacion/casos-de-uso/recetas/AsignarRecetaAPaciente";
 import type { DesasignarRecetaDePaciente } from "@/aplicacion/casos-de-uso/recetas/DesasignarRecetaDePaciente";
 import type { ObtenerRecetasDelPaciente } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetasDelPaciente";
-import type { ObtenerPacientesDeReceta } from "@/aplicacion/casos-de-uso/recetas/ObtenerPacientesDeReceta";
+import type {
+  ObtenerPacientesDeReceta,
+  PacienteAsignado,
+} from "@/aplicacion/casos-de-uso/recetas/ObtenerPacientesDeReceta";
+import type { CompartirRecetaConTodos } from "@/aplicacion/casos-de-uso/recetas/CompartirRecetaConTodos";
 import type { MoverRecetaAGrupo } from "@/aplicacion/casos-de-uso/recetas/MoverRecetaAGrupo";
 import type { CrearGrupoReceta } from "@/aplicacion/casos-de-uso/grupos-receta/CrearGrupoReceta";
 import type { ActualizarGrupoReceta } from "@/aplicacion/casos-de-uso/grupos-receta/ActualizarGrupoReceta";
@@ -53,6 +57,7 @@ export class ServicioReceta {
     private readonly actualizarGrupoUC: ActualizarGrupoReceta,
     private readonly eliminarGrupoUC: EliminarGrupoReceta,
     private readonly obtenerGruposUC: ObtenerGruposReceta,
+    private readonly compartirConTodosUC: CompartirRecetaConTodos,
   ) {}
 
   async crearReceta(datos: CrearRecetaDto): Promise<RecetaSalidaDto> {
@@ -123,7 +128,16 @@ export class ServicioReceta {
     return recetas.map(ServicioReceta.aSalida);
   }
 
-  async obtenerPacientesDeReceta(recetaId: string): Promise<string[]> {
+  /** Comparte la receta con todos los pacientes vigentes del consultorio. */
+  async compartirRecetaConTodos(
+    recetaId: string,
+  ): Promise<{ nuevos: number; pacientes: number }> {
+    return this.compartirConTodosUC.ejecutar(recetaId);
+  }
+
+  async obtenerPacientesDeReceta(
+    recetaId: string,
+  ): Promise<PacienteAsignado[]> {
     return this.obtenerPacientesUC.ejecutar(recetaId);
   }
 

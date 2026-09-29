@@ -139,11 +139,22 @@ La sesión lleva el consultorio en el que se está trabajando: `pacienteId` y
 `ResolverConsultorioActivo` es el ÚNICO camino que decide cuál, y lo usan los
 tres momentos que emiten una sesión: el login (`authorize`), la renovación con
 el token de refresco y el cambio de consultorio (callback `jwt` con
-`trigger === "update"`). Con una ficha, esa. Con varios, el que eligió la
-persona en ese dispositivo si todavía es suyo; si no, ninguno.
+`trigger === "update"`). Con una ficha, esa. Con varios, depende del momento:
+
+- **Login con contraseña: ninguno, siempre.** `authorize` no le pasa la
+  preferencia del dispositivo, así que quien se atiende en varios consultorios
+  elige en CADA login. Es una decisión de producto: al entrar, la persona dice
+  a qué consultorio va, en vez de aterrizar en el último que usó ese
+  dispositivo.
+- **Renovación y cambio:** el que eligió la persona en ese dispositivo si
+  todavía es suyo; si no, ninguno. La renovación silenciosa (cada 12 h, o al
+  reabrir la app sin contraseña) NO vuelve a pedir la elección: sacarlo a
+  elegir en medio del uso, y en la app Android casi cada vez que se abre, era
+  peor que el problema.
 
 **La elección se recuerda por dispositivo**, en la cookie httpOnly
-`consultorio` (`lib/autenticacion/consultorioActivo.ts`), durante un año.
+`consultorio` (`lib/autenticacion/consultorioActivo.ts`), durante un año, y
+desde entonces solo la leen la renovación y el cambio.
 Nadie confía en ella: se revalida contra las fichas de la cuenta cada vez, porque puede
 nombrar una ficha que se borró.
 

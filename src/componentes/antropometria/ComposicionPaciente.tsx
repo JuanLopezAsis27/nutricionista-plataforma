@@ -35,6 +35,13 @@ import {
 } from "@/componentes/ui/card";
 import { Skeleton } from "@/componentes/ui/skeleton";
 import { Button } from "@/componentes/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/componentes/ui/select";
 import { DonutMasas } from "./DonutMasas";
 import { EvolucionMasas, EvolucionGrasa } from "./EvolucionMasas";
 import {
@@ -127,6 +134,13 @@ const ESTADOS: Record<
  * llanas—, porque son datos que el paciente reconoce y le sirve tener a mano
  * entre consultas.
  *
+ * Como en el dashboard del profesional, se puede elegir CUALQUIER medición y
+ * la pantalla se rearma para esa consulta: indicadores, índices, reparto de
+ * masas y somatotipo (hasta esa fecha), comparados con la anterior a ella.
+ * Lo que no se mueve con la elección es lo que no es de una consulta: los
+ * objetivos se leen siempre contra la ÚLTIMA medición —es donde está el
+ * paciente hoy— y la evolución muestra la serie entera.
+ *
  * Al final van sus mediciones una por una, con la planilla de cada consulta:
  * lo que se midió ese día y no solo lo que dio. Es la misma ficha que usa el
  * profesional, sin editar ni borrar, y no le pide nada nuevo al servidor: las
@@ -141,6 +155,8 @@ export function ComposicionPaciente() {
   // el paciente pregunta por un número. Null = todavía no eligió nadie.
   const [eleccionEcuacion, setSeleccionEcuacion] =
     useState<SeleccionEcuacion | null>(null);
+  // Null = la última, también cuando llega una medición nueva.
+  const [seleccionadaId, setSeleccionadaId] = useState<string | null>(null);
 
   if (consulta.isLoading || !montado) {
     return (
@@ -175,9 +191,18 @@ export function ComposicionPaciente() {
     );
   }
 
-  const actual = mediciones[mediciones.length - 1]!;
+  const ultima = mediciones[mediciones.length - 1]!;
+  const indiceActual =
+    seleccionadaId != null
+      ? Math.max(
+          0,
+          mediciones.findIndex((m) => m.id === seleccionadaId),
+        )
+      : mediciones.length - 1;
+  const actual = mediciones[indiceActual]!;
   const anterior =
-    mediciones.length > 1 ? (mediciones[mediciones.length - 2] ?? null) : null;
+    indiceActual > 0 ? (mediciones[indiceActual - 1] ?? null) : null;
+  const esLaUltima = actual.id === ultima.id;
   const { resultado } = actual;
 
   const grasa =
@@ -199,35 +224,62 @@ export function ComposicionPaciente() {
     indices.sumatoria6Pliegues != null ||
     indices.sumatoria8Pliegues != null;
 
-  const puntosSomatotipo: PuntoSomatocarta[] = mediciones.flatMap((m) =>
-    m.resultado.somatotipo
-      ? [{ fecha: m.fecha, somatotipo: m.resultado.somatotipo }]
-      : [],
-  );
+  // Hasta la medición elegida: la somatocarta de una consulta vieja no puede
+  // mostrar puntos que todavía no existían.
+  const puntosSomatotipo: PuntoSomatocarta[] = mediciones
+    .slice(0, indiceActual + 1)
+    .flatMap((m) =>
+      m.resultado.somatotipo
+        ? [{ fecha: m.fecha, somatotipo: m.resultado.somatotipo }]
+        : [],
+    );
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card px-4 py-3">
         <p className="text-sm">
-          <span className="text-muted-foreground">Última medición: </span>
+          <span className="text-muted-foreground">
+            {esLaUltima ? "Última medición: " : "Medición del "}
+          </span>
           <strong>{formatearFecha(actual.fecha)}</strong>
-          {anterior && (
-            <span className="text-muted-foreground">
-              {" · anterior: "}
-              {formatearFecha(anterior.fecha)}
-            </span>
-          )}
+          <span className="text-muted-foreground">
+            {anterior
+              ? ` · comparada con la del ${formatearFecha(anterior.fecha)}`
+              : " · tu primera medición"}
+          </span>
         </p>
-        <Button asChild variant="outline" size="sm">
-          <a
-            href={`/api/antropometria/${actual.id}/pdf`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <FileDown className="h-4 w-4" />
-            Descargar PDF
-          </a>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {mediciones.length > 1 && (
+            <Select value={actual.id} onValueChange={setSeleccionadaId}>
+              <SelectTrigger
+                className="h-9 w-auto min-w-[11rem]"
+                aria-label="Elegir medición"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {/* De la más nueva a la más vieja: la que se busca casi
+                    siempre es una de las últimas. */}
+                {[...mediciones].reverse().map((m, indice) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {formatearFecha(m.fecha)}
+                    {indice === 0 && " (última)"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Button asChild variant="outline" size="sm">
+            <a
+              href={`/api/antropometria/${actual.id}/pdf`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <FileDown className="h-4 w-4" />
+              Descargar PDF
+            </a>
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
@@ -340,7 +392,7 @@ export function ComposicionPaciente() {
             </span>
             Tus objetivos
           </h2>
-          {resultado.fraccionamiento && (
+          {ultima.resultado.fraccionamiento && (
             <Card className="overflow-hidden">
               <CabeceraTarjeta
                 icono={Target}
@@ -351,7 +403,7 @@ export function ComposicionPaciente() {
               />
               <CardContent className="p-4">
                 <TortaMasasConObjetivos
-                  medicion={actual}
+                  medicion={ultima}
                   objetivos={objetivos}
                   tema={tema}
                 />

@@ -72,7 +72,8 @@ export interface FiltroRegistrosUsoIA {
  */
 export interface IRegistroUsoIARepositorio {
   registrar(uso: UsoIA): Promise<void>;
-  resumir(desde: Date): Promise<ResumenUsoIA>;
+  /** Con `nutricionistaId`, solo lo que gastó ese consultorio. */
+  resumir(desde: Date, nutricionistaId?: string): Promise<ResumenUsoIA>;
   listar(
     filtro: FiltroRegistrosUsoIA,
   ): Promise<{ registros: RegistroUsoIA[]; total: number }>;

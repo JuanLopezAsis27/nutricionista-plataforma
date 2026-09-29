@@ -11,6 +11,7 @@ import { AsignarMaterialAPaciente } from "@/aplicacion/casos-de-uso/biblioteca/A
 import { DesasignarMaterialDePaciente } from "@/aplicacion/casos-de-uso/biblioteca/DesasignarMaterialDePaciente";
 import { ObtenerMaterialesDelPaciente } from "@/aplicacion/casos-de-uso/biblioteca/ObtenerMaterialesDelPaciente";
 import { ObtenerPacientesDeMaterial } from "@/aplicacion/casos-de-uso/biblioteca/ObtenerPacientesDeMaterial";
+import { CompartirMaterialConTodos } from "@/aplicacion/casos-de-uso/biblioteca/CompartirMaterialConTodos";
 import { ServicioBiblioteca } from "@/aplicacion/servicios/ServicioBiblioteca";
 
 /** Arma el servicio de la Biblioteca con sus casos de uso. */
@@ -29,6 +30,7 @@ export function crearServicioBiblioteca(deps: {
     new AsignarMaterialAPaciente(deps.materiales, deps.pacientes),
     new DesasignarMaterialDePaciente(deps.materiales),
     new ObtenerMaterialesDelPaciente(deps.materiales),
-    new ObtenerPacientesDeMaterial(deps.materiales),
+    new ObtenerPacientesDeMaterial(deps.materiales, deps.pacientes),
+    new CompartirMaterialConTodos(deps.materiales, deps.pacientes),
   );
 }

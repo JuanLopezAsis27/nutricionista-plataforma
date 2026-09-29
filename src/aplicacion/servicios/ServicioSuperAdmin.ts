@@ -42,6 +42,7 @@ export class ServicioSuperAdmin {
     // El profesional siempre tiene email (CHECK de la migración 80).
     return {
       id: d.id,
+      nutricionistaId: d.nutricionistaId,
       email: usuario.identificador,
       activo: d.activo,
       creadoEn: d.creadoEn,

@@ -33,6 +33,11 @@ export interface IMaterialRepositorio {
     pacienteId: string,
     id: string,
   ): Promise<void>;
+  /**
+   * Comparte el material con varios pacientes en UNA escritura. Los que ya lo
+   * tenían se saltean (idempotente); devuelve cuántas asignaciones son nuevas.
+   */
+  asignarAPacientes(materialId: string, pacienteIds: string[]): Promise<number>;
   desasignarDePaciente(materialId: string, pacienteId: string): Promise<void>;
   listarPorPaciente(pacienteId: string): Promise<MaterialBiblioteca[]>;
   /** Ids de los pacientes que tienen asignado el material. */

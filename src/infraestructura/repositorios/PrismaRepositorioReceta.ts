@@ -208,6 +208,25 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
     });
   }
 
+  async asignarAPacientes(
+    recetaId: string,
+    pacienteIds: string[],
+  ): Promise<number> {
+    if (pacienteIds.length === 0) return 0;
+    const nutricionistaId = inquilinoActual();
+    // skipDuplicates se apoya en el único (recetaId, pacienteId): los que ya
+    // la tenían no cuentan ni fallan.
+    const { count } = await this.prisma.asignacionReceta.createMany({
+      data: pacienteIds.map((pacienteId) => ({
+        nutricionistaId,
+        recetaId,
+        pacienteId,
+      })),
+      skipDuplicates: true,
+    });
+    return count;
+  }
+
   async desasignarDePaciente(
     recetaId: string,
     pacienteId: string,

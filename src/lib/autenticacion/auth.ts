@@ -240,14 +240,16 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
 
         // El objeto devuelto alimenta el callback jwt (ver auth.config.ts).
         // Para un paciente, `pacienteId`/`nutricionistaId` son los del
-        // consultorio en el que arranca: el único que tiene, o el que eligió
-        // la última vez en este dispositivo. Con varios y sin elección, van en
-        // null y el portal le pide que elija.
+        // consultorio en el que arranca: el único que tiene o, con varios,
+        // NINGUNO —van en null y el portal lo manda a elegir—.
+        //
+        // Acá NO se lee el consultorio recordado en el dispositivo, a
+        // propósito: quien se atiende en varios consultorios elige en CADA
+        // login con contraseña. La cookie sigue sirviendo para la renovación
+        // silenciosa (`renovarDesdeCookie`), que mantiene la elección mientras
+        // usa la app y no lo saca a elegir cada 12 h.
         const identidad = await ejecutarGlobal(async () =>
-          servicioAutenticacion().identidadDeSesion(
-            usuario.id,
-            await consultorioPreferido(),
-          ),
+          servicioAutenticacion().identidadDeSesion(usuario.id, null),
         );
         return identidad;
       },

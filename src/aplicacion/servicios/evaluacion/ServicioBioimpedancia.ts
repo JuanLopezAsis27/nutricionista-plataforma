@@ -9,6 +9,7 @@ import type {
   ActualizarBioimpedanciaDto,
   GuardarObjetivoBioimpedanciaDto,
   SeguimientoBioimpedanciaDto,
+  MedicionBioimpedanciaDto,
 } from "../../dtos/bioimpedancia.dto";
 
 /**
@@ -47,6 +48,18 @@ export class ServicioBioimpedancia {
       }),
       valoresActuales: seguimiento.valoresActuales,
     };
+  }
+
+  /**
+   * Lo que ve el paciente en su portal: la serie de mediciones, sin las
+   * observaciones del profesional —son notas de trabajo, no un informe— y sin
+   * las metas, que el dashboard del paciente no dibuja.
+   */
+  async obtenerParaPaciente(
+    pacienteId: string,
+  ): Promise<MedicionBioimpedanciaDto[]> {
+    const { mediciones } = await this.obtener(pacienteId);
+    return mediciones.map((m) => ({ ...m, observaciones: null }));
   }
 
   async registrar(

@@ -58,8 +58,14 @@ export class PrismaRepositorioRegistroUsoIA implements IRegistroUsoIARepositorio
     });
   }
 
-  async resumir(desde: Date): Promise<ResumenUsoIA> {
-    const where = { creadoEn: { gte: desde } };
+  async resumir(
+    desde: Date,
+    nutricionistaId?: string,
+  ): Promise<ResumenUsoIA> {
+    const where: Prisma.RegistroUsoIAWhereInput = {
+      creadoEn: { gte: desde },
+      ...(nutricionistaId ? { nutricionistaId } : {}),
+    };
     const conErrores = { ...where, exito: false };
     const suma = {
       _count: { _all: true },
@@ -109,6 +115,11 @@ export class PrismaRepositorioRegistroUsoIA implements IRegistroUsoIARepositorio
                SUM("costoUsd") AS costo
         FROM "registros_uso_ia"
         WHERE "creadoEn" >= ${desde}
+          ${
+            nutricionistaId
+              ? Prisma.sql`AND "nutricionistaId" = ${nutricionistaId}`
+              : Prisma.empty
+          }
         GROUP BY 1
         ORDER BY 1
       `),

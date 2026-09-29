@@ -18,6 +18,7 @@ import {
   YAxis,
 } from "recharts";
 import { useIAPlataforma } from "@/lib/hooks/useIAPlataforma";
+import { useSuperAdmin } from "@/lib/hooks/useSuperAdmin";
 import {
   Card,
   CardContent,
@@ -54,6 +55,8 @@ const PERIODOS = [
 ] as const;
 
 const POR_PAGINA = 20;
+/** Valor del selector para "sin filtro": Radix no admite un ítem con value "". */
+const TODOS = "__todos__";
 
 const numero = new Intl.NumberFormat("es-AR");
 const fechaHora = new Intl.DateTimeFormat("es-AR", {
@@ -73,13 +76,61 @@ function usd(valor: number | null): string {
  * El costo solo aparece donde el proveedor lo informa (OpenRouter). Para
  * Anthropic y OpenAI se muestran tokens: calcular un costo con una tabla de
  * precios propia daría un número con cara de dato que se desactualiza solo.
+ *
+ * El filtro de consultorio rige para las estadísticas y el registro, no para
+ * el saldo: las claves son de la plataforma y el saldo no tiene dueño.
  */
 export function UsoIAPlataforma() {
+  const [nutricionistaId, setNutricionistaId] = useState<string | undefined>();
+
   return (
     <div className="space-y-6">
       <Saldos />
-      <Estadisticas />
-      <Registros />
+      <FiltroConsultorio
+        valor={nutricionistaId}
+        onCambio={setNutricionistaId}
+      />
+      <Estadisticas nutricionistaId={nutricionistaId} />
+      <Registros nutricionistaId={nutricionistaId} />
+    </div>
+  );
+}
+
+function FiltroConsultorio({
+  valor,
+  onCambio,
+}: {
+  valor: string | undefined;
+  onCambio: (nutricionistaId: string | undefined) => void;
+}) {
+  const { listarNutricionistas } = useSuperAdmin();
+  const cuentas = (listarNutricionistas().data ?? [])
+    .filter(
+      (c): c is typeof c & { nutricionistaId: string } =>
+        c.nutricionistaId !== null,
+    )
+    .sort((a, b) => a.email.localeCompare(b.email, "es"));
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-sm font-medium">Nutricionista</span>
+      <Select
+        value={valor ?? TODOS}
+        onValueChange={(v) => onCambio(v === TODOS ? undefined : v)}
+      >
+        <SelectTrigger className="w-72" aria-label="Filtrar por nutricionista">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={TODOS}>Todos los consultorios</SelectItem>
+          {cuentas.map((c) => (
+            <SelectItem key={c.nutricionistaId} value={c.nutricionistaId}>
+              {c.email}
+              {!c.activo && " (desactivada)"}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
@@ -159,10 +210,14 @@ function Saldos() {
   );
 }
 
-function Estadisticas() {
+function Estadisticas({
+  nutricionistaId,
+}: {
+  nutricionistaId: string | undefined;
+}) {
   const { resumen } = useIAPlataforma();
   const [dias, setDias] = useState<number>(30);
-  const consulta = resumen({ dias });
+  const consulta = resumen({ dias, nutricionistaId });
   const r = consulta.data;
   const { tema } = useTemaComposicion();
 
@@ -291,7 +346,7 @@ function Estadisticas() {
                 }))}
               />
             )}
-            {r.porConsultorio.length > 0 && (
+            {!nutricionistaId && r.porConsultorio.length > 0 && (
               <Desglose
                 titulo="Por consultorio"
                 encabezado="Consultorio"
@@ -400,11 +455,27 @@ function Desglose({
   );
 }
 
-function Registros() {
+function Registros({
+  nutricionistaId,
+}: {
+  nutricionistaId: string | undefined;
+}) {
   const { registros } = useIAPlataforma();
   const [pagina, setPagina] = useState(1);
   const [soloErrores, setSoloErrores] = useState(false);
-  const consulta = registros({ pagina, porPagina: POR_PAGINA, soloErrores });
+  // Cambiar de consultorio vuelve a la primera página: la actual puede no
+  // existir en el filtro nuevo. Se ajusta durante el render, sin efecto.
+  const [filtroAnterior, setFiltroAnterior] = useState(nutricionistaId);
+  if (filtroAnterior !== nutricionistaId) {
+    setFiltroAnterior(nutricionistaId);
+    setPagina(1);
+  }
+  const consulta = registros({
+    pagina,
+    porPagina: POR_PAGINA,
+    soloErrores,
+    nutricionistaId,
+  });
   const total = consulta.data?.total ?? 0;
   const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
 
@@ -434,7 +505,9 @@ function Registros() {
           <p className="py-6 text-center text-sm text-muted-foreground">
             {soloErrores
               ? "No hay llamadas con error."
-              : "Todavía no se registró ninguna llamada."}
+              : nutricionistaId
+                ? "Este consultorio no registra llamadas."
+                : "Todavía no se registró ninguna llamada."}
           </p>
         ) : (
           <div className="overflow-x-auto rounded-lg border">

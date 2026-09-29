@@ -82,8 +82,15 @@ export class ServicioIAPlataforma {
     );
   }
 
-  resumirUso(dias: number, ahora: Date = new Date()): Promise<ResumenUsoIA> {
-    return this.registro.resumir(new Date(ahora.getTime() - dias * MS_POR_DIA));
+  resumirUso(
+    dias: number,
+    nutricionistaId?: string,
+    ahora: Date = new Date(),
+  ): Promise<ResumenUsoIA> {
+    return this.registro.resumir(
+      new Date(ahora.getTime() - dias * MS_POR_DIA),
+      nutricionistaId,
+    );
   }
 
   listarRegistros(

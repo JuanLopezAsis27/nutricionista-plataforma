@@ -52,6 +52,11 @@ export interface IRecetaRepositorio {
     pacienteId: string,
     id: string,
   ): Promise<void>;
+  /**
+   * Comparte la receta con varios pacientes en UNA escritura. Los que ya la
+   * tenían se saltean (idempotente); devuelve cuántas asignaciones son nuevas.
+   */
+  asignarAPacientes(recetaId: string, pacienteIds: string[]): Promise<number>;
   desasignarDePaciente(recetaId: string, pacienteId: string): Promise<void>;
   listarPorPaciente(pacienteId: string): Promise<Receta[]>;
   /** Ids de los pacientes que tienen asignada la receta. */

@@ -118,6 +118,8 @@ export function useEvaluacion() {
     ),
     // Bioimpedancia
     obtenerBioimpedancia: trpc.evaluacion.obtenerBioimpedancia.useQuery,
+    /** Portal del paciente: su propia bioimpedancia (el id sale de la sesión). */
+    miBioimpedancia: trpc.evaluacion.miBioimpedancia.useQuery,
     registrarBioimpedancia: trpc.evaluacion.registrarBioimpedancia.useMutation(
       conToasts("Bioimpedancia registrada."),
     ),

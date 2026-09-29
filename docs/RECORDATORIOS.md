@@ -72,6 +72,14 @@ que Meta factura por conversación— es una decisión suya, no un default nuest
 `3 días antes` y `1 día antes` marcados son **dos** avisos. La cantidad de
 recordatorios es la cantidad de opciones tildadas, hasta cinco por medio.
 
+Las opciones que ofrece la pantalla son `DIAS_OFRECIDOS`
+(`componentes/recordatorios/ConfiguracionMedios.tsx`): el mismo día, 1, 2, 3,
+4, 5, 7 y 14 días antes. Es la ÚNICA lista que hay que tocar para sumar una
+anticipación: el dominio, el DTO y las plantillas ya aceptan cualquier entero
+de 0 a 60 (`MAX_DIAS_ANTES`), y el selector de «Día asignado» de las plantillas
+de WhatsApp y de email lee la misma constante. El 4 se sumó a pedido de un
+consultorio que avisa con 4 días.
+
 El barrido corre **cada hora** y cada consultorio se apaga solo **hasta que
 llega la hora que configuró**; a partir de ahí corre en todas las pasadas del
 día. Es más simple que un cron por inquilino —que además habría que rearmar cada

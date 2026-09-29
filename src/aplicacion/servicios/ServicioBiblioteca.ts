@@ -6,7 +6,11 @@ import type { ObtenerMaterialesPaginado } from "@/aplicacion/casos-de-uso/biblio
 import type { AsignarMaterialAPaciente } from "@/aplicacion/casos-de-uso/biblioteca/AsignarMaterialAPaciente";
 import type { DesasignarMaterialDePaciente } from "@/aplicacion/casos-de-uso/biblioteca/DesasignarMaterialDePaciente";
 import type { ObtenerMaterialesDelPaciente } from "@/aplicacion/casos-de-uso/biblioteca/ObtenerMaterialesDelPaciente";
-import type { ObtenerPacientesDeMaterial } from "@/aplicacion/casos-de-uso/biblioteca/ObtenerPacientesDeMaterial";
+import type {
+  ObtenerPacientesDeMaterial,
+  PacienteAsignado,
+} from "@/aplicacion/casos-de-uso/biblioteca/ObtenerPacientesDeMaterial";
+import type { CompartirMaterialConTodos } from "@/aplicacion/casos-de-uso/biblioteca/CompartirMaterialConTodos";
 import type { MaterialBiblioteca } from "@/dominio/entidades/MaterialBiblioteca";
 import type {
   CrearMaterialDto,
@@ -33,6 +37,7 @@ export class ServicioBiblioteca {
     private readonly desasignarUC: DesasignarMaterialDePaciente,
     private readonly obtenerDelPacienteUC: ObtenerMaterialesDelPaciente,
     private readonly obtenerPacientesUC: ObtenerPacientesDeMaterial,
+    private readonly compartirConTodosUC: CompartirMaterialConTodos,
   ) {}
 
   async crearMaterial(datos: CrearMaterialDto): Promise<MaterialSalidaDto> {
@@ -86,7 +91,16 @@ export class ServicioBiblioteca {
     return materiales.map(ServicioBiblioteca.aSalida);
   }
 
-  async obtenerPacientesDeMaterial(materialId: string): Promise<string[]> {
+  /** Comparte el material con todos los pacientes vigentes del consultorio. */
+  async compartirMaterialConTodos(
+    materialId: string,
+  ): Promise<{ nuevos: number; pacientes: number }> {
+    return this.compartirConTodosUC.ejecutar(materialId);
+  }
+
+  async obtenerPacientesDeMaterial(
+    materialId: string,
+  ): Promise<PacienteAsignado[]> {
     return this.obtenerPacientesUC.ejecutar(materialId);
   }
 

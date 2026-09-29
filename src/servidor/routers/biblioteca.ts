@@ -61,6 +61,13 @@ export const routerBiblioteca = crearRouter({
       return { asignado: true };
     }),
 
+  // Todos los pacientes vigentes de una vez (el selector es paginado).
+  compartirConTodos: nutricionistaProcedimiento
+    .input(idMaterialDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.biblioteca.compartirMaterialConTodos(input.id);
+    }),
+
   desasignarDePaciente: nutricionistaProcedimiento
     .input(asignarMaterialDto)
     .mutation(async ({ ctx, input }) => {

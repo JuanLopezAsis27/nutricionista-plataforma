@@ -46,10 +46,10 @@ const idDto = z.object({ id: z.string().min(1) });
  * Casi todo es exclusivo del NUTRICIONISTA: la historia clínica y los
  * laboratorios no se exponen al portal.
  *
- * La ÚNICA excepción es `miComposicion`: el paciente ve su propia
- * antropometría y sus objetivos de composición. Es lectura, resuelve el
- * paciente desde la sesión (nunca desde el input) y no alcanza al resto de la
- * evaluación.
+ * Las ÚNICAS excepciones son `miComposicion` y `miBioimpedancia`: el paciente
+ * ve su propia antropometría (con sus objetivos) y su bioimpedancia. Son
+ * lectura, resuelven el paciente desde la sesión (nunca desde el input) y no
+ * alcanzan al resto de la evaluación.
  */
 export const routerEvaluacion = crearRouter({
   // --- Historia clínica -------------------------------------------------------
@@ -257,9 +257,16 @@ export const routerEvaluacion = crearRouter({
   }),
 
   // --- Bioimpedancia ------------------------------------------------------------
-  // Lo que informa la balanza, con sus metas. Es del profesional: no se expone
-  // al portal (el paciente ve su composición por `miComposicion`, que es la
-  // antropometría).
+  // Lo que informa la balanza, con sus metas. La carga es del profesional; el
+  // paciente solo lee su serie por `miBioimpedancia`.
+
+  // Portal: igual que `miComposicion`, el paciente sale de la sesión.
+  miBioimpedancia: protegidoProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.evaluacion.bioimpedancia.obtenerParaPaciente(
+      pacienteDeSesion(ctx.usuario),
+    );
+  }),
+
   obtenerBioimpedancia: nutricionistaProcedimiento
     .input(idPacienteBioimpedanciaDto)
     .query(async ({ ctx, input }) => {

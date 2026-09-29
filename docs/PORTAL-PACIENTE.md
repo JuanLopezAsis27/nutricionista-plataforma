@@ -16,7 +16,7 @@ sentado frente a una pantalla grande durante la consulta.
 | `/mi-semana`       | El plan semanal asignado: **qué come cada día**      |
 | `/mi-diario`       | Lo que registra: comidas, peso, agua, sueño          |
 | `/mi-progreso`     | Su evolución (`SeccionTracking`)                     |
-| `/mi-composicion`  | Antropometría, en lectura                            |
+| `/mi-composicion`  | Antropometría y bioimpedancia, en lectura            |
 | `/mis-objetivos`   | Objetivos y estrategias, en lectura                  |
 | `/mis-recetas`     | Recetas que le asignaron                             |
 | `/mis-recetas/[id]`| Una receta: ingredientes, pasos y su documento       |
@@ -27,8 +27,8 @@ sentado frente a una pantalla grande durante la consulta.
 | `/mi-perfil`       | Su foto y su contraseña (`docs/PERFIL.md`)           |
 
 Hay una pantalla más, fuera del layout del portal: **`/mis-consultorios`**
-(«Elegí tu consultorio»), para quien se atiende con varios profesionales y
-todavía no eligió en ese dispositivo. El layout manda ahí a toda sesión sin
+(«Elegí tu consultorio»), que ve después de cada login con contraseña quien se
+atiende con varios profesionales. El layout manda ahí a toda sesión sin
 consultorio activo; con uno elegido, se cambia desde el ícono del pie de la
 barra lateral, que solo aparece con dos o más. Ver `docs/CUENTAS-PACIENTE.md`.
 
@@ -224,6 +224,20 @@ lectura y no un número del paciente.
 Su **PDF** no lleva las seis curvas: en papel no hay tooltip donde apoyarse, así
 que va la curva de su ecuación principal y una tabla con el valor de las otras
 en esa medición. Está en `docs/ANTROPOMETRIA.md`.
+
+## Mi composición: cada medición se puede mirar entera
+
+Arriba de la antropometría hay un selector de medición, como en el dashboard
+del profesional: elegir una consulta vieja rearma la pantalla para ESA
+consulta —indicadores, índices, reparto de masas y somatotipo hasta esa fecha—,
+comparada con la inmediatamente anterior, y el PDF que se descarga es el de
+esa medición. Dos cosas no se mueven con la elección, a propósito: los
+**objetivos** se leen siempre contra la última medición (dicen dónde está el
+paciente hoy) y la **evolución** muestra la serie entera.
+
+Al lado de la antropometría hay una pestaña **Bioimpedancia** con el dashboard
+de la balanza (`docs/BIOIMPEDANCIA.md`). Van separadas porque son dos métodos:
+el % graso de una y de la otra no se comparan.
 
 ## El asistente guarda los chats
 
