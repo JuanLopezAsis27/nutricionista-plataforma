@@ -109,8 +109,14 @@ editando—, y arranca del valor de la última medición.
 
 ## Alcance
 
-Es material del profesional: no hay procedimiento de paciente. El portal («Mi
-composición») sigue mostrando solo la antropometría.
+La carga y las metas son del profesional. El paciente **lee** su serie en el
+portal: «Mi composición» tiene dos pestañas, Antropometría y Bioimpedancia, y
+la segunda es el MISMO `DashboardBioimpedancia` de la ficha
+(`BioimpedanciaPaciente`), alimentado por `miBioimpedancia`. Ese procedimiento
+saca al paciente de la sesión (`pacienteDeSesion`) y devuelve solo las
+mediciones, **sin las observaciones** —son notas de trabajo del profesional— y
+sin las metas, que el dashboard no dibuja. Las dos fuentes siguen en pestañas
+separadas por lo mismo que en la ficha: no se comparan entre sí.
 
 ## Dónde vive
 

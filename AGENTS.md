@@ -584,7 +584,9 @@ la recta se sale del rango admisible de la variable.
 En la ficha del nutricionista, **Antropometría** es la única pestaña que carga y
 lee medidas corporales; **Progreso** es el seguimiento del día a día. En el portal
 del paciente, **Mi composición** es la ÚNICA parte de la evaluación que se
-expone: historia clínica, laboratorios y alertas siguen siendo del profesional.
+expone —la antropometría y, en otra pestaña, la bioimpedancia
+(`miBioimpedancia`, sin las observaciones del profesional)—: historia clínica,
+laboratorios y alertas siguen siendo del profesional.
 
 Ver `docs/ANTROPOMETRIA.md`.
 
