@@ -58,10 +58,7 @@ export class PrismaRepositorioRegistroUsoIA implements IRegistroUsoIARepositorio
     });
   }
 
-  async resumir(
-    desde: Date,
-    nutricionistaId?: string,
-  ): Promise<ResumenUsoIA> {
+  async resumir(desde: Date, nutricionistaId?: string): Promise<ResumenUsoIA> {
     const where: Prisma.RegistroUsoIAWhereInput = {
       creadoEn: { gte: desde },
       ...(nutricionistaId ? { nutricionistaId } : {}),
