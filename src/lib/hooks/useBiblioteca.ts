@@ -42,6 +42,18 @@ export function useBiblioteca() {
     onError: (error) => avisarError(error),
   });
 
+  const compartirConTodos = trpc.biblioteca.compartirConTodos.useMutation({
+    onSuccess: ({ nuevos, pacientes }) => {
+      toast.success(
+        nuevos === 0
+          ? "Ya estaba compartido con todos los pacientes."
+          : `Material compartido con ${nuevos} paciente${nuevos === 1 ? "" : "s"} más (de ${pacientes}).`,
+      );
+      invalidar();
+    },
+    onError: (error) => avisarError(error),
+  });
+
   const desasignar = trpc.biblioteca.desasignarDePaciente.useMutation({
     onSuccess: () => {
       toast.success("Material quitado del paciente.");
@@ -61,6 +73,7 @@ export function useBiblioteca() {
     actualizar,
     eliminar,
     asignar,
+    compartirConTodos,
     desasignar,
   };
 }

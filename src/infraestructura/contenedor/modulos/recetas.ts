@@ -15,6 +15,7 @@ import { AsignarRecetaAPaciente } from "@/aplicacion/casos-de-uso/recetas/Asigna
 import { DesasignarRecetaDePaciente } from "@/aplicacion/casos-de-uso/recetas/DesasignarRecetaDePaciente";
 import { ObtenerRecetasDelPaciente } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetasDelPaciente";
 import { ObtenerPacientesDeReceta } from "@/aplicacion/casos-de-uso/recetas/ObtenerPacientesDeReceta";
+import { CompartirRecetaConTodos } from "@/aplicacion/casos-de-uso/recetas/CompartirRecetaConTodos";
 import { MoverRecetaAGrupo } from "@/aplicacion/casos-de-uso/recetas/MoverRecetaAGrupo";
 import { CrearGrupoReceta } from "@/aplicacion/casos-de-uso/grupos-receta/CrearGrupoReceta";
 import { ActualizarGrupoReceta } from "@/aplicacion/casos-de-uso/grupos-receta/ActualizarGrupoReceta";
@@ -46,11 +47,12 @@ export function crearServicioReceta(deps: {
     new AsignarRecetaAPaciente(deps.recetas, deps.pacientes),
     new DesasignarRecetaDePaciente(deps.recetas),
     new ObtenerRecetasDelPaciente(deps.recetas),
-    new ObtenerPacientesDeReceta(deps.recetas),
+    new ObtenerPacientesDeReceta(deps.recetas, deps.pacientes),
     new MoverRecetaAGrupo(deps.recetas, deps.gruposReceta),
     new CrearGrupoReceta(deps.gruposReceta),
     new ActualizarGrupoReceta(deps.gruposReceta),
     new EliminarGrupoReceta(deps.gruposReceta),
     new ObtenerGruposReceta(deps.gruposReceta),
+    new CompartirRecetaConTodos(deps.recetas, deps.pacientes),
   );
 }

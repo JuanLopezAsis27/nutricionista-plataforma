@@ -215,7 +215,7 @@ consultorio lento bloquearía a todos los demás.
 
 ## Modelos del dominio
 
-**37 entidades**, **191 casos de uso** en 28 módulos, **43 interfaces de
+**37 entidades**, **193 casos de uso** en 28 módulos, **43 interfaces de
 repositorio** y **20 puertos de servicio**. La fuente de verdad es el código
 (`/src/dominio`) y `prisma/schema.prisma`. Acá van solo los invariantes que
 cruzan módulos; el detalle de cada uno, en `/docs`.
@@ -418,6 +418,13 @@ MIME al mapear. `fotoPrincipalId` es la portada elegida, y el fallback —si no 
 elegida, o si la elegida ya no está— lo resuelve el getter `Receta.fotoPrincipal`,
 no cada pantalla: repetirlo en la UI hacía que la tarjeta y la vista mostraran
 fotos distintas de la misma receta.
+
+Una receta —y un material de la biblioteca— se comparte con pacientes
+elegidos o con **todos los vigentes de una vez** (`CompartirRecetaConTodos`,
+`CompartirMaterialConTodos`): «todos» lo resuelve el servidor en UNA escritura
+(`createMany` con `skipDuplicates`), porque el selector es paginado y tildar
+desde la pantalla serían solo los de la primera página. Por lo mismo, los
+nombres de la lista de asignados vienen resueltos por id del servidor.
 
 El recetario tiene **carpetas** (`GrupoReceta`, migración 41), las mismas que los
 planes y con la misma mecánica: un nivel, borrar la carpeta deja las recetas

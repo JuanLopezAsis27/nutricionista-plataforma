@@ -123,6 +123,13 @@ export const routerRecetas = crearRouter({
       return { asignado: true };
     }),
 
+  // Todos los pacientes vigentes de una vez (el selector es paginado).
+  compartirConTodos: nutricionistaProcedimiento
+    .input(idRecetaDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.receta.compartirRecetaConTodos(input.id);
+    }),
+
   desasignarDePaciente: nutricionistaProcedimiento
     .input(asignarRecetaDto)
     .mutation(async ({ ctx, input }) => {

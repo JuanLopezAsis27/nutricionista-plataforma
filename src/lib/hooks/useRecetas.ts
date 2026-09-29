@@ -58,6 +58,18 @@ export function useRecetas() {
     onError: (error) => avisarError(error),
   });
 
+  const compartirConTodos = trpc.recetas.compartirConTodos.useMutation({
+    onSuccess: ({ nuevos, pacientes }) => {
+      toast.success(
+        nuevos === 0
+          ? "Ya estaba compartida con todos los pacientes."
+          : `Receta compartida con ${nuevos} paciente${nuevos === 1 ? "" : "s"} más (de ${pacientes}).`,
+      );
+      invalidar();
+    },
+    onError: (error) => avisarError(error),
+  });
+
   const desasignar = trpc.recetas.desasignarDePaciente.useMutation({
     onSuccess: () => {
       toast.success("Receta quitada del paciente.");
@@ -113,6 +125,7 @@ export function useRecetas() {
     eliminarArchivo,
     marcarFotoPrincipal,
     asignar,
+    compartirConTodos,
     desasignar,
     mover,
     crearGrupo,

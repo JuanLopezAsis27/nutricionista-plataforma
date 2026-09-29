@@ -140,6 +140,25 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
     });
   }
 
+  async asignarAPacientes(
+    materialId: string,
+    pacienteIds: string[],
+  ): Promise<number> {
+    if (pacienteIds.length === 0) return 0;
+    const nutricionistaId = inquilinoActual();
+    // skipDuplicates se apoya en el único (materialId, pacienteId): los que ya
+    // la tenían no cuentan ni fallan.
+    const { count } = await this.prisma.asignacionMaterial.createMany({
+      data: pacienteIds.map((pacienteId) => ({
+        nutricionistaId,
+        materialId,
+        pacienteId,
+      })),
+      skipDuplicates: true,
+    });
+    return count;
+  }
+
   async desasignarDePaciente(
     materialId: string,
     pacienteId: string,
