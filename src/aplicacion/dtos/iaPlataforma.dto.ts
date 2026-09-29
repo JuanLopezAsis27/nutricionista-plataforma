@@ -116,6 +116,8 @@ export type EstadoIAPlataformaDto = z.infer<typeof estadoIAPlataformaDto>;
 export const resumenUsoIADto = z.object({
   /** Ventana hacia atrás desde hoy. */
   dias: z.number().int().min(1).max(365),
+  /** Solo el gasto de ese consultorio; sin él, el de toda la plataforma. */
+  nutricionistaId: z.string().optional(),
 });
 
 export const registrosUsoIADto = z.object({

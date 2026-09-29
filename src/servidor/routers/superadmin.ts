@@ -76,7 +76,10 @@ export const routerSuperAdmin = crearRouter({
   resumenUsoIA: superadminProcedimiento
     .input(resumenUsoIADto)
     .query(async ({ ctx, input }) => {
-      return await ctx.servicios.iaPlataforma.resumirUso(input.dias);
+      return await ctx.servicios.iaPlataforma.resumirUso(
+        input.dias,
+        input.nutricionistaId,
+      );
     }),
 
   registrosUsoIA: superadminProcedimiento

@@ -29,6 +29,8 @@ export type CambiarEstadoNutricionistaDto = z.infer<
 
 export const nutricionistaSalidaDto = z.object({
   id: z.string(),
+  /** El consultorio (inquilino) de la cuenta: con él se filtra el uso de IA. */
+  nutricionistaId: z.string().nullable(),
   email: z.string(),
   activo: z.boolean(),
   creadoEn: z.date(),

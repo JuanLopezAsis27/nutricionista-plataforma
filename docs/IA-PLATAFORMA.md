@@ -66,6 +66,19 @@ dos eran de OpenRouter, había que cargar la misma dos veces.
 - Se escribe dentro del alcance del consultorio (la extensión le pone el
   `nutricionistaId`); el panel lo lee en alcance global.
 
+## Filtrar por nutricionista
+
+El panel tiene un selector de **nutricionista** arriba de las estadísticas: con
+uno elegido, los totales, las llamadas por día, los desgloses y el registro de
+llamadas muestran solo lo que gastó ese consultorio (`resumenUsoIA` y
+`registrosUsoIA` llevan `nutricionistaId`). El desglose «Por consultorio» se
+oculta con el filtro puesto: sería una sola fila. El **saldo no se filtra**: las
+claves son de la plataforma, el saldo no tiene dueño.
+
+Las opciones salen de `listarNutricionistas`, que expone el `nutricionistaId`
+de cada cuenta (el inquilino, que es lo que guarda `registros_uso_ia`, y no el
+id del usuario).
+
 ## El saldo
 
 Cada proveedor expone algo distinto con una clave común:
