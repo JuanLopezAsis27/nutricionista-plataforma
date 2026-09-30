@@ -57,4 +57,8 @@ export class BcryptHasheador implements IHasheadorContrasena {
   verificar(contrasenaPlana: string, hash: string): Promise<boolean> {
     return bcrypt.compare(contrasenaPlana, hash);
   }
+
+  necesitaRehash(hash: string): boolean {
+    return necesitaRehash(hash);
+  }
 }

@@ -17,6 +17,8 @@ import { EmitirTokenRefresco } from "@/aplicacion/casos-de-uso/autenticacion/Emi
 import { RenovarSesion } from "@/aplicacion/casos-de-uso/autenticacion/RenovarSesion";
 import { RevocarSesionesPersistentes } from "@/aplicacion/casos-de-uso/autenticacion/RevocarSesionesPersistentes";
 import { LimpiarSesionesCaducadas } from "@/aplicacion/casos-de-uso/autenticacion/LimpiarSesionesCaducadas";
+import { IniciarSesion } from "@/aplicacion/casos-de-uso/autenticacion/IniciarSesion";
+import type { ILimitadorIntentos } from "@/dominio/servicios/ILimitadorIntentos";
 import { ServicioAutenticacion } from "@/aplicacion/servicios/ServicioAutenticacion";
 
 /**
@@ -36,6 +38,8 @@ export function crearServicioAutenticacion(deps: {
   baseUrl: string;
   nutricionistas: INutricionistaRepositorio;
   diasSesionPersistente: number;
+  /** Contador de intentos fallidos del login (anti fuerza bruta). */
+  limitadorLogin: ILimitadorIntentos;
 }): ServicioAutenticacion {
   return new ServicioAutenticacion(
     new SolicitarRecuperacionPassword(
@@ -89,5 +93,6 @@ export function crearServicioAutenticacion(deps: {
     new ResolverConsultorioActivo(deps.usuarios, deps.cuentas),
     new CambiarConsultorioActivo(deps.cuentas),
     new ListarMisConsultorios(deps.cuentas),
+    new IniciarSesion(deps.usuarios, deps.hasheador, deps.limitadorLogin),
   );
 }

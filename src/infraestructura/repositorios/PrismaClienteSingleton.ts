@@ -1,5 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-import { alcanceActual } from "@/infraestructura/multitenancy/contextoTenant";
+import {
+  alcanceActual,
+  type AlcanceTenant,
+} from "@/infraestructura/multitenancy/contextoTenant";
 
 /**
  * Singleton del cliente de Prisma con **aislamiento multi-inquilino**.
@@ -110,6 +113,82 @@ export const MODELOS_INQUILINO = new Set<string>([
   "AsignacionMaterial",
 ]);
 
+/**
+ * El mecanismo de aislamiento entre consultorios: devuelve los args de la
+ * operación con el inquilino aplicado, o lanza si no hay alcance.
+ *
+ * Está fuera del `$extends` para poder testearlo sin una base: es el punto más
+ * sensible del sistema y hasta que se lo sacó de ahí no lo verificaba nada
+ * (`PrismaClienteSingleton.test.ts` solo comparaba la lista de modelos).
+ */
+export function argsConInquilino(
+  model: string,
+  operation: string,
+  args: unknown,
+  alcance: AlcanceTenant | undefined,
+): unknown {
+  if (!MODELOS_INQUILINO.has(model)) {
+    return args;
+  }
+  if (!alcance) {
+    // Fail-closed: nunca consultar una tabla de inquilino sin alcance.
+    throw new Error(
+      `Acceso a "${model}" sin contexto de inquilino. Falta fijar el alcance (fijarAlcance / ejecutarEnNutricionista / ejecutarGlobal).`,
+    );
+  }
+  if (alcance.tipo === "global") {
+    return args;
+  }
+
+  const tenant = alcance.nutricionistaId;
+
+  /* eslint-disable @typescript-eslint/no-explicit-any,
+                    @typescript-eslint/no-unsafe-assignment,
+                    @typescript-eslint/no-unsafe-member-access,
+                    @typescript-eslint/no-unsafe-call
+     --
+     Excepción deliberada y acotada a este bloque.
+
+     `$allOperations` recibe los args de CUALQUIERA de los ~900 tipos de
+     operación que genera Prisma; no existe un tipo común que los cubra,
+     y la manipulación de `data`/`where`/`create` es dinámica por
+     diseño. Tiparlo "bien" exigiría una unión artificial que no
+     describe nada real y que habría que mantener a mano contra el
+     schema.
+
+     El riesgo está cubierto donde importa: este es el mecanismo de
+     aislamiento entre consultorios, es fail-closed (sin alcance
+     lanza), y está verificado por argsConInquilino.test.ts y
+     modelosInquilino.test.ts. Reescribirlo para satisfacer al linter
+     sería tocar el punto más sensible del sistema sin ganar seguridad.
+
+     El disable termina en el `eslint-enable` de abajo: no cubre nada
+     fuera de esta transformación. */
+  const a: any = { ...((args as object | undefined) ?? {}) };
+
+  if (operation === "create") {
+    a.data = { ...a.data, nutricionistaId: tenant };
+  } else if (operation === "createMany") {
+    a.data = Array.isArray(a.data)
+      ? a.data.map((d: Record<string, unknown>) => ({
+          ...d,
+          nutricionistaId: tenant,
+        }))
+      : { ...a.data, nutricionistaId: tenant };
+  } else if (operation === "upsert") {
+    a.where = { ...a.where, nutricionistaId: tenant };
+    a.create = { ...a.create, nutricionistaId: tenant };
+  } else {
+    // find*/count/aggregate/groupBy/update/updateMany/delete/deleteMany
+    a.where = { ...a.where, nutricionistaId: tenant };
+  }
+  return a;
+  /* eslint-enable @typescript-eslint/no-explicit-any,
+                   @typescript-eslint/no-unsafe-assignment,
+                   @typescript-eslint/no-unsafe-member-access,
+                   @typescript-eslint/no-unsafe-call */
+}
+
 function crearCliente(): PrismaClient {
   const base = new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
@@ -119,69 +198,14 @@ function crearCliente(): PrismaClient {
     query: {
       $allModels: {
         async $allOperations({ model, operation, args, query }) {
-          if (!MODELOS_INQUILINO.has(model)) {
-            return query(args);
-          }
-          const alcance = alcanceActual();
-          if (!alcance) {
-            // Fail-closed: nunca consultar una tabla de inquilino sin alcance.
-            throw new Error(
-              `Acceso a "${model}" sin contexto de inquilino. Falta fijar el alcance (fijarAlcance / ejecutarEnNutricionista / ejecutarGlobal).`,
-            );
-          }
-          if (alcance.tipo === "global") {
-            return query(args);
-          }
-
-          const tenant = alcance.nutricionistaId;
-
-          /* eslint-disable @typescript-eslint/no-explicit-any,
-                            @typescript-eslint/no-unsafe-assignment,
-                            @typescript-eslint/no-unsafe-member-access,
-                            @typescript-eslint/no-unsafe-call,
-                            @typescript-eslint/no-unsafe-argument
-             --
-             Excepción deliberada y acotada a este bloque.
-
-             `$allOperations` recibe los args de CUALQUIERA de los ~900 tipos de
-             operación que genera Prisma; no existe un tipo común que los cubra,
-             y la manipulación de `data`/`where`/`create` es dinámica por
-             diseño. Tiparlo "bien" exigiría una unión artificial que no
-             describe nada real y que habría que mantener a mano contra el
-             schema.
-
-             El riesgo está cubierto donde importa: este es el mecanismo de
-             aislamiento entre consultorios, es fail-closed (sin alcance
-             lanza), y está verificado por PrismaClienteSingleton.test.ts y
-             modelosInquilino.test.ts. Reescribirlo para satisfacer al linter
-             sería tocar el punto más sensible del sistema sin ganar seguridad.
-
-             El disable termina en el `eslint-enable` de abajo: no cubre nada
-             fuera de esta transformación. */
-          const a: any = args ?? {};
-
-          if (operation === "create") {
-            a.data = { ...a.data, nutricionistaId: tenant };
-          } else if (operation === "createMany") {
-            a.data = Array.isArray(a.data)
-              ? a.data.map((d: Record<string, unknown>) => ({
-                  ...d,
-                  nutricionistaId: tenant,
-                }))
-              : { ...a.data, nutricionistaId: tenant };
-          } else if (operation === "upsert") {
-            a.where = { ...a.where, nutricionistaId: tenant };
-            a.create = { ...a.create, nutricionistaId: tenant };
-          } else {
-            // find*/count/aggregate/groupBy/update/updateMany/delete/deleteMany
-            a.where = { ...a.where, nutricionistaId: tenant };
-          }
-          return query(a);
-          /* eslint-enable @typescript-eslint/no-explicit-any,
-                           @typescript-eslint/no-unsafe-assignment,
-                           @typescript-eslint/no-unsafe-member-access,
-                           @typescript-eslint/no-unsafe-call,
-                           @typescript-eslint/no-unsafe-argument */
+          return query(
+            argsConInquilino(
+              model,
+              operation,
+              args,
+              alcanceActual(),
+            ) as typeof args,
+          );
         },
       },
     },

@@ -13,12 +13,22 @@ import { ErrorTokenInvalido } from "@/dominio/errores/ErrorTokenInvalido";
 import type { CambiarConsultorioActivo } from "@/aplicacion/casos-de-uso/autenticacion/CambiarConsultorioActivo";
 import type { ListarMisConsultorios } from "@/aplicacion/casos-de-uso/autenticacion/ListarMisConsultorios";
 import type {
+  IniciarSesion,
+  EntradaIniciarSesion,
+  ResultadoIniciarSesion,
+} from "@/aplicacion/casos-de-uso/autenticacion/IniciarSesion";
+import type {
   SolicitarRecuperacionDto,
   RestablecerPasswordDto,
   ConsultorioSalidaDto,
 } from "../dtos/autenticacion.dto";
 
 export type { IdentidadDeSesion };
+
+/** Cómo terminó el login, sin la entidad: ver `ResultadoIniciarSesion`. */
+export type ResultadoLogin =
+  | { tipo: "CORRECTO"; usuarioId: string }
+  | Exclude<ResultadoIniciarSesion, { tipo: "CORRECTO" }>;
 
 /** Lo que necesita el JWT de Auth.js, más la credencial para la próxima vez. */
 export interface SesionRefrescada {
@@ -45,7 +55,22 @@ export class ServicioAutenticacion {
     private readonly resolverConsultorioUC: ResolverConsultorioActivo,
     private readonly cambiarConsultorioUC: CambiarConsultorioActivo,
     private readonly listarConsultoriosUC: ListarMisConsultorios,
+    private readonly iniciarSesionUC: IniciarSesion,
   ) {}
+
+  /**
+   * Verifica las credenciales del login con contraseña (ver `IniciarSesion`).
+   * Del usuario devuelve solo el id: lo que sigue —la sesión persistente y el
+   * consultorio— se resuelve por id, como en la renovación.
+   */
+  async iniciarSesion(
+    entrada: EntradaIniciarSesion,
+  ): Promise<ResultadoLogin> {
+    const resultado = await this.iniciarSesionUC.ejecutar(entrada);
+    return resultado.tipo === "CORRECTO"
+      ? { tipo: "CORRECTO", usuarioId: resultado.usuario.id }
+      : resultado;
+  }
 
   /**
    * La identidad con la que se emite una sesión: la usan el login, la

@@ -51,6 +51,7 @@ export function mockHasheador(): IHasheadorContrasena {
     verificar: vi.fn(
       async (plano: string, hash: string) => hash === `hash:${plano}`,
     ),
+    necesitaRehash: vi.fn(() => false),
   };
 }
 

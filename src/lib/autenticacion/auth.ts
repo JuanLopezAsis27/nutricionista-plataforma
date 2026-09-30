@@ -1,19 +1,10 @@
 import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 import { authConfig } from "./auth.config";
-import {
-  repositorioUsuarioCompartido,
-  servicioAutenticacion,
-} from "@/infraestructura/contenedor/contenedor";
+import { servicioAutenticacion } from "@/infraestructura/contenedor/contenedor";
 import { ejecutarGlobal } from "@/infraestructura/multitenancy/contextoTenant";
-import { limitadorLogin } from "@/infraestructura/seguridad/LimitadorIntentos";
-import {
-  RONDAS_BCRYPT,
-  necesitaRehash,
-} from "@/infraestructura/seguridad/BcryptHasheador";
 import {
   abrirSesionPersistente,
   renovarDesdeCookie,
@@ -22,49 +13,15 @@ import {
 import { ID_PROVEEDOR_REFRESCO } from "./cookieRefresco";
 import { CODIGO_LOGIN_BLOQUEADO, CODIGO_LOGIN_INACTIVA } from "./codigosLogin";
 import { consultorioPreferido } from "./consultorioActivo";
+import { ipDeSolicitud } from "./ipSolicitud";
 import { identificadorLoginDto } from "@/aplicacion/dtos/autenticacion.dto";
-import { esIdentificadorEmail } from "@/dominio/servicios/nombreUsuario";
-
-/**
- * IP de origen de la request.
- *
- * El orden importa y antes estaba al revés. `X-Forwarded-For` es una lista que
- * cada proxy va ANEXANDO, así que el primer elemento es el que puso el cliente:
- * es un dato que el atacante controla por completo. Leerlo primero convertía el
- * límite de intentos por IP en decorativo — bastaba mandar un
- * `X-Forwarded-For: <aleatorio>` distinto en cada intento para que cada uno
- * cayera en un contador nuevo y el bloqueo no se disparara nunca.
- *
- * `X-Real-IP` lo escribe nuestro nginx con `$remote_addr` (ver
- * docs/nginx.conf.ejemplo), pisando cualquier valor que venga de afuera, así
- * que es la fuente confiable. Se lee primero.
- *
- * Si no está —despliegue sin ese proxy— se cae a `X-Forwarded-For` pero
- * tomando el ÚLTIMO elemento, que es el que agregó el proxy más cercano y no
- * el que eligió el cliente.
- */
-function ipDeSolicitud(peticion: Request | undefined): string {
-  const real = peticion?.headers.get("x-real-ip")?.trim();
-  if (real) return real;
-
-  const reenviada = peticion?.headers.get("x-forwarded-for");
-  if (reenviada) {
-    const partes = reenviada
-      .split(",")
-      .map((p) => p.trim())
-      .filter(Boolean);
-    if (partes.length > 0) return partes[partes.length - 1]!;
-  }
-  return "desconocida";
-}
 
 /**
  * Configuración completa de Auth.js v5 (runtime Node).
  *
  * Añade el CredentialsProvider sobre la configuración base. La verificación
- * de la contraseña usa bcrypt contra el passwordHash guardado (nunca se
- * almacena ni compara texto plano). El usuario se obtiene a través del
- * repositorio del dominio (DIP), no consultando Prisma directamente acá.
+ * de las credenciales es del caso de uso `IniciarSesion`, por el servicio de
+ * autenticación: acá solo se traduce su resultado a lo que espera Auth.js.
  *
  * Exporta:
  *   - handlers → para el route handler de /api/auth/[...nextauth]
@@ -153,90 +110,33 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
           return null;
         }
 
-        const { password } = resultado.data;
-        const identificador = resultado.data.identificador.toLowerCase();
-        const claveIp = `ip:${ipDeSolicitud(peticion)}`;
-        // Por lo que se escribió, sea email o usuario: el bloqueo es por cuenta
-        // intentada, exista o no.
-        const claveCuenta = `cuenta:${identificador}`;
-
-        // Rate-limiting anti fuerza bruta: si la IP o la cuenta están bloqueadas
-        // por demasiados fallos, se rechaza sin siquiera verificar la contraseña
-        // (evita también el gasto de CPU de bcrypt como vector de DoS).
-        if (
-          limitadorLogin.estaBloqueada(claveIp).bloqueada ||
-          limitadorLogin.estaBloqueada(claveCuenta).bloqueada
-        ) {
-          // Con motivo: el bloqueo no dice nada de ninguna cuenta y, sin
-          // saberlo, la persona sigue probando contra una puerta trabada.
+        // Las reglas del login —límite de intentos, no enumerar cuentas, la
+        // baja informada recién con la contraseña verificada, el re-hasheo—
+        // viven en `IniciarSesion`. Acá solo se traduce a lo que entiende
+        // Auth.js: `null` para lo que no se puede distinguir, un código para
+        // lo que sí. El login busca GLOBALMENTE: aún no hay inquilino.
+        const intento = await ejecutarGlobal(() =>
+          servicioAutenticacion().iniciarSesion({
+            identificador: resultado.data.identificador,
+            password: resultado.data.password,
+            ip: ipDeSolicitud(peticion),
+          }),
+        );
+        if (intento.tipo === "BLOQUEADO") {
           throw new ErrorLoginConMotivo(CODIGO_LOGIN_BLOQUEADO);
         }
-
-        // El login busca GLOBALMENTE (aún no hay inquilino resuelto). Con
-        // arroba es un email; sin, un nombre de usuario (que no puede tenerla).
-        const usuario = await ejecutarGlobal(() =>
-          esIdentificadorEmail(identificador)
-            ? repositorioUsuarioCompartido().obtenerPorEmail(identificador)
-            : repositorioUsuarioCompartido().obtenerPorNombreUsuario(
-                identificador,
-              ),
-        );
-        if (!usuario) {
-          limitadorLogin.registrarFallo(claveIp);
-          limitadorLogin.registrarFallo(claveCuenta);
-          return null;
-        }
-
-        const coincide = await bcrypt.compare(password, usuario.passwordHash);
-        if (!coincide) {
-          limitadorLogin.registrarFallo(claveIp);
-          limitadorLogin.registrarFallo(claveCuenta);
-          return null;
-        }
-
-        // La baja se informa recién ACÁ, con la contraseña ya verificada.
-        // Antes se miraba junto con la existencia del usuario, así que daba lo
-        // mismo: las dos salían como "credenciales incorrectas" y alguien dado
-        // de baja se quedaba probando contraseñas que estaban bien. Moverlo
-        // después del `compare` es lo que permite decirle la verdad sin
-        // confirmarle a un desconocido que la cuenta existe.
-        if (!usuario.activo) {
-          limitadorLogin.registrarFallo(claveIp);
-          limitadorLogin.registrarFallo(claveCuenta);
+        if (intento.tipo === "INACTIVA") {
           throw new ErrorLoginConMotivo(CODIGO_LOGIN_INACTIVA);
         }
-
-        // Login correcto: limpiar los contadores de esta IP/cuenta.
-        limitadorLogin.registrarExito(claveIp);
-        limitadorLogin.registrarExito(claveCuenta);
-
-        // Re-hasheo transparente: si la contraseña quedó guardada con un costo
-        // más bajo que el actual, se regraba con el nuevo. Es el único momento
-        // en que existe la contraseña en claro, así que es la única
-        // oportunidad de migrar el hash sin pedirle nada al usuario.
-        //
-        // Va en try/catch a propósito y sin `await` bloqueante del resultado
-        // lógico: si esto falla, el login ya fue correcto y no hay ninguna
-        // razón para negarlo. El hash viejo sigue funcionando.
-        if (necesitaRehash(usuario.passwordHash)) {
-          try {
-            const nuevoHash = await bcrypt.hash(password, RONDAS_BCRYPT);
-            await ejecutarGlobal(() =>
-              repositorioUsuarioCompartido().actualizar(
-                // La misma contraseña con otro costo: no deja de ser
-                // provisional por esto.
-                usuario.rehashearPassword(nuevoHash),
-              ),
-            );
-          } catch {
-            // Se reintentará en el próximo login.
-          }
+        if (intento.tipo === "RECHAZADO") {
+          return null;
         }
+        const { usuarioId } = intento;
 
         // Abrir la sesión persistente: es el único momento en que se probó la
         // contraseña, así que es cuando corresponde entregar la credencial que
         // evita volver a pedirla. No puede hacer fallar el login (ver ahí).
-        await abrirSesionPersistente(usuario.id, peticion);
+        await abrirSesionPersistente(usuarioId, peticion);
 
         // El objeto devuelto alimenta el callback jwt (ver auth.config.ts).
         // Para un paciente, `pacienteId`/`nutricionistaId` son los del
@@ -249,7 +149,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         // silenciosa (`renovarDesdeCookie`), que mantiene la elección mientras
         // usa la app y no lo saca a elegir cada 12 h.
         const identidad = await ejecutarGlobal(async () =>
-          servicioAutenticacion().identidadDeSesion(usuario.id, null),
+          servicioAutenticacion().identidadDeSesion(usuarioId, null),
         );
         return identidad;
       },

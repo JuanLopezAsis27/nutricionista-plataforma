@@ -1,3 +1,5 @@
+import type { ILimitadorIntentos } from "@/dominio/servicios/ILimitadorIntentos";
+
 /**
  * Limitador de intentos en memoria (ventana + bloqueo temporal).
  *
@@ -17,7 +19,7 @@ interface EstadoIntentos {
   bloqueadaHasta: number;
 }
 
-export class LimitadorIntentos {
+export class LimitadorIntentos implements ILimitadorIntentos {
   private readonly estados = new Map<string, EstadoIntentos>();
 
   constructor(
