@@ -181,6 +181,14 @@ const config: NextConfig = {
         destination: "/dashboard/recordatorios",
         permanent: true,
       },
+      // Integraciones pasó a ser una pestaña de Configuración: la barra
+      // lateral tenía demasiadas entradas y son trámites de una sola vez.
+      // Los parámetros de la vuelta de Google (?conectado, ?error) viajan.
+      {
+        source: "/dashboard/integraciones",
+        destination: "/dashboard/configuracion?pestana=integraciones",
+        permanent: true,
+      },
     ];
   },
 };

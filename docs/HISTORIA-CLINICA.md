@@ -236,7 +236,7 @@ Hay **dos listas** —una para la historia clínica y otra para las evoluciones�
 y en cada una conviven **dos clases a propósito**, que se guardan igual:
 
 - **Del consultorio** (`CampoHistoriaClinica`, una fila por inquilino).
-  Se declaran en Configuración → Historia clínica y aparecen en la historia de
+  Se declaran en Configuración → Ficha clínica y aparecen en la historia de
   TODOS los pacientes. Son los que se pueden comparar entre fichas. Mismo modelo
   que `PlantillaAntropometrica`.
 - **Sueltos**, cargados en la ficha de UN paciente. Para lo que aparece una vez

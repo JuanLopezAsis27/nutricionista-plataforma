@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -12,6 +12,7 @@ import {
   PanelLeftOpen,
   LogOut,
   Loader2,
+  UserRound,
 } from "lucide-react";
 import { cn } from "@/lib/utilidades";
 import { IsotipoNutriOffice } from "@/componentes/marca/MarcaNutriOffice";
@@ -24,6 +25,11 @@ export interface EnlaceNav {
   exacto?: boolean;
   /** Contador (ej. mensajes no leídos); se muestra como badge si es > 0. */
   badge?: number;
+  /**
+   * Título del grupo que ABRE este enlace: los que siguen, hasta el próximo
+   * con `grupo`, quedan debajo. Con la barra plegada el título es una línea.
+   */
+  grupo?: string;
 }
 
 interface PropsSidebarNav {
@@ -37,6 +43,12 @@ interface PropsSidebarNav {
   accionesMovil?: ReactNode;
   /** Contenido extra en el pie del sidebar (ej: ToggleTema). */
   pie?: ReactNode;
+  /**
+   * Si está, el email del pie es un enlace a esta ruta (el perfil): la cuenta
+   * no ocupa una entrada de la lista, y se llega igual desde el celular,
+   * donde la barra superior con el menú del avatar no se dibuja.
+   */
+  enlacePerfil?: string;
 }
 
 /**
@@ -55,6 +67,7 @@ export function SidebarNav({
   claveAlmacen,
   accionesMovil,
   pie,
+  enlacePerfil,
 }: PropsSidebarNav) {
   const ruta = usePathname();
   const [colapsada, setColapsada] = useState(false);
@@ -82,6 +95,8 @@ export function SidebarNav({
 
   const esActivo = (enlace: EnlaceNav): boolean =>
     enlace.exacto ? ruta === enlace.href : ruta.startsWith(enlace.href);
+  const perfilActivo =
+    enlacePerfil !== undefined && ruta.startsWith(enlacePerfil);
 
   return (
     <>
@@ -134,7 +149,14 @@ export function SidebarNav({
               esActivo={esActivo}
               alNavegar={() => setAbiertaMovil(false)}
             />
-            <Pie conEtiquetas email={email} pie={pie} />
+            <Pie
+              conEtiquetas
+              email={email}
+              pie={pie}
+              enlacePerfil={enlacePerfil}
+              perfilActivo={perfilActivo}
+              alNavegar={() => setAbiertaMovil(false)}
+            />
           </aside>
         </div>
       )}
@@ -177,7 +199,13 @@ export function SidebarNav({
           enlaces={enlaces}
           esActivo={esActivo}
         />
-        <Pie conEtiquetas={!colapsada} email={email} pie={pie} />
+        <Pie
+          conEtiquetas={!colapsada}
+          email={email}
+          pie={pie}
+          enlacePerfil={enlacePerfil}
+          perfilActivo={perfilActivo}
+        />
       </aside>
     </>
   );
@@ -204,50 +232,59 @@ function Enlaces({
   alNavegar?: () => void;
 }) {
   return (
-    <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+    <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
       {enlaces.map((enlace) => {
         const Icono = enlace.icono;
         const activo = esActivo(enlace);
         const tieneBadge = Boolean(enlace.badge && enlace.badge > 0);
         return (
-          <Link
-            key={enlace.href}
-            href={enlace.href}
-            title={enlace.etiqueta}
-            onClick={alNavegar}
-            className={cn(
-              "relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-              !conEtiquetas && "justify-center px-2",
-              activo
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-            )}
-          >
-            <IconoEnlace icono={Icono} />
-            {conEtiquetas && (
-              <span className="flex-1 truncate">{enlace.etiqueta}</span>
-            )}
-            {tieneBadge &&
+          <Fragment key={enlace.href}>
+            {enlace.grupo &&
               (conEtiquetas ? (
-                <span
-                  className={cn(
-                    "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
-                    activo
-                      ? "bg-background text-foreground"
-                      : "bg-primary text-primary-foreground",
-                  )}
-                >
-                  {enlace.badge! > 9 ? "9+" : enlace.badge}
-                </span>
+                <p className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase leading-none tracking-wide text-muted-foreground/70">
+                  {enlace.grupo}
+                </p>
               ) : (
-                <span
-                  className={cn(
-                    "absolute right-1.5 top-1.5 h-2 w-2 rounded-full",
-                    activo ? "bg-background" : "bg-primary",
-                  )}
-                />
+                <hr className="mx-2 my-1.5 border-border" />
               ))}
-          </Link>
+            <Link
+              href={enlace.href}
+              title={enlace.etiqueta}
+              onClick={alNavegar}
+              className={cn(
+                "relative flex items-center gap-3 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                !conEtiquetas && "justify-center px-2",
+                activo
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+              )}
+            >
+              <IconoEnlace icono={Icono} />
+              {conEtiquetas && (
+                <span className="flex-1 truncate">{enlace.etiqueta}</span>
+              )}
+              {tieneBadge &&
+                (conEtiquetas ? (
+                  <span
+                    className={cn(
+                      "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
+                      activo
+                        ? "bg-background text-foreground"
+                        : "bg-primary text-primary-foreground",
+                    )}
+                  >
+                    {enlace.badge! > 9 ? "9+" : enlace.badge}
+                  </span>
+                ) : (
+                  <span
+                    className={cn(
+                      "absolute right-1.5 top-1.5 h-2 w-2 rounded-full",
+                      activo ? "bg-background" : "bg-primary",
+                    )}
+                  />
+                ))}
+            </Link>
+          </Fragment>
         );
       })}
     </nav>
@@ -270,16 +307,67 @@ function IconoEnlace({ icono: Icono }: { icono: LucideIcon }) {
   );
 }
 
-/** Pie del sidebar: email, acciones extra y cerrar sesión. */
+/** Pie del sidebar: email (o enlace al perfil), acciones extra y cerrar sesión. */
 function Pie({
   conEtiquetas,
   email,
   pie,
+  enlacePerfil,
+  perfilActivo,
+  alNavegar,
 }: {
   conEtiquetas: boolean;
   email: string;
   pie?: ReactNode;
+  enlacePerfil?: string;
+  perfilActivo: boolean;
+  alNavegar?: () => void;
 }) {
+  const salir = (
+    <Button
+      variant="ghost"
+      size={conEtiquetas && !enlacePerfil ? "sm" : "icon"}
+      className="shrink-0 text-muted-foreground"
+      title="Cerrar sesión"
+      onClick={() => signOut({ callbackUrl: "/login" })}
+    >
+      <LogOut className="h-4 w-4" />
+      {conEtiquetas && !enlacePerfil && "Salir"}
+    </Button>
+  );
+
+  // Con enlace al perfil, perfil y salir van en UNA fila: la barra se quedó
+  // sin la entrada «Mi perfil» para ganar alto, y una fila más en el pie se
+  // lo devolvía.
+  if (enlacePerfil) {
+    return (
+      <div
+        className={cn(
+          "flex items-center gap-1 border-t p-3",
+          !conEtiquetas && "flex-col px-2",
+        )}
+      >
+        <Link
+          href={enlacePerfil}
+          title={`Mi perfil (${email})`}
+          onClick={alNavegar}
+          className={cn(
+            "flex min-w-0 flex-1 items-center gap-2 rounded-md px-3 py-2 text-xs transition-colors",
+            !conEtiquetas && "w-full flex-none justify-center px-2",
+            perfilActivo
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+          )}
+        >
+          <IconoEnlace icono={UserRound} />
+          {conEtiquetas && <span className="truncate">{email}</span>}
+        </Link>
+        {pie}
+        {salir}
+      </div>
+    );
+  }
+
   return (
     <div className={cn("space-y-2 border-t p-3", !conEtiquetas && "px-2")}>
       {conEtiquetas && (
@@ -297,16 +385,7 @@ function Pie({
         )}
       >
         {pie}
-        <Button
-          variant="ghost"
-          size={conEtiquetas ? "sm" : "icon"}
-          className="text-muted-foreground"
-          title="Cerrar sesión"
-          onClick={() => signOut({ callbackUrl: "/login" })}
-        >
-          <LogOut className="h-4 w-4" />
-          {conEtiquetas && "Salir"}
-        </Button>
+        {salir}
       </div>
     </div>
   );

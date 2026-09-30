@@ -26,8 +26,8 @@ import {
 import { ConfiguracionIAPlataforma } from "@/componentes/superadmin/ConfiguracionIAPlataforma";
 import { UsoIAPlataforma } from "@/componentes/superadmin/UsoIAPlataforma";
 import { CatalogoRecetas } from "@/componentes/superadmin/CatalogoRecetas";
-import { ImportadorAlimentos } from "@/componentes/configuracion/ImportadorAlimentos";
-import { ListaAlimentosPropios } from "@/componentes/configuracion/ListaAlimentosPropios";
+import { ImportadorAlimentos } from "@/componentes/alimentos/ImportadorAlimentos";
+import { ListaAlimentosPropios } from "@/componentes/alimentos/ListaAlimentosPropios";
 import { FormularioPassword } from "@/componentes/perfil/FormularioPassword";
 
 /**

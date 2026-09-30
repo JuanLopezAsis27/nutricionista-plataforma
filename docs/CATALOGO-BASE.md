@@ -194,9 +194,21 @@ fuente»), nunca una propagación automática.
 
 ### Desde el consultorio
 
-En Integraciones → Alimentos el profesional ve su lista (editable, aunque esté
-vacía: se puede armar de a uno sin Excel) y la de la plataforma en **solo
-lectura**. Lo que agrega va a su lista.
+En la sección **Alimentos** de la barra lateral (`/dashboard/alimentos`) el
+profesional ve su lista (editable, aunque esté vacía: se puede armar de a uno
+sin Excel) y la de la plataforma en **solo lectura**. Lo que agrega va a su
+lista. Ahí están también los **criterios de búsqueda** (solo genéricos, solo
+con macros completos, tope de calorías, palabras excluidas), que filtran el
+buscador de alimentos en recetas y planes.
+
+Estuvo como pestaña de Integraciones, de cuando los alimentos eran una base
+externa que se consultaba. Desde que son catálogo y lista propia son
+contenido de trabajo, como las recetas, y no un servicio que se conecta. No
+va dentro del Recetario porque también los usan los planes y los planes
+semanales: ahí quien los busca desde Planes no los encuentra. Los criterios
+se mudaron con ellos desde la pestaña de IA, con la que no tenían nada que
+ver; se siguen guardando por `credenciales.guardar`, junto al estado de
+credenciales, que es donde vivían en la base.
 
 ## Recetas: se COPIAN, no se referencian
 

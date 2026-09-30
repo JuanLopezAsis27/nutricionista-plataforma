@@ -2,7 +2,8 @@
 
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { Lock, Plug } from "lucide-react";
+import { Lock } from "lucide-react";
+import { RUTA_INTEGRACIONES } from "@/lib/rutas";
 import {
   Tabs,
   TabsContent,
@@ -12,8 +13,6 @@ import {
 import { TarjetaGoogle } from "@/componentes/integraciones/TarjetaGoogle";
 import { FormularioWhatsappApi } from "@/componentes/configuracion/FormularioWhatsappApi";
 import { FormularioCredenciales } from "@/componentes/configuracion/FormularioCredenciales";
-import { ImportadorAlimentos } from "@/componentes/configuracion/ImportadorAlimentos";
-import { ListaAlimentosPropios } from "@/componentes/configuracion/ListaAlimentosPropios";
 
 const MENSAJES_ERROR: Record<string, string> = {
   "no-configurado": "La integración con Google todavía no está configurada.",
@@ -25,7 +24,10 @@ const MENSAJES_ERROR: Record<string, string> = {
 };
 
 /**
- * Servicios externos que el consultorio conecta.
+ * Servicios externos que el consultorio conecta. Es la pestaña
+ * «Integraciones» de Configuración: fue una sección propia de la barra
+ * lateral hasta que la barra tuvo demasiadas entradas, y son trámites que se
+ * hacen una vez, no algo que se visita a diario.
  *
  * Una pestaña por servicio, y no todo apilado en una sola pantalla: cada uno
  * es un trámite independiente —con su alta, sus credenciales y sus pasos— que
@@ -36,8 +38,13 @@ const MENSAJES_ERROR: Record<string, string> = {
  * exactamente eso: dar de alta un servicio externo con sus credenciales, igual
  * que Google. Lo que quedó en Configuración es lo que sí es del
  * consultorio: cómo se normalizan los teléfonos de los pacientes.
+ *
+ * Los alimentos estuvieron acá mientras eran una base externa que se
+ * consultaba; desde el catálogo de la plataforma y las listas propias son
+ * contenido de trabajo, como las recetas, y tienen su sección
+ * (`/dashboard/alimentos`).
  */
-export default function PaginaIntegraciones() {
+export function PanelIntegraciones() {
   // Feedback del flujo OAuth (?conectado / ?error) sin useSearchParams (evita Suspense).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -46,28 +53,22 @@ export default function PaginaIntegraciones() {
     if (error)
       toast.error(MENSAJES_ERROR[error] ?? "Ocurrió un error con Google.");
     if (params.get("conectado") || error) {
-      window.history.replaceState({}, "", "/dashboard/integraciones");
+      window.history.replaceState({}, "", RUTA_INTEGRACIONES);
     }
   }, []);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold">
-          <Plug className="h-6 w-6 text-primary" /> Integraciones
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Servicios externos que conectás al consultorio. Tus claves se guardan
-          cifradas y nunca vuelven al navegador.
-        </p>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        Servicios externos que conectás al consultorio. Tus claves se guardan
+        cifradas y nunca vuelven al navegador.
+      </p>
 
       <Tabs defaultValue="google">
         <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="google">Google</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
-          <TabsTrigger value="ia">IA e ingredientes</TabsTrigger>
-          <TabsTrigger value="alimentos">Alimentos</TabsTrigger>
+          <TabsTrigger value="ia">IA</TabsTrigger>
         </TabsList>
 
         <TabsContent value="google" className="mt-4">
@@ -80,26 +81,6 @@ export default function PaginaIntegraciones() {
 
         <TabsContent value="ia" className="mt-4">
           <FormularioCredenciales />
-        </TabsContent>
-
-        <TabsContent value="alimentos" className="mt-4 space-y-4">
-          <ImportadorAlimentos />
-          <ListaAlimentosPropios />
-          {/* Los de la plataforma se USAN (aparecen en el buscador) pero no se
-              editan: lo que agrega el profesional va a su propia lista. */}
-          <section className="space-y-3 rounded-lg border p-4">
-            <div>
-              <h3 className="font-semibold">
-                Predeterminados de la plataforma
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Los ven todos los consultorios en el buscador de alimentos. Si
-                querés otros macros para alguno, agregalo a tu lista: el tuyo
-                aparece primero.
-              </p>
-            </div>
-            <ListaAlimentosPropios origen="predeterminados" />
-          </section>
         </TabsContent>
       </Tabs>
 

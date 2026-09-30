@@ -56,6 +56,7 @@ import { FormularioMedicion } from "./FormularioMedicion";
 import { ImportadorMediciones } from "./ImportadorMediciones";
 import { ObjetivosComposicion } from "./ObjetivosComposicion";
 import { TarjetasMediciones } from "./TarjetasMediciones";
+import { RUTA_CONFIGURACION_FICHA } from "@/lib/rutas";
 
 /**
  * El valor del selector cuando no hay plantilla propia elegida: se cargan los
@@ -355,10 +356,10 @@ export function SeccionComposicionCorporal({
                 <span>
                   Los protocolos y tus plantillas se arman en{" "}
                   <Link
-                    href="/dashboard/configuracion"
+                    href={RUTA_CONFIGURACION_FICHA}
                     className="underline underline-offset-2"
                   >
-                    Configuración → Antropometría
+                    Configuración → Ficha clínica
                   </Link>
                   .
                 </span>

@@ -172,8 +172,8 @@ que se acomodan a los protocolos que admiten.
 
 | Nivel              | Quién lo arma                              | Piso                                  |
 | ------------------ | ------------------------------------------ | ------------------------------------- |
-| **Protocolo**      | Configuración → Antropometría → Protocolos | Kerr en 5 componentes; una ecuación de grasa en 2 |
-| **Plantilla propia** | Configuración → Antropometría → Plantillas | resolver ALGO                       |
+| **Protocolo**      | Configuración → Ficha clínica → Antropometría → Protocolos | Kerr en 5 componentes; una ecuación de grasa en 2 |
+| **Plantilla propia** | Configuración → Ficha clínica → Antropometría → Plantillas | resolver ALGO                       |
 
 **No hay «perfil completo»** como tercera opción del modal. Uno de los dos
 protocolos ya es el perfil entero si así se lo configura, y una lista fija al
