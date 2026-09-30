@@ -24,6 +24,7 @@ const TITULOS: { prefijo: string; titulo: string; exacto?: boolean }[] = [
   { prefijo: "/dashboard/turnos", titulo: "Turnos" },
   { prefijo: "/dashboard/planes", titulo: "Planes nutricionales" },
   { prefijo: "/dashboard/recetas", titulo: "Recetario" },
+  { prefijo: "/dashboard/alimentos", titulo: "Alimentos" },
   { prefijo: "/dashboard/biblioteca", titulo: "Biblioteca" },
   { prefijo: "/dashboard/mi-perfil", titulo: "Mi perfil" },
   { prefijo: "/dashboard", titulo: "Panel principal", exacto: true },

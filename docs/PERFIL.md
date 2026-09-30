@@ -90,7 +90,7 @@ para el resto). Se puede cambiar pero no vaciar
 
 **Quién lo carga.** El SUPERADMIN al crear la cuenta (`/admin`: el campo
 «Nombre» es obligatorio, `crearCuentaNutricionistaDto`). Después lo edita cada
-profesional en Configuración → «Membrete del profesional».
+profesional en Configuración → Consultorio → «Membrete del profesional».
 
 **Los consultorios que ya existían.** La migración 74 copió el nombre que
 tenían cargado en la configuración, y a los que no tenían ninguno les puso el

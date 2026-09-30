@@ -15,6 +15,7 @@ import { Input } from "@/componentes/ui/input";
 import { Label } from "@/componentes/ui/label";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
+import { RUTA_INTEGRACIONES } from "@/lib/rutas";
 
 /**
  * Cómo se resuelven los teléfonos de los pacientes para WhatsApp.
@@ -102,7 +103,7 @@ export function FormularioWhatsapp() {
             Conectar la API oficial —para que los mensajes salgan solos desde el
             número del consultorio— se hace en{" "}
             <Link
-              href="/dashboard/integraciones"
+              href={RUTA_INTEGRACIONES}
               className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
             >
               Integraciones <ArrowRight className="h-3.5 w-3.5" />

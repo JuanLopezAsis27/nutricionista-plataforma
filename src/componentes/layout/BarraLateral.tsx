@@ -9,11 +9,10 @@ import {
   Library,
   BarChart3,
   BellRing,
-  Plug,
   MessageSquare,
   Sparkles,
   Settings,
-  UserRound,
+  Apple,
 } from "lucide-react";
 import { SidebarNav, type EnlaceNav } from "@/componentes/layout/SidebarNav";
 import { ToggleTema } from "@/componentes/comunes/ToggleTema";
@@ -41,13 +40,20 @@ export function BarraLateral({ email }: { email: string }) {
       icono: MessageSquare,
       badge: sinLeer,
     },
-    { href: "/dashboard/planes", etiqueta: "Planes", icono: ClipboardList },
+    {
+      href: "/dashboard/planes",
+      etiqueta: "Planes",
+      icono: ClipboardList,
+      grupo: "Contenido",
+    },
     { href: "/dashboard/recetas", etiqueta: "Recetario", icono: BookOpen },
+    { href: "/dashboard/alimentos", etiqueta: "Alimentos", icono: Apple },
     { href: "/dashboard/biblioteca", etiqueta: "Biblioteca", icono: Library },
     {
       href: "/dashboard/estadisticas",
       etiqueta: "Estadísticas",
       icono: BarChart3,
+      grupo: "Análisis",
     },
     {
       href: "/dashboard/analisis-ia",
@@ -58,24 +64,14 @@ export function BarraLateral({ email }: { email: string }) {
       href: "/dashboard/recordatorios",
       etiqueta: "Recordatorios",
       icono: BellRing,
+      grupo: "Consultorio",
     },
-    {
-      href: "/dashboard/integraciones",
-      etiqueta: "Integraciones",
-      icono: Plug,
-    },
+    // Integraciones es una pestaña de Configuración: son trámites de una sola
+    // vez, y con Alimentos la barra había llegado a 14 entradas.
     {
       href: "/dashboard/configuracion",
       etiqueta: "Configuración",
       icono: Settings,
-    },
-    // También está en el menú del avatar de la barra superior, pero esa barra
-    // no se dibuja en móvil (`hidden … md:flex`): sin este enlace, desde el
-    // teléfono no había forma de llegar al perfil.
-    {
-      href: "/dashboard/mi-perfil",
-      etiqueta: "Mi perfil",
-      icono: UserRound,
     },
   ];
 
@@ -85,6 +81,10 @@ export function BarraLateral({ email }: { email: string }) {
       enlaces={enlaces}
       email={email}
       claveAlmacen="sidebar-nutri-colapsada"
+      // Mi perfil no es una entrada de la lista: se abre desde el email del
+      // pie. También está en el menú del avatar, pero la barra superior no se
+      // dibuja en móvil, y ahí el pie es la única puerta.
+      enlacePerfil="/dashboard/mi-perfil"
       // En escritorio el botón de instalar vive en la BarraSuperior, que en
       // móvil está oculta: acá es el único lugar donde queda a mano.
       accionesMovil={

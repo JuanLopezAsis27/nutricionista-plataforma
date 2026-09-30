@@ -131,7 +131,17 @@ prefijo telefónico, plantillas de email que no son recordatorios) y, en su
 propia pestaña, los ESTABLECIMIENTOS, que son los lugares donde se atiende y
 cada uno lleva su agenda (días, horario, duración y paso del turno). Recordatorios es la tarea de avisar turnos, completa. La
 pregunta que separa las tres: ¿esto es dar de alta algo de afuera, describir el
-consultorio, o hacer una tarea?
+consultorio, o hacer una tarea? Lo que no es ninguna de las tres —CONTENIDO de
+trabajo, como recetas y alimentos— tiene su propia sección: los alimentos
+estuvieron en Integraciones y hoy son `/dashboard/alimentos`, con los criterios
+del buscador (`docs/CATALOGO-BASE.md`).
+
+Esa separación es de PANTALLAS, no de entradas de la barra lateral:
+Integraciones es una pestaña de Configuración (`?pestana=integraciones`,
+`RUTA_INTEGRACIONES` en `lib/rutas.ts`; la ruta vieja redirige), porque se
+entra una vez y la barra había llegado a 14 entradas. La barra va agrupada
+(`grupo` en `EnlaceNav`) y Mi perfil se abre desde el email del pie. Ver
+`docs/NAVEGACION.md`.
 
 **Invalidación de caché: las mutaciones invalidan TODO** (`useInvalidar`), no su
 propio router. Los read models están armados para la pantalla, no para la tabla,

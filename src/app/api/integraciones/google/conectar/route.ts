@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { RUTA_INTEGRACIONES } from "@/lib/rutas";
 import { randomBytes } from "node:crypto";
 import { usuarioDeSesion } from "@/lib/autenticacion/sesion";
 import {
@@ -19,7 +20,7 @@ export const runtime = "nodejs";
 export async function GET(): Promise<NextResponse> {
   const usuario = await usuarioDeSesion();
   const volver = (q: string) =>
-    NextResponse.redirect(new URL(`/dashboard/integraciones${q}`, urlApp()));
+    NextResponse.redirect(new URL(`${RUTA_INTEGRACIONES}&${q}`, urlApp()));
 
   if (usuario?.rol !== "NUTRICIONISTA") {
     return NextResponse.redirect(new URL("/login", urlApp()));
@@ -28,7 +29,7 @@ export async function GET(): Promise<NextResponse> {
   // arrastrar el narrowing de null entre dos invocaciones distintas.
   const google = proveedorGoogle();
   if (!google) {
-    return volver("?error=no-configurado");
+    return volver("error=no-configurado");
   }
 
   const estado = randomBytes(16).toString("hex");

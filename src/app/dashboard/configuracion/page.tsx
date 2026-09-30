@@ -1,5 +1,6 @@
 "use client";
 
+import { use, type ReactNode } from "react";
 import { Settings } from "lucide-react";
 import {
   Tabs,
@@ -17,9 +18,27 @@ import { GestionPlantillasEmail } from "@/componentes/configuracion/GestionPlant
 import { GestionCamposHistoriaClinica } from "@/componentes/configuracion/GestionCamposHistoriaClinica";
 import { GestionCamposEvolucion } from "@/componentes/configuracion/GestionCamposEvolucion";
 import { FormularioDiarioIA } from "@/componentes/configuracion/FormularioDiarioIA";
+import { PanelIntegraciones } from "@/componentes/integraciones/PanelIntegraciones";
 
-/** Configuración del consultorio: establecimientos, membrete y base de conocimiento. */
-export default function PaginaConfiguracion() {
+/**
+ * Configuración del consultorio, en cinco pestañas por tema.
+ *
+ * Eran once, una por formulario, y varias eran una sola tarjeta chica
+ * (membrete, prefijo telefónico, análisis del diario): la fila de pestañas se
+ * partía en tres renglones y no se encontraba nada. Ahora cada pestaña apila
+ * sus secciones, que ya traen su título; las que no lo traían lo reciben acá
+ * (`Seccion`).
+ *
+ * La pestaña inicial sale de `?pestana=`: así llegan la vuelta del OAuth de
+ * Google y los enlaces de otras pantallas (`lib/rutas.ts`).
+ */
+export default function PaginaConfiguracion({
+  searchParams,
+}: {
+  searchParams: Promise<{ [clave: string]: string | string[] | undefined }>;
+}) {
+  const { pestana } = use(searchParams);
+
   return (
     <div className="space-y-6">
       <div>
@@ -32,60 +51,65 @@ export default function PaginaConfiguracion() {
         </p>
       </div>
 
-      <Tabs defaultValue="general">
+      <Tabs
+        defaultValue={typeof pestana === "string" ? pestana : "consultorio"}
+      >
         <TabsList className="h-auto flex-wrap">
-          <TabsTrigger value="general">Membrete</TabsTrigger>
-          <TabsTrigger value="establecimientos">Establecimientos</TabsTrigger>
-          <TabsTrigger value="pdf">PDF del plan</TabsTrigger>
-          <TabsTrigger value="antropometria">Antropometría</TabsTrigger>
-          <TabsTrigger value="diario">Diario</TabsTrigger>
-          <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
-          <TabsTrigger value="emails">Plantillas de email</TabsTrigger>
-          <TabsTrigger value="historia">Historia clínica</TabsTrigger>
-          <TabsTrigger value="evoluciones">Evoluciones</TabsTrigger>
-          <TabsTrigger value="axiomas">Base de conocimiento</TabsTrigger>
+          <TabsTrigger value="consultorio">Consultorio</TabsTrigger>
+          <TabsTrigger value="documentos">Documentos y mensajes</TabsTrigger>
+          <TabsTrigger value="ficha">Ficha clínica</TabsTrigger>
+          <TabsTrigger value="ia">IA y seguimiento</TabsTrigger>
+          <TabsTrigger value="integraciones">Integraciones</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="general">
+        <TabsContent value="consultorio" className="space-y-8">
           <FormularioConfiguracion />
-        </TabsContent>
-
-        <TabsContent value="establecimientos">
           <GestionEstablecimientos />
         </TabsContent>
 
-        <TabsContent value="pdf">
+        <TabsContent value="documentos" className="space-y-8">
           <FormularioPdfPlan />
-        </TabsContent>
-
-        <TabsContent value="antropometria">
-          <ConfiguracionAntropometria />
-        </TabsContent>
-
-        <TabsContent value="diario">
-          <FormularioDiarioIA />
-        </TabsContent>
-
-        <TabsContent value="whatsapp">
+          <Seccion titulo="Plantillas de email">
+            <GestionPlantillasEmail />
+          </Seccion>
           <FormularioWhatsapp />
         </TabsContent>
 
-        <TabsContent value="emails">
-          <GestionPlantillasEmail />
-        </TabsContent>
-
-        <TabsContent value="historia">
+        <TabsContent value="ficha" className="space-y-8">
           <GestionCamposHistoriaClinica />
-        </TabsContent>
-
-        <TabsContent value="evoluciones">
           <GestionCamposEvolucion />
+          <Seccion titulo="Antropometría">
+            <ConfiguracionAntropometria />
+          </Seccion>
         </TabsContent>
 
-        <TabsContent value="axiomas">
-          <GestionAxiomas />
+        <TabsContent value="ia" className="space-y-8">
+          <FormularioDiarioIA />
+          <Seccion titulo="Base de conocimiento">
+            <GestionAxiomas />
+          </Seccion>
+        </TabsContent>
+
+        <TabsContent value="integraciones">
+          <PanelIntegraciones />
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+/** Título para las secciones cuyo componente no trae uno propio. */
+function Seccion({
+  titulo,
+  children,
+}: {
+  titulo: string;
+  children: ReactNode;
+}): ReactNode {
+  return (
+    <section className="space-y-3">
+      <h3 className="font-semibold">{titulo}</h3>
+      {children}
+    </section>
   );
 }

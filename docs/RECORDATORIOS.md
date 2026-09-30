@@ -15,7 +15,7 @@ Tres medios para el mismo aviso, cada uno con su interruptor: **WhatsApp**,
 | Medios, anticipación y disparo   | Recordatorios → **Programación**           |
 | Texto del mensaje de WhatsApp    | Recordatorios → **Plantillas**             |
 | Texto del mensaje de email       | Recordatorios → **Plantillas**             |
-| Bienvenida y otros emails        | Configuración → **Plantillas de email**    |
+| Bienvenida y otros emails        | Configuración → **Documentos y mensajes**  |
 | La conversación con el paciente  | Mensajes → pestaña **WhatsApp**            |
 
 **En la grilla de turnos no hay nada de esto.** Hubo un botón de recordatorio
@@ -303,7 +303,7 @@ Es una decisión por plantilla, como el botón de confirmar, y hay dos maneras:
   enlace «chat de cancelaciones» o respuesta rápida «pedir cancelar»—. Ver
   `docs/WHATSAPP.md`.
 
-**El número de cancelaciones es del consultorio** (Configuración → WhatsApp,
+**El número de cancelaciones es del consultorio** (Configuración → Documentos y mensajes,
 `whatsappCancelaciones`) y no el de la Cloud API: muchas veces el número que
 manda los recordatorios no es el que el profesional usa en el día a día. Se
 normaliza a E.164 con el mismo prefijo que los pacientes. Sin él, el email

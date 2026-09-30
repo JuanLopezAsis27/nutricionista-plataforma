@@ -30,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/componentes/ui/select";
+import { RUTA_INTEGRACIONES } from "@/lib/rutas";
 
 /**
  * Anticipaciones que se ofrecen; la lista tapa los casos reales de
@@ -118,10 +119,7 @@ export function ConfiguracionMedios() {
             <>
               La API oficial no está conectada: los recordatorios se preparan
               como enlaces que abrís vos. Para que salgan solos, conectala en{" "}
-              <Link
-                href="/dashboard/integraciones"
-                className="font-medium underline"
-              >
+              <Link href={RUTA_INTEGRACIONES} className="font-medium underline">
                 Integraciones → WhatsApp
               </Link>
               .
@@ -176,7 +174,7 @@ export function ConfiguracionMedios() {
               Google no está conectado, así que no se crea ningún evento.
               Conectalo en{" "}
               <Link
-                href="/dashboard/integraciones"
+                href={RUTA_INTEGRACIONES}
                 className="inline-flex items-center gap-1 font-medium underline"
               >
                 <Plug className="h-3.5 w-3.5" /> Integraciones

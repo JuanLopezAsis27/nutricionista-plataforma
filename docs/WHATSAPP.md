@@ -18,7 +18,7 @@ si la API oficial no está conectada, todo sigue funcionando por el enlace.
 
 El botón de recordatorio aparece en cada turno con el paciente que tenga teléfono
 cargado. El texto sale de las plantillas de Dashboard → Recordatorios →
-Plantillas; el prefijo de país, de Configuración → WhatsApp.
+Plantillas; el prefijo de país, de Configuración → Documentos y mensajes.
 
 El teléfono se normaliza a E.164 antes de armar el enlace. **En Argentina los
 celulares necesitan el `9` después del `54` y no llevan el `15`**: sin eso,
@@ -45,7 +45,7 @@ que esto falla. `011 15 5555-4444` se convierte en `5491155554444`.
 3. Crear un **System User** con permiso sobre la cuenta de WhatsApp y generar un
    **access token permanente** (los tokens temporales duran 24 h).
 4. Copiar el **app secret** de la app (Configuración → Básica).
-5. En la app: **Integraciones → WhatsApp**, cargar
+5. En la app: **Configuración → Integraciones → WhatsApp**, cargar
    phone number id, access token, app secret y un verify token inventado por
    vos. Los secretos se guardan cifrados (AES-256-GCM con `TOKENS_SECRET`) y no
    vuelven nunca al navegador.
@@ -197,7 +197,7 @@ y muestra en qué quedó.
 
 **Qué hace falta.** Además del token y el phone number ID que usa el envío, el
 **ID de la cuenta de WhatsApp Business** (WABA ID), que se carga en
-Integraciones → WhatsApp, y que el token tenga el permiso
+Configuración → Integraciones → WhatsApp, y que el token tenga el permiso
 `whatsapp_business_management`. Enviar y administrar son dos APIs distintas de
 Meta: un consultorio puede mandar mensajes sin poder crear plantillas, y por
 eso es otro puerto y no un método más de `IProveedorWhatsapp`. El WABA ID se
@@ -277,7 +277,7 @@ como máximo, 25 caracteres de texto). Dos tipos:
     (`…/confirmar-turno?token={{1}}`, `…/cancelar-turno?token={{1}}`) y en
     cada envío se completa solo el token (`IEnlacesTurno.prefijo(accion)`);
   - **chat de cancelaciones**: abre WhatsApp con el número de cancelaciones del
-    consultorio (Configuración → WhatsApp) y un mensaje ya escrito, propio de
+    consultorio (Configuración → Documentos y mensajes) y un mensaje ya escrito, propio de
     cada botón. Existe porque el número que manda los recordatorios muchas
     veces no es el que el profesional usa todos los días. Se registra como
     `https://wa.me/{{1}}`: el número va en la parte dinámica junto con el

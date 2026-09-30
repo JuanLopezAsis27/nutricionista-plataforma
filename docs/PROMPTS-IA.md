@@ -7,7 +7,7 @@ escritos adentro de su adaptador, y eso los volvía intocables: el consultorio
 que quería sus propios títulos en el resumen de la ficha, o que la lectura de
 planillas conociera la jerga de sus rótulos, no tenía dónde decirlo.
 
-Ahora se editan desde **Integraciones → IA e ingredientes → Instrucciones de la
+Ahora se editan desde **Configuración → Integraciones → IA → Instrucciones de la
 IA**.
 
 ## Las siete funcionalidades
@@ -122,8 +122,8 @@ una vez por llamada al modelo: al lado de la llamada misma, no se nota.
 ## Por qué la pantalla se ve plegada
 
 Son siete prompts de hasta cinco mil caracteres. Desplegados de una empujaban
-los criterios de ingredientes tan abajo que la pestaña dejaba de servir para lo
-demás. (Desde la migración 71 las claves de API ya no están en esa pestaña: son
+los criterios de ingredientes —que entonces compartían la pestaña; hoy están en
+la sección Alimentos— tan abajo que la pestaña dejaba de servir para lo demás. (Desde la migración 71 las claves de API ya no están en esa pestaña: son
 de la plataforma, ver `docs/IA-PLATAFORMA.md`. Los prompts son lo único de la
 IA que sigue siendo de cada consultorio.)
 La lista muestra el título y dónde se usa; la explicación se despliega al

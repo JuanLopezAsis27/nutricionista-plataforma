@@ -164,7 +164,7 @@ de un paciente por haber cambiado de sede en el header.
 
 ## Gestión de sedes
 
-`Configuración → Establecimientos` lista las vigentes y las archivadas, y desde
+`Configuración → Consultorio → Establecimientos` lista las vigentes y las archivadas, y desde
 ahí se crea, se edita la agenda, se archiva, se restaura y se elige la
 principal. Tres reglas que vale la pena conocer:
 

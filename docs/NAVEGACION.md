@@ -46,3 +46,51 @@ porque el `loading.tsx` de arriba no se activa (su segmento no cambió).
   navegación está pendiente (`useLinkStatus`, en `IconoEnlace` de
   `componentes/layout/SidebarNav.tsx`). Es del mismo tamaño que el ícono, así
   que no desplaza nada. Si la ruta ya estaba prefetcheada, no llega a verse.
+
+## 3. Qué entra en la barra lateral
+
+La barra del profesional llegó a 14 entradas cuando Alimentos pasó a ser una
+sección. Para achicarla se hicieron dos cosas: se sacó lo que no se visita a
+diario y se agrupó el resto.
+
+- **Integraciones** es una pestaña de Configuración y no una entrada: conectar
+  Google o WhatsApp se hace una vez. Se llega con
+  `/dashboard/configuracion?pestana=integraciones` (`RUTA_INTEGRACIONES` en
+  `src/lib/rutas.ts`). Con esa ruta vuelven el OAuth de Google y los enlaces
+  de Recordatorios y WhatsApp, y la página toma la pestaña de `searchParams`.
+  `/dashboard/integraciones` redirige ahí (`next.config.ts`) con sus
+  parámetros, así que un enlace viejo sigue sirviendo.
+- **Mi perfil** se abre desde el email del pie (`enlacePerfil` de
+  `SidebarNav`). No se puede quitar de la barra sin reemplazo, porque en el
+  celular la barra superior con el menú del avatar no se dibuja y el pie es la
+  única puerta.
+- **Grupos**: el enlace que abre un grupo lleva `grupo` (Contenido, Análisis,
+  Consultorio), y el título se dibuja antes de ese enlace. Con la barra plegada
+  el título es una línea divisoria. Los primeros enlaces (Dashboard, Pacientes,
+  Turnos y Mensajes) van sin grupo porque son lo de todos los días.
+
+Los grupos no pueden costar alto. La primera versión, con títulos de
+`pt-4` y el perfil en una fila aparte del «Salir», quedaba más alta que la
+barra de 14 entradas que venía a reemplazar. Por eso los títulos son chicos
+(`text-[10px]`, `leading-none`), las entradas van con `py-1.5` y
+`space-y-0.5`, y el perfil y el botón de salir comparten una sola fila del pie.
+Las entradas más bajas también se ven en el portal del paciente, que usa el
+mismo `SidebarNav`.
+
+## 4. Las pestañas de Configuración
+
+Eran once, una por formulario, y la fila de pestañas se partía en tres
+renglones. Hoy son cinco, por tema, y cada una apila sus secciones:
+
+| Pestaña (`?pestana=`)                  | Qué tiene                                          |
+| -------------------------------------- | -------------------------------------------------- |
+| Consultorio (`consultorio`)            | Membrete del profesional, establecimientos         |
+| Documentos y mensajes (`documentos`)   | PDF del plan, plantillas de email, teléfonos       |
+| Ficha clínica (`ficha`)                | Campos de historia clínica y evolución, antropometría |
+| IA y seguimiento (`ia`)                | Análisis de fotos del diario, base de conocimiento |
+| Integraciones (`integraciones`)        | Google, WhatsApp Cloud API, prompts de IA          |
+
+Los enlaces desde otras pantallas usan las constantes de `src/lib/rutas.ts`,
+no la ruta escrita a mano: los valores de `pestana` ya cambiaron una vez.
+Las secciones que no traen título propio lo reciben de `Seccion`, en la
+página.

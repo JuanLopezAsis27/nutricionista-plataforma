@@ -17,7 +17,8 @@ La migración **borra** las claves de IA que había en `credenciales_proveedor`
 de `preferencias_integracion`. No se migran a la configuración global a
 propósito: eran de cuentas de cada profesional, y copiar una como clave de la
 plataforma haría que todos los consultorios gastaran a cuenta de uno. WhatsApp
-y los criterios de ingredientes siguen siendo del consultorio.
+y los criterios de ingredientes (hoy en la sección Alimentos) siguen siendo
+del consultorio.
 
 ## Dónde vive
 
@@ -95,9 +96,10 @@ un error de la pantalla. La consulta no se repite sola al enfocar la ventana
 
 ## Lo que ve el consultorio
 
-Integraciones → «IA e ingredientes» ya no pide claves: muestra si la IA y la voz
+Configuración → Integraciones → «IA» ya no pide claves: muestra si la IA y la voz
 a texto están **disponibles** (`iaDisponible`, `transcripcionDisponible` en el
 estado de credenciales, calculados con los mismos resolvedores que usan las
-llamadas, así que incluyen la caída a variables de entorno), los prompts y los
-criterios de ingredientes. Los mensajes de «no hay IA configurada» mandan al
+llamadas, así que incluyen la caída a variables de entorno) y los prompts. Los
+criterios de ingredientes se mudaron a la sección Alimentos
+(`docs/CATALOGO-BASE.md`). Los mensajes de «no hay IA configurada» mandan al
 administrador de la plataforma, no a Integraciones.
