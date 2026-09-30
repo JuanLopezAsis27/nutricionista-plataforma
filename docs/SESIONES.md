@@ -171,3 +171,10 @@ valida al paciente contra sus fichas, no contra la cuenta. Ver
 - **Nunca usar el `destino` de la query sin validarlo.** Solo rutas internas: si
   no, `/api/autenticacion/renovar?destino=https://otro-sitio` es un redirector
   abierto que además entrega gente recién autenticada.
+- **Nunca validar el `destino` mirando el texto.** Así estuvo: «empieza con `/`
+  y no con `//`» dejaba pasar `?destino=/%5Cotro-sitio` y `?destino=/%09/otro-sitio`,
+  porque el parser de URL trata `\` como `/` y descarta tabs y saltos de línea,
+  y los dos terminaban en `https://otro-sitio`. `destinoSeguro`
+  (`lib/autenticacion/destinoSeguro.ts`) RESUELVE la ruta contra `urlApp()` y
+  compara el origen: decide el mismo parser que después arma el `Location`.
+  Los casos están en `destinoSeguro.test.ts`.

@@ -7,6 +7,7 @@ import {
   PARAMETRO_SESION_EXPIRADA,
 } from "@/lib/autenticacion/cookieRefresco";
 import { borrarCookieRefresco } from "@/lib/autenticacion/sesionPersistente";
+import { destinoSeguro } from "@/lib/autenticacion/destinoSeguro";
 import { urlApp } from "@/infraestructura/contenedor/contenedor";
 
 export const runtime = "nodejs";
@@ -32,7 +33,10 @@ export const runtime = "nodejs";
  * El runtime es Node porque el provider toca Prisma.
  */
 export async function GET(request: Request): Promise<NextResponse> {
-  const destino = destinoSeguro(request);
+  const destino = destinoSeguro(
+    new URL(request.url).searchParams.get(PARAMETRO_DESTINO),
+    urlApp(),
+  );
 
   // `redirect: false` porque la redirección la arma este handler con
   // `urlApp()`: `signIn` redirige con lo que venga en las cabeceras.
@@ -60,25 +64,6 @@ export async function GET(request: Request): Promise<NextResponse> {
   // `request.url` se arma con el `Host` que le haya llegado al proceso —detrás
   // del proxy, `0.0.0.0:3000`—. Mismo motivo que en el callback de Google.
   return NextResponse.redirect(new URL(destino, urlApp()));
-}
-
-/**
- * A dónde volver después de renovar.
- *
- * El valor llega en la query, así que lo elige quien arma el enlace: si se
- * usara tal cual, `/api/autenticacion/renovar?destino=https://otro-sitio` sería
- * un redirector abierto con la marca del consultorio —y de los que además
- * entregan al visitante recién autenticado—. Solo se aceptan rutas internas:
- * una sola barra al principio (`//otro-sitio` es un protocolo relativo, no una
- * ruta) y nada de esquema.
- */
-function destinoSeguro(request: Request): string {
-  const pedido = new URL(request.url).searchParams.get(PARAMETRO_DESTINO);
-
-  if (!pedido || !pedido.startsWith("/") || pedido.startsWith("//")) {
-    return "/dashboard";
-  }
-  return pedido;
 }
 
 /**
