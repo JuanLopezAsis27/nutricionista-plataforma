@@ -78,6 +78,7 @@ import { QuitarImagenAlimento } from "@/aplicacion/casos-de-uso/nutricion/Quitar
 import { ObtenerImagenAlimento } from "@/aplicacion/casos-de-uso/nutricion/ObtenerImagenAlimento";
 import { ContarUsosDeAlimento } from "@/aplicacion/casos-de-uso/nutricion/ContarUsosDeAlimento";
 import { BuscarCoincidenciaEnCatalogo } from "@/aplicacion/casos-de-uso/nutricion/BuscarCoincidenciaEnCatalogo";
+import { limitadorLogin } from "@/infraestructura/seguridad/LimitadorIntentos";
 
 // --- Reexportes del núcleo que consume la presentación --------------------------
 export {
@@ -587,5 +588,6 @@ export const servicioAutenticacion = perezoso(() =>
     baseUrl: nucleo.urlApp(),
     nutricionistas: nucleo.repositorioNutricionista(),
     diasSesionPersistente: nucleo.DIAS_SESION_PERSISTENTE,
+    limitadorLogin,
   }),
 );

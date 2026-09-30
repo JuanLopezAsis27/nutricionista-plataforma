@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { CrearPlanSemanal } from "./CrearPlanSemanal";
 import { EliminarPlanSemanal } from "./EliminarPlanSemanal";
+import { ActualizarPlanSemanal } from "./ActualizarPlanSemanal";
+import { DesasignarPlanSemanalDePaciente } from "./DesasignarPlanSemanalDePaciente";
 import { AsignarPlanSemanalAPaciente } from "./AsignarPlanSemanalAPaciente";
 import { ObtenerPlanSemanalDelPaciente } from "./ObtenerPlanSemanalDelPaciente";
 import { ErrorPlanSemanalDuplicado } from "@/dominio/errores/ErrorPlanSemanalDuplicado";
@@ -45,6 +47,71 @@ describe("CrearPlanSemanal", () => {
     const plan = await new CrearPlanSemanal(planes).ejecutar(datosPlan);
     expect(planes.crear).toHaveBeenCalledOnce();
     expect(plan.nombre).toBe("Semana tipo");
+  });
+});
+
+describe("ActualizarPlanSemanal", () => {
+  it("reemplaza la grilla entera por la que se manda", async () => {
+    const planes = mockPlanSemanalRepositorio({
+      obtenerPorId: vi.fn(async () => planSemanalEjemplo()),
+    });
+
+    const plan = await new ActualizarPlanSemanal(planes).ejecutar({
+      id: "sem-1",
+      ...datosPlan,
+    });
+
+    expect(plan.id).toBe("sem-1");
+    expect(plan.franjas.map((f) => f.nombre)).toEqual(["Almuerzo"]);
+    expect(planes.actualizar).toHaveBeenCalledOnce();
+  });
+
+  it("no choca contra su propio nombre al guardarse sin renombrar", async () => {
+    const planes = mockPlanSemanalRepositorio({
+      obtenerPorId: vi.fn(async () => planSemanalEjemplo()),
+    });
+
+    await new ActualizarPlanSemanal(planes).ejecutar({ id: "sem-1", ...datosPlan });
+
+    expect(planes.existeNombre).toHaveBeenCalledWith("Semana tipo", "sem-1");
+  });
+
+  it("rechaza el nombre de OTRO plan sin escribir", async () => {
+    const planes = mockPlanSemanalRepositorio({
+      obtenerPorId: vi.fn(async () => planSemanalEjemplo()),
+      existeNombre: vi.fn(async () => true),
+    });
+
+    await expect(
+      new ActualizarPlanSemanal(planes).ejecutar({ id: "sem-1", ...datosPlan }),
+    ).rejects.toBeInstanceOf(ErrorPlanSemanalDuplicado);
+    expect(planes.actualizar).not.toHaveBeenCalled();
+  });
+
+  it("lanza si el plan no existe", async () => {
+    await expect(
+      new ActualizarPlanSemanal(mockPlanSemanalRepositorio()).ejecutar({
+        id: "sem-x",
+        ...datosPlan,
+      }),
+    ).rejects.toBeInstanceOf(ErrorPlanSemanalNoEncontrado);
+  });
+});
+
+describe("DesasignarPlanSemanalDePaciente", () => {
+  it("cierra la asignación con la fecha dada, sin borrar el historial", async () => {
+    const asignaciones = mockAsignacionPlanSemanalRepositorio();
+    const ahora = new Date("2026-07-14T12:00:00Z");
+
+    await new DesasignarPlanSemanalDePaciente(asignaciones).ejecutar(
+      "pac-1",
+      ahora,
+    );
+
+    expect(asignaciones.desactivarAsignacionesDe).toHaveBeenCalledWith(
+      "pac-1",
+      ahora,
+    );
   });
 });
 

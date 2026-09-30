@@ -226,8 +226,8 @@ consultorio lento bloquearía a todos los demás.
 
 ## Modelos del dominio
 
-**37 entidades**, **193 casos de uso** en 28 módulos, **43 interfaces de
-repositorio** y **20 puertos de servicio**. La fuente de verdad es el código
+**37 entidades**, **194 casos de uso** en 28 módulos, **43 interfaces de
+repositorio** y **21 puertos de servicio**. La fuente de verdad es el código
 (`/src/dominio`) y `prisma/schema.prisma`. Acá van solo los invariantes que
 cruzan módulos; el detalle de cada uno, en `/docs`.
 
@@ -700,7 +700,10 @@ falta el chequeo explícito, que es el único que puede dar el mensaje bueno. Ve
 
 ## Autenticación y autorización
 
-- Auth.js v5 con CredentialsProvider; bcrypt para las contraseñas
+- Auth.js v5 con CredentialsProvider; bcrypt para las contraseñas. Las reglas
+  del login (límite de intentos, no enumerar cuentas, baja, re-hasheo) viven en
+  el caso de uso `IniciarSesion`; el `authorize` de `lib/autenticacion/auth.ts`
+  solo traduce su resultado a lo que espera Auth.js
 - `src/proxy.ts` (middleware de Next) protege `/dashboard/*`, `/mis-*` y `/mi-*`.
   NO cubre `/api`: cada route handler hace su propio `auth()`
 - El contexto tRPC expone sesión, usuario, rol, servicios y bus de eventos
@@ -742,11 +745,18 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
 - Vitest. El archivo de test va junto al que testea: `CrearPaciente.test.ts`
 - Los casos de uso se testean con repositorios mock que implementan la interfaz
 - Nunca testear implementaciones de Prisma directamente
-- Cuatro tests protegen invariantes estructurales y conviene no borrarlos:
+- Seis tests protegen invariantes estructurales y conviene no borrarlos:
   `src/arquitectura.test.ts` (reglas de capas), `modelosInquilino.test.ts`
-  (schema vs `MODELOS_INQUILINO`), `src/servidor/trpc.test.ts` (traducción de
-  errores) y `mapeadores.evaluacion.test.ts` (cruce de campos vecinos en los
-  mapeadores fila→entidad, que `tsc` no puede ver)
+  (schema vs `MODELOS_INQUILINO`), `argsConInquilino.test.ts` (el filtro de
+  inquilino operación por operación y el fail-closed; la transformación vive
+  en `argsConInquilino`, fuera del `$extends`, para poder testearla sin base),
+  `src/servidor/trpc.test.ts` y `errores-http.test.ts` (los dos bordes de
+  errores, con la paridad de status entre los mapas) y
+  `mapeadores.evaluacion.test.ts` (cruce de campos vecinos en los mapeadores
+  fila→entidad, que `tsc` no puede ver)
+- Los route handlers se testean llamando al `GET`/`POST` exportado con el
+  contenedor y la sesión doblados con `vi.mock` (ver
+  `api/whatsapp/webhook/route.test.ts` y `servidor/archivoHttp.test.ts`)
 
 ## Docker
 
@@ -776,7 +786,8 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
 - Nunca hacer que el login distinga "contraseña incorrecta" de "ese email no
   existe": es un enumerador de cuentas. Sí se distinguen el bloqueo por intentos
   (no mira ninguna cuenta) y la cuenta desactivada (se informa DESPUÉS de
-  verificar la contraseña)
+  verificar la contraseña). Lo cubre `IniciarSesion.test.ts`; no volver a
+  escribir esa lógica en el `authorize`, donde ningún test la alcanza
 - Nunca envolver un resolver de tRPC en `try/catch` para traducir errores: de eso
   se encarga el middleware, y hacerlo a mano apaga el monitoreo
 - Nunca resolver el bloqueo optimista comparando `actualizadoEn` en el caso de
