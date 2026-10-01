@@ -71,7 +71,10 @@ describe("ActualizarPlanSemanal", () => {
       obtenerPorId: vi.fn(async () => planSemanalEjemplo()),
     });
 
-    await new ActualizarPlanSemanal(planes).ejecutar({ id: "sem-1", ...datosPlan });
+    await new ActualizarPlanSemanal(planes).ejecutar({
+      id: "sem-1",
+      ...datosPlan,
+    });
 
     expect(planes.existeNombre).toHaveBeenCalledWith("Semana tipo", "sem-1");
   });
