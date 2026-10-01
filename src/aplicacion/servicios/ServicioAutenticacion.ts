@@ -63,9 +63,7 @@ export class ServicioAutenticacion {
    * Del usuario devuelve solo el id: lo que sigue —la sesión persistente y el
    * consultorio— se resuelve por id, como en la renovación.
    */
-  async iniciarSesion(
-    entrada: EntradaIniciarSesion,
-  ): Promise<ResultadoLogin> {
+  async iniciarSesion(entrada: EntradaIniciarSesion): Promise<ResultadoLogin> {
     const resultado = await this.iniciarSesionUC.ejecutar(entrada);
     return resultado.tipo === "CORRECTO"
       ? { tipo: "CORRECTO", usuarioId: resultado.usuario.id }
