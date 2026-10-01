@@ -19,7 +19,7 @@
  * variables `S3_*` del MinIO. Las de OVH se pasan con `-e`. El script entra por
  * stdin, así que no hace falta redesplegar la imagen:
  *
- *   set -a; . ./.env.produccion; set +a
+ *   set -a; . <(grep -E '^OVH_S3_' .env.produccion); set +a
  *   docker compose -p nutri_prod -f docker-compose.prod.yml exec -T \
  *     -e OVH_S3_ENDPOINT -e OVH_S3_ACCESS_KEY -e OVH_S3_SECRET_KEY \
  *     -e OVH_S3_BUCKET -e OVH_S3_REGION \
@@ -85,14 +85,29 @@ const nube = {
   }),
 };
 
-/** Hasta 1000 objetos del MinIO, con su tamaño. Alcanza para elegir muestras. */
+/**
+ * Todos los objetos del MinIO, con su tamaño. Paginado: con una sola página
+ * entraban los primeros 1000 por orden alfabético, que eran todos de un mismo
+ * prefijo (`pacientes/`) y dejaban afuera las fotos y los PDFs.
+ */
 async function listarLocal() {
-  const respuesta = await local.cliente.send(
-    new ListObjectsV2Command({ Bucket: local.bucket, MaxKeys: 1000 }),
-  );
-  return (respuesta.Contents ?? [])
-    .filter((o) => o.Key && (o.Size ?? 0) > 0)
-    .map((o) => ({ clave: o.Key, tamano: o.Size }));
+  const objetos = [];
+  let token;
+  do {
+    const respuesta = await local.cliente.send(
+      new ListObjectsV2Command({
+        Bucket: local.bucket,
+        ContinuationToken: token,
+      }),
+    );
+    for (const o of respuesta.Contents ?? []) {
+      if (o.Key && (o.Size ?? 0) > 0) {
+        objetos.push({ clave: o.Key, tamano: o.Size });
+      }
+    }
+    token = respuesta.IsTruncated ? respuesta.NextContinuationToken : undefined;
+  } while (token);
+  return objetos;
 }
 
 /**
@@ -148,13 +163,17 @@ const kb = (n) => `${(n / 1024).toFixed(0)} KB`.padStart(9);
 
 async function principal() {
   console.log(`[latencia] listando el MinIO local (${local.bucket})...`);
-  const candidatos = elegirMuestras(await listarLocal(), MUESTRAS * 2);
+  const todosLocales = await listarLocal();
+  console.log(`[latencia] ${todosLocales.length} objetos en el MinIO.`);
 
-  const muestras = [];
-  for (const objeto of candidatos) {
-    if (muestras.length >= MUESTRAS) break;
-    if (await existeEnLaNube(objeto.clave)) muestras.push(objeto);
+  // Primero se filtra lo que está en la copia y DESPUÉS se reparte por tamaño.
+  // Al revés —repartir y quedarse con los primeros que estuvieran— la lista ya
+  // venía ordenada de menor a mayor y la muestra salía con los más chicos.
+  const existentes = [];
+  for (const objeto of elegirMuestras(todosLocales, MUESTRAS * 4)) {
+    if (await existeEnLaNube(objeto.clave)) existentes.push(objeto);
   }
+  const muestras = elegirMuestras(existentes, MUESTRAS);
   if (muestras.length === 0) {
     console.error(
       `[latencia] ninguno de los objetos está en ${nube.bucket}/${nube.prefijo}. ` +
@@ -222,6 +241,16 @@ async function principal() {
   console.log(`               OVH:   ${resumen(todos.nube, "primerByte")}`);
   console.log(`  total        local: ${resumen(todos.local, "total")}`);
   console.log(`               OVH:   ${resumen(todos.nube, "total")}`);
+  // Velocidad de transferencia: solo con archivos de 500 KB o más. En los
+  // chicos el total es casi todo latencia y el número no dice nada.
+  const velocidad = (lista) => {
+    const grandes = lista.filter((m) => m.bytes >= 500 * 1024);
+    if (grandes.length === 0) return "sin archivos de 500 KB o más";
+    const mbps = grandes.map((m) => m.bytes / 1024 / 1024 / (m.total / 1000));
+    return `mediana ${percentil(mbps, 50).toFixed(1)} MB/s`;
+  };
+  console.log(`  velocidad    local: ${velocidad(todos.local)}`);
+  console.log(`               OVH:   ${velocidad(todos.nube)}`);
   console.log("\nConexión fría (DNS + TLS + primer pedido)");
   console.log(`  local: ${ms(frio.local.total)}   OVH: ${ms(frio.nube.total)}`);
 }
