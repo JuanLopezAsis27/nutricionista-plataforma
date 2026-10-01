@@ -316,7 +316,7 @@ Corre adentro del worker, que ya tiene el SDK; el script entra por stdin, así
 que no hace falta redesplegar:
 
 ```bash
-set -a; . ./.env.produccion; set +a
+set -a; . <(grep -E '^OVH_S3_' .env.produccion); set +a
 docker compose -p nutri_prod -f docker-compose.prod.yml exec -T \
   -e OVH_S3_ENDPOINT -e OVH_S3_ACCESS_KEY -e OVH_S3_SECRET_KEY \
   -e OVH_S3_BUCKET -e OVH_S3_REGION \
