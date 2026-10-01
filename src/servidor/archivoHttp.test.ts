@@ -22,6 +22,13 @@ vi.mock("@/servidor/alcanceRequest", () => ({
   conAlcanceDeSesion: <T>(fn: () => Promise<T>) => fn(),
 }));
 
+// Tipado aparte para que un test pueda devolver `null` (bucket sin tamaño).
+type LecturaDelServicio = {
+  archivo: { mimeType: string; nombreOriginal: string };
+  contenido: ReadableStream<Uint8Array>;
+  tamanoBytes: number | null;
+};
+
 const servicio = {
   puedeVerPaciente: vi.fn(async () => true),
   obtenerContenido: vi.fn(async () => ({
@@ -30,6 +37,14 @@ const servicio = {
       nombreOriginal: 'Plan "Pérez"\r\n.pdf',
     },
     contenido: Buffer.from("%PDF-1.7"),
+  })),
+  abrirLectura: vi.fn(async (): Promise<LecturaDelServicio> => ({
+    archivo: {
+      mimeType: "application/pdf",
+      nombreOriginal: 'Plan "Pérez"\r\n.pdf',
+    },
+    contenido: new Blob(["%PDF-1.7"]).stream(),
+    tamanoBytes: 8,
   })),
 };
 vi.mock("@/infraestructura/contenedor/contenedor", () => ({
@@ -65,6 +80,7 @@ describe("responderArchivo — autorización", () => {
     const respuesta = await responderArchivo(id(), "inline");
 
     expect(respuesta.status).toBe(401);
+    expect(servicio.abrirLectura).not.toHaveBeenCalled();
     expect(servicio.obtenerContenido).not.toHaveBeenCalled();
   });
 
@@ -79,7 +95,7 @@ describe("responderArchivo — autorización", () => {
       usuarioId: "usr-pac",
       pacienteId: "pac-1",
     });
-    expect(servicio.obtenerContenido).not.toHaveBeenCalled();
+    expect(servicio.abrirLectura).not.toHaveBeenCalled();
   });
 
   it("un paciente con permiso lo recibe", async () => {
@@ -108,7 +124,7 @@ describe("responderArchivo — autorización", () => {
 
   it("un archivo que no existe sale por el borde de errores, no como 500", async () => {
     sesion = { id: "usr-nutri", rol: "NUTRICIONISTA" };
-    servicio.obtenerContenido.mockRejectedValueOnce(
+    servicio.abrirLectura.mockRejectedValueOnce(
       new ErrorArchivoNoEncontrado("arc-x"),
     );
 
@@ -141,6 +157,27 @@ describe("responderArchivo — cabeceras", () => {
       'inline; filename="Plan Perez.pdf"',
     );
     expect(bajar.headers.get("Content-Disposition")).toMatch(/^attachment;/);
+  });
+
+  it("pasa el contenido del bucket como flujo, sin juntarlo en memoria", async () => {
+    const respuesta = await responderArchivo(id(), "inline");
+
+    expect(servicio.abrirLectura).toHaveBeenCalledWith("arc-1");
+    expect(servicio.obtenerContenido).not.toHaveBeenCalled();
+    expect(await respuesta.text()).toBe("%PDF-1.7");
+    expect(respuesta.headers.get("Content-Length")).toBe("8");
+  });
+
+  it("sin el tamaño del bucket no inventa un Content-Length", async () => {
+    servicio.abrirLectura.mockResolvedValueOnce({
+      archivo: { mimeType: "application/pdf", nombreOriginal: "plan.pdf" },
+      contenido: new Blob(["%PDF-1.7"]).stream(),
+      tamanoBytes: null,
+    });
+
+    const respuesta = await responderArchivo(id(), "inline");
+
+    expect(respuesta.headers.get("Content-Length")).toBeNull();
   });
 });
 

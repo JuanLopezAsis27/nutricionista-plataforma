@@ -7,6 +7,7 @@ import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamient
 import { SubirArchivo } from "@/aplicacion/casos-de-uso/archivos/SubirArchivo";
 import { ObtenerUrlArchivo } from "@/aplicacion/casos-de-uso/archivos/ObtenerUrlArchivo";
 import { ObtenerContenidoArchivo } from "@/aplicacion/casos-de-uso/archivos/ObtenerContenidoArchivo";
+import { AbrirLecturaArchivo } from "@/aplicacion/casos-de-uso/archivos/AbrirLecturaArchivo";
 import { EliminarArchivo } from "@/aplicacion/casos-de-uso/archivos/EliminarArchivo";
 import {
   LimpiarArchivosHuerfanos,
@@ -31,6 +32,7 @@ export function crearServicioArchivo(deps: {
     new SubirArchivo(deps.archivos, deps.almacenamiento),
     new ObtenerUrlArchivo(deps.archivos, deps.almacenamiento),
     new ObtenerContenidoArchivo(deps.archivos, deps.almacenamiento),
+    new AbrirLecturaArchivo(deps.archivos, deps.almacenamiento),
     new EliminarArchivo(deps.archivos, deps.almacenamiento),
     new LimpiarArchivosHuerfanos(
       deps.archivos,

@@ -51,6 +51,29 @@ La contrapartida es que los bytes pasan por Node en vez de ir directo del
 bucket al navegador. Es asumible: el techo de subida son 25 MB y lo que se
 sirve son fotos de recetas y PDFs de plan, no video.
 
+## Pasan como flujo, no juntados en memoria
+
+Las rutas de ver y bajar usan `abrirLectura` (caso de uso
+`AbrirLecturaArchivo`): el servidor le pasa al navegador cada pedazo apenas
+llega del bucket. Antes usaban `descargar`, que junta el objeto entero y
+recién después empieza a responder.
+
+Con MinIO en el mismo servidor la diferencia no se ve. Con un bucket en la
+nube sí: medido contra OVH (`scripts/medir-latencia-bucket.mjs`, ver
+`docs/DESPLIEGUE.md`), juntar primero un PDF de 24 MB son ~0,7 s de espera
+antes del primer byte; con el flujo queda la latencia del bucket (~60 a 130 ms)
+y la bajada se solapa con la subida al navegador, que es la más lenta. De
+paso, Node deja de tener cada archivo entero en memoria.
+
+La autorización no cambia y corre ANTES de abrir el objeto: un archivo ajeno no
+llega a pedirse al bucket. Si el bucket se corta a mitad de camino, el
+navegador ve la descarga interrumpida en vez de un mensaje de error: las
+cabeceras ya salieron.
+
+Dos excepciones que siguen con `descargar`, porque necesitan el archivo entero:
+la conversión del Word a HTML (`/html`) y la lectura que hace la IA de un
+documento.
+
 La URL firmada **sigue existiendo** en el dominio (`generarUrlLectura`) para lo
 que sí necesita una URL alcanzable desde afuera —hoy, pasarle una foto al
 analizador de comidas—. Lo que no vuelve es usarla para que el navegador cargue

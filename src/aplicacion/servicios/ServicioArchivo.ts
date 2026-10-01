@@ -4,6 +4,7 @@ import type {
 } from "@/aplicacion/casos-de-uso/archivos/SubirArchivo";
 import type { ObtenerUrlArchivo } from "@/aplicacion/casos-de-uso/archivos/ObtenerUrlArchivo";
 import type { ObtenerContenidoArchivo } from "@/aplicacion/casos-de-uso/archivos/ObtenerContenidoArchivo";
+import type { AbrirLecturaArchivo } from "@/aplicacion/casos-de-uso/archivos/AbrirLecturaArchivo";
 import type { EliminarArchivo } from "@/aplicacion/casos-de-uso/archivos/EliminarArchivo";
 import type {
   LimpiarArchivosHuerfanos,
@@ -29,6 +30,13 @@ export interface ArchivoConContenidoDto {
   contenido: Uint8Array;
 }
 
+/** Archivo con su contenido abierto como flujo, para servirlo a medida que llega. */
+export interface ArchivoEnLecturaDto {
+  archivo: ArchivoSalidaDto;
+  contenido: ReadableStream<Uint8Array>;
+  tamanoBytes: number | null;
+}
+
 /**
  * Servicio de aplicación de Archivos.
  * Orquesta los casos de uso y devuelve DTOs de salida.
@@ -38,6 +46,7 @@ export class ServicioArchivo {
     private readonly subirUC: SubirArchivo,
     private readonly obtenerUrlUC: ObtenerUrlArchivo,
     private readonly obtenerContenidoUC: ObtenerContenidoArchivo,
+    private readonly abrirLecturaUC: AbrirLecturaArchivo,
     private readonly eliminarUC: EliminarArchivo,
     private readonly limpiarHuerfanosUC: LimpiarArchivosHuerfanos,
     private readonly obtenerDeDuenoUC: ObtenerArchivosDeDueno,
@@ -64,6 +73,16 @@ export class ServicioArchivo {
   async obtenerContenido(id: string): Promise<ArchivoConContenidoDto> {
     const { archivo, contenido } = await this.obtenerContenidoUC.ejecutar(id);
     return { archivo: ServicioArchivo.aSalida(archivo), contenido };
+  }
+
+  /** Contenido del archivo como flujo: lo que usan las rutas de ver y bajar. */
+  async abrirLectura(id: string): Promise<ArchivoEnLecturaDto> {
+    const { archivo, lectura } = await this.abrirLecturaUC.ejecutar(id);
+    return {
+      archivo: ServicioArchivo.aSalida(archivo),
+      contenido: lectura.contenido,
+      tamanoBytes: lectura.tamanoBytes,
+    };
   }
 
   async eliminar(id: string): Promise<void> {
