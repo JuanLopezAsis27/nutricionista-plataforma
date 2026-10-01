@@ -19,6 +19,10 @@ function almacenamientoCon(contenido: Uint8Array): IAlmacenamientoArchivos {
     subir: vi.fn(async () => {}),
     generarUrlLectura: vi.fn(async () => "http://bucket/x"),
     descargar: vi.fn(async () => contenido),
+    abrirLectura: vi.fn(async () => ({
+      contenido: new Blob([]).stream(),
+      tamanoBytes: 0,
+    })),
     eliminar: vi.fn(async () => {}),
     listarClaves: vi.fn(async () => []),
   };

@@ -64,6 +64,10 @@ export function mockAlmacenamientoArchivos(
       async (clave: string) => `https://bucket.local/${clave}?firma`,
     ),
     descargar: vi.fn(async () => new Uint8Array([37, 80, 68, 70])), // "%PDF"
+    abrirLectura: vi.fn(async () => ({
+      contenido: new Blob([new Uint8Array([37, 80, 68, 70])]).stream(),
+      tamanoBytes: 4,
+    })),
     eliminar: vi.fn(async () => {}),
     listarClaves: vi.fn(async () => []),
     ...parcial,

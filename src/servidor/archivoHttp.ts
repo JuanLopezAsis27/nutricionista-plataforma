@@ -5,7 +5,6 @@ import {
   documentoWordAHtml,
   paginaDocumentoIlegible,
 } from "@/infraestructura/documentos/documentoWordAHtml";
-import type { ArchivoConContenidoDto } from "@/aplicacion/servicios/ServicioArchivo";
 import { esDocumentoWord } from "@/dominio/entidades/Archivo";
 import { aRespuestaError } from "@/servidor/errores-http";
 import { conAlcanceDeSesion } from "@/servidor/alcanceRequest";
@@ -39,8 +38,12 @@ import { conAlcanceDeSesion } from "@/servidor/alcanceRequest";
  * afuera, que es otro problema.
  *
  * La contrapartida es que los bytes pasan por Node en vez de ir directo del
- * bucket al navegador. Es asumible: el techo de subida son 25 MB y lo que se
- * sirve son fotos de recetas y PDFs de plan, no video.
+ * bucket al navegador. Pasan como FLUJO (`abrirLectura`), no juntados en
+ * memoria: el navegador empieza a recibir apenas llega el primer pedazo del
+ * bucket. Con MinIO en el mismo servidor daba igual; con un bucket en la nube
+ * es la diferencia entre ~60 ms y ~0,7 s de espera para un PDF de 24 MB
+ * (medido con `scripts/medir-latencia-bucket.mjs` contra OVH). La conversión
+ * del Word es la excepción: necesita el archivo entero.
  *
  * ## Qué cambia entre las rutas
  *
@@ -100,13 +103,19 @@ export function responderArchivo(
 ): Promise<NextResponse> {
   return conAlcanceDeSesion(async () => {
     try {
-      const lectura = await leerConPermiso(idPromesa);
-      if (lectura instanceof NextResponse) return lectura;
-      const { archivo, contenido } = lectura;
+      const denegado = await denegarSinPermiso(idPromesa);
+      if (denegado) return denegado;
 
-      return new NextResponse(new Uint8Array(contenido), {
+      const { id } = await idPromesa;
+      const { archivo, contenido, tamanoBytes } =
+        await servicioArchivo().abrirLectura(id);
+
+      return new NextResponse(contenido, {
         headers: {
           "Content-Type": archivo.mimeType,
+          ...(tamanoBytes !== null && {
+            "Content-Length": String(tamanoBytes),
+          }),
           "Content-Disposition": `${disposicion}; filename="${nombreSeguro(archivo.nombreOriginal)}"`,
           // Privado: es contenido clínico de UN paciente y no puede quedar en
           // una caché compartida.
@@ -129,9 +138,14 @@ export function responderDocumentoComoHtml(
 ): Promise<NextResponse> {
   return conAlcanceDeSesion(async () => {
     try {
-      const lectura = await leerConPermiso(idPromesa);
-      if (lectura instanceof NextResponse) return lectura;
-      const { archivo, contenido } = lectura;
+      const denegado = await denegarSinPermiso(idPromesa);
+      if (denegado) return denegado;
+
+      // El Word se convierte entero, así que acá sí hace falta el archivo
+      // completo en memoria, no el flujo.
+      const { id } = await idPromesa;
+      const { archivo, contenido } =
+        await servicioArchivo().obtenerContenido(id);
 
       if (!esDocumentoWord(archivo.mimeType)) {
         return NextResponse.json(
@@ -171,16 +185,17 @@ export function responderDocumentoComoHtml(
 }
 
 /**
- * El archivo y su contenido, si quien pide puede leerlo; si no, la respuesta
- * de error.
+ * La respuesta de error si quien pide NO puede leer el archivo; `null` si
+ * puede. Corre antes de tocar el bucket, así que no se abre ni un byte de un
+ * archivo ajeno.
  *
  * El nutricionista accede a todo; el paciente a lo que subió él mismo y a lo
  * que le fue compartido (la regla vive en el caso de uso
  * `PuedeVerArchivoPaciente`).
  */
-async function leerConPermiso(
+async function denegarSinPermiso(
   idPromesa: Promise<{ id: string }>,
-): Promise<ArchivoConContenidoDto | NextResponse> {
+): Promise<NextResponse | null> {
   const usuario = await usuarioDeSesion();
   if (!usuario) {
     return NextResponse.json(
@@ -203,7 +218,7 @@ async function leerConPermiso(
     }
   }
 
-  return await servicioArchivo().obtenerContenido(id);
+  return null;
 }
 
 /** Nombre apto para la cabecera: sin comillas, saltos ni caracteres raros. */

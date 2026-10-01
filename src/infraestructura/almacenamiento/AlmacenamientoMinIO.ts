@@ -8,7 +8,10 @@ import {
   HeadBucketCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamientoArchivos";
+import type {
+  IAlmacenamientoArchivos,
+  LecturaArchivo,
+} from "@/dominio/servicios/IAlmacenamientoArchivos";
 
 /**
  * Implementación S3-compatible del puerto de almacenamiento.
@@ -67,6 +70,21 @@ export class AlmacenamientoMinIO implements IAlmacenamientoArchivos {
     // `transformToByteArray` es del SDK v3: junta el stream en memoria. Los
     // objetos que se sirven así son PDFs de plan (25 MB tope), no video.
     return respuesta.Body!.transformToByteArray();
+  }
+
+  async abrirLectura(clave: string): Promise<LecturaArchivo> {
+    const respuesta = await this.cliente.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: clave }),
+    );
+    // `send` resuelve con las cabeceras; el cuerpo todavía no se leyó. Si el
+    // navegador corta la descarga, cancelar el flujo web destruye el stream
+    // de Node de abajo y libera la conexión con el bucket.
+    return {
+      // El SDK lo tipa como `ReadableStream<any>`; en Node son siempre bytes.
+      contenido:
+        respuesta.Body!.transformToWebStream() as ReadableStream<Uint8Array>,
+      tamanoBytes: respuesta.ContentLength ?? null,
+    };
   }
 
   async eliminar(clave: string): Promise<void> {
