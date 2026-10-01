@@ -306,6 +306,28 @@ misma versión del cliente.
 compose apunta a quay.io y el `pull` da 401. Para eso hay que usar
 `CONSTRUIR_LOCAL=1` o traer este cambio al commit de destino.
 
+### Medir la latencia de un bucket en la nube
+
+Antes de decidir si los archivos salen del disco del VPS a un S3 en la nube,
+`scripts/medir-latencia-bucket.mjs` compara cuánto tarda en llegar el MISMO
+objeto desde el MinIO local y desde la copia que el respaldo deja en OVH
+(`bucket/<clave>`). Informa primer byte, total y la conexión fría por separado.
+Corre adentro del worker, que ya tiene el SDK; el script entra por stdin, así
+que no hace falta redesplegar:
+
+```bash
+set -a; . ./.env.produccion; set +a
+docker compose -p nutri_prod -f docker-compose.prod.yml exec -T \
+  -e OVH_S3_ENDPOINT -e OVH_S3_ACCESS_KEY -e OVH_S3_SECRET_KEY \
+  -e OVH_S3_BUCKET -e OVH_S3_REGION \
+  worker node --input-type=module - < scripts/medir-latencia-bucket.mjs
+```
+
+Es **solo lectura**. Lo que nunca hay que hacer es apuntar la app o el worker
+(`S3_*`) al bucket de respaldos: `LimpiarArchivosHuerfanos` lista el bucket
+entero y borra todo lo que no tenga fila en `archivos`, que ahí son todos los
+volcados de la base. Para probar la app contra la nube va un bucket aparte.
+
 ---
 
 ## 7. Staging (VPS propio)
