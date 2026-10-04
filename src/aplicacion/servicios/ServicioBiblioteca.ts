@@ -11,6 +11,11 @@ import type {
   PacienteAsignado,
 } from "@/aplicacion/casos-de-uso/biblioteca/ObtenerPacientesDeMaterial";
 import type { CompartirMaterialConTodos } from "@/aplicacion/casos-de-uso/biblioteca/CompartirMaterialConTodos";
+import type { MoverMaterialAGrupo } from "@/aplicacion/casos-de-uso/biblioteca/MoverMaterialAGrupo";
+import type { CrearGrupoMaterial } from "@/aplicacion/casos-de-uso/grupos-material/CrearGrupoMaterial";
+import type { ActualizarGrupoMaterial } from "@/aplicacion/casos-de-uso/grupos-material/ActualizarGrupoMaterial";
+import type { EliminarGrupoMaterial } from "@/aplicacion/casos-de-uso/grupos-material/EliminarGrupoMaterial";
+import type { ObtenerGruposMaterial } from "@/aplicacion/casos-de-uso/grupos-material/ObtenerGruposMaterial";
 import type { MaterialBiblioteca } from "@/dominio/entidades/MaterialBiblioteca";
 import type {
   CrearMaterialDto,
@@ -20,6 +25,10 @@ import type {
   MaterialesPaginados,
   AsignarMaterialDto,
   MaterialSalidaDto,
+  MoverMaterialDto,
+  GrupoMaterialDto,
+  ActualizarGrupoMaterialDto,
+  GrupoMaterialSalidaDto,
 } from "../dtos/material.dto";
 
 /**
@@ -38,6 +47,11 @@ export class ServicioBiblioteca {
     private readonly obtenerDelPacienteUC: ObtenerMaterialesDelPaciente,
     private readonly obtenerPacientesUC: ObtenerPacientesDeMaterial,
     private readonly compartirConTodosUC: CompartirMaterialConTodos,
+    private readonly moverAGrupoUC: MoverMaterialAGrupo,
+    private readonly crearGrupoUC: CrearGrupoMaterial,
+    private readonly actualizarGrupoUC: ActualizarGrupoMaterial,
+    private readonly eliminarGrupoUC: EliminarGrupoMaterial,
+    private readonly obtenerGruposUC: ObtenerGruposMaterial,
   ) {}
 
   async crearMaterial(datos: CrearMaterialDto): Promise<MaterialSalidaDto> {
@@ -102,6 +116,39 @@ export class ServicioBiblioteca {
     materialId: string,
   ): Promise<PacienteAsignado[]> {
     return this.obtenerPacientesUC.ejecutar(materialId);
+  }
+
+  // --- Carpetas de la biblioteca ---
+
+  /** Mueve un material a una carpeta, o lo saca (grupoId null). */
+  async moverMaterialAGrupo(datos: MoverMaterialDto): Promise<void> {
+    await this.moverAGrupoUC.ejecutar(datos);
+  }
+
+  async obtenerGrupos(): Promise<GrupoMaterialSalidaDto[]> {
+    const grupos = await this.obtenerGruposUC.ejecutar();
+    return grupos.map(({ grupo, cantidadMateriales }) => ({
+      ...grupo.aPrimitivos(),
+      cantidadMateriales,
+    }));
+  }
+
+  async crearGrupo(datos: GrupoMaterialDto): Promise<GrupoMaterialSalidaDto> {
+    const grupo = await this.crearGrupoUC.ejecutar(datos);
+    // Recién creada: vacía por definición, no hace falta ir a contarla.
+    return { ...grupo.aPrimitivos(), cantidadMateriales: 0 };
+  }
+
+  async actualizarGrupo(
+    datos: ActualizarGrupoMaterialDto,
+  ): Promise<GrupoMaterialSalidaDto> {
+    const grupo = await this.actualizarGrupoUC.ejecutar(datos);
+    // El total lo repone el listado, que se invalida junto con la mutación.
+    return { ...grupo.aPrimitivos(), cantidadMateriales: 0 };
+  }
+
+  async eliminarGrupo(id: string): Promise<void> {
+    await this.eliminarGrupoUC.ejecutar(id);
   }
 
   private static aSalida(material: MaterialBiblioteca): MaterialSalidaDto {

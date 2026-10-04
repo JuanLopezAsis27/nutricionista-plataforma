@@ -386,6 +386,7 @@ model Nutricionista {
   planesNutricionales         PlanNutricional[]
   gruposPlan                  GrupoPlan[]
   gruposReceta                GrupoReceta[]
+  gruposMaterial              GrupoMaterial[]
   grabacionesConsulta         GrabacionConsulta[]
   resumenesConsulta           ResumenConsulta[]
   objetivos                   Objetivo[]
@@ -2604,17 +2605,42 @@ model MaterialBiblioteca {
   url             String? // solo tipo ENLACE
   categoria       String?
   etiquetas       String[]
+  /// Carpeta en la que está guardado (opcional). Ver GrupoMaterial.
+  grupoId         String?
   creadoEn        DateTime     @default(now())
   actualizadoEn   DateTime     @updatedAt
 
   archivo       Archivo?
   asignaciones  AsignacionMaterial[]
   nutricionista Nutricionista        @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  /// Borrar la carpeta NO borra los materiales: quedan sueltos (migración 87).
+  grupo         GrupoMaterial?       @relation(fields: [grupoId], references: [id], onDelete: SetNull)
 
   @@unique([nutricionistaId, id])
   @@index([nutricionistaId, titulo])
+  @@index([nutricionistaId, grupoId])
   @@index([etiquetas], type: Gin)
   @@map("materiales_biblioteca")
+}
+
+/// Carpeta de la biblioteca. Las mismas que `GrupoPlan` y `GrupoReceta`, con la
+/// misma mecánica: un nivel, y borrarla deja los materiales sueltos.
+///
+/// No compite con la categoría ni con las etiquetas: esas describen el
+/// material; la carpeta dice dónde lo guardó el profesional.
+model GrupoMaterial {
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
+  nombre          String
+  descripcion     String?
+  creadoEn        DateTime @default(now())
+  actualizadoEn   DateTime @updatedAt
+
+  materiales    MaterialBiblioteca[]
+  nutricionista Nutricionista        @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@unique([nutricionistaId, nombre])
+  @@map("grupos_material")
 }
 
 /// Vincula un material a un paciente (visible en su portal).

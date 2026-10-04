@@ -8,6 +8,7 @@ import {
   Trash2,
   Share2,
   FolderInput,
+  FolderOutput,
   Library,
 } from "lucide-react";
 import type { RecetaSalidaDto } from "@/aplicacion/dtos/receta.dto";
@@ -27,11 +28,12 @@ import { TarjetaReceta } from "@/componentes/recetas/TarjetaReceta";
 import { FormularioReceta } from "@/componentes/recetas/FormularioReceta";
 import { CompartirReceta } from "@/componentes/recetas/CompartirReceta";
 import { NavegadorCarpetas } from "@/componentes/recetas/NavegadorCarpetas";
+import { propsArrastrable } from "@/componentes/comunes/NavegadorCarpetas";
 import { MoverRecetaACarpeta } from "@/componentes/recetas/MoverRecetaACarpeta";
 import { RecetasDeLaPlataforma } from "@/componentes/recetas/RecetasDeLaPlataforma";
 
 export default function PaginaRecetas() {
-  const { listarPaginado, eliminar } = useRecetas();
+  const { listarPaginado, eliminar, mover } = useRecetas();
   const router = useRouter();
 
   const [busqueda, setBusqueda] = useState("");
@@ -133,52 +135,69 @@ export default function PaginaRecetas() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {recetas.map((receta) => (
-            <TarjetaReceta
+            <div
               key={receta.id}
-              receta={receta}
-              // La receta se abre en su propia página, como un plan: el
-              // documento que pueda tener necesita la pantalla entera.
-              onVer={() => router.push(`/dashboard/recetas/${receta.id}`)}
-              acciones={
-                <>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    title="Compartir con paciente"
-                    onClick={() => setRecetaCompartir(receta)}
-                  >
-                    <Share2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    title="Mover a una carpeta"
-                    onClick={() => setRecetaMover(receta)}
-                  >
-                    <FolderInput className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    title="Editar"
-                    onClick={() => {
-                      setRecetaEditar(receta);
-                      setFormAbierto(true);
-                    }}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    title="Eliminar"
-                    onClick={() => setRecetaEliminar(receta)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </>
-              }
-            />
+              {...(carpetaId === null ? propsArrastrable(receta.id) : {})}
+            >
+              <TarjetaReceta
+                receta={receta}
+                // La receta se abre en su propia página, como un plan: el
+                // documento que pueda tener necesita la pantalla entera.
+                onVer={() => router.push(`/dashboard/recetas/${receta.id}`)}
+                acciones={
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Compartir con paciente"
+                      onClick={() => setRecetaCompartir(receta)}
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Mover a una carpeta"
+                      onClick={() => setRecetaMover(receta)}
+                    >
+                      <FolderInput className="h-4 w-4" />
+                    </Button>
+                    {carpetaId !== null && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Sacar de la carpeta"
+                        disabled={mover.isPending}
+                        onClick={() =>
+                          mover.mutate({ recetaId: receta.id, grupoId: null })
+                        }
+                      >
+                        <FolderOutput className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Editar"
+                      onClick={() => {
+                        setRecetaEditar(receta);
+                        setFormAbierto(true);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Eliminar"
+                      onClick={() => setRecetaEliminar(receta)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </>
+                }
+              />
+            </div>
           ))}
         </div>
       )}

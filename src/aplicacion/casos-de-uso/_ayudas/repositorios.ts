@@ -25,6 +25,7 @@ import type { IPlanSemanalRepositorio } from "@/dominio/repositorios/IPlanSemana
 import type { IAsignacionPlanSemanalRepositorio } from "@/dominio/repositorios/IAsignacionPlanSemanalRepositorio";
 import type { IGrupoPlanRepositorio } from "@/dominio/repositorios/IGrupoPlanRepositorio";
 import type { IGrupoRecetaRepositorio } from "@/dominio/repositorios/IGrupoRecetaRepositorio";
+import type { IGrupoMaterialRepositorio } from "@/dominio/repositorios/IGrupoMaterialRepositorio";
 import type { IGrabacionConsultaRepositorio } from "@/dominio/repositorios/IGrabacionConsultaRepositorio";
 import type { IObjetivoRepositorio } from "@/dominio/repositorios/IObjetivoRepositorio";
 import type { IPerfilDeportivoRepositorio } from "@/dominio/repositorios/IPerfilDeportivoRepositorio";
@@ -84,6 +85,7 @@ import { Mensaje } from "@/dominio/entidades/Mensaje";
 import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
 import { GrupoPlan } from "@/dominio/entidades/GrupoPlan";
 import { GrupoReceta } from "@/dominio/entidades/GrupoReceta";
+import { GrupoMaterial } from "@/dominio/entidades/GrupoMaterial";
 import type { GrabacionConsulta } from "@/dominio/entidades/GrabacionConsulta";
 import type { ResumenConsulta } from "@/dominio/entidades/ResumenConsulta";
 import { ConfiguracionRecordatorios } from "@/dominio/entidades/ConfiguracionRecordatorios";
@@ -395,6 +397,20 @@ export function mockGrupoRecetaRepositorio(
   };
 }
 
+export function mockGrupoMaterialRepositorio(
+  parcial: Partial<IGrupoMaterialRepositorio> = {},
+): IGrupoMaterialRepositorio {
+  return {
+    crear: vi.fn(async (g: GrupoMaterial) => g),
+    actualizar: vi.fn(async (g: GrupoMaterial) => g),
+    eliminar: vi.fn(async () => {}),
+    obtenerPorId: vi.fn(async () => null),
+    listar: vi.fn(async () => []),
+    existeNombre: vi.fn(async () => false),
+    ...parcial,
+  };
+}
+
 export function mockGrabacionRepositorio(
   parcial: Partial<IGrabacionConsultaRepositorio> = {},
 ): IGrabacionConsultaRepositorio {
@@ -560,6 +576,7 @@ export function mockMaterialRepositorio(
     obtenerPorId: vi.fn(async () => null),
     listar: vi.fn(async () => []),
     contar: vi.fn(async () => 0),
+    moverAGrupo: vi.fn(async () => {}),
     asignarAPaciente: vi.fn(async () => {}),
     asignarAPacientes: vi.fn(async (_id: string, ids: string[]) => ids.length),
     desasignarDePaciente: vi.fn(async () => {}),

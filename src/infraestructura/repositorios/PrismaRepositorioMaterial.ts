@@ -39,6 +39,7 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
           url: d.url,
           categoria: d.categoria,
           etiquetas: d.etiquetas,
+          grupoId: d.grupoId,
           creadoEn: d.creadoEn,
           actualizadoEn: d.actualizadoEn,
         },
@@ -98,6 +99,13 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
     return filas.map((fila) => mapearMaterial(fila));
   }
 
+  async moverAGrupo(id: string, grupoId: string | null): Promise<void> {
+    await this.prisma.materialBiblioteca.update({
+      where: { id },
+      data: { grupoId },
+    });
+  }
+
   contar(filtro?: FiltroMateriales): Promise<number> {
     return this.prisma.materialBiblioteca.count({
       where: this.construirWhere(filtro),
@@ -119,6 +127,10 @@ export class PrismaRepositorioMaterial implements IMaterialRepositorio {
     }
     if (filtro?.etiqueta) {
       where.etiquetas = { has: filtro.etiqueta };
+    }
+    // null = los sueltos; undefined = no filtrar. Por eso no es `if (grupoId)`.
+    if (filtro?.grupoId !== undefined) {
+      where.grupoId = filtro.grupoId;
     }
     return where;
   }
@@ -195,6 +207,7 @@ export function mapearMaterial(fila: MaterialConArchivo): MaterialBiblioteca {
     url: fila.url,
     categoria: fila.categoria,
     etiquetas: fila.etiquetas,
+    grupoId: fila.grupoId ?? null,
     archivo: fila.archivo
       ? {
           id: fila.archivo.id,
