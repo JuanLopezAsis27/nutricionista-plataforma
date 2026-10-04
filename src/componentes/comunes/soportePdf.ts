@@ -25,10 +25,29 @@ export interface NavegadorConsultado {
   pdfViewerEnabled?: boolean;
   mimeTypes?: object;
   userAgent?: string;
+  maxTouchPoints?: number;
+}
+
+/**
+ * iPhone, iPod o iPad. El iPad se presenta como una Mac de escritorio desde
+ * iPadOS 13; lo que lo delata es la pantalla táctil, que una Mac no tiene.
+ */
+function esIos(navegador: NavegadorConsultado): boolean {
+  const agente = navegador.userAgent ?? "";
+  return (
+    /iphone|ipad|ipod/i.test(agente) ||
+    (/macintosh/i.test(agente) && (navegador.maxTouchPoints ?? 0) > 1)
+  );
 }
 
 /** La regla, sin estado ni `window`. */
 export function dibujaPdf(navegador: NavegadorConsultado): boolean {
+  // Safari de iOS dice que SÍ (`pdfViewerEnabled` es true) y miente a medias:
+  // adentro de un iframe dibuja solo la PRIMERA página, como una imagen, y no
+  // deja deslizar a las demás. Abierto en su propia pestaña se ve completo, así
+  // que para iOS vale lo mismo que para Android: ofrecerlo para abrir.
+  if (esIos(navegador)) return false;
+
   // La propiedad estándar, y la respuesta directa donde existe (Chrome 94+,
   // Firefox 94+, Safari 16.4+). En Chrome de Android devuelve `false`.
   if (typeof navegador.pdfViewerEnabled === "boolean") {

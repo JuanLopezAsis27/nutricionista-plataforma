@@ -120,8 +120,15 @@ carga perfecto; lo que falla es el visor de adentro, que no avisa nada hacia
 afuera. Por eso el estado de fallo que tenía `VisorArchivo` no se activaba
 nunca.
 
+**Safari de iOS es el caso inverso: dice que sí y no alcanza.** Expone
+`pdfViewerEnabled = true`, pero adentro de un iframe dibuja solo la PRIMERA
+página, como una imagen, y no deja deslizar a las demás. Abierto en su propia
+pestaña se ve completo. Por eso iOS se descarta antes de preguntar nada (el
+iPad se presenta como una Mac: lo delata `maxTouchPoints > 1`).
+
 `componentes/comunes/soportePdf.ts` hace la pregunta, en este orden:
 
+0. ¿Es iOS? Entonces no.
 1. `navigator.pdfViewerEnabled` — la propiedad estándar y la respuesta directa
    donde existe. En Chrome de Android devuelve `false`.
 2. `navigator.mimeTypes["application/pdf"]` — la misma pregunta, como se hacía
@@ -134,7 +141,13 @@ abrir o guardar, con los botones grandes y el motivo dicho. Abrirlo funciona
 funciona es dibujarlo adentro.
 
 El Word no pasa por esto: se sirve ya convertido a HTML (`/html`), que cualquier
-navegador dibuja.
+navegador dibuja. Lo que sí tiene es su propio problema en iOS: **Safari no
+desliza un iframe cuyo scroll es el del documento** —se veía solo lo que
+entraba en el alto del visor—. La página convertida
+(`infraestructura/documentos/documentoWordAHtml.ts`) fija `html` al alto del
+frame y hace que el `body` sea el que scrollea, y no deja que nada la ensanche
+(`overflow-wrap:anywhere`, tablas con `table-layout:fixed`): un contenido más
+ancho que el frame hace que iOS agrande el iframe en vez de deslizarlo.
 
 ## Al tocar esto
 
