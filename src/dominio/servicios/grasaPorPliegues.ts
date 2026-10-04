@@ -23,9 +23,21 @@ import {
  * no tiene sus pliegues queda en `faltantes` con el detalle de qué medir.
  */
 
+/**
+ * Las ecuaciones vigentes, EN ORDEN DE PREFERENCIA: la primera que una
+ * medición resuelve es la que se muestra cuando no se destacó ninguna
+ * («Automática»), en la ficha, el dashboard, los PDF y el gráfico de
+ * evolución. Yuhasz/Carter con el ajuste de Kerr va primera porque es la
+ * referencia del consultorio.
+ *
+ * Este orden es solo de la aplicación y se puede cambiar: el enum de Postgres
+ * (`MetodoGrasa`) es otra cosa y ese NO se reordena. Cambiarlo sí mueve la
+ * ecuación que muestran las mediciones en «Automática», y el color de cada
+ * ecuación en los gráficos, que sale de su posición acá.
+ */
 export const METODOS_GRASA = [
-  "YUHASZ_CARTER",
   "YUHASZ_CARTER_KERR",
+  "YUHASZ_CARTER",
   "FAULKNER",
   "FAULKNER_KERR",
   "WITHERS",

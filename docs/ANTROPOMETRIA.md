@@ -627,6 +627,16 @@ con ★. Comparar todas juntas sigue disponible, como la última opción.
 Se toma de la última medición que DESTACA una y no de la última a secas: una
 consulta cargada sin elegir ecuación no es un cambio de favorita.
 
+**«Automática» es Yuhasz / Carter — ajuste Kerr.** «La primera disponible»
+es la primera de `METODOS_GRASA` (`dominio/servicios/grasaPorPliegues.ts`) que
+la medición resuelve, y ese array va en orden de preferencia con Kerr primero.
+No se guarda nada: las mediciones en «Automática» (`metodoGrasa` null) —todas
+las viejas que no eligieron— pasan a mostrar Kerr solas, y si les faltan
+muslo o pantorrilla caen en la siguiente que puedan calcular. Las que tienen
+una ecuación elegida a mano la conservan. Ese array es solo de la aplicación:
+el enum de Postgres sigue sin reordenarse. Reordenarlo mueve también el color
+de cada ecuación en los gráficos, que sale de su posición.
+
 ## Masa grasa en Progreso
 
 La pestaña Progreso muestra, además del peso, la evolución de la **masa grasa

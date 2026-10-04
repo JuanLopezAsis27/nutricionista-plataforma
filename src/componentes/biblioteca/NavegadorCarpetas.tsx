@@ -1,6 +1,6 @@
 "use client";
 
-import { useRecetas } from "@/lib/hooks/useRecetas";
+import { useBiblioteca } from "@/lib/hooks/useBiblioteca";
 import {
   NavegadorCarpetas as Navegador,
   type CarpetaNavegable,
@@ -15,12 +15,10 @@ interface Props {
 }
 
 /**
- * Las carpetas del recetario: el mismo navegador que usan los planes, atado a
- * `useRecetas`.
- *
- * Se navegan IGUAL a propósito —quien aprendió a ordenar sus planes ya sabe
- * ordenar sus recetas—, así que el dibujo vive una sola vez en
- * `comunes/NavegadorCarpetas` y acá queda solo de dónde salen las carpetas.
+ * Las carpetas de la biblioteca: el mismo navegador que usan los planes y el
+ * recetario, atado a `useBiblioteca`. Se navegan IGUAL a propósito, así que el
+ * dibujo vive una sola vez en `comunes/NavegadorCarpetas` y acá queda solo de
+ * dónde salen las carpetas.
  */
 export function NavegadorCarpetas({
   carpetaId,
@@ -34,14 +32,14 @@ export function NavegadorCarpetas({
     actualizarGrupo,
     eliminarGrupo,
     mover,
-  } = useRecetas();
+  } = useBiblioteca();
   const consulta = listarGrupos();
 
   const carpetas: CarpetaNavegable[] = (consulta.data ?? []).map((carpeta) => ({
     id: carpeta.id,
     nombre: carpeta.nombre,
     descripcion: carpeta.descripcion,
-    cantidad: carpeta.cantidadRecetas,
+    cantidad: carpeta.cantidadMateriales,
   }));
 
   return (
@@ -52,9 +50,9 @@ export function NavegadorCarpetas({
       onAbrir={onAbrir}
       busqueda={busqueda}
       onBuscar={onBuscar}
-      singular="receta"
-      plural="recetas"
-      ejemplos="Desayunos, Sin TACC, Julia Pérez…"
+      singular="material"
+      plural="materiales"
+      ejemplos="Guías de inicio, Deportistas, Julia Pérez…"
       guardando={crearGrupo.isPending || actualizarGrupo.isPending}
       eliminando={eliminarGrupo.isPending}
       onCrear={(datos, alTerminar) =>
@@ -76,7 +74,7 @@ export function NavegadorCarpetas({
           { onSuccess: alTerminar },
         )
       }
-      onSoltar={(recetaId, grupoId) => mover.mutate({ recetaId, grupoId })}
+      onSoltar={(materialId, grupoId) => mover.mutate({ materialId, grupoId })}
       onEliminar={(id, alTerminar) =>
         eliminarGrupo.mutate({ id }, { onSuccess: alTerminar })
       }

@@ -47,6 +47,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/RECORDATORIOS.md`      | Los tres medios de aviso y su política única          |
 | `docs/PLANES.md`             | Modalidades, archivos, carpetas, historial y combinaciones del día |
 | `docs/CATALOGO-BASE.md`      | Alimentos y recetas predeterminados de la plataforma  |
+| `docs/BIBLIOTECA.md`         | Materiales para pacientes, sus carpetas y el buscador |
 | `docs/PLANES-SEMANALES.md`   | El menú de la semana, sus alternativas y la comparación |
 | `docs/ANTROPOMETRIA.md`      | Ecuaciones de grasa, distribución y sitios de pliegue |
 | `docs/BIOIMPEDANCIA.md`      | La balanza: mediciones, dashboard y metas; por qué no se mezcla con la antropometría |
@@ -226,7 +227,7 @@ consultorio lento bloquearía a todos los demás.
 
 ## Modelos del dominio
 
-**37 entidades**, **194 casos de uso** en 28 módulos, **43 interfaces de
+**38 entidades**, **199 casos de uso** en 29 módulos, **44 interfaces de
 repositorio** y **21 puertos de servicio**. La fuente de verdad es el código
 (`/src/dominio`) y `prisma/schema.prisma`. Acá van solo los invariantes que
 cruzan módulos; el detalle de cada uno, en `/docs`.
@@ -241,7 +242,9 @@ queda asignado a una sola según `elegirFichaDelTelefono` (turno del botón,
 última ficha a la que se le escribió, la más antigua), pero el hilo, la
 ventana de 24 h y el «leído» son del NÚMERO, y en la bandeja es UN solo chat
 que nombra a todas las fichas (el portal de cada una sigue aparte). Baja lógica con
-`archivadoEn`. Solo nombre y apellido son obligatorios: el turno ofrece un
+`archivadoEn`. El buscador de pacientes compara **palabra por palabra**
+(`condicionBusquedaPaciente`): cada palabra tiene que estar en el nombre, el
+apellido o el email, para que «juan lopez» encuentre a Juan López. Solo nombre y apellido son obligatorios: el turno ofrece un
 **alta rápida** (nombre, apellido, teléfono; sin email ni portal) para agendar
 a alguien que viene por primera vez.
 
@@ -446,7 +449,9 @@ con las etiquetas**: una receta tiene MUCHAS etiquetas y está en UNA carpeta �
 etiqueta describe la receta, la carpeta dice dónde la guardó el profesional—.
 
 El navegador de carpetas es UNO solo (`componentes/comunes/NavegadorCarpetas`),
-compartido por planes y recetario: los dos módulos tienen que navegarse igual, y
+compartido por planes, recetario y biblioteca (`GrupoMaterial`, migración 87),
+y también es el que acepta lo suelto arrastrado sobre una carpeta
+(`propsArrastrable` + `onSoltar`, que usa la misma mutación de mover): los dos módulos tienen que navegarse igual, y
 con dos copias eso dura hasta el primer arreglo que se aplique en una sola.
 
 La receta se abre en **su propia página** —`/dashboard/recetas/[id]` en el

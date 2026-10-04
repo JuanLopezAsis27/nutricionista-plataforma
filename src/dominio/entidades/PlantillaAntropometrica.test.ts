@@ -37,8 +37,8 @@ describe("alcanceDe", () => {
     const alcance = alcanceDe(SEIS_PLIEGUES);
 
     expect(soloAmbos(alcance)).toEqual([
-      "YUHASZ_CARTER",
       "YUHASZ_CARTER_KERR",
+      "YUHASZ_CARTER",
       "FAULKNER",
       "FAULKNER_KERR",
     ]);

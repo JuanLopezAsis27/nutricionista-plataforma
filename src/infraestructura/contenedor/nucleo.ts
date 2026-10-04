@@ -44,6 +44,7 @@ import { PrismaRepositorioPlan } from "@/infraestructura/repositorios/PrismaRepo
 import { PrismaRepositorioPlanSemanal } from "@/infraestructura/repositorios/PrismaRepositorioPlanSemanal";
 import { PrismaRepositorioGrupoPlan } from "@/infraestructura/repositorios/PrismaRepositorioGrupoPlan";
 import { PrismaRepositorioGrupoReceta } from "@/infraestructura/repositorios/PrismaRepositorioGrupoReceta";
+import { PrismaRepositorioGrupoMaterial } from "@/infraestructura/repositorios/PrismaRepositorioGrupoMaterial";
 import { PrismaRepositorioGrabacionConsulta } from "@/infraestructura/repositorios/PrismaRepositorioGrabacionConsulta";
 import { PrismaRepositorioObjetivo } from "@/infraestructura/repositorios/PrismaRepositorioObjetivo";
 import { PrismaRepositorioPerfilDeportivo } from "@/infraestructura/repositorios/PrismaRepositorioPerfilDeportivo";
@@ -268,6 +269,9 @@ export const repositorioCompetencia = perezoso(
 );
 export const repositorioMaterial = perezoso(
   () => new PrismaRepositorioMaterial(prisma()),
+);
+export const repositorioGrupoMaterial = perezoso(
+  () => new PrismaRepositorioGrupoMaterial(prisma()),
 );
 export const repositorioSuplemento = perezoso(
   () => new PrismaRepositorioSuplemento(prisma()),

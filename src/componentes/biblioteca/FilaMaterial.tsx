@@ -3,6 +3,7 @@
 import { FileText, Link2, ExternalLink } from "lucide-react";
 import type { ReactNode } from "react";
 import type { MaterialSalidaDto } from "@/aplicacion/dtos/material.dto";
+import type { PropsArrastre } from "@/componentes/comunes/NavegadorCarpetas";
 import { Badge } from "@/componentes/ui/badge";
 import { Button } from "@/componentes/ui/button";
 
@@ -10,6 +11,8 @@ interface Props {
   material: MaterialSalidaDto;
   /** Acciones extra (editar/eliminar/compartir) al final de la fila. */
   acciones?: ReactNode;
+  /** Para arrastrarlo a una carpeta (solo en la biblioteca, si está suelto). */
+  arrastre?: PropsArrastre;
 }
 
 /**
@@ -17,7 +20,7 @@ interface Props {
  * de apertura (enlace externo, o archivo servido en línea por
  * /api/archivos/[id]/ver).
  */
-export function FilaMaterial({ material, acciones }: Props) {
+export function FilaMaterial({ material, acciones, arrastre }: Props) {
   const esEnlace = material.tipo === "ENLACE";
   const href = esEnlace
     ? (material.url ?? "#")
@@ -25,7 +28,10 @@ export function FilaMaterial({ material, acciones }: Props) {
   const Icono = esEnlace ? Link2 : FileText;
 
   return (
-    <li className="flex flex-wrap items-center gap-3 p-3">
+    <li
+      {...arrastre}
+      className={`flex flex-wrap items-center gap-3 p-3 ${arrastre?.className ?? ""}`}
+    >
       <Icono className="h-5 w-5 shrink-0 text-primary" />
       <div className="min-w-0 flex-1">
         <p className="font-medium leading-tight">{material.titulo}</p>

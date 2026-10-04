@@ -76,6 +76,7 @@ import { Mensaje, type DatosNuevoMensaje } from "@/dominio/entidades/Mensaje";
 import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
 import { GrupoPlan } from "@/dominio/entidades/GrupoPlan";
 import { GrupoReceta } from "@/dominio/entidades/GrupoReceta";
+import { GrupoMaterial } from "@/dominio/entidades/GrupoMaterial";
 import {
   GrabacionConsulta,
   type DatosNuevaGrabacion,
@@ -166,6 +167,17 @@ export function grupoRecetaEjemplo(
 ): GrupoReceta {
   return GrupoReceta.crear(
     { nombre: "Desayunos", descripcion: null, ...cambios },
+    id,
+    new Date("2026-07-14T12:00:00Z"),
+  );
+}
+
+export function grupoMaterialEjemplo(
+  cambios: Partial<{ nombre: string; descripcion: string | null }> = {},
+  id = "gmat-1",
+): GrupoMaterial {
+  return GrupoMaterial.crear(
+    { nombre: "Guías de inicio", descripcion: null, ...cambios },
     id,
     new Date("2026-07-14T12:00:00Z"),
   );

@@ -39,6 +39,7 @@ export function NavegadorCarpetas({
     crearGrupo,
     actualizarGrupo,
     eliminarGrupo,
+    mover,
   } = usePlanes();
   const consulta = listarGrupos();
 
@@ -81,6 +82,7 @@ export function NavegadorCarpetas({
           { onSuccess: alTerminar },
         )
       }
+      onSoltar={(planId, grupoId) => mover.mutate({ planId, grupoId })}
       onEliminar={(id, alTerminar) =>
         eliminarGrupo.mutate({ id }, { onSuccess: alTerminar })
       }

@@ -263,6 +263,24 @@ describe("ObtenerMaterialesPaginado", () => {
     expect(filtroContar.limite).toBeUndefined();
     expect(pagina.total).toBe(42);
   });
+
+  it("pasa la carpeta al repositorio, también el null de los sueltos", async () => {
+    // Enumera los campos a mano: uno que no esté acá se descarta en silencio,
+    // y la raíz de la biblioteca mostraría también lo que está en carpetas.
+    const repositorio = mockMaterialRepositorio();
+    await new ObtenerMaterialesPaginado(repositorio).ejecutar({
+      pagina: 1,
+      porPagina: 10,
+      grupoId: null,
+    });
+
+    const [filtroListar] = (repositorio.listar as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [Record<string, unknown>];
+    const [filtroContar] = (repositorio.contar as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [Record<string, unknown>];
+    expect(filtroListar.grupoId).toBeNull();
+    expect(filtroContar.grupoId).toBeNull();
+  });
 });
 
 describe("ObtenerMetricasDelPaciente", () => {

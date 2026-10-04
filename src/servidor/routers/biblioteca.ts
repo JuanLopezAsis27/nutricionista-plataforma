@@ -12,6 +12,10 @@ import {
   filtroMaterialesDto,
   listarMaterialesPaginadoDto,
   asignarMaterialDto,
+  moverMaterialDto,
+  grupoMaterialDto,
+  actualizarGrupoMaterialDto,
+  idGrupoMaterialDto,
 } from "@/aplicacion/dtos/material.dto";
 
 /**
@@ -90,6 +94,39 @@ export const routerBiblioteca = crearRouter({
       return await ctx.servicios.biblioteca.obtenerMaterialesDelPaciente(
         input.pacienteId,
       );
+    }),
+
+  // --- Carpetas de la biblioteca ---
+
+  /** Mueve un material a una carpeta, o lo saca (grupoId null). */
+  moverAGrupo: nutricionistaProcedimiento
+    .input(moverMaterialDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.biblioteca.moverMaterialAGrupo(input);
+      return { movido: true };
+    }),
+
+  obtenerGrupos: nutricionistaProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.biblioteca.obtenerGrupos();
+  }),
+
+  crearGrupo: nutricionistaProcedimiento
+    .input(grupoMaterialDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.biblioteca.crearGrupo(input);
+    }),
+
+  actualizarGrupo: nutricionistaProcedimiento
+    .input(actualizarGrupoMaterialDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.biblioteca.actualizarGrupo(input);
+    }),
+
+  eliminarGrupo: nutricionistaProcedimiento
+    .input(idGrupoMaterialDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.biblioteca.eliminarGrupo(input.id);
+      return { eliminado: true };
     }),
 
   // Portal: el paciente ve su material (pacienteId de la sesión).

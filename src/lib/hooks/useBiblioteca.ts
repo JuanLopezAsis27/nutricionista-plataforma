@@ -62,8 +62,41 @@ export function useBiblioteca() {
     onError: (error) => avisarError(error),
   });
 
+  const mover = trpc.biblioteca.moverAGrupo.useMutation({
+    onSuccess: () => {
+      toast.success("Material movido.");
+      invalidar();
+    },
+    onError: (error) => avisarError(error),
+  });
+
+  const crearGrupo = trpc.biblioteca.crearGrupo.useMutation({
+    onSuccess: () => {
+      toast.success("Carpeta creada.");
+      invalidar();
+    },
+    onError: (error) => avisarError(error),
+  });
+
+  const actualizarGrupo = trpc.biblioteca.actualizarGrupo.useMutation({
+    onSuccess: () => {
+      toast.success("Carpeta actualizada.");
+      invalidar();
+    },
+    onError: (error) => avisarError(error),
+  });
+
+  const eliminarGrupo = trpc.biblioteca.eliminarGrupo.useMutation({
+    onSuccess: () => {
+      toast.success("Carpeta eliminada. Sus materiales quedaron sin carpeta.");
+      invalidar();
+    },
+    onError: (error) => avisarError(error),
+  });
+
   return {
     utils,
+    grupos: trpc.biblioteca.obtenerGrupos.useQuery,
     listar: trpc.biblioteca.obtenerTodos.useQuery,
     listarPaginado: trpc.biblioteca.listarPaginado.useQuery,
     pacientesAsignados: trpc.biblioteca.pacientesAsignados.useQuery,
@@ -75,5 +108,9 @@ export function useBiblioteca() {
     asignar,
     compartirConTodos,
     desasignar,
+    mover,
+    crearGrupo,
+    actualizarGrupo,
+    eliminarGrupo,
   };
 }
