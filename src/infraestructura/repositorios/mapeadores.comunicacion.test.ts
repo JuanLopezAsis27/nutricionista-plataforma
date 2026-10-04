@@ -483,6 +483,7 @@ describe("mapearConfiguracion", () => {
     pdfMostrarMacros: false,
     pdfMostrarEquivalencias: true,
     pdfMostrarRecomendaciones: false,
+    pdfEvaluacionMostrarEvoluciones: true,
     whatsappPrefijoPais: "54",
     formulasGrasaVisibles: [
       "YUHASZ_CARTER",

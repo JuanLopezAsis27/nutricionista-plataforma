@@ -18,6 +18,7 @@ import { GestionPlantillasEmail } from "@/componentes/configuracion/GestionPlant
 import { GestionCamposHistoriaClinica } from "@/componentes/configuracion/GestionCamposHistoriaClinica";
 import { GestionCamposEvolucion } from "@/componentes/configuracion/GestionCamposEvolucion";
 import { FormularioDiarioIA } from "@/componentes/configuracion/FormularioDiarioIA";
+import { RespaldoConsultorio } from "@/componentes/configuracion/RespaldoConsultorio";
 import { PanelIntegraciones } from "@/componentes/integraciones/PanelIntegraciones";
 
 /**
@@ -65,6 +66,7 @@ export default function PaginaConfiguracion({
         <TabsContent value="consultorio" className="space-y-8">
           <FormularioConfiguracion />
           <GestionEstablecimientos />
+          <RespaldoConsultorio />
         </TabsContent>
 
         <TabsContent value="documentos" className="space-y-8">

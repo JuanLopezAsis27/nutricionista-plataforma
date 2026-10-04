@@ -27,6 +27,7 @@ import { PrismaRepositorioTokenRecuperacion } from "@/infraestructura/repositori
 import { PrismaRepositorioTokenRefresco } from "@/infraestructura/repositorios/PrismaRepositorioTokenRefresco";
 import { PrismaRepositorioNotificacion } from "@/infraestructura/repositorios/PrismaRepositorioNotificacion";
 import { PrismaRepositorioArchivo } from "@/infraestructura/repositorios/PrismaRepositorioArchivo";
+import { PrismaRepositorioUbicacionArchivos } from "@/infraestructura/repositorios/PrismaRepositorioUbicacionArchivos";
 import { PrismaRepositorioHistoriaClinica } from "@/infraestructura/repositorios/PrismaRepositorioHistoriaClinica";
 import { PrismaRepositorioCampoHistoriaClinica } from "@/infraestructura/repositorios/PrismaRepositorioCampoHistoriaClinica";
 import { PrismaRepositorioEvolucion } from "@/infraestructura/repositorios/PrismaRepositorioEvolucion";
@@ -203,6 +204,9 @@ export const repositorioNotificacion = perezoso(
 );
 export const repositorioArchivo = perezoso(
   () => new PrismaRepositorioArchivo(prisma()),
+);
+export const repositorioUbicacionArchivos = perezoso(
+  () => new PrismaRepositorioUbicacionArchivos(prisma()),
 );
 export const repositorioHistoriaClinica = perezoso(
   () => new PrismaRepositorioHistoriaClinica(prisma()),

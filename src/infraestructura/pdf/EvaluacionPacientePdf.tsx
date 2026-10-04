@@ -7,15 +7,21 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 import type {
+  EvolucionSalidaDto,
   HistoriaClinicaSalidaDto,
   LaboratorioSalidaDto,
 } from "@/aplicacion/dtos/evaluacion.dto";
+import {
+  CAMPOS_EVOLUCION,
+  ETIQUETAS_EVOLUCION,
+} from "@/dominio/entidades/Evolucion";
 import type { PacienteSalidaDto } from "@/aplicacion/dtos/paciente.dto";
 import type { ConfiguracionSalidaDto } from "@/aplicacion/dtos/configuracion.dto";
 
 /**
  * Documento PDF de la Evaluación Integral de un paciente: historia clínica
- * (alergias e intolerancias incluidas) y laboratorios.
+ * (alergias e intolerancias incluidas), laboratorios y evoluciones de control
+ * (estas últimas, si el consultorio no las apagó en Configuración).
  *
  * Exclusivo del nutricionista — es la misma barrera que ya tiene el router de
  * Evaluación (`miComposicion` es la ÚNICA parte que el portal del paciente
@@ -121,6 +127,8 @@ interface Props {
   paciente: PacienteSalidaDto;
   historiaClinica: HistoriaClinicaSalidaDto | null;
   laboratorios: LaboratorioSalidaDto[];
+  /** Ya filtradas por la configuración: vacío y `null` no son lo mismo. */
+  evoluciones: EvolucionSalidaDto[] | null;
   config?: ConfiguracionSalidaDto | null;
 }
 
@@ -152,6 +160,7 @@ function EvaluacionPacientePdf({
   paciente,
   historiaClinica,
   laboratorios,
+  evoluciones,
   config,
 }: Props) {
   const color = config?.pdfColorPrimario || CORAL;
@@ -252,6 +261,20 @@ function EvaluacionPacientePdf({
           )}
         </View>
 
+        {/* Evoluciones de control: null es «el consultorio no las incluye». */}
+        {evoluciones && (
+          <View style={estilos.seccion}>
+            <Text style={[estilos.seccionTitulo, { color }]}>Evoluciones</Text>
+            {evoluciones.length === 0 ? (
+              <Text style={estilos.vacio}>Sin evoluciones registradas.</Text>
+            ) : (
+              evoluciones.map((evolucion) => (
+                <TarjetaEvolucion key={evolucion.id} evolucion={evolucion} />
+              ))
+            )}
+          </View>
+        )}
+
         <View style={estilos.pie} fixed>
           <Text style={estilos.pieTexto}>{pieTexto || nombreProfesional}</Text>
           <Text
@@ -263,5 +286,32 @@ function EvaluacionPacientePdf({
         </View>
       </Page>
     </Document>
+  );
+}
+
+/** Una evolución: su fecha y solo los campos que tienen algo escrito. */
+function TarjetaEvolucion({ evolucion }: { evolucion: EvolucionSalidaDto }) {
+  const campos = [
+    ...CAMPOS_EVOLUCION.filter((campo) => evolucion[campo]).map((campo) => ({
+      clave: campo,
+      etiqueta: ETIQUETAS_EVOLUCION[campo],
+      valor: evolucion[campo] as string,
+    })),
+    ...evolucion.camposPersonalizados.filter((campo) => campo.valor.trim()),
+  ];
+  return (
+    <View style={estilos.tarjeta} wrap={false}>
+      <View style={estilos.tarjetaCabecera}>
+        <Text style={estilos.tarjetaTitulo}>
+          {formatearFecha(evolucion.fecha)}
+        </Text>
+      </View>
+      {campos.map((campo) => (
+        <View key={campo.clave} style={estilos.campo}>
+          <Text style={estilos.campoEtiqueta}>{campo.etiqueta}</Text>
+          <Text style={estilos.tarjetaTexto}>{campo.valor}</Text>
+        </View>
+      ))}
+    </View>
   );
 }

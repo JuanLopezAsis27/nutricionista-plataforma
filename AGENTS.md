@@ -57,6 +57,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/IA-PLATAFORMA.md`      | Claves de IA de la plataforma, saldo y registro de uso |
 | `docs/GRABACIONES.md`        | Grabar la consulta, transcribirla y resumirla con IA  |
 | `docs/ARCHIVOS.md`           | Cómo llega al navegador un archivo del bucket         |
+| `docs/RESPALDO.md`           | El ZIP con todo el consultorio: una carpeta por paciente |
 | `docs/MENSAJERIA.md`         | La bandeja, el hilo y las piezas que comparten los canales |
 | `docs/NOTIFICACIONES.md`     | La campana: qué llega ahí y cómo se apaga cada cosa    |
 | `docs/ERRORES.md`            | Qué mensaje de error ve el usuario, y por qué          |
@@ -848,6 +849,11 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   todo objeto sin fila en `archivos`. Las imágenes de los alimentos viven así
   (migración 84) y el barrido las pregunta a sus repositorios; olvidarse de
   una tabla nueva vacía sus imágenes el domingo siguiente, sin ningún error
+- Nunca sumar un dueño nuevo al arco de `archivos` sin sumarlo también a
+  `UbicacionArchivo` y `rutasDeArchivo` (`dominio/servicios/rutasRespaldo.ts`):
+  el respaldo del consultorio lo mandaría a «Sin paciente/Otros» sin ningún
+  error. Y nunca generar el ZIP desde el `pull()` de un `ReadableStream`: corre
+  sin el alcance del inquilino (`docs/RESPALDO.md`)
 - Nunca convertir `alimentoOrigenId` en una FK ni hacer que editar un
   alimento propague sus macros a los planes que lo usan: el plan entregado es
   un documento y la copia es a propósito. Actualizar desde la fuente, si algún

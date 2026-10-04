@@ -45,6 +45,7 @@ import { crearServicioMensajeria } from "./modulos/mensajeria";
 import { crearServicioPerfil } from "./modulos/perfil";
 import { crearServicioNotificaciones } from "./modulos/notificaciones";
 import { crearServicioConfiguracion } from "./modulos/configuracion";
+import { crearServicioRespaldo } from "./modulos/respaldo";
 import { crearServicioAxiomas } from "./modulos/axiomas";
 import { crearServicioTracking } from "./modulos/tracking";
 import { crearServicioMetricas } from "./modulos/metricas";
@@ -459,6 +460,15 @@ export const servicioConfiguracion = perezoso(() =>
   crearServicioConfiguracion({
     configuracion: nucleo.repositorioConfiguracion(),
     nutricionistas: nucleo.repositorioNutricionista(),
+  }),
+);
+
+/** Respaldo del consultorio: qué va en el ZIP y en qué carpeta. */
+export const servicioRespaldo = perezoso(() =>
+  crearServicioRespaldo({
+    pacientes: nucleo.repositorioPaciente(),
+    asignaciones: nucleo.repositorioPlan(),
+    archivos: nucleo.repositorioUbicacionArchivos(),
   }),
 );
 

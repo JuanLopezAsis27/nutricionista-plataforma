@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { usuarioDeSesion } from "@/lib/autenticacion/sesion";
 import {
-  servicioEvaluacion,
   servicioPaciente,
   servicioConfiguracion,
 } from "@/infraestructura/contenedor/contenedor";
-import { renderizarEvaluacionPdf } from "@/infraestructura/pdf/EvaluacionPacientePdf";
+import { renderizarEvaluacionDePaciente } from "@/servidor/pdfEvaluacion";
 import { aRespuestaError } from "@/servidor/errores-http";
 import { conAlcanceDeSesion } from "@/servidor/alcanceRequest";
 
@@ -15,8 +14,8 @@ type Parametros = { params: Promise<{ id: string }> };
 
 /**
  * GET /api/pacientes/[id]/evaluacion-pdf — descarga la evaluación integral
- * del paciente (historia clínica y laboratorios) como
- * PDF.
+ * del paciente (historia clínica, laboratorios y, si la configuración lo
+ * pide, evoluciones) como PDF.
  *
  * Exclusivo del NUTRICIONISTA: el router de Evaluación ya excluye del portal
  * del paciente todo lo que no sea `miComposicion` (ver `evaluacion.ts`), y
@@ -41,20 +40,11 @@ export function GET(
     try {
       const { id: pacienteId } = await params;
 
-      const [paciente, historiaClinica, laboratorios, config] =
-        await Promise.all([
-          servicioPaciente().obtenerPacientePorId(pacienteId),
-          servicioEvaluacion().historiaClinica.obtener(pacienteId),
-          servicioEvaluacion().laboratorios.obtener(pacienteId),
-          servicioConfiguracion().obtener(),
-        ]);
-
-      const buffer = await renderizarEvaluacionPdf({
-        paciente,
-        historiaClinica,
-        laboratorios,
-        config,
-      });
+      const [paciente, config] = await Promise.all([
+        servicioPaciente().obtenerPacientePorId(pacienteId),
+        servicioConfiguracion().obtener(),
+      ]);
+      const buffer = await renderizarEvaluacionDePaciente(paciente, config);
 
       return new NextResponse(new Uint8Array(buffer), {
         headers: {

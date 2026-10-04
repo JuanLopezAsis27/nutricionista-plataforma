@@ -27,6 +27,8 @@ export interface DatosConfiguracion {
   pdfMostrarMacros: boolean;
   pdfMostrarEquivalencias: boolean;
   pdfMostrarRecomendaciones: boolean;
+  /** Si el PDF de la evaluación integral incluye las evoluciones de control. */
+  pdfEvaluacionMostrarEvoluciones: boolean;
   // Recordatorio de turno por WhatsApp. El TEXTO no vive acá: son plantillas
   // propias (`PlantillaWhatsapp`), porque una de ellas tiene que corresponder
   // con la que Meta aprobó y eso es más que un campo de texto. Lo que queda es
@@ -107,6 +109,7 @@ export class ConfiguracionConsultorio {
       pdfMostrarMacros: true,
       pdfMostrarEquivalencias: true,
       pdfMostrarRecomendaciones: true,
+      pdfEvaluacionMostrarEvoluciones: true,
       whatsappPrefijoPais: null,
       whatsappCancelaciones: null,
       bienvenidaAutomaticaActiva: true,
@@ -159,6 +162,10 @@ export class ConfiguracionConsultorio {
       pdfMostrarRecomendaciones: fusionar(
         cambios.pdfMostrarRecomendaciones,
         this.props.pdfMostrarRecomendaciones,
+      ),
+      pdfEvaluacionMostrarEvoluciones: fusionar(
+        cambios.pdfEvaluacionMostrarEvoluciones,
+        this.props.pdfEvaluacionMostrarEvoluciones,
       ),
       whatsappPrefijoPais: fusionar(
         cambios.whatsappPrefijoPais,
