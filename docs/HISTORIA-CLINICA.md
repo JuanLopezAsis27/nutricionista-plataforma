@@ -192,6 +192,26 @@ Una evolución **sin fecha** llega igual a la revisión, desmarcada: descartarla
 perdería una consulta que el documento sí traía, y la fecha la completa el
 profesional.
 
+### Van en el PDF de la evaluación, si el consultorio quiere
+
+El PDF de la evaluación integral (`EvaluacionPacientePdf`, botón «PDF de la
+evaluación» de la ficha) suma una sección **Evoluciones** después de los
+laboratorios: una tarjeta por consulta, de la más reciente a la más vieja, con
+solo los campos que tienen algo escrito (los fijos con `ETIQUETAS_EVOLUCION` y
+los personalizados con la etiqueta que guardaron).
+
+Se apaga en Configuración → Documentos y mensajes → «Secciones a incluir en el
+PDF de la evaluación» (`pdfEvaluacionMostrarEvoluciones`, migración 88,
+encendido por defecto). La historia clínica y los laboratorios no tienen
+casilla: son la razón de ser del documento. Apagada, la ruta ni siquiera lee
+las evoluciones y el PDF recibe `null` —distinto de `[]`, que dibuja «Sin
+evoluciones registradas»—.
+
+El armado (qué se lee y con qué configuración) vive en
+`servidor/pdfEvaluacion.ts` y no en la ruta, porque el respaldo del
+consultorio guarda ese MISMO PDF en la carpeta de cada paciente
+(`docs/RESPALDO.md`).
+
 ## Fotos de progreso
 
 Es una sección propia de la pestaña Evaluación (`FotosProgreso`), y las fotos

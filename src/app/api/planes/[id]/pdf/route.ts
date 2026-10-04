@@ -3,11 +3,8 @@ import { usuarioDeSesion } from "@/lib/autenticacion/sesion";
 import {
   servicioPlan,
   servicioPaciente,
-  servicioReceta,
-  servicioConfiguracion,
 } from "@/infraestructura/contenedor/contenedor";
-import { renderizarPlanPdf } from "@/infraestructura/pdf/PlanNutricionalPdf";
-import type { RecetaSalidaDto } from "@/aplicacion/dtos/receta.dto";
+import { renderizarPlanConRecetas } from "@/servidor/pdfPlan";
 import { aRespuestaError } from "@/servidor/errores-http";
 import { conAlcanceDeSesion } from "@/servidor/alcanceRequest";
 
@@ -83,36 +80,7 @@ export function GET(
       }
 
       const plan = await servicioPlan().obtenerPlanPorId(id);
-      const config = await servicioConfiguracion().obtener();
-
-      // Recetas referenciadas por las opciones del plan (únicas, en orden de aparición).
-      const recetaIds = [
-        ...new Set(
-          plan.comidas.flatMap((c) =>
-            c.opciones
-              .map((o) => o.recetaId)
-              .filter((rid): rid is string => Boolean(rid)),
-          ),
-        ),
-      ];
-      let recetas: RecetaSalidaDto[] = [];
-      if (config.pdfMostrarRecetas && recetaIds.length > 0) {
-        const resueltas = await Promise.all(
-          recetaIds.map((rid) =>
-            servicioReceta()
-              .obtenerRecetaPorId(rid)
-              .catch(() => null),
-          ),
-        );
-        recetas = resueltas.filter((r): r is RecetaSalidaDto => r !== null);
-      }
-
-      const buffer = await renderizarPlanPdf({
-        plan,
-        nombrePaciente,
-        recetas,
-        config,
-      });
+      const buffer = await renderizarPlanConRecetas({ plan, nombrePaciente });
 
       return new NextResponse(new Uint8Array(buffer), {
         headers: {

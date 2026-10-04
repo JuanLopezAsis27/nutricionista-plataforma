@@ -17,7 +17,10 @@ import { Skeleton } from "@/componentes/ui/skeleton";
 
 const COLOR_DEFECTO = "#F4535E";
 
-/** Editor de la apariencia del PDF del plan (membrete, color, pie y secciones). */
+/**
+ * Editor de la apariencia de los PDF (membrete, color, pie) y de sus
+ * secciones: las del plan y las de la evaluación integral.
+ */
 export function FormularioPdfPlan() {
   const { obtener, guardar } = useConfiguracion();
   const consulta = obtener();
@@ -30,6 +33,7 @@ export function FormularioPdfPlan() {
   const [mostrarMacros, setMostrarMacros] = useState(true);
   const [mostrarEquivalencias, setMostrarEquivalencias] = useState(true);
   const [mostrarRecomendaciones, setMostrarRecomendaciones] = useState(true);
+  const [mostrarEvoluciones, setMostrarEvoluciones] = useState(true);
 
   useEffect(() => {
     if (!config) return;
@@ -40,6 +44,7 @@ export function FormularioPdfPlan() {
     setMostrarMacros(config.pdfMostrarMacros);
     setMostrarEquivalencias(config.pdfMostrarEquivalencias);
     setMostrarRecomendaciones(config.pdfMostrarRecomendaciones);
+    setMostrarEvoluciones(config.pdfEvaluacionMostrarEvoluciones);
   }, [config]);
 
   if (consulta.isLoading || !config) {
@@ -55,6 +60,7 @@ export function FormularioPdfPlan() {
       pdfMostrarMacros: mostrarMacros,
       pdfMostrarEquivalencias: mostrarEquivalencias,
       pdfMostrarRecomendaciones: mostrarRecomendaciones,
+      pdfEvaluacionMostrarEvoluciones: mostrarEvoluciones,
     });
   }
 
@@ -62,15 +68,15 @@ export function FormularioPdfPlan() {
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
-          <FileText className="h-5 w-5 text-primary" /> Apariencia del PDF del
-          plan
+          <FileText className="h-5 w-5 text-primary" /> Apariencia de los PDF
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
         <p className="text-sm text-muted-foreground">
           Personalizá cómo se ve el PDF que descargás e imprimís. El título del
-          encabezado es el nombre de la pestaña «Membrete». Los cambios se
-          aplican al descargar cualquier plan.
+          encabezado es el nombre de la pestaña «Membrete». El membrete, el
+          color y el pie valen para el plan y para la evaluación; los cambios
+          se aplican en la próxima descarga.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -116,7 +122,7 @@ export function FormularioPdfPlan() {
         </div>
 
         <div className="space-y-2.5">
-          <Label>Secciones a incluir</Label>
+          <Label>Secciones a incluir en el PDF del plan</Label>
           <Casilla
             etiqueta="Recetas completas del plan"
             activo={mostrarRecetas}
@@ -136,6 +142,18 @@ export function FormularioPdfPlan() {
             etiqueta="Recomendaciones"
             activo={mostrarRecomendaciones}
             onCambio={setMostrarRecomendaciones}
+          />
+        </div>
+
+        <div className="space-y-2.5">
+          <Label>Secciones a incluir en el PDF de la evaluación</Label>
+          <p className="text-xs text-muted-foreground">
+            La historia clínica y los laboratorios van siempre.
+          </p>
+          <Casilla
+            etiqueta="Evoluciones de control"
+            activo={mostrarEvoluciones}
+            onCambio={setMostrarEvoluciones}
           />
         </div>
 

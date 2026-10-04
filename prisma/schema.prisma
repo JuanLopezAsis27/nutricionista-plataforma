@@ -2972,6 +2972,8 @@ model ConfiguracionConsultorio {
   pdfMostrarMacros             Boolean       @default(true)
   pdfMostrarEquivalencias      Boolean       @default(true)
   pdfMostrarRecomendaciones    Boolean       @default(true)
+  /// Si el PDF de la evaluación integral incluye las evoluciones (migración 88).
+  pdfEvaluacionMostrarEvoluciones Boolean    @default(true)
   // Recordatorio de turno por WhatsApp. El TEXTO vive en `plantillas_whatsapp`
   // (migración 33): una plantilla tiene que poder corresponderse con la que
   // Meta aprobó, y eso no entra en un campo de texto suelto. Acá queda lo que
