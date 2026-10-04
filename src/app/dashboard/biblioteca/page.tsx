@@ -1,12 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Pencil, Trash2, Share2 } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Share2,
+  FolderInput,
+  FolderOutput,
+} from "lucide-react";
 import type { MaterialSalidaDto } from "@/aplicacion/dtos/material.dto";
 import { useBiblioteca } from "@/lib/hooks/useBiblioteca";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { Button } from "@/componentes/ui/button";
-import { Input } from "@/componentes/ui/input";
 import { Skeleton } from "@/componentes/ui/skeleton";
 import {
   Dialog,
@@ -19,15 +25,41 @@ import { ControlesPaginacion } from "@/componentes/comunes/ControlesPaginacion";
 import { FormularioMaterial } from "@/componentes/biblioteca/FormularioMaterial";
 import { CompartirMaterial } from "@/componentes/biblioteca/CompartirMaterial";
 import { FilaMaterial } from "@/componentes/biblioteca/FilaMaterial";
+import { NavegadorCarpetas } from "@/componentes/biblioteca/NavegadorCarpetas";
+import { propsArrastrable } from "@/componentes/comunes/NavegadorCarpetas";
+import { MoverMaterialACarpeta } from "@/componentes/biblioteca/MoverMaterialACarpeta";
 
 export default function PaginaBiblioteca() {
-  const { listarPaginado, eliminar } = useBiblioteca();
+  const { listarPaginado, eliminar, mover } = useBiblioteca();
 
   const [busqueda, setBusqueda] = useState("");
   const [pagina, setPagina] = useState(1);
-  const debounced = useDebounce(busqueda, 300);
+  /** Carpeta abierta. `null` es la raíz. */
+  const [carpetaId, setCarpetaId] = useState<string | null>(null);
+  const debounced = useDebounce(busqueda.trim(), 300);
+  const buscando = debounced.length > 0;
+
+  // Igual que en planes y recetas: la raíz lista los SUELTOS (grupoId: null),
+  // no todos, o lo guardado en carpetas aparecería dos veces. El buscador
+  // respeta esa vista: en la raíz filtra las carpetas por su nombre (lo hace
+  // el navegador) y los sueltos por el suyo; adentro de una carpeta, solo lo
+  // que hay adentro.
+  function abrirCarpeta(id: string | null) {
+    setCarpetaId(id);
+    setPagina(1);
+    // Lo escrito buscaba en el lugar que se deja: arrastrarlo adentro de la
+    // carpeta que se acaba de encontrar la mostraría vacía.
+    setBusqueda("");
+  }
+
+  function buscar(texto: string) {
+    setBusqueda(texto);
+    setPagina(1);
+  }
+
   const consulta = listarPaginado({
     texto: debounced || undefined,
+    grupoId: carpetaId,
     pagina,
     porPagina: 10,
   });
@@ -39,24 +71,15 @@ export default function PaginaBiblioteca() {
     useState<MaterialSalidaDto | null>(null);
   const [materialEliminar, setMaterialEliminar] =
     useState<MaterialSalidaDto | null>(null);
+  const [materialMover, setMaterialMover] = useState<MaterialSalidaDto | null>(
+    null,
+  );
 
   const materiales = consulta.data?.materiales ?? [];
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="relative w-full max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar material…"
-            className="pl-8"
-            value={busqueda}
-            onChange={(e) => {
-              setBusqueda(e.target.value);
-              setPagina(1);
-            }}
-          />
-        </div>
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <Button
           onClick={() => {
             setMaterialEditar(null);
@@ -68,6 +91,13 @@ export default function PaginaBiblioteca() {
         </Button>
       </div>
 
+      <NavegadorCarpetas
+        carpetaId={carpetaId}
+        onAbrir={abrirCarpeta}
+        busqueda={busqueda}
+        onBuscar={buscar}
+      />
+
       {consulta.isLoading ? (
         <Skeleton className="h-48 w-full" />
       ) : consulta.isError ? (
@@ -76,9 +106,13 @@ export default function PaginaBiblioteca() {
         </p>
       ) : materiales.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          {debounced
-            ? "No hay materiales que coincidan con la búsqueda."
-            : "La biblioteca está vacía. Subí una guía o agregá un enlace."}
+          {buscando
+            ? carpetaId
+              ? "No hay materiales en esta carpeta que coincidan con la búsqueda."
+              : "No hay materiales sueltos que coincidan con la búsqueda."
+            : carpetaId
+              ? "Esta carpeta está vacía. Mové un material acá adentro desde la lista."
+              : "No hay materiales sueltos. Los que estén en una carpeta se ven al abrirla."}
         </p>
       ) : (
         <ul className="divide-y rounded-lg border bg-card">
@@ -86,6 +120,9 @@ export default function PaginaBiblioteca() {
             <FilaMaterial
               key={material.id}
               material={material}
+              arrastre={
+                carpetaId === null ? propsArrastrable(material.id) : undefined
+              }
               acciones={
                 <>
                   <Button
@@ -96,6 +133,27 @@ export default function PaginaBiblioteca() {
                   >
                     <Share2 className="h-4 w-4" />
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    title="Mover a una carpeta"
+                    onClick={() => setMaterialMover(material)}
+                  >
+                    <FolderInput className="h-4 w-4" />
+                  </Button>
+                  {carpetaId !== null && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Sacar de la carpeta"
+                      disabled={mover.isPending}
+                      onClick={() =>
+                        mover.mutate({ materialId: material.id, grupoId: null })
+                      }
+                    >
+                      <FolderOutput className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -138,6 +196,7 @@ export default function PaginaBiblioteca() {
           </DialogHeader>
           <FormularioMaterial
             materialInicial={materialEditar}
+            grupoIdInicial={carpetaId}
             onTerminado={() => setFormAbierto(false)}
           />
         </DialogContent>
@@ -157,6 +216,11 @@ export default function PaginaBiblioteca() {
           )}
         </DialogContent>
       </Dialog>
+
+      <MoverMaterialACarpeta
+        material={materialMover}
+        onCerrar={() => setMaterialMover(null)}
+      />
 
       {/* Confirmación de eliminación */}
       <ModalConfirmacion

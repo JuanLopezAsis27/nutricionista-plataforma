@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type DragEvent, type HTMLAttributes } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -39,6 +39,39 @@ export const esquema = z.object({
 });
 export type DatosCarpeta = z.infer<typeof esquema>;
 
+/**
+ * Tipo propio del arrastre. Las carpetas solo aceptan lo que viaja con este
+ * tipo: arrastrar un archivo del escritorio o un texto seleccionado sobre una
+ * carpeta no tiene que hacer nada.
+ */
+const TIPO_ARRASTRE = "application/x-nutricrm-elemento";
+
+/** Lo que hay que esparcir en un elemento para poder arrastrarlo a una carpeta. */
+export type PropsArrastre = Pick<
+  HTMLAttributes<HTMLElement>,
+  "draggable" | "onDragStart" | "className"
+>;
+
+/**
+ * Hace arrastrable un elemento suelto (plan, receta, material) hasta una
+ * carpeta del navegador. Solo viaja el id: quien suelta ya sabe de qué
+ * módulo es, porque cada pantalla tiene su navegador.
+ */
+export function propsArrastrable(id: string): PropsArrastre {
+  return {
+    draggable: true,
+    className: "cursor-grab active:cursor-grabbing",
+    onDragStart: (evento) => {
+      evento.dataTransfer.setData(TIPO_ARRASTRE, id);
+      evento.dataTransfer.effectAllowed = "move";
+    },
+  };
+}
+
+function traeElemento(evento: DragEvent): boolean {
+  return evento.dataTransfer.types.includes(TIPO_ARRASTRE);
+}
+
 /** Una carpeta como la ve el navegador, sin saber de qué módulo viene. */
 export interface CarpetaNavegable {
   id: string;
@@ -75,6 +108,11 @@ interface Props {
     alTerminar: () => void,
   ) => void;
   onEliminar: (id: string, alTerminar: () => void) => void;
+  /**
+   * Un elemento suelto se soltó sobre una carpeta (ver `propsArrastrable`).
+   * Es otra puerta al mismo «mover» del botón, no un camino aparte.
+   */
+  onSoltar: (elementoId: string, carpetaId: string) => void;
   guardando: boolean;
   eliminando: boolean;
 }
@@ -111,12 +149,15 @@ export function NavegadorCarpetas({
   onCrear,
   onActualizar,
   onEliminar,
+  onSoltar,
   guardando,
   eliminando,
 }: Props) {
   const [formAbierto, setFormAbierto] = useState(false);
   const [editando, setEditando] = useState<CarpetaNavegable | null>(null);
   const [porEliminar, setPorEliminar] = useState<CarpetaNavegable | null>(null);
+  /** Carpeta sobre la que se está arrastrando algo, para resaltarla. */
+  const [resaltada, setResaltada] = useState<string | null>(null);
 
   const form = useForm<DatosCarpeta>({
     resolver: zodResolver(esquema),
@@ -224,8 +265,41 @@ export function NavegadorCarpetas({
         ) : visibles.length > 0 ? (
           <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {visibles.map((carpeta) => (
-              <li key={carpeta.id}>
-                <div className="group flex items-center gap-2 rounded-lg border bg-card p-3 transition-colors hover:border-primary/50">
+              <li
+                key={carpeta.id}
+                onDragOver={(evento) => {
+                  if (!traeElemento(evento)) return;
+                  // Sin preventDefault el navegador no deja soltar.
+                  evento.preventDefault();
+                  evento.dataTransfer.dropEffect = "move";
+                  setResaltada(carpeta.id);
+                }}
+                onDragLeave={(evento) => {
+                  // dragleave también salta al pasar sobre un hijo de la
+                  // tarjeta: solo se apaga al salir de verdad.
+                  if (
+                    !evento.currentTarget.contains(
+                      evento.relatedTarget as Node | null,
+                    )
+                  ) {
+                    setResaltada(null);
+                  }
+                }}
+                onDrop={(evento) => {
+                  setResaltada(null);
+                  const id = evento.dataTransfer.getData(TIPO_ARRASTRE);
+                  if (!id) return;
+                  evento.preventDefault();
+                  onSoltar(id, carpeta.id);
+                }}
+              >
+                <div
+                  className={`group flex items-center gap-2 rounded-lg border bg-card p-3 transition-colors hover:border-primary/50 ${
+                    resaltada === carpeta.id
+                      ? "border-primary bg-primary/10 ring-2 ring-primary/40"
+                      : ""
+                  }`}
+                >
                   <button
                     type="button"
                     onClick={() => onAbrir(carpeta.id)}
@@ -261,6 +335,10 @@ export function NavegadorCarpetas({
                 </div>
               </li>
             ))}
+            <li className="text-xs text-muted-foreground sm:col-span-2 lg:col-span-3">
+              Para guardar algo en una carpeta, arrastralo desde la lista y
+              soltalo sobre ella.
+            </li>
           </ul>
         ) : buscando ? null : (
           // Buscando y sin carpetas que coincidan no se dice nada: la lista de

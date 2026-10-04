@@ -1,4 +1,5 @@
 import type { IMaterialRepositorio } from "@/dominio/repositorios/IMaterialRepositorio";
+import type { IGrupoMaterialRepositorio } from "@/dominio/repositorios/IGrupoMaterialRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IArchivoRepositorio } from "@/dominio/repositorios/IArchivoRepositorio";
 import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamientoArchivos";
@@ -12,17 +13,23 @@ import { DesasignarMaterialDePaciente } from "@/aplicacion/casos-de-uso/bibliote
 import { ObtenerMaterialesDelPaciente } from "@/aplicacion/casos-de-uso/biblioteca/ObtenerMaterialesDelPaciente";
 import { ObtenerPacientesDeMaterial } from "@/aplicacion/casos-de-uso/biblioteca/ObtenerPacientesDeMaterial";
 import { CompartirMaterialConTodos } from "@/aplicacion/casos-de-uso/biblioteca/CompartirMaterialConTodos";
+import { MoverMaterialAGrupo } from "@/aplicacion/casos-de-uso/biblioteca/MoverMaterialAGrupo";
+import { CrearGrupoMaterial } from "@/aplicacion/casos-de-uso/grupos-material/CrearGrupoMaterial";
+import { ActualizarGrupoMaterial } from "@/aplicacion/casos-de-uso/grupos-material/ActualizarGrupoMaterial";
+import { EliminarGrupoMaterial } from "@/aplicacion/casos-de-uso/grupos-material/EliminarGrupoMaterial";
+import { ObtenerGruposMaterial } from "@/aplicacion/casos-de-uso/grupos-material/ObtenerGruposMaterial";
 import { ServicioBiblioteca } from "@/aplicacion/servicios/ServicioBiblioteca";
 
 /** Arma el servicio de la Biblioteca con sus casos de uso. */
 export function crearServicioBiblioteca(deps: {
   materiales: IMaterialRepositorio;
+  gruposMaterial: IGrupoMaterialRepositorio;
   pacientes: IPacienteRepositorio;
   archivos: IArchivoRepositorio;
   almacenamiento: IAlmacenamientoArchivos;
 }): ServicioBiblioteca {
   return new ServicioBiblioteca(
-    new CrearMaterial(deps.materiales),
+    new CrearMaterial(deps.materiales, deps.gruposMaterial),
     new ActualizarMaterial(deps.materiales),
     new EliminarMaterial(deps.materiales, deps.archivos, deps.almacenamiento),
     new ObtenerMateriales(deps.materiales),
@@ -32,5 +39,10 @@ export function crearServicioBiblioteca(deps: {
     new ObtenerMaterialesDelPaciente(deps.materiales),
     new ObtenerPacientesDeMaterial(deps.materiales, deps.pacientes),
     new CompartirMaterialConTodos(deps.materiales, deps.pacientes),
+    new MoverMaterialAGrupo(deps.materiales, deps.gruposMaterial),
+    new CrearGrupoMaterial(deps.gruposMaterial),
+    new ActualizarGrupoMaterial(deps.gruposMaterial),
+    new EliminarGrupoMaterial(deps.gruposMaterial),
+    new ObtenerGruposMaterial(deps.gruposMaterial),
   );
 }

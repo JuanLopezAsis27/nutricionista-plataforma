@@ -38,6 +38,12 @@ type DatosFormulario = z.infer<typeof esquema>;
 
 interface Props {
   materialInicial?: MaterialSalidaDto | null;
+  /**
+   * Carpeta en la que nace un material NUEVO: la que está abierta en la
+   * biblioteca. Sin esto, agregar algo desde adentro de una carpeta lo dejaba
+   * suelto y desaparecía de la vista recién creado.
+   */
+  grupoIdInicial?: string | null;
   onTerminado: () => void;
 }
 
@@ -45,7 +51,11 @@ interface Props {
  * Alta/edición de un material: archivo (subida al bucket) o enlace externo.
  * En edición el tipo no se cambia.
  */
-export function FormularioMaterial({ materialInicial, onTerminado }: Props) {
+export function FormularioMaterial({
+  materialInicial,
+  grupoIdInicial,
+  onTerminado,
+}: Props) {
   const { crear, actualizar } = useBiblioteca();
   const enviando = crear.isPending || actualizar.isPending;
 
@@ -85,7 +95,12 @@ export function FormularioMaterial({ materialInicial, onTerminado }: Props) {
       );
     } else {
       crear.mutate(
-        { tipo, ...cuerpo, archivoId: archivoSubido?.id ?? null },
+        {
+          tipo,
+          ...cuerpo,
+          archivoId: archivoSubido?.id ?? null,
+          grupoId: grupoIdInicial ?? null,
+        },
         { onSuccess: onTerminado },
       );
     }

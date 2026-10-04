@@ -21,7 +21,10 @@ import {
   agendarTurnoDto,
   reprogramarTurnoDto,
 } from "@/aplicacion/dtos/turno.dto";
-import { crearMaterialDto } from "@/aplicacion/dtos/material.dto";
+import {
+  crearMaterialDto,
+  grupoMaterialDto,
+} from "@/aplicacion/dtos/material.dto";
 import { crearObjetivoDto } from "@/aplicacion/dtos/objetivo.dto";
 import { registrarSuplementoDto } from "@/aplicacion/dtos/seguimiento.dto";
 import { crearPlantillaDto } from "@/aplicacion/dtos/secretaria.dto";
@@ -408,7 +411,7 @@ describe("Formularios que ya coincidían con su DTO", () => {
   // Estos no tenían divergencias. El test los fija igual: son el punto de
   // referencia que avisa si alguien cambia un límite de un solo lado.
 
-  it("NavegadorCarpetas coincide con grupoPlanDto y con grupoRecetaDto", () => {
+  it("NavegadorCarpetas coincide con grupoPlanDto, grupoRecetaDto y grupoMaterialDto", () => {
     // Es UN formulario para los dos módulos (planes y recetario): si los DTOs
     // se separaran, el navegador compartido pasaría a validar distinto de uno
     // de los dos sin que nada lo avise.
@@ -417,6 +420,7 @@ describe("Formularios que ya coincidían con su DTO", () => {
     ).toBe(false);
     expect(grupoPlanDto.safeParse({ nombre: "" }).success).toBe(false);
     expect(grupoRecetaDto.safeParse({ nombre: "" }).success).toBe(false);
+    expect(grupoMaterialDto.safeParse({ nombre: "" }).success).toBe(false);
 
     expect(
       esquemaCarpeta.safeParse({ nombre: "a".repeat(81), descripcion: "" })
@@ -426,6 +430,9 @@ describe("Formularios que ya coincidían con su DTO", () => {
       false,
     );
     expect(grupoRecetaDto.safeParse({ nombre: "a".repeat(81) }).success).toBe(
+      false,
+    );
+    expect(grupoMaterialDto.safeParse({ nombre: "a".repeat(81) }).success).toBe(
       false,
     );
 

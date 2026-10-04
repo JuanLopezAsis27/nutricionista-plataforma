@@ -146,16 +146,34 @@ export class PrismaRepositorioPaciente implements IPacienteRepositorio {
     } else if (filtro.bienvenida === "no_enviada") {
       where.bienvenidaEnviadaEn = null;
     }
-    const termino = filtro.busqueda?.trim();
-    if (termino) {
-      where.OR = [
-        { nombre: { contains: termino, mode: "insensitive" } },
-        { apellido: { contains: termino, mode: "insensitive" } },
-        { email: { contains: termino, mode: "insensitive" } },
-      ];
+    const busqueda = condicionBusquedaPaciente(filtro.busqueda);
+    if (busqueda) {
+      where.AND = busqueda;
     }
     return where;
   }
+}
+
+/**
+ * Condición del buscador de pacientes: CADA palabra tiene que aparecer en el
+ * nombre, el apellido o el email. Comparar el texto entero contra cada campo
+ * por separado hacía que «juan lopez» no encontrara a Juan López —ningún campo
+ * contiene las dos palabras— y que la búsqueda se vaciara apenas se tipeaba el
+ * espacio para seguir con el apellido. Palabra por palabra también encuentra
+ * «lopez juan» y «ju lo». Null si no hay nada que buscar.
+ */
+export function condicionBusquedaPaciente(
+  busqueda: string | undefined,
+): Prisma.PacienteWhereInput[] | null {
+  const palabras = (busqueda ?? "").trim().split(/\s+/).filter(Boolean);
+  if (palabras.length === 0) return null;
+  return palabras.map((palabra) => ({
+    OR: [
+      { nombre: { contains: palabra, mode: "insensitive" } },
+      { apellido: { contains: palabra, mode: "insensitive" } },
+      { email: { contains: palabra, mode: "insensitive" } },
+    ],
+  }));
 }
 
 /** Mapea una fila de Prisma a la entidad de dominio Paciente. */

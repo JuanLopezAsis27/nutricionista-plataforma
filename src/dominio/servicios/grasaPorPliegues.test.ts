@@ -65,9 +65,11 @@ describe("calcularGrasaPorPliegues — con los 6 pliegues de la planilla", () =>
 
   it("resuelve los cuatro métodos que solo necesitan esos 6 pliegues", () => {
     // Σ4 = 45; Σ6 = 68. Withers femenino usa su propia Σ4 = 39.
+    // El orden es el de preferencia: el primero es el que muestra una
+    // medición en «Automática» (resultados[0]). Kerr va primero.
     expect([...porMetodo(varon).keys()]).toEqual([
-      "YUHASZ_CARTER",
       "YUHASZ_CARTER_KERR",
+      "YUHASZ_CARTER",
       "FAULKNER",
       "FAULKNER_KERR",
     ]);

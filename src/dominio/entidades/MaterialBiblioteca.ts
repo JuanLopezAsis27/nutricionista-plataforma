@@ -21,6 +21,8 @@ export interface DatosNuevoMaterial {
   url?: string | null; // solo ENLACE
   categoria?: string | null;
   etiquetas?: string[];
+  /** Carpeta en la que nace (opcional). Moverlo después es otro caso de uso. */
+  grupoId?: string | null;
 }
 
 /** Cambios editables (el tipo no se cambia: se crea otro material). */
@@ -41,6 +43,8 @@ export interface PropiedadesMaterial {
   url: string | null;
   categoria: string | null;
   etiquetas: string[];
+  /** Carpeta en la que está guardado, o null si está suelto. */
+  grupoId: string | null;
   archivo: ArchivoMaterial | null;
   creadoEn: Date;
   actualizadoEn: Date;
@@ -84,6 +88,7 @@ export class MaterialBiblioteca {
       url,
       categoria: datos.categoria?.trim() || null,
       etiquetas: normalizarLista(datos.etiquetas),
+      grupoId: datos.grupoId ?? null,
       archivo: null,
       creadoEn: ahora,
       actualizadoEn: ahora,
@@ -118,8 +123,10 @@ export class MaterialBiblioteca {
       this.props.id,
       ahora,
     );
+    // La carpeta no se edita acá: ordenar no es editar (MoverMaterialAGrupo).
     return new MaterialBiblioteca({
       ...actualizado.props,
+      grupoId: this.props.grupoId,
       archivo: this.props.archivo ? { ...this.props.archivo } : null,
       creadoEn: this.props.creadoEn,
     });
@@ -133,6 +140,9 @@ export class MaterialBiblioteca {
   }
   get titulo(): string {
     return this.props.titulo;
+  }
+  get grupoId(): string | null {
+    return this.props.grupoId;
   }
   get archivo(): ArchivoMaterial | null {
     return this.props.archivo ? { ...this.props.archivo } : null;

@@ -11,6 +11,8 @@ export interface FiltroMaterialesPaginado extends ParametrosPagina {
   texto?: string;
   categoria?: string;
   etiqueta?: string;
+  /** null lista los SUELTOS; ausente no filtra por carpeta. */
+  grupoId?: string | null;
 }
 
 /**
@@ -27,6 +29,7 @@ export class ObtenerMaterialesPaginado {
       texto: filtro.texto,
       categoria: filtro.categoria,
       etiqueta: filtro.etiqueta,
+      grupoId: filtro.grupoId,
     };
     const [items, total] = await Promise.all([
       this.materiales.listar({

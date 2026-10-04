@@ -14,6 +14,7 @@ import {
   FileDown,
   FileUp,
   FolderInput,
+  FolderOutput,
   CalendarRange,
 } from "lucide-react";
 import type { PlanSalidaDto } from "@/aplicacion/dtos/plan.dto";
@@ -45,11 +46,12 @@ import { CLASES_DIALOGO_PLAN } from "@/componentes/planes/formulario/dialogo";
 import { FormularioAsignacionPlan } from "@/componentes/planes/FormularioAsignacionPlan";
 import { PacientesDelPlan } from "@/componentes/planes/PacientesDelPlan";
 import { NavegadorCarpetas } from "@/componentes/planes/NavegadorCarpetas";
+import { propsArrastrable } from "@/componentes/comunes/NavegadorCarpetas";
 import { MoverPlanACarpeta } from "@/componentes/planes/MoverPlanACarpeta";
 import { SeccionPlanesSemanales } from "@/componentes/planes-semanales/SeccionPlanesSemanales";
 
 export default function PaginaPlanes() {
-  const { listarPaginado, eliminar, archivar, crearDesdePlantilla } =
+  const { listarPaginado, eliminar, archivar, crearDesdePlantilla, mover } =
     usePlanes();
   const [paginaPlanes, setPaginaPlanes] = useState(1);
   const [paginaPlantillas, setPaginaPlantillas] = useState(1);
@@ -215,6 +217,19 @@ export default function PaginaPlanes() {
                 <FolderInput className="h-4 w-4" />
               </Button>
             )}
+            {/* Adentro de una carpeta, sacarlo es UN clic: el diálogo de
+                mover obligaba a abrirlo y elegir «Sin carpeta». */}
+            {!esPestanaPlantillas && carpetaId !== null && (
+              <Button
+                variant="ghost"
+                size="icon"
+                title="Sacar de la carpeta"
+                disabled={mover.isPending}
+                onClick={() => mover.mutate({ planId: plan.id, grupoId: null })}
+              >
+                <FolderOutput className="h-4 w-4" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -309,6 +324,9 @@ export default function PaginaPlanes() {
               columnas={columnas(false)}
               datos={planes}
               obtenerClave={(plan) => plan.id}
+              propsFila={(plan) =>
+                carpetaId === null ? propsArrastrable(plan.id) : undefined
+              }
               cargando={consultaPlanes.isLoading}
               mensajeVacio={
                 debounced

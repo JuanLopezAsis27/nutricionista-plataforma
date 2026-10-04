@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import {
   Table,
   TableHeader,
@@ -36,6 +36,8 @@ interface PropsTablaDatos<T> {
   seleccionados?: Set<string>;
   onCambiarSeleccion?: (clave: string, marcado: boolean) => void;
   onCambiarSeleccionTodos?: (marcado: boolean) => void;
+  /** Atributos extra de cada fila (p. ej. hacerla arrastrable a una carpeta). */
+  propsFila?: (fila: T) => HTMLAttributes<HTMLTableRowElement> | undefined;
 }
 
 /**
@@ -54,6 +56,7 @@ export function TablaDatos<T>({
   seleccionados,
   onCambiarSeleccion,
   onCambiarSeleccionTodos,
+  propsFila,
 }: PropsTablaDatos<T>) {
   const hayPaginacion =
     pagina !== undefined &&
@@ -121,7 +124,7 @@ export function TablaDatos<T>({
               datos.map((fila) => {
                 const clave = obtenerClave(fila);
                 return (
-                  <TableRow key={clave}>
+                  <TableRow key={clave} {...propsFila?.(fila)}>
                     {haySeleccion && (
                       <TableCell>
                         <input

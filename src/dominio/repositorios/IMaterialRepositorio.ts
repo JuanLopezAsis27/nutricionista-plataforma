@@ -5,6 +5,12 @@ export interface FiltroMateriales {
   texto?: string; // busca en título/descripción
   categoria?: string;
   etiqueta?: string;
+  /**
+   * Carpeta en la que buscar. `null` filtra los SUELTOS; ausente no filtra por
+   * carpeta. Es la misma distinción de tres estados que en las recetas: por
+   * eso se compara contra `undefined` y no con un `if (filtro?.grupoId)`.
+   */
+  grupoId?: string | null;
   /** Paginación server-side. */
   limite?: number;
   desplazamiento?: number;
@@ -26,6 +32,8 @@ export interface IMaterialRepositorio {
   listar(filtro?: FiltroMateriales): Promise<MaterialBiblioteca[]>;
   /** Cuenta los materiales que matchean el filtro (ignora la paginación). */
   contar(filtro?: FiltroMateriales): Promise<number>;
+  /** Mueve el material a una carpeta, o lo saca (null). Solo toca `grupoId`. */
+  moverAGrupo(id: string, grupoId: string | null): Promise<void>;
 
   // --- Asignaciones a pacientes ---
   asignarAPaciente(

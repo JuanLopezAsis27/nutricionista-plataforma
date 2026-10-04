@@ -376,6 +376,7 @@ export const servicioObjetivo = perezoso(() =>
 export const servicioBiblioteca = perezoso(() =>
   crearServicioBiblioteca({
     materiales: nucleo.repositorioMaterial(),
+    gruposMaterial: nucleo.repositorioGrupoMaterial(),
     pacientes: nucleo.repositorioPaciente(),
     archivos: nucleo.repositorioArchivo(),
     almacenamiento: nucleo.almacenamiento(),
