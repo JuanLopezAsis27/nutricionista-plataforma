@@ -27,6 +27,31 @@ describe("dibujaPdf", () => {
     ).toBe(false);
   });
 
+  it("iOS dice que NO aunque `pdfViewerEnabled` diga que sí", () => {
+    // En un iframe dibuja solo la primera página y no deja pasar a las demás.
+    const iphone = dibujaPdf({
+      pdfViewerEnabled: true,
+      userAgent:
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) Safari/604.1",
+      maxTouchPoints: 5,
+    });
+    // El iPad se presenta como una Mac; lo delata la pantalla táctil.
+    const ipad = dibujaPdf({
+      pdfViewerEnabled: true,
+      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1",
+      maxTouchPoints: 5,
+    });
+    const mac = dibujaPdf({
+      pdfViewerEnabled: true,
+      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1",
+      maxTouchPoints: 0,
+    });
+
+    expect(iphone).toBe(false);
+    expect(ipad).toBe(false);
+    expect(mac).toBe(true);
+  });
+
   it("sin la propiedad, el registro de plugins contesta lo mismo", () => {
     expect(dibujaPdf({ mimeTypes: { "application/pdf": {} } })).toBe(true);
   });

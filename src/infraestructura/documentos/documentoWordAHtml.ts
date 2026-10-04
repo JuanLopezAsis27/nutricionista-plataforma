@@ -91,13 +91,24 @@ export function textoAHtml(texto: string): string {
   return bloques.join("\n");
 }
 
+/**
+ * El scroll lo hace el `body`, no el documento, y es a propósito: Safari de
+ * iOS no desliza un `<iframe>` cuyo scroll es el del documento —el dedo mueve
+ * la página de afuera o nada, y solo se ve lo que entra en el alto del
+ * visor—. Con `html` fijo al alto del frame y el `body` como contenedor con
+ * `overflow:auto`, iOS lo trata como cualquier caja con scroll.
+ *
+ * Por lo mismo nada puede ensanchar la página: una palabra o una tabla más
+ * anchas que el frame hacen que iOS agrande el iframe en lugar de deslizarlo.
+ */
 const ESTILOS = [
   ":root{color-scheme:light}",
-  'body{margin:0;background:#fff;color:#1f2937;font:15px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}',
+  "html{height:100%;overflow:hidden}",
+  'body{height:100%;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0;background:#fff;color:#1f2937;font:15px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow-wrap:anywhere}',
   "main{max-width:820px;margin:0 auto;padding:24px 20px 40px}",
   "h1,h2,h3,h4{line-height:1.25;margin:1.2em 0 .5em}",
   "p{margin:0 0 .75em;white-space:pre-wrap}",
-  "table{border-collapse:collapse;width:100%;margin:1em 0}",
+  "table{border-collapse:collapse;width:100%;max-width:100%;table-layout:fixed;margin:1em 0}",
   "td,th{border:1px solid #d1d5db;padding:6px 8px;vertical-align:top}",
   "td p,th p{margin:0}",
   "img{max-width:100%;height:auto}",
