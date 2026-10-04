@@ -42,7 +42,9 @@ describe("ArmarIndiceRespaldo", () => {
       "Pacientes/García Ana",
       "Pacientes/García Ana (2)",
     ]);
-    expect(pacientes[0]?.evaluacion).toBe("Pacientes/García Ana/Evaluación.pdf");
+    expect(pacientes[0]?.evaluacion).toBe(
+      "Pacientes/García Ana/Evaluación.pdf",
+    );
     expect(pacientes[0]?.planes).toEqual([
       { planId: "pla-1", ruta: "Pacientes/García Ana/Planes/Plan base.pdf" },
     ]);
