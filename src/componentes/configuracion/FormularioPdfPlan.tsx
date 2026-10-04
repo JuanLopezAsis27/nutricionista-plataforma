@@ -75,8 +75,8 @@ export function FormularioPdfPlan() {
         <p className="text-sm text-muted-foreground">
           Personalizá cómo se ve el PDF que descargás e imprimís. El título del
           encabezado es el nombre de la pestaña «Membrete». El membrete, el
-          color y el pie valen para el plan y para la evaluación; los cambios
-          se aplican en la próxima descarga.
+          color y el pie valen para el plan y para la evaluación; los cambios se
+          aplican en la próxima descarga.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">

@@ -7,7 +7,10 @@ import { Readable } from "node:stream";
  * decide `rutasRespaldo` y el índice `ArmarIndiceRespaldo`, con sus tests).
  */
 
-type Sesion = { id: string; rol: "NUTRICIONISTA" | "PACIENTE" | "SUPERADMIN" } | null;
+type Sesion = {
+  id: string;
+  rol: "NUTRICIONISTA" | "PACIENTE" | "SUPERADMIN";
+} | null;
 let sesion: Sesion = null;
 vi.mock("@/lib/autenticacion/sesion", () => ({
   usuarioDeSesion: async () => sesion,

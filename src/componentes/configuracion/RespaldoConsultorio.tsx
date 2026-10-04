@@ -27,8 +27,8 @@ export function RespaldoConsultorio() {
         <p className="text-sm text-muted-foreground">
           Descargá todos tus datos y archivos en un ZIP ordenado: una carpeta
           por paciente —con su evaluación, sus mediciones, su diario con las
-          fotos, sus planes, laboratorios, grabaciones y archivos— y una
-          carpeta «Sin paciente» con las recetas, la biblioteca y el resto. Los
+          fotos, sus planes, laboratorios, grabaciones y archivos— y una carpeta
+          «Sin paciente» con las recetas, la biblioteca y el resto. Los
           pacientes archivados también se incluyen.
         </p>
         <p className="text-xs text-muted-foreground">
