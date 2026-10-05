@@ -9,6 +9,8 @@ import type { ReprogramarTurno } from "@/aplicacion/casos-de-uso/turnos/Reprogra
 import type { RegistrarCobroTurno } from "@/aplicacion/casos-de-uso/turnos/RegistrarCobroTurno";
 import type { EliminarTurno } from "@/aplicacion/casos-de-uso/turnos/EliminarTurno";
 import type { CancelarTurnoPorPaciente } from "@/aplicacion/casos-de-uso/turnos/CancelarTurnoPorPaciente";
+import type { ActualizarEstadoTurnosEnLote } from "@/aplicacion/casos-de-uso/turnos/ActualizarEstadoTurnosEnLote";
+import type { RegistrarCobroTurnosEnLote } from "@/aplicacion/casos-de-uso/turnos/RegistrarCobroTurnosEnLote";
 import type { ConfirmarAsistenciaTurno } from "@/aplicacion/casos-de-uso/turnos/ConfirmarAsistenciaTurno";
 import type { ISincronizadorCalendario } from "@/dominio/servicios/ISincronizadorCalendario";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
@@ -67,6 +69,8 @@ function armar(
     mockEstablecimientoRepositorio(),
     pacientes,
     doble<CancelarTurnoPorPaciente>(noUsado),
+    doble<ActualizarEstadoTurnosEnLote>(noUsado),
+    doble<RegistrarCobroTurnosEnLote>(noUsado),
   );
 }
 

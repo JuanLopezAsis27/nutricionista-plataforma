@@ -73,6 +73,38 @@ export const registrarCobroTurnoDto = z.object({
 });
 export type RegistrarCobroTurnoDto = z.infer<typeof registrarCobroTurnoDto>;
 
+/**
+ * Tope de una selección múltiple. Una semana cargada tiene unos cincuenta
+ * turnos; el tope es para que un pedido no recorra la agenda entera de a uno.
+ */
+const MAXIMO_LOTE = 300;
+const idsLoteDto = z.array(z.string().min(1)).min(1).max(MAXIMO_LOTE);
+
+export const actualizarEstadoTurnosLoteDto = z.object({
+  ids: idsLoteDto,
+  estado: z.enum(ESTADOS_TURNO),
+});
+export type ActualizarEstadoTurnosLoteDto = z.infer<
+  typeof actualizarEstadoTurnosLoteDto
+>;
+
+/**
+ * Cobro de varios turnos. Lo AUSENTE no se toca (ver
+ * `RegistrarCobroTurnosEnLote`): «marcar pagados» manda solo `pagado`.
+ */
+export const registrarCobroTurnosLoteDto = z
+  .object({
+    ids: idsLoteDto,
+    precio: z.number().min(0).max(10_000_000).nullable().optional(),
+    pagado: z.boolean().optional(),
+  })
+  .refine((d) => d.precio !== undefined || d.pagado !== undefined, {
+    message: "Indicá el precio, el pago o los dos.",
+  });
+export type RegistrarCobroTurnosLoteDto = z.infer<
+  typeof registrarCobroTurnosLoteDto
+>;
+
 export const turnoSalidaDto = z.object({
   id: z.string(),
   pacienteId: z.string(),
@@ -107,3 +139,10 @@ export const turnoSalidaDto = z.object({
   creadoEn: z.date(),
 });
 export type TurnoSalidaDto = z.infer<typeof turnoSalidaDto>;
+
+/** Resultado de una operación en lote: no es todo-o-nada. */
+export const resultadoLoteTurnosDto = z.object({
+  actualizados: z.number().int(),
+  omitidos: z.array(z.object({ id: z.string(), motivo: z.string() })),
+});
+export type ResultadoLoteTurnosDto = z.infer<typeof resultadoLoteTurnosDto>;

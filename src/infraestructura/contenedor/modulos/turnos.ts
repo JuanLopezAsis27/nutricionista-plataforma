@@ -15,6 +15,8 @@ import { ActualizarEstadoTurno } from "@/aplicacion/casos-de-uso/turnos/Actualiz
 import { CancelarTurno } from "@/aplicacion/casos-de-uso/turnos/CancelarTurno";
 import { ReprogramarTurno } from "@/aplicacion/casos-de-uso/turnos/ReprogramarTurno";
 import { RegistrarCobroTurno } from "@/aplicacion/casos-de-uso/turnos/RegistrarCobroTurno";
+import { ActualizarEstadoTurnosEnLote } from "@/aplicacion/casos-de-uso/turnos/ActualizarEstadoTurnosEnLote";
+import { RegistrarCobroTurnosEnLote } from "@/aplicacion/casos-de-uso/turnos/RegistrarCobroTurnosEnLote";
 import { EliminarTurno } from "@/aplicacion/casos-de-uso/turnos/EliminarTurno";
 import { ConfirmarAsistenciaTurno } from "@/aplicacion/casos-de-uso/turnos/ConfirmarAsistenciaTurno";
 import { CancelarTurnoPorPaciente } from "@/aplicacion/casos-de-uso/turnos/CancelarTurnoPorPaciente";
@@ -34,6 +36,9 @@ export function crearServicioTurno(deps: {
 }): ServicioTurno {
   // CancelarTurno compone ActualizarEstadoTurno: comparten instancia.
   const actualizarEstadoTurno = new ActualizarEstadoTurno(deps.turnos);
+  // Lo mismo los lotes: componen el caso individual, que es el que tiene las
+  // reglas.
+  const registrarCobroTurno = new RegistrarCobroTurno(deps.turnos);
 
   return new ServicioTurno(
     new AgendarTurno(deps.turnos, deps.pacientes, deps.establecimientos),
@@ -42,7 +47,7 @@ export function crearServicioTurno(deps: {
     actualizarEstadoTurno,
     new CancelarTurno(deps.turnos, actualizarEstadoTurno),
     new ReprogramarTurno(deps.turnos, deps.establecimientos),
-    new RegistrarCobroTurno(deps.turnos),
+    registrarCobroTurno,
     new EliminarTurno(deps.turnos, deps.sincronizador),
     new ConfirmarAsistenciaTurno(
       deps.turnos,
@@ -66,5 +71,7 @@ export function crearServicioTurno(deps: {
       new EmitirNotificacion(deps.notificaciones, deps.reloj),
       deps.reloj,
     ),
+    new ActualizarEstadoTurnosEnLote(actualizarEstadoTurno),
+    new RegistrarCobroTurnosEnLote(deps.turnos, registrarCobroTurno),
   );
 }
