@@ -15,6 +15,11 @@ export const routerEstadisticas = crearRouter({
       return await ctx.servicios.estadisticas.obtener(input);
     }),
 
+  /** La semana en curso y lo que viene: no depende del período elegido. */
+  resumenCobros: nutricionistaProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.estadisticas.resumenCobros();
+  }),
+
   detalle: nutricionistaProcedimiento
     .input(detalleEstadisticaDto)
     .query(async ({ ctx, input }) => {

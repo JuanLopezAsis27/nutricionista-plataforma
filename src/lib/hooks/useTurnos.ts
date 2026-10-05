@@ -66,6 +66,21 @@ export function useTurnos() {
     onError: (error) => avisarError(error),
   });
 
+  /**
+   * Los lotes no muestran su propio toast: el resultado dice cuántos salieron
+   * y cuáles no, y armar ese mensaje con los nombres es de la pantalla, que
+   * es la que tiene los turnos a mano.
+   */
+  const actualizarEstadoLote = trpc.turnos.actualizarEstadoLote.useMutation({
+    onSuccess: () => invalidar(),
+    onError: (error) => avisarError(error),
+  });
+
+  const registrarCobroLote = trpc.turnos.registrarCobroLote.useMutation({
+    onSuccess: () => invalidar(),
+    onError: (error) => avisarError(error),
+  });
+
   return {
     utils,
     listar: trpc.turnos.obtenerTodos.useQuery,
@@ -76,5 +91,7 @@ export function useTurnos() {
     eliminar,
     reprogramar,
     registrarCobro,
+    actualizarEstadoLote,
+    registrarCobroLote,
   };
 }

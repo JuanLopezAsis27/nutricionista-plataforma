@@ -49,6 +49,8 @@ interface PropsCalendario {
     fechaISO: string,
     hora: string,
     establecimientoId: string,
+    /** La del turno cancelado cuyo horario se vuelve a ocupar. */
+    duracionMinutos?: number,
   ) => void;
   onReprogramar: (turno: TurnoSalidaDto) => void;
   onGrabar: (turno: TurnoSalidaDto) => void;

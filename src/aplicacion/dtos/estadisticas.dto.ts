@@ -71,3 +71,19 @@ export const estadisticasSalidaDto = z.object({
   diasAbandono: z.number(),
 });
 export type EstadisticasSalidaDto = z.infer<typeof estadisticasSalidaDto>;
+
+const totalesCobroDto = z.object({
+  cobrado: z.number(),
+  pendiente: z.number(),
+  turnosPendientes: z.number(),
+});
+
+/**
+ * Cobros de la semana en curso y de lo posterior a hoy. No depende del
+ * período: siempre es respecto de hoy (ver `ObtenerResumenCobros`).
+ */
+export const resumenCobrosSalidaDto = z.object({
+  semana: totalesCobroDto.extend({ desde: z.date(), hasta: z.date() }),
+  futuro: totalesCobroDto,
+});
+export type ResumenCobrosSalidaDto = z.infer<typeof resumenCobrosSalidaDto>;

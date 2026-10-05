@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
+  CalendarPlus,
   Clock,
   DollarSign,
   MapPin,
@@ -43,6 +44,12 @@ interface PropsDetalleTurno {
   /** Abre la grabación de la consulta (también fuera del popup). */
   onGrabar: (turno: TurnoSalidaDto) => void;
   onCerrar: () => void;
+  /**
+   * Agendar un turno NUEVO en el horario que dejó libre este, que está
+   * cancelado. Solo llega cuando se puede: el turno está cancelado, nadie más
+   * ocupa ese horario y no pasó todavía (lo decide la grilla, que ve el día).
+   */
+  onAgendarEnSuHorario?: (turno: TurnoSalidaDto) => void;
 }
 
 /**
@@ -68,6 +75,7 @@ export function DetalleTurno({
   onReprogramar,
   onGrabar,
   onCerrar,
+  onAgendarEnSuHorario,
 }: PropsDetalleTurno) {
   const { actualizarEstado, cancelar, eliminar, registrarCobro } = useTurnos();
   const [confirmandoBorrado, setConfirmandoBorrado] = useState(false);
@@ -178,6 +186,22 @@ export function DetalleTurno({
         ))}
       </div>
       <InfoCancelacion turno={turno} />
+
+      {/* El cancelado se queda en la agenda —que alguien no vino es
+          información clínica y de cobranza— y su globo tapa el hueco que
+          liberó. Esto es lo que permite volver a ocupar ese horario sin
+          borrarlo. */}
+      {onAgendarEnSuHorario && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 w-full text-xs"
+          onClick={() => onAgendarEnSuHorario(turno)}
+        >
+          <CalendarPlus className="h-3.5 w-3.5" />
+          Agendar otro turno a las {turno.hora}
+        </Button>
+      )}
 
       {turno.notas && (
         <p className="flex items-start gap-1.5 rounded-md bg-muted/60 p-2 text-xs">

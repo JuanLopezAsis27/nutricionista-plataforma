@@ -632,6 +632,11 @@ export function mockEstadisticasRepositorio(
       porEstablecimiento: [],
     })),
     listarPacientes: vi.fn(async () => []),
+    cobrosEntre: vi.fn(async () => ({
+      cobrado: 0,
+      pendiente: 0,
+      turnosPendientes: 0,
+    })),
     ...parcial,
   };
 }

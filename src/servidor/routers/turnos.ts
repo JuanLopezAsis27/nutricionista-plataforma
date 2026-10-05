@@ -17,6 +17,8 @@ import {
   cancelarTurnoDto,
   reprogramarTurnoDto,
   registrarCobroTurnoDto,
+  actualizarEstadoTurnosLoteDto,
+  registrarCobroTurnosLoteDto,
   confirmarAsistenciaDto,
   cancelarPorPacienteDto,
 } from "@/aplicacion/dtos/turno.dto";
@@ -117,6 +119,19 @@ export const routerTurnos = crearRouter({
     .input(registrarCobroTurnoDto)
     .mutation(async ({ ctx, input }) => {
       return await ctx.servicios.turno.registrarCobroTurno(input);
+    }),
+
+  /** Selección múltiple de la lista: aplica a los que se puede y avisa el resto. */
+  actualizarEstadoLote: nutricionistaProcedimiento
+    .input(actualizarEstadoTurnosLoteDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.turno.actualizarEstadoTurnosEnLote(input);
+    }),
+
+  registrarCobroLote: nutricionistaProcedimiento
+    .input(registrarCobroTurnosLoteDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.turno.registrarCobroTurnosEnLote(input);
     }),
 
   /**

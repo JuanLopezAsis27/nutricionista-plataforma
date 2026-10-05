@@ -5,6 +5,9 @@ import type { ActualizarEstadoTurno } from "@/aplicacion/casos-de-uso/turnos/Act
 import type { CancelarTurno } from "@/aplicacion/casos-de-uso/turnos/CancelarTurno";
 import type { ReprogramarTurno } from "@/aplicacion/casos-de-uso/turnos/ReprogramarTurno";
 import type { RegistrarCobroTurno } from "@/aplicacion/casos-de-uso/turnos/RegistrarCobroTurno";
+import type { ActualizarEstadoTurnosEnLote } from "@/aplicacion/casos-de-uso/turnos/ActualizarEstadoTurnosEnLote";
+import type { RegistrarCobroTurnosEnLote } from "@/aplicacion/casos-de-uso/turnos/RegistrarCobroTurnosEnLote";
+import type { ResultadoLoteTurnos } from "@/aplicacion/casos-de-uso/turnos/resultadoLote";
 import type { EliminarTurno } from "@/aplicacion/casos-de-uso/turnos/EliminarTurno";
 import type {
   ConfirmarAsistenciaTurno,
@@ -25,6 +28,9 @@ import type {
   ActualizarEstadoTurnoDto,
   ReprogramarTurnoDto,
   RegistrarCobroTurnoDto,
+  ActualizarEstadoTurnosLoteDto,
+  RegistrarCobroTurnosLoteDto,
+  ResultadoLoteTurnosDto,
   TurnoSalidaDto,
 } from "../dtos/turno.dto";
 
@@ -51,6 +57,8 @@ export class ServicioTurno {
     private readonly establecimientos: IEstablecimientoRepositorio,
     private readonly pacientes: IPacienteRepositorio,
     private readonly cancelarPorPacienteUC: CancelarTurnoPorPaciente,
+    private readonly actualizarEstadoLoteUC: ActualizarEstadoTurnosEnLote,
+    private readonly registrarCobroLoteUC: RegistrarCobroTurnosEnLote,
   ) {}
 
   async agendarTurno(datos: AgendarTurnoDto): Promise<TurnoSalidaDto> {
@@ -132,6 +140,53 @@ export class ServicioTurno {
       datos.pagado,
     );
     return this.aSalidaUno(turno);
+  }
+
+  /**
+   * Varios turnos al mismo estado (selección múltiple de la lista).
+   *
+   * Los que quedaron CANCELADOS se sacan del calendario externo acá, igual que
+   * en `cancelarTurno`: cancelar desde el lote no puede dejarle al paciente un
+   * evento de un turno que ya no existe.
+   */
+  async actualizarEstadoTurnosEnLote(
+    datos: ActualizarEstadoTurnosLoteDto,
+  ): Promise<ResultadoLoteTurnosDto> {
+    const resultado = await this.actualizarEstadoLoteUC.ejecutar(
+      datos.ids,
+      datos.estado,
+    );
+    if (datos.estado === "CANCELADO") {
+      for (const turno of resultado.actualizados) {
+        await this.sincronizador.alCancelar(turno.id);
+      }
+    }
+    return ServicioTurno.aSalidaLoteResumen(resultado);
+  }
+
+  /** Precio y/o pago de varios turnos de una vez. */
+  async registrarCobroTurnosEnLote(
+    datos: RegistrarCobroTurnosLoteDto,
+  ): Promise<ResultadoLoteTurnosDto> {
+    const resultado = await this.registrarCobroLoteUC.ejecutar(datos.ids, {
+      precio: datos.precio,
+      pagado: datos.pagado,
+    });
+    return ServicioTurno.aSalidaLoteResumen(resultado);
+  }
+
+  /**
+   * El lote devuelve cuántos salieron y cuáles no, no los turnos: la pantalla
+   * los vuelve a leer al invalidar, y resolver sede y paciente de cada uno
+   * sería trabajo que nadie mira.
+   */
+  private static aSalidaLoteResumen(
+    resultado: ResultadoLoteTurnos,
+  ): ResultadoLoteTurnosDto {
+    return {
+      actualizados: resultado.actualizados.length,
+      omitidos: resultado.omitidos,
+    };
   }
 
   /**

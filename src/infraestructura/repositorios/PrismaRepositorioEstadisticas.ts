@@ -7,6 +7,7 @@ import type {
   EstadisticaEstablecimiento,
   TipoDetalleEstadistica,
   PacienteEstadistica,
+  TotalesCobro,
 } from "@/dominio/repositorios/IEstadisticasRepositorio";
 
 /**
@@ -89,6 +90,34 @@ export class PrismaRepositorioEstadisticas implements IEstadisticasRepositorio {
       ingresoPendiente,
       serieMensual,
       porEstablecimiento,
+    };
+  }
+
+  /**
+   * `Turno.fecha` es un DATE: `lte: hasta` incluye el día entero (ver el
+   * encabezado). Mismos criterios que los ingresos del período, para que los
+   * dos números se puedan sumar sin contradecirse.
+   */
+  async cobrosEntre(desde: Date, hasta: Date | null): Promise<TotalesCobro> {
+    const fecha = hasta ? { gte: desde, lte: hasta } : { gte: desde };
+    const [cobrado, pendiente] = await Promise.all([
+      this.sumarIngresos({ pagado: true, fecha }),
+      this.prisma.turno.aggregate({
+        _sum: { precio: true },
+        _count: { _all: true },
+        where: {
+          pagado: false,
+          estado: { not: "CANCELADO" },
+          precio: { not: null },
+          fecha,
+        },
+      }),
+    ]);
+    return {
+      cobrado,
+      pendiente:
+        pendiente._sum.precio == null ? 0 : Number(pendiente._sum.precio),
+      turnosPendientes: pendiente._count._all,
     };
   }
 

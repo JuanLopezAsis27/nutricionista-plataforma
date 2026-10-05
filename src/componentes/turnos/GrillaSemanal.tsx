@@ -91,6 +91,8 @@ interface PropsGrillaSemanal {
     fechaISO: string,
     hora: string,
     establecimientoId: string,
+    /** La del turno cancelado cuyo horario se vuelve a ocupar. */
+    duracionMinutos?: number,
   ) => void;
   onReprogramar: (turno: TurnoSalidaDto) => void;
   onGrabar: (turno: TurnoSalidaDto) => void;
@@ -292,6 +294,8 @@ interface PropsColumnaDia {
     fechaISO: string,
     hora: string,
     establecimientoId: string,
+    /** La del turno cancelado cuyo horario se vuelve a ocupar. */
+    duracionMinutos?: number,
   ) => void;
   onReprogramar: (turno: TurnoSalidaDto) => void;
   onGrabar: (turno: TurnoSalidaDto) => void;
@@ -435,6 +439,13 @@ function ColumnaDia({
         // Antes se buscaba en un mapa armado con la primera página del
         // listado de pacientes, y los que no entraban salían "Paciente".
         const nombre = bloque.turno.pacienteNombre;
+        const reocupable = horarioReocupable(
+          bloque.turno,
+          turnosDelDia,
+          dia,
+          hoyISO,
+          minutosAhora,
+        );
 
         return (
           <Popover
@@ -504,6 +515,22 @@ function ColumnaDia({
                   onGrabar(turno);
                 }}
                 onCerrar={() => onAbrirTurno(null)}
+                onAgendarEnSuHorario={
+                  reocupable
+                    ? (turno) => {
+                        onAbrirTurno(null);
+                        // Con su duración: es el hueco exacto que liberó. Con
+                        // la de la sede, uno más largo chocaría con el turno
+                        // siguiente y el formulario movería la hora.
+                        onAgendar(
+                          dia,
+                          turno.hora,
+                          turno.establecimientoId,
+                          turno.duracionMinutos,
+                        );
+                      }
+                    : undefined
+                }
               />
             </PopoverContent>
           </Popover>
@@ -521,4 +548,33 @@ function ColumnaDia({
       )}
     </div>
   );
+}
+
+/**
+ * ¿Se puede agendar otro turno en el horario de este? Solo si está CANCELADO
+ * —que libera el horario, igual que en `AgendarTurno` y en el EXCLUDE de la
+ * base—, si ningún turno vigente lo volvió a ocupar y si todavía no empezó.
+ *
+ * Se ofrece en la sede del turno cancelado: es el lugar de ese hueco, aunque
+ * con varias sedes a la vista el día no tenga una sola dueña.
+ */
+function horarioReocupable(
+  turno: TurnoSalidaDto,
+  turnosDelDia: ReadonlyArray<TurnoSalidaDto>,
+  dia: string,
+  hoyISO: string,
+  minutosAhora: number | null,
+): boolean {
+  if (turno.estado !== "CANCELADO") return false;
+  const inicio = aMinutos(turno.hora);
+  if (dia < hoyISO) return false;
+  if (dia === hoyISO && (minutosAhora == null || inicio <= minutosAhora)) {
+    return false;
+  }
+  const fin = inicio + turno.duracionMinutos;
+  return !turnosDelDia.some((otro) => {
+    if (otro.id === turno.id || otro.estado === "CANCELADO") return false;
+    const inicioOtro = aMinutos(otro.hora);
+    return inicio < inicioOtro + otro.duracionMinutos && inicioOtro < fin;
+  });
 }
