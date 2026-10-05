@@ -20,6 +20,10 @@ ACCIONABLE (lo que espera respuesta) sobre lo descriptivo (cuántas cosas hay).
 (pacientes y turnos). Solo dos bloques agregan una consulta —mensajes y el
 resumen del mes— y las dos ya existían para otras pantallas.
 
+La lista de **Turnos de hoy** tiene alto máximo (`max-h-96`) y scroll propio:
+un día cargado estiraba la tarjeta y empujaba el resto del inicio hacia abajo,
+y además desalineaba la grilla con «Mensajes sin leer», que va al lado.
+
 ### El rango del mes: `hasta` es un DÍA, no un instante
 
 `ResumenDelMes` pide `desde` = el 1 del mes y `hasta` = hoy, los dos como
