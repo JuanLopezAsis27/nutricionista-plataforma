@@ -172,7 +172,7 @@ export default function PaginaDashboard() {
                 No hay turnos para hoy.
               </p>
             ) : (
-              <ul className="divide-y">
+              <ul className="max-h-96 divide-y overflow-y-auto pr-2">
                 {turnosHoy.map((turno) => (
                   <li
                     key={turno.id}
