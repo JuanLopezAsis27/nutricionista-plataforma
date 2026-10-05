@@ -93,6 +93,12 @@ interface PropsFormularioTurno {
    * el alta en la sede activa y el día quedaría fuera de su agenda.
    */
   establecimientoInicialId?: string;
+  /**
+   * Duración con la que abrir el formulario. La manda el calendario al volver
+   * a ocupar el horario de un turno cancelado: el hueco libre mide eso, y con
+   * la duración de la sede podría chocar con el turno siguiente.
+   */
+  duracionInicial?: number;
 }
 
 /**
@@ -152,6 +158,7 @@ function FormularioTurnoInterno({
   fechaInicial,
   horaInicial,
   establecimientoInicialId,
+  duracionInicial,
   sedes,
   sedeInicial,
 }: PropsFormularioTurno & {
@@ -176,7 +183,7 @@ function FormularioTurnoInterno({
       // ya no significa nada.
       hora: fechaResuelta === fechaInicial ? (horaInicial ?? "") : "",
       establecimientoId: sedeInicial.id,
-      duracion: String(sedeInicial.turnoDuracionMinutos),
+      duracion: String(duracionInicial ?? sedeInicial.turnoDuracionMinutos),
       notas: "",
     },
   });
@@ -215,8 +222,9 @@ function FormularioTurnoInterno({
 
   const duraciones = useMemo(() => {
     const base = new Set([30, 45, 60, 90, sede.turnoDuracionMinutos]);
+    if (duracionInicial) base.add(duracionInicial);
     return [...base].sort((a, b) => a - b).map(String);
-  }, [sede.turnoDuracionMinutos]);
+  }, [sede.turnoDuracionMinutos, duracionInicial]);
 
   const diaHabil = esDiaDeAtencion(sede, fechaActual);
 
@@ -241,6 +249,14 @@ function FormularioTurnoInterno({
   );
 
   const cargandoFranjas = diaHabil && turnosDelDia.isLoading;
+  // La reubicación espera además al REFRESCO, no solo a la primera carga. Si
+  // la consulta del día ya estaba en caché, React Query muestra la copia
+  // vieja mientras la vuelve a pedir, y en esa copia un turno recién
+  // cancelado sigue ocupando su franja: la hora pedida se movía a la primera
+  // libre y, cuando llegaban los datos frescos, ya era tarde. Pasaba justo al
+  // volver a ocupar el horario de un cancelado desde el calendario. El
+  // selector no se apaga por esto: solo la corrección automática espera.
+  const franjasSinConfirmar = diaHabil && turnosDelDia.isFetching;
   const primeraLibre = franjas.find((f) => f.disponible)?.hora ?? "";
 
   // Reubica la hora cuando la elegida deja de estar disponible: cambió el día,
@@ -248,13 +264,13 @@ function FormularioTurnoInterno({
   // diálogo estaba abierto. Sin esto el formulario se envía con una hora que
   // el servidor va a rechazar.
   useEffect(() => {
-    if (cargandoFranjas) return;
+    if (cargandoFranjas || franjasSinConfirmar) return;
     const elegida = franjas.find((f) => f.hora === horaActual);
     if (!elegida?.disponible) {
       form.setValue("hora", primeraLibre);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [franjas, cargandoFranjas]);
+  }, [franjas, cargandoFranjas, franjasSinConfirmar]);
 
   function alEnviar(datos: DatosFormulario) {
     agendar.mutate(

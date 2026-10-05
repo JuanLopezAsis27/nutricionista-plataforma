@@ -34,6 +34,11 @@ interface PropsMiniMes {
   turnosPorDia: ReadonlyMap<string, number>;
   hoyISO: string;
   onSeleccionar: (fechaISO: string) => void;
+  /**
+   * Si se pasa, los días en que no se atiende salen apagados. Siguen siendo
+   * clickeables: un turno viejo pudo quedar en un día que hoy está cerrado.
+   */
+  esDiaDeAtencion?: (fechaISO: string) => boolean;
 }
 
 /**
@@ -56,6 +61,7 @@ export function MiniMes({
   turnosPorDia,
   hoyISO,
   onSeleccionar,
+  esDiaDeAtencion,
 }: PropsMiniMes) {
   const anio = referencia.getUTCFullYear();
   const mes = referencia.getUTCMonth();
@@ -115,6 +121,7 @@ export function MiniMes({
           const esAncla = fechaISO === anclaISO;
           const enRango = diasVisibles.has(fechaISO);
           const esHoy = fechaISO === hoyISO;
+          const cerrado = esDiaDeAtencion ? !esDiaDeAtencion(fechaISO) : false;
 
           return (
             <button
@@ -125,13 +132,16 @@ export function MiniMes({
               title={
                 cantidad > 0
                   ? `${cantidad} ${cantidad === 1 ? "turno" : "turnos"}`
-                  : "Sin turnos"
+                  : cerrado
+                    ? "No se atiende"
+                    : "Sin turnos"
               }
               className={cn(
                 "relative mx-auto flex h-7 w-7 flex-col items-center justify-center rounded-full text-xs tabular-nums transition-colors",
                 enRango && !esAncla && "bg-accent",
                 esAncla && "bg-primary font-semibold text-primary-foreground",
                 !esAncla && esHoy && "font-bold text-primary",
+                !esAncla && !esHoy && cerrado && "text-muted-foreground/50",
                 !esAncla && "hover:bg-secondary",
               )}
             >

@@ -71,8 +71,28 @@ export interface PacienteEstadistica {
   referencia: Date | null;
 }
 
+/**
+ * Plata de los turnos de un rango de fechas, sin importar si ya pasaron.
+ *
+ * `cobrado` son los turnos marcados pagados —también los que se pagaron por
+ * adelantado y todavía no ocurrieron—; `pendiente`, los que tienen precio, no
+ * están pagados y no se cancelaron (un cancelado no es plata que vaya a
+ * entrar).
+ */
+export interface TotalesCobro {
+  cobrado: number;
+  pendiente: number;
+  /** Cuántos turnos forman el pendiente. */
+  turnosPendientes: number;
+}
+
 export interface IEstadisticasRepositorio {
   obtener(params: ParametrosEstadisticas): Promise<DatosCrudosEstadisticas>;
+  /**
+   * Totales de cobro de los turnos con fecha entre `desde` y `hasta`, los dos
+   * días incluidos. `hasta` null = sin tope: todo lo que viene.
+   */
+  cobrosEntre(desde: Date, hasta: Date | null): Promise<TotalesCobro>;
   /** Lista los pacientes de una categoría (para el desglose bajo demanda). */
   listarPacientes(
     tipo: TipoDetalleEstadistica,

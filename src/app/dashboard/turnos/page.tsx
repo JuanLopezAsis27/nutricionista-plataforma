@@ -1,17 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { Plus, List, CalendarDays, FileDown } from "lucide-react";
 import type { TurnoSalidaDto } from "@/aplicacion/dtos/turno.dto";
 import { ESTADOS_TURNO, type EstadoTurno } from "@/dominio/entidades/Turno";
 import { useTurnos } from "@/lib/hooks/useTurnos";
 import { useEstablecimientos } from "@/lib/hooks/useEstablecimientos";
 import { useSedeActiva } from "@/lib/hooks/useSedeActiva";
-import { coloresDeSedes, etiquetaSede } from "@/lib/sedes";
-import { formatearFecha, ETIQUETAS_ESTADO_TURNO } from "@/lib/formato";
+import { coloresDeSedes } from "@/lib/sedes";
+import { ETIQUETAS_ESTADO_TURNO, hoyArgentinaISO } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
-import { Input } from "@/componentes/ui/input";
 import {
   Select,
   SelectTrigger,
@@ -25,19 +23,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/componentes/ui/dialog";
-import {
-  TablaDatos,
-  type ColumnaTabla,
-} from "@/componentes/comunes/TablaDatos";
-import { EstadoBadge } from "@/componentes/comunes/EstadoBadge";
-import { InfoCancelacion } from "@/componentes/turnos/InfoCancelacion";
 import { FormularioTurno } from "@/componentes/turnos/FormularioTurno";
 import { FormularioReprogramar } from "@/componentes/turnos/FormularioReprogramar";
 import { useAbrirGrabacion } from "@/componentes/turnos/ProveedorGrabacionConsulta";
 import { CalendarioTurnos } from "@/componentes/turnos/CalendarioTurnos";
 import { SelectorSede } from "@/componentes/turnos/SelectorSede";
-import { AccionesTurno } from "@/componentes/turnos/AccionesTurno";
-import { CobroTurno } from "@/componentes/turnos/CobroTurno";
+import { ListaTurnos } from "@/componentes/turnos/ListaTurnos";
 
 type Vista = "lista" | "calendario";
 
@@ -50,6 +41,8 @@ interface HuecoElegido {
    * ofrecen huecos cuando el día pertenece a un único establecimiento.
    */
   establecimientoId?: string;
+  /** La del turno cancelado cuyo horario se vuelve a ocupar. */
+  duracionMinutos?: number;
 }
 
 export default function PaginaTurnos() {
@@ -62,18 +55,16 @@ export default function PaginaTurnos() {
   const consultaSedes = listarSedes();
   const sedes = useMemo(() => consultaSedes.data ?? [], [consultaSedes.data]);
   const colores = useMemo(() => coloresDeSedes(sedes), [sedes]);
-  // Nombre Y dirección: en la tabla el establecimiento se lee de un vistazo
-  // para saber a dónde va el paciente, y el nombre solo no lo dice.
-  const nombreSede = (id: string): string => {
-    const sede = sedes.find((s) => s.id === id);
-    return sede ? etiquetaSede(sede) : "—";
-  };
 
   const [vista, setVista] = useState<Vista>("calendario");
   const [filtroEstado, setFiltroEstado] = useState<EstadoTurno | "TODOS">(
     "TODOS",
   );
-  const [filtroFecha, setFiltroFecha] = useState("");
+  // El día de la lista; null = todos juntos. Arranca en hoy, que es lo que se
+  // abre la lista para mirar.
+  const [diaLista, setDiaLista] = useState<string | null>(() =>
+    hoyArgentinaISO(),
+  );
   const [agendarAbierto, setAgendarAbierto] = useState(false);
   const [hueco, setHueco] = useState<HuecoElegido | null>(null);
   const [turnoReprogramar, setTurnoReprogramar] =
@@ -85,94 +76,32 @@ export default function PaginaTurnos() {
   // `establecimientoId` sin valor = todas las sedes juntas, que es el
   // calendario unificado. El filtro es del turno, no del paciente: el mismo
   // paciente puede aparecer en las dos sedes y eso es correcto.
+  //
+  // Las dos vistas comparten la consulta: la lista recorta el día en el
+  // navegador porque su mini mes necesita saber qué días tienen turnos, y así
+  // cambiar de vista no vuelve a pedir nada.
   const turnos = listar({
     estado: filtroEstado === "TODOS" ? undefined : filtroEstado,
-    fecha: vista === "lista" && filtroFecha ? new Date(filtroFecha) : undefined,
     establecimientoId: sedeActivaId ?? undefined,
   });
 
   // Mismos filtros que la consulta de arriba: el Excel exporta lo que se ve.
   const parametrosExcel = new URLSearchParams();
   if (filtroEstado !== "TODOS") parametrosExcel.set("estado", filtroEstado);
-  if (vista === "lista" && filtroFecha)
-    parametrosExcel.set("fecha", filtroFecha);
+  if (vista === "lista" && diaLista) parametrosExcel.set("fecha", diaLista);
   if (sedeActivaId) parametrosExcel.set("establecimientoId", sedeActivaId);
 
   function abrirAlta(
     fecha?: string,
     hora?: string,
     establecimientoId?: string,
+    duracionMinutos?: number,
   ) {
-    setHueco(fecha ? { fecha, hora, establecimientoId } : null);
+    setHueco(
+      fecha ? { fecha, hora, establecimientoId, duracionMinutos } : null,
+    );
     setAgendarAbierto(true);
   }
-
-  const columnas: ColumnaTabla<TurnoSalidaDto>[] = [
-    {
-      clave: "paciente",
-      encabezado: "Paciente",
-      render: (t) => (
-        <Link
-          href={`/dashboard/pacientes/${t.pacienteId}`}
-          className="font-medium hover:underline"
-        >
-          {t.pacienteNombre}
-        </Link>
-      ),
-    },
-    {
-      clave: "fecha",
-      encabezado: "Fecha",
-      render: (t) => formatearFecha(t.fecha),
-    },
-    { clave: "hora", encabezado: "Hora", render: (t) => t.hora },
-    {
-      clave: "establecimiento",
-      encabezado: "Establecimiento",
-      render: (t) => (
-        <span className="flex items-center gap-1.5">
-          <span
-            aria-hidden
-            className="h-2.5 w-2.5 shrink-0 rounded-full"
-            style={{ backgroundColor: colores.get(t.establecimientoId) }}
-          />
-          {nombreSede(t.establecimientoId)}
-        </span>
-      ),
-    },
-    {
-      clave: "duracion",
-      encabezado: "Duración",
-      render: (t) => `${t.duracionMinutos} min`,
-    },
-    {
-      clave: "estado",
-      encabezado: "Estado",
-      render: (t) => (
-        <span className="space-y-0.5">
-          <EstadoBadge estado={t.estado} />
-          <InfoCancelacion turno={t} />
-        </span>
-      ),
-    },
-    {
-      clave: "cobro",
-      encabezado: "Cobro",
-      render: (t) => <CobroTurno turno={t} />,
-    },
-    {
-      clave: "acciones",
-      encabezado: "Acciones",
-      className: "text-right",
-      render: (t) => (
-        <AccionesTurno
-          turno={t}
-          onReprogramar={setTurnoReprogramar}
-          onGrabar={abrirPanel}
-        />
-      ),
-    },
-  ];
 
   return (
     <div className="space-y-4">
@@ -216,15 +145,6 @@ export default function PaginaTurnos() {
             </SelectContent>
           </Select>
 
-          {vista === "lista" && (
-            <Input
-              type="date"
-              className="w-40"
-              value={filtroFecha}
-              onChange={(e) => setFiltroFecha(e.target.value)}
-            />
-          )}
-
           <Button asChild variant="outline">
             <a href={`/api/turnos/excel?${parametrosExcel.toString()}`}>
               <FileDown className="h-4 w-4" />
@@ -244,12 +164,15 @@ export default function PaginaTurnos() {
           No se pudieron cargar los turnos.
         </p>
       ) : vista === "lista" ? (
-        <TablaDatos
-          columnas={columnas}
-          datos={turnos.data ?? []}
-          obtenerClave={(t) => t.id}
+        <ListaTurnos
+          turnos={turnos.data ?? []}
           cargando={turnos.isLoading}
-          mensajeVacio="No hay turnos para mostrar."
+          sedes={sedes}
+          colores={colores}
+          fechaISO={diaLista}
+          onCambiarFecha={setDiaLista}
+          onReprogramar={setTurnoReprogramar}
+          onGrabar={abrirPanel}
         />
       ) : turnos.isLoading ? (
         <p className="text-sm text-muted-foreground">Cargando calendario…</p>
@@ -278,6 +201,7 @@ export default function PaginaTurnos() {
             fechaInicial={hueco?.fecha}
             horaInicial={hueco?.hora}
             establecimientoInicialId={hueco?.establecimientoId}
+            duracionInicial={hueco?.duracionMinutos}
             onTerminado={() => setAgendarAbierto(false)}
           />
         </DialogContent>

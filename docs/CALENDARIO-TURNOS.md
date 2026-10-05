@@ -212,3 +212,88 @@ vista por defecto.
   vigentes), y en producción los turnos del paciente 101 —o de uno archivado—
   salían como "Paciente" aunque el enlace llevara a la ficha correcta. No falla
   nada: aparece solo cuando el consultorio pasa los cien pacientes.
+
+## La vista Lista: un día por vez y selección múltiple
+
+La vista **Lista** (`componentes/turnos/ListaTurnos.tsx`) era la agenda entera
+en una tabla con un input de fecha suelto. Para cerrar el día —marcar quién
+vino y quién pagó— había que buscar el día a mano y tocar los turnos de a uno.
+
+### Por día, con el mismo mini mes
+
+- Arranca en **hoy** y muestra un día por vez, con el `MiniMes` del calendario
+  al costado (el punto dice qué días tienen turnos). «Todos los días» vuelve a
+  la tabla completa, con la columna Fecha, que con un día elegido se oculta.
+- Las flechas saltan al día de **atención** anterior o siguiente según la
+  agenda de la sede elegida, o la unión de todas (`agendaUnificada`, la misma
+  que gobierna la grilla). En el mini mes los días sin atención salen
+  apagados (`esDiaDeAtencion`, prop opcional de `MiniMes`), pero siguen siendo
+  clickeables: un turno viejo pudo quedar en un día que hoy está cerrado.
+- **El día se recorta en el navegador**, sobre la MISMA consulta que usa el
+  calendario (sede y estado sí los filtra el servidor). El mini mes necesita
+  los turnos de todos los días para sus puntos, y compartiendo la consulta
+  cambiar de vista no vuelve a pedir nada. El Excel sigue exportando lo que se
+  ve: con un día elegido manda `fecha`.
+- El encabezado suma cobrado y por cobrar de lo visible; los cancelados no
+  suman.
+
+### Acciones en lote
+
+Tildando turnos aparece `AccionesLoteTurnos`: cambiar estado (confirmar,
+completar, cancelar —con confirmación—), cobro (precio y/o pago) y «Marcar
+pagados». Del lado del servidor son `turnos.actualizarEstadoLote` y
+`turnos.registrarCobroLote`.
+
+- **Componen el caso de uso individual**, turno por turno
+  (`ActualizarEstadoTurnosEnLote` → `ActualizarEstadoTurno`,
+  `RegistrarCobroTurnosEnLote` → `RegistrarCobroTurno`). La máquina de estados
+  y la regla «no se marca pagado sin precio» son UNA sola; un camino en lote
+  con reglas propias terminaría dejando pasar lo que el individual rechaza.
+- **No es todo-o-nada** (`aplicarEnLote`, `casos-de-uso/turnos/resultadoLote.ts`):
+  lo que el dominio rechaza (un PENDIENTE no pasa directo a COMPLETADO, un turno
+  sin precio no se marca pagado) queda como estaba y vuelve en `omitidos` con
+  el motivo; el aviso los nombra y quedan tildados para revisarlos. Solo se
+  atrapa `ErrorDominio`: un error de base sigue llegando al monitor.
+- **En el cobro, lo ausente no se toca.** «Marcar pagados» manda solo
+  `pagado` y respeta el precio de cada turno; poner un precio no le borra el
+  pago a nadie. Dejar el precio vacío (sin cargo) le saca también el pago si
+  no se dijo nada del pago, porque «pagado sin precio» es justo lo que la
+  entidad prohíbe.
+- Cancelar en lote saca los turnos del calendario sincronizado
+  (`sincronizador.alCancelar`), igual que el botón de cancelar de un turno.
+- La selección se recorta a lo visible: cambiar de día o de filtro no deja
+  tildado algo que la acción tocaría a ciegas.
+
+## Volver a ocupar el horario de un turno cancelado
+
+Un turno CANCELADO libera su horario —`AgendarTurno` y `ReprogramarTurno` no
+lo cuentan para el solapamiento, y el EXCLUDE `turnos_sin_solapamiento` tiene
+`WHERE estado <> 'CANCELADO'`—, pero se queda en la agenda: que alguien no vino
+es información clínica y de cobranza, y borrarlo es otra cosa
+(`EliminarTurno`). El servidor siempre aceptó un turno nuevo encima; lo que
+faltaba era la pantalla: el globo del cancelado tapa la franja y no quedaba
+hueco que clickear. La única salida era borrarlo, que es justo perder la
+trazabilidad.
+
+El detalle del turno cancelado ofrece **«Agendar otro turno a las HH:mm»**,
+que abre el alta con ese día, esa hora y la sede del cancelado
+(`onAgendarEnSuHorario` de `DetalleTurno`). Lo decide `horarioReocupable` en
+`GrillaSemanal`, que es la que ve el día entero: solo si está cancelado, si
+ningún turno vigente volvió a ocupar ese horario y si todavía no empezó. Una
+vez agendado, el nuevo y el cancelado se dibujan lado a lado
+(`repartirCarriles` ya contemplaba ese cruce).
+
+Dos cosas que hicieron que el alta abriera en «la primera hora libre» en vez de
+en la del cancelado:
+
+- **La copia vieja de la caché.** `FormularioTurno` pide los turnos del día y
+  reubica la hora si la pedida no está libre. Si esa consulta ya estaba en
+  caché (se había agendado antes en ese día), React Query mostraba la copia
+  vieja mientras la volvía a pedir, y ahí el cancelado seguía PENDIENTE y
+  ocupando la franja. Por eso la reubicación espera también al refresco
+  (`franjasSinConfirmar`, por `isFetching`), no solo a la primera carga. El
+  selector de hora no se apaga por eso.
+- **La duración.** El alta usaba la duración por defecto de la sede; si era
+  más larga que la del cancelado y había un turno pegado, el hueco no
+  alcanzaba. El calendario manda ahora la duración del cancelado
+  (`duracionInicial` del formulario).
