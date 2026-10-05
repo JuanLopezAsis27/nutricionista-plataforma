@@ -7,5 +7,6 @@ export function useEstadisticas() {
   return {
     obtener: trpc.estadisticas.obtener.useQuery,
     detalle: trpc.estadisticas.detalle.useQuery,
+    resumenCobros: trpc.estadisticas.resumenCobros.useQuery,
   };
 }

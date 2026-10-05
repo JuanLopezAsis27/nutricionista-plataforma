@@ -411,6 +411,7 @@ export const servicioSecretaria = perezoso(() =>
 export const servicioEstadisticas = perezoso(() =>
   crearServicioEstadisticas({
     estadisticas: nucleo.repositorioEstadisticas(),
+    reloj: nucleo.reloj(),
   }),
 );
 

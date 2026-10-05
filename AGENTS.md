@@ -40,10 +40,11 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | Documento                    | Qué cubre                                            |
 | ---------------------------- | ---------------------------------------------------- |
 | `docs/DASHBOARD.md`          | Qué muestra la pantalla de inicio y por qué           |
+| `docs/ESTADISTICAS.md`       | El período hacia atrás y los cobros de la semana y a futuro |
 | `docs/PORTAL-PACIENTE.md`    | Las pantallas del paciente y por qué están así       |
 | `docs/AGENDA.md`             | Días y horarios de atención; dónde vive la regla      |
 | `docs/ESTABLECIMIENTOS.md`   | Varias sedes: qué es del lugar y qué del profesional  |
-| `docs/CALENDARIO-TURNOS.md`  | La vista de calendario: grilla semanal y globos       |
+| `docs/CALENDARIO-TURNOS.md`  | El calendario (grilla semanal) y la lista por día con acciones en lote |
 | `docs/RECORDATORIOS.md`      | Los tres medios de aviso y su política única          |
 | `docs/PLANES.md`             | Modalidades, archivos, carpetas, historial y combinaciones del día |
 | `docs/CATALOGO-BASE.md`      | Alimentos y recetas predeterminados de la plataforma  |
@@ -228,7 +229,7 @@ consultorio lento bloquearía a todos los demás.
 
 ## Modelos del dominio
 
-**38 entidades**, **199 casos de uso** en 29 módulos, **44 interfaces de
+**38 entidades**, **202 casos de uso** en 29 módulos, **44 interfaces de
 repositorio** y **21 puertos de servicio**. La fuente de verdad es el código
 (`/src/dominio`) y `prisma/schema.prisma`. Acá van solo los invariantes que
 cruzan módulos; el detalle de cada uno, en `/docs`.

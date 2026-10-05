@@ -10,6 +10,9 @@ import {
   Wallet,
   Clock,
   ChevronRight,
+  CalendarRange,
+  CalendarClock,
+  PiggyBank,
 } from "lucide-react";
 import { useEstadisticas } from "@/lib/hooks/useEstadisticas";
 import { formatearMoneda, formatearFecha, hoyLocalISO } from "@/lib/formato";
@@ -40,7 +43,7 @@ const RANGOS = [
 type TipoDetalle = "EN_RIESGO" | "NUEVOS" | "ACTIVOS";
 
 export default function PaginaEstadisticas() {
-  const { obtener, detalle } = useEstadisticas();
+  const { obtener, detalle, resumenCobros } = useEstadisticas();
   const [meses, setMeses] = useState<number>(3);
   const [desglose, setDesglose] = useState<{
     tipo: TipoDetalle;
@@ -62,6 +65,8 @@ export default function PaginaEstadisticas() {
 
   const consulta = obtener({ desde, hasta });
   const datos = consulta.data;
+  // No lleva el período: la semana y lo que viene son siempre desde hoy.
+  const cobros = resumenCobros().data;
 
   const lista = detalle(
     { tipo: desglose?.tipo ?? "EN_RIESGO", desde, hasta },
@@ -147,14 +152,63 @@ export default function PaginaEstadisticas() {
               icono={Wallet}
               titulo="Ingresos cobrados"
               valor={datos ? formatearMoneda(datos.ingresos.cobrado) : null}
-              detalle="turnos marcados como pagados"
+              detalle="turnos del período marcados como pagados"
             />
             <Kpi
               icono={Clock}
               titulo="Por cobrar"
               valor={datos ? formatearMoneda(datos.ingresos.pendiente) : null}
-              detalle="con precio y sin pagar"
+              detalle="turnos hasta hoy, con precio y sin pagar"
             />
+          </div>
+
+          {/* El período de arriba termina hoy, y la plata no: un turno de la
+              semana que viene puede estar pagado por adelantado, y lo que
+              falta cobrar esta semana incluye los días que no llegaron. */}
+          <div className="space-y-2">
+            <div>
+              <h2 className="text-base font-semibold">Cobros por venir</h2>
+              <p className="text-sm text-muted-foreground">
+                No depende del período: la semana en curso
+                {cobros &&
+                  ` (${formatearFecha(cobros.semana.desde)} al ${formatearFecha(cobros.semana.hasta)})`}{" "}
+                y los turnos posteriores a hoy.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Kpi
+                icono={Wallet}
+                titulo="Cobrado esta semana"
+                valor={cobros ? formatearMoneda(cobros.semana.cobrado) : null}
+                detalle="pagados, de lunes a domingo"
+              />
+              <Kpi
+                icono={CalendarRange}
+                titulo="Por cobrar esta semana"
+                valor={cobros ? formatearMoneda(cobros.semana.pendiente) : null}
+                detalle={
+                  cobros
+                    ? `${cobros.semana.turnosPendientes} ${cobros.semana.turnosPendientes === 1 ? "turno" : "turnos"} sin pagar, incluidos los que vienen`
+                    : "turnos sin pagar de la semana"
+                }
+              />
+              <Kpi
+                icono={CalendarClock}
+                titulo="Por cobrar a futuro"
+                valor={cobros ? formatearMoneda(cobros.futuro.pendiente) : null}
+                detalle={
+                  cobros
+                    ? `${cobros.futuro.turnosPendientes} ${cobros.futuro.turnosPendientes === 1 ? "turno agendado" : "turnos agendados"} después de hoy`
+                    : "turnos agendados después de hoy"
+                }
+              />
+              <Kpi
+                icono={PiggyBank}
+                titulo="Pagado por adelantado"
+                valor={cobros ? formatearMoneda(cobros.futuro.cobrado) : null}
+                detalle="turnos posteriores a hoy ya pagados"
+              />
+            </div>
           </div>
 
           <Card>
