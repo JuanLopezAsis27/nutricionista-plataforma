@@ -86,6 +86,9 @@ validada de dataviz.
 - El resumen del mes **no recalcula nada**: pide el mismo
   `estadisticas.obtener` acotado al mes. Si hiciera su propia cuenta, dos
   pantallas darían cifras distintas del mismo mes.
+- Los montos del resumen del mes se ocultan con el ojo del encabezado, con la
+  MISMA preferencia que Estadísticas (`useIngresosVisibles`, ver
+  `ESTADISTICAS.md`). Un monto nuevo va por `ingresos.monto()`.
 - Un bloque nuevo que necesite una consulta nueva tiene que justificarla: el
   dashboard lo abre TODO el mundo al entrar, y cada query acá se paga en cada
   sesión.

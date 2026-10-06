@@ -15,7 +15,9 @@ import {
   PiggyBank,
 } from "lucide-react";
 import { useEstadisticas } from "@/lib/hooks/useEstadisticas";
-import { formatearMoneda, formatearFecha, hoyLocalISO } from "@/lib/formato";
+import { formatearFecha, hoyLocalISO } from "@/lib/formato";
+import { useIngresosVisibles } from "@/lib/hooks/useIngresosVisibles";
+import { BotonVerIngresos } from "@/componentes/comunes/BotonVerIngresos";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
 import {
@@ -44,6 +46,7 @@ type TipoDetalle = "EN_RIESGO" | "NUEVOS" | "ACTIVOS";
 
 export default function PaginaEstadisticas() {
   const { obtener, detalle, resumenCobros } = useEstadisticas();
+  const ingresos = useIngresosVisibles();
   const [meses, setMeses] = useState<number>(3);
   const [desglose, setDesglose] = useState<{
     tipo: TipoDetalle;
@@ -82,17 +85,20 @@ export default function PaginaEstadisticas() {
             Actividad del consultorio en el período seleccionado.
           </p>
         </div>
-        <div className="flex gap-1 rounded-md border p-0.5">
-          {RANGOS.map((rango) => (
-            <Button
-              key={rango.meses}
-              variant={meses === rango.meses ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setMeses(rango.meses)}
-            >
-              {rango.etiqueta}
-            </Button>
-          ))}
+        <div className="flex items-center gap-2">
+          <BotonVerIngresos ingresos={ingresos} />
+          <div className="flex gap-1 rounded-md border p-0.5">
+            {RANGOS.map((rango) => (
+              <Button
+                key={rango.meses}
+                variant={meses === rango.meses ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setMeses(rango.meses)}
+              >
+                {rango.etiqueta}
+              </Button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -151,13 +157,13 @@ export default function PaginaEstadisticas() {
             <Kpi
               icono={Wallet}
               titulo="Ingresos cobrados"
-              valor={datos ? formatearMoneda(datos.ingresos.cobrado) : null}
+              valor={datos ? ingresos.monto(datos.ingresos.cobrado) : null}
               detalle="turnos del período marcados como pagados"
             />
             <Kpi
               icono={Clock}
               titulo="Por cobrar"
-              valor={datos ? formatearMoneda(datos.ingresos.pendiente) : null}
+              valor={datos ? ingresos.monto(datos.ingresos.pendiente) : null}
               detalle="turnos hasta hoy, con precio y sin pagar"
             />
           </div>
@@ -179,13 +185,13 @@ export default function PaginaEstadisticas() {
               <Kpi
                 icono={Wallet}
                 titulo="Cobrado esta semana"
-                valor={cobros ? formatearMoneda(cobros.semana.cobrado) : null}
+                valor={cobros ? ingresos.monto(cobros.semana.cobrado) : null}
                 detalle="pagados, de lunes a domingo"
               />
               <Kpi
                 icono={CalendarRange}
                 titulo="Por cobrar esta semana"
-                valor={cobros ? formatearMoneda(cobros.semana.pendiente) : null}
+                valor={cobros ? ingresos.monto(cobros.semana.pendiente) : null}
                 detalle={
                   cobros
                     ? `${cobros.semana.turnosPendientes} ${cobros.semana.turnosPendientes === 1 ? "turno" : "turnos"} sin pagar, incluidos los que vienen`
@@ -195,7 +201,7 @@ export default function PaginaEstadisticas() {
               <Kpi
                 icono={CalendarClock}
                 titulo="Por cobrar a futuro"
-                valor={cobros ? formatearMoneda(cobros.futuro.pendiente) : null}
+                valor={cobros ? ingresos.monto(cobros.futuro.pendiente) : null}
                 detalle={
                   cobros
                     ? `${cobros.futuro.turnosPendientes} ${cobros.futuro.turnosPendientes === 1 ? "turno agendado" : "turnos agendados"} después de hoy`
@@ -205,7 +211,7 @@ export default function PaginaEstadisticas() {
               <Kpi
                 icono={PiggyBank}
                 titulo="Pagado por adelantado"
-                valor={cobros ? formatearMoneda(cobros.futuro.cobrado) : null}
+                valor={cobros ? ingresos.monto(cobros.futuro.cobrado) : null}
                 detalle="turnos posteriores a hoy ya pagados"
               />
             </div>
@@ -262,10 +268,10 @@ export default function PaginaEstadisticas() {
                             {fila.completados}
                           </td>
                           <td className="py-2 text-right tabular-nums">
-                            {formatearMoneda(fila.ingresoCobrado)}
+                            {ingresos.monto(fila.ingresoCobrado)}
                           </td>
                           <td className="py-2 text-right tabular-nums">
-                            {formatearMoneda(fila.ingresoPendiente)}
+                            {ingresos.monto(fila.ingresoPendiente)}
                           </td>
                         </tr>
                       ))}
