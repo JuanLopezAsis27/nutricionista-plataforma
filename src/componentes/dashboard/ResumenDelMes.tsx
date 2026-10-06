@@ -9,7 +9,8 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useEstadisticas } from "@/lib/hooks/useEstadisticas";
-import { formatearMoneda } from "@/lib/formato";
+import { useIngresosVisibles } from "@/lib/hooks/useIngresosVisibles";
+import { BotonVerIngresos } from "@/componentes/comunes/BotonVerIngresos";
 import { Button } from "@/componentes/ui/button";
 import {
   Card,
@@ -41,6 +42,7 @@ export function ResumenDelMes({ hoy }: { hoy: string }) {
 
   const consulta = obtener({ desde, hasta });
   const datos = consulta.data;
+  const ingresos = useIngresosVisibles();
 
   return (
     <Card>
@@ -49,12 +51,15 @@ export function ResumenDelMes({ hoy }: { hoy: string }) {
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
           Resumen del mes
         </CardTitle>
-        <Button asChild variant="ghost" size="sm">
-          <Link href="/dashboard/estadisticas">
-            Ver estadísticas
-            <ChevronRight className="h-4 w-4" />
-          </Link>
-        </Button>
+        <div className="flex items-center gap-1">
+          <BotonVerIngresos ingresos={ingresos} />
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/dashboard/estadisticas">
+              Ver estadísticas
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {consulta.isLoading ? (
@@ -69,12 +74,12 @@ export function ResumenDelMes({ hoy }: { hoy: string }) {
               icono={Wallet}
               acento="verde"
               etiqueta="Cobrado"
-              valor={formatearMoneda(datos.ingresos.cobrado)}
+              valor={ingresos.monto(datos.ingresos.cobrado)}
               // Lo pendiente se dice al lado y no se suma: cobrado y por
               // cobrar son dos cosas, y mezclarlas infla el mes.
               detalle={
                 datos.ingresos.pendiente > 0
-                  ? `${formatearMoneda(datos.ingresos.pendiente)} por cobrar`
+                  ? `${ingresos.monto(datos.ingresos.pendiente)} por cobrar`
                   : "sin pendientes"
               }
             />

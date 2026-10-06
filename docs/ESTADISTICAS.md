@@ -37,3 +37,21 @@ pendiente ahí es lo que ya se atendió y no se cobró.
   `PrismaRepositorioEstadisticas`): un cancelado no es plata pendiente, y lo
   pagado cuenta aunque el turno se haya cancelado después.
 - `Turno.fecha` es un DATE, así que `lte: hasta` incluye el domingo entero.
+
+## Ocultar los montos
+
+El ojo junto a los rangos oculta **toda** cifra de plata de la pantalla
+(período, cobros por venir y la tabla por establecimiento) como `$ ******`; los
+conteos de turnos quedan a la vista. Lo resuelve `useIngresosVisibles`
+(`lib/hooks/`), que es el mismo del resumen del mes del dashboard:
+
+- Es una preferencia **de quien mira**, no del consultorio: sirve para abrir la
+  app con un paciente al lado. Por eso vive en `localStorage` del dispositivo
+  y no en la base.
+- Es **una sola** para las dos pantallas (se avisan con un evento en la misma
+  pestaña y con `storage` entre pestañas): ocultar en una y encontrar la plata
+  a la vista en la otra no protege nada.
+- En el servidor y en la hidratación sale **oculto**: si la preferencia es
+  ocultar, el monto no llega a verse ni un instante.
+- Un monto nuevo en estas pantallas va por `ingresos.monto(valor)`, no por
+  `formatearMoneda`, o queda afuera del ocultamiento sin que nada falle.

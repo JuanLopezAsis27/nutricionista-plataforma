@@ -57,6 +57,9 @@ comer y a registrar lo del día, así que el orden de la pantalla es ese:
    idénticas hay que leer las ocho etiquetas para encontrar una, y esto se abre
    todos los días para ir casi siempre al mismo lado. El color acompaña al
    ícono y a la etiqueta, nunca los reemplaza. Mensajes lleva su contador.
+   La octava es **Mi material** (antes era el Asistente, que sigue en la
+   barra lateral): lo que el profesional comparte se consulta seguido, y el
+   chat no necesitaba un atajo además de su entrada.
 3. **Qué comer** — dos tarjetas: la franja del **plan** que corresponde a esta
    hora, y las comidas de hoy del **menú semanal**. Son dos cosas distintas y
    un paciente puede tener las dos (ver `PLANES-SEMANALES.md`).
