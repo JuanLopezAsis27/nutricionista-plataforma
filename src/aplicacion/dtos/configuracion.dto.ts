@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { METODOS_GRASA } from "@/dominio/servicios/grasaPorPliegues";
 import { CAMPOS_PLANTILLA } from "@/dominio/entidades/PlantillaAntropometrica";
+import { EVOLUCIONES_ANTROPOMETRIA } from "@/dominio/entidades/evolucionesAntropometria";
 import { LARGO_MAXIMO_NOMBRE_PROFESIONAL } from "@/dominio/entidades/nombreProfesional";
 
 /**
@@ -63,6 +64,10 @@ export const guardarConfiguracionDto = z.object({
     .min(1, "Elegí al menos un campo")
     .optional(),
   analisisFotoComidaAutomatico: z.boolean().optional(),
+  evolucionesPaciente: z
+    .array(z.enum(EVOLUCIONES_ANTROPOMETRIA))
+    .min(1, "Elegí al menos una evolución para mostrarle al paciente.")
+    .optional(),
 });
 export type GuardarConfiguracionDto = z.infer<typeof guardarConfiguracionDto>;
 
@@ -87,6 +92,7 @@ export const configuracionSalidaDto = z.object({
   camposDosComponentes: z.array(z.enum(CAMPOS_PLANTILLA)),
   camposCincoComponentes: z.array(z.enum(CAMPOS_PLANTILLA)),
   analisisFotoComidaAutomatico: z.boolean(),
+  evolucionesPaciente: z.array(z.enum(EVOLUCIONES_ANTROPOMETRIA)),
   creadoEn: z.date(),
   actualizadoEn: z.date(),
 });

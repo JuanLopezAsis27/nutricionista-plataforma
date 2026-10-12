@@ -12,6 +12,7 @@ import type {
   CampoPlantilla,
 } from "@/dominio/entidades/PlantillaAntropometrica";
 import type { ProtocoloComposicion } from "@/dominio/entidades/Antropometria";
+import type { EvolucionAntropometria } from "@/dominio/entidades/evolucionesAntropometria";
 import type {
   ResultadoComposicion,
   SexoBiologico,
@@ -528,6 +529,11 @@ export interface ComposicionCorporalDto {
   objetivos: ObjetivoComposicionDto[];
   /** Punto de partida para plantear metas nuevas, por variable y ecuación. */
   valoresActuales: ValorActualVariableDto[];
+  /**
+   * Qué evoluciones ve el paciente en su portal (Configuración →
+   * Antropometría). El profesional arranca su propio gráfico en las mismas.
+   */
+  evolucionesPaciente: EvolucionAntropometria[];
 }
 
 export const guardarObjetivoComposicionDto = z.object({

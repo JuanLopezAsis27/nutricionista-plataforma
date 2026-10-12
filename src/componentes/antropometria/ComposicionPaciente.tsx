@@ -44,6 +44,7 @@ import {
 } from "@/componentes/ui/select";
 import { DonutMasas } from "./DonutMasas";
 import { EvolucionMasas, EvolucionGrasa } from "./EvolucionMasas";
+import { EvolucionMedidas } from "./EvolucionMedidas";
 import {
   SelectorEcuacion,
   ecuacionesDeLaSerie,
@@ -175,7 +176,7 @@ export function ComposicionPaciente() {
     );
   }
 
-  const { mediciones, objetivos } = consulta.data;
+  const { mediciones, objetivos, evolucionesPaciente } = consulta.data;
 
   if (mediciones.length === 0) {
     return (
@@ -493,6 +494,25 @@ export function ComposicionPaciente() {
                 <EvolucionMasas mediciones={mediciones} tema={tema} />
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {mediciones.length > 1 && (
+        <Card className="overflow-hidden">
+          <CabeceraTarjeta
+            icono={Ruler}
+            titulo="Tus medidas en el tiempo"
+            fondo="bg-sky-500/5"
+            tinte="bg-sky-500/10"
+            color="text-sky-600 dark:text-sky-400"
+          />
+          <CardContent className="p-4">
+            <EvolucionMedidas
+              mediciones={mediciones}
+              tema={tema}
+              evoluciones={evolucionesPaciente}
+            />
           </CardContent>
         </Card>
       )}

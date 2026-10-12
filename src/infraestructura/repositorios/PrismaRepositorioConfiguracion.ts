@@ -9,6 +9,11 @@ import { normalizarCamposPlantilla } from "@/dominio/entidades/PlantillaAntropom
 import { CAMPOS_PROTOCOLO_POR_DEFECTO } from "@/dominio/entidades/protocolosMedicion";
 import type { ProtocoloComposicion } from "@/dominio/entidades/Antropometria";
 import type { CampoPlantilla } from "@/dominio/entidades/PlantillaAntropometrica";
+import {
+  EVOLUCIONES_PACIENTE_POR_DEFECTO,
+  normalizarEvoluciones,
+  type EvolucionAntropometria,
+} from "@/dominio/entidades/evolucionesAntropometria";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 
 /**
@@ -46,6 +51,7 @@ export class PrismaRepositorioConfiguracion implements IConfiguracionRepositorio
       camposDosComponentes: d.camposDosComponentes,
       camposCincoComponentes: d.camposCincoComponentes,
       analisisFotoComidaAutomatico: d.analisisFotoComidaAutomatico,
+      evolucionesPaciente: d.evolucionesPaciente,
     };
     // La config del inquilino es única; si ya existe se actualiza, si no se crea.
     const existente = await this.prisma.configuracionConsultorio.findFirst();
@@ -93,6 +99,7 @@ export function mapearConfiguracion(
       fila.camposCincoComponentes,
     ),
     analisisFotoComidaAutomatico: fila.analisisFotoComidaAutomatico,
+    evolucionesPaciente: evolucionesDelPaciente(fila.evolucionesPaciente),
     creadoEn: fila.creadoEn,
     actualizadoEn: fila.actualizadoEn,
   });
@@ -115,4 +122,18 @@ function camposDelProtocolo(
   return campos.length > 0
     ? campos
     : [...CAMPOS_PROTOCOLO_POR_DEFECTO[protocolo]];
+}
+
+/**
+ * Evoluciones guardadas para el portal, o las de fábrica si la fila no tiene
+ * ninguna (columna vacía = nunca se personalizó, migración 89). Descarta las
+ * que ya no existan, igual que los campos de protocolo.
+ */
+function evolucionesDelPaciente(
+  guardadas: string[],
+): EvolucionAntropometria[] {
+  const evoluciones = normalizarEvoluciones(guardadas ?? []);
+  return evoluciones.length > 0
+    ? evoluciones
+    : [...EVOLUCIONES_PACIENTE_POR_DEFECTO];
 }

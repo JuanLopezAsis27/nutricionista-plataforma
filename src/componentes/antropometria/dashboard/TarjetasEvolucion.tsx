@@ -1,6 +1,7 @@
 import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
 import type { TemaComposicion } from "../paleta";
 import type { MetodoGrasa } from "@/dominio/servicios/grasaPorPliegues";
+import type { EvolucionAntropometria } from "@/dominio/entidades/evolucionesAntropometria";
 import {
   Card,
   CardContent,
@@ -18,9 +19,11 @@ import {
   EvolucionScoreZ,
   EvolucionGrasa,
 } from "../EvolucionMasas";
+import { EvolucionMedidas } from "../EvolucionMedidas";
 
 /**
- * Las tres series históricas. Solo aparecen con más de una medición: una serie
+ * Las series históricas: % graso, medidas a elección (peso, cintura,
+ * prensión…; ver `EvolucionMedidas`), masas y Score-Z. Solo aparecen con más de una medición: una serie
  * de un punto no dice nada y ocuparía media pantalla.
  *
  * El filtro de ecuación está acá arriba y no dentro del gráfico porque manda
@@ -42,6 +45,7 @@ export function TarjetasEvolucion({
   metodosDisponibles,
   alCambiarSeleccion,
   favorita,
+  evolucionesPaciente,
   tema,
 }: {
   mediciones: MedicionComposicionDto[];
@@ -51,6 +55,8 @@ export function TarjetasEvolucion({
   alCambiarSeleccion: (seleccion: SeleccionEcuacion) => void;
   /** La ecuación que el profesional destacó: la predeterminada. */
   favorita: MetodoGrasa | null;
+  /** Las que ve el paciente: el gráfico de medidas arranca en ellas. */
+  evolucionesPaciente: EvolucionAntropometria[];
   tema: TemaComposicion;
 }) {
   if (mediciones.length <= 1) return null;
@@ -86,6 +92,22 @@ export function TarjetasEvolucion({
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold">
+            Evolución de las medidas
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EvolucionMedidas
+            mediciones={mediciones}
+            tema={tema}
+            evoluciones={evolucionesPaciente}
+            seleccionable
+          />
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
