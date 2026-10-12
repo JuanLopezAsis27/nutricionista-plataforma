@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { CredentialsSignin } from "next-auth";
 
 import { signIn } from "@/lib/autenticacion/auth";
 import {
@@ -44,9 +45,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   // Se tipa `unknown` a mano: con `redirect: false`, Auth.js declara el retorno
   // como `any`, y dejar que eso se propague apagaría el chequeo de tipos de
   // todo lo que toque el resultado.
-  const resultado: unknown = await signIn(ID_PROVEEDOR_REFRESCO, {
-    redirect: false,
-  });
+  const resultado: unknown = await canjear();
 
   if (fracaso(resultado)) {
     // La cookie ya la borró `renovarDesdeCookie`; se insiste por si el fallo
@@ -67,12 +66,37 @@ export async function GET(request: Request): Promise<NextResponse> {
 }
 
 /**
+ * Llama al provider `refresco` y devuelve lo que diga `signIn`, o `null` si el
+ * token no sirvió.
+ *
+ * **Un token que no sirve LANZA, no vuelve en la URL.** El `signIn` del
+ * servidor llama a Auth.js en modo `raw`, y en ese modo un `CredentialsSignin`
+ * (el `authorize` devolvió `null`) se relanza en vez de convertirse en un
+ * `?error=` (`@auth/core`, `Auth()`). Sin este `catch` el handler moría con un
+ * 500 y —peor— la cookie borrada en `renovarDesdeCookie` no llegaba al
+ * navegador, porque las cookies de `cookies()` viajan en la respuesta que el
+ * handler nunca devolvió: cada visita volvía a pasar por acá y a dar 500, y el
+ * paciente no podía ni llegar al login (pasó en producción, 2026-10-12).
+ *
+ * Solo se ataja `CredentialsSignin`, que es el "este token no sirve" esperado.
+ * Cualquier otro error es de configuración y tiene que llegar al monitor.
+ */
+async function canjear(): Promise<unknown> {
+  try {
+    return await signIn(ID_PROVEEDOR_REFRESCO, { redirect: false });
+  } catch (error) {
+    if (error instanceof CredentialsSignin) return null;
+    throw error;
+  }
+}
+
+/**
  * ¿La renovación falló?
  *
- * Con `redirect: false`, `signIn` devuelve la URL a la que habría mandado al
- * navegador. Cuando el `authorize` del provider devuelve `null`, Auth.js arma
- * esa URL con un `error` en la query; cuando sale bien, es el `callbackUrl`
- * limpio. Es la única señal que da: no lanza ni devuelve un booleano.
+ * `null` es el `CredentialsSignin` que ataja `canjear`. Si no, con
+ * `redirect: false` `signIn` devuelve la URL a la que habría mandado al
+ * navegador: con `error` en la query si algo falló sin lanzar, el
+ * `callbackUrl` limpio si salió bien.
  */
 function fracaso(resultado: unknown): boolean {
   if (typeof resultado !== "string") return true;

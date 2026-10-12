@@ -168,6 +168,16 @@ valida al paciente contra sus fichas, no contra la cuenta. Ver
 - **Nunca quitar el corta-bucles de `/login`.** Esa página y el handler se
   mandan al otro; la marca `?expirada=1` es lo que garantiza que eso termine
   aunque la cookie no se haya podido borrar.
+- **Nunca esperar el fracaso del canje en la URL que devuelve `signIn`.** El
+  `signIn` del servidor llama a Auth.js en modo `raw`, y ahí un token que no
+  sirve (el `authorize` devuelve `null`) se LANZA como `CredentialsSignin` en
+  vez de volver como `?error=`. Así estuvo hasta el 2026-10-12: el handler daba
+  500 y, como las cookies de `cookies()` viajan en la respuesta que nunca se
+  devolvió, la cookie vencida no se borraba y CADA visita volvía a dar 500 —el
+  paciente no llegaba ni al login, aunque la app anduviera para todos los
+  demás—. `canjear()` ataja solo `CredentialsSignin` y lo trata como fracaso
+  (login con `?expirada=1` y cookie borrada); cualquier otro error sigue
+  lanzando para que lo vea el monitor. Lo cubre `renovar/route.test.ts`.
 - **Nunca usar el `destino` de la query sin validarlo.** Solo rutas internas: si
   no, `/api/autenticacion/renovar?destino=https://otro-sitio` es un redirector
   abierto que además entrega gente recién autenticada.
