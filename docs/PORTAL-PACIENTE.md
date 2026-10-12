@@ -238,6 +238,12 @@ esa medición. Dos cosas no se mueven con la elección, a propósito: los
 **objetivos** se leen siempre contra la última medición (dicen dónde está el
 paciente hoy) y la **evolución** muestra la serie entera.
 
+Debajo de la evolución del % graso está **«Tus medidas en el tiempo»**: un
+gráfico por medida (peso, cintura, prensión, un pliegue o un perímetro
+puntual…). Cuáles, lo elige el consultorio en Configuración → Antropometría →
+Evoluciones del paciente; el paciente no las cambia. Ver «La evolución de las
+medidas» en `docs/ANTROPOMETRIA.md`.
+
 Al lado de la antropometría hay una pestaña **Bioimpedancia** con el dashboard
 de la balanza (`docs/BIOIMPEDANCIA.md`). Van separadas porque son dos métodos:
 el % graso de una y de la otra no se comparan.

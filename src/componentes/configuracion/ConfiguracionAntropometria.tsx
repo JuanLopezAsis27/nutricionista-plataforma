@@ -7,16 +7,18 @@ import {
   TabsContent,
 } from "@/componentes/ui/tabs";
 import { FormularioEcuacionesGrasa } from "./FormularioEcuacionesGrasa";
+import { FormularioEvolucionesPaciente } from "./FormularioEvolucionesPaciente";
 import { FormularioProtocolosMedicion } from "./FormularioProtocolosMedicion";
 import { GestorPlantillasAntropometria } from "./GestorPlantillasAntropometria";
 
 /**
- * Antropometría del consultorio: las tres decisiones que valen para TODOS los
+ * Antropometría del consultorio: las decisiones que valen para TODOS los
  * pacientes y por eso viven acá y no en la ficha de uno.
  *
  * - **Protocolos**: qué medidas pide cada uno de los dos protocolos.
  * - **Plantillas**: juegos de campos propios, que se ofrecen en cada carga.
  * - **Ecuaciones**: cuáles de las de grasa se calculan y se muestran.
+ * - **Evoluciones del paciente**: qué gráficos de evolución ve en el portal.
  *
  * Las plantillas estaban en una pestaña de la ficha del paciente, que es donde
  * se USAN: se administraban desde adentro de un paciente cualquiera aunque no
@@ -29,6 +31,7 @@ export function ConfiguracionAntropometria() {
         <TabsTrigger value="protocolos">Protocolos</TabsTrigger>
         <TabsTrigger value="plantillas">Plantillas de carga</TabsTrigger>
         <TabsTrigger value="ecuaciones">Ecuaciones de grasa</TabsTrigger>
+        <TabsTrigger value="evoluciones">Evoluciones del paciente</TabsTrigger>
       </TabsList>
 
       <TabsContent value="protocolos" className="mt-4">
@@ -41,6 +44,10 @@ export function ConfiguracionAntropometria() {
 
       <TabsContent value="ecuaciones" className="mt-4">
         <FormularioEcuacionesGrasa />
+      </TabsContent>
+
+      <TabsContent value="evoluciones" className="mt-4">
+        <FormularioEvolucionesPaciente />
       </TabsContent>
     </Tabs>
   );

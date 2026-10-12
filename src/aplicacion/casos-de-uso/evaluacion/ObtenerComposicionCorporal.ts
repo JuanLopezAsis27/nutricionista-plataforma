@@ -3,6 +3,7 @@ import type { IObjetivoComposicionRepositorio } from "@/dominio/repositorios/IOb
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { ObtenerConfiguracion } from "@/aplicacion/casos-de-uso/configuracion/ObtenerConfiguracion";
 import type { Antropometria } from "@/dominio/entidades/Antropometria";
+import type { EvolucionAntropometria } from "@/dominio/entidades/evolucionesAntropometria";
 import {
   VARIABLES_COMPOSICION,
   exigeMetodoGrasa,
@@ -65,6 +66,8 @@ export interface ComposicionCorporal {
   }[];
   /** Punto de partida para plantear metas nuevas (de la última medición). */
   valoresActuales: ValorActualVariable[];
+  /** Las evoluciones que el consultorio le muestra al paciente en su portal. */
+  evolucionesPaciente: EvolucionAntropometria[];
 }
 
 const MS_POR_ANIO = 365.25 * 24 * 60 * 60 * 1000;
@@ -132,6 +135,7 @@ export class ObtenerComposicionCorporal {
       sexo,
       fechaNacimiento,
       valoresActuales: valoresDeLaUltima(analizadas),
+      evolucionesPaciente: config.evolucionesPaciente,
       mediciones: analizadas,
       objetivos: objetivos.map((objetivo) => ({
         objetivo,

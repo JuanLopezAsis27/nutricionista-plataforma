@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { FileDown } from "lucide-react";
 import type { MedicionComposicionDto } from "@/aplicacion/dtos/evaluacion.dto";
+import type { EvolucionAntropometria } from "@/dominio/entidades/evolucionesAntropometria";
 import {
   Card,
   CardContent,
@@ -44,9 +45,12 @@ import { TarjetaDistribucion } from "./dashboard/TarjetaDistribucion";
 export function DashboardComposicion({
   pacienteId,
   mediciones,
+  evolucionesPaciente,
 }: {
   pacienteId: string;
   mediciones: MedicionComposicionDto[];
+  /** Las evoluciones del portal: el gráfico de medidas arranca en ellas. */
+  evolucionesPaciente: EvolucionAntropometria[];
 }) {
   const { tema, montado } = useTemaComposicion();
   const [seleccionadaId, setSeleccionadaId] = useState<string | null>(null);
@@ -184,6 +188,7 @@ export function DashboardComposicion({
         metodosDisponibles={metodosDisponibles}
         alCambiarSeleccion={setSeleccionEcuacion}
         favorita={favorita}
+        evolucionesPaciente={evolucionesPaciente}
         tema={tema}
       />
 

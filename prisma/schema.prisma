@@ -2998,6 +2998,11 @@ model ConfiguracionConsultorio {
   /// Si una foto de comida del diario se analiza sola con IA al subirla.
   /// Apagado por defecto: cada análisis gasta cuota de IA del consultorio.
   analisisFotoComidaAutomatico Boolean       @default(false)
+  /// Qué evoluciones de la antropometría ve el paciente en su portal
+  /// (migración 89): ids de `EVOLUCIONES_ANTROPOMETRIA`. Vacío = nunca se
+  /// personalizó y vale el juego por defecto del dominio, que se resuelve al
+  /// LEER, como los campos de protocolo.
+  evolucionesPaciente          String[]      @default([])
   /// Número de WhatsApp al que escribe el paciente para cancelar (migración
   /// 76). Puede no ser el que manda los recordatorios.
   whatsappCancelaciones        String?

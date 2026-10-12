@@ -637,6 +637,45 @@ una ecuación elegida a mano la conservan. Ese array es solo de la aplicación:
 el enum de Postgres sigue sin reordenarse. Reordenarlo mueve también el color
 de cada ecuación en los gráficos, que sale de su posición.
 
+## La evolución de las medidas: el consultorio elige qué ve el paciente
+
+Además del % graso y de las masas, el dashboard del profesional y «Mi
+composición» del paciente tienen una tarjeta de **evolución de las medidas**
+(`componentes/antropometria/EvolucionMedidas.tsx`). Se puede seguir cada
+medida por separado —cada pliegue, cada perímetro, cada diámetro, la talla—,
+la fuerza de prensión (derecha e izquierda juntas), el peso, los kg bajados
+acumulados, el IMC, el índice cintura/cadera, las Σ de pliegues y las masas
+muscular y adiposa de Kerr.
+
+- **El catálogo es del dominio** (`EVOLUCIONES_ANTROPOMETRIA`,
+  `dominio/entidades/evolucionesAntropometria.ts`), porque sus ids se guardan
+  en la configuración. Cómo se dibuja cada uno (nombre, unidad, de dónde sale
+  el valor) y en qué grupo del selector va está en `DEFINICIONES_EVOLUCION` y
+  `GRUPOS_EVOLUCION`; un test exige que todo id del dominio tenga las dos.
+  Sumar una medida es sumarla en los dos lados.
+- **Lo que ve el paciente lo elige el consultorio**, en Configuración →
+  Antropometría → Evoluciones del paciente (`evolucionesPaciente` en
+  `configuracion_consultorio`, migración 89). Vacío en la base = nunca se
+  personalizó y valen `EVOLUCIONES_PACIENTE_POR_DEFECTO` (peso, cintura y
+  prensión), resuelto al LEER como los campos de protocolo. No puede quedar
+  vacía. Viaja al portal dentro de `miComposicion` (`evolucionesPaciente`).
+- **Es presentación, no permiso**: el paciente ya recibe todas sus medidas
+  crudas para la planilla de cada consulta, así que el servidor no filtra
+  nada. Lo que no se elige no se dibuja.
+- **El profesional arranca en lo mismo que ve el paciente** y puede elegir
+  otras para mirar él («Elegir medidas»). Esa elección es una preferencia de
+  lectura: se recuerda en su navegador (`localStorage`,
+  `evolucion-medidas:profesional`), no cambia lo del paciente, y «Ver lo
+  mismo que el paciente» la descarta.
+- **Un panel por medida, nunca un segundo eje.** kg, cm, mm y un índice sin
+  unidad no comparten escala, y con dos ejes Y el cruce de dos curvas lo
+  decide quien eligió las escalas. Solo se dibujan las medidas con al menos
+  dos consultas; las consultas que no la midieron no entran al panel (no son
+  un cero), salvo los kg bajados, que arrancan en 0 en la primera.
+- Mismo eje de **tiempo** que la serie de grasa, eje Y recortado al recorrido
+  de la serie y el último valor de cada serie escrito en texto. No recalcula
+  nada: lee las medidas crudas y los derivados que ya trae el DTO.
+
 ## Masa grasa en Progreso
 
 La pestaña Progreso muestra, además del peso, la evolución de la **masa grasa

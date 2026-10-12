@@ -5,6 +5,12 @@ import {
   CAMPOS_PROTOCOLO_POR_DEFECTO,
   camposDeProtocoloValidados,
 } from "./protocolosMedicion";
+import {
+  EVOLUCIONES_PACIENTE_POR_DEFECTO,
+  esEvolucionAntropometria,
+  normalizarEvoluciones,
+  type EvolucionAntropometria,
+} from "./evolucionesAntropometria";
 
 /**
  * Campos editables de la configuración del consultorio.
@@ -72,6 +78,12 @@ export interface DatosConfiguracion {
    * cuota de IA del consultorio (la misma que el Asistente del paciente).
    */
   analisisFotoComidaAutomatico: boolean;
+  /**
+   * Qué evoluciones de la antropometría ve el paciente en su portal (peso,
+   * un pliegue, un perímetro…). Al menos una. Es presentación, no permiso:
+   * las medidas crudas el paciente ya las ve en la planilla de cada consulta.
+   */
+  evolucionesPaciente: EvolucionAntropometria[];
 }
 
 /** Estado completo persistido. */
@@ -119,6 +131,7 @@ export class ConfiguracionConsultorio {
         ...CAMPOS_PROTOCOLO_POR_DEFECTO.CINCO_COMPONENTES,
       ],
       analisisFotoComidaAutomatico: false,
+      evolucionesPaciente: [...EVOLUCIONES_PACIENTE_POR_DEFECTO],
       creadoEn: ahora,
       actualizadoEn: ahora,
     });
@@ -201,6 +214,9 @@ export class ConfiguracionConsultorio {
         cambios.analisisFotoComidaAutomatico,
         this.props.analisisFotoComidaAutomatico,
       ),
+      evolucionesPaciente: evolucionesValidadas(
+        fusionar(cambios.evolucionesPaciente, this.props.evolucionesPaciente),
+      ),
     };
     validar(datos);
     return new ConfiguracionConsultorio({
@@ -233,6 +249,10 @@ export class ConfiguracionConsultorio {
   }
   get analisisFotoComidaAutomatico(): boolean {
     return this.props.analisisFotoComidaAutomatico;
+  }
+
+  get evolucionesPaciente(): EvolucionAntropometria[] {
+    return [...this.props.evolucionesPaciente];
   }
 
   aPrimitivos(): PropiedadesConfiguracion {
@@ -277,4 +297,23 @@ function validar(d: DatosConfiguracion): void {
   ) {
     throw new ErrorValidacion("Hay una ecuación de grasa que ya no existe.");
   }
+}
+
+/**
+ * Evoluciones del portal validadas y en el orden del catálogo (que es el de
+ * los paneles), sin repetidos. Lanza, como `camposDeProtocoloValidados`.
+ */
+function evolucionesValidadas(
+  ids: readonly string[],
+): EvolucionAntropometria[] {
+  if (!ids.every(esEvolucionAntropometria)) {
+    throw new ErrorValidacion("Hay una evolución que ya no existe.");
+  }
+  const normalizadas = normalizarEvoluciones(ids);
+  if (normalizadas.length === 0) {
+    throw new ErrorValidacion(
+      "Elegí al menos una evolución para mostrarle al paciente.",
+    );
+  }
+  return normalizadas;
 }

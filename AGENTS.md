@@ -606,7 +606,10 @@ lee medidas corporales; **Progreso** es el seguimiento del día a día. En el po
 del paciente, **Mi composición** es la ÚNICA parte de la evaluación que se
 expone —la antropometría y, en otra pestaña, la bioimpedancia
 (`miBioimpedancia`, sin las observaciones del profesional)—: historia clínica,
-laboratorios y alertas siguen siendo del profesional.
+laboratorios y alertas siguen siendo del profesional. Qué gráficos de
+evolución de medidas ve ahí (un pliegue, un perímetro, la prensión…) lo elige
+el consultorio (`evolucionesPaciente`, migración 89); es presentación, no
+permiso.
 
 Ver `docs/ANTROPOMETRIA.md`.
 

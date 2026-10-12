@@ -180,6 +180,7 @@ export class ServicioAntropometria {
       mediciones,
       objetivos,
       valoresActuales: composicion.valoresActuales,
+      evolucionesPaciente: composicion.evolucionesPaciente,
     };
   }
 

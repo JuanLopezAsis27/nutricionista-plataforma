@@ -132,7 +132,8 @@ export function SeccionComposicionCorporal({
     );
   }
 
-  const { mediciones, objetivos, sexo, valoresActuales } = composicion.data;
+  const { mediciones, objetivos, sexo, valoresActuales, evolucionesPaciente } =
+    composicion.data;
 
   const abrirNueva = () => {
     setEditando(null);
@@ -231,6 +232,7 @@ export function SeccionComposicionCorporal({
           <DashboardComposicion
             pacienteId={pacienteId}
             mediciones={mediciones}
+            evolucionesPaciente={evolucionesPaciente}
           />
         </TabsContent>
 
