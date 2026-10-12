@@ -129,9 +129,7 @@ function camposDelProtocolo(
  * ninguna (columna vacía = nunca se personalizó, migración 89). Descarta las
  * que ya no existan, igual que los campos de protocolo.
  */
-function evolucionesDelPaciente(
-  guardadas: string[],
-): EvolucionAntropometria[] {
+function evolucionesDelPaciente(guardadas: string[]): EvolucionAntropometria[] {
   const evoluciones = normalizarEvoluciones(guardadas ?? []);
   return evoluciones.length > 0
     ? evoluciones
