@@ -26,7 +26,8 @@ otro en cada carpeta que tiene subpáginas propias:
 | ----------------------------------- | ------------------------------------------ |
 | `dashboard/loading.tsx`             | pasar de una sección del panel a otra      |
 | `dashboard/pacientes/loading.tsx`   | listado → ficha, listado → nuevo           |
-| `dashboard/planes/loading.tsx`      | listado → plan                             |
+| `dashboard/planes/loading.tsx`      | listado → plan, listado → plan semanal     |
+| `dashboard/planes/semanales/loading.tsx` | un plan semanal → otro                |
 | `dashboard/recetas/loading.tsx`     | recetario → receta                         |
 | `dashboard/turnos/loading.tsx`      | agenda → nuevo turno                       |
 | `(paciente)/loading.tsx`            | pasar de una sección del portal a otra     |

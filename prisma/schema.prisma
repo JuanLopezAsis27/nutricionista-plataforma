@@ -152,6 +152,14 @@ enum TipoMetaMacro {
   MAXIMO
 }
 
+/// Cómo declara sus metas un plan semanal (migración 91): las mismas para los
+/// siete días (GENERAL) o unas para cada día (POR_DIA: el sábado de 2500 kcal
+/// y el lunes de 1800).
+enum ModoMetasPlanSemanal {
+  GENERAL
+  POR_DIA
+}
+
 /// Día de la semana de una comida del plan semanal. Es un enum y no un 0-6
 /// porque el día acá no es una fecha: el plan semanal es de referencia («los
 /// lunes») y no arranca en ninguna semana concreta. Con un número habría que
@@ -430,6 +438,7 @@ model Nutricionista {
   asignacionesReceta   AsignacionReceta[]
   asignacionesMaterial AsignacionMaterial[]
   franjasPlanSemanal   FranjaPlanSemanal[]
+  metasDiaPlanSemanal  MetaDiaPlanSemanal[]
   comidasSemanales     ComidaSemanal[]
   itemsComidaSemanal   ItemComidaSemanal[]
   asignacionesSemanal  AsignacionPlanSemanal[]
@@ -2432,18 +2441,35 @@ model RecomendacionPlan {
 /// NO reemplaza a `PlanNutricional` ni es una modalidad suya: aquel describe un
 /// DÍA TIPO (franjas con opciones que valen cualquier día) y este la SEMANA
 /// (qué se come el lunes al mediodía, que no es lo del martes). Conviven a
-/// propósito y un paciente puede tener los dos: el plan fija los macros
-/// diarios, el semanal es una manera concreta de alcanzarlos, y es contra
-/// aquellos macros que se compara el total de cada día.
+/// propósito y un paciente puede tener los dos.
+///
+/// Lleva sus PROPIAS metas (migración 91): antes comparaba contra las del plan
+/// nutricional asignado, y con varios planes asignados solo contaba uno.
 model PlanSemanal {
-  id              String   @id @default(uuid(4))
-  nutricionistaId String
-  nombre          String
-  descripcion     String?
-  creadoEn        DateTime @default(now())
-  actualizadoEn   DateTime @updatedAt
+  id                    String               @id @default(uuid(4))
+  nutricionistaId       String
+  nombre                String
+  descripcion           String?
+  /// GENERAL: las metas de abajo valen para los siete días. POR_DIA: cada día
+  /// lleva las suyas en `MetaDiaPlanSemanal` (migración 92), y las de abajo
+  /// quedan en null (CHECK en la base).
+  modoMetas             ModoMetasPlanSemanal @default(GENERAL)
+  caloriasMeta          Int?
+  proteinasMetaG        Decimal?             @db.Decimal(7, 2)
+  carbohidratosMetaG    Decimal?             @db.Decimal(7, 2)
+  grasasMetaG           Decimal?             @db.Decimal(7, 2)
+  /// Piso, techo o aproximada: valen para los dos modos (la proteína es "como
+  /// mínimo" todos los días aunque cada día pida otra cantidad).
+  caloriasMetaTipo      TipoMetaMacro        @default(APROXIMADO)
+  proteinasMetaTipo     TipoMetaMacro        @default(APROXIMADO)
+  carbohidratosMetaTipo TipoMetaMacro        @default(APROXIMADO)
+  grasasMetaTipo        TipoMetaMacro        @default(APROXIMADO)
+  creadoEn              DateTime             @default(now())
+  actualizadoEn         DateTime             @updatedAt
 
   franjas       FranjaPlanSemanal[]
+  /// Con modoMetas POR_DIA: las metas de cada día (una fila por día).
+  metasDia      MetaDiaPlanSemanal[]
   asignaciones  AsignacionPlanSemanal[]
   nutricionista Nutricionista           @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
@@ -2453,6 +2479,30 @@ model PlanSemanal {
   /// que crea sirve también para listar por nombre.
   @@unique([nutricionistaId, nombre])
   @@map("planes_semanales")
+}
+
+/// Las metas de UN día de un plan semanal con metas por día (migración 92).
+/// Fueron un JSON en `planes_semanales.metasPorDia` (migración 91) y pasaron a
+/// tabla para que la base las controle: el día es el enum, no puede haber dos
+/// filas para el mismo día (único), los valores son números en rango y una
+/// fila tiene al menos uno (CHECK). Un día sin fila no tiene metas. Los tipos
+/// (piso, techo, aproximada) son de la macro y viven en el plan.
+model MetaDiaPlanSemanal {
+  id                 String    @id @default(uuid(4))
+  nutricionistaId    String
+  planSemanalId      String
+  dia                DiaSemana
+  caloriasMeta       Int?
+  proteinasMetaG     Decimal?  @db.Decimal(7, 2)
+  carbohidratosMetaG Decimal?  @db.Decimal(7, 2)
+  grasasMetaG        Decimal?  @db.Decimal(7, 2)
+
+  plan          PlanSemanal   @relation(fields: [planSemanalId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@unique([planSemanalId, dia])
+  @@index([nutricionistaId, planSemanalId])
+  @@map("metas_dia_plan_semanal")
 }
 
 /// Franja del plan semanal (Desayuno, Col. AM, Almuerzo…): una FILA de la

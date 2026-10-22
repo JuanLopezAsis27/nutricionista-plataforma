@@ -4,7 +4,11 @@ import { useMemo, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
-import { ETIQUETA_DIA, type DiaSemana } from "@/dominio/entidades/PlanSemanal";
+import {
+  DIAS_SEMANA,
+  ETIQUETA_DIA,
+  type DiaSemana,
+} from "@/dominio/entidades/PlanSemanal";
 import type { PlanSemanalSalidaDto } from "@/aplicacion/dtos/planSemanal.dto";
 import { usePlanesSemanales } from "@/lib/hooks/usePlanesSemanales";
 import { useRecetas } from "@/lib/hooks/useRecetas";
@@ -27,9 +31,15 @@ import {
   tieneContenido,
   FRANJAS_INICIALES,
   SIN_RECETA,
+  VALORES_META_VACIOS,
+  metasVacias,
+  metasParaGuardar,
   type ComidaFormulario,
   type DatosFormulario,
+  type MetasFormulario,
+  type ValoresMetaFormulario,
 } from "./formulario/esquema";
+import { SeccionMetasSemana } from "./formulario/SeccionMetasSemana";
 import { totalesPorDia } from "./formulario/totales";
 import { GrillaSemana } from "./formulario/GrillaSemana";
 import { EditorComida } from "./formulario/EditorComida";
@@ -88,6 +98,7 @@ export function FormularioPlanSemanal({ planInicial, onTerminado }: Props) {
       ? {
           nombre: planInicial.nombre,
           descripcion: planInicial.descripcion ?? "",
+          metas: metasDelPlan(planInicial.metas),
           franjas: planInicial.franjas.map((franja) => ({
             nombre: franja.nombre,
             horaDesde: franja.horaDesde ?? "",
@@ -111,7 +122,12 @@ export function FormularioPlanSemanal({ planInicial, onTerminado }: Props) {
             })),
           })),
         }
-      : { nombre: "", descripcion: "", franjas: FRANJAS_INICIALES },
+      : {
+          nombre: "",
+          descripcion: "",
+          metas: metasVacias(),
+          franjas: FRANJAS_INICIALES,
+        },
   });
 
   const franjas = useFieldArray({ control: form.control, name: "franjas" });
@@ -191,6 +207,7 @@ export function FormularioPlanSemanal({ planInicial, onTerminado }: Props) {
     const cuerpo = {
       nombre: datos.nombre,
       descripcion: datos.descripcion.trim() || null,
+      metas: metasParaGuardar(datos.metas),
       franjas: datos.franjas.map((franja) => ({
         nombre: franja.nombre,
         horaDesde: franja.horaDesde || null,
@@ -270,6 +287,8 @@ export function FormularioPlanSemanal({ planInicial, onTerminado }: Props) {
             )}
           />
         </div>
+
+        <SeccionMetasSemana />
 
         {/* Las franjas se editan poco —se eligen una vez y quedan— así que van
             plegadas: el alto que ocupaban es el que necesita la grilla para
@@ -457,4 +476,30 @@ export function FormularioPlanSemanal({ planInicial, onTerminado }: Props) {
       )}
     </Form>
   );
+}
+
+/** Las metas guardadas como las tiene el formulario: los dos juegos, como texto. */
+function metasDelPlan(
+  metas: NonNullable<Props["planInicial"]>["metas"],
+): MetasFormulario {
+  const aTexto = (v: {
+    calorias: number | null;
+    proteinasG: number | null;
+    carbohidratosG: number | null;
+    grasasG: number | null;
+  }): ValoresMetaFormulario => ({
+    calorias: v.calorias?.toString() ?? "",
+    proteinasG: v.proteinasG?.toString() ?? "",
+    carbohidratosG: v.carbohidratosG?.toString() ?? "",
+    grasasG: v.grasasG?.toString() ?? "",
+  });
+  return {
+    modo: metas.modo,
+    tipos: { ...metas.tipos },
+    general: metas.general ? aTexto(metas.general) : { ...VALORES_META_VACIOS },
+    porDia: DIAS_SEMANA.map((dia) => {
+      const delDia = metas.porDia.find((d) => d.dia === dia);
+      return { dia, ...(delDia ? aTexto(delDia) : VALORES_META_VACIOS) };
+    }),
+  };
 }

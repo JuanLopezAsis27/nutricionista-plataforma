@@ -1,6 +1,5 @@
 import type { IPlanSemanalRepositorio } from "@/dominio/repositorios/IPlanSemanalRepositorio";
 import type { IAsignacionPlanSemanalRepositorio } from "@/dominio/repositorios/IAsignacionPlanSemanalRepositorio";
-import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import { CrearPlanSemanal } from "@/aplicacion/casos-de-uso/planes-semanales/CrearPlanSemanal";
 import { ActualizarPlanSemanal } from "@/aplicacion/casos-de-uso/planes-semanales/ActualizarPlanSemanal";
@@ -17,15 +16,13 @@ import { ServicioPlanSemanal } from "@/aplicacion/servicios/ServicioPlanSemanal"
 /**
  * Arma el servicio de Planes Semanales con sus casos de uso.
  *
- * Recibe TAMBIÉN el repositorio de asignaciones de plan nutricional: las metas
- * diarias contra las que se compara cada día del menú salen del plan que el
- * paciente tiene asignado, no del plan semanal.
+ * Ya no recibe el repositorio de planes nutricionales: desde la migración 91
+ * el plan semanal lleva sus propias metas y no las toma del plan asignado.
  */
 export function crearServicioPlanSemanal(deps: {
   // La implementación de Prisma sirve los dos puertos; el cableado es el único
   // lugar que necesita saberlo.
   semanales: IPlanSemanalRepositorio & IAsignacionPlanSemanalRepositorio;
-  planes: IAsignacionPlanRepositorio;
   pacientes: IPacienteRepositorio;
 }): ServicioPlanSemanal {
   return new ServicioPlanSemanal(
@@ -40,7 +37,7 @@ export function crearServicioPlanSemanal(deps: {
       deps.pacientes,
     ),
     new DesasignarPlanSemanalDePaciente(deps.semanales),
-    new ObtenerPlanSemanalDelPaciente(deps.semanales, deps.planes),
+    new ObtenerPlanSemanalDelPaciente(deps.semanales),
     new ObtenerHistorialDePlanesSemanales(deps.semanales, deps.pacientes),
     new ObtenerPacientesDePlanSemanal(deps.semanales, deps.semanales),
   );

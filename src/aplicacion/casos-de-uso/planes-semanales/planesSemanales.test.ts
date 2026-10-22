@@ -12,10 +12,8 @@ import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 import {
   mockPlanSemanalRepositorio,
   mockAsignacionPlanSemanalRepositorio,
-  mockAsignacionPlanRepositorio,
   mockPacienteRepositorio,
   planSemanalEjemplo,
-  planEjemplo,
   pacienteEjemplo,
 } from "../_ayudas-test";
 
@@ -196,55 +194,33 @@ describe("AsignarPlanSemanalAPaciente", () => {
 });
 
 describe("ObtenerPlanSemanalDelPaciente", () => {
-  it("compara cada día contra las metas del PLAN NUTRICIONAL del paciente", async () => {
+  it("devuelve el menú vigente, que se compara contra SUS metas", async () => {
+    // Las metas son del plan semanal (migración 91): ya no se lee ningún plan
+    // nutricional asignado, que con varios solo dejaba contar a uno.
     const semanales = mockAsignacionPlanSemanalRepositorio({
       obtenerPlanSemanalActivoDePaciente: vi.fn(async () =>
-        planSemanalEjemplo(),
+        planSemanalEjemplo({
+          metas: { modo: "GENERAL", general: { calorias: 2000 } },
+        }),
       ),
     });
-    // planEjemplo trae caloriasMeta: 2000.
-    const planes = mockAsignacionPlanRepositorio({
-      listarPlanesDePaciente: vi.fn(async () => [planEjemplo()]),
-    });
 
-    const resultado = await new ObtenerPlanSemanalDelPaciente(
-      semanales,
-      planes,
-    ).ejecutar("pac-1");
+    const plan = await new ObtenerPlanSemanalDelPaciente(semanales).ejecutar(
+      "pac-1",
+    );
 
-    expect(resultado).not.toBeNull();
-    expect(resultado!.metas?.calorias).toBe(2000);
-    expect(resultado!.nombrePlanDeLasMetas).toBe("Plan descenso");
-    expect(resultado!.dias).toHaveLength(7);
+    expect(plan).not.toBeNull();
+    const dias = plan!.comparacionPorDia();
+    expect(dias).toHaveLength(7);
     // El lunes del plan de ejemplo suma bastante menos que 2000 kcal.
-    const lunes = resultado!.dias.find((d) => d.dia === "LUNES")!;
+    const lunes = dias.find((d) => d.dia === "LUNES")!;
+    expect(lunes.comparacion.calorias.meta).toBe(2000);
     expect(lunes.comparacion.calorias.estado).toBe("POR_DEBAJO");
-  });
-
-  it("sin plan nutricional activo devuelve los totales sin metas", async () => {
-    const semanales = mockAsignacionPlanSemanalRepositorio({
-      obtenerPlanSemanalActivoDePaciente: vi.fn(async () =>
-        planSemanalEjemplo(),
-      ),
-    });
-    const resultado = await new ObtenerPlanSemanalDelPaciente(
-      semanales,
-      mockAsignacionPlanRepositorio(),
-    ).ejecutar("pac-1");
-
-    expect(resultado!.metas).toBeNull();
-    expect(resultado!.nombrePlanDeLasMetas).toBeNull();
-    expect(
-      resultado!.dias.every(
-        (d) => d.comparacion.calorias.estado === "SIN_META",
-      ),
-    ).toBe(true);
   });
 
   it("sin plan semanal activo devuelve null", async () => {
     const resultado = await new ObtenerPlanSemanalDelPaciente(
       mockAsignacionPlanSemanalRepositorio(),
-      mockAsignacionPlanRepositorio(),
     ).ejecutar("pac-1");
     expect(resultado).toBeNull();
   });

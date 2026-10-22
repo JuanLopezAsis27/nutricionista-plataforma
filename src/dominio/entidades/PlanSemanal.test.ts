@@ -327,3 +327,127 @@ describe("diaSemanaDe", () => {
     expect(diaSemanaDe(new Date(2026, 8, 6, 12, 0, 0))).toBe("DOMINGO");
   });
 });
+
+describe("PlanSemanal: metas propias (migración 91)", () => {
+  it("sin metas, todos los días quedan SIN_META", () => {
+    const plan = crear();
+    expect(plan.metas.general).toBeNull();
+    expect(
+      plan
+        .comparacionPorDia()
+        .every((d) => d.comparacion.calorias.estado === "SIN_META"),
+    ).toBe(true);
+  });
+
+  it("GENERAL: las mismas metas valen para los siete días", () => {
+    const plan = crear({
+      metas: {
+        modo: "GENERAL",
+        general: { calorias: 200, proteinasG: 26 },
+        tipos: { proteinasG: "MINIMO" },
+      },
+    });
+    const dias = plan.comparacionPorDia();
+    expect(dias.map((d) => d.comparacion.calorias.meta)).toEqual(
+      Array(7).fill(200),
+    );
+    // El lunes suma 200 kcal y 26 g de proteína: cumple las dos.
+    const lunes = dias.find((d) => d.dia === "LUNES")!;
+    expect(lunes.comparacion.calorias.estado).toBe("EN_RANGO");
+    expect(lunes.comparacion.proteinasG.tipo).toBe("MINIMO");
+    expect(lunes.comparacion.proteinasG.estado).toBe("EN_RANGO");
+  });
+
+  it("POR_DIA: cada día se compara contra la suya, y uno sin metas no tiene", () => {
+    const plan = crear({
+      metas: {
+        modo: "POR_DIA",
+        porDia: [
+          { dia: "LUNES", calorias: 500 },
+          { dia: "SABADO", calorias: 2500 },
+        ],
+      },
+    });
+    const dias = new Map(plan.comparacionPorDia().map((d) => [d.dia, d]));
+    expect(dias.get("LUNES")!.comparacion.calorias.meta).toBe(500);
+    expect(dias.get("LUNES")!.comparacion.calorias.estado).toBe("POR_DEBAJO");
+    expect(dias.get("SABADO")!.comparacion.calorias.meta).toBe(2500);
+    expect(dias.get("MARTES")!.comparacion.calorias.estado).toBe("SIN_META");
+  });
+
+  it("guarda solo las del modo elegido", () => {
+    // Si se guardaran las dos, la que no se ve volvería a regir con solo
+    // cambiar el modo.
+    const general = crear({
+      metas: {
+        modo: "GENERAL",
+        general: { calorias: 1800 },
+        porDia: [{ dia: "LUNES", calorias: 500 }],
+      },
+    });
+    expect(general.metas.porDia).toEqual({});
+
+    const porDia = crear({
+      metas: {
+        modo: "POR_DIA",
+        general: { calorias: 1800 },
+        porDia: [{ dia: "LUNES", calorias: 500 }],
+      },
+    });
+    expect(porDia.metas.general).toBeNull();
+    expect(porDia.metasDelDia("LUNES")?.calorias).toBe(500);
+  });
+
+  it("un juego con las cuatro vacías es «sin metas», y las calorías se redondean", () => {
+    const plan = crear({
+      metas: {
+        modo: "POR_DIA",
+        porDia: [
+          { dia: "LUNES", calorias: null, proteinasG: null },
+          { dia: "MARTES", calorias: 1850.6 },
+        ],
+      },
+    });
+    expect(plan.metas.porDia.LUNES).toBeUndefined();
+    expect(plan.metasDelDia("MARTES")?.calorias).toBe(1851);
+  });
+
+  it("rechaza metas negativas y un día repetido", () => {
+    expect(() =>
+      crear({ metas: { modo: "GENERAL", general: { proteinasG: -1 } } }),
+    ).toThrow(ErrorValidacion);
+    expect(() =>
+      crear({
+        metas: {
+          modo: "POR_DIA",
+          porDia: [
+            { dia: "LUNES", calorias: 1800 },
+            { dia: "LUNES", calorias: 2000 },
+          ],
+        },
+      }),
+    ).toThrow(ErrorValidacion);
+  });
+
+  it("editar conserva las metas que se mandan, y sin metas las borra", () => {
+    const plan = crear({
+      metas: { modo: "GENERAL", general: { calorias: 1800 } },
+    });
+    const datos = {
+      nombre: "Semana tipo",
+      franjas: [
+        {
+          nombre: "Almuerzo",
+          comidas: [{ dia: "LUNES" as const, descripcion: "Pollo" }],
+        },
+      ],
+    };
+    expect(
+      plan.actualizar(
+        { ...datos, metas: { modo: "GENERAL", general: { calorias: 2000 } } },
+        generarId,
+      ).metas.general?.calorias,
+    ).toBe(2000);
+    expect(plan.actualizar(datos, generarId).metas.general).toBeNull();
+  });
+});

@@ -12,7 +12,13 @@ import type {
   AsignacionPlanSemanal,
   AsignacionSemanalConPaciente,
 } from "@/dominio/repositorios/IAsignacionPlanSemanalRepositorio";
-import { PlanSemanal } from "@/dominio/entidades/PlanSemanal";
+import {
+  PlanSemanal,
+  DIAS_SEMANA,
+  type DiaSemana,
+  type MetasPlanSemanal,
+  type ValoresMeta,
+} from "@/dominio/entidades/PlanSemanal";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 import { soloFecha } from "./base/fechas";
 import { cantidadDeFila, columnasDeCantidad } from "./base/medidasJson";
@@ -26,6 +32,9 @@ import { cantidadDeFila, columnasDeCantidad } from "./base/medidasJson";
  * `orderBy` el total dependería del orden en que Postgres devolviera las filas.
  */
 const INCLUIR_HIJOS = {
+  // El enum se ordena como se declaró (LUNES…DOMINGO): sale en el orden de la
+  // semana.
+  metasDia: { orderBy: { dia: "asc" } },
   franjas: {
     orderBy: { orden: "asc" },
     include: {
@@ -61,8 +70,8 @@ function aNumero(valor: Prisma.Decimal | null): number | null {
  * Implementación con Prisma del repositorio de Planes Semanales.
  *
  * Persiste el agregado completo de forma atómica; `actualizar` reemplaza los
- * hijos (borra las franjas y las vuelve a crear: comidas e items caen y
- * renacen con ellas por la cascada de la base).
+ * hijos (borra las franjas y las metas por día y las vuelve a crear: comidas
+ * e items caen y renacen con ellas por la cascada de la base).
  *
  * Sirve además el puerto de asignaciones, igual que `PrismaRepositorioPlan`:
  * una implementación puede cumplir dos contratos, y el cableado inyecta la
@@ -82,8 +91,10 @@ export class PrismaRepositorioPlanSemanal
         id: d.id,
         nombre: d.nombre,
         descripcion: d.descripcion,
+        ...columnasDeMetas(d.metas),
         creadoEn: d.creadoEn,
         actualizadoEn: d.actualizadoEn,
+        metasDia: { create: metasDiaParaPrisma(d.metas, inquilino) },
         franjas: { create: franjasParaPrisma(d, inquilino) },
       },
       include: INCLUIR_HIJOS,
@@ -99,11 +110,21 @@ export class PrismaRepositorioPlanSemanal
       await tx.franjaPlanSemanal.deleteMany({
         where: { planSemanalId: d.id },
       });
+      // Las metas por día se reemplazan enteras, en la MISMA transacción: es
+      // lo que garantiza que un plan que pasa a GENERAL no conserve filas por
+      // día (la base no puede exigirlo entre dos tablas sin un trigger).
+      await tx.metaDiaPlanSemanal.deleteMany({
+        where: { planSemanalId: d.id },
+      });
       return tx.planSemanal.update({
         where: { id: d.id },
         data: {
           nombre: d.nombre,
           descripcion: d.descripcion,
+          // En el `create` también: un campo que solo va en uno de los dos
+          // pierde contra el default de la base sin ningún error.
+          ...columnasDeMetas(d.metas),
+          metasDia: { create: metasDiaParaPrisma(d.metas, inquilino) },
           franjas: { create: franjasParaPrisma(d, inquilino) },
         },
         include: INCLUIR_HIJOS,
@@ -256,6 +277,95 @@ export class PrismaRepositorioPlanSemanal
 }
 
 /**
+ * Las metas generales y los tipos (migración 91) como columnas de
+ * `planes_semanales`. Las de cada día van aparte (`metasDiaParaPrisma`).
+ */
+function columnasDeMetas(metas: MetasPlanSemanal): {
+  modoMetas: MetasPlanSemanal["modo"];
+  caloriasMeta: number | null;
+  proteinasMetaG: number | null;
+  carbohidratosMetaG: number | null;
+  grasasMetaG: number | null;
+  caloriasMetaTipo: MetasPlanSemanal["tipos"]["calorias"];
+  proteinasMetaTipo: MetasPlanSemanal["tipos"]["proteinasG"];
+  carbohidratosMetaTipo: MetasPlanSemanal["tipos"]["carbohidratosG"];
+  grasasMetaTipo: MetasPlanSemanal["tipos"]["grasasG"];
+} {
+  return {
+    modoMetas: metas.modo,
+    caloriasMeta: metas.general?.calorias ?? null,
+    proteinasMetaG: metas.general?.proteinasG ?? null,
+    carbohidratosMetaG: metas.general?.carbohidratosG ?? null,
+    grasasMetaG: metas.general?.grasasG ?? null,
+    caloriasMetaTipo: metas.tipos.calorias,
+    proteinasMetaTipo: metas.tipos.proteinasG,
+    carbohidratosMetaTipo: metas.tipos.carbohidratosG,
+    grasasMetaTipo: metas.tipos.grasasG,
+  };
+}
+
+/**
+ * Las metas por día (migración 92) listas para el `create` anidado: una fila
+ * por día que tenga alguna. Con GENERAL, ninguna. Llevan el inquilino
+ * materializado, como el resto de las hijas.
+ */
+function metasDiaParaPrisma(
+  metas: MetasPlanSemanal,
+  inquilino: string,
+): Prisma.MetaDiaPlanSemanalUncheckedCreateWithoutPlanInput[] {
+  if (metas.modo !== "POR_DIA") return [];
+  return DIAS_SEMANA.flatMap((dia) => {
+    const valores = metas.porDia[dia];
+    return valores
+      ? [
+          {
+            nutricionistaId: inquilino,
+            dia,
+            caloriasMeta: valores.calorias,
+            proteinasMetaG: valores.proteinasG,
+            carbohidratosMetaG: valores.carbohidratosG,
+            grasasMetaG: valores.grasasG,
+          },
+        ]
+      : [];
+  });
+}
+
+/** Las metas de la fila: las generales de sus columnas, las de cada día de sus filas. */
+function metasDeFila(fila: PlanConHijos): MetasPlanSemanal {
+  const tipos = {
+    calorias: fila.caloriasMetaTipo,
+    proteinasG: fila.proteinasMetaTipo,
+    carbohidratosG: fila.carbohidratosMetaTipo,
+    grasasG: fila.grasasMetaTipo,
+  };
+  if (fila.modoMetas === "POR_DIA") {
+    const porDia: Partial<Record<DiaSemana, ValoresMeta>> = {};
+    for (const meta of fila.metasDia) {
+      porDia[meta.dia] = {
+        calorias: meta.caloriasMeta,
+        proteinasG: aNumero(meta.proteinasMetaG),
+        carbohidratosG: aNumero(meta.carbohidratosMetaG),
+        grasasG: aNumero(meta.grasasMetaG),
+      };
+    }
+    return { modo: "POR_DIA", tipos, general: null, porDia };
+  }
+  const general: ValoresMeta = {
+    calorias: fila.caloriasMeta,
+    proteinasG: aNumero(fila.proteinasMetaG),
+    carbohidratosG: aNumero(fila.carbohidratosMetaG),
+    grasasG: aNumero(fila.grasasMetaG),
+  };
+  return {
+    modo: "GENERAL",
+    tipos,
+    general: Object.values(general).some((v) => v != null) ? general : null,
+    porDia: {},
+  };
+}
+
+/**
  * Las franjas listas para el `create` anidado de Prisma.
  *
  * Las hijas del agregado llevan el inquilino MATERIALIZADO (migración 27): sin
@@ -307,6 +417,7 @@ export function mapearPlanSemanal(fila: PlanConHijos): PlanSemanal {
     id: fila.id,
     nombre: fila.nombre,
     descripcion: fila.descripcion,
+    metas: metasDeFila(fila),
     franjas: fila.franjas.map((franja) => ({
       id: franja.id,
       nombre: franja.nombre,

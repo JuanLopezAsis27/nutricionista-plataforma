@@ -3,22 +3,13 @@
 import { ETIQUETA_DIA } from "@/dominio/entidades/PlanSemanal";
 import type {
   DiaComparadoDto,
-  MacrosDto,
+  MetasPlanSemanalSalidaDto,
 } from "@/aplicacion/dtos/planSemanal.dto";
 import { COLOR_ESTADO_META } from "@/componentes/comunes/paletaFranjas";
-
-/** Las cuatro columnas, en el orden en que se leen en toda la app. */
-const MACROS = [
-  { clave: "calorias", etiqueta: "Calorías", unidad: "kcal" },
-  { clave: "proteinasG", etiqueta: "Proteínas", unidad: "g" },
-  { clave: "carbohidratosG", etiqueta: "Carbohidratos", unidad: "g" },
-  { clave: "grasasG", etiqueta: "Grasas", unidad: "g" },
-] as const;
-
-type ClaveMacro = (typeof MACROS)[number]["clave"];
+import { MACROS_META, valorDeMeta, type ClaveMacroMeta } from "./metas";
 
 /**
- * El menú de la semana contra las metas del paciente, día por día y macro por
+ * El menú de la semana contra las metas del plan, día por día y macro por
  * macro.
  *
  * La grilla ya muestra el total de cada día, pero solo pone el semáforo en las
@@ -26,9 +17,10 @@ type ClaveMacro = (typeof MACROS)[number]["clave"];
  * distinta, y eso es justamente lo que hay que revisar antes de entregar la
  * semana. Acá están las cuatro columnas.
  *
- * Las metas salen del PLAN NUTRICIONAL asignado (ver
- * `ObtenerPlanSemanalDelPaciente`), y el desvío y su color los calcula el
- * dominio: esta tabla solo los dibuja.
+ * Las metas son DEL PLAN SEMANAL (migración 91). Con las mismas para toda la
+ * semana van en una fila arriba; con unas por día, cada celda dice la suya
+ * debajo del valor. El desvío y su color los calcula el dominio: esta tabla
+ * solo los dibuja.
  *
  * El promedio de la semana va SIN semáforo, a propósito: es un resumen para
  * ver la tendencia, y un promedio dentro de la meta puede estar hecho de días
@@ -39,9 +31,11 @@ export function ComparativaSemanal({
   metas,
 }: {
   dias: DiaComparadoDto[];
-  metas: MacrosDto | null;
+  metas: MetasPlanSemanalSalidaDto;
 }) {
   const promedios = promediosDe(dias);
+  const generales = metas.modo === "GENERAL" ? metas.general : null;
+  const porDia = metas.modo === "POR_DIA";
 
   return (
     <div className="overflow-x-auto">
@@ -51,7 +45,7 @@ export function ComparativaSemanal({
             <th className="py-1.5 pr-2 text-left text-xs font-medium text-muted-foreground">
               Día
             </th>
-            {MACROS.map((macro) => (
+            {MACROS_META.map((macro) => (
               <th
                 key={macro.clave}
                 className="py-1.5 pl-2 text-right text-xs font-medium text-muted-foreground"
@@ -62,21 +56,28 @@ export function ComparativaSemanal({
           </tr>
         </thead>
         <tbody>
-          {metas && (
+          {generales && (
             <tr className="border-b bg-muted/40">
               <th className="py-1.5 pr-2 text-left text-xs font-medium">
                 Meta diaria
               </th>
-              {MACROS.map((macro) => (
-                <td
-                  key={macro.clave}
-                  className="py-1.5 pl-2 text-right text-xs font-medium"
-                >
-                  {metas[macro.clave] != null
-                    ? `${metas[macro.clave]} ${macro.unidad}`
-                    : "—"}
-                </td>
-              ))}
+              {MACROS_META.map((macro) => {
+                const valor = generales[macro.clave];
+                return (
+                  <td
+                    key={macro.clave}
+                    className="py-1.5 pl-2 text-right text-xs font-medium"
+                  >
+                    {valor != null
+                      ? valorDeMeta(
+                          valor,
+                          macro.unidad,
+                          metas.tipos[macro.clave],
+                        )
+                      : "—"}
+                  </td>
+                );
+              })}
             </tr>
           )}
 
@@ -85,12 +86,13 @@ export function ComparativaSemanal({
               <th className="py-1.5 pr-2 text-left text-xs font-medium">
                 {ETIQUETA_DIA[dia.dia]}
               </th>
-              {MACROS.map((macro) => (
+              {MACROS_META.map((macro) => (
                 <td key={macro.clave} className="py-1.5 pl-2 text-right">
                   <Celda
                     valor={dia.macros[macro.clave]}
                     unidad={macro.unidad}
                     comparacion={dia.comparacion[macro.clave]}
+                    conMetaDelDia={porDia}
                   />
                 </td>
               ))}
@@ -102,7 +104,7 @@ export function ComparativaSemanal({
             <th className="py-1.5 pr-2 text-left text-xs font-medium text-muted-foreground">
               Promedio
             </th>
-            {MACROS.map((macro) => (
+            {MACROS_META.map((macro) => (
               <td
                 key={macro.clave}
                 className="py-1.5 pl-2 text-right text-xs text-muted-foreground"
@@ -116,8 +118,9 @@ export function ComparativaSemanal({
         </tfoot>
       </table>
       <p className="pt-2 text-xs text-muted-foreground">
-        El promedio toma solo los días con macros cargados. Un día en verde está
-        dentro del ±10 % de la meta.
+        El promedio toma solo los días con macros cargados. Un valor en verde
+        cumple su meta: dentro del ±10 % si es aproximada, por encima del piso
+        (≥) o por debajo del techo (≤).
       </p>
     </div>
   );
@@ -127,27 +130,38 @@ function Celda({
   valor,
   unidad,
   comparacion,
+  conMetaDelDia,
 }: {
   valor: number | null;
   unidad: string;
-  comparacion: DiaComparadoDto["comparacion"][ClaveMacro];
+  comparacion: DiaComparadoDto["comparacion"][ClaveMacroMeta];
+  /** Con metas por día, cada celda dice la suya: no hay fila de meta arriba. */
+  conMetaDelDia: boolean;
 }) {
-  if (valor == null) {
-    return <span className="text-muted-foreground">—</span>;
-  }
   const conMeta =
     comparacion.estado !== "SIN_META" && comparacion.estado !== "SIN_DATO";
   return (
-    <span className="inline-flex items-baseline justify-end gap-1.5">
-      <span className="font-medium">
-        {valor} {unidad}
-      </span>
-      {conMeta && comparacion.diferencia != null && (
-        <span
-          className={`rounded px-1 text-[0.65rem] ${COLOR_ESTADO_META[comparacion.estado]}`}
-        >
-          {comparacion.diferencia > 0 ? "+" : ""}
-          {comparacion.diferencia}
+    <span className="inline-flex flex-col items-end">
+      {valor == null ? (
+        <span className="text-muted-foreground">—</span>
+      ) : (
+        <span className="inline-flex items-baseline justify-end gap-1.5">
+          <span className="font-medium">
+            {valor} {unidad}
+          </span>
+          {conMeta && comparacion.diferencia != null && (
+            <span
+              className={`rounded px-1 text-[0.65rem] ${COLOR_ESTADO_META[comparacion.estado]}`}
+            >
+              {comparacion.diferencia > 0 ? "+" : ""}
+              {comparacion.diferencia}
+            </span>
+          )}
+        </span>
+      )}
+      {conMetaDelDia && comparacion.meta != null && (
+        <span className="text-[0.65rem] text-muted-foreground">
+          meta {valorDeMeta(comparacion.meta, unidad, comparacion.tipo)}
         </span>
       )}
     </span>
@@ -157,9 +171,9 @@ function Celda({
 /** Promedio de cada macro sobre los días que tienen ese dato. */
 export function promediosDe(
   dias: DiaComparadoDto[],
-): Record<ClaveMacro, number | null> {
-  const promedios = {} as Record<ClaveMacro, number | null>;
-  for (const macro of MACROS) {
+): Record<ClaveMacroMeta, number | null> {
+  const promedios = {} as Record<ClaveMacroMeta, number | null>;
+  for (const macro of MACROS_META) {
     const valores = dias
       .map((dia) => dia.macros[macro.clave])
       .filter((valor): valor is number => valor != null);

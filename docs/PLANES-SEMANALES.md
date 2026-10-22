@@ -2,7 +2,7 @@
 
 El menú de una semana completa —siete días × las franjas del consultorio—, con
 alternativas por celda, macros calculados y el total de cada día comparado
-contra las metas del paciente. Migración 45.
+contra las metas DEL PLAN SEMANAL. Migración 45; metas propias, migración 91.
 
 ## No es una modalidad más del plan
 
@@ -15,7 +15,7 @@ Son dos cosas y conviven; un paciente puede tener las dos a la vez:
 |                        | `PlanNutricional`                | `PlanSemanal`                     |
 | ---------------------- | -------------------------------- | --------------------------------- |
 | Qué describe           | el día tipo                      | los siete días                    |
-| Metas de macros        | sí (`caloriasMeta`, …)           | **no**: usa las del plan asignado |
+| Metas de macros        | sí, las mismas todos los días    | sí, **propias** (migración 91): las mismas o unas por día |
 | Modalidades            | APP / PDF                        | una sola                          |
 | Plantillas y carpetas  | sí                               | no                                |
 | Historial del paciente | `AsignacionPlan`                 | `AsignacionPlanSemanal`           |
@@ -46,24 +46,84 @@ partes cuentan.
 proteínas de una comida se le siguen sumando las del resto, pero una columna
 que nadie declaró queda en «—». Un cero se leería como «no comió nada de eso».
 
-## Las metas son del plan nutricional, no del plan semanal
+## Las metas son del plan semanal (migración 91)
 
-El plan fija cuánto tiene que comer por día; el semanal es una manera concreta
-de repartirlo. Comparar el reparto contra una meta propia sería compararlo
-consigo mismo, así que `ObtenerPlanSemanalDelPaciente` lee **las dos
-asignaciones**: la semanal para el menú y la de planes para la pauta.
+Hasta la migración 91 el plan semanal no tenía metas: cada día se comparaba
+contra las del PLAN NUTRICIONAL asignado al paciente. La idea era que el plan
+fija la pauta y el semanal la reparte. Se rompió con la migración 69, cuando
+un paciente pasó a poder tener **varios** planes asignados: las metas salían
+del primero que declarara macros, y la semana se juzgaba con una pauta elegida
+por orden de llegada. Además, un plan semanal sin asignar no tenía contra qué
+compararse, justo mientras se lo armaba.
 
-Tres estados posibles, y la pantalla los dice con todas las letras:
+Ahora cada plan semanal declara las suyas, de dos maneras (`ModoMetasSemana`):
 
-- el paciente no tiene ningún plan asignado → totales sin comparación;
-- tiene pero sin metas cargadas → se nombra el plan y se aclara que no fija
-  macros;
-- tiene con metas → semáforo por día.
+| Modo      | Qué guarda                                   | Para qué |
+| --------- | -------------------------------------------- | -------- |
+| `GENERAL` | cuatro valores, los mismos para los 7 días    | la semana pareja, como un plan |
+| `POR_DIA` | cuatro valores por día; un día vacío no tiene meta | el sábado con más calorías, los días de entrenamiento con más carbohidratos |
 
-Desde la migración 69 el paciente puede tener **varios** planes nutricionales.
-Las metas salen del **primero que declare macros** y `nombrePlanDeLasMetas` dice
-cuál fue: ninguno rige sobre los otros, así que elegir en silencio sería
-inventar una jerarquía que el modelo no tiene.
+- **El TIPO es uno por macro en los dos modos** (aproximada, como mínimo, como
+  máximo; ver `comparacionMacros`): la proteína es un piso toda la semana
+  aunque cada día pida otra cantidad. Cuatro columnas `…MetaTipo`.
+- **Dónde vive**: el modo, las generales y los tipos en columnas de
+  `planes_semanales` (como en `planes_nutricionales`); las de cada día en la
+  tabla hija `metas_dia_plan_semanal` (`MetaDiaPlanSemanal`, migración 92),
+  una fila por día con metas. Ver «Por qué tabla y no JSON» abajo.
+- **Se guarda solo el juego del modo elegido** (`normalizarMetas`). Si se
+  guardaran los dos, el que no se ve volvería a regir con solo cambiar el
+  modo. El formulario sí tiene los dos mientras se edita —cambiar de modo y
+  volver no borra lo escrito— y, al pasar a «por día» con la semana vacía,
+  cada día arranca con las generales (lo normal es retocar dos días, no
+  escribir 28 números). «Copiar el lunes al resto» hace lo mismo desde un día.
+- **Un juego con las cuatro vacías es «sin metas»** (null), y las calorías se
+  redondean: son enteras en todo el sistema.
+- **La comparación es de la entidad**: `PlanSemanal.metasDelDia(dia)` dice qué
+  meta rige ese día y `comparacionPorDia()` compara los siete. Viaja en el DTO
+  del plan (`metas` y `dias`), así que la grilla, la tabla, la ficha del
+  paciente y el portal muestran el mismo semáforo, y la página del plan lo
+  muestra aunque no esté asignado a nadie.
+- **Los planes que ya existían quedaron SIN metas**: no había de dónde
+  sacarlas sin elegir uno de los planes del paciente, que es lo que se vino a
+  evitar. Muestran totales sin semáforo hasta que se les carguen.
+
+### Por qué tabla y no JSON (migración 92)
+
+En la migración 91 las metas de cada día se guardaron como JSON
+(`planes_semanales.metasPorDia`). Funcionaba, pero para la base era un texto
+con forma: aceptaba un día que no existe, el mismo día dos veces o un número
+negativo, y la única defensa era la entidad. Son datos de forma FIJA —cuatro
+números por día—, que es justo lo que las columnas y las restricciones de una
+base relacional protegen mejor. La 92 las pasó a tabla, copió lo que había (y
+descartó lo que no tenía la forma esperada) y borró la columna.
+
+Qué garantiza la base desde entonces:
+
+| Regla | Cómo |
+| --- | --- |
+| El día existe | columna `dia` del enum `DiaSemana` |
+| Un juego por día | único `(planSemanalId, dia)` |
+| Ningún valor negativo | CHECK `…_no_negativas`, en la tabla y en las generales del plan |
+| Una fila tiene alguna meta | CHECK `…_con_alguna_meta` (un día sin metas va sin fila) |
+| Con POR_DIA, las generales vacías | CHECK `planes_semanales_metas_segun_modo` |
+| Borrar el plan se lleva sus metas | FK en cascada |
+
+Lo único que no garantiza es la regla entre las dos tablas —con GENERAL no
+hay filas por día—: haría falta un trigger. La cumple el repositorio, que
+borra las filas del plan y las vuelve a crear en la MISMA transacción que lo
+actualiza (y con GENERAL no crea ninguna). Los topes de cada valor (100.000
+kcal, 10.000 g) no están en la base: son un control de carga del DTO, no una
+regla del dominio.
+
+Alternativas que se descartaron: una sola tabla para todas las metas con el
+día vacío como «general» (la unicidad con NULL pide `NULLS NOT DISTINCT`, que
+el schema de Prisma no puede expresar) y 28 columnas en el plan (rígido y
+repetitivo).
+
+La pantalla dice siempre contra qué compara (`descripcionDeMetas`): sin metas,
+«los totales van sin comparar»; con las mismas todos los días, cuáles son; con
+unas por día, cuántos días las tienen. En la vista del paciente, la del día que
+está mirando.
 
 La tolerancia es **±10 % de la meta** (`TOLERANCIA_META`), medida sobre la meta
 y no sobre el valor: es la referencia fija, y calcularla sobre el valor haría
@@ -108,7 +168,8 @@ lo cargué».
 
 ## El alto lo pone la grilla, no la ventana
 
-El diálogo de alta y edición **crece con su contenido y scrollea entero**.
+El diálogo de alta y edición **crece con su contenido y scrollea entero**
+(`CLASES_DIALOGO_PLAN_SEMANAL`, el mismo en el listado y en la página).
 Tuvo un alto fijo (92 vh) con la grilla deslizándose adentro, y el resultado
 fue el contrario del buscado: en pantallas bajas —y sobre todo en mobile— la
 semana quedaba aplastada en una franja de doscientos píxeles. El alto de una
@@ -130,11 +191,17 @@ Tres decisiones más la mantienen compacta, todas con su costo:
 
 ## La comparativa de macros
 
-Debajo de la grilla, cuando el menú se mira desde la ficha de un paciente, va
-la tabla de **las cuatro macros día por día** contra la meta
-(`ComparativaSemanal`). La grilla sola pone el semáforo únicamente en las
-calorías, y dos menús de 2000 kcal pueden repartir las proteínas de forma muy
-distinta: eso es lo que hay que revisar antes de entregar la semana.
+Debajo de la grilla va siempre la tabla de **las cuatro macros día por día**
+contra la meta (`ComparativaSemanal`): en la página del plan, en la ficha del
+paciente y en la semana completa del portal. La grilla sola pone el semáforo
+únicamente en las calorías, y dos menús de 2000 kcal pueden repartir las
+proteínas de forma muy distinta: eso es lo que hay que revisar antes de
+entregar la semana.
+
+Con las mismas metas toda la semana, van en una fila «Meta diaria» arriba; con
+unas por día, cada celda dice la suya debajo del valor («meta ≥ 120 g»). Un
+piso se escribe «≥» y un techo «≤» (`valorDeMeta`, en
+`componentes/planes-semanales/metas.ts`, que comparten las tres vistas).
 
 El promedio de la semana va **sin semáforo** a propósito: un promedio dentro de
 la meta puede estar hecho de días muy por encima y muy por debajo. Lo que se
@@ -145,7 +212,16 @@ menú, que es lo que congela `ComparativaSemanal.test.ts`—.
 ## Dónde se usa
 
 - **`/dashboard/planes`, pestaña «Planes semanales»**: el listado con alta,
-  edición, vista y asignación (`SeccionPlanesSemanales`).
+  edición y asignación (`SeccionPlanesSemanales`). Se llega directo a la
+  pestaña con `?pestana=semanales` (`RUTA_PLANES_SEMANALES`).
+- **`/dashboard/planes/semanales/[id]`**: la PÁGINA del plan, como la de un
+  plan nutricional. «Ver» y el nombre del listado llevan ahí. Muestra la grilla
+  con la comparación, quién lo tiene (`PacientesDelPlanSemanal`, vigentes
+  primero y con «Finalizar») y las acciones: editar (diálogo, como en los
+  planes), asignar y eliminar. Antes la vista era un diálogo, y una semana con
+  su tabla de macros no entraba; con URL propia, además, se llega desde la
+  ficha del paciente («Abrir plan semanal»). Lee el plan de su query por id,
+  así que al editarlo se refresca solo.
 - **Ficha del paciente, pestaña «Planes»**: adentro hay dos secciones, «Plan
   nutricional» y «Plan semanal» (`SeccionPlanesDelPaciente`), navegadas como
   las de Antropometría. Estaban una debajo de la otra y competían por el
@@ -156,8 +232,8 @@ menú, que es lo que congela `ComparativaSemanal.test.ts`—.
 ## El paciente lo lee de otra forma: un día por vez
 
 `obtenerMiPlanSemanal` devuelve exactamente lo mismo que `obtenerDelPaciente`
-—el menú más la comparación contra las metas de su plan—; lo único que cambia
-es de dónde sale el paciente: de la sesión (`pacienteDeSesion`) y no de un
+—el menú, que trae adentro sus metas y la comparación de cada día—; lo único
+que cambia es de dónde sale el paciente: de la sesión (`pacienteDeSesion`) y no de un
 `pacienteId` de entrada. Va como procedimiento aparte y no como un parámetro
 opcional porque acá no hay nada que elegir, y es justo eso lo que impide que un
 paciente pida el menú de otro.
@@ -203,6 +279,10 @@ clonarlo para usarlo sería duplicar por nada.
   de la base le gana a un valor que nunca se mandó.
 - Si cambiás la cuenta de macros, cambiá las DOS —dominio y grilla— o
   `totales.test.ts` te lo dice.
-- Los cinco modelos nuevos llevan `nutricionistaId` y están en
-  `MODELOS_INQUILINO`. Un modelo nuevo que no esté ahí cruza datos entre
+- Las metas se escriben en el `create` Y en el `update` del repositorio
+  (`columnasDeMetas` y `metasDiaParaPrisma`), y el `deleteMany` de las metas
+  por día va adentro de la transacción del `update`, como el de las franjas. Y no las vuelvas a sacar de un plan nutricional
+  asignado: con varios no hay cuál elegir.
+- Los cinco modelos de la migración 45 y `MetaDiaPlanSemanal` (92) llevan
+  `nutricionistaId` y están en `MODELOS_INQUILINO`. Un modelo nuevo que no esté ahí cruza datos entre
   consultorios sin dar error.

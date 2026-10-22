@@ -72,7 +72,7 @@ export const routerPlanesSemanales = crearRouter({
       return { desasignado: true };
     }),
 
-  /** El menú vigente del paciente, ya comparado contra las metas de su plan. */
+  /** El menú vigente del paciente, con cada día comparado contra sus metas. */
   obtenerDelPaciente: nutricionistaProcedimiento
     .input(z.object({ pacienteId: z.string().min(1) }))
     .query(async ({ ctx, input }) => {
@@ -101,8 +101,8 @@ export const routerPlanesSemanales = crearRouter({
   /**
    * Portal: el paciente ve SU menú vigente (pacienteId de la sesión).
    *
-   * Devuelve lo mismo que `obtenerDelPaciente` —el menú más la comparación
-   * contra las metas de su plan nutricional—: es la misma lectura, y lo único
+   * Devuelve lo mismo que `obtenerDelPaciente` —el menú, con sus metas y la
+   * comparación de cada día adentro—: es la misma lectura, y lo único
    * que cambia es de dónde sale el paciente. Va aparte y no con un pacienteId
    * opcional porque acá no hay nada que elegir, que es justo lo que evita que
    * un paciente pida el menú de otro.

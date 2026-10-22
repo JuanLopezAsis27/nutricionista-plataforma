@@ -60,7 +60,8 @@ const METAS = [
   },
 ] as const;
 
-const ETIQUETAS_TIPO: Record<TipoMeta, string> = {
+/** Cómo se nombra cada tipo de meta. Lo usa también el plan semanal. */
+export const ETIQUETAS_TIPO_META: Record<TipoMeta, string> = {
   APROXIMADO: "Aproximada (±10 %)",
   MINIMO: "Como mínimo",
   MAXIMO: "Como máximo",
@@ -138,10 +139,10 @@ export function SeccionMetasMacros({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {(Object.keys(ETIQUETAS_TIPO) as TipoMeta[]).map(
+                      {(Object.keys(ETIQUETAS_TIPO_META) as TipoMeta[]).map(
                         (tipo) => (
                           <SelectItem key={tipo} value={tipo}>
-                            {ETIQUETAS_TIPO[tipo]}
+                            {ETIQUETAS_TIPO_META[tipo]}
                           </SelectItem>
                         ),
                       )}

@@ -50,7 +50,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/CATALOGO-BASE.md`      | Alimentos y recetas predeterminados de la plataforma  |
 | `docs/MEDIDAS-ALIMENTOS.md`  | g, ml y medidas caseras («1 taza = 240 ml»): en el alimento, en el plan y en la planilla |
 | `docs/BIBLIOTECA.md`         | Materiales para pacientes, sus carpetas y el buscador |
-| `docs/PLANES-SEMANALES.md`   | El menú de la semana, sus alternativas y la comparación |
+| `docs/PLANES-SEMANALES.md`   | El menú de la semana, sus metas propias, sus alternativas y su página |
 | `docs/ANTROPOMETRIA.md`      | Ecuaciones de grasa, distribución y sitios de pliegue |
 | `docs/BIOIMPEDANCIA.md`      | La balanza: mediciones, dashboard y metas; por qué no se mezcla con la antropometría |
 | `docs/HISTORIA-CLINICA.md`   | Evoluciones, campos personalizados y el alta por documento |
@@ -551,11 +551,13 @@ los dos.
 
 Dos reglas que se rompen fácil: el total de un día suma la comida **principal**
 (`orden = 0`) de cada franja y no las alternativas —sumarlas triplicaría un
-lunes con tres almuerzos—, y **las metas contra las que se compara salen del
-PLAN NUTRICIONAL asignado**, no del plan semanal, que no las tiene —y con
-varios asignados, del primero que declare macros, diciendo en pantalla de cuál
-salieron—. Su historial (`AsignacionPlanSemanal`) es aparte y sigue siendo un
-historial: el menú se cambia sin tocar la pauta de macros.
+lunes con tres almuerzos—, y **cada día se compara contra las metas DEL PLAN
+SEMANAL** (migración 91), no las de un plan nutricional asignado: con varios
+asignados solo contaba el primero. Son las mismas para los siete días o unas
+por día (`ModoMetasSemana`), y la comparación la hace la entidad
+(`PlanSemanal.comparacionPorDia`). Su historial (`AsignacionPlanSemanal`) es
+aparte y sigue siendo un historial. Se abre en su propia página
+(`/dashboard/planes/semanales/[id]`), como un plan.
 
 Ver `docs/PLANES-SEMANALES.md`.
 
@@ -850,6 +852,12 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   el único camino que deja el registro en `DesasignacionPlan`, y un
   `deleteMany` sobre `asignaciones_plan` desde otro lado lo deja con huecos sin
   que nada falle —nadie lee esa tabla, así que nadie se entera—
+- Nunca volver a sacar las metas del plan semanal de un plan nutricional
+  asignado: con varios asignados no hay cuál elegir, y antes se elegía el
+  primero en silencio. Son del plan semanal (migración 91). Y al tocar sus
+  columnas, escribilas en el `create` y en el `update` (`columnasDeMetas`).
+  Las de cada día son una tabla (`metas_dia_plan_semanal`, migración 92), no
+  un JSON: no las vuelvas a meter en una columna JSON, que la base no valida
 - Nunca sumar TODAS las comidas de una celda del plan semanal al total del día:
   son alternativas entre sí y suma la principal (`orden = 0`). Y si tocás esa
   cuenta, tocá las dos —el dominio y el espejo de la grilla—: `totales.test.ts`

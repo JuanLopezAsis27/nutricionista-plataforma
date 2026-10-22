@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { DIAS_SEMANA } from "@/dominio/entidades/PlanSemanal";
+import {
+  DIAS_SEMANA,
+  MODOS_METAS_SEMANA,
+} from "@/dominio/entidades/PlanSemanal";
 import {
   ESTADOS_META,
   TIPOS_META,
@@ -60,9 +63,43 @@ export const franjaSemanalDto = z.object({
   comidas: z.array(comidaSemanalDto).max(70).optional(),
 });
 
+/** Cómo se lee cada meta: aproximada, piso o techo. Uno por macro. */
+const tiposMetaDto = z.object({
+  calorias: z.enum(TIPOS_META),
+  proteinasG: z.enum(TIPOS_META),
+  carbohidratosG: z.enum(TIPOS_META),
+  grasasG: z.enum(TIPOS_META),
+});
+
+/** Los cuatro valores de una meta diaria; los topes son los del plan nutricional. */
+const valoresMetaDto = z.object({
+  calorias: z.number().int().min(0).max(100000).optional().nullable(),
+  proteinasG: z.number().min(0).max(10000).optional().nullable(),
+  carbohidratosG: z.number().min(0).max(10000).optional().nullable(),
+  grasasG: z.number().min(0).max(10000).optional().nullable(),
+});
+
+/**
+ * Las metas propias del plan semanal (migración 91): `general` con
+ * `GENERAL` (las mismas los siete días), `porDia` con `POR_DIA`. La que no
+ * corresponde al modo se descarta.
+ */
+export const metasPlanSemanalDto = z.object({
+  modo: z.enum(MODOS_METAS_SEMANA),
+  tipos: tiposMetaDto.partial().optional(),
+  general: valoresMetaDto.nullable().optional(),
+  porDia: z
+    .array(valoresMetaDto.extend({ dia: z.enum(DIAS_SEMANA) }))
+    .max(7)
+    .optional(),
+});
+export type MetasPlanSemanalDto = z.infer<typeof metasPlanSemanalDto>;
+
 const planSemanalBase = z.object({
   nombre: z.string().min(1, "El nombre es obligatorio").max(160),
   descripcion: z.string().max(2000).optional().nullable(),
+  /** Sin metas si no viene (y al editar, se borran: se manda el plan entero). */
+  metas: metasPlanSemanalDto.nullable().optional(),
   franjas: z
     .array(franjaSemanalDto)
     .min(1, "Agregá al menos una franja")
@@ -146,39 +183,6 @@ const comidaSalida = z.object({
   macros: macrosDto,
 });
 
-const franjaSalida = z.object({
-  id: z.string(),
-  nombre: z.string(),
-  horaDesde: z.string().nullable(),
-  horaHasta: z.string().nullable(),
-  orden: z.number(),
-  comidas: z.array(comidaSalida),
-});
-
-export const planSemanalSalidaDto = z.object({
-  id: z.string(),
-  nombre: z.string(),
-  descripcion: z.string().nullable(),
-  franjas: z.array(franjaSalida),
-  /**
-   * Lo que suma cada día con la comida PRINCIPAL de cada franja. Vienen los
-   * siete días siempre, también los vacíos.
-   */
-  totalesPorDia: z.array(
-    z.object({ dia: z.enum(DIAS_SEMANA), macros: macrosDto }),
-  ),
-  creadoEn: z.date(),
-  actualizadoEn: z.date(),
-});
-export type PlanSemanalSalidaDto = z.infer<typeof planSemanalSalidaDto>;
-
-/** Resultado paginado del listado. */
-export interface PlanesSemanalesPaginados {
-  planes: PlanSemanalSalidaDto[];
-  total: number;
-  paginas: number;
-}
-
 const comparacionMacroDto = z.object({
   valor: z.number().nullable(),
   meta: z.number().nullable(),
@@ -200,21 +204,67 @@ const diaComparadoDto = z.object({
 });
 export type DiaComparadoDto = z.infer<typeof diaComparadoDto>;
 
+/** Las metas del plan, como las ve la pantalla. */
+const metasPlanSemanalSalidaDto = z.object({
+  modo: z.enum(MODOS_METAS_SEMANA),
+  tipos: tiposMetaDto,
+  /** Con GENERAL: las de todos los días, o null si el plan no tiene metas. */
+  general: macrosDto.nullable(),
+  /** Con POR_DIA: solo los días que tienen metas, en el orden de la semana. */
+  porDia: z.array(macrosDto.extend({ dia: z.enum(DIAS_SEMANA) })),
+});
+export type MetasPlanSemanalSalidaDto = z.infer<
+  typeof metasPlanSemanalSalidaDto
+>;
+
+const franjaSalida = z.object({
+  id: z.string(),
+  nombre: z.string(),
+  horaDesde: z.string().nullable(),
+  horaHasta: z.string().nullable(),
+  orden: z.number(),
+  comidas: z.array(comidaSalida),
+});
+
+export const planSemanalSalidaDto = z.object({
+  id: z.string(),
+  nombre: z.string(),
+  descripcion: z.string().nullable(),
+  franjas: z.array(franjaSalida),
+  /**
+   * Lo que suma cada día con la comida PRINCIPAL de cada franja. Vienen los
+   * siete días siempre, también los vacíos.
+   */
+  totalesPorDia: z.array(
+    z.object({ dia: z.enum(DIAS_SEMANA), macros: macrosDto }),
+  ),
+  /** Sus metas propias (migración 91). */
+  metas: metasPlanSemanalSalidaDto,
+  /**
+   * Cada día comparado contra SU meta, ya resuelto por el dominio
+   * (`PlanSemanal.comparacionPorDia`). Los siete días siempre; sin metas,
+   * todos en `SIN_META`.
+   */
+  dias: z.array(diaComparadoDto),
+  creadoEn: z.date(),
+  actualizadoEn: z.date(),
+});
+export type PlanSemanalSalidaDto = z.infer<typeof planSemanalSalidaDto>;
+
+/** Resultado paginado del listado. */
+export interface PlanesSemanalesPaginados {
+  planes: PlanSemanalSalidaDto[];
+  total: number;
+  paginas: number;
+}
+
 /**
- * El plan semanal del paciente, ya comparado contra sus metas diarias.
- *
- * Las metas NO son del plan semanal: salen de un `PlanNutricional` que el
- * paciente tiene asignado —el primero que declare macros, porque puede tener
- * varios—, y por eso viaja también su nombre: la pantalla tiene que poder decir
- * de dónde salió el número contra el que compara. `metas` en null significa que
- * no tiene ningún plan asignado o que ninguno declara metas: ahí se muestran
- * totales sin semáforo.
+ * El plan semanal vigente del paciente. Las metas y la comparación de cada
+ * día viajan DENTRO del plan (`plan.metas`, `plan.dias`): desde la migración
+ * 91 son del plan semanal y no de un plan nutricional asignado.
  */
 export const planSemanalDelPacienteDto = z.object({
   plan: planSemanalSalidaDto,
-  metas: macrosDto.nullable(),
-  nombrePlanDeLasMetas: z.string().nullable(),
-  dias: z.array(diaComparadoDto),
 });
 export type PlanSemanalDelPacienteDto = z.infer<
   typeof planSemanalDelPacienteDto

@@ -296,14 +296,11 @@ export const servicioPlan = perezoso(() =>
 );
 
 /**
- * Planes semanales de referencia. Lleva también el repositorio de planes
- * porque las metas diarias contra las que se compara cada día salen del plan
- * nutricional asignado al paciente.
+ * Planes semanales de referencia, con sus propias metas (migración 91).
  */
 export const servicioPlanSemanal = perezoso(() =>
   crearServicioPlanSemanal({
     semanales: nucleo.repositorioPlanSemanal(),
-    planes: nucleo.repositorioPlan(),
     pacientes: nucleo.repositorioPaciente(),
   }),
 );
