@@ -7,7 +7,6 @@
  * afecta a `Date` dentro del proceso, no al planificador de pg-boss, que
  * calcula la próxima corrida en la base.
  *
- * Se lee del mismo `TZ` para que haya UN solo lugar donde se declara la hora
- * del consultorio.
+ * La constante vive en infraestructura porque también la usa el log de la app.
  */
-export const ZONA_HORARIA = process.env.TZ || "America/Argentina/Buenos_Aires";
+export { ZONA_HORARIA } from "@/infraestructura/zonaHoraria";

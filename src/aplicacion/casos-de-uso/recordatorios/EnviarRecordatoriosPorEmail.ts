@@ -247,8 +247,10 @@ export class EnviarRecordatoriosPorEmail {
     } catch (error) {
       // No se registra: sin fila en `emails_enviados`, el próximo barrido lo
       // vuelve a intentar. Registrar el fallo lo daría por avisado para siempre.
+      // Sin hora propia: el worker y la app anteponen la hora local a cada
+      // línea (`horaDelLog`), y una segunda en UTC al lado solo confundía.
       console.error(
-        `[recordatorios] ${new Date().toISOString()} falló el email del turno ${turno.id}:`,
+        `[recordatorios] falló el email del turno ${turno.id}:`,
         error,
       );
       return "FALLIDO";

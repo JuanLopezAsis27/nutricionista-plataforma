@@ -168,9 +168,30 @@ El barrido no se dispara al arrancar el worker: lo despacha el cron **a los 5
 minutos de cada hora**. En el log son DOS líneas y la que importa es la segunda:
 
 ```
-[worker] recordatorios-turnos: despachados 1 inquilino(s).      ← solo encoló
-[worker] recordatorios-turnos-inquilino [<id>]: WhatsApp: … · Email: …   ← el resultado
+[21/10/2026 10:05:00] [worker] recordatorios-turnos: despachados 1 inquilino(s).      ← solo encoló
+[21/10/2026 10:05:02] [worker] recordatorios-turnos-inquilino [<id>]: WhatsApp: … · Email: …   ← el resultado
 ```
+
+**Cada línea del log empieza con la hora del consultorio**, en el worker y en
+la app (la zona de `TZ`, `src/infraestructura/monitoreo/horaDelLog.ts`).
+`docker logs -t` también da la hora, pero en UTC, y leer los recordatorios
+restando tres horas de cabeza es la manera de equivocarse de día. Lo hace un
+envoltorio sobre `console` que instalan los dos procesos al arrancar —el
+worker en `trabajos/worker.ts`, la app en el `register()` de
+`instrumentation.ts`—, así que alcanza también a las líneas de los casos de
+uso (`[recordatorios] falló el email del turno …`, `[bienvenida] …`). Las
+líneas JSON del monitor de errores quedan sin prefijo: ya traen su `ts` y un
+agregador las parsea. Instalarlo dos veces no hace nada la segunda, porque en
+desarrollo Next puede volver a llamar a `register()`.
+
+Para ver solo los problemas:
+
+```
+docker compose … logs --since 72h worker | grep -E " [1-9][0-9]* fallido|falló|agotó"
+```
+
+Filtrar por «fallido» a secas trae todas las líneas, porque el resumen dice
+`0 fallido(s)` aunque no haya fallado nada.
 
 La segunda tarda un par de segundos (pg-boss sondea la cola). Cortar el worker
 entre una y otra deja el trabajo del inquilino en estado `created`: no se
