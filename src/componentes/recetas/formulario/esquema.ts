@@ -4,6 +4,10 @@ import {
   enlacesEnTexto,
   numeroEnRango,
 } from "@/lib/validacionListas";
+import {
+  CANTIDAD_VACIA,
+  camposCantidadEsquema,
+} from "@/componentes/comunes/alimentos/cantidad";
 
 /**
  * Esquema y tipos del formulario de receta.
@@ -23,6 +27,8 @@ const numeroOpcional = z
 
 const ingredienteEsquema = z.object({
   nombre: z.string().min(1, "Nombre").max(200),
+  // g/ml o una medida casera (migración 90); `cantidadGramos` se refina abajo.
+  ...camposCantidadEsquema,
   cantidadGramos: numeroOpcional,
   caloriasPor100: numeroOpcional,
   proteinasPor100: numeroOpcional,
@@ -67,7 +73,7 @@ export type IngredienteFormulario = DatosFormulario["ingredientes"][number];
 
 export const INGREDIENTE_VACIO: IngredienteFormulario = {
   nombre: "",
-  cantidadGramos: "",
+  ...CANTIDAD_VACIA,
   caloriasPor100: "",
   proteinasPor100: "",
   carbohidratosPor100: "",

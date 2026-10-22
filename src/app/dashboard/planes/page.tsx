@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import {
   Plus,
@@ -50,7 +50,16 @@ import { propsArrastrable } from "@/componentes/comunes/NavegadorCarpetas";
 import { MoverPlanACarpeta } from "@/componentes/planes/MoverPlanACarpeta";
 import { SeccionPlanesSemanales } from "@/componentes/planes-semanales/SeccionPlanesSemanales";
 
-export default function PaginaPlanes() {
+/** Las pestañas que se pueden abrir con `?pestana=` (la vuelta de un plan semanal). */
+const PESTANAS = ["planes", "plantillas", "semanales"] as const;
+
+export default function PaginaPlanes({
+  searchParams,
+}: {
+  searchParams: Promise<{ [clave: string]: string | string[] | undefined }>;
+}) {
+  const { pestana } = use(searchParams);
+  const pestanaInicial = PESTANAS.find((p) => p === pestana) ?? "planes";
   const { listarPaginado, eliminar, archivar, crearDesdePlantilla, mover } =
     usePlanes();
   const [paginaPlanes, setPaginaPlanes] = useState(1);
@@ -276,7 +285,7 @@ export default function PaginaPlanes() {
           No se pudieron cargar los planes.
         </p>
       ) : (
-        <Tabs defaultValue="planes">
+        <Tabs defaultValue={pestanaInicial}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <TabsList>
               <TabsTrigger value="planes">

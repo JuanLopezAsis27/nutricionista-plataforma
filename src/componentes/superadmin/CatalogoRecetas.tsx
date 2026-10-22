@@ -29,12 +29,20 @@ import {
   hayMacros,
 } from "@/componentes/comunes/alimentos/macros";
 import { partirEtiquetas } from "@/lib/validacionListas";
+import { CampoCantidadAlimento } from "@/componentes/comunes/alimentos/CampoCantidadAlimento";
+import {
+  CANTIDAD_VACIA,
+  cantidadDesdeAlimento,
+  cantidadDesdeGuardado,
+  cantidadParaGuardar,
+  porCien,
+  type CantidadEnFormulario,
+} from "@/componentes/comunes/alimentos/cantidad";
 
 const POR_PAGINA = 10;
 
-interface IngredienteBorrador {
+interface IngredienteBorrador extends CantidadEnFormulario {
   nombre: string;
-  cantidadGramos: string;
   caloriasPor100: string;
   proteinasPor100: string;
   carbohidratosPor100: string;
@@ -88,7 +96,7 @@ function aBorrador(r: RecetaBaseSalidaDto): Borrador {
     etiquetas: r.etiquetas.join(", "),
     ingredientes: r.ingredientes.map((i) => ({
       nombre: i.nombre,
-      cantidadGramos: texto(i.cantidadGramos),
+      ...cantidadDesdeGuardado(i),
       caloriasPor100: texto(i.caloriasPor100),
       proteinasPor100: texto(i.proteinasPor100),
       carbohidratosPor100: texto(i.carbohidratosPor100),
@@ -207,7 +215,7 @@ export function CatalogoRecetas() {
         .filter((i) => i.nombre.trim() !== "")
         .map((i) => ({
           nombre: i.nombre.trim(),
-          cantidadGramos: aNumero(i.cantidadGramos),
+          ...cantidadParaGuardar(i),
           caloriasPor100: aNumero(i.caloriasPor100),
           proteinasPor100: aNumero(i.proteinasPor100),
           carbohidratosPor100: aNumero(i.carbohidratosPor100),
@@ -386,7 +394,7 @@ function FormularioRecetaBase({
                 ...actual.ingredientes,
                 {
                   nombre: a.marca ? `${a.nombre} (${a.marca})` : a.nombre,
-                  cantidadGramos: "100",
+                  ...cantidadDesdeAlimento(a),
                   caloriasPor100: texto(a.caloriasPor100),
                   proteinasPor100: texto(a.proteinasPor100),
                   carbohidratosPor100: texto(a.carbohidratosPor100),
@@ -409,14 +417,18 @@ function FormularioRecetaBase({
                   cambiarIngrediente(indice, "nombre", e.target.value)
                 }
               />
-              <Input
-                className="w-20 shrink-0"
-                inputMode="decimal"
-                placeholder="g"
-                aria-label="Gramos"
-                value={ing.cantidadGramos}
-                onChange={(e) =>
-                  cambiarIngrediente(indice, "cantidadGramos", e.target.value)
+              <CampoCantidadAlimento
+                className="w-40 shrink-0 sm:w-48"
+                altoCompacto={false}
+                valor={ing}
+                unidadEditable={!ing.alimentoOrigenId}
+                onCambiar={(nuevo) =>
+                  setB((actual) => ({
+                    ...actual,
+                    ingredientes: actual.ingredientes.map((otro, i) =>
+                      i === indice ? { ...otro, ...nuevo } : otro,
+                    ),
+                  }))
                 }
               />
               <Button
@@ -439,10 +451,10 @@ function FormularioRecetaBase({
             <div className="mt-2 grid grid-cols-4 gap-2 pr-10">
               {(
                 [
-                  ["caloriasPor100", "kcal/100g"],
-                  ["proteinasPor100", "P/100g"],
-                  ["carbohidratosPor100", "C/100g"],
-                  ["grasasPor100", "G/100g"],
+                  ["caloriasPor100", `kcal/${porCien(ing.unidadBase)}`],
+                  ["proteinasPor100", `P/${porCien(ing.unidadBase)}`],
+                  ["carbohidratosPor100", `C/${porCien(ing.unidadBase)}`],
+                  ["grasasPor100", `G/${porCien(ing.unidadBase)}`],
                 ] as const
               ).map(([campo, etiqueta]) => (
                 <Input
@@ -471,7 +483,7 @@ function FormularioRecetaBase({
                 ...actual.ingredientes,
                 {
                   nombre: "",
-                  cantidadGramos: "",
+                  ...CANTIDAD_VACIA,
                   caloriasPor100: "",
                   proteinasPor100: "",
                   carbohidratosPor100: "",

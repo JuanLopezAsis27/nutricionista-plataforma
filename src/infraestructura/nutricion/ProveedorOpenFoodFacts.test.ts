@@ -50,6 +50,8 @@ describe("ProveedorOpenFoodFacts", () => {
       id: null,
       categoria: null,
       imagenVersion: null,
+      unidadBase: "GRAMO",
+      medidas: [],
     });
   });
 

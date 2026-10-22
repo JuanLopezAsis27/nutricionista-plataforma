@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { esquema } from "./FormularioPlanSemanal";
 import { crearPlanSemanalDto } from "@/aplicacion/dtos/planSemanal.dto";
-import { SIN_RECETA } from "./formulario/esquema";
+import {
+  SIN_RECETA,
+  metasVacias,
+  metasParaGuardar,
+} from "./formulario/esquema";
 
 /**
  * Coherencia formulario ↔ DTO del plan semanal.
@@ -15,6 +19,7 @@ import { SIN_RECETA } from "./formulario/esquema";
 const base = {
   nombre: "Semana tipo",
   descripcion: "",
+  metas: metasVacias(),
   franjas: [
     {
       nombre: "Almuerzo",
@@ -153,6 +158,56 @@ describe("FormularioPlanSemanal vs crearPlanSemanalDto", () => {
         ],
       }).success,
     ).toBe(false);
+  });
+
+  it("respeta los topes de las metas en los dos lados (migración 91)", () => {
+    const metas = metasVacias();
+    const conTope = {
+      ...base,
+      metas: {
+        ...metas,
+        modo: "POR_DIA" as const,
+        porDia: metas.porDia.map((d) =>
+          d.dia === "SABADO" ? { ...d, calorias: "100001" } : d,
+        ),
+      },
+    };
+    expect(esquema.safeParse(conTope).success).toBe(false);
+    expect(
+      crearPlanSemanalDto.safeParse({
+        nombre: "X",
+        metas: {
+          modo: "POR_DIA",
+          porDia: [{ dia: "SABADO", calorias: 100001 }],
+        },
+        franjas: [
+          { nombre: "Almuerzo", comidas: [{ dia: "LUNES", descripcion: "a" }] },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("lo que arma el formulario con las metas lo acepta el DTO", () => {
+    const metas = metasVacias();
+    for (const formulario of [
+      { ...metas, general: { ...metas.general, calorias: "1850,5" } },
+      {
+        ...metas,
+        modo: "POR_DIA" as const,
+        tipos: { ...metas.tipos, proteinasG: "MINIMO" as const },
+        porDia: metas.porDia.map((d) => ({ ...d, proteinasG: "120" })),
+      },
+    ]) {
+      const resultado = crearPlanSemanalDto.safeParse({
+        nombre: "X",
+        metas: metasParaGuardar(formulario),
+        franjas: [
+          { nombre: "Almuerzo", comidas: [{ dia: "LUNES", descripcion: "a" }] },
+        ],
+      });
+      // Las calorías viajan enteras: el DTO no acepta 1850,5.
+      expect(resultado.success, JSON.stringify(formulario.modo)).toBe(true);
+    }
   });
 
   it("exige al menos una franja en los dos lados", () => {

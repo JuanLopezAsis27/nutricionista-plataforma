@@ -78,20 +78,11 @@ export default function PaginaMiSemana() {
             {/* Abajo de lg siempre manda la vista por día: la grilla completa
                 no entra, así que el selector de arriba solo existe en lg. */}
             <div className={cn(vista === "semana" && "lg:hidden")}>
-              <VistaSemanaPaciente
-                plan={consulta.data.plan}
-                dias={consulta.data.dias}
-                metas={consulta.data.metas}
-              />
+              <VistaSemanaPaciente plan={consulta.data.plan} />
             </div>
             {vista === "semana" && (
               <div className="hidden lg:block">
-                <VistaPlanSemanal
-                  plan={consulta.data.plan}
-                  dias={consulta.data.dias}
-                  metas={consulta.data.metas}
-                  nombrePlanDeLasMetas={consulta.data.nombrePlanDeLasMetas}
-                />
+                <VistaPlanSemanal plan={consulta.data.plan} />
               </div>
             )}
           </CardContent>

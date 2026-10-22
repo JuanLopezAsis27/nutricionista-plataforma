@@ -15,6 +15,11 @@ import { PgBoss } from "pg-boss";
 import { registrarTrabajos } from "./registrarTrabajos";
 import { describirDestinoEmail } from "@/infraestructura/email/destinoEmail";
 import { monitorErrores } from "@/infraestructura/monitoreo/monitor";
+import { anteponerHoraAlLog } from "@/infraestructura/monitoreo/horaDelLog";
+
+// Antes que cualquier otra línea: todo lo que escriba el worker lleva la hora
+// del consultorio (ver `horaDelLog.ts`).
+anteponerHoraAlLog();
 
 async function principal(): Promise<void> {
   const url = process.env.DATABASE_URL;

@@ -7,6 +7,15 @@ import {
 } from "./PlanNutricional";
 import { ErrorValidacion } from "../errores/ErrorValidacion";
 
+/** Un alimento escrito en gramos, sin medida casera (migración 90). */
+const SIN_MEDIDA = {
+  unidadBase: "GRAMO" as const,
+  medidas: [],
+  medida: null,
+  cantidadMedida: null,
+  cantidadPorMedida: null,
+};
+
 /**
  * Tests de las opciones del plan con receta, porciones y alimentos sueltos
  * (migración 82), y de los tipos de meta.
@@ -110,6 +119,7 @@ describe("macrosDeOpcion", () => {
           fuente: null,
           referenciaExterna: null,
           alimentoOrigenId: null,
+          ...SIN_MEDIDA,
         },
       ],
     });
@@ -140,6 +150,7 @@ describe("macrosDeOpcion", () => {
           fuente: null,
           referenciaExterna: null,
           alimentoOrigenId: null,
+          ...SIN_MEDIDA,
         },
       ],
     });

@@ -18,6 +18,8 @@ function alimento(p: Partial<AlimentoNutricional>): AlimentoNutricional {
     id: null,
     categoria: null,
     imagenVersion: null,
+    unidadBase: "GRAMO",
+    medidas: [],
     ...p,
   };
 }

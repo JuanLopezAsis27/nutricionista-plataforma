@@ -12,6 +12,7 @@ import type {
   RecetaBaseSalidaDto,
   RecetasBasePaginadas,
 } from "../dtos/recetaBase.dto";
+import { describirCantidad } from "@/dominio/entidades/medidasAlimento";
 
 /**
  * Servicio del catálogo de recetas de la plataforma: la gestión, que es del
@@ -76,6 +77,10 @@ function aSalida(receta: Receta): RecetaBaseSalidaDto {
   } = receta.aPrimitivos();
   return {
     ...resto,
+    ingredientes: resto.ingredientes.map((ing) => ({
+      ...ing,
+      cantidadTexto: describirCantidad(ing),
+    })),
     totales: receta.totales(),
     macrosCalculados: receta.macrosCalculados,
   };

@@ -1,6 +1,17 @@
 import { z } from "zod";
-import { DIAS_SEMANA } from "@/dominio/entidades/PlanSemanal";
+import {
+  DIAS_SEMANA,
+  MODOS_METAS_SEMANA,
+} from "@/dominio/entidades/PlanSemanal";
+import {
+  TIPOS_META,
+  TIPOS_META_POR_DEFECTO,
+} from "@/dominio/servicios/comparacionMacros";
 import { numeroEnRango } from "@/lib/validacionListas";
+import {
+  CANTIDAD_VACIA,
+  camposCantidadEsquema,
+} from "@/componentes/comunes/alimentos/cantidad";
 
 /**
  * Esquema, tipos y constantes del formulario de plan semanal.
@@ -24,6 +35,8 @@ const hora = z
 
 const itemEsquema = z.object({
   nombre: z.string().min(1, "Nombre").max(160),
+  /** g/ml o una medida casera (migración 90); el rango se refina abajo. */
+  ...camposCantidadEsquema,
   cantidadGramos: numeroEnRango(0, 100_000),
   caloriasPor100: numeroEnRango(0, 10_000),
   proteinasPor100: numeroEnRango(0, 10_000),
@@ -54,11 +67,45 @@ const franjaEsquema = z.object({
   comidas: z.array(comidaEsquema).max(70),
 });
 
+const tipoMeta = z.enum(TIPOS_META);
+
+/** Los cuatro valores de una meta, como texto. Topes: los del DTO. */
+const valoresMetaEsquema = z.object({
+  calorias: numeroEnRango(0, 100_000),
+  proteinasG: numeroEnRango(0, 10_000),
+  carbohidratosG: numeroEnRango(0, 10_000),
+  grasasG: numeroEnRango(0, 10_000),
+});
+export type ValoresMetaFormulario = z.infer<typeof valoresMetaEsquema>;
+
+/**
+ * Las metas propias del plan (migración 91). El formulario tiene SIEMPRE los
+ * dos juegos —el general y los siete días— para que cambiar de modo y volver
+ * no borre lo escrito; al guardar viaja solo el del modo elegido.
+ */
+const metasEsquema = z.object({
+  modo: z.enum(MODOS_METAS_SEMANA),
+  /** Uno por macro, para los dos modos. */
+  tipos: z.object({
+    calorias: tipoMeta,
+    proteinasG: tipoMeta,
+    carbohidratosG: tipoMeta,
+    grasasG: tipoMeta,
+  }),
+  general: valoresMetaEsquema,
+  /** Los siete días siempre, en el orden de la semana. */
+  porDia: z
+    .array(valoresMetaEsquema.extend({ dia: z.enum(DIAS_SEMANA) }))
+    .length(7),
+});
+export type MetasFormulario = z.infer<typeof metasEsquema>;
+
 /** Esquema del formulario de plan semanal. Exportado para el test de coherencia. */
 export const esquema = z
   .object({
     nombre: z.string().min(1, "El nombre es obligatorio").max(160),
     descripcion: z.string().max(2000),
+    metas: metasEsquema,
     franjas: z
       .array(franjaEsquema)
       .min(1, "Agregá al menos una franja")
@@ -95,6 +142,62 @@ export function tieneContenido(comida: ComidaFormulario): boolean {
   );
 }
 
+/** Una meta en blanco: las cuatro macros sin valor. */
+export const VALORES_META_VACIOS: ValoresMetaFormulario = {
+  calorias: "",
+  proteinasG: "",
+  carbohidratosG: "",
+  grasasG: "",
+};
+
+/** Un plan nuevo arranca sin metas, con el modo de siempre. */
+export function metasVacias(): MetasFormulario {
+  return {
+    modo: "GENERAL",
+    tipos: { ...TIPOS_META_POR_DEFECTO },
+    general: { ...VALORES_META_VACIOS },
+    porDia: DIAS_SEMANA.map((dia) => ({ dia, ...VALORES_META_VACIOS })),
+  };
+}
+
+/**
+ * Las metas del formulario como las espera el DTO: solo el juego del modo
+ * elegido, y las calorías enteras (como en el plan nutricional).
+ */
+export function metasParaGuardar(metas: MetasFormulario): {
+  modo: MetasFormulario["modo"];
+  tipos: MetasFormulario["tipos"];
+  general: ValoresMetaNumericos | null;
+  porDia: Array<ValoresMetaNumericos & { dia: (typeof DIAS_SEMANA)[number] }>;
+} {
+  return {
+    modo: metas.modo,
+    tipos: metas.tipos,
+    general: metas.modo === "GENERAL" ? valoresNumericos(metas.general) : null,
+    porDia:
+      metas.modo === "POR_DIA"
+        ? metas.porDia.map((d) => ({ dia: d.dia, ...valoresNumericos(d) }))
+        : [],
+  };
+}
+
+interface ValoresMetaNumericos {
+  calorias: number | null;
+  proteinasG: number | null;
+  carbohidratosG: number | null;
+  grasasG: number | null;
+}
+
+function valoresNumericos(v: ValoresMetaFormulario): ValoresMetaNumericos {
+  const calorias = aNumero(v.calorias);
+  return {
+    calorias: calorias == null ? null : Math.round(calorias),
+    proteinasG: aNumero(v.proteinasG),
+    carbohidratosG: aNumero(v.carbohidratosG),
+    grasasG: aNumero(v.grasasG),
+  };
+}
+
 /** Las franjas de arranque: las seis que usa una semana típica. */
 export const FRANJAS_INICIALES: DatosFormulario["franjas"] = [
   { nombre: "Desayuno", horaDesde: "08:00", horaHasta: "09:00", comidas: [] },
@@ -122,7 +225,7 @@ export function comidaVacia(
 export function itemVacio(): ItemFormulario {
   return {
     nombre: "",
-    cantidadGramos: "",
+    ...CANTIDAD_VACIA,
     caloriasPor100: "",
     proteinasPor100: "",
     carbohidratosPor100: "",

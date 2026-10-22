@@ -31,7 +31,12 @@ describe("coincidencias con la plataforma", () => {
       catalogo,
     ).ejecutar([{ nombre: "Avena", marca: "Quaker" }, { nombre: "Tofu" }]);
 
-    expect(resultado).toEqual({ importados: 2, repetidos: 0, enPlataforma: 1 });
+    expect(resultado).toEqual({
+      importados: 2,
+      repetidos: 0,
+      enPlataforma: 1,
+      imagenes: { cargadas: 0, descartadas: [] },
+    });
     expect(catalogo.clavesExistentes).toHaveBeenCalledWith([
       "avena|quaker",
       "tofu|",

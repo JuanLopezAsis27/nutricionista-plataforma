@@ -48,8 +48,9 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/RECORDATORIOS.md`      | Los tres medios de aviso y su política única          |
 | `docs/PLANES.md`             | Modalidades, archivos, carpetas, historial y combinaciones del día |
 | `docs/CATALOGO-BASE.md`      | Alimentos y recetas predeterminados de la plataforma  |
+| `docs/MEDIDAS-ALIMENTOS.md`  | g, ml y medidas caseras («1 taza = 240 ml»): en el alimento, en el plan y en la planilla |
 | `docs/BIBLIOTECA.md`         | Materiales para pacientes, sus carpetas y el buscador |
-| `docs/PLANES-SEMANALES.md`   | El menú de la semana, sus alternativas y la comparación |
+| `docs/PLANES-SEMANALES.md`   | El menú de la semana, sus metas propias, sus alternativas y su página |
 | `docs/ANTROPOMETRIA.md`      | Ecuaciones de grasa, distribución y sitios de pliegue |
 | `docs/BIOIMPEDANCIA.md`      | La balanza: mediciones, dashboard y metas; por qué no se mezcla con la antropometría |
 | `docs/HISTORIA-CLINICA.md`   | Evoluciones, campos personalizados y el alta por documento |
@@ -514,7 +515,10 @@ y global en el catálogo, migración 83). Los alimentos tienen una CATEGORÍA de
 lista fija (enum, para filtrar el buscador; las recetas siguen con etiquetas
 libres) y una IMAGEN que no es un `Archivo`: es una clave en la fila del
 alimento, servida por `/api/alimentos/[id]/imagen` y
-`/api/catalogo/alimentos/[id]/imagen` (migración 84). La búsqueda de alimentos
+`/api/catalogo/alimentos/[id]/imagen` (migración 84). Se sube a mano o dentro
+del Excel (columna «Imagen»), y las dos pasan por la misma regla
+(`ImagenesDeAlimentos`: 2 MB de entrada, se guarda reducida a 512 px en
+WebP). La búsqueda de alimentos
 y de recetas es un modal con filtros.
 
 **Los alimentos se COPIAN a donde se usan, no se referencian**: la opción del
@@ -524,7 +528,19 @@ entregado es un documento y no cambia porque se edite o borre el alimento—.
 Cada copia guarda además `alimentoOrigenId` (migración 85, SIN FK) solo para
 saber dónde se usa un alimento y avisarlo antes de editarlo o borrarlo. Un
 alimento propio puede ser igual a uno de la plataforma (su versión): se avisa,
-no se bloquea. Ver `docs/CATALOGO-BASE.md`.
+no se bloquea. La planilla se importa **reemplazando** la lista o
+**agregándole** (lo que ya está no se toca) y se descarga con las mismas
+columnas; la del consultorio trae su lista en la PRIMERA pestaña y los
+predeterminados en la segunda, porque la importación lee solo la primera.
+Ver `docs/CATALOGO-BASE.md`.
+
+**No todo se mide en gramos** (migración 90): cada alimento dice si sus macros
+son por 100 g o por 100 ml (`unidadBase`) y trae sus medidas caseras («1 taza
+= 240»). Donde se usa, la cantidad se escribe en g/ml o en una medida, pero
+`cantidadGramos` sigue siendo la cantidad en la unidad base (ml para un
+líquido) y la única que suma: con medida, la calcula el dominio
+(`normalizarCantidadDeAlimento`). La medida y su equivalencia también se
+COPIAN. Ver `docs/MEDIDAS-ALIMENTOS.md`.
 
 ### Plan Semanal
 
@@ -535,11 +551,13 @@ los dos.
 
 Dos reglas que se rompen fácil: el total de un día suma la comida **principal**
 (`orden = 0`) de cada franja y no las alternativas —sumarlas triplicaría un
-lunes con tres almuerzos—, y **las metas contra las que se compara salen del
-PLAN NUTRICIONAL asignado**, no del plan semanal, que no las tiene —y con
-varios asignados, del primero que declare macros, diciendo en pantalla de cuál
-salieron—. Su historial (`AsignacionPlanSemanal`) es aparte y sigue siendo un
-historial: el menú se cambia sin tocar la pauta de macros.
+lunes con tres almuerzos—, y **cada día se compara contra las metas DEL PLAN
+SEMANAL** (migración 91), no las de un plan nutricional asignado: con varios
+asignados solo contaba el primero. Son las mismas para los siete días o unas
+por día (`ModoMetasSemana`), y la comparación la hace la entidad
+(`PlanSemanal.comparacionPorDia`). Su historial (`AsignacionPlanSemanal`) es
+aparte y sigue siendo un historial. Se abre en su propia página
+(`/dashboard/planes/semanales/[id]`), como un plan.
 
 Ver `docs/PLANES-SEMANALES.md`.
 
@@ -834,6 +852,12 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   el único camino que deja el registro en `DesasignacionPlan`, y un
   `deleteMany` sobre `asignaciones_plan` desde otro lado lo deja con huecos sin
   que nada falle —nadie lee esa tabla, así que nadie se entera—
+- Nunca volver a sacar las metas del plan semanal de un plan nutricional
+  asignado: con varios asignados no hay cuál elegir, y antes se elegía el
+  primero en silencio. Son del plan semanal (migración 91). Y al tocar sus
+  columnas, escribilas en el `create` y en el `update` (`columnasDeMetas`).
+  Las de cada día son una tabla (`metas_dia_plan_semanal`, migración 92), no
+  un JSON: no las vuelvas a meter en una columna JSON, que la base no valida
 - Nunca sumar TODAS las comidas de una celda del plan semanal al total del día:
   son alternativas entre sí y suma la principal (`orden = 0`). Y si tocás esa
   cuenta, tocá las dos —el dominio y el espejo de la grilla—: `totales.test.ts`
@@ -864,6 +888,13 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   día hace falta, es una acción explícita sobre un plan. Y todo camino nuevo
   que copie un alimento tiene que llevar `alimentoOrigenId`, o sus usos no se
   cuentan
+- Nunca sumar macros con `cantidadMedida` ni dejar que la pantalla decida los
+  g/ml de una medida: suma `cantidadGramos`, y con medida lo recalcula
+  `normalizarCantidadDeAlimento` (cantidad × `cantidadPorMedida`). Tampoco
+  ofrecer cucharada, taza o vaso como estándar para un alimento en GRAMOS: sin
+  densidad no hay equivalencia; las declara el alimento. Y todo camino nuevo
+  que copie un alimento tiene que llevar `unidadBase` y sus medidas, o un
+  líquido queda sumado como si fuera en gramos sin que nada falle
 - Nunca comparar alimentos por `nombreNormalizado` para decidir si ya están:
   ese campo es para BUSCAR (solo minúsculas). La identidad es
   `claveIdentidad` (nombre + marca, sin tildes ni espacios de más), y es la

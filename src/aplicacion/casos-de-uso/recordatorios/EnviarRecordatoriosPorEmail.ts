@@ -112,6 +112,7 @@ export class EnviarRecordatoriosPorEmail {
     }
 
     const hoy = this.reloj.hoy();
+    const ahora = this.reloj.ahora();
     let enviados = 0;
     let omitidos = 0;
     let fallidos = 0;
@@ -119,6 +120,14 @@ export class EnviarRecordatoriosPorEmail {
     for (const dias of escalones) {
       const fecha = new Date(hoy.getTime() + dias * DIA_MS);
       for (const turno of await this.turnos.obtenerEnFecha(fecha)) {
+        // Un turno que ya empezó no se recuerda. Pasa con «el mismo día»:
+        // cuando la hora de envío es posterior a la del turno, o cuando un
+        // email que falló se reintenta en las pasadas siguientes —que corren
+        // cada hora hasta la medianoche— y el turno ya pasó.
+        if (turno.yaEmpezo(hoy, ahora)) {
+          omitidos += 1;
+          continue;
+        }
         const resultado = await this.enviarParaTurno(turno, dias);
         if (resultado === "ENVIADO") enviados += 1;
         // Sin email no es una falla: desde la migración 79 hay pacientes que
@@ -238,8 +247,10 @@ export class EnviarRecordatoriosPorEmail {
     } catch (error) {
       // No se registra: sin fila en `emails_enviados`, el próximo barrido lo
       // vuelve a intentar. Registrar el fallo lo daría por avisado para siempre.
+      // Sin hora propia: el worker y la app anteponen la hora local a cada
+      // línea (`horaDelLog`), y una segunda en UTC al lado solo confundía.
       console.error(
-        `[recordatorios] ${new Date().toISOString()} falló el email del turno ${turno.id}:`,
+        `[recordatorios] falló el email del turno ${turno.id}:`,
         error,
       );
       return "FALLIDO";

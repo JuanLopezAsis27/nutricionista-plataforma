@@ -18,6 +18,8 @@ import {
   mockConfiguracionRepositorio,
 } from "../_ayudas-test";
 import { ConfiguracionConsultorio } from "@/dominio/entidades/ConfiguracionConsultorio";
+import { ConfiguracionRecordatorios } from "@/dominio/entidades/ConfiguracionRecordatorios";
+import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
 
 const PROFESIONAL = "Lic. López Asis";
 // El reloj de ejemplo marca hoy = 2026-07-14 (UTC); mañana = 2026-07-15.
@@ -31,6 +33,9 @@ function armar(overrides: {
   predeterminada?: ReturnType<typeof plantillaEmailRecordatorioEjemplo>;
   /** Número de cancelaciones del consultorio; sin esto, no hay. */
   whatsappCancelaciones?: string;
+  /** Escalones del email; sin esto, los de la configuración por defecto. */
+  emailDiasAntes?: number[];
+  reloj?: IRelojFecha;
 }) {
   const predeterminada =
     overrides.predeterminada ?? plantillaEmailRecordatorioEjemplo();
@@ -58,8 +63,18 @@ function armar(overrides: {
       ),
     }),
     mockServicioEmail({ enviar }),
-    mockReloj(),
-    mockConfiguracionRecordatoriosRepositorio(),
+    overrides.reloj ?? mockReloj(),
+    mockConfiguracionRecordatoriosRepositorio(
+      overrides.emailDiasAntes
+        ? {
+            obtener: vi.fn(async () =>
+              ConfiguracionRecordatorios.porDefecto().actualizar({
+                emailDiasAntes: overrides.emailDiasAntes,
+              }),
+            ),
+          }
+        : {},
+    ),
     mockNutricionistaConNombre(PROFESIONAL),
     mockEstablecimientoRepositorio(),
     enlaces,
@@ -279,6 +294,57 @@ describe("EnviarRecordatoriosPorEmail", () => {
     expect(resultado.omitidos).toBe(1);
     expect(resultado.enviados).toBe(0);
     expect(enviar).not.toHaveBeenCalled();
+  });
+
+  describe("turnos de hoy (escalón «el mismo día»)", () => {
+    const HOY = new Date("2026-07-14");
+    // Las 10:05 en hora local; `hoy` va explícito para no depender de la zona
+    // horaria de la máquina que corre los tests.
+    const relojA = (hora: number, minuto: number): IRelojFecha => ({
+      ahora: () => new Date(2026, 6, 14, hora, minuto),
+      hoy: () => HOY,
+    });
+
+    it("no recuerda un turno que ya empezó (p. ej. al reintentar un email fallido)", async () => {
+      const turno = turnoEjemplo({ fecha: HOY, hora: "09:00" });
+      const { uc, enviar } = armar({
+        turnos: [turno],
+        emailDiasAntes: [0],
+        reloj: relojA(10, 5),
+      });
+
+      const resultado = await uc.ejecutar();
+
+      expect(resultado).toEqual({ enviados: 0, omitidos: 1, fallidos: 0 });
+      expect(enviar).not.toHaveBeenCalled();
+    });
+
+    it("tampoco a la hora justa en que empieza", async () => {
+      const turno = turnoEjemplo({ fecha: HOY, hora: "10:05" });
+      const { uc, enviar } = armar({
+        turnos: [turno],
+        emailDiasAntes: [0],
+        reloj: relojA(10, 5),
+      });
+
+      await uc.ejecutar();
+
+      expect(enviar).not.toHaveBeenCalled();
+    });
+
+    it("sí recuerda un turno de más tarde", async () => {
+      const turno = turnoEjemplo({ fecha: HOY, hora: "18:00" });
+      const { uc, enviar } = armar({
+        turnos: [turno],
+        emailDiasAntes: [0],
+        reloj: relojA(10, 5),
+      });
+
+      const resultado = await uc.ejecutar();
+
+      expect(resultado.enviados).toBe(1);
+      expect(enviar).toHaveBeenCalledOnce();
+    });
   });
 
   it("ignora turnos cancelados o completados", async () => {

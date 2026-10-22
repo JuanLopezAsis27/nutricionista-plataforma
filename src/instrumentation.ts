@@ -13,6 +13,11 @@ import type { Instrumentation } from "next";
  */
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  // Primero la hora: así ya la lleva cualquier línea que se escriba después,
+  // incluidos los errores de la bienvenida del alta (`[bienvenida] …`).
+  const { anteponerHoraAlLog } =
+    await import("@/infraestructura/monitoreo/horaDelLog");
+  anteponerHoraAlLog();
   const { engancharErroresDeProceso } = await import("./instrumentacionNodo");
   engancharErroresDeProceso();
 }

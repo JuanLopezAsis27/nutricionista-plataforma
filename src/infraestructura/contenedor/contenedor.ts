@@ -68,6 +68,8 @@ import { DesconectarGoogle } from "@/aplicacion/casos-de-uso/integraciones/Desco
 import { ServicioAlimentosPropios } from "@/aplicacion/servicios/ServicioAlimentosPropios";
 import type { IAlimentoPropioRepositorio } from "@/dominio/repositorios/IAlimentoPropioRepositorio";
 import { ImportarAlimentos } from "@/aplicacion/casos-de-uso/nutricion/ImportarAlimentos";
+import { AgregarAlimentos } from "@/aplicacion/casos-de-uso/nutricion/AgregarAlimentos";
+import { ObtenerTodosLosAlimentos } from "@/aplicacion/casos-de-uso/nutricion/ObtenerTodosLosAlimentos";
 import { ObtenerEstadoAlimentosPropios } from "@/aplicacion/casos-de-uso/nutricion/ObtenerEstadoAlimentosPropios";
 import { VaciarAlimentosPropios } from "@/aplicacion/casos-de-uso/nutricion/VaciarAlimentosPropios";
 import { CrearAlimentoPropio } from "@/aplicacion/casos-de-uso/nutricion/CrearAlimentoPropio";
@@ -75,6 +77,7 @@ import { ActualizarAlimentoPropio } from "@/aplicacion/casos-de-uso/nutricion/Ac
 import { EliminarAlimentoPropio } from "@/aplicacion/casos-de-uso/nutricion/EliminarAlimentoPropio";
 import { ListarAlimentosPropios } from "@/aplicacion/casos-de-uso/nutricion/ListarAlimentosPropios";
 import { CambiarImagenAlimento } from "@/aplicacion/casos-de-uso/nutricion/CambiarImagenAlimento";
+import { ImagenesDeAlimentos } from "@/aplicacion/casos-de-uso/nutricion/imagenesDeAlimentos";
 import { QuitarImagenAlimento } from "@/aplicacion/casos-de-uso/nutricion/QuitarImagenAlimento";
 import { ObtenerImagenAlimento } from "@/aplicacion/casos-de-uso/nutricion/ObtenerImagenAlimento";
 import { ContarUsosDeAlimento } from "@/aplicacion/casos-de-uso/nutricion/ContarUsosDeAlimento";
@@ -293,14 +296,11 @@ export const servicioPlan = perezoso(() =>
 );
 
 /**
- * Planes semanales de referencia. Lleva también el repositorio de planes
- * porque las metas diarias contra las que se compara cada día salen del plan
- * nutricional asignado al paciente.
+ * Planes semanales de referencia, con sus propias metas (migración 91).
  */
 export const servicioPlanSemanal = perezoso(() =>
   crearServicioPlanSemanal({
     semanales: nucleo.repositorioPlanSemanal(),
-    planes: nucleo.repositorioPlan(),
     pacientes: nucleo.repositorioPaciente(),
   }),
 );
@@ -314,9 +314,10 @@ export const servicioNutricion = perezoso(() =>
 );
 
 /**
- * Una lista de alimentos gestionable: importar, ver, editar y vaciar. La del
- * consultorio y la de la plataforma son la misma colección con otro dueño, así
- * que comparten casos de uso y cambian solo el repositorio.
+ * Una lista de alimentos gestionable: importar (reemplazando o agregando),
+ * descargar, ver, editar y vaciar. La del consultorio y la de la plataforma
+ * son la misma colección con otro dueño, así que comparten casos de uso y
+ * cambian solo el repositorio.
  */
 function servicioDeListaDeAlimentos(
   repositorio: IAlimentoPropioRepositorio,
@@ -325,15 +326,23 @@ function servicioDeListaDeAlimentos(
   catalogo: IAlimentoPropioRepositorio | null,
 ): ServicioAlimentosPropios {
   const almacenamiento = nucleo.almacenamiento();
+  // La misma regla para la imagen subida a mano y la que llega en un Excel.
+  const imagenes = new ImagenesDeAlimentos(
+    almacenamiento,
+    nucleo.optimizadorImagenes(),
+    prefijoImagenes,
+  );
   return new ServicioAlimentosPropios(
-    new ImportarAlimentos(repositorio, catalogo),
+    new ImportarAlimentos(repositorio, catalogo, imagenes),
+    new AgregarAlimentos(repositorio, catalogo, imagenes),
+    new ObtenerTodosLosAlimentos(repositorio),
     new ObtenerEstadoAlimentosPropios(repositorio),
     new VaciarAlimentosPropios(repositorio),
     new CrearAlimentoPropio(repositorio),
     new ActualizarAlimentoPropio(repositorio),
     new EliminarAlimentoPropio(repositorio),
     new ListarAlimentosPropios(repositorio),
-    new CambiarImagenAlimento(repositorio, almacenamiento, prefijoImagenes),
+    new CambiarImagenAlimento(repositorio, imagenes),
     new QuitarImagenAlimento(repositorio, almacenamiento),
     new ObtenerImagenAlimento(repositorio, almacenamiento),
     new ContarUsosDeAlimento(nucleo.repositorioUsosDeAlimento()),

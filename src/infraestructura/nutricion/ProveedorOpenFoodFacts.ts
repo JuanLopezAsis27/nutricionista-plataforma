@@ -118,6 +118,11 @@ export class ProveedorOpenFoodFacts implements IProveedorDatosNutricionales {
       id: null,
       categoria: null,
       imagenVersion: null,
+      // Sus `_100g` se toman por 100 g: Open Food Facts no dice de forma
+      // confiable si un producto se informa por 100 ml, y sin medidas el
+      // profesional igual puede escribir la cantidad en gramos.
+      unidadBase: "GRAMO",
+      medidas: [],
     };
 
     // Descarta productos sin ningún macro útil (no aportan al cálculo).

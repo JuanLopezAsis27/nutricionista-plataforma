@@ -24,6 +24,8 @@ const alimento = (nombre: string, fuente: string): AlimentoNutricional => ({
   id: null,
   categoria: null,
   imagenVersion: null,
+  unidadBase: "GRAMO",
+  medidas: [],
 });
 
 function proveedor(resultados: AlimentoNutricional[]) {

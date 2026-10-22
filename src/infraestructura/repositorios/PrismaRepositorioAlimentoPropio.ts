@@ -52,6 +52,26 @@ export class PrismaRepositorioAlimentoPropio
     return filas.length;
   }
 
+  async agregarVarios(alimentos: AlimentoPropio[]): Promise<number> {
+    const filas = alimentos.map(datosDeAlimento);
+    const lotes: (typeof filas)[] = [];
+    for (let i = 0; i < filas.length; i += TAMANO_LOTE) {
+      lotes.push(filas.slice(i, i + TAMANO_LOTE));
+    }
+    // `skipDuplicates` (ON CONFLICT DO NOTHING) contra el único
+    // (nutricionistaId, claveIdentidad): el caso de uso ya descartó los que
+    // estaban, esto cubre dos importaciones al mismo tiempo.
+    const resultados = await this.prisma.$transaction(
+      lotes.map((lote) =>
+        this.prisma.alimentoPropio.createMany({
+          data: lote.map((f) => ({ ...f, nutricionistaId: inquilinoActual() })),
+          skipDuplicates: true,
+        }),
+      ),
+    );
+    return resultados.reduce((total, r) => total + r.count, 0);
+  }
+
   async crear(alimento: AlimentoPropio): Promise<AlimentoPropio> {
     const fila = await this.prisma.alimentoPropio.create({
       data: {
@@ -108,7 +128,7 @@ export class PrismaRepositorioAlimentoPropio
     limite: number,
     categoria?: CategoriaAlimento,
   ): Promise<AlimentoPropio[]> {
-    if (termino.trim().length === 0 && !categoria) return [];
+    // Sin término ni categoría es hojear: los primeros `limite` por nombre.
     return this.listar({ busqueda: termino, categoria, limite });
   }
 

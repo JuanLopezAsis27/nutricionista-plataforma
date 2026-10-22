@@ -10,6 +10,11 @@ import {
   mejoresCombinaciones,
   type ResultadoCombinaciones,
 } from "@/dominio/servicios/combinacionesPlan";
+import {
+  normalizarCantidadDeAlimento,
+  type CantidadDeAlimento,
+} from "@/dominio/entidades/medidasAlimento";
+import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 
 /** Una opción del borrador: solo lo que hace falta para sumarla. */
 export interface OpcionBorrador {
@@ -118,7 +123,7 @@ export class EvaluarCombinacionesPlan {
 function aItem(item: DatosItemOpcion): ItemDeOpcion {
   return {
     nombre: item.nombre,
-    cantidadGramos: item.cantidadGramos ?? null,
+    ...cantidadDelBorrador(item),
     caloriasPor100: item.caloriasPor100 ?? null,
     proteinasPor100: item.proteinasPor100 ?? null,
     carbohidratosPor100: item.carbohidratosPor100 ?? null,
@@ -127,6 +132,31 @@ function aItem(item: DatosItemOpcion): ItemDeOpcion {
     referenciaExterna: item.referenciaExterna ?? null,
     alimentoOrigenId: item.alimentoOrigenId ?? null,
   };
+}
+
+/**
+ * La cantidad en g/ml de un alimento del borrador, con la misma regla que al
+ * guardar (una medida elegida manda sobre los gramos). El borrador se evalúa
+ * mientras se escribe: una medida a medio cargar no frena la vista previa,
+ * cuenta como alimento sin cantidad hasta que se complete —y al guardar sí
+ * se rechaza—.
+ */
+function cantidadDelBorrador(item: DatosItemOpcion): CantidadDeAlimento {
+  try {
+    return normalizarCantidadDeAlimento(item, item.nombre);
+  } catch (error) {
+    // Solo la medida a medio cargar; cualquier otra cosa es un error de
+    // verdad y tiene que llegar al monitor.
+    if (!(error instanceof ErrorValidacion)) throw error;
+    return {
+      cantidadGramos: null,
+      unidadBase: item.unidadBase ?? "GRAMO",
+      medidas: [],
+      medida: null,
+      cantidadMedida: null,
+      cantidadPorMedida: null,
+    };
+  }
 }
 
 function macrosPorPorcion(receta: Receta) {

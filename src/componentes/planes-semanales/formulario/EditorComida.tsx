@@ -30,6 +30,11 @@ import {
   type ItemFormulario,
 } from "./esquema";
 import { macrosDeComida, type MacrosDeRecetas } from "./totales";
+import { CampoCantidadAlimento } from "@/componentes/comunes/alimentos/CampoCantidadAlimento";
+import {
+  cantidadDesdeAlimento,
+  porCien,
+} from "@/componentes/comunes/alimentos/cantidad";
 
 export interface RecetaElegible {
   id: string;
@@ -204,7 +209,7 @@ export function EditorComida({
                   nombre: alimento.marca
                     ? `${alimento.nombre} (${alimento.marca})`
                     : alimento.nombre,
-                  cantidadGramos: "100",
+                  ...cantidadDesdeAlimento(alimento),
                   caloriasPor100: textoDe(alimento.caloriasPor100),
                   proteinasPor100: textoDe(alimento.proteinasPor100),
                   carbohidratosPor100: textoDe(alimento.carbohidratosPor100),
@@ -228,14 +233,18 @@ export function EditorComida({
                       cambiarItem(indice, "nombre", e.target.value)
                     }
                   />
-                  <Input
-                    className="w-24 shrink-0"
-                    inputMode="decimal"
-                    placeholder="g"
-                    aria-label="Gramos"
-                    value={item.cantidadGramos}
-                    onChange={(e) =>
-                      cambiarItem(indice, "cantidadGramos", e.target.value)
+                  <CampoCantidadAlimento
+                    className="w-40 shrink-0 sm:w-48"
+                    altoCompacto={false}
+                    valor={item}
+                    unidadEditable={!item.alimentoOrigenId}
+                    onCambiar={(nuevo) =>
+                      setBorrador((actual) => ({
+                        ...actual,
+                        items: actual.items.map((otro, i) =>
+                          i === indice ? { ...otro, ...nuevo } : otro,
+                        ),
+                      }))
                     }
                   />
                   <Button
@@ -252,10 +261,10 @@ export function EditorComida({
                 <div className="mt-2 grid grid-cols-4 gap-2 pr-10">
                   {(
                     [
-                      ["caloriasPor100", "kcal/100g"],
-                      ["proteinasPor100", "P/100g"],
-                      ["carbohidratosPor100", "C/100g"],
-                      ["grasasPor100", "G/100g"],
+                      ["caloriasPor100", `kcal/${porCien(item.unidadBase)}`],
+                      ["proteinasPor100", `P/${porCien(item.unidadBase)}`],
+                      ["carbohidratosPor100", `C/${porCien(item.unidadBase)}`],
+                      ["grasasPor100", `G/${porCien(item.unidadBase)}`],
                     ] as const
                   ).map(([campo, etiqueta]) => (
                     <div key={campo} className="space-y-1">

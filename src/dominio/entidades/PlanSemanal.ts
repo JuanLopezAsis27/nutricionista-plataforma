@@ -1,5 +1,10 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
 import {
+  normalizarCantidadDeAlimento,
+  type CantidadDeAlimento,
+  type DatosCantidadDeAlimento,
+} from "./medidasAlimento";
+import {
   sumarPorGramos,
   sumarMacros,
   sumarTodos,
@@ -7,6 +12,14 @@ import {
   MACROS_VACIOS,
   type Macros,
 } from "../servicios/macrosAlimentos";
+import {
+  compararConMetas,
+  TIPOS_META,
+  TIPOS_META_POR_DEFECTO,
+  type ComparacionDia,
+  type MetasDiarias,
+  type TiposMeta,
+} from "../servicios/comparacionMacros";
 
 /**
  * Días de la semana, en el orden en que se leen en la grilla.
@@ -64,13 +77,74 @@ export function diaSemanaDe(fecha: Date): DiaSemana {
 
 const PATRON_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+// --- Metas (migración 91) ----------------------------------------------------
+
+/**
+ * Cómo declara sus metas un plan semanal: las MISMAS para los siete días
+ * (`GENERAL`) o unas para CADA día (`POR_DIA`: el sábado con más calorías que
+ * el lunes, los días de entrenamiento con más carbohidratos).
+ */
+export const MODOS_METAS_SEMANA = ["GENERAL", "POR_DIA"] as const;
+export type ModoMetasSemana = (typeof MODOS_METAS_SEMANA)[number];
+
+/** Los cuatro valores de una meta diaria. Null = sin meta para esa macro. */
+export interface ValoresMeta {
+  calorias: number | null;
+  proteinasG: number | null;
+  carbohidratosG: number | null;
+  grasasG: number | null;
+}
+
+/**
+ * Las metas del plan semanal, ya normalizadas.
+ *
+ * Los TIPOS (aproximada, piso, techo) son de la macro y no del día: la
+ * proteína es «como mínimo» todos los días aunque cada día pida otra
+ * cantidad. Por eso hay uno solo por macro en los dos modos.
+ */
+export interface MetasPlanSemanal {
+  modo: ModoMetasSemana;
+  tipos: TiposMeta;
+  /** Solo en `GENERAL`: las metas de todos los días, o null si no hay. */
+  general: ValoresMeta | null;
+  /** Solo en `POR_DIA`: las de cada día. Un día ausente no tiene metas. */
+  porDia: Partial<Record<DiaSemana, ValoresMeta>>;
+}
+
+export interface DatosMetasPlanSemanal {
+  modo: ModoMetasSemana;
+  tipos?: Partial<TiposMeta>;
+  general?: Partial<ValoresMeta> | null;
+  porDia?: Array<{ dia: DiaSemana } & Partial<ValoresMeta>>;
+}
+
+/** Un plan sin metas: muestra los totales sin semáforo. */
+export function sinMetas(): MetasPlanSemanal {
+  return {
+    modo: "GENERAL",
+    tipos: { ...TIPOS_META_POR_DEFECTO },
+    general: null,
+    porDia: {},
+  };
+}
+
+/** Un día de la semana con su total y cómo quedó frente a SU meta. */
+export interface DiaComparado {
+  dia: DiaSemana;
+  macros: Macros;
+  comparacion: ComparacionDia;
+}
+
 // --- Estado persistido -------------------------------------------------------
 
-/** Alimento de una comida: cantidad en gramos + macros por 100 g. */
-export interface ItemDeComidaSemanal {
+/**
+ * Alimento de una comida: cantidad + macros por 100 g (o 100 ml). La cantidad
+ * puede estar escrita en una medida casera (migración 90); `cantidadGramos`
+ * es siempre la cantidad en g/ml.
+ */
+export interface ItemDeComidaSemanal extends CantidadDeAlimento {
   id: string;
   nombre: string;
-  cantidadGramos: number | null;
   caloriasPor100: number | null;
   proteinasPor100: number | null;
   carbohidratosPor100: number | null;
@@ -131,6 +205,8 @@ export interface PropiedadesPlanSemanal {
   id: string;
   nombre: string;
   descripcion: string | null;
+  /** Sus metas propias (migración 91), contra las que se compara cada día. */
+  metas: MetasPlanSemanal;
   franjas: FranjaSemanal[];
   creadoEn: Date;
   actualizadoEn: Date;
@@ -138,9 +214,8 @@ export interface PropiedadesPlanSemanal {
 
 // --- Datos de entrada --------------------------------------------------------
 
-export interface DatosItemComidaSemanal {
+export interface DatosItemComidaSemanal extends DatosCantidadDeAlimento {
   nombre: string;
-  cantidadGramos?: number | null;
   caloriasPor100?: number | null;
   proteinasPor100?: number | null;
   carbohidratosPor100?: number | null;
@@ -172,6 +247,8 @@ export interface DatosFranjaSemanal {
 export interface DatosNuevoPlanSemanal {
   nombre: string;
   descripcion?: string | null;
+  /** Sin metas si no viene: el plan muestra totales sin comparar. */
+  metas?: DatosMetasPlanSemanal | null;
   franjas: DatosFranjaSemanal[];
 }
 
@@ -191,8 +268,15 @@ export interface TotalDelDia {
  * Un `PlanNutricional` describe un DÍA TIPO: franjas con opciones
  * intercambiables que valen para cualquier día. Un `PlanSemanal` describe la
  * SEMANA: qué se come el lunes al mediodía y qué el martes, que no son lo
- * mismo. Conviven a propósito —el plan fija la pauta, el semanal la baja al
- * menú— y por eso un paciente puede tener los dos a la vez.
+ * mismo. Conviven a propósito y por eso un paciente puede tener los dos.
+ *
+ * ## Sus metas son suyas (migración 91)
+ *
+ * Cada día se compara contra las metas DEL PLAN SEMANAL, no contra las de un
+ * plan nutricional asignado: con varios planes asignados (migración 69) solo
+ * contaba el primero, y la semana se juzgaba con una pauta elegida al azar.
+ * Las metas son las mismas para los siete días o unas por día
+ * (`ModoMetasSemana`).
  *
  * ## Qué suma al día
  *
@@ -275,6 +359,7 @@ export class PlanSemanal {
       id,
       nombre,
       descripcion: datos.descripcion?.trim() || null,
+      metas: normalizarMetas(datos.metas),
       franjas,
       creadoEn: ahora,
       actualizadoEn: ahora,
@@ -317,6 +402,32 @@ export class PlanSemanal {
   }
   get franjas(): ReadonlyArray<FranjaSemanal> {
     return this.props.franjas;
+  }
+  get metas(): MetasPlanSemanal {
+    return this.props.metas;
+  }
+
+  /**
+   * Las metas que rigen ESE día, con sus tipos, o null si ese día no tiene
+   * ninguna. Con `GENERAL` son las mismas para todos; con `POR_DIA`, las del
+   * día (un día que no las declara no tiene contra qué compararse).
+   */
+  metasDelDia(dia: DiaSemana): MetasDiarias | null {
+    const { modo, tipos, general, porDia } = this.props.metas;
+    const valores = modo === "GENERAL" ? general : (porDia[dia] ?? null);
+    return valores ? { ...valores, tipos: { ...tipos } } : null;
+  }
+
+  /**
+   * El total de cada día comparado contra la meta de ESE día. Los siete días
+   * siempre, como `totalesPorDia`: un día sin cargar también se dice.
+   */
+  comparacionPorDia(): DiaComparado[] {
+    return this.totalesPorDia().map(({ dia, macros }) => ({
+      dia,
+      macros,
+      comparacion: compararConMetas(macros, this.metasDelDia(dia)),
+    }));
   }
 
   /** Las comidas de una celda (franja × día), la principal primero. */
@@ -361,8 +472,17 @@ export class PlanSemanal {
   }
 
   aPrimitivos(): PropiedadesPlanSemanal {
+    const { metas } = this.props;
     return {
       ...this.props,
+      metas: {
+        modo: metas.modo,
+        tipos: { ...metas.tipos },
+        general: metas.general ? { ...metas.general } : null,
+        porDia: Object.fromEntries(
+          Object.entries(metas.porDia).map(([dia, v]) => [dia, { ...v }]),
+        ),
+      },
       franjas: this.props.franjas.map((franja) => ({
         ...franja,
         comidas: franja.comidas.map((comida) => ({
@@ -373,6 +493,87 @@ export class PlanSemanal {
       })),
     };
   }
+}
+
+/**
+ * Las metas como las guarda el plan.
+ *
+ * - En `GENERAL` se descartan las de cada día y en `POR_DIA` las generales:
+ *   guardar las dos haría que la que no se ve volviera a regir con solo
+ *   cambiar el modo.
+ * - Un juego con las cuatro vacías es «sin metas» (null), igual que un día
+ *   sin ninguna: así la pantalla dice «no hay metas» en vez de cuatro guiones.
+ * - Las calorías se redondean (son enteras en todo el sistema); las demás
+ *   quedan como vienen.
+ */
+function normalizarMetas(
+  datos: DatosMetasPlanSemanal | null | undefined,
+): MetasPlanSemanal {
+  if (!datos) return sinMetas();
+  if (!MODOS_METAS_SEMANA.includes(datos.modo)) {
+    throw new ErrorValidacion(`«${datos.modo}» no es un modo de metas.`);
+  }
+  const tipos: TiposMeta = { ...TIPOS_META_POR_DEFECTO, ...datos.tipos };
+  for (const tipo of Object.values(tipos)) {
+    if (!TIPOS_META.includes(tipo)) {
+      throw new ErrorValidacion(`«${tipo}» no es un tipo de meta.`);
+    }
+  }
+
+  if (datos.modo === "GENERAL") {
+    return {
+      modo: "GENERAL",
+      tipos,
+      general: valoresDeMeta(datos.general ?? null, "la semana"),
+      porDia: {},
+    };
+  }
+
+  const porDia: Partial<Record<DiaSemana, ValoresMeta>> = {};
+  const vistos = new Set<DiaSemana>();
+  for (const { dia, ...valores } of datos.porDia ?? []) {
+    if (!DIAS_SEMANA.includes(dia)) {
+      throw new ErrorValidacion(`«${dia}» no es un día de la semana.`);
+    }
+    const nombreDia = ETIQUETA_DIA_LARGA[dia].toLowerCase();
+    if (vistos.has(dia)) {
+      throw new ErrorValidacion(`El ${nombreDia} tiene dos juegos de metas.`);
+    }
+    vistos.add(dia);
+    const normalizados = valoresDeMeta(valores, `el ${nombreDia}`);
+    if (normalizados) porDia[dia] = normalizados;
+  }
+  return { modo: "POR_DIA", tipos, general: null, porDia };
+}
+
+/** Los cuatro valores validados, o null si no hay ninguno. */
+function valoresDeMeta(
+  valores: Partial<ValoresMeta> | null,
+  cuando: string,
+): ValoresMeta | null {
+  if (!valores) return null;
+  const calorias = metaNoNegativa(valores.calorias, `calorías de ${cuando}`);
+  const resultado: ValoresMeta = {
+    calorias: calorias == null ? null : Math.round(calorias),
+    proteinasG: metaNoNegativa(valores.proteinasG, `proteínas de ${cuando}`),
+    carbohidratosG: metaNoNegativa(
+      valores.carbohidratosG,
+      `carbohidratos de ${cuando}`,
+    ),
+    grasasG: metaNoNegativa(valores.grasasG, `grasas de ${cuando}`),
+  };
+  return Object.values(resultado).some((v) => v != null) ? resultado : null;
+}
+
+function metaNoNegativa(
+  valor: number | null | undefined,
+  etiqueta: string,
+): number | null {
+  if (valor == null) return null;
+  if (!Number.isFinite(valor) || valor < 0) {
+    throw new ErrorValidacion(`La meta de ${etiqueta} no puede ser negativa.`);
+  }
+  return valor;
 }
 
 /** La comida que rige ese día en esa franja: la de menor orden. */
@@ -445,10 +646,7 @@ function normalizarItems(
       return {
         id: generarId(),
         nombre,
-        cantidadGramos: noNegativo(
-          item.cantidadGramos,
-          `La cantidad de «${etiqueta}»`,
-        ),
+        ...normalizarCantidadDeAlimento(item, etiqueta),
         caloriasPor100: noNegativo(
           item.caloriasPor100,
           `Las calorías de «${etiqueta}»`,

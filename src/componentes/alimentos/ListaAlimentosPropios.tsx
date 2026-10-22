@@ -42,6 +42,12 @@ import {
   ImagenAlimento,
   urlImagenAlimento,
 } from "@/componentes/comunes/alimentos/ImagenAlimento";
+import {
+  MEDIDAS_ESTANDAR,
+  SIMBOLO_UNIDAD_BASE,
+  MAXIMO_MEDIDAS_ALIMENTO,
+  type UnidadBaseAlimento,
+} from "@/dominio/entidades/medidasAlimento";
 
 /** Sentinela de «sin categoría» / «todas» (Radix Select no admite value=""). */
 const SIN_CATEGORIA = "__ninguna__";
@@ -56,6 +62,10 @@ interface Borrador {
   proteinasPor100: string;
   carbohidratosPor100: string;
   grasasPor100: string;
+  /** Si los macros son por 100 g o por 100 ml (migración 90). */
+  unidadBase: UnidadBaseAlimento;
+  /** Medidas caseras propias; la cantidad como texto, como los macros. */
+  medidas: { nombre: string; cantidad: string }[];
   /** Una de CATEGORIAS_ALIMENTO, o SIN_CATEGORIA. */
   categoria: string;
   imagenVersion: string | null;
@@ -70,6 +80,8 @@ function borradorVacio(): Borrador {
     proteinasPor100: "",
     carbohidratosPor100: "",
     grasasPor100: "",
+    unidadBase: "GRAMO",
+    medidas: [],
     categoria: SIN_CATEGORIA,
     imagenVersion: null,
   };
@@ -85,6 +97,11 @@ function aBorrador(a: AlimentoPropioSalidaDto): Borrador {
     carbohidratosPor100:
       a.carbohidratosPor100 != null ? String(a.carbohidratosPor100) : "",
     grasasPor100: a.grasasPor100 != null ? String(a.grasasPor100) : "",
+    unidadBase: a.unidadBase,
+    medidas: a.medidas.map((m) => ({
+      nombre: m.nombre,
+      cantidad: String(m.cantidad),
+    })),
     categoria: a.categoria ?? SIN_CATEGORIA,
     imagenVersion: a.imagenVersion,
   };
@@ -92,6 +109,32 @@ function aBorrador(a: AlimentoPropioSalidaDto): Borrador {
 
 function formatearMacro(valor: number | null): string {
   return valor != null ? String(valor) : "—";
+}
+
+/** «ml · 1 taza (240 ml), 1 vaso (200 ml)», como las porciones de FatSecret. */
+function textoMedidas(a: AlimentoPropioSalidaDto): string {
+  const simbolo = SIMBOLO_UNIDAD_BASE[a.unidadBase];
+  if (a.medidas.length === 0) return simbolo;
+  return `${simbolo} · ${a.medidas
+    .map(
+      (m) =>
+        `1 ${m.nombre} (${String(m.cantidad).replace(".", ",")} ${simbolo})`,
+    )
+    .join(", ")}`;
+}
+
+/** Las medidas del borrador que se pueden guardar (nombre y cantidad > 0). */
+function medidasDelBorrador(
+  b: Borrador,
+): { nombre: string; cantidad: number }[] {
+  return b.medidas
+    .map((m) => ({
+      nombre: m.nombre.trim(),
+      cantidad: Number(m.cantidad.replace(",", ".")),
+    }))
+    .filter(
+      (m) => m.nombre !== "" && Number.isFinite(m.cantidad) && m.cantidad > 0,
+    );
 }
 
 /**
@@ -176,23 +219,35 @@ export function ListaAlimentosPropios({
     },
     { clave: "marca", encabezado: "Marca", render: (a) => a.marca ?? "—" },
     {
+      clave: "medidas",
+      encabezado: "Se mide en",
+      render: (a) => (
+        <span
+          className="block max-w-56 truncate text-xs"
+          title={textoMedidas(a)}
+        >
+          {textoMedidas(a)}
+        </span>
+      ),
+    },
+    {
       clave: "caloriasPor100",
-      encabezado: "Cal./100 g",
+      encabezado: "Cal./100",
       render: (a) => formatearMacro(a.caloriasPor100),
     },
     {
       clave: "proteinasPor100",
-      encabezado: "Prot./100 g",
+      encabezado: "Prot./100",
       render: (a) => formatearMacro(a.proteinasPor100),
     },
     {
       clave: "carbohidratosPor100",
-      encabezado: "Carb./100 g",
+      encabezado: "Carb./100",
       render: (a) => formatearMacro(a.carbohidratosPor100),
     },
     {
       clave: "grasasPor100",
-      encabezado: "Grasas/100 g",
+      encabezado: "Grasas/100",
       render: (a) => formatearMacro(a.grasasPor100),
     },
   ];
@@ -318,6 +373,8 @@ export function ListaAlimentosPropios({
               datos.grasasPor100.trim() === ""
                 ? null
                 : Number(datos.grasasPor100),
+            unidadBase: datos.unidadBase,
+            medidas: medidasDelBorrador(datos),
             categoria:
               datos.categoria === SIN_CATEGORIA
                 ? null
@@ -576,6 +633,21 @@ function FormularioAlimento({
 }) {
   const [b, setB] = useState<Borrador>(inicial);
   const puedeGuardar = b.nombre.trim() !== "";
+  const simbolo = SIMBOLO_UNIDAD_BASE[b.unidadBase];
+  const cien = `100 ${simbolo}`;
+
+  function cambiarMedida(
+    indice: number,
+    campo: "nombre" | "cantidad",
+    valor: string,
+  ) {
+    setB({
+      ...b,
+      medidas: b.medidas.map((m, i) =>
+        i === indice ? { ...m, [campo]: valor } : m,
+      ),
+    });
+  }
 
   // En la lista del consultorio: si lo que escribe ya está en la plataforma.
   // Es un aviso y no un bloqueo: su versión, con otros macros, es legítima.
@@ -635,9 +707,33 @@ function FormularioAlimento({
         </Select>
       </div>
 
+      <div className="space-y-1.5">
+        <Label htmlFor="unidadBase">Se mide en</Label>
+        <Select
+          value={b.unidadBase}
+          onValueChange={(valor) =>
+            setB({ ...b, unidadBase: valor as UnidadBaseAlimento })
+          }
+        >
+          <SelectTrigger id="unidadBase">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="GRAMO">Gramos (g) — macros por 100 g</SelectItem>
+            <SelectItem value="MILILITRO">
+              Mililitros (ml) — macros por 100 ml
+            </SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          Los líquidos (leche, aceite, jugos) van en ml, con los macros de su
+          etiqueta «por 100 ml».
+        </p>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="calorias">Calorías (100 g)</Label>
+          <Label htmlFor="calorias">Calorías ({cien})</Label>
           <Input
             id="calorias"
             type="number"
@@ -646,7 +742,7 @@ function FormularioAlimento({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="proteinas">Proteínas (100 g)</Label>
+          <Label htmlFor="proteinas">Proteínas ({cien})</Label>
           <Input
             id="proteinas"
             type="number"
@@ -658,7 +754,7 @@ function FormularioAlimento({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="carbohidratos">Carbohidratos (100 g)</Label>
+          <Label htmlFor="carbohidratos">Carbohidratos ({cien})</Label>
           <Input
             id="carbohidratos"
             type="number"
@@ -669,7 +765,7 @@ function FormularioAlimento({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="grasas">Grasas (100 g)</Label>
+          <Label htmlFor="grasas">Grasas ({cien})</Label>
           <Input
             id="grasas"
             type="number"
@@ -677,6 +773,75 @@ function FormularioAlimento({
             onChange={(e) => setB({ ...b, grasasPor100: e.target.value })}
           />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <div>
+          <Label>Medidas caseras</Label>
+          <p className="text-xs text-muted-foreground">
+            Cuánto es cada medida de este alimento en {simbolo}: «1 unidad =
+            50», «1 taza = 240». En el plan se va a poder indicar «2 unidades» o
+            «0,5 taza» y los macros se calculan solos.{" "}
+            {MEDIDAS_ESTANDAR[b.unidadBase].length > 0 &&
+              `Ya vienen incluidas: ${MEDIDAS_ESTANDAR[b.unidadBase]
+                .map((m) => `${m.nombre} (${m.cantidad} ${simbolo})`)
+                .join(", ")}; cargá una con el mismo nombre para cambiarla.`}
+          </p>
+        </div>
+        {b.medidas.map((medida, indice) => (
+          <div key={indice} className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">1</span>
+            <Input
+              className="min-w-0 flex-1"
+              placeholder="unidad, taza, rodaja…"
+              aria-label="Nombre de la medida"
+              value={medida.nombre}
+              onChange={(e) => cambiarMedida(indice, "nombre", e.target.value)}
+            />
+            <span className="text-sm text-muted-foreground">=</span>
+            <Input
+              className="w-20 shrink-0"
+              inputMode="decimal"
+              placeholder={simbolo}
+              aria-label={`Equivalencia en ${simbolo}`}
+              value={medida.cantidad}
+              onChange={(e) =>
+                cambiarMedida(indice, "cantidad", e.target.value)
+              }
+            />
+            <span className="w-6 text-sm text-muted-foreground">{simbolo}</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              aria-label="Quitar medida"
+              onClick={() =>
+                setB({
+                  ...b,
+                  medidas: b.medidas.filter((_, i) => i !== indice),
+                })
+              }
+            >
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
+        ))}
+        {b.medidas.length < MAXIMO_MEDIDAS_ALIMENTO && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              setB({
+                ...b,
+                medidas: [...b.medidas, { nombre: "", cantidad: "" }],
+              })
+            }
+          >
+            <Plus className="h-4 w-4" /> Agregar medida
+          </Button>
+        )}
       </div>
 
       <DialogFooter>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Plus, Eye, Pencil, Trash2, UserPlus } from "lucide-react";
 import type { PlanSemanalSalidaDto } from "@/aplicacion/dtos/planSemanal.dto";
 import { usePlanesSemanales } from "@/lib/hooks/usePlanesSemanales";
@@ -18,11 +19,13 @@ import {
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { FormularioPlanSemanal } from "./FormularioPlanSemanal";
 import { FormularioAsignacionPlanSemanal } from "./FormularioAsignacionPlanSemanal";
-import { VistaPlanSemanal } from "./VistaPlanSemanal";
+import { rutaPlanSemanal, CLASES_DIALOGO_PLAN_SEMANAL } from "./rutas";
 
 /**
  * La sección «Planes semanales» del módulo de planes: el listado de los menús
- * de referencia con su alta, edición, vista y asignación.
+ * de referencia con su alta, edición y asignación. «Ver» abre la PÁGINA del
+ * plan (`/dashboard/planes/semanales/[id]`), como en los planes: antes era un
+ * diálogo, y una semana entera con su comparación de macros no entraba.
  *
  * Va en un componente propio y no dentro de la página por tamaño: la página de
  * planes ya coordina dos pestañas con sus diálogos, y una tercera con su
@@ -39,7 +42,6 @@ export function SeccionPlanesSemanales() {
   const [planEditar, setPlanEditar] = useState<PlanSemanalSalidaDto | null>(
     null,
   );
-  const [planVer, setPlanVer] = useState<PlanSemanalSalidaDto | null>(null);
   const [planAsignar, setPlanAsignar] = useState<PlanSemanalSalidaDto | null>(
     null,
   );
@@ -54,7 +56,14 @@ export function SeccionPlanesSemanales() {
     {
       clave: "nombre",
       encabezado: "Nombre",
-      render: (plan) => <span className="font-medium">{plan.nombre}</span>,
+      render: (plan) => (
+        <Link
+          href={rutaPlanSemanal(plan.id)}
+          className="font-medium hover:text-primary hover:underline"
+        >
+          {plan.nombre}
+        </Link>
+      ),
     },
     {
       clave: "franjas",
@@ -82,13 +91,10 @@ export function SeccionPlanesSemanales() {
       className: "text-right",
       render: (plan) => (
         <div className="flex justify-end gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Ver"
-            onClick={() => setPlanVer(plan)}
-          >
-            <Eye className="h-4 w-4" />
+          <Button asChild variant="ghost" size="icon" title="Ver">
+            <Link href={rutaPlanSemanal(plan.id)} aria-label="Ver">
+              <Eye className="h-4 w-4" />
+            </Link>
           </Button>
           <Button
             variant="ghost"
@@ -147,14 +153,9 @@ export function SeccionPlanesSemanales() {
         onCambiarPagina={setPagina}
       />
 
-      {/* Alta / edición */}
-      {/* El diálogo crece con su contenido y scrollea entero.
-          Tuvo un alto fijo (92 vh) con la grilla deslizándose adentro, y en
-          pantallas bajas —y en mobile— eso dejaba la semana aplastada en una
-          franja de 200 px: el alto de la grilla lo tiene que poner la grilla,
-          no el alto de la ventana. */}
+      {/* Alta / edición (ver CLASES_DIALOGO_PLAN_SEMANAL). */}
       <Dialog open={formAbierto} onOpenChange={setFormAbierto}>
-        <DialogContent className="max-h-[95dvh] w-[97vw] max-w-[100rem] overflow-y-auto">
+        <DialogContent className={CLASES_DIALOGO_PLAN_SEMANAL}>
           <DialogHeader>
             <DialogTitle>
               {planEditar ? "Editar plan semanal" : "Nuevo plan semanal"}
@@ -167,19 +168,6 @@ export function SeccionPlanesSemanales() {
             planInicial={planEditar}
             onTerminado={() => setFormAbierto(false)}
           />
-        </DialogContent>
-      </Dialog>
-
-      {/* Vista */}
-      <Dialog
-        open={Boolean(planVer)}
-        onOpenChange={(abierto) => !abierto && setPlanVer(null)}
-      >
-        <DialogContent className="max-h-[95dvh] w-[97vw] max-w-[100rem] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{planVer?.nombre}</DialogTitle>
-          </DialogHeader>
-          {planVer && <VistaPlanSemanal plan={planVer} />}
         </DialogContent>
       </Dialog>
 

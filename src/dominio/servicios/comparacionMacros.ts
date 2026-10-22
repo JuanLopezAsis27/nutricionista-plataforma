@@ -1,14 +1,13 @@
 import type { Macros } from "./macrosAlimentos";
 
 /**
- * Compara lo que suma un día contra las metas diarias del paciente.
+ * Compara lo que suma un día contra sus metas diarias.
  *
- * Las metas NO son del plan semanal: son las del plan nutricional que el
- * paciente tiene asignado (`PlanNutricional.caloriasMeta` y sus macros). El
- * plan fija cuánto tiene que comer por día; el semanal es una forma de
- * repartirlo, y comparar el reparto contra su propia meta no diría nada.
- * Por eso un plan semanal que todavía no está asignado a nadie muestra
- * totales pero no semáforo: no hay contra qué compararlo.
+ * Lo usan las combinaciones del día de un plan nutricional (contra las metas
+ * del plan) y el plan semanal (contra las SUYAS, migración 91: las mismas
+ * toda la semana o unas por día; ver `PlanSemanal.metasDelDia`). Hasta esa
+ * migración el semanal usaba las del plan nutricional asignado, y con varios
+ * asignados solo contaba uno.
  *
  * Cada meta dice además CÓMO se lee (migración 82): un objetivo aproximado, un
  * piso o un techo. «120 g de proteína como mínimo» se cumple con 150, y
@@ -82,7 +81,7 @@ export interface ComparacionDia {
   grasasG: ComparacionMacro;
 }
 
-/** Metas diarias del paciente, tal como salen del plan que tiene asignado. */
+/** Las metas de un día: las de un plan nutricional o las del día del plan semanal. */
 export interface MetasDiarias {
   calorias: number | null;
   proteinasG: number | null;

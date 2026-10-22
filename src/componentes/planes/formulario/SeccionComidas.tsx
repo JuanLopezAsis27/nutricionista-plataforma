@@ -3,6 +3,7 @@
 import {
   useFieldArray,
   useWatch,
+  useFormContext,
   type Control,
   type UseFormReturn,
 } from "react-hook-form";
@@ -36,6 +37,12 @@ import {
   type DatosFormulario,
   type ItemOpcionFormulario,
 } from "./esquema";
+import { CampoCantidadAlimento } from "@/componentes/comunes/alimentos/CampoCantidadAlimento";
+import {
+  CANTIDAD_VACIA,
+  cantidadDesdeAlimento,
+  porCien,
+} from "@/componentes/comunes/alimentos/cantidad";
 
 /** Una receta del recetario que se puede elegir en una opción. */
 export type RecetaElegible = RecetaParaElegir;
@@ -344,16 +351,16 @@ const ETIQUETA_CAMPO =
   "block h-4 truncate text-[0.7rem] leading-4 text-muted-foreground";
 
 const CAMPOS_MACRO = [
-  ["caloriasPor100", "Calorías", "kcal/100 g"],
-  ["proteinasPor100", "Proteínas", "g/100 g"],
-  ["carbohidratosPor100", "Carbohidratos", "g/100 g"],
-  ["grasasPor100", "Grasas", "g/100 g"],
+  ["caloriasPor100", "Calorías", "kcal"],
+  ["proteinasPor100", "Proteínas", "g"],
+  ["carbohidratosPor100", "Carbohidratos", "g"],
+  ["grasasPor100", "Grasas", "g"],
 ] as const;
 
 function itemVacio(): ItemOpcionFormulario {
   return {
     nombre: "",
-    cantidadGramos: "",
+    ...CANTIDAD_VACIA,
     caloriasPor100: "",
     proteinasPor100: "",
     carbohidratosPor100: "",
@@ -380,6 +387,10 @@ function AlimentosDeOpcion({
   const ruta =
     `comidas.${indiceComida}.opciones.${indiceOpcion}.items` as const;
   const items = useFieldArray({ control, name: ruta });
+  // Los valores en vivo: la cantidad se edita como un todo (número + medida),
+  // y las etiquetas de los macros dicen por 100 g o por 100 ml.
+  const valores = useWatch({ control, name: ruta });
+  const { setValue, getValues } = useFormContext<DatosFormulario>();
 
   return (
     <div className="space-y-2">
@@ -390,7 +401,7 @@ function AlimentosDeOpcion({
             nombre: alimento.marca
               ? `${alimento.nombre} (${alimento.marca})`
               : alimento.nombre,
-            cantidadGramos: "100",
+            ...cantidadDesdeAlimento(alimento),
             caloriasPor100: texto(alimento.caloriasPor100),
             proteinasPor100: texto(alimento.proteinasPor100),
             carbohidratosPor100: texto(alimento.carbohidratosPor100),
@@ -417,23 +428,22 @@ function AlimentosDeOpcion({
                 </FormItem>
               )}
             />
-            <FormField
-              control={control}
-              name={`${ruta}.${indice}.cantidadGramos`}
-              render={({ field }) => (
-                <FormItem className="w-20 shrink-0 space-y-1 sm:w-24">
-                  <FormLabel className={ETIQUETA_CAMPO}>Cantidad (g)</FormLabel>
-                  <FormControl>
-                    <Input
-                      className="h-8"
-                      inputMode="decimal"
-                      placeholder="g"
-                      {...field}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+            {valores?.[indice] && (
+              <div className="w-36 shrink-0 space-y-1 sm:w-44">
+                <span className={ETIQUETA_CAMPO}>Cantidad</span>
+                <CampoCantidadAlimento
+                  valor={getValues(`${ruta}.${indice}`)}
+                  unidadEditable={!valores[indice].alimentoOrigenId}
+                  onCambiar={(nuevo) =>
+                    setValue(
+                      `${ruta}.${indice}`,
+                      { ...getValues(`${ruta}.${indice}`), ...nuevo },
+                      { shouldDirty: true },
+                    )
+                  }
+                />
+              </div>
+            )}
             <Button
               type="button"
               variant="ghost"
@@ -461,7 +471,8 @@ function AlimentosDeOpcion({
                     <FormLabel className="block text-[0.7rem] leading-4 text-muted-foreground">
                       <span className="block truncate">{etiqueta}</span>
                       <span className="block truncate text-muted-foreground/70">
-                        {unidad}
+                        {unidad}/
+                        {porCien(valores?.[indice]?.unidadBase ?? "GRAMO")}
                       </span>
                     </FormLabel>
                     <FormControl>

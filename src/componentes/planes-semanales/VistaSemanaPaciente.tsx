@@ -14,6 +14,7 @@ import type {
   DiaComparadoDto,
   MacrosDto,
 } from "@/aplicacion/dtos/planSemanal.dto";
+import { metasDelDia, metasEnTexto } from "./metas";
 import { cn } from "@/lib/utilidades";
 import { Badge } from "@/componentes/ui/badge";
 import {
@@ -27,9 +28,8 @@ import {
 } from "./textoComida";
 
 interface Props {
+  /** Trae sus metas y la comparación de cada día (`plan.dias`). */
   plan: PlanSemanalSalidaDto;
-  dias?: DiaComparadoDto[];
-  metas?: MacrosDto | null;
   /** Día que se muestra al abrir; por defecto, hoy. */
   diaInicial?: DiaSemana;
 }
@@ -48,14 +48,16 @@ interface Props {
  * de entrada haría que un día con opciones pareciera un día con el triple de
  * comida.
  */
-export function VistaSemanaPaciente({ plan, dias, metas, diaInicial }: Props) {
+export function VistaSemanaPaciente({ plan, diaInicial }: Props) {
   const [dia, setDia] = useState<DiaSemana>(
     () => diaInicial ?? diaSemanaDe(new Date()),
   );
   const hoy = diaSemanaDe(new Date());
 
   const total = plan.totalesPorDia.find((t) => t.dia === dia)?.macros;
-  const comparacion = dias?.find((d) => d.dia === dia);
+  const comparacion = plan.dias.find((d) => d.dia === dia);
+  // La meta de ESE día: con metas por día, el sábado no se lee como el lunes.
+  const metasHoy = comparacion ? metasDelDia(comparacion) : null;
 
   // Solo las franjas que ese día tienen algo cargado: una fila vacía en la
   // grilla del profesional es una celda con un guion, pero acá sería una
@@ -140,14 +142,12 @@ export function VistaSemanaPaciente({ plan, dias, metas, diaInicial }: Props) {
         </div>
       )}
 
-      {dias && (
-        <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-          <Target className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          {metas
-            ? `El total del día se compara con tu meta diaria: ${metasEnTexto(metas)}.`
-            : "Tu plan no tiene metas de macros cargadas, así que el total va sin comparar."}
-        </p>
-      )}
+      <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+        <Target className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+        {metasHoy
+          ? `El total del día se compara con tu meta del ${ETIQUETA_DIA_LARGA[dia].toLowerCase()}: ${metasEnTexto(metasHoy, plan.metas.tipos)}.`
+          : "Este día no tiene metas de macros cargadas, así que el total va sin comparar."}
+      </p>
     </div>
   );
 }
@@ -299,19 +299,5 @@ function TotalDelDia({
           </Badge>
         )}
     </span>
-  );
-}
-
-function metasEnTexto(metas: MacrosDto): string {
-  return (
-    [
-      metas.calorias != null && `${metas.calorias} kcal`,
-      metas.proteinasG != null && `${metas.proteinasG} g de proteínas`,
-      metas.carbohidratosG != null &&
-        `${metas.carbohidratosG} g de carbohidratos`,
-      metas.grasasG != null && `${metas.grasasG} g de grasas`,
-    ]
-      .filter(Boolean)
-      .join(" · ") || "sin valores"
   );
 }

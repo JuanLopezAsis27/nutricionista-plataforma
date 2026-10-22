@@ -9,6 +9,7 @@ import {
 import type { PlanSalidaDto } from "@/aplicacion/dtos/plan.dto";
 import type { RecetaSalidaDto } from "@/aplicacion/dtos/receta.dto";
 import type { ConfiguracionSalidaDto } from "@/aplicacion/dtos/configuracion.dto";
+import { describirCantidad } from "@/dominio/entidades/medidasAlimento";
 
 /**
  * Documento PDF del plan nutricional. La APARIENCIA (color, membrete, pie y qué
@@ -271,11 +272,12 @@ function PlanNutricionalPdf({
                   <Text style={estilos.opcionReceta}>
                     Alimentos:{" "}
                     {opcion.items
-                      .map((i) =>
-                        i.cantidadGramos != null
-                          ? `${i.nombre} (${i.cantidadGramos} g)`
-                          : i.nombre,
-                      )
+                      .map((i) => {
+                        const cantidad = describirCantidad(i);
+                        return cantidad
+                          ? `${i.nombre} (${cantidad})`
+                          : i.nombre;
+                      })
                       .join(", ")}
                   </Text>
                 )}
@@ -377,8 +379,8 @@ function PlanNutricionalPdf({
                     {receta.ingredientes.map((ing, i) => (
                       <Text key={i} style={estilos.recetaTexto}>
                         • {ing.nombre}
-                        {ing.cantidadGramos != null
-                          ? ` — ${ing.cantidadGramos} g`
+                        {describirCantidad(ing)
+                          ? ` — ${describirCantidad(ing)}`
                           : ""}
                       </Text>
                     ))}

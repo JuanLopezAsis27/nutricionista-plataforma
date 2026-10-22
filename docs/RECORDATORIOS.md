@@ -168,9 +168,30 @@ El barrido no se dispara al arrancar el worker: lo despacha el cron **a los 5
 minutos de cada hora**. En el log son DOS líneas y la que importa es la segunda:
 
 ```
-[worker] recordatorios-turnos: despachados 1 inquilino(s).      ← solo encoló
-[worker] recordatorios-turnos-inquilino [<id>]: WhatsApp: … · Email: …   ← el resultado
+[21/10/2026 10:05:00] [worker] recordatorios-turnos: despachados 1 inquilino(s).      ← solo encoló
+[21/10/2026 10:05:02] [worker] recordatorios-turnos-inquilino [<id>]: WhatsApp: … · Email: …   ← el resultado
 ```
+
+**Cada línea del log empieza con la hora del consultorio**, en el worker y en
+la app (la zona de `TZ`, `src/infraestructura/monitoreo/horaDelLog.ts`).
+`docker logs -t` también da la hora, pero en UTC, y leer los recordatorios
+restando tres horas de cabeza es la manera de equivocarse de día. Lo hace un
+envoltorio sobre `console` que instalan los dos procesos al arrancar —el
+worker en `trabajos/worker.ts`, la app en el `register()` de
+`instrumentation.ts`—, así que alcanza también a las líneas de los casos de
+uso (`[recordatorios] falló el email del turno …`, `[bienvenida] …`). Las
+líneas JSON del monitor de errores quedan sin prefijo: ya traen su `ts` y un
+agregador las parsea. Instalarlo dos veces no hace nada la segunda, porque en
+desarrollo Next puede volver a llamar a `register()`.
+
+Para ver solo los problemas:
+
+```
+docker compose … logs --since 72h worker | grep -E " [1-9][0-9]* fallido|falló|agotó"
+```
+
+Filtrar por «fallido» a secas trae todas las líneas, porque el resumen dice
+`0 fallido(s)` aunque no haya fallado nada.
 
 La segunda tarda un par de segundos (pg-boss sondea la cola). Cortar el worker
 entre una y otra deja el trabajo del inquilino en estado `created`: no se
@@ -210,6 +231,26 @@ Un envío que falla se registra igual (estado `FALLIDO`, con el motivo de Meta):
 el profesional tiene que poder ver a quién NO le llegó. El reintento **reusa
 esa fila** en vez de insertar otra, que es lo que permite reintentar sin abrir
 la puerta al duplicado.
+
+### Un turno que ya empezó no se recuerda
+
+Los dos barridos, email y WhatsApp, saltean los turnos cuya hora ya llegó
+(`Turno.yaEmpezo`) y los cuentan como omitidos. Solo puede pasar con el
+escalón «el mismo día», y de dos maneras:
+
+- la hora de envío del consultorio es posterior a la del turno (envío a las
+  10:00, turno a las 08:30);
+- un aviso que falló se reintenta solo en las pasadas siguientes, que corren
+  cada hora hasta la medianoche: el email porque el fallo no queda
+  registrado, el WhatsApp porque el reintento reusa la fila FALLIDA. Sin este
+  chequeo, un aviso que falló a las 08:05 por un turno de las 09:00 podía
+  salir a las 11:05, con el turno ya terminado.
+
+Se compara contra el INICIO del turno, en hora local, igual que
+`yaEsHoraDeEnviar`. Los escalones de días anteriores (1, 3…) nunca caen acá:
+miran turnos de días que todavía no llegaron. Si se toca la regla, va en la
+entidad y la usan los dos barridos: un medio que recuerde un turno pasado y
+otro que no es justo el desfase que el barrido unificado vino a evitar.
 
 ### El log registra envíos, no intentos
 

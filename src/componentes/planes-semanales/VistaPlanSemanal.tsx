@@ -13,35 +13,23 @@ import {
 } from "@/componentes/comunes/paletaFranjas";
 import { textoDeComida } from "./textoComida";
 import { ComparativaSemanal } from "./ComparativaSemanal";
+import { descripcionDeMetas } from "./metas";
 
 interface Props {
   plan: PlanSemanalSalidaDto;
-  /**
-   * Los días ya comparados contra las metas del paciente. Sin esto se muestran
-   * los totales sin semáforo: en el módulo de planes el menú no está atado a
-   * ningún paciente y no hay contra qué compararlo.
-   */
-  dias?: DiaComparadoDto[];
-  metas?: MacrosDto | null;
-  /** De qué plan nutricional salieron las metas. */
-  nombrePlanDeLasMetas?: string | null;
 }
 
 /**
  * El plan semanal como se lee: la grilla de franjas × días, con la comida
  * principal de cada celda y sus alternativas debajo, y el total de cada día.
  *
- * Cuando viene la comparación, cada total lleva el desvío contra la meta
- * diaria del paciente —que sale de su PLAN NUTRICIONAL, no de este menú— con
- * una tolerancia del 10 %.
+ * Cada total lleva el desvío contra la meta de ESE día, que es del plan
+ * semanal (migración 91): las mismas toda la semana o unas por día. Como las
+ * metas viajan con el plan, la comparación se ve igual en la página del plan,
+ * en la ficha del paciente y en su portal.
  */
-export function VistaPlanSemanal({
-  plan,
-  dias,
-  metas,
-  nombrePlanDeLasMetas,
-}: Props) {
-  const comparacionPorDia = new Map((dias ?? []).map((dia) => [dia.dia, dia]));
+export function VistaPlanSemanal({ plan }: Props) {
+  const comparacionPorDia = new Map(plan.dias.map((dia) => [dia.dia, dia]));
   const totalPorDia = new Map(
     plan.totalesPorDia.map((total) => [total.dia, total.macros]),
   );
@@ -51,15 +39,9 @@ export function VistaPlanSemanal({
       {plan.descripcion && (
         <p className="text-sm text-muted-foreground">{plan.descripcion}</p>
       )}
-      {dias && (
-        <p className="text-xs text-muted-foreground">
-          {metas
-            ? `Comparado contra las metas diarias del plan «${nombrePlanDeLasMetas}»: ${metasEnTexto(metas)}.`
-            : nombrePlanDeLasMetas
-              ? `El plan «${nombrePlanDeLasMetas}» no tiene metas de macros cargadas, así que no hay contra qué comparar.`
-              : "El paciente no tiene un plan nutricional activo: se muestran los totales sin comparar."}
-        </p>
-      )}
+      <p className="text-xs text-muted-foreground">
+        {descripcionDeMetas(plan.metas)}
+      </p>
       {/* A lo ancho: en pantallas grandes los siete días se reparten el
           espacio y entran sin scroll (`lg:table-fixed`). En mobile eso daría
           columnas de 40 px ilegibles, así que ahí la grilla conserva su ancho
@@ -172,14 +154,12 @@ export function VistaPlanSemanal({
       {/* La grilla pone el semáforo solo en las calorías. Acá van las cuatro
           macros día por día: dos menús de 2000 kcal pueden repartir las
           proteínas de forma muy distinta. */}
-      {dias && (
-        <div className="rounded-md border p-3">
-          <h4 className="pb-2 text-sm font-medium">
-            Macros del día contra la meta
-          </h4>
-          <ComparativaSemanal dias={dias} metas={metas ?? null} />
-        </div>
-      )}
+      <div className="rounded-md border p-3">
+        <h4 className="pb-2 text-sm font-medium">
+          Macros del día contra la meta
+        </h4>
+        <ComparativaSemanal dias={plan.dias} metas={plan.metas} />
+      </div>
     </div>
   );
 }
@@ -226,17 +206,4 @@ function leyendaDe(
   if (calorias.estado === "EN_RANGO") return "en la meta";
   const diferencia = calorias.diferencia ?? 0;
   return `${diferencia > 0 ? "+" : ""}${Math.round(diferencia)} kcal`;
-}
-
-function metasEnTexto(metas: MacrosDto): string {
-  return (
-    [
-      metas.calorias != null && `${metas.calorias} kcal`,
-      metas.proteinasG != null && `${metas.proteinasG} g P`,
-      metas.carbohidratosG != null && `${metas.carbohidratosG} g C`,
-      metas.grasasG != null && `${metas.grasasG} g G`,
-    ]
-      .filter(Boolean)
-      .join(" · ") || "sin valores"
-  );
 }

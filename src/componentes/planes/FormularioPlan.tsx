@@ -45,6 +45,10 @@ import {
   SeccionEquivalencias,
   SeccionRecomendaciones,
 } from "./formulario/SeccionListas";
+import {
+  cantidadDesdeGuardado,
+  cantidadParaGuardar,
+} from "@/componentes/comunes/alimentos/cantidad";
 
 // El esquema se reexporta porque `coherencia-formularios-2.test.ts` lo importa
 // desde acá, y porque este sigue siendo el punto de entrada del formulario.
@@ -160,7 +164,7 @@ export function FormularioPlan({
               porciones: opcion.porciones?.toString() ?? "",
               items: opcion.items.map((item) => ({
                 nombre: item.nombre,
-                cantidadGramos: item.cantidadGramos?.toString() ?? "",
+                ...cantidadDesdeGuardado(item),
                 caloriasPor100: item.caloriasPor100?.toString() ?? "",
                 proteinasPor100: item.proteinasPor100?.toString() ?? "",
                 carbohidratosPor100: item.carbohidratosPor100?.toString() ?? "",
@@ -242,7 +246,7 @@ export function FormularioPlan({
             porciones: recetaId ? aNumero(opcion.porciones) : null,
             items: opcion.items.map((item) => ({
               nombre: item.nombre.trim(),
-              cantidadGramos: aNumero(item.cantidadGramos),
+              ...cantidadParaGuardar(item),
               caloriasPor100: aNumero(item.caloriasPor100),
               proteinasPor100: aNumero(item.proteinasPor100),
               carbohidratosPor100: aNumero(item.carbohidratosPor100),

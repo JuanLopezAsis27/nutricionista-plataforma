@@ -8,6 +8,7 @@ import {
   TIPOS_META_POR_DEFECTO,
 } from "@/dominio/servicios/comparacionMacros";
 import { numeroEnRango } from "@/lib/validacionListas";
+import { camposCantidadEsquema } from "@/componentes/comunes/alimentos/cantidad";
 
 /**
  * Esquema, tipos y constantes del formulario de plan.
@@ -31,7 +32,8 @@ export const SIN_CARPETA = "__suelto__";
  */
 const itemOpcion = z.object({
   nombre: z.string().trim().min(1, "Nombre obligatorio").max(200),
-  cantidadGramos: z.string(),
+  /** g/ml o una medida casera (migración 90). */
+  ...camposCantidadEsquema,
   caloriasPor100: z.string(),
   proteinasPor100: z.string(),
   carbohidratosPor100: z.string(),

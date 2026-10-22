@@ -4,6 +4,7 @@ import type { IProveedorWhatsapp } from "@/dominio/servicios/IProveedorWhatsapp"
 import type { IAsistenteAnalitico } from "@/dominio/servicios/IAsistenteAnalitico";
 import type { IHasheadorContrasena } from "@/dominio/servicios/IHasheadorContrasena";
 import type { IAlmacenamientoArchivos } from "@/dominio/servicios/IAlmacenamientoArchivos";
+import type { IOptimizadorImagenes } from "@/dominio/servicios/IOptimizadorImagenes";
 import type { IServicioEmail } from "@/dominio/servicios/IServicioEmail";
 import type { IColaTrabajos } from "@/dominio/servicios/IColaTrabajos";
 import type { IRelojFecha } from "@/dominio/servicios/IRelojFecha";
@@ -52,6 +53,24 @@ export function mockHasheador(): IHasheadorContrasena {
       async (plano: string, hash: string) => hash === `hash:${plano}`,
     ),
     necesitaRehash: vi.fn(() => false),
+  };
+}
+
+/**
+ * Optimizador de imágenes que no achica nada: devuelve los mismos bytes como
+ * WebP. Lo que se testea es la regla (qué entra, dónde se guarda), no sharp.
+ */
+export function mockOptimizadorImagenes(
+  parcial: Partial<IOptimizadorImagenes> = {},
+): IOptimizadorImagenes {
+  return {
+    reducir: vi.fn(async (contenido: Uint8Array) => ({
+      contenido,
+      mimeType: "image/webp" as const,
+      ancho: 1,
+      alto: 1,
+    })),
+    ...parcial,
   };
 }
 

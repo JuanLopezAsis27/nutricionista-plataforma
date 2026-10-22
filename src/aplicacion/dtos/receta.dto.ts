@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  cantidadAlimentoEntradaDto,
+  cantidadAlimentoSalidaDto,
+} from "./medidasAlimento.dto";
 
 /** DTOs de Receta — esquemas Zod de entrada/salida del recetario. */
 
@@ -21,6 +25,7 @@ const ingredienteEntradaDto = z.object({
   referenciaExterna: z.string().max(100).optional().nullable(),
   /** Alimento de la lista del que se copió (migración 85). */
   alimentoOrigenId: z.string().max(64).nullable().optional(),
+  ...cantidadAlimentoEntradaDto,
 });
 
 /**
@@ -134,6 +139,7 @@ const documentoRecetaSalidaDto = fotoRecetaSalidaDto;
 const ingredienteSalidaDto = z.object({
   nombre: z.string(),
   cantidadGramos: z.number().nullable(),
+  ...cantidadAlimentoSalidaDto,
   caloriasPor100: z.number().nullable(),
   proteinasPor100: z.number().nullable(),
   carbohidratosPor100: z.number().nullable(),

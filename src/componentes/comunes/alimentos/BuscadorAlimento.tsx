@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Loader2, Plus } from "lucide-react";
-import type { AlimentoNutricionalSalidaDto } from "@/aplicacion/dtos/nutricion.dto";
+import { Search, Loader2, Plus, ChevronDown } from "lucide-react";
+import {
+  LIMITE_MAXIMO_BUSQUEDA_ALIMENTOS,
+  type AlimentoNutricionalSalidaDto,
+} from "@/aplicacion/dtos/nutricion.dto";
 import {
   CATEGORIAS_ALIMENTO,
   NOMBRES_CATEGORIA_ALIMENTO,
@@ -22,9 +25,15 @@ import {
   DialogTitle,
 } from "@/componentes/ui/dialog";
 import { ImagenAlimento, urlImagenAlimento } from "./ImagenAlimento";
+import { porCien } from "./cantidad";
+import { SIMBOLO_UNIDAD_BASE } from "@/dominio/entidades/medidasAlimento";
 
-/** Cuántos resultados trae una búsqueda del modal. */
-const LIMITE = 24;
+/**
+ * Cuántos resultados trae cada tanda del modal. «Mostrar más» pide la
+ * siguiente, hasta `LIMITE_MAXIMO_BUSQUEDA_ALIMENTOS`: nunca se trae la lista
+ * entera de una vez. Más allá de ese tope se busca escribiendo.
+ */
+const TANDA = 24;
 
 const ETIQUETA_FUENTE: Record<string, string> = {
   PROPIO: "Mío",
@@ -33,8 +42,8 @@ const ETIQUETA_FUENTE: Record<string, string> = {
 };
 
 /**
- * Buscar un alimento y agregarlo, con sus macros por 100 g, para no cargarlas
- * a mano.
+ * Buscar un alimento y agregarlo, con sus macros por 100 g (o 100 ml) y sus
+ * medidas caseras, para no cargarlas a mano.
  *
  * Es un botón que abre un MODAL de búsqueda (migración 84): con imágenes,
  * categorías y veinte resultados a la vista, una lista desplegable debajo de
@@ -48,6 +57,10 @@ const ETIQUETA_FUENTE: Record<string, string> = {
  * Con una categoría elegida no hace falta escribir: es «mostrame los lácteos».
  * Open Food Facts no conoce nuestras categorías, así que con un filtro puesto
  * solo aparecen alimentos de las listas cargadas.
+ *
+ * Con «Todas» y sin escribir, el modal no arranca vacío: muestra los primeros
+ * alimentos de las listas cargadas (los propios primero, por nombre) y
+ * «Mostrar más» trae la siguiente tanda.
  */
 export function BuscadorAlimento({
   onElegir,
@@ -96,25 +109,40 @@ function ModalBuscadorAlimento({
   const { buscarAlimento } = useNutricion();
   const [termino, setTermino] = useState("");
   const [categoria, setCategoria] = useState<CategoriaAlimento | null>(null);
+  const [limite, setLimite] = useState(TANDA);
   const debounced = useDebounce(termino.trim(), 350);
+  // Una sola letra no es una búsqueda: se sigue hojeando.
+  const busqueda = debounced.length >= 2 ? debounced : "";
 
-  const habilitado = debounced.length >= 2 || categoria !== null;
+  // Otra búsqueda u otra categoría vuelven a la primera tanda. Se ajusta al
+  // renderizar y no en un efecto, para no pedir primero la tanda vieja.
+  const [criterio, setCriterio] = useState({ busqueda, categoria });
+  if (criterio.busqueda !== busqueda || criterio.categoria !== categoria) {
+    setCriterio({ busqueda, categoria });
+    setLimite(TANDA);
+  }
+
+  // Mientras llega la tanda siguiente se siguen viendo los que ya estaban.
+  const opciones = {
+    staleTime: 60_000,
+    placeholderData: <T,>(previo: T | undefined) => previo,
+  };
   const delConsultorio = buscarAlimento(
     {
-      termino: debounced,
-      limite: LIMITE,
+      termino: busqueda,
+      limite,
       categoria: categoria ?? undefined,
     },
-    { enabled: habilitado && !enCatalogo, staleTime: 60_000 },
+    { ...opciones, enabled: !enCatalogo },
   );
   const delCatalogo = trpc.superadmin.listarAlimentosBase.useQuery(
     {
-      busqueda: debounced || undefined,
+      busqueda: busqueda || undefined,
       categoria: categoria ?? undefined,
       pagina: 1,
-      porPagina: LIMITE,
+      porPagina: limite,
     },
-    { enabled: habilitado && enCatalogo, staleTime: 60_000 },
+    { ...opciones, enabled: enCatalogo },
   );
   const consulta = enCatalogo ? delCatalogo : delConsultorio;
   const resultados: AlimentoNutricionalSalidaDto[] = enCatalogo
@@ -124,6 +152,9 @@ function ModalBuscadorAlimento({
         fuente: "BASE",
       }))
     : (delConsultorio.data ?? []);
+  // Si la tanda vino llena, puede haber más.
+  const hayMas = resultados.length >= limite;
+  const enElTope = limite >= LIMITE_MAXIMO_BUSQUEDA_ALIMENTOS;
 
   return (
     <Dialog open onOpenChange={(a) => !a && onCerrar()}>
@@ -141,7 +172,7 @@ function ModalBuscadorAlimento({
             aria-label="Buscar alimento"
             className="border-0 px-1 shadow-none focus-visible:ring-0"
           />
-          {consulta.isFetching && habilitado && (
+          {consulta.isFetching && (
             <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
           )}
         </div>
@@ -169,16 +200,18 @@ function ModalBuscadorAlimento({
         </div>
 
         <div className="min-h-40 flex-1 overflow-y-auto">
-          {!habilitado ? (
+          {resultados.length === 0 && consulta.isFetching ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              Escribí al menos 2 letras o elegí una categoría.
+              Cargando alimentos…
             </p>
-          ) : resultados.length === 0 && !consulta.isFetching ? (
+          ) : resultados.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              Sin resultados.{" "}
+              {busqueda || categoria ? "Sin resultados. " : ""}
               {categoria
                 ? "Probá sin la categoría o con otro nombre."
-                : "Cargalo a mano."}
+                : busqueda
+                  ? "Cargalo a mano."
+                  : "Todavía no hay alimentos cargados: escribí para buscar."}
             </p>
           ) : (
             <ul className="grid gap-2 sm:grid-cols-2">
@@ -206,8 +239,19 @@ function ModalBuscadorAlimento({
                         )}
                       </span>
                       <span className="block text-xs text-muted-foreground">
-                        {macrosEnTexto(alimento)} (por 100 g)
+                        {macrosEnTexto(alimento)} (por{" "}
+                        {porCien(alimento.unidadBase)})
                       </span>
+                      {alimento.medidas.length > 0 && (
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {alimento.medidas
+                            .map(
+                              (m) =>
+                                `1 ${m.nombre} = ${String(m.cantidad).replace(".", ",")} ${SIMBOLO_UNIDAD_BASE[alimento.unidadBase]}`,
+                            )
+                            .join(" · ")}
+                        </span>
+                      )}
                       <span className="flex flex-wrap gap-1">
                         {alimento.categoria && (
                           <Badge variant="secondary" className="text-[0.65rem]">
@@ -227,6 +271,38 @@ function ModalBuscadorAlimento({
                 </li>
               ))}
             </ul>
+          )}
+          {hayMas && (
+            <div className="flex flex-col items-center gap-1 pt-3">
+              {enElTope ? (
+                <p className="text-xs text-muted-foreground">
+                  Hay más alimentos: escribí el nombre o elegí una categoría
+                  para encontrarlos.
+                </p>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={consulta.isFetching}
+                  onClick={() =>
+                    setLimite((actual) =>
+                      Math.min(
+                        actual + TANDA,
+                        LIMITE_MAXIMO_BUSQUEDA_ALIMENTOS,
+                      ),
+                    )
+                  }
+                >
+                  {consulta.isFetching ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                  Mostrar más
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </DialogContent>

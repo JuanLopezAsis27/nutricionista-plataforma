@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CalendarDays, Repeat, CircleOff, UserPlus } from "lucide-react";
+import {
+  CalendarDays,
+  Repeat,
+  CircleOff,
+  UserPlus,
+  ExternalLink,
+} from "lucide-react";
 import { usePlanesSemanales } from "@/lib/hooks/usePlanesSemanales";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
@@ -16,15 +22,16 @@ import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { VistaPlanSemanal } from "./VistaPlanSemanal";
 import { FormularioAsignacionPlanSemanal } from "./FormularioAsignacionPlanSemanal";
 import { HistorialDePlanesSemanales } from "./HistorialDePlanesSemanales";
+import { rutaPlanSemanal } from "./rutas";
 
 /**
  * El plan semanal del paciente: la sección «Plan semanal» de su pestaña de
  * Planes (ver `SeccionPlanesDelPaciente`).
  *
- * Vive al lado del plan nutricional y no adentro: el plan dice los macros
- * diarios y el semanal es el menú concreto que los cumple, y es contra
- * aquellos que se compara el total de cada día —el semáforo de la última fila
- * de la grilla—.
+ * Vive al lado del plan nutricional y no adentro: son dos cosas que el
+ * paciente puede tener a la vez. El semáforo de la última fila de la grilla
+ * compara cada día contra las metas DEL PLAN SEMANAL (migración 91), no las
+ * de sus planes nutricionales: con varios asignados no habría cuál elegir.
  */
 export function PlanSemanalDelPaciente({
   pacienteId,
@@ -85,13 +92,18 @@ export function PlanSemanalDelPaciente({
         <Skeleton className="h-32 w-full" />
       ) : consulta.data ? (
         <div className="space-y-2">
-          <p className="text-sm font-medium">{consulta.data.plan.nombre}</p>
-          <VistaPlanSemanal
-            plan={consulta.data.plan}
-            dias={consulta.data.dias}
-            metas={consulta.data.metas}
-            nombrePlanDeLasMetas={consulta.data.nombrePlanDeLasMetas}
-          />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-medium">{consulta.data.plan.nombre}</p>
+            {/* Las metas y el menú se editan en la página del plan: es uno
+                solo para todos los pacientes que lo tienen. */}
+            <Button asChild variant="ghost" size="sm">
+              <Link href={rutaPlanSemanal(consulta.data.plan.id)}>
+                <ExternalLink className="h-4 w-4" />
+                Abrir plan semanal
+              </Link>
+            </Button>
+          </div>
+          <VistaPlanSemanal plan={consulta.data.plan} />
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">

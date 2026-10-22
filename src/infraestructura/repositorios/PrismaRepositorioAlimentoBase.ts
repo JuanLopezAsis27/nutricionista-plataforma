@@ -55,6 +55,25 @@ export class PrismaRepositorioAlimentoBase
     return filas.length;
   }
 
+  async agregarVarios(alimentos: AlimentoPropio[]): Promise<number> {
+    const filas = alimentos.map(datosDeAlimento);
+    const lotes: (typeof filas)[] = [];
+    for (let i = 0; i < filas.length; i += TAMANO_LOTE) {
+      lotes.push(filas.slice(i, i + TAMANO_LOTE));
+    }
+    // Mismo criterio que la lista del consultorio, contra el único global
+    // de `claveIdentidad`.
+    const resultados = await this.prisma.$transaction(
+      lotes.map((lote) =>
+        this.prisma.alimentoBase.createMany({
+          data: lote,
+          skipDuplicates: true,
+        }),
+      ),
+    );
+    return resultados.reduce((total, r) => total + r.count, 0);
+  }
+
   async crear(alimento: AlimentoPropio): Promise<AlimentoPropio> {
     const fila = await this.prisma.alimentoBase.create({
       data: datosDeAlimento(alimento),
@@ -107,7 +126,7 @@ export class PrismaRepositorioAlimentoBase
     limite: number,
     categoria?: CategoriaAlimento,
   ): Promise<AlimentoPropio[]> {
-    if (termino.trim().length === 0 && !categoria) return [];
+    // Sin término ni categoría es hojear: los primeros `limite` por nombre.
     return this.listar({ busqueda: termino, categoria, limite });
   }
 

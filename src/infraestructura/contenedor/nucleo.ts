@@ -87,6 +87,7 @@ import { GeneradorCodigoInvitacionCrypto } from "@/infraestructura/seguridad/Gen
 import { GeneradorContrasenasCrypto } from "@/infraestructura/seguridad/GeneradorContrasenasCrypto";
 import { CifradorTokens } from "@/infraestructura/seguridad/CifradorTokens";
 import { FirmaEnlacesTurno } from "@/infraestructura/seguridad/FirmaEnlacesTurno";
+import { OptimizadorImagenesSharp } from "@/infraestructura/imagenes/OptimizadorImagenesSharp";
 import { AlmacenamientoMinIO } from "@/infraestructura/almacenamiento/AlmacenamientoMinIO";
 import { RelojSistema } from "@/infraestructura/fecha/RelojSistema";
 import { NodemailerServicioEmail } from "@/infraestructura/email/NodemailerServicioEmail";
@@ -362,6 +363,10 @@ export const generadorContrasenas = perezoso(
   () => new GeneradorContrasenasCrypto(),
 );
 export const almacenamiento = perezoso(() => new AlmacenamientoMinIO());
+/** Achica las imágenes de los alimentos antes de guardarlas (sharp). */
+export const optimizadorImagenes = perezoso(
+  () => new OptimizadorImagenesSharp(),
+);
 export const reloj = perezoso(() => new RelojSistema());
 export const verificadorDominioEmail = perezoso(
   () => new VerificadorDominioEmailDns(),

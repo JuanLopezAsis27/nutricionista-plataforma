@@ -3,6 +3,7 @@ import { PlanSemanal } from "@/dominio/entidades/PlanSemanal";
 import type { Macros } from "@/componentes/comunes/alimentos/macros";
 import { totalesPorDia, macrosDeComida } from "./totales";
 import { SIN_RECETA, type ComidaFormulario } from "./esquema";
+import { CANTIDAD_VACIA } from "@/componentes/comunes/alimentos/cantidad";
 
 /**
  * El espejo de la UI tiene que dar lo MISMO que el dominio.
@@ -50,6 +51,7 @@ const franjasFormulario = [
         items: [
           {
             nombre: "Pan",
+            ...CANTIDAD_VACIA,
             cantidadGramos: "60",
             caloriasPor100: "250",
             proteinasPor100: "9",
@@ -81,6 +83,7 @@ const franjasFormulario = [
         items: [
           {
             nombre: "Pizza",
+            ...CANTIDAD_VACIA,
             cantidadGramos: "300",
             caloriasPor100: "300",
             proteinasPor100: "",
@@ -98,6 +101,7 @@ const franjasFormulario = [
         items: [
           {
             nombre: "Milanesa",
+            ...CANTIDAD_VACIA,
             cantidadGramos: "150",
             caloriasPor100: "220",
             proteinasPor100: "18",
@@ -181,6 +185,7 @@ describe("totales de la grilla (espejo del dominio)", () => {
         items: [
           {
             nombre: "Fruta",
+            ...CANTIDAD_VACIA,
             cantidadGramos: "100",
             caloriasPor100: "50",
             proteinasPor100: "",

@@ -4,6 +4,7 @@ import type {
   FiltroRecetasBase,
 } from "@/dominio/repositorios/IRecetaBaseRepositorio";
 import { Receta, type IngredienteDeReceta } from "@/dominio/entidades/Receta";
+import { cantidadDeFila, columnasDeCantidad } from "./base/medidasJson";
 
 type RecetaBaseConIngredientes = Prisma.RecetaBaseGetPayload<{
   include: { ingredientes: true };
@@ -21,7 +22,7 @@ function aNumero(valor: Prisma.Decimal | null): number | null {
 function datosIngrediente(ing: IngredienteDeReceta, orden: number) {
   return {
     nombre: ing.nombre,
-    cantidadGramos: ing.cantidadGramos,
+    ...columnasDeCantidad(ing),
     caloriasPor100: ing.caloriasPor100,
     proteinasPor100: ing.proteinasPor100,
     carbohidratosPor100: ing.carbohidratosPor100,
@@ -152,7 +153,7 @@ function mapearRecetaBase(fila: RecetaBaseConIngredientes): Receta {
     preparacion: fila.preparacion,
     ingredientes: fila.ingredientes.map((ing) => ({
       nombre: ing.nombre,
-      cantidadGramos: aNumero(ing.cantidadGramos),
+      ...cantidadDeFila(ing),
       caloriasPor100: aNumero(ing.caloriasPor100),
       proteinasPor100: aNumero(ing.proteinasPor100),
       carbohidratosPor100: aNumero(ing.carbohidratosPor100),

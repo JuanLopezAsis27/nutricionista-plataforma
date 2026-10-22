@@ -8,7 +8,7 @@ import type { DesasignarPlanSemanalDePaciente } from "@/aplicacion/casos-de-uso/
 import type { ObtenerPlanSemanalDelPaciente } from "@/aplicacion/casos-de-uso/planes-semanales/ObtenerPlanSemanalDelPaciente";
 import type { ObtenerHistorialDePlanesSemanales } from "@/aplicacion/casos-de-uso/planes-semanales/ObtenerHistorialDePlanesSemanales";
 import type { ObtenerPacientesDePlanSemanal } from "@/aplicacion/casos-de-uso/planes-semanales/ObtenerPacientesDePlanSemanal";
-import { PlanSemanal } from "@/dominio/entidades/PlanSemanal";
+import { PlanSemanal, DIAS_SEMANA } from "@/dominio/entidades/PlanSemanal";
 import type { AsignacionPlanSemanal } from "@/dominio/repositorios/IAsignacionPlanSemanalRepositorio";
 import type {
   CrearPlanSemanalDto,
@@ -21,6 +21,7 @@ import type {
   AsignacionPlanSemanalSalidaDto,
   AsignacionSemanalConPacienteDto,
 } from "../dtos/planSemanal.dto";
+import { describirCantidad } from "@/dominio/entidades/medidasAlimento";
 
 /**
  * Servicio de aplicación de Planes Semanales.
@@ -79,19 +80,13 @@ export class ServicioPlanSemanal {
 
   /**
    * El plan semanal vigente del paciente, con cada día comparado contra las
-   * metas de SU PLAN NUTRICIONAL (ver el caso de uso). Null si no tiene uno.
+   * metas DEL PLAN SEMANAL (migración 91). Null si no tiene uno.
    */
   async obtenerPlanSemanalDelPaciente(
     pacienteId: string,
   ): Promise<PlanSemanalDelPacienteDto | null> {
-    const resultado = await this.delPacienteUC.ejecutar(pacienteId);
-    if (!resultado) return null;
-    return {
-      plan: ServicioPlanSemanal.aSalida(resultado.plan),
-      metas: resultado.metas,
-      nombrePlanDeLasMetas: resultado.nombrePlanDeLasMetas,
-      dias: resultado.dias,
-    };
+    const plan = await this.delPacienteUC.ejecutar(pacienteId);
+    return plan ? { plan: ServicioPlanSemanal.aSalida(plan) } : null;
   }
 
   async obtenerHistorialDePaciente(
@@ -108,20 +103,36 @@ export class ServicioPlanSemanal {
 
   /**
    * DTO de salida. Cada comida sale con sus macros YA RESUELTOS (alimentos más
-   * la receta por sus porciones) y el plan con el total de cada día: es la
-   * misma cuenta para todas las pantallas, y repetirla en cada una es lo que
-   * hace que dos vistas del mismo plan muestren números distintos.
+   * la receta por sus porciones) y el plan con el total de cada día y su
+   * comparación contra la meta: es la misma cuenta para todas las pantallas,
+   * y repetirla en cada una es lo que hace que dos vistas del mismo plan
+   * muestren números distintos.
    */
   private static aSalida(plan: PlanSemanal): PlanSemanalSalidaDto {
     const datos = plan.aPrimitivos();
+    const { metas } = datos;
     return {
       id: datos.id,
       nombre: datos.nombre,
       descripcion: datos.descripcion,
+      metas: {
+        modo: metas.modo,
+        tipos: metas.tipos,
+        general: metas.general,
+        porDia: DIAS_SEMANA.flatMap((dia) => {
+          const valores = metas.porDia[dia];
+          return valores ? [{ dia, ...valores }] : [];
+        }),
+      },
+      dias: plan.comparacionPorDia(),
       franjas: datos.franjas.map((franja) => ({
         ...franja,
         comidas: franja.comidas.map((comida) => ({
           ...comida,
+          items: comida.items.map((item) => ({
+            ...item,
+            cantidadTexto: describirCantidad(item),
+          })),
           macros: PlanSemanal.macrosDe(comida),
         })),
       })),

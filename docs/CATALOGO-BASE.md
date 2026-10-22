@@ -21,7 +21,8 @@ no las filtra. Que solo las escriba el SUPERADMIN lo garantiza el procedimiento
 ## Alimentos: la misma colección, otro dueño
 
 Un alimento de la plataforma tiene exactamente la forma y las reglas de uno
-propio (macros por 100 g, se importan de una planilla, se editan de a uno, se
+propio (macros por 100 g o por 100 ml y medidas caseras —ver
+`docs/MEDIDAS-ALIMENTOS.md`—, se importan de una planilla, se editan de a uno, se
 buscan por nombre). Por eso **no hay entidad ni casos de uso nuevos**:
 `PrismaRepositorioAlimentoBase` implementa el mismo `IAlimentoPropioRepositorio`
 y el contenedor arma un segundo `ServicioAlimentosPropios` con él
@@ -66,6 +67,8 @@ coincidir. La ñ se compara como n.
   clave queda la ÚLTIMA (en una planilla que se fue corrigiendo, la de más
   abajo suele ser la buena), el orden es el de la primera aparición, y la
   respuesta dice cuántas se descartaron (`{ importados, repetidos }`).
+- **Agregar una planilla sigue la regla del alta** (ver abajo): lo que ya está
+  en la lista no se carga de nuevo ni se toca.
 - **Los duplicados que ya existían** los resolvió la migración 83 quedándose
   con el más reciente (`creadoEn`). Borrar un alimento no toca planes ni
   recetas: copiaron sus macros.
@@ -73,6 +76,118 @@ coincidir. La ñ se compara como n.
   calcular las filas existentes) que cubre los acentos latinos habituales. Si
   cambia la regla de `normalizarTextoAlimento`, hace falta una migración que
   recalcule la columna.
+
+### Importar y descargar la planilla
+
+La misma planilla sirve para las dos listas (la del consultorio y el
+catálogo), con dos modos de importar y una descarga. Todo pasa por route
+handlers (multipart el de subir), nunca por tRPC:
+
+| Acción | Ruta (consultorio / catálogo) | Caso de uso |
+| --- | --- | --- |
+| Reemplazar | `POST /api/alimentos/importar` · `/api/catalogo/alimentos/importar`, `modo=REEMPLAZAR` | `ImportarAlimentos` |
+| Agregar | las mismas, `modo=AGREGAR` | `AgregarAlimentos` |
+| Descargar | `GET /api/alimentos/exportar` · `/api/catalogo/alimentos/exportar` | `ObtenerTodosLosAlimentos` |
+
+Sin `modo` se reemplaza, que era lo único que había. El archivo puede pesar
+hasta 20 MB (era 8; una planilla con fotos pesa más) y el nginx de producción
+admite 26.
+
+**Imágenes en la planilla.** La última columna del modelo es «Imagen», con
+una nota en su encabezado que explica cómo cargarla. La imagen se INSERTA en
+la celda, no se escribe, y se leen las dos maneras que tiene Excel:
+
+- **en la celda** (Excel 365: Insertar › Imágenes › Colocar en celda). En el
+  archivo es un «valor enriquecido» que exceljs no lee; lo lee
+  `leerImagenesEnCelda` del zip, siguiendo `metadata.xml` y `richData/*`
+  (está documentado paso a paso en el archivo);
+- **sobre la celda** (un dibujo flotante, también LibreOffice y openpyxl): lo
+  lee `leerImagenesSobreCeldas` del zip, y vale la fila de su esquina
+  superior izquierda.
+
+**exceljs lee solo las celdas** (`soloLasCeldas` en
+`parsearPlanillaAlimentos`): le llegan el libro, las hojas, los textos
+compartidos y los estilos, sin las relaciones de cada hoja, y con
+`ignoreNodes` para los nodos de la hoja que las nombran. exceljs espera las
+notas, las tablas y los dibujos tal como los guarda Excel —en su ruta y con
+sus prefijos— y, si el archivo los guarda de otra manera, no se saltea la
+parte: no abre la planilla. Pasó con el modelo descargado al que se le
+agregaron las fotos con openpyxl (Python): notas en
+`xl/comments/comment1.xml`, rutas absolutas y el dibujo sin el prefijo `xdr:`
+(`<wsDr xmlns="…">`). Todo eso es XML válido, y la importación daba «Cannot
+read properties of undefined (reading 'anchors')».
+Por eso las imágenes, de las dos maneras, las leen lectores propios con un
+lector mínimo de XML (`partesXlsx.ts`) que no mira prefijos. No volver a
+pasarle a exceljs el archivo entero ni a leer imágenes con `getImages()`.
+
+Con dos imágenes en la misma fila gana la de la columna «Imagen». Las del
+encabezado o de una fila sin nombre se ignoran, y un CSV no lleva imágenes.
+Las imágenes no pasan por el DTO (son bytes): viajan aparte, por índice de
+fila, y cumplen la misma regla que una subida a mano (ver «Imágenes» abajo).
+
+- **Una imagen que no cumple no frena la importación**: el alimento entra sin
+  ella y la respuesta dice cuál y por qué («Avena: La imagen no puede superar
+  los 2 MB.»), igual que una categoría que no se reconoce.
+- **Se suben ANTES de escribir** (las filas se insertan ya apuntando a su
+  imagen, de a cuatro en paralelo). Si la escritura falla se borran; si el
+  bucket falla, se corta sin escribir y se borran las que ya se habían subido.
+- **Reemplazar**: una imagen de la planilla reemplaza a la del alimento, y la
+  vieja se borra recién después de escribir. Sin imagen en la planilla, el
+  alimento conserva la suya (la regla de siempre).
+- **Agregar**: las imágenes entran solo con los alimentos nuevos; el que ya
+  estaba no se toca, tampoco su imagen.
+- **La misma imagen en muchas filas se trabaja una vez.** El parser les da a
+  esas filas los mismos bytes (el mismo `Uint8Array`, no una copia por fila) y
+  `subirImagenesDeLaPlanilla` la achica una sola vez por bytes y tipo; cada
+  alimento sube igual su copia, porque la clave del bucket es suya. Sin esto,
+  una foto pegada en 20.000 filas eran 20.000 copias en memoria y 20.000
+  pasadas por sharp.
+- **El archivo lo arma un usuario, y se lee en el proceso de la app** (el de
+  todos los consultorios). Por eso el lector de valores enriquecidos recorre
+  el XML en tiempo lineal, sin depender de cómo el motor de expresiones
+  regulares resuelva una apertura sin cierre, e ignora una parte de más de
+  2 MB (`TAMANO_MAXIMO_PARTE`; Excel escribe unos 100 caracteres por imagen):
+  la planilla entra igual, sin imágenes en celda. Antes, una etiqueta con
+  100.000 letras sin `=` tardaba 7 s en leerse, y el tiempo crecía con el
+  cuadrado del largo. El dibujo flotante tiene su propio tope, 32 MB
+  (`TAMANO_MAXIMO_DIBUJO`): Excel escribe poco más de 1.000 caracteres por
+  imagen, así que alcanza para una en cada una de las 20.000 filas.
+- Lo que no se llegue a borrar (un fallo del bucket después de escribir) queda
+  sin fila que lo nombre y lo limpia el barrido de huérfanos. Los dos modos leen las
+filas con las mismas reglas (`leerAlimentosDeLaPlanilla`: filas vacías,
+repetidas dentro de la planilla, al menos una válida).
+
+- **Reemplazar** deja la lista igual a la planilla. Lo que ya estaba conserva
+  imagen, y categoría, unidad y medidas si la planilla no las trae. Como borra
+  lo que no esté en el archivo, la pantalla lo confirma nombrando el archivo.
+- **Agregar** suma lo que no estaba y **no toca lo que ya está** (misma
+  `claveIdentidad`): ni sus macros, ni su imagen, ni sus medidas. Es la regla
+  del alta manual (`CrearAlimentoPropio`), con una diferencia: el alta lanza
+  `ErrorAlimentoDuplicado` y la planilla no, porque un repetido entre mil
+  filas no puede frenar las otras 999. La respuesta los cuenta (`yaEstaban`) y
+  nombra hasta cinco con la escritura de la LISTA, para poder encontrarlos y
+  editarlos. Para pisar macros desde una planilla está reemplazar.
+  - En la lista del consultorio, uno igual a un **predeterminado** entra igual
+    (es la versión del profesional) y se avisa (`enPlataforma`), como en el
+    alta.
+  - El repositorio inserta con `skipDuplicates` (ON CONFLICT DO NOTHING contra
+    el índice único): si otra importación metió el mismo alimento entre el
+    chequeo y la escritura, se saltea y no se cuenta.
+- **Descargar** baja un Excel con las MISMAS columnas que el modelo
+  (`escribirPlanillaAlimentos`, gemelo de `parsearPlanillaAlimentos`): se edita
+  y se vuelve a subir. Un macro sin dato sale en blanco (no 0), la categoría
+  con su nombre y las medidas como «1 taza = 240 ml; …». La columna «Imagen»
+  sale VACÍA: vacía quiere decir «conservar la que tiene», y meter la imagen
+  de cada alimento haría pesar megas a la descarga sin que la reimportación
+  lo necesite.
+  - El consultorio descarga **dos pestañas**: «Mis alimentos» (los suyos) y
+    «Predeterminados» (los de la plataforma). La propia va PRIMERA a
+    propósito: la importación lee solo la primera pestaña, así que subir el
+    mismo archivo no copia el catálogo entero a la lista propia.
+  - El SUPERADMIN descarga el catálogo, en una pestaña.
+  - `escribirPlanillaAlimentos.test.ts` comprueba la ida y vuelta (escribir →
+    leer da las mismas filas). Cambiar un encabezado de un lado sin el otro lo
+    rompe.
 
 ### Categorías (migración 84)
 
@@ -109,10 +224,25 @@ fila del alimento, y se sirve desde la app (nunca por URL firmada):
   SUPERADMIN; la cambia solo el SUPERADMIN.
 
 GET la sirve, POST (multipart, campo `imagen`) la pone o reemplaza, DELETE la
-quita. JPG, PNG o WebP hasta 2 MB, con la **firma binaria verificada** (los
-primeros bytes tienen que ser de ese formato, igual que en `archivos`).
-`CambiarImagenAlimento` sube la nueva, apunta la fila y recién después borra
-la vieja; si la fila no se pudo actualizar, borra la recién subida.
+quita. `CambiarImagenAlimento` sube la nueva, apunta la fila y recién después
+borra la vieja; si la fila no se pudo actualizar, borra la recién subida.
+
+**Qué imagen entra y cómo se guarda** lo decide UNA regla,
+`ImagenesDeAlimentos` (`casos-de-uso/nutricion/imagenesDeAlimentos.ts`), que
+comparten la subida a mano y la importación del Excel:
+
+| Tope | Valor | Por qué |
+| --- | --- | --- |
+| Formato | JPG, PNG o WebP, con la **firma binaria verificada** | el tipo lo declara quien sube; los primeros bytes dicen si es cierto (igual que en `archivos`) |
+| Peso de entrada | 2 MB (`TAMANO_MAXIMO_IMAGEN_ALIMENTO`) | es una miniatura, no una foto |
+| Píxeles de entrada | 24 MP (`PIXELES_MAXIMOS_IMAGEN_ALIMENTO`) | corta las «bombas de descompresión» (un PNG de KB que declara 50.000 × 50.000) antes de abrirlas |
+| Lo que se guarda | reducida a 512 px de lado (`LADO_MAXIMO_IMAGEN_ALIMENTO`), en WebP, sin metadatos | el buscador muestra decenas a la vez; una foto de celular queda en decenas de KB, y sin la ubicación GPS que traía |
+
+La reducción la hace `IOptimizadorImagenes`, implementado con sharp
+(`infraestructura/imagenes/OptimizadorImagenesSharp`, el mismo motor que usa
+Next para sus imágenes; es dependencia directa desde que se usa acá). Las
+imágenes cargadas antes de esto quedan como estaban (hasta 2 MB, en su
+formato); se achican la próxima vez que se reemplacen.
 
 **Caché**: cada subida lleva un nombre nuevo, y la URL lleva su versión
 (`?v=`, `AlimentoPropio.imagenVersion`), así que la respuesta puede ser
@@ -136,6 +266,16 @@ chips de categoría y los resultados con imagen, macros, categoría y de qué
 lista vienen. Elegir uno lo agrega y cierra. Lo usan el formulario de receta,
 las opciones del plan, el plan semanal y las recetas de la plataforma (en
 este último, con `enCatalogo`, busca solo en el catálogo).
+
+**El modal no arranca vacío.** Con «Todas» y sin escribir, muestra los
+primeros alimentos de las listas cargadas (los propios primero, por nombre):
+sin término ni categoría la búsqueda es HOJEAR (`buscar("", …)` en
+`IAlimentoPropioRepositorio` y en el proveedor). Nunca se trae la lista
+entera: llega de a tandas de 24 y «Mostrar más» pide la siguiente, hasta 96
+(`LIMITE_MAXIMO_BUSQUEDA_ALIMENTOS`, el tope del DTO). Más allá, el modal pide
+escribir o elegir una categoría. Una sola letra no es una búsqueda y se
+sigue hojeando. Open Food Facts no se puede hojear: sin listas cargadas, el
+modal dice que hay que escribir.
 
 La receta de una opción del plan se elige con `BuscadorReceta`: un modal con
 dos pestañas —el recetario del consultorio, filtrable por texto y etiqueta y
@@ -242,5 +382,6 @@ de la plataforma…», que copia y deja la copia elegida).
 - Un procedimiento nuevo que ESCRIBA el catálogo va en `superadminProcedimiento`.
   Uno que lo LEA para un consultorio va en `nutricionistaProcedimiento`, en el
   router del módulo (nutricion, recetas).
-- Importar el catálogo lo **reemplaza** entero, como la lista propia. No rompe
-  nada: planes y recetas copian los macros del alimento al elegirlo.
+- Importar el catálogo lo **reemplaza** entero o le **agrega** (sin tocar lo
+  que ya está), como la lista propia. Ninguno de los dos rompe nada: planes y
+  recetas copian los macros del alimento al elegirlo.
