@@ -101,8 +101,24 @@ la celda, no se escribe, y se leen las dos maneras que tiene Excel:
   archivo es un «valor enriquecido» que exceljs no lee; lo lee
   `leerImagenesEnCelda` del zip, siguiendo `metadata.xml` y `richData/*`
   (está documentado paso a paso en el archivo);
-- **sobre la celda** (un dibujo flotante, también LibreOffice): lo lee
-  exceljs, y vale la fila de su esquina superior izquierda.
+- **sobre la celda** (un dibujo flotante, también LibreOffice y openpyxl): lo
+  lee `leerImagenesSobreCeldas` del zip, y vale la fila de su esquina
+  superior izquierda.
+
+**exceljs lee solo las celdas** (`soloLasCeldas` en
+`parsearPlanillaAlimentos`): le llegan el libro, las hojas, los textos
+compartidos y los estilos, sin las relaciones de cada hoja, y con
+`ignoreNodes` para los nodos de la hoja que las nombran. exceljs espera las
+notas, las tablas y los dibujos tal como los guarda Excel —en su ruta y con
+sus prefijos— y, si el archivo los guarda de otra manera, no se saltea la
+parte: no abre la planilla. Pasó con el modelo descargado al que se le
+agregaron las fotos con openpyxl (Python): notas en
+`xl/comments/comment1.xml`, rutas absolutas y el dibujo sin el prefijo `xdr:`
+(`<wsDr xmlns="…">`). Todo eso es XML válido, y la importación daba «Cannot
+read properties of undefined (reading 'anchors')».
+Por eso las imágenes, de las dos maneras, las leen lectores propios con un
+lector mínimo de XML (`partesXlsx.ts`) que no mira prefijos. No volver a
+pasarle a exceljs el archivo entero ni a leer imágenes con `getImages()`.
 
 Con dos imágenes en la misma fila gana la de la columna «Imagen». Las del
 encabezado o de una fila sin nombre se ignoran, y un CSV no lleva imágenes.
@@ -133,7 +149,9 @@ fila, y cumplen la misma regla que una subida a mano (ver «Imágenes» abajo).
   2 MB (`TAMANO_MAXIMO_PARTE`; Excel escribe unos 100 caracteres por imagen):
   la planilla entra igual, sin imágenes en celda. Antes, una etiqueta con
   100.000 letras sin `=` tardaba 7 s en leerse, y el tiempo crecía con el
-  cuadrado del largo.
+  cuadrado del largo. El dibujo flotante tiene su propio tope, 32 MB
+  (`TAMANO_MAXIMO_DIBUJO`): Excel escribe poco más de 1.000 caracteres por
+  imagen, así que alcanza para una en cada una de las 20.000 filas.
 - Lo que no se llegue a borrar (un fallo del bucket después de escribir) queda
   sin fila que lo nombre y lo limpia el barrido de huérfanos. Los dos modos leen las
 filas con las mismas reglas (`leerAlimentosDeLaPlanilla`: filas vacías,

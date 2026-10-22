@@ -118,6 +118,80 @@ async function planillaConImagenEnCelda(
   return zip.generateAsync({ type: "nodebuffer" });
 }
 
+const RELACION =
+  "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+const PAQUETE = "http://schemas.openxmlformats.org/package/2006/relationships";
+
+/**
+ * El modelo con Arroz (fila 2) y Pollo (fila 3) como lo guarda openpyxl
+ * (Python), con lo que exceljs no sabía abrir: las notas del encabezado en
+ * `xl/comments/comment1.xml`, las relaciones con rutas absolutas y, con
+ * `imagen`, un dibujo SIN el prefijo `xdr:` con la imagen en la columna J de
+ * `fila`. `tabla` le suma una tabla, también con ruta absoluta. Es la forma
+ * de la planilla con la que se encontró el problema.
+ */
+async function planillaDeOpenpyxl(
+  opciones: { imagen?: Buffer; fila?: number; tabla?: boolean } = {},
+): Promise<Buffer> {
+  const zip = await JSZip.loadAsync(
+    await escribirPlanillaAlimentos([
+      {
+        nombre: "Alimentos",
+        alimentos: [alimento("Arroz"), alimento("Pollo")],
+      },
+    ]),
+  );
+  const notas = await zip.file("xl/comments1.xml")!.async("string");
+  zip.remove("xl/comments1.xml");
+  zip.file("xl/comments/comment1.xml", notas);
+  const relaciones = [
+    `<Relationship Type="${RELACION}/comments" Target="/xl/comments/comment1.xml" Id="comments" />`,
+    `<Relationship Type="${RELACION}/vmlDrawing" Target="/xl/drawings/vmlDrawing1.vml" Id="anysvml" />`,
+  ];
+  let hoja = await zip.file("xl/worksheets/sheet1.xml")!.async("string");
+  hoja = hoja.replace(
+    /<legacyDrawing r:id="[^"]*"\/>/,
+    '<legacyDrawing r:id="anysvml"/>',
+  );
+  if (opciones.imagen) {
+    relaciones.push(
+      `<Relationship Type="${RELACION}/drawing" Target="/xl/drawings/drawing1.xml" Id="rId1" />`,
+    );
+    hoja = hoja.replace(
+      "<legacyDrawing",
+      '<drawing r:id="rId1"/><legacyDrawing',
+    );
+    zip.file(
+      "xl/drawings/drawing1.xml",
+      `<wsDr xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="${RELACION}" xmlns="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"><oneCellAnchor><from><col>${COLUMNA_IMAGEN}</col><colOff>0</colOff><row>${(opciones.fila ?? 2) - 1}</row><rowOff>0</rowOff></from><ext cx="533400" cy="352425" /><pic><nvPicPr><cNvPr id="1" name="Image 1" descr="Picture" /><cNvPicPr /></nvPicPr><blipFill><a:blip cstate="print" r:embed="rId1" /><a:stretch><a:fillRect /></a:stretch></blipFill><spPr><a:prstGeom prst="rect" /></spPr></pic><clientData /></oneCellAnchor></wsDr>`,
+    );
+    zip.file(
+      "xl/drawings/_rels/drawing1.xml.rels",
+      `<Relationships xmlns="${PAQUETE}"><Relationship Type="${RELACION}/image" Target="/xl/media/image1.png" Id="rId1" /></Relationships>`,
+    );
+    zip.file("xl/media/image1.png", opciones.imagen);
+  }
+  if (opciones.tabla) {
+    relaciones.push(
+      `<Relationship Type="${RELACION}/table" Target="/xl/tables/table1.xml" Id="rId2" />`,
+    );
+    hoja = hoja.replace(
+      "</worksheet>",
+      '<tableParts count="1"><tablePart r:id="rId2"/></tableParts></worksheet>',
+    );
+    zip.file(
+      "xl/tables/table1.xml",
+      `<table xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" id="1" name="Alimentos" displayName="Alimentos" ref="A1:B3"><autoFilter ref="A1:B3"/><tableColumns count="2"><tableColumn id="1" name="Nombre"/><tableColumn id="2" name="Marca"/></tableColumns><tableStyleInfo name="TableStyleMedium9" showRowStripes="1"/></table>`,
+    );
+  }
+  zip.file("xl/worksheets/sheet1.xml", hoja);
+  zip.file(
+    "xl/worksheets/_rels/sheet1.xml.rels",
+    `<Relationships xmlns="${PAQUETE}">${relaciones.join("")}</Relationships>`,
+  );
+  return zip.generateAsync({ type: "nodebuffer" });
+}
+
 async function leer(libro: ExcelJS.Workbook) {
   const bytes = await libro.xlsx.writeBuffer();
   return parsearPlanillaAlimentos(Buffer.from(bytes), "alimentos.xlsx");
@@ -133,6 +207,21 @@ describe("parsearPlanillaAlimentos: imágenes", () => {
     expect(filas.map((f) => f.nombre)).toEqual(["Arroz", "Pollo"]);
     expect(imagenes.has(0)).toBe(false);
     expect(imagenes.get(1)?.mimeType).toBe("image/png");
+  });
+
+  it("lee una imagen anclada a dos celdas, como la guarda Excel", async () => {
+    const { libro, hoja } = await modelo();
+    type BufferExcel = Parameters<typeof libro.addImage>[0]["buffer"];
+    const id = libro.addImage({
+      buffer: (await png(10)) as unknown as BufferExcel,
+      extension: "png",
+    });
+    // Un rango: <twoCellAnchor>, y no el <oneCellAnchor> que sale con `ext`.
+    hoja.addImage(id, "J2:J2");
+
+    const { imagenes } = await leer(libro);
+
+    expect([...imagenes.keys()]).toEqual([0]);
   });
 
   it("con dos imágenes en la fila, gana la de la columna «Imagen»", async () => {
@@ -241,5 +330,42 @@ describe("parsearPlanillaAlimentos: imágenes", () => {
     );
     expect(filas).toHaveLength(1);
     expect(imagenes.size).toBe(0);
+  });
+});
+
+// openpyxl guarda partes que Excel guarda de otra manera, todas válidas, y
+// exceljs no abría la planilla: «Cannot read properties of undefined
+// (reading 'anchors')», «'comments'» o «'name'», según lo que trajera.
+describe("parsearPlanillaAlimentos: planillas armadas con openpyxl", () => {
+  it("lee la imagen de un dibujo sin el prefijo xdr:", async () => {
+    const imagen = await png(77);
+
+    const { filas, imagenes } = await parsearPlanillaAlimentos(
+      await planillaDeOpenpyxl({ imagen, fila: 3 }),
+      "alimentos.xlsx",
+    );
+
+    expect(filas.map((f) => f.nombre)).toEqual(["Arroz", "Pollo"]);
+    expect([...imagenes.keys()]).toEqual([1]);
+    expect(Buffer.from(imagenes.get(1)!.contenido)).toEqual(imagen);
+  });
+
+  it("abre una planilla con las notas en xl/comments/", async () => {
+    const { filas, imagenes } = await parsearPlanillaAlimentos(
+      await planillaDeOpenpyxl(),
+      "alimentos.xlsx",
+    );
+
+    expect(filas.map((f) => f.nombre)).toEqual(["Arroz", "Pollo"]);
+    expect(imagenes.size).toBe(0);
+  });
+
+  it("abre una planilla con una tabla de ruta absoluta", async () => {
+    const { filas } = await parsearPlanillaAlimentos(
+      await planillaDeOpenpyxl({ tabla: true }),
+      "alimentos.xlsx",
+    );
+
+    expect(filas.map((f) => f.nombre)).toEqual(["Arroz", "Pollo"]);
   });
 });

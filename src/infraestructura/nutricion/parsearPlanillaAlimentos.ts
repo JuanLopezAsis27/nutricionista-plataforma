@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import JSZip from "jszip";
 import type { FilaAlimentoPropioDto } from "@/aplicacion/dtos/alimentoPropio.dto";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 import { categoriaDesdeTexto } from "@/dominio/entidades/AlimentoPropio";
@@ -7,6 +8,8 @@ import {
   unidadBaseDesdeTexto,
 } from "@/dominio/entidades/medidasAlimento";
 import { leerImagenesEnCelda } from "./imagenesEnCelda";
+import { leerImagenesSobreCeldas } from "./imagenesSobreCeldas";
+import type { ImagenDeCelda } from "./partesXlsx";
 
 /** Una imagen que venía en la planilla, todavía sin validar. */
 export interface ImagenDePlanilla {
@@ -177,9 +180,12 @@ async function parsearXlsx(contenido: Buffer): Promise<{
   imagenesPorFila: Map<number, ImagenEnFila[]>;
 }> {
   const libro = new ExcelJS.Workbook();
-  // exceljs declara un `Buffer` de una versión de tipos distinta a la de @types/node.
-  type CargaXlsx = Parameters<typeof libro.xlsx.load>[0];
-  await libro.xlsx.load(contenido as unknown as CargaXlsx);
+  await libro.xlsx.load(
+    await soloLasCeldas(contenido),
+    // Los nodos de la hoja que exceljs resuelve por sus relaciones, que
+    // `soloLasCeldas` no le pasa: sin esto se caería buscándolas.
+    { ignoreNodes: ["hyperlinks", "drawing", "tableParts"] },
+  );
   const hoja = libro.worksheets[0];
   if (!hoja) return { matriz: [], imagenesPorFila: new Map() };
 
@@ -192,79 +198,89 @@ async function parsearXlsx(contenido: Buffer): Promise<{
   });
   return {
     matriz,
-    imagenesPorFila: await imagenesDeLaHoja(libro, hoja, contenido),
+    imagenesPorFila: await imagenesDeLaHoja(contenido),
   };
 }
 
+/** Lo que recibe `xlsx.load`: exceljs declara un `Buffer` de otra versión de los tipos de Node. */
+type CargaXlsx = Parameters<ExcelJS.Xlsx["load"]>[0];
+
+/**
+ * Las partes del xlsx que exceljs necesita para leer las CELDAS: el libro,
+ * sus hojas, los textos compartidos y los estilos (por los estilos sabe qué
+ * número es una fecha). No le llegan los dibujos, los medios, las notas, las
+ * tablas ni las relaciones de cada hoja, que es por donde exceljs llega a
+ * todo eso.
+ *
+ * exceljs espera esas partes tal como las guarda Excel —en su ruta y con
+ * sus prefijos— y, si el archivo las guarda de otra manera, no se saltea la
+ * parte: falla al abrir el archivo entero. Es lo que pasa con las planillas
+ * armadas con openpyxl (Python), que guarda las notas en
+ * `xl/comments/comment1.xml` y no en `xl/comments1.xml`, apunta a las tablas
+ * con rutas absolutas y escribe el dibujo sin el prefijo `xdr:`. Las tres
+ * cosas son XML válido, y cada una daba un `TypeError` («reading
+ * 'comments'», «'name'», «'anchors'»).
+ *
+ * Las imágenes no se pierden: `imagenesDeLaHoja` las lee del archivo
+ * original.
+ */
+async function soloLasCeldas(contenido: Buffer): Promise<CargaXlsx> {
+  const zip = await JSZip.loadAsync(contenido);
+  for (const [nombre, entrada] of Object.entries(zip.files)) {
+    // Una carpeta no: `remove` de una carpeta borra también lo que tiene
+    // adentro, y `xl/` tiene las hojas.
+    if (entrada.dir) continue;
+    if (!PARTES_DE_LAS_CELDAS.test(nombre.replace(/^\//, ""))) {
+      zip.remove(nombre);
+    }
+  }
+  // DEFLATE, como viene de Excel: lo que no cambió se copia ya comprimido,
+  // sin descomprimirlo y volverlo a comprimir.
+  const celdas: unknown = await zip.generateAsync({
+    type: "nodebuffer",
+    compression: "DEFLATE",
+  });
+  return celdas as CargaXlsx;
+}
+
+/** Ver `soloLasCeldas`. Las hojas sí, pero no sus `_rels`. */
+const PARTES_DE_LAS_CELDAS =
+  /^(?:\[Content_Types\]\.xml|_rels\/\.rels|docProps\/[^/]+|xl\/(?:workbook\.xml|_rels\/workbook\.xml\.rels|sharedStrings\.xml|styles\.xml|worksheets\/[^/]+))$/;
+
 /**
  * Las imágenes de la primera hoja, por número de fila. Excel tiene dos
- * maneras de poner una imagen en una celda y se leen las dos:
+ * maneras de poner una imagen en una celda y se leen las dos del zip:
  *
- * - SOBRE las celdas (un dibujo flotante): lo lee exceljs, y la fila es la de
- *   su esquina superior izquierda.
- * - EN la celda (Excel 365, «Colocar en celda»): exceljs no lo ve; lo lee
- *   `leerImagenesEnCelda` del zip.
+ * - SOBRE las celdas (un dibujo flotante): `leerImagenesSobreCeldas`, y la
+ *   fila es la de su esquina superior izquierda.
+ * - EN la celda (Excel 365, «Colocar en celda»): `leerImagenesEnCelda`.
  *
  * Un problema leyendo las imágenes no tumba la planilla: se importan los
  * datos y las filas quedan sin imagen.
  */
 async function imagenesDeLaHoja(
-  libro: ExcelJS.Workbook,
-  hoja: ExcelJS.Worksheet,
   contenido: Buffer,
 ): Promise<Map<number, ImagenEnFila[]>> {
   const porFila = new Map<number, ImagenEnFila[]>();
-  const agregar = (
-    fila: number,
-    columna: number,
-    bytes: Uint8Array,
-    extension: string,
-  ) => {
-    const lista = porFila.get(fila) ?? [];
-    lista.push({
-      columna,
-      contenido: bytes,
-      mimeType:
-        MIME_DE_EXTENSION[extension.toLowerCase()] ??
-        "application/octet-stream",
-    });
-    porFila.set(fila, lista);
-  };
-
-  // Una vista por imagen del libro, no una copia por fila: la misma imagen
-  // pegada en mil filas son mil referencias a los mismos bytes (y el caso de
-  // uso la achica una sola vez).
-  const bytesDeImagen = new Map<number, Uint8Array>();
-  for (const imagen of hoja.getImages()) {
-    const id = Number(imagen.imageId);
-    const medio = libro.getImage(id);
-    if (!medio?.buffer) continue;
-    // Al abrir un archivo, exceljs guarda un Buffer de Node, que ya es un
-    // Uint8Array (lo declara con un `Buffer` de otros tipos, de ahí el
-    // `unknown`). Se copia solo si no lo fuera.
-    const original: unknown = medio.buffer;
-    const bytes =
-      bytesDeImagen.get(id) ??
-      (original instanceof Uint8Array
-        ? original
-        : new Uint8Array(medio.buffer));
-    bytesDeImagen.set(id, bytes);
-    // Las anclas son base 0; las filas de Excel, base 1.
-    agregar(
-      Math.floor(imagen.range.tl.nativeRow) + 1,
-      Math.floor(imagen.range.tl.nativeCol),
-      bytes,
-      medio.extension,
-    );
-  }
-
-  try {
-    for (const imagen of await leerImagenesEnCelda(contenido)) {
-      agregar(imagen.fila, imagen.columna, imagen.contenido, imagen.extension);
+  // Ya lo abrió `soloLasCeldas`: es el mismo archivo.
+  const zip = await JSZip.loadAsync(contenido);
+  for (const leer of [leerImagenesSobreCeldas, leerImagenesEnCelda]) {
+    let imagenes: ImagenDeCelda[] = [];
+    try {
+      imagenes = await leer(zip);
+    } catch {
+      // Las imágenes son opcionales y los datos ya están leídos.
     }
-  } catch {
-    // Un xlsx que exceljs pudo abrir pero cuyo zip no se lee igual: las
-    // imágenes en celda son opcionales y los datos ya están leídos.
+    for (const imagen of imagenes) {
+      const lista = porFila.get(imagen.fila) ?? [];
+      lista.push({
+        columna: imagen.columna,
+        contenido: imagen.contenido,
+        mimeType:
+          MIME_DE_EXTENSION[imagen.extension] ?? "application/octet-stream",
+      });
+      porFila.set(imagen.fila, lista);
+    }
   }
   return porFila;
 }
