@@ -253,6 +253,21 @@ export class Turno {
     return inicioA < finB && inicioB < finA;
   }
 
+  /**
+   * Si el turno ya empezó: su día es anterior a hoy, o es hoy y ya llegó su
+   * hora. `hoy` es el día LOCAL a medianoche UTC (`IRelojFecha.hoy()`, como
+   * `fecha`) y la hora de `ahora` se lee en hora local, igual que
+   * `ConfiguracionRecordatorios.yaEsHoraDeEnviar`.
+   */
+  yaEmpezo(hoy: Date, ahora: Date): boolean {
+    const dia = this.props.fecha.getTime();
+    if (dia !== hoy.getTime()) return dia < hoy.getTime();
+    return (
+      this.minutosDesdeMedianoche() <=
+      ahora.getHours() * 60 + ahora.getMinutes()
+    );
+  }
+
   private minutosDesdeMedianoche(): number {
     const [horas, minutos] = this.props.hora.split(":").map(Number);
     return (horas ?? 0) * 60 + (minutos ?? 0);

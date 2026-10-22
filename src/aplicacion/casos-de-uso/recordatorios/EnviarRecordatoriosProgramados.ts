@@ -150,6 +150,7 @@ export class EnviarRecordatoriosProgramados {
     }
 
     const hoy = this.reloj.hoy();
+    const ahora = this.reloj.ahora();
     // Una sola lectura para todos los escalones: el más lejano marca el borde.
     const fechas = escalones.map(
       (dias) => new Date(hoy.getTime() + dias * DIA_MS),
@@ -205,6 +206,13 @@ export class EnviarRecordatoriosProgramados {
       const plantillaDelDia = plantillasPorDia.get(dias) ?? plantilla;
       const objetivo = new Date(hoy.getTime() + dias * DIA_MS).getTime();
       for (const turno of turnos.filter((t) => mismaFecha(t, objetivo))) {
+        // Un turno que ya empezó no se recuerda: la misma regla que el email
+        // (ver `EnviarRecordatoriosPorEmail`). Con «el mismo día», un aviso
+        // FALLIDO se reintenta en cada pasada hasta la medianoche.
+        if (turno.yaEmpezo(hoy, ahora)) {
+          omitidos += 1;
+          continue;
+        }
         if (!cachePacientes.has(turno.pacienteId)) {
           cachePacientes.set(
             turno.pacienteId,
@@ -232,7 +240,7 @@ export class EnviarRecordatoriosProgramados {
           // El barrido no necesita el margen —el índice único ya impide que un
           // escalón salga dos veces—, pero lo pasa igual por coherencia.
           horasEntreAvisos: preferencias.horasEntreAvisos,
-          ahora: this.reloj.ahora(),
+          ahora,
         });
 
         if (

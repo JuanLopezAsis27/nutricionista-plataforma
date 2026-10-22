@@ -211,6 +211,26 @@ el profesional tiene que poder ver a quién NO le llegó. El reintento **reusa
 esa fila** en vez de insertar otra, que es lo que permite reintentar sin abrir
 la puerta al duplicado.
 
+### Un turno que ya empezó no se recuerda
+
+Los dos barridos, email y WhatsApp, saltean los turnos cuya hora ya llegó
+(`Turno.yaEmpezo`) y los cuentan como omitidos. Solo puede pasar con el
+escalón «el mismo día», y de dos maneras:
+
+- la hora de envío del consultorio es posterior a la del turno (envío a las
+  10:00, turno a las 08:30);
+- un aviso que falló se reintenta solo en las pasadas siguientes, que corren
+  cada hora hasta la medianoche: el email porque el fallo no queda
+  registrado, el WhatsApp porque el reintento reusa la fila FALLIDA. Sin este
+  chequeo, un aviso que falló a las 08:05 por un turno de las 09:00 podía
+  salir a las 11:05, con el turno ya terminado.
+
+Se compara contra el INICIO del turno, en hora local, igual que
+`yaEsHoraDeEnviar`. Los escalones de días anteriores (1, 3…) nunca caen acá:
+miran turnos de días que todavía no llegaron. Si se toca la regla, va en la
+entidad y la usan los dos barridos: un medio que recuerde un turno pasado y
+otro que no es justo el desfase que el barrido unificado vino a evitar.
+
 ### El log registra envíos, no intentos
 
 Esta es la regla que evita que se apilen avisos, y costó dos vueltas dar con la

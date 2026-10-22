@@ -256,6 +256,30 @@ describe("EnviarRecordatoriosProgramados", () => {
     expect(reintentado.aPrimitivos().error).toBeNull();
   });
 
+  // Con «el mismo día», un aviso que falló se reintenta cada hora hasta la
+  // medianoche: sin este chequeo podía salir con el turno ya terminado.
+  it("no recuerda por WhatsApp un turno de hoy que ya empezó", async () => {
+    // El reloj del test son las 09:30.
+    const { caso, recordatorios } = armar({
+      config: configuracionRecordatoriosEjemplo({
+        whatsappAutomatico: true,
+        whatsappDiasAntes: [0],
+        horaEnvio: "08:00",
+      }),
+      turnos: [
+        turnoEjemplo({ fecha: enDias(0), hora: "09:00" }, "tur-pasado"),
+        turnoEjemplo({ fecha: enDias(0), hora: "09:30" }, "tur-justo"),
+        turnoEjemplo({ fecha: enDias(0), hora: "18:00" }, "tur-tarde"),
+      ],
+    });
+
+    const resultado = await caso.ejecutar();
+
+    expect(resultado.whatsapp).toMatchObject({ enviados: 1, omitidos: 2 });
+    const [enviado] = vi.mocked(recordatorios.registrar).mock.calls[0]!;
+    expect(enviado.aPrimitivos().turnoId).toBe("tur-tarde");
+  });
+
   // Lo que el barrido unificado tiene que garantizar: el email sale por la
   // MISMA corrida que WhatsApp. Antes tenía su propio cron y su propio botón,
   // y desde Recordatorios no salía nunca.
