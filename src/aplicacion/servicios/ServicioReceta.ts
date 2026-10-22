@@ -33,6 +33,7 @@ import type {
   ActualizarGrupoRecetaDto,
   GrupoRecetaSalidaDto,
 } from "../dtos/receta.dto";
+import { describirCantidad } from "@/dominio/entidades/medidasAlimento";
 
 /**
  * Servicio de aplicación del Recetario.
@@ -175,8 +176,13 @@ export class ServicioReceta {
   }
 
   private static aSalida(receta: Receta): RecetaSalidaDto {
+    const primitivos = receta.aPrimitivos();
     return {
-      ...receta.aPrimitivos(),
+      ...primitivos,
+      ingredientes: primitivos.ingredientes.map((ing) => ({
+        ...ing,
+        cantidadTexto: describirCantidad(ing),
+      })),
       totales: receta.totales(),
       macrosCalculados: receta.macrosCalculados,
     };

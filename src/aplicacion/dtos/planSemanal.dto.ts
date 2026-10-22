@@ -4,6 +4,10 @@ import {
   ESTADOS_META,
   TIPOS_META,
 } from "@/dominio/servicios/comparacionMacros";
+import {
+  cantidadAlimentoEntradaDto,
+  cantidadAlimentoSalidaDto,
+} from "./medidasAlimento.dto";
 
 /** DTOs de Plan Semanal — esquemas Zod de entrada/salida. */
 
@@ -33,6 +37,7 @@ export const itemComidaSemanalDto = z.object({
   referenciaExterna: z.string().max(200).optional().nullable(),
   /** Alimento de la lista del que se copió (migración 85). */
   alimentoOrigenId: z.string().max(64).nullable().optional(),
+  ...cantidadAlimentoEntradaDto,
 });
 
 export const comidaSemanalDto = z.object({
@@ -110,6 +115,7 @@ const itemSalida = z.object({
   id: z.string(),
   nombre: z.string(),
   cantidadGramos: z.number().nullable(),
+  ...cantidadAlimentoSalidaDto,
   caloriasPor100: z.number().nullable(),
   proteinasPor100: z.number().nullable(),
   carbohidratosPor100: z.number().nullable(),

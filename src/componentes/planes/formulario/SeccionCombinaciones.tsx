@@ -13,6 +13,7 @@ import { useDebounce } from "@/lib/hooks/useDebounce";
 import { cn } from "@/lib/utilidades";
 import { COLOR_ESTADO_META } from "@/componentes/comunes/paletaFranjas";
 import { SIN_RECETA, aNumero, type DatosFormulario } from "./esquema";
+import { gramosEnFormulario } from "@/componentes/comunes/alimentos/cantidad";
 
 const MACROS = [
   { clave: "calorias", etiqueta: "Calorías", unidad: "kcal" },
@@ -245,7 +246,19 @@ function aBorrador(
           .slice(0, 30)
           .map((item) => ({
             nombre: (item?.nombre ?? "").trim().slice(0, 200),
-            cantidadGramos: enRango(item?.cantidadGramos, 5000),
+            // Ya en g/ml: la medida casera se resuelve acá y no viaja (el
+            // borrador solo suma; la medida importa al guardar).
+            cantidadGramos: enRango(
+              String(
+                gramosEnFormulario({
+                  cantidadGramos: item?.cantidadGramos ?? "",
+                  medida: item?.medida,
+                  cantidadMedida: item?.cantidadMedida,
+                  cantidadPorMedida: item?.cantidadPorMedida,
+                }) ?? "",
+              ),
+              5000,
+            ),
             caloriasPor100: enRango(item?.caloriasPor100, 2000),
             proteinasPor100: enRango(item?.proteinasPor100, 2000),
             carbohidratosPor100: enRango(item?.carbohidratosPor100, 2000),

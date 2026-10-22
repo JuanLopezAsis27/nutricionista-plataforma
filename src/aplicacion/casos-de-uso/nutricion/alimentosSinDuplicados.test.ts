@@ -114,7 +114,12 @@ describe("ImportarAlimentos sin duplicados", () => {
       { nombre: "Arroz", marca: "Gallo", caloriasPor100: 128 },
     ]);
 
-    expect(resultado).toEqual({ importados: 3, repetidos: 1, enPlataforma: 0 });
+    expect(resultado).toEqual({
+      importados: 3,
+      repetidos: 1,
+      enPlataforma: 0,
+      imagenes: { cargadas: 0, descartadas: [] },
+    });
     const guardados = reemplazarTodos.mock.calls[0]![0].map((a) =>
       a.aPrimitivos(),
     );

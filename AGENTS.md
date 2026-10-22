@@ -48,6 +48,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/RECORDATORIOS.md`      | Los tres medios de aviso y su política única          |
 | `docs/PLANES.md`             | Modalidades, archivos, carpetas, historial y combinaciones del día |
 | `docs/CATALOGO-BASE.md`      | Alimentos y recetas predeterminados de la plataforma  |
+| `docs/MEDIDAS-ALIMENTOS.md`  | g, ml y medidas caseras («1 taza = 240 ml»): en el alimento, en el plan y en la planilla |
 | `docs/BIBLIOTECA.md`         | Materiales para pacientes, sus carpetas y el buscador |
 | `docs/PLANES-SEMANALES.md`   | El menú de la semana, sus alternativas y la comparación |
 | `docs/ANTROPOMETRIA.md`      | Ecuaciones de grasa, distribución y sitios de pliegue |
@@ -514,7 +515,10 @@ y global en el catálogo, migración 83). Los alimentos tienen una CATEGORÍA de
 lista fija (enum, para filtrar el buscador; las recetas siguen con etiquetas
 libres) y una IMAGEN que no es un `Archivo`: es una clave en la fila del
 alimento, servida por `/api/alimentos/[id]/imagen` y
-`/api/catalogo/alimentos/[id]/imagen` (migración 84). La búsqueda de alimentos
+`/api/catalogo/alimentos/[id]/imagen` (migración 84). Se sube a mano o dentro
+del Excel (columna «Imagen»), y las dos pasan por la misma regla
+(`ImagenesDeAlimentos`: 2 MB de entrada, se guarda reducida a 512 px en
+WebP). La búsqueda de alimentos
 y de recetas es un modal con filtros.
 
 **Los alimentos se COPIAN a donde se usan, no se referencian**: la opción del
@@ -524,7 +528,19 @@ entregado es un documento y no cambia porque se edite o borre el alimento—.
 Cada copia guarda además `alimentoOrigenId` (migración 85, SIN FK) solo para
 saber dónde se usa un alimento y avisarlo antes de editarlo o borrarlo. Un
 alimento propio puede ser igual a uno de la plataforma (su versión): se avisa,
-no se bloquea. Ver `docs/CATALOGO-BASE.md`.
+no se bloquea. La planilla se importa **reemplazando** la lista o
+**agregándole** (lo que ya está no se toca) y se descarga con las mismas
+columnas; la del consultorio trae su lista en la PRIMERA pestaña y los
+predeterminados en la segunda, porque la importación lee solo la primera.
+Ver `docs/CATALOGO-BASE.md`.
+
+**No todo se mide en gramos** (migración 90): cada alimento dice si sus macros
+son por 100 g o por 100 ml (`unidadBase`) y trae sus medidas caseras («1 taza
+= 240»). Donde se usa, la cantidad se escribe en g/ml o en una medida, pero
+`cantidadGramos` sigue siendo la cantidad en la unidad base (ml para un
+líquido) y la única que suma: con medida, la calcula el dominio
+(`normalizarCantidadDeAlimento`). La medida y su equivalencia también se
+COPIAN. Ver `docs/MEDIDAS-ALIMENTOS.md`.
 
 ### Plan Semanal
 
@@ -864,6 +880,13 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   día hace falta, es una acción explícita sobre un plan. Y todo camino nuevo
   que copie un alimento tiene que llevar `alimentoOrigenId`, o sus usos no se
   cuentan
+- Nunca sumar macros con `cantidadMedida` ni dejar que la pantalla decida los
+  g/ml de una medida: suma `cantidadGramos`, y con medida lo recalcula
+  `normalizarCantidadDeAlimento` (cantidad × `cantidadPorMedida`). Tampoco
+  ofrecer cucharada, taza o vaso como estándar para un alimento en GRAMOS: sin
+  densidad no hay equivalencia; las declara el alimento. Y todo camino nuevo
+  que copie un alimento tiene que llevar `unidadBase` y sus medidas, o un
+  líquido queda sumado como si fuera en gramos sin que nada falle
 - Nunca comparar alimentos por `nombreNormalizado` para decidir si ya están:
   ese campo es para BUSCAR (solo minúsculas). La identidad es
   `claveIdentidad` (nombre + marca, sin tildes ni espacios de más), y es la

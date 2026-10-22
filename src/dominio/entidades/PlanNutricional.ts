@@ -1,5 +1,11 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
 import {
+  describirCantidad,
+  normalizarCantidadDeAlimento,
+  type CantidadDeAlimento,
+  type DatosCantidadDeAlimento,
+} from "./medidasAlimento";
+import {
   sumarPorGramos,
   sumarMacros,
   escalarMacros,
@@ -43,12 +49,13 @@ export interface MacrosOpcion {
 }
 
 /**
- * Alimento suelto de una opción: gramos + macros por 100 g, copiados del
- * buscador. Misma forma que el ingrediente de una receta.
+ * Alimento suelto de una opción: cantidad + macros por 100 g (o 100 ml),
+ * copiados del buscador. Misma forma que el ingrediente de una receta. La
+ * cantidad puede estar escrita en una medida casera (`CantidadDeAlimento`,
+ * migración 90); `cantidadGramos` es siempre la cantidad en g/ml.
  */
-export interface ItemDeOpcion {
+export interface ItemDeOpcion extends CantidadDeAlimento {
   nombre: string;
-  cantidadGramos: number | null;
   caloriasPor100: number | null;
   proteinasPor100: number | null;
   carbohidratosPor100: number | null;
@@ -169,9 +176,8 @@ export interface PropiedadesPlan {
 
 // --- Datos de entrada --------------------------------------------------------
 
-export interface DatosItemOpcion {
+export interface DatosItemOpcion extends DatosCantidadDeAlimento {
   nombre: string;
-  cantidadGramos?: number | null;
   caloriasPor100?: number | null;
   proteinasPor100?: number | null;
   carbohidratosPor100?: number | null;
@@ -662,7 +668,10 @@ export function descripcionDeOpcion(opcion: {
   contenido: string;
   recetaNombre: string | null;
   porciones: number | null;
-  items: ReadonlyArray<Pick<ItemDeOpcion, "nombre" | "cantidadGramos">>;
+  items: ReadonlyArray<
+    Pick<ItemDeOpcion, "nombre" | "cantidadGramos"> &
+      Partial<Pick<ItemDeOpcion, "unidadBase" | "medida" | "cantidadMedida">>
+  >;
 }): string {
   if (opcion.contenido.trim().length > 0) return opcion.contenido;
   const partes: string[] = [];
@@ -675,11 +684,8 @@ export function descripcionDeOpcion(opcion: {
     );
   }
   for (const item of opcion.items) {
-    partes.push(
-      item.cantidadGramos != null
-        ? `${item.nombre} (${item.cantidadGramos} g)`
-        : item.nombre,
-    );
+    const cantidad = describirCantidad(item);
+    partes.push(cantidad ? `${item.nombre} (${cantidad})` : item.nombre);
   }
   return partes.join(" + ");
 }
@@ -705,7 +711,7 @@ function normalizarItem(item: DatosItemOpcion, franja: string): ItemDeOpcion {
   };
   return {
     nombre,
-    cantidadGramos: numero(item.cantidadGramos),
+    ...normalizarCantidadDeAlimento(item, nombre),
     caloriasPor100: numero(item.caloriasPor100),
     proteinasPor100: numero(item.proteinasPor100),
     carbohidratosPor100: numero(item.carbohidratosPor100),

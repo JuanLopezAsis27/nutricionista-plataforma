@@ -1,5 +1,10 @@
 import { z } from "zod";
 import { CATEGORIAS_ALIMENTO } from "@/dominio/entidades/AlimentoPropio";
+import {
+  medidasAlimentoDto,
+  medidaAlimentoDto,
+  unidadBaseAlimentoDto,
+} from "./medidasAlimento.dto";
 
 /** Rubro del alimento (migración 84). */
 const categoria = z.enum(CATEGORIAS_ALIMENTO).nullable().optional();
@@ -16,12 +21,47 @@ export const filaAlimentoPropioDto = z.object({
   proteinasPor100: macro,
   carbohidratosPor100: macro,
   grasasPor100: macro,
+  /** Null = la planilla no lo dice (sin columna o celda vacía). */
+  unidadBase: unidadBaseAlimentoDto.nullable().optional(),
+  /** Vacío = la planilla no trae medidas para esta fila. */
+  medidas: medidasAlimentoDto.optional(),
   categoria,
 });
 export type FilaAlimentoPropioDto = z.infer<typeof filaAlimentoPropioDto>;
 
 export const importarAlimentosDto = z.array(filaAlimentoPropioDto).max(20000);
 export type ImportarAlimentosDto = z.infer<typeof importarAlimentosDto>;
+
+/**
+ * Qué hace la planilla con la lista: la REEMPLAZA (queda igual a la planilla)
+ * o se le AGREGA (suma lo que no estaba y no toca lo que sí).
+ */
+export const modoImportacionAlimentosDto = z.enum(["REEMPLAZAR", "AGREGAR"]);
+export type ModoImportacionAlimentosDto = z.infer<
+  typeof modoImportacionAlimentosDto
+>;
+
+/** Lo que pasó con la planilla, igual para los dos modos. */
+export interface ResultadoImportacionAlimentosDto {
+  modo: ModoImportacionAlimentosDto;
+  /** Al reemplazar, los que quedaron en la lista; al agregar, los que entraron. */
+  importados: number;
+  /** Filas descartadas por repetir un alimento que la planilla ya traía. */
+  repetidos: number;
+  /** Cuántos de los importados ya existen en la plataforma (se avisa, no se descarta). */
+  enPlataforma: number;
+  /** Solo al agregar: los que ya estaban en la lista y no se tocaron. */
+  yaEstaban: number;
+  /** Algunos de ellos, con la escritura de la lista. */
+  ejemplosYaEstaban: string[];
+  /** Las imágenes que traía la planilla en su columna «Imagen». */
+  imagenes: {
+    /** Las que quedaron guardadas en su alimento. */
+    cargadas: number;
+    /** Por qué no entró cada una de las otras («Avena: supera los 2 MB»). */
+    descartadas: string[];
+  };
+}
 
 /** Estado de la lista (para la UI). */
 export const estadoAlimentosPropiosDto = z.object({
@@ -41,6 +81,8 @@ export const crearAlimentoPropioDto = z.object({
   proteinasPor100: macro,
   carbohidratosPor100: macro,
   grasasPor100: macro,
+  unidadBase: unidadBaseAlimentoDto.optional(),
+  medidas: medidasAlimentoDto.optional(),
   categoria,
 });
 export type CrearAlimentoPropioDto = z.infer<typeof crearAlimentoPropioDto>;
@@ -73,6 +115,8 @@ export const alimentoPropioSalidaDto = z.object({
   proteinasPor100: z.number().nullable(),
   carbohidratosPor100: z.number().nullable(),
   grasasPor100: z.number().nullable(),
+  unidadBase: unidadBaseAlimentoDto,
+  medidas: z.array(medidaAlimentoDto),
   categoria: z.enum(CATEGORIAS_ALIMENTO).nullable(),
   /**
    * Cambia con cada imagen nueva; null si no tiene. La pantalla arma la URL

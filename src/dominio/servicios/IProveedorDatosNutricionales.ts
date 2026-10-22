@@ -1,4 +1,8 @@
 import type { CategoriaAlimento } from "../entidades/AlimentoPropio";
+import type {
+  MedidaAlimento,
+  UnidadBaseAlimento,
+} from "../entidades/medidasAlimento";
 
 /**
  * Puerto de dominio: fuente externa de datos nutricionales de alimentos
@@ -29,6 +33,10 @@ export interface AlimentoNutricional {
   categoria: CategoriaAlimento | null;
   /** Versión de su imagen, o null si no tiene (ver `AlimentoPropio.imagenVersion`). */
   imagenVersion: string | null;
+  /** Si los macros son por 100 g o por 100 ml (migración 90). */
+  unidadBase: UnidadBaseAlimento;
+  /** Sus medidas caseras propias (las estándar se suman al elegirlo). */
+  medidas: MedidaAlimento[];
 }
 
 /**
@@ -52,6 +60,10 @@ export interface IProveedorDatosNutricionales {
    * (defecto 10). `criterio` (opcional) filtra los resultados según la política
    * del nutricionista. Nunca lanza por fallo de red: ante error o proveedor
    * deshabilitado devuelve [].
+   *
+   * Sin término ni categoría es HOJEAR: las listas cargadas devuelven sus
+   * primeros `limite` por nombre (el modal de búsqueda no arranca vacío). Una
+   * fuente externa (Open Food Facts) no se puede hojear y devuelve [].
    */
   buscar(
     termino: string,

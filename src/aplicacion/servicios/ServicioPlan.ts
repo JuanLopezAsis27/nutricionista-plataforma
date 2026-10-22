@@ -49,6 +49,7 @@ import type {
   EvaluarCombinacionesDto,
   ResultadoCombinacionesDto,
 } from "../dtos/plan.dto";
+import { describirCantidad } from "@/dominio/entidades/medidasAlimento";
 
 /**
  * Servicio de aplicación de Planes Nutricionales.
@@ -248,6 +249,10 @@ export class ServicioPlan {
         ...comida,
         opciones: comida.opciones.map((opcion) => ({
           ...opcion,
+          items: opcion.items.map((item) => ({
+            ...item,
+            cantidadTexto: describirCantidad(item),
+          })),
           macros: macrosDeOpcion(opcion),
           descripcion: descripcionDeOpcion(opcion),
         })),

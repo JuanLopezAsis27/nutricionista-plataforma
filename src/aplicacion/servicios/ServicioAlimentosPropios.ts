@@ -1,4 +1,7 @@
 import type { ImportarAlimentos } from "@/aplicacion/casos-de-uso/nutricion/ImportarAlimentos";
+import type { AgregarAlimentos } from "@/aplicacion/casos-de-uso/nutricion/AgregarAlimentos";
+import type { ObtenerTodosLosAlimentos } from "@/aplicacion/casos-de-uso/nutricion/ObtenerTodosLosAlimentos";
+import type { FilaDePlanilla } from "@/aplicacion/casos-de-uso/nutricion/filasDePlanilla";
 import type { ObtenerEstadoAlimentosPropios } from "@/aplicacion/casos-de-uso/nutricion/ObtenerEstadoAlimentosPropios";
 import type { VaciarAlimentosPropios } from "@/aplicacion/casos-de-uso/nutricion/VaciarAlimentosPropios";
 import type { CrearAlimentoPropio } from "@/aplicacion/casos-de-uso/nutricion/CrearAlimentoPropio";
@@ -21,6 +24,7 @@ import type { UsosDeAlimento } from "@/dominio/repositorios/IUsosDeAlimentoRepos
 import type {
   EstadoAlimentosPropiosDto,
   ImportarAlimentosDto,
+  ResultadoImportacionAlimentosDto,
   CrearAlimentoPropioDto,
   ActualizarAlimentoPropioDto,
   ListarAlimentosPropiosDto,
@@ -30,12 +34,15 @@ import type {
 
 /**
  * Servicio de aplicación de los alimentos propios del nutricionista. Orquesta la
- * importación masiva (Excel, reemplaza la lista), la gestión manual (alta,
- * edición y baja de un alimento a la vez), el estado (para la UI) y el vaciado.
+ * importación masiva (Excel: reemplaza la lista o se le suma), la descarga de
+ * la lista completa, la gestión manual (alta, edición y baja de un alimento a
+ * la vez), el estado (para la UI) y el vaciado.
  */
 export class ServicioAlimentosPropios {
   constructor(
     private readonly importarUC: ImportarAlimentos,
+    private readonly agregarUC: AgregarAlimentos,
+    private readonly todosUC: ObtenerTodosLosAlimentos,
     private readonly estadoUC: ObtenerEstadoAlimentosPropios,
     private readonly vaciarUC: VaciarAlimentosPropios,
     private readonly crearUC: CrearAlimentoPropio,
@@ -68,21 +75,62 @@ export class ServicioAlimentosPropios {
     return alimento ? { etiqueta: alimento.etiqueta } : null;
   }
 
-  /** Cuántos quedaron y cuántas filas se descartaron por repetidas. */
-  importar(
+  /**
+   * Importa la planilla. `REEMPLAZAR` deja la lista igual a la planilla
+   * (conservando imagen, y categoría, unidad y medidas que no traiga);
+   * `AGREGAR` le suma lo que no estaba y no toca lo que sí.
+   *
+   * `imagenes` son las que venían en la columna «Imagen», por índice de fila
+   * en `filas` (no viajan en el DTO: son bytes, no datos de la planilla).
+   */
+  async importar(
     filas: ImportarAlimentosDto,
-  ): Promise<{ importados: number; repetidos: number; enPlataforma: number }> {
-    return this.importarUC.ejecutar(
-      filas.map((f) => ({
-        nombre: f.nombre,
-        marca: f.marca ?? null,
-        caloriasPor100: f.caloriasPor100 ?? null,
-        proteinasPor100: f.proteinasPor100 ?? null,
-        carbohidratosPor100: f.carbohidratosPor100 ?? null,
-        grasasPor100: f.grasasPor100 ?? null,
-        categoria: f.categoria ?? null,
-      })),
+    modo: "REEMPLAZAR" | "AGREGAR",
+    imagenes: ReadonlyMap<number, ImagenSubida> = new Map(),
+  ): Promise<ResultadoImportacionAlimentosDto> {
+    const datos = ServicioAlimentosPropios.filasADatos(filas, imagenes);
+    if (modo === "AGREGAR") {
+      const r = await this.agregarUC.ejecutar(datos);
+      return {
+        modo,
+        importados: r.agregados,
+        repetidos: r.repetidos,
+        enPlataforma: r.enPlataforma,
+        yaEstaban: r.yaEstaban,
+        ejemplosYaEstaban: r.ejemplosYaEstaban,
+        imagenes: r.imagenes,
+      };
+    }
+    const r = await this.importarUC.ejecutar(datos);
+    return { modo, ...r, yaEstaban: 0, ejemplosYaEstaban: [] };
+  }
+
+  /** La lista completa por nombre, para descargarla como planilla. */
+  async todos(): Promise<AlimentoPropioSalidaDto[]> {
+    return (await this.todosUC.ejecutar()).map(
+      ServicioAlimentosPropios.aSalida,
     );
+  }
+
+  /** Los campos se enumeran a mano: lo que no esté acá no llega al caso de uso. */
+  private static filasADatos(
+    filas: ImportarAlimentosDto,
+    imagenes: ReadonlyMap<number, ImagenSubida>,
+  ): FilaDePlanilla[] {
+    return filas.map((f, indice) => ({
+      nombre: f.nombre,
+      marca: f.marca ?? null,
+      caloriasPor100: f.caloriasPor100 ?? null,
+      proteinasPor100: f.proteinasPor100 ?? null,
+      carbohidratosPor100: f.carbohidratosPor100 ?? null,
+      grasasPor100: f.grasasPor100 ?? null,
+      // Null / vacío = la planilla no lo trae: al reemplazar, el caso de uso
+      // conserva lo que ya tenía el alimento (migración 90).
+      unidadBase: f.unidadBase ?? null,
+      medidas: f.medidas ?? [],
+      categoria: f.categoria ?? null,
+      imagen: imagenes.get(indice) ?? null,
+    }));
   }
 
   estado(): Promise<EstadoAlimentosPropiosDto> {
@@ -112,6 +160,8 @@ export class ServicioAlimentosPropios {
       proteinasPor100: datos.proteinasPor100 ?? null,
       carbohidratosPor100: datos.carbohidratosPor100 ?? null,
       grasasPor100: datos.grasasPor100 ?? null,
+      unidadBase: datos.unidadBase ?? "GRAMO",
+      medidas: datos.medidas ?? [],
       categoria: datos.categoria ?? null,
     });
     return ServicioAlimentosPropios.aSalida(alimento);

@@ -8,6 +8,10 @@ import {
   TIPOS_META,
   ESTADOS_META,
 } from "@/dominio/servicios/comparacionMacros";
+import {
+  cantidadAlimentoEntradaDto,
+  cantidadAlimentoSalidaDto,
+} from "./medidasAlimento.dto";
 
 /** DTOs de Plan Nutricional — esquemas Zod de entrada/salida. */
 
@@ -17,7 +21,7 @@ const hora = z
 
 const macroPor100 = z.number().min(0).max(2000).nullable().optional();
 
-/** Alimento suelto de una opción: gramos + macros por 100 g. */
+/** Alimento suelto de una opción: cantidad (g/ml o una medida casera) + macros por 100. */
 export const itemOpcionDto = z.object({
   nombre: z.string().trim().min(1, "El alimento necesita un nombre").max(200),
   cantidadGramos: z.number().min(0).max(5000).nullable().optional(),
@@ -29,6 +33,7 @@ export const itemOpcionDto = z.object({
   referenciaExterna: z.string().max(120).nullable().optional(),
   /** Alimento de la lista del que se copió (migración 85). */
   alimentoOrigenId: z.string().max(64).nullable().optional(),
+  ...cantidadAlimentoEntradaDto,
 });
 export type ItemOpcionDto = z.infer<typeof itemOpcionDto>;
 
@@ -276,6 +281,7 @@ export type MacrosDto = z.infer<typeof macrosDto>;
 const itemOpcionSalida = z.object({
   nombre: z.string(),
   cantidadGramos: z.number().nullable(),
+  ...cantidadAlimentoSalidaDto,
   caloriasPor100: z.number().nullable(),
   proteinasPor100: z.number().nullable(),
   carbohidratosPor100: z.number().nullable(),

@@ -6,6 +6,7 @@ import type {
 import { Receta, type IngredienteDeReceta } from "@/dominio/entidades/Receta";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 import { enVersion, guardandoVersion } from "./base/edicionConcurrente";
+import { cantidadDeFila, columnasDeCantidad } from "./base/medidasJson";
 
 /** Fila de receta con sus fotos e ingredientes incluidos. */
 type RecetaConDetalle = Prisma.RecetaGetPayload<{
@@ -36,7 +37,7 @@ function datosIngrediente(ing: IngredienteDeReceta, orden: number) {
     // materializado para que la extensión pueda filtrarlo por id directo.
     nutricionistaId: inquilinoActual(),
     nombre: ing.nombre,
-    cantidadGramos: ing.cantidadGramos,
+    ...columnasDeCantidad(ing),
     caloriasPor100: ing.caloriasPor100,
     proteinasPor100: ing.proteinasPor100,
     carbohidratosPor100: ing.carbohidratosPor100,
@@ -277,7 +278,7 @@ export function mapearReceta(fila: RecetaConDetalle): Receta {
     preparacion: fila.preparacion,
     ingredientes: fila.ingredientes.map((ing) => ({
       nombre: ing.nombre,
-      cantidadGramos: aNumero(ing.cantidadGramos),
+      ...cantidadDeFila(ing),
       caloriasPor100: aNumero(ing.caloriasPor100),
       proteinasPor100: aNumero(ing.proteinasPor100),
       carbohidratosPor100: aNumero(ing.carbohidratosPor100),

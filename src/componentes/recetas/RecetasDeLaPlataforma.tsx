@@ -147,8 +147,7 @@ export function RecetasDeLaPlataforma({
                       {receta.ingredientes.map((ing, i) => (
                         <li key={i}>
                           {ing.nombre}
-                          {ing.cantidadGramos != null &&
-                            ` · ${ing.cantidadGramos} g`}
+                          {ing.cantidadTexto && ` · ${ing.cantidadTexto}`}
                         </li>
                       ))}
                     </ul>

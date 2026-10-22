@@ -1,26 +1,60 @@
-import ExcelJS from "exceljs";
 import { NextResponse } from "next/server";
 import { usuarioDeSesion } from "@/lib/autenticacion/sesion";
 import { aRespuestaError } from "@/servidor/errores-http";
 import { conAlcanceDeSesion } from "@/servidor/alcanceRequest";
+import {
+  escribirPlanillaAlimentos,
+  type AlimentoParaPlanilla,
+} from "@/infraestructura/nutricion/escribirPlanillaAlimentos";
+import { respuestaPlanilla } from "@/servidor/respuestaPlanilla";
 
 export const runtime = "nodejs";
 
-const COLUMNAS = [
-  { header: "Nombre", key: "nombre", width: 30 },
-  { header: "Marca", key: "marca", width: 20 },
-  { header: "Calorías", key: "calorias", width: 12 },
-  { header: "Proteínas", key: "proteinas", width: 12 },
-  { header: "Carbohidratos", key: "carbohidratos", width: 14 },
-  { header: "Grasas", key: "grasas", width: 12 },
-  // Opcional: Carnes, Lácteos, Cereales, Frutas… (ver NOMBRES_CATEGORIA_ALIMENTO).
-  { header: "Categoría", key: "categoria", width: 22 },
+/** Filas de ejemplo: un sólido, un líquido en ml y uno con medida casera. */
+const EJEMPLOS: AlimentoParaPlanilla[] = [
+  {
+    nombre: "Pechuga de pollo",
+    marca: null,
+    caloriasPor100: 165,
+    proteinasPor100: 31,
+    carbohidratosPor100: 0,
+    grasasPor100: 3.6,
+    categoria: "CARNES",
+    unidadBase: "GRAMO",
+    medidas: [],
+  },
+  {
+    nombre: "Leche descremada",
+    marca: null,
+    caloriasPor100: 35,
+    proteinasPor100: 3.4,
+    carbohidratosPor100: 5,
+    grasasPor100: 0.4,
+    categoria: "LACTEOS",
+    unidadBase: "MILILITRO",
+    medidas: [
+      { nombre: "taza", cantidad: 240 },
+      { nombre: "vaso", cantidad: 200 },
+    ],
+  },
+  {
+    nombre: "Huevo",
+    marca: null,
+    caloriasPor100: 143,
+    proteinasPor100: 12.6,
+    carbohidratosPor100: 0.7,
+    grasasPor100: 9.5,
+    categoria: "HUEVOS",
+    unidadBase: "GRAMO",
+    medidas: [{ nombre: "unidad", cantidad: 50 }],
+  },
 ];
 
 /**
  * GET /api/alimentos/plantilla — descarga el modelo de Excel para importar
- * alimentos propios, con las mismas columnas que espera
- * `parsearPlanillaAlimentos`. Solo NUTRICIONISTA.
+ * alimentos, con las mismas columnas que espera `parsearPlanillaAlimentos` y
+ * que trae la descarga de la lista (`escribirPlanillaAlimentos`).
+ * NUTRICIONISTA y SUPERADMIN.
  */
 export function GET(): Promise<NextResponse> {
   return conAlcanceDeSesion(async () => {
@@ -38,31 +72,10 @@ export function GET(): Promise<NextResponse> {
     }
 
     try {
-      const libro = new ExcelJS.Workbook();
-      const hoja = libro.addWorksheet("Alimentos");
-      hoja.columns = COLUMNAS;
-      hoja.getRow(1).font = { bold: true };
-      hoja.addRow({
-        nombre: "Pechuga de pollo",
-        marca: "",
-        calorias: 165,
-        proteinas: 31,
-        carbohidratos: 0,
-        grasas: 3.6,
-        categoria: "Carnes",
-      });
-
-      const buffer = await libro.xlsx.writeBuffer();
-
-      return new NextResponse(new Uint8Array(buffer), {
-        headers: {
-          "Content-Type":
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          "Content-Disposition":
-            'attachment; filename="plantilla-alimentos.xlsx"',
-          "Cache-Control": "no-store",
-        },
-      });
+      const contenido = await escribirPlanillaAlimentos([
+        { nombre: "Alimentos", alimentos: EJEMPLOS },
+      ]);
+      return respuestaPlanilla(contenido, "plantilla-alimentos.xlsx");
     } catch (error) {
       return aRespuestaError(error);
     }

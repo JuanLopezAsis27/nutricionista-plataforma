@@ -1,5 +1,10 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
 import {
+  normalizarCantidadDeAlimento,
+  type CantidadDeAlimento,
+  type DatosCantidadDeAlimento,
+} from "./medidasAlimento";
+import {
   sumarPorGramos,
   sumarMacros,
   sumarTodos,
@@ -66,11 +71,14 @@ const PATRON_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 // --- Estado persistido -------------------------------------------------------
 
-/** Alimento de una comida: cantidad en gramos + macros por 100 g. */
-export interface ItemDeComidaSemanal {
+/**
+ * Alimento de una comida: cantidad + macros por 100 g (o 100 ml). La cantidad
+ * puede estar escrita en una medida casera (migración 90); `cantidadGramos`
+ * es siempre la cantidad en g/ml.
+ */
+export interface ItemDeComidaSemanal extends CantidadDeAlimento {
   id: string;
   nombre: string;
-  cantidadGramos: number | null;
   caloriasPor100: number | null;
   proteinasPor100: number | null;
   carbohidratosPor100: number | null;
@@ -138,9 +146,8 @@ export interface PropiedadesPlanSemanal {
 
 // --- Datos de entrada --------------------------------------------------------
 
-export interface DatosItemComidaSemanal {
+export interface DatosItemComidaSemanal extends DatosCantidadDeAlimento {
   nombre: string;
-  cantidadGramos?: number | null;
   caloriasPor100?: number | null;
   proteinasPor100?: number | null;
   carbohidratosPor100?: number | null;
@@ -445,10 +452,7 @@ function normalizarItems(
       return {
         id: generarId(),
         nombre,
-        cantidadGramos: noNegativo(
-          item.cantidadGramos,
-          `La cantidad de «${etiqueta}»`,
-        ),
+        ...normalizarCantidadDeAlimento(item, etiqueta),
         caloriasPor100: noNegativo(
           item.caloriasPor100,
           `Las calorías de «${etiqueta}»`,

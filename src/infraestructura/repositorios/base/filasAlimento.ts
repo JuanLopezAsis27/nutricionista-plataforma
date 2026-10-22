@@ -4,6 +4,7 @@ import type {
 } from "@prisma/client";
 import { AlimentoPropio } from "@/dominio/entidades/AlimentoPropio";
 import type { FiltroAlimentosPropios } from "@/dominio/repositorios/IAlimentoPropioRepositorio";
+import { medidasAJson, medidasDeJson } from "./medidasJson";
 
 /**
  * Lo que comparten las dos tablas de alimentos (`alimentos_propios` y
@@ -21,6 +22,8 @@ export interface FilaAlimento {
   proteinasPor100: Prisma.Decimal | null;
   carbohidratosPor100: Prisma.Decimal | null;
   grasasPor100: Prisma.Decimal | null;
+  unidadBase: "GRAMO" | "MILILITRO";
+  medidas: Prisma.JsonValue;
   categoria: CategoriaFila | null;
   imagenClave: string | null;
 }
@@ -43,6 +46,8 @@ export function datosDeAlimento(alimento: AlimentoPropio) {
     proteinasPor100: p.proteinasPor100,
     carbohidratosPor100: p.carbohidratosPor100,
     grasasPor100: p.grasasPor100,
+    unidadBase: p.unidadBase,
+    medidas: medidasAJson(p.medidas),
     categoria: p.categoria,
     imagenClave: p.imagenClave,
   };
@@ -58,6 +63,8 @@ export function mapearFilaAlimento(fila: FilaAlimento): AlimentoPropio {
     proteinasPor100: aNumero(fila.proteinasPor100),
     carbohidratosPor100: aNumero(fila.carbohidratosPor100),
     grasasPor100: aNumero(fila.grasasPor100),
+    unidadBase: fila.unidadBase,
+    medidas: medidasDeJson(fila.medidas),
     categoria: fila.categoria,
     imagenClave: fila.imagenClave,
   });

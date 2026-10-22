@@ -15,6 +15,7 @@ import type {
 import { PlanSemanal } from "@/dominio/entidades/PlanSemanal";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 import { soloFecha } from "./base/fechas";
+import { cantidadDeFila, columnasDeCantidad } from "./base/medidasJson";
 
 /**
  * Include estándar: franjas ordenadas, con sus comidas por día y orden, los
@@ -285,7 +286,7 @@ function franjasParaPrisma(
             id: item.id,
             nutricionistaId: inquilino,
             nombre: item.nombre,
-            cantidadGramos: item.cantidadGramos,
+            ...columnasDeCantidad(item),
             caloriasPor100: item.caloriasPor100,
             proteinasPor100: item.proteinasPor100,
             carbohidratosPor100: item.carbohidratosPor100,
@@ -331,7 +332,7 @@ export function mapearPlanSemanal(fila: PlanConHijos): PlanSemanal {
         items: comida.items.map((item) => ({
           id: item.id,
           nombre: item.nombre,
-          cantidadGramos: aNumero(item.cantidadGramos),
+          ...cantidadDeFila(item),
           caloriasPor100: aNumero(item.caloriasPor100),
           proteinasPor100: aNumero(item.proteinasPor100),
           carbohidratosPor100: aNumero(item.carbohidratosPor100),

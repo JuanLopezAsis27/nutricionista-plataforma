@@ -1,5 +1,10 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
 import {
+  normalizarCantidadDeAlimento,
+  type CantidadDeAlimento,
+  type DatosCantidadDeAlimento,
+} from "./medidasAlimento";
+import {
   sumarPorGramos,
   dividirMacros,
   hayMacros,
@@ -25,10 +30,13 @@ export type DocumentoReceta = FotoReceta;
  */
 export type MacrosReceta = Macros;
 
-/** Ingrediente estructurado ya normalizado (estado persistido). */
-export interface IngredienteDeReceta {
+/**
+ * Ingrediente estructurado ya normalizado (estado persistido). La cantidad
+ * puede estar escrita en una medida casera (migración 90); `cantidadGramos`
+ * es siempre la cantidad en g/ml.
+ */
+export interface IngredienteDeReceta extends CantidadDeAlimento {
   nombre: string;
-  cantidadGramos: number | null;
   caloriasPor100: number | null;
   proteinasPor100: number | null;
   carbohidratosPor100: number | null;
@@ -43,9 +51,8 @@ export interface IngredienteDeReceta {
 }
 
 /** Datos de entrada de un ingrediente (los numéricos pueden faltar). */
-export interface DatosIngredienteReceta {
+export interface DatosIngredienteReceta extends DatosCantidadDeAlimento {
   nombre: string;
-  cantidadGramos?: number | null;
   caloriasPor100?: number | null;
   proteinasPor100?: number | null;
   carbohidratosPor100?: number | null;
@@ -355,10 +362,7 @@ function normalizarIngredientes(
       const nombre = ing.nombre?.trim() ?? "";
       return {
         nombre,
-        cantidadGramos: normalizarNumero(
-          ing.cantidadGramos,
-          `La cantidad de «${nombre}»`,
-        ),
+        ...normalizarCantidadDeAlimento(ing, nombre || "un ingrediente"),
         caloriasPor100: normalizarNumero(
           ing.caloriasPor100,
           `Las calorías de «${nombre}»`,

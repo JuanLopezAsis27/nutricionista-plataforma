@@ -29,10 +29,9 @@ export class ProveedorNutricionPropio implements IProveedorDatosNutricionales {
     criterio?: CriterioAlimentos,
     categoria?: CategoriaAlimento,
   ): Promise<AlimentoNutricional[]> {
-    const t = termino.trim();
-    // Sin categoría hace falta algo que buscar; con categoría, el término
-    // vacío es «mostrame los lácteos».
-    if (t.length < 2 && !categoria) return [];
+    // Una sola letra no es una búsqueda (traería media lista): se hojea,
+    // igual que con el término vacío. Con categoría, es «los lácteos».
+    const t = termino.trim().length >= 2 ? termino.trim() : "";
 
     const encontrados = await this.repositorio.buscar(t, limite, categoria);
     const alimentos: AlimentoNutricional[] = encontrados.map((a) => {
@@ -49,6 +48,8 @@ export class ProveedorNutricionPropio implements IProveedorDatosNutricionales {
         id: p.id,
         categoria: p.categoria,
         imagenVersion: a.imagenVersion,
+        unidadBase: p.unidadBase,
+        medidas: p.medidas,
       };
     });
     return filtrarAlimentos(alimentos, criterio);

@@ -12,8 +12,13 @@ import {
   FormMessage,
 } from "@/componentes/ui/form";
 import type { DatosFormulario } from "./esquema";
+import { CampoCantidadAlimento } from "@/componentes/comunes/alimentos/CampoCantidadAlimento";
+import { porCien } from "@/componentes/comunes/alimentos/cantidad";
 
-/** Una fila de la tabla de ingredientes: nombre, cantidad y macros por 100 g. */
+/**
+ * Una fila de la tabla de ingredientes: nombre, cantidad (en g/ml o en una
+ * medida casera) y macros por 100 g o 100 ml.
+ */
 export function FilaIngrediente({
   form,
   indice,
@@ -23,6 +28,8 @@ export function FilaIngrediente({
   indice: number;
   onQuitar: () => void;
 }) {
+  const ingrediente = form.watch(`ingredientes.${indice}`);
+  const cien = porCien(ingrediente.unidadBase);
   return (
     <div className="rounded-md border border-dashed p-3">
       <div className="flex items-start gap-2">
@@ -38,24 +45,19 @@ export function FilaIngrediente({
             </FormItem>
           )}
         />
-        <div className="w-24 shrink-0">
-          <FormField
-            control={form.control}
-            name={`ingredientes.${indice}.cantidadGramos`}
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <Input
-                    inputMode="decimal"
-                    placeholder="g"
-                    aria-label="Gramos"
-                    {...field}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-        </div>
+        <CampoCantidadAlimento
+          className="w-40 shrink-0 sm:w-48"
+          altoCompacto={false}
+          valor={ingrediente}
+          unidadEditable={!ingrediente.alimentoOrigenId}
+          onCambiar={(nuevo) =>
+            form.setValue(
+              `ingredientes.${indice}`,
+              { ...ingrediente, ...nuevo },
+              { shouldDirty: true },
+            )
+          }
+        />
         <Button
           type="button"
           variant="ghost"
@@ -70,10 +72,10 @@ export function FilaIngrediente({
       <div className="mt-2 grid grid-cols-4 gap-2 pr-10">
         {(
           [
-            ["caloriasPor100", "kcal/100g"],
-            ["proteinasPor100", "P/100g"],
-            ["carbohidratosPor100", "C/100g"],
-            ["grasasPor100", "G/100g"],
+            ["caloriasPor100", `kcal/${cien}`],
+            ["proteinasPor100", `P/${cien}`],
+            ["carbohidratosPor100", `C/${cien}`],
+            ["grasasPor100", `G/${cien}`],
           ] as const
         ).map(([nombre, etiqueta]) => (
           <FormField

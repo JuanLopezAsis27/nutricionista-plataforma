@@ -8,9 +8,11 @@ import { ErrorAlimentoPropioNoEncontrado } from "@/dominio/errores/ErrorAlimento
 import {
   mockAlimentoPropioRepositorio,
   mockAlmacenamientoArchivos,
+  mockOptimizadorImagenes,
   alimentoPropioEjemplo,
 } from "../_ayudas-test";
 import { CambiarImagenAlimento } from "./CambiarImagenAlimento";
+import { ImagenesDeAlimentos } from "./imagenesDeAlimentos";
 import { QuitarImagenAlimento } from "./QuitarImagenAlimento";
 import { ObtenerImagenAlimento } from "./ObtenerImagenAlimento";
 import { ImportarAlimentos } from "./ImportarAlimentos";
@@ -55,12 +57,12 @@ describe("CambiarImagenAlimento", () => {
       actualizar: vi.fn(async (a: AlimentoPropio) => a),
     });
     const almacenamiento = mockAlmacenamientoArchivos();
+    const optimizador = mockOptimizadorImagenes();
     const uc = new CambiarImagenAlimento(
       repositorio,
-      almacenamiento,
-      "alimentos-propios",
+      new ImagenesDeAlimentos(almacenamiento, optimizador, "alimentos-propios"),
     );
-    return { uc, repositorio, almacenamiento };
+    return { uc, repositorio, almacenamiento, optimizador };
   }
 
   it("sube la nueva, apunta la fila y recién después borra la vieja", async () => {
@@ -74,8 +76,9 @@ describe("CambiarImagenAlimento", () => {
       mimeType: "image/png",
     });
 
+    // Se guarda reducida y en WebP, cualquiera sea el formato que se subió.
     expect(resultado.imagenClave).toMatch(
-      /^alimentos-propios\/ali-1\/.+\.png$/,
+      /^alimentos-propios\/ali-1\/.+\.webp$/,
     );
     expect(resultado.imagenVersion).not.toBe("vieja");
     expect(almacenamiento.subir).toHaveBeenCalledOnce();

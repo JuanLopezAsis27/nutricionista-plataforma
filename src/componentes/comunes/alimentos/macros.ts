@@ -1,3 +1,5 @@
+import { gramosEnFormulario } from "./cantidad";
+
 /**
  * Cálculo de macros de una lista de alimentos cargada en un FORMULARIO.
  *
@@ -24,7 +26,15 @@
  * dependa del esquema de ninguna de las dos pantallas.
  */
 export interface AlimentoEnFormulario {
+  /** En g/ml (para un líquido, ml: sus macros son por 100 ml). */
   cantidadGramos: string;
+  /**
+   * La medida en que se escribió la cantidad (migración 90). Con medida, la
+   * cantidad en g/ml sale de cantidad × equivalencia (`gramosEnFormulario`).
+   */
+  medida?: string;
+  cantidadMedida?: string;
+  cantidadPorMedida?: string;
   caloriasPor100: string;
   proteinasPor100: string;
   carbohidratosPor100: string;
@@ -61,7 +71,7 @@ export function calcularTotales(ingredientes: AlimentoEnFormulario[]): Macros {
   let hayCarb = false;
   let hayGras = false;
   for (const ing of ingredientes) {
-    const gramos = aNumero(ing.cantidadGramos);
+    const gramos = gramosEnFormulario(ing);
     if (gramos == null || gramos <= 0) continue;
     const factor = gramos / 100;
     const c = aNumero(ing.caloriasPor100);

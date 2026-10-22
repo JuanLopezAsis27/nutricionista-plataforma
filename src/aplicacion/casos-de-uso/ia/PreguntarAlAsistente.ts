@@ -18,6 +18,7 @@ import { descripcionDeOpcion } from "@/dominio/entidades/PlanNutricional";
 import { ErrorPacienteNoEncontrado } from "@/dominio/errores/ErrorPacienteNoEncontrado";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 import { verificarDueno } from "./GestionarConversacionesIA";
+import { describirCantidad } from "@/dominio/entidades/medidasAlimento";
 
 /** Resultado de una consulta al asistente. */
 export interface RespuestaAsistente {
@@ -221,11 +222,10 @@ export class PreguntarAlAsistente {
                   carbohidratosG: p.carbohidratosG,
                   grasasG: p.grasasG,
                 },
-                ingredientes: p.ingredientes.map((i) =>
-                  i.cantidadGramos != null
-                    ? `${i.nombre} (${i.cantidadGramos} g)`
-                    : i.nombre,
-                ),
+                ingredientes: p.ingredientes.map((i) => {
+                  const cantidad = describirCantidad(i);
+                  return cantidad ? `${i.nombre} (${cantidad})` : i.nombre;
+                }),
                 preparacion: p.preparacion,
               };
             }),

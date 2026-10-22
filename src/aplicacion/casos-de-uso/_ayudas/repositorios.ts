@@ -849,6 +849,7 @@ export function mockAlimentoPropioRepositorio(
 ): IAlimentoPropioRepositorio {
   return {
     reemplazarTodos: vi.fn(async (a) => a.length),
+    agregarVarios: vi.fn(async (a) => a.length),
     crear: vi.fn(async (a: AlimentoPropio) => a),
     actualizar: vi.fn(async (a: AlimentoPropio) => a),
     eliminar: vi.fn(async () => {}),

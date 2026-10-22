@@ -21,6 +21,7 @@ import type {
   AsignacionPlanSemanalSalidaDto,
   AsignacionSemanalConPacienteDto,
 } from "../dtos/planSemanal.dto";
+import { describirCantidad } from "@/dominio/entidades/medidasAlimento";
 
 /**
  * Servicio de aplicación de Planes Semanales.
@@ -122,6 +123,10 @@ export class ServicioPlanSemanal {
         ...franja,
         comidas: franja.comidas.map((comida) => ({
           ...comida,
+          items: comida.items.map((item) => ({
+            ...item,
+            cantidadTexto: describirCantidad(item),
+          })),
           macros: PlanSemanal.macrosDe(comida),
         })),
       })),

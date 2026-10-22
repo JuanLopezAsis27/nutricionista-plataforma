@@ -101,10 +101,10 @@ export function VistaReceta({ receta }: { receta: RecetaSalidaDto }) {
             {receta.ingredientes.map((ingrediente, indice) => (
               <li key={indice}>
                 {ingrediente.nombre}
-                {ingrediente.cantidadGramos != null && (
+                {ingrediente.cantidadTexto && (
                   <span className="text-muted-foreground">
                     {" "}
-                    — {ingrediente.cantidadGramos} g
+                    — {ingrediente.cantidadTexto}
                   </span>
                 )}
               </li>

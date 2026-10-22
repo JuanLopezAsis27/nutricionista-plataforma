@@ -33,6 +33,10 @@ import {
 import { totalesPorDia } from "./formulario/totales";
 import { GrillaSemana } from "./formulario/GrillaSemana";
 import { EditorComida } from "./formulario/EditorComida";
+import {
+  cantidadDesdeGuardado,
+  cantidadParaGuardar,
+} from "@/componentes/comunes/alimentos/cantidad";
 
 // El esquema se reexporta como en el formulario de plan: es el punto de
 // entrada del formulario y lo que importa el test de coherencia con el DTO.
@@ -95,7 +99,7 @@ export function FormularioPlanSemanal({ planInicial, onTerminado }: Props) {
               porciones: comida.porciones?.toString() ?? "",
               items: comida.items.map((item) => ({
                 nombre: item.nombre,
-                cantidadGramos: item.cantidadGramos?.toString() ?? "",
+                ...cantidadDesdeGuardado(item),
                 caloriasPor100: item.caloriasPor100?.toString() ?? "",
                 proteinasPor100: item.proteinasPor100?.toString() ?? "",
                 carbohidratosPor100: item.carbohidratosPor100?.toString() ?? "",
@@ -204,7 +208,7 @@ export function FormularioPlanSemanal({ planInicial, onTerminado }: Props) {
             .filter((item) => item.nombre.trim() !== "")
             .map((item) => ({
               nombre: item.nombre.trim(),
-              cantidadGramos: aNumero(item.cantidadGramos),
+              ...cantidadParaGuardar(item),
               caloriasPor100: aNumero(item.caloriasPor100),
               proteinasPor100: aNumero(item.proteinasPor100),
               carbohidratosPor100: aNumero(item.carbohidratosPor100),

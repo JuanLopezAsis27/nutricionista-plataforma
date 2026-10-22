@@ -37,6 +37,11 @@ import {
 import { TotalItem } from "./formulario/TotalItem";
 import { FilaIngrediente } from "./formulario/FilaIngrediente";
 import { BuscadorAlimento } from "@/componentes/comunes/alimentos/BuscadorAlimento";
+import {
+  cantidadDesdeAlimento,
+  cantidadDesdeGuardado,
+  cantidadParaGuardar,
+} from "@/componentes/comunes/alimentos/cantidad";
 
 // El esquema se reexporta porque `coherencia-formularios-2.test.ts` lo importa
 // desde acá, que sigue siendo el punto de entrada del formulario.
@@ -86,7 +91,7 @@ export function FormularioReceta({
       porciones: recetaInicial?.porciones?.toString() ?? "",
       ingredientes: (recetaInicial?.ingredientes ?? []).map((ing) => ({
         nombre: ing.nombre,
-        cantidadGramos: ing.cantidadGramos?.toString() ?? "",
+        ...cantidadDesdeGuardado(ing),
         caloriasPor100: ing.caloriasPor100?.toString() ?? "",
         proteinasPor100: ing.proteinasPor100?.toString() ?? "",
         carbohidratosPor100: ing.carbohidratosPor100?.toString() ?? "",
@@ -122,7 +127,7 @@ export function FormularioReceta({
       nombre: alimento.marca
         ? `${alimento.nombre} (${alimento.marca})`
         : alimento.nombre,
-      cantidadGramos: "100",
+      ...cantidadDesdeAlimento(alimento),
       caloriasPor100: alimento.caloriasPor100?.toString() ?? "",
       proteinasPor100: alimento.proteinasPor100?.toString() ?? "",
       carbohidratosPor100: alimento.carbohidratosPor100?.toString() ?? "",
@@ -144,7 +149,7 @@ export function FormularioReceta({
         .filter((ing) => ing.nombre.trim() !== "")
         .map((ing) => ({
           nombre: ing.nombre.trim(),
-          cantidadGramos: aNumero(ing.cantidadGramos),
+          ...cantidadParaGuardar(ing),
           caloriasPor100: aNumero(ing.caloriasPor100),
           proteinasPor100: aNumero(ing.proteinasPor100),
           carbohidratosPor100: aNumero(ing.carbohidratosPor100),

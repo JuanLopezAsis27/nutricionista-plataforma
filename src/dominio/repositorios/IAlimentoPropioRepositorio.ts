@@ -25,6 +25,13 @@ export interface IAlimentoPropioRepositorio {
    * anterior lo decide el caso de uso.
    */
   reemplazarTodos(alimentos: AlimentoPropio[]): Promise<number>;
+  /**
+   * Suma estos alimentos a la lista SIN tocar los que ya están (importar
+   * «agregando»). Los que ya estén, porque la lista se adelantó entre el
+   * chequeo del caso de uso y la escritura, se saltean y no se cuentan:
+   * devuelve cuántos entraron.
+   */
+  agregarVarios(alimentos: AlimentoPropio[]): Promise<number>;
   /** Alta de un alimento individual (gestión manual de la lista). */
   crear(alimento: AlimentoPropio): Promise<AlimentoPropio>;
   /** Edición de un alimento individual (imagen incluida). */
@@ -48,8 +55,9 @@ export interface IAlimentoPropioRepositorio {
   listar(filtro?: FiltroAlimentosPropios): Promise<AlimentoPropio[]>;
   /**
    * Busca por texto en el nombre (case-insensitive) y/o por categoría.
-   * Con categoría, el texto puede venir vacío: es «ver los lácteos».
-   * Máximo `limite`.
+   * Con categoría, el texto puede venir vacío: es «ver los lácteos». Sin
+   * ninguno de los dos, los primeros por nombre: es hojear la lista.
+   * Máximo `limite`: nunca la lista entera de una vez.
    */
   buscar(
     termino: string,

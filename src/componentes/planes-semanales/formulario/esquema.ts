@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { DIAS_SEMANA } from "@/dominio/entidades/PlanSemanal";
 import { numeroEnRango } from "@/lib/validacionListas";
+import {
+  CANTIDAD_VACIA,
+  camposCantidadEsquema,
+} from "@/componentes/comunes/alimentos/cantidad";
 
 /**
  * Esquema, tipos y constantes del formulario de plan semanal.
@@ -24,6 +28,8 @@ const hora = z
 
 const itemEsquema = z.object({
   nombre: z.string().min(1, "Nombre").max(160),
+  /** g/ml o una medida casera (migración 90); el rango se refina abajo. */
+  ...camposCantidadEsquema,
   cantidadGramos: numeroEnRango(0, 100_000),
   caloriasPor100: numeroEnRango(0, 10_000),
   proteinasPor100: numeroEnRango(0, 10_000),
@@ -122,7 +128,7 @@ export function comidaVacia(
 export function itemVacio(): ItemFormulario {
   return {
     nombre: "",
-    cantidadGramos: "",
+    ...CANTIDAD_VACIA,
     caloriasPor100: "",
     proteinasPor100: "",
     carbohidratosPor100: "",

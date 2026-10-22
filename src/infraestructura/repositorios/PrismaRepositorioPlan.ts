@@ -13,6 +13,7 @@ import type {
 import { PlanNutricional } from "@/dominio/entidades/PlanNutricional";
 import { inquilinoActual } from "@/infraestructura/multitenancy/inquilino";
 import { enVersion, guardandoVersion } from "./base/edicionConcurrente";
+import { cantidadDeFila, columnasDeCantidad } from "./base/medidasJson";
 
 /** Include estándar: franjas ordenadas con opciones (y nombre de receta), extras. */
 const INCLUIR_HIJOS = {
@@ -132,6 +133,7 @@ export class PrismaRepositorioPlan
                     create: opcion.items.map((item, orden) => ({
                       nutricionistaId: inquilino,
                       ...item,
+                      ...columnasDeCantidad(item),
                       orden,
                     })),
                   },
@@ -227,6 +229,7 @@ export class PrismaRepositorioPlan
                       create: opcion.items.map((item, orden) => ({
                         nutricionistaId: inquilino,
                         ...item,
+                        ...columnasDeCantidad(item),
                         orden,
                       })),
                     },
@@ -565,7 +568,7 @@ export function mapearPlan(fila: PlanConHijos): PlanNutricional {
         porciones: aNumero(opcion.porciones),
         items: opcion.items.map((item) => ({
           nombre: item.nombre,
-          cantidadGramos: aNumero(item.cantidadGramos),
+          ...cantidadDeFila(item),
           caloriasPor100: aNumero(item.caloriasPor100),
           proteinasPor100: aNumero(item.proteinasPor100),
           carbohidratosPor100: aNumero(item.carbohidratosPor100),

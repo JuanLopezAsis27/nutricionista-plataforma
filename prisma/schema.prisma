@@ -114,6 +114,14 @@ enum ModalidadPlan {
 /// Rubro de un alimento (migración 84). Lista FIJA y no etiquetas libres: es
 /// lo que se filtra en el buscador de todos los consultorios, y «Lácteos»,
 /// «lacteos» y «Lácteo» serían tres filtros. Los valores solo se agregan.
+/// En qué se mide un alimento (migración 90): sus macros son por 100 g o por
+/// 100 ml, como las tablas de FatSecret. El resto de las medidas («1 taza»,
+/// «1 cucharada») se expresa en esta unidad. Ver docs/MEDIDAS-ALIMENTOS.md.
+enum UnidadBaseAlimento {
+  GRAMO
+  MILILITRO
+}
+
 enum CategoriaAlimento {
   CARNES
   PESCADOS
@@ -1399,6 +1407,11 @@ model AlimentoPropio {
   proteinasPor100     Decimal?           @db.Decimal(7, 2)
   carbohidratosPor100 Decimal?           @db.Decimal(7, 2)
   grasasPor100        Decimal?           @db.Decimal(7, 2)
+  /// Si los macros son por 100 g o por 100 ml (migración 90).
+  unidadBase          UnidadBaseAlimento @default(GRAMO)
+  /// Medidas caseras del alimento (migración 90): `[{ nombre, cantidad }]`,
+  /// «1 <nombre> = <cantidad> g/ml». Ver docs/MEDIDAS-ALIMENTOS.md.
+  medidas             Json               @default("[]")
   /// Rubro del alimento, para filtrar la búsqueda (migración 84).
   categoria           CategoriaAlimento?
   /// Clave en el bucket de su imagen (migración 84). No es un `Archivo`: ver
@@ -1434,6 +1447,9 @@ model AlimentoBase {
   proteinasPor100     Decimal?           @db.Decimal(7, 2)
   carbohidratosPor100 Decimal?           @db.Decimal(7, 2)
   grasasPor100        Decimal?           @db.Decimal(7, 2)
+  /// Ver AlimentoPropio.unidadBase y medidas (migración 90).
+  unidadBase          UnidadBaseAlimento @default(GRAMO)
+  medidas             Json               @default("[]")
   /// Ver AlimentoPropio.categoria e imagenClave (migración 84).
   categoria           CategoriaAlimento?
   imagenClave         String?
@@ -1475,21 +1491,32 @@ model RecetaBase {
 /// Ingrediente de una receta de la plataforma. Misma forma que
 /// `IngredienteReceta`, sin inquilino.
 model IngredienteRecetaBase {
-  id                  String   @id @default(uuid(4))
+  id                  String             @id @default(uuid(4))
   recetaId            String
   nombre              String
-  cantidadGramos      Decimal? @db.Decimal(8, 1)
-  caloriasPor100      Decimal? @db.Decimal(7, 2)
-  proteinasPor100     Decimal? @db.Decimal(7, 2)
-  carbohidratosPor100 Decimal? @db.Decimal(7, 2)
-  grasasPor100        Decimal? @db.Decimal(7, 2)
+  cantidadGramos      Decimal?           @db.Decimal(8, 1)
+  caloriasPor100      Decimal?           @db.Decimal(7, 2)
+  proteinasPor100     Decimal?           @db.Decimal(7, 2)
+  carbohidratosPor100 Decimal?           @db.Decimal(7, 2)
+  grasasPor100        Decimal?           @db.Decimal(7, 2)
+  /// En qué medida se indicó la cantidad (migración 90). `cantidadGramos`
+  /// es SIEMPRE la cantidad en la unidad base (g o ml, según `unidadBase`) y
+  /// es la que suma macros; `medida` × `cantidadMedida` es cómo se la
+  /// escribió («2 cucharadas»), y `cantidadPorMedida` la equivalencia copiada
+  /// al elegirla. `medidas` es la copia de las medidas del alimento. Ver
+  /// docs/MEDIDAS-ALIMENTOS.md.
+  unidadBase          UnidadBaseAlimento @default(GRAMO)
+  medidas             Json               @default("[]")
+  medida              String?
+  cantidadMedida      Decimal?           @db.Decimal(8, 2)
+  cantidadPorMedida   Decimal?           @db.Decimal(8, 1)
   fuente              String?
   referenciaExterna   String?
   /// Id del alimento de la lista de la que se copió (migración 85), para saber
   /// DÓNDE se usa un alimento. Sin FK a propósito: los macros ya están
   /// copiados acá, y borrar el alimento no puede tocar esta fila.
   alimentoOrigenId    String?
-  orden               Int      @default(0)
+  orden               Int                @default(0)
 
   receta RecetaBase @relation(fields: [recetaId], references: [id], onDelete: Cascade)
 
@@ -2087,23 +2114,34 @@ model GrupoReceta {
 /// suma estos valores para obtener sus totales y macros por porción. Hijo del
 /// agregado Receta (hereda el inquilino por su receta; sin nutricionistaId).
 model IngredienteReceta {
-  id                  String   @id @default(uuid(4))
+  id                  String             @id @default(uuid(4))
   nutricionistaId     String
   recetaId            String
   nombre              String
-  cantidadGramos      Decimal? @db.Decimal(8, 1)
+  cantidadGramos      Decimal?           @db.Decimal(8, 1)
   // Macros por 100 g del alimento (base de datos nutricional o manual)
-  caloriasPor100      Decimal? @db.Decimal(7, 2)
-  proteinasPor100     Decimal? @db.Decimal(7, 2)
-  carbohidratosPor100 Decimal? @db.Decimal(7, 2)
-  grasasPor100        Decimal? @db.Decimal(7, 2)
+  caloriasPor100      Decimal?           @db.Decimal(7, 2)
+  proteinasPor100     Decimal?           @db.Decimal(7, 2)
+  carbohidratosPor100 Decimal?           @db.Decimal(7, 2)
+  grasasPor100        Decimal?           @db.Decimal(7, 2)
+  /// En qué medida se indicó la cantidad (migración 90). `cantidadGramos`
+  /// es SIEMPRE la cantidad en la unidad base (g o ml, según `unidadBase`) y
+  /// es la que suma macros; `medida` × `cantidadMedida` es cómo se la
+  /// escribió («2 cucharadas»), y `cantidadPorMedida` la equivalencia copiada
+  /// al elegirla. `medidas` es la copia de las medidas del alimento. Ver
+  /// docs/MEDIDAS-ALIMENTOS.md.
+  unidadBase          UnidadBaseAlimento @default(GRAMO)
+  medidas             Json               @default("[]")
+  medida              String?
+  cantidadMedida      Decimal?           @db.Decimal(8, 2)
+  cantidadPorMedida   Decimal?           @db.Decimal(8, 1)
   fuente              String? // "OFF" (Open Food Facts) | "MANUAL"
   referenciaExterna   String? // código de barras / id en la fuente
   /// Id del alimento de la lista de la que se copió (migración 85), para saber
   /// DÓNDE se usa un alimento. Sin FK a propósito: los macros ya están
   /// copiados acá, y borrar el alimento no puede tocar esta fila.
   alimentoOrigenId    String?
-  orden               Int      @default(0)
+  orden               Int                @default(0)
 
   receta        Receta        @relation(fields: [recetaId], references: [id], onDelete: Cascade)
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
@@ -2290,15 +2328,26 @@ model OpcionComida {
 /// borrar un alimento del catálogo no puede cambiar en silencio un plan que ya
 /// se le entregó a un paciente.
 model ItemOpcionComida {
-  id                  String   @id @default(uuid(4))
+  id                  String             @id @default(uuid(4))
   nutricionistaId     String
   opcionId            String
   nombre              String
-  cantidadGramos      Decimal? @db.Decimal(8, 1)
-  caloriasPor100      Decimal? @db.Decimal(7, 2)
-  proteinasPor100     Decimal? @db.Decimal(7, 2)
-  carbohidratosPor100 Decimal? @db.Decimal(7, 2)
-  grasasPor100        Decimal? @db.Decimal(7, 2)
+  cantidadGramos      Decimal?           @db.Decimal(8, 1)
+  caloriasPor100      Decimal?           @db.Decimal(7, 2)
+  proteinasPor100     Decimal?           @db.Decimal(7, 2)
+  carbohidratosPor100 Decimal?           @db.Decimal(7, 2)
+  grasasPor100        Decimal?           @db.Decimal(7, 2)
+  /// En qué medida se indicó la cantidad (migración 90). `cantidadGramos`
+  /// es SIEMPRE la cantidad en la unidad base (g o ml, según `unidadBase`) y
+  /// es la que suma macros; `medida` × `cantidadMedida` es cómo se la
+  /// escribió («2 cucharadas»), y `cantidadPorMedida` la equivalencia copiada
+  /// al elegirla. `medidas` es la copia de las medidas del alimento. Ver
+  /// docs/MEDIDAS-ALIMENTOS.md.
+  unidadBase          UnidadBaseAlimento @default(GRAMO)
+  medidas             Json               @default("[]")
+  medida              String?
+  cantidadMedida      Decimal?           @db.Decimal(8, 2)
+  cantidadPorMedida   Decimal?           @db.Decimal(8, 1)
   /// "PROPIO" | "BASE" | "OFF" | "MANUAL".
   fuente              String?
   referenciaExterna   String?
@@ -2306,7 +2355,7 @@ model ItemOpcionComida {
   /// DÓNDE se usa un alimento. Sin FK a propósito: los macros ya están
   /// copiados acá, y borrar el alimento no puede tocar esta fila.
   alimentoOrigenId    String?
-  orden               Int      @default(0)
+  orden               Int                @default(0)
 
   opcion        OpcionComida  @relation(fields: [opcionId], references: [id], onDelete: Cascade)
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
@@ -2459,15 +2508,26 @@ model ComidaSemanal {
 /// forma que `IngredienteReceta`, y a propósito: las dos pantallas usan el
 /// mismo buscador y la misma cuenta (`dominio/servicios/macrosAlimentos`).
 model ItemComidaSemanal {
-  id                  String   @id @default(uuid(4))
+  id                  String             @id @default(uuid(4))
   nutricionistaId     String
   comidaId            String
   nombre              String
-  cantidadGramos      Decimal? @db.Decimal(8, 1)
-  caloriasPor100      Decimal? @db.Decimal(7, 2)
-  proteinasPor100     Decimal? @db.Decimal(7, 2)
-  carbohidratosPor100 Decimal? @db.Decimal(7, 2)
-  grasasPor100        Decimal? @db.Decimal(7, 2)
+  cantidadGramos      Decimal?           @db.Decimal(8, 1)
+  caloriasPor100      Decimal?           @db.Decimal(7, 2)
+  proteinasPor100     Decimal?           @db.Decimal(7, 2)
+  carbohidratosPor100 Decimal?           @db.Decimal(7, 2)
+  grasasPor100        Decimal?           @db.Decimal(7, 2)
+  /// En qué medida se indicó la cantidad (migración 90). `cantidadGramos`
+  /// es SIEMPRE la cantidad en la unidad base (g o ml, según `unidadBase`) y
+  /// es la que suma macros; `medida` × `cantidadMedida` es cómo se la
+  /// escribió («2 cucharadas»), y `cantidadPorMedida` la equivalencia copiada
+  /// al elegirla. `medidas` es la copia de las medidas del alimento. Ver
+  /// docs/MEDIDAS-ALIMENTOS.md.
+  unidadBase          UnidadBaseAlimento @default(GRAMO)
+  medidas             Json               @default("[]")
+  medida              String?
+  cantidadMedida      Decimal?           @db.Decimal(8, 2)
+  cantidadPorMedida   Decimal?           @db.Decimal(8, 1)
   /// "OFF" | "PROPIO" | "MANUAL". Las filas viejas pueden traer "FATSECRET":
   /// esa integración se eliminó, pero el valor persiste en los planes guardados.
   fuente              String?
@@ -2476,7 +2536,7 @@ model ItemComidaSemanal {
   /// DÓNDE se usa un alimento. Sin FK a propósito: los macros ya están
   /// copiados acá, y borrar el alimento no puede tocar esta fila.
   alimentoOrigenId    String?
-  orden               Int      @default(0)
+  orden               Int                @default(0)
 
   comida        ComidaSemanal @relation(fields: [comidaId], references: [id], onDelete: Cascade)
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
@@ -2960,58 +3020,58 @@ enum OperadorAxioma {
 /// LUGAR, y con una sola copia no se podía decir "lunes y miércoles en el
 /// centro, martes y jueves en el barrio".
 model ConfiguracionConsultorio {
-  id                           String        @id @default(uuid(4))
-  nutricionistaId              String        @unique
-  matricula                    String?
-  logoArchivoId                String?
+  id                              String        @id @default(uuid(4))
+  nutricionistaId                 String        @unique
+  matricula                       String?
+  logoArchivoId                   String?
   // Apariencia del PDF del plan nutricional.
-  pdfColorPrimario             String? // hex, ej "#F4535E" (default: coral)
-  pdfSubtitulo                 String? // bajo el nombre en el membrete
-  pdfPieTexto                  String? // nota al pie / aclaración
-  pdfMostrarRecetas            Boolean       @default(true)
-  pdfMostrarMacros             Boolean       @default(true)
-  pdfMostrarEquivalencias      Boolean       @default(true)
-  pdfMostrarRecomendaciones    Boolean       @default(true)
+  pdfColorPrimario                String? // hex, ej "#F4535E" (default: coral)
+  pdfSubtitulo                    String? // bajo el nombre en el membrete
+  pdfPieTexto                     String? // nota al pie / aclaración
+  pdfMostrarRecetas               Boolean       @default(true)
+  pdfMostrarMacros                Boolean       @default(true)
+  pdfMostrarEquivalencias         Boolean       @default(true)
+  pdfMostrarRecomendaciones       Boolean       @default(true)
   /// Si el PDF de la evaluación integral incluye las evoluciones (migración 88).
-  pdfEvaluacionMostrarEvoluciones Boolean    @default(true)
+  pdfEvaluacionMostrarEvoluciones Boolean       @default(true)
   // Recordatorio de turno por WhatsApp. El TEXTO vive en `plantillas_whatsapp`
   // (migración 33): una plantilla tiene que poder corresponderse con la que
   // Meta aprobó, y eso no entra en un campo de texto suelto. Acá queda lo que
   // sí es del consultorio: cómo se canonizan los teléfonos a E.164.
-  whatsappPrefijoPais          String? // prefijo internacional sin "+", ej "54"
+  whatsappPrefijoPais             String? // prefijo internacional sin "+", ej "54"
   /// Si al dar de alta un paciente sale, además, su email de bienvenida con
   /// los datos de acceso. Apagarlo no borra el envío manual: solo el
   /// automático del alta.
-  bienvenidaAutomaticaActiva   Boolean       @default(true)
+  bienvenidaAutomaticaActiva      Boolean       @default(true)
   /// Qué ecuaciones de grasa por pliegues se muestran (dashboard, PDF, vista
   /// del paciente). No puede quedar vacía: si no hay ninguna guardada, el
   /// dominio asume las vigentes por defecto. Ver migración 57.
-  formulasGrasaVisibles        MetodoGrasa[] @default([YUHASZ_CARTER, YUHASZ_CARTER_KERR, FAULKNER, FAULKNER_KERR, WITHERS, DURNIN_WOMERSLEY])
+  formulasGrasaVisibles           MetodoGrasa[] @default([YUHASZ_CARTER, YUHASZ_CARTER_KERR, FAULKNER, FAULKNER_KERR, WITHERS, DURNIN_WOMERSLEY])
   /// Qué medidas pide el formulario de carga en cada protocolo (migración 70).
   /// Vacío = la fila es anterior a la migración y vale el juego por defecto
   /// del dominio (`CAMPOS_PROTOCOLO_POR_DEFECTO`), que se resuelve al LEER:
   /// así la migración no necesita backfill ni congelar la lista en SQL.
   /// El piso lo impone el dominio: Kerr en 5 componentes, al menos una
   /// ecuación de grasa en 2 componentes.
-  camposDosComponentes         String[]      @default([])
-  camposCincoComponentes       String[]      @default([])
+  camposDosComponentes            String[]      @default([])
+  camposCincoComponentes          String[]      @default([])
   /// Si una foto de comida del diario se analiza sola con IA al subirla.
   /// Apagado por defecto: cada análisis gasta cuota de IA del consultorio.
-  analisisFotoComidaAutomatico Boolean       @default(false)
+  analisisFotoComidaAutomatico    Boolean       @default(false)
   /// Qué evoluciones de la antropometría ve el paciente en su portal
   /// (migración 89): ids de `EVOLUCIONES_ANTROPOMETRIA`. Vacío = nunca se
   /// personalizó y vale el juego por defecto del dominio, que se resuelve al
   /// LEER, como los campos de protocolo.
-  evolucionesPaciente          String[]      @default([])
+  evolucionesPaciente             String[]      @default([])
   /// Número de WhatsApp al que escribe el paciente para cancelar (migración
   /// 76). Puede no ser el que manda los recordatorios.
-  whatsappCancelaciones        String?
-  creadoEn                     DateTime      @default(now())
-  actualizadoEn                DateTime      @updatedAt
-  nutricionista                Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  whatsappCancelaciones           String?
+  creadoEn                        DateTime      @default(now())
+  actualizadoEn                   DateTime      @updatedAt
+  nutricionista                   Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
   // El logo del membrete es un Archivo del bucket: FK real con SET NULL, así
   // borrarlo deja la configuración sin logo en vez de con un id inexistente.
-  logo                         Archivo?      @relation(fields: [logoArchivoId], references: [id], onDelete: SetNull)
+  logo                            Archivo?      @relation(fields: [logoArchivoId], references: [id], onDelete: SetNull)
 
   @@map("configuracion_consultorio")
 }

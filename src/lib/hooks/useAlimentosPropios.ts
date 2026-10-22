@@ -5,6 +5,10 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useInvalidar } from "@/lib/hooks/useInvalidar";
 import { avisarError } from "@/lib/errores";
+import type {
+  ModoImportacionAlimentosDto,
+  ResultadoImportacionAlimentosDto,
+} from "@/aplicacion/dtos/alimentoPropio.dto";
 
 /**
  * De qué lista de alimentos se trata.
@@ -19,6 +23,16 @@ export type OrigenAlimentos = "consultorio" | "plataforma" | "predeterminados";
 const URL_IMPORTAR: Record<OrigenAlimentos, string | null> = {
   consultorio: "/api/alimentos/importar",
   plataforma: "/api/catalogo/alimentos/importar",
+  predeterminados: null,
+};
+
+/**
+ * De dónde se descarga el Excel de cada lista. El del consultorio trae SUS
+ * alimentos y los predeterminados, en dos pestañas.
+ */
+export const URL_EXPORTAR: Record<OrigenAlimentos, string | null> = {
+  consultorio: "/api/alimentos/exportar",
+  plataforma: "/api/catalogo/alimentos/exportar",
   predeterminados: null,
 };
 
@@ -37,9 +51,10 @@ export const FUENTE_DE_ORIGEN: Record<OrigenAlimentos, "PROPIO" | "BASE"> = {
 };
 
 /**
- * Hook de una lista de alimentos (macros por 100 g). La importación masiva va
- * por un route handler multipart; la gestión manual (listado, alta, edición y
- * baja de a uno) y el vaciado van por tRPC.
+ * Hook de una lista de alimentos (macros por 100 g o 100 ml). La importación
+ * masiva (reemplazando o agregando) va por un route handler multipart, y la
+ * descarga del Excel es un enlace a otro (`URL_EXPORTAR`); la gestión manual
+ * (listado, alta, edición y baja de a uno) y el vaciado van por tRPC.
  *
  * Las mutaciones de las dos listas se declaran siempre —los hooks no pueden
  * ser condicionales— y se usa la del origen pedido.
@@ -103,22 +118,24 @@ export function useAlimentosPropios(origen: OrigenAlimentos = "consultorio") {
     alTerminar("Alimento eliminado del catálogo."),
   );
 
+  /** `REEMPLAZAR` deja la lista igual a la planilla; `AGREGAR` le suma lo que no estaba. */
   async function importar(
     archivo: File,
-  ): Promise<{ importados: number; repetidos: number; enPlataforma: number }> {
+    modo: ModoImportacionAlimentosDto,
+  ): Promise<ResultadoImportacionAlimentosDto> {
     const url = URL_IMPORTAR[origen];
     if (!url) throw new Error("Esta lista no se importa desde acá.");
     setImportando(true);
     try {
       const formulario = new FormData();
       formulario.append("archivo", archivo);
+      formulario.append("modo", modo);
       const respuesta = await fetch(url, {
         method: "POST",
         body: formulario,
       });
       const cuerpo = (await respuesta.json()) as
-        | { importados: number; repetidos: number; enPlataforma: number }
-        | { error: string };
+        ResultadoImportacionAlimentosDto | { error: string };
       if (!respuesta.ok || "error" in cuerpo) {
         throw new Error(
           "error" in cuerpo ? cuerpo.error : "No se pudo importar la planilla.",

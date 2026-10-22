@@ -258,9 +258,9 @@ export function VistaPlan({
                         {opcion.items.map((item, i) => (
                           <li key={i} className="flex justify-between gap-2">
                             <span>{item.nombre}</span>
-                            {item.cantidadGramos != null && (
+                            {item.cantidadTexto && (
                               <span className="shrink-0 text-muted-foreground">
-                                {item.cantidadGramos} g
+                                {item.cantidadTexto}
                               </span>
                             )}
                           </li>

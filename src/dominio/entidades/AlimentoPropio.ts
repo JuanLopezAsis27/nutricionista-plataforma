@@ -1,4 +1,9 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
+import {
+  normalizarMedidas,
+  type MedidaAlimento,
+  type UnidadBaseAlimento,
+} from "./medidasAlimento";
 
 /**
  * Rubros de un alimento (migración 84), en el orden en que se ofrecen como
@@ -80,10 +85,30 @@ export const FORMATOS_IMAGEN_ALIMENTO: Record<string, string> = {
   "image/webp": "webp",
 };
 
-/** Tope del tamaño de la imagen de un alimento: es una miniatura, no una foto. */
+/**
+ * Tope del PESO de la imagen que se sube (a mano o dentro de un Excel): es una
+ * miniatura, no una foto. Lo que se guarda pesa mucho menos: ver
+ * `LADO_MAXIMO_IMAGEN_ALIMENTO`.
+ */
 export const TAMANO_MAXIMO_IMAGEN_ALIMENTO = 2 * 1024 * 1024;
 
-/** Estado de un alimento propio (macros por 100 g). */
+/**
+ * Tope del TAMAÑO con que se guarda: cada imagen se reduce hasta entrar en un
+ * cuadrado de este lado (sin agrandar las chicas) y se guarda en WebP. Una
+ * foto de celular de 3 MB queda en unos 30-60 KB: el buscador muestra decenas
+ * a la vez, y la imagen original no aporta nada a una miniatura.
+ */
+export const LADO_MAXIMO_IMAGEN_ALIMENTO = 512;
+
+/**
+ * Tope de píxeles de la imagen de ENTRADA (ancho × alto). Corta las imágenes
+ * enormes antes de descomprimirlas: un PNG de pocos KB puede declarar 50.000
+ * × 50.000 píxeles y ocupar gigas en memoria al abrirse. 24 MP cubre la foto
+ * de cualquier celular.
+ */
+export const PIXELES_MAXIMOS_IMAGEN_ALIMENTO = 24_000_000;
+
+/** Estado de un alimento propio (macros por 100 g o por 100 ml). */
 export interface PropiedadesAlimentoPropio {
   id: string;
   nombre: string;
@@ -92,6 +117,10 @@ export interface PropiedadesAlimentoPropio {
   proteinasPor100: number | null;
   carbohidratosPor100: number | null;
   grasasPor100: number | null;
+  /** Si los macros son por 100 g o por 100 ml (migración 90). */
+  unidadBase: UnidadBaseAlimento;
+  /** Medidas caseras propias: «1 taza = 240» en la unidad base. */
+  medidas: MedidaAlimento[];
   categoria: CategoriaAlimento | null;
   /** Clave en el bucket de su imagen, o null si no tiene. */
   imagenClave: string | null;
@@ -105,12 +134,16 @@ export interface DatosNuevoAlimentoPropio {
   proteinasPor100?: number | null;
   carbohidratosPor100?: number | null;
   grasasPor100?: number | null;
+  /** Por defecto GRAMO. */
+  unidadBase?: UnidadBaseAlimento | null;
+  medidas?: ReadonlyArray<MedidaAlimento> | null;
   categoria?: CategoriaAlimento | null;
 }
 
 /**
  * Entidad de dominio AlimentoPropio: un alimento/insumo que el nutricionista
- * cargó desde su propia planilla, con macros por 100 g. Reemplaza a la búsqueda externa
+ * cargó desde su propia planilla, con macros por 100 g (o por 100 ml si es un
+ * líquido) y sus medidas caseras (`medidasAlimento.ts`, migración 90). Reemplaza a la búsqueda externa
  * cuando el inquilino tiene una lista cargada. TypeScript puro (sin Prisma).
  *
  * Invariantes: nombre obligatorio; macros no negativas (si vienen).
@@ -131,6 +164,8 @@ export class AlimentoPropio {
       proteinasPor100: macro(datos.proteinasPor100, "proteínas"),
       carbohidratosPor100: macro(datos.carbohidratosPor100, "carbohidratos"),
       grasasPor100: macro(datos.grasasPor100, "grasas"),
+      unidadBase: datos.unidadBase ?? "GRAMO",
+      medidas: normalizarMedidas(datos.medidas, nombre),
       categoria: datos.categoria ?? null,
       // La imagen no viene en los datos: se sube aparte (`conImagen`), porque
       // un alimento nuevo no tiene id hasta que existe.
@@ -164,6 +199,8 @@ export class AlimentoPropio {
           this.props.carbohidratosPor100,
         ),
         grasasPor100: fusionar(cambios.grasasPor100, this.props.grasasPor100),
+        unidadBase: fusionar(cambios.unidadBase, this.props.unidadBase),
+        medidas: fusionar(cambios.medidas, this.props.medidas),
         categoria: fusionar(cambios.categoria, this.props.categoria),
       },
       this.props.id,
@@ -222,7 +259,7 @@ export class AlimentoPropio {
   }
 
   aPrimitivos(): PropiedadesAlimentoPropio {
-    return { ...this.props };
+    return { ...this.props, medidas: [...this.props.medidas] };
   }
 }
 
