@@ -93,6 +93,11 @@ Sin `modo` se reemplaza, que era lo único que había. El archivo puede pesar
 hasta 20 MB (era 8; una planilla con fotos pesa más) y el nginx de producción
 admite 26.
 
+**Las columnas del modelo**: Nombre, Marca, Calorías, Proteínas,
+Carbohidratos, Grasas, Cafeína (mg), Categoría, Unidad, Medidas, Descripción
+e Imagen. Todas salvo el nombre son opcionales, y el lector las reconoce por
+el encabezado en cualquier orden.
+
 **Imágenes en la planilla.** La última columna del modelo es «Imagen», con
 una nota en su encabezado que explica cómo cargarla. La imagen se INSERTA en
 la celda, no se escribe, y se leen las dos maneras que tiene Excel:
@@ -189,26 +194,102 @@ repetidas dentro de la planilla, al menos una válida).
     leer da las mismas filas). Cambiar un encabezado de un lado sin el otro lo
     rompe.
 
-### Categorías (migración 84)
+### Categorías (migraciones 84 y 93)
 
-Cada alimento puede tener UNA categoría de una lista **fija**
-(`CATEGORIAS_ALIMENTO`: Carnes, Embutidos (migración 86), Pescados y mariscos, Huevos, Lácteos, Cereales
-y derivados, Legumbres, Verduras, Frutas, Frutos secos y semillas, Aceites y
-grasas, Azúcares y dulces, Bebidas, Suplementos, Otros). Es un enum de la base
-y no etiquetas libres porque es lo que se FILTRA en el buscador de todos los
-consultorios: con texto libre, «Lácteos», «lacteos» y «Lácteo» serían tres
-filtros. Los valores solo se agregan. Las **recetas**, en cambio, siguen con
-sus etiquetas libres (una receta es «vegetariana» y «rápida» a la vez, y cada
-consultorio etiqueta a su manera), y se filtran por ellas.
+Cada alimento puede tener UNA categoría. Hasta la migración 93 era un enum
+(`CategoriaAlimento`), una lista fija en el código; ahora son **dos tablas**:
 
-- Es opcional: los alimentos anteriores quedan sin categoría.
+| Tabla                         | De quién                  | Quién la gestiona                  |
+| ----------------------------- | ------------------------- | ---------------------------------- |
+| `categorias_alimento_base`    | la plataforma (sin inquilino) | el SUPERADMIN, en `/admin` → Alimentos |
+| `categorias_alimento_propias` | cada consultorio (inquilino)  | el profesional, en `/dashboard/alimentos` |
+
+La migración convirtió los valores del enum en filas con el mismo orden de
+pantalla (Carnes, Embutidos, Pescados y mariscos, Huevos, Lácteos, Cereales y
+derivados, Legumbres, Verduras, Frutas, Frutos secos y semillas, Aceites y
+grasas, Azúcares y dulces, Bebidas, **Bebidas isotónicas**, **Geles
+deportivos**, Suplementos, Otros) y cada alimento conservó la suya. Las dos
+nuevas son para la planificación de carreras (`docs/PLANIFICACION-DEPORTIVA.md`).
+
+Siguen siendo una LISTA y no etiquetas libres, por lo mismo de siempre: es lo
+que se FILTRA en el buscador, y con texto libre «Lácteos», «lacteos» y
+«Lácteo» serían tres filtros. Por eso el nombre es único sin mayúsculas ni
+tildes (`claveNombre`), y **una propia no puede llamarse como una
+predeterminada**: el consultorio ve las dos juntas en el buscador. Las
+**recetas**, en cambio, siguen con sus etiquetas libres.
+
+Qué puede llevar cada alimento:
+
+- uno **propio**: una predeterminada (`alimentos_propios.categoriaId`) o una
+  propia del consultorio (`categoriaPropiaId`), nunca las dos (CHECK
+  `alimentos_propios_una_sola_categoria`);
+- uno de la **plataforma**: solo predeterminadas (`alimentos_base.categoriaId`;
+  la tabla no tiene la otra columna).
+
+En el dominio es una sola entidad (`CategoriaAlimento`) con dos repositorios
+que cumplen el mismo contrato, como las dos listas de alimentos. El alimento
+lleva una referencia `{ id, nombre, propia }`; `propia` decide en qué columna se
+escribe. Cuáles puede elegir cada lista lo dice `CategoriasDisponibles`: es lo
+que reciben el alta, la edición y las dos importaciones, y lo que hace que un
+id de otro consultorio —o una propia en el catálogo de la plataforma— salga
+como «no encontrada» en vez de guardarse.
+
+- Desde un consultorio, las **predeterminadas no se editan ni se borran**: el
+  servicio del consultorio gestiona solo su lista propia, así que renombrar o
+  borrar una predeterminada sale como no encontrada. En pantalla se muestran
+  como rótulos fijos.
+- **Borrar una categoría no borra alimentos**: quedan sin categoría (FK SET
+  NULL). Borrar una predeterminada los deja sin categoría en todos los
+  consultorios, y la confirmación lo dice.
+- Las predeterminadas tienen **orden** (el de los filtros); el SUPERADMIN las
+  sube y baja (`MoverCategoriaAlimento`, que renumera la lista entera). Una
+  nueva va al final. Las propias van por nombre.
 - La planilla trae una columna opcional «Categoría» (también «Rubro» o
-  «Grupo»). `categoriaDesdeTexto` acepta el nombre, el código, la primera
-  palabra y el singular, sin tildes ni mayúsculas; lo que no reconoce entra sin
-  categoría, no rompe la importación.
+  «Grupo»). El parser la pasa como TEXTO y el caso de uso la busca entre las
+  categorías de la lista (`categoriaDesdeTexto`): primero el nombre exacto
+  —así «Geles» va a la propia «Geles» aunque exista «Geles deportivos»—, y si
+  no, la primera palabra, el singular o el código del viejo enum. Lo que no
+  reconoce entra sin categoría y no rompe la importación. La descarga escribe
+  el nombre, que es lo que la importación vuelve a reconocer.
 - **Con categoría, la búsqueda no necesita texto** («mostrame los lácteos»).
   Open Food Facts no conoce nuestras categorías: con un filtro puesto devuelve
-  `[]` en vez de resultados de cualquier rubro.
+  `[]` en vez de resultados de cualquier rubro. El filtro viaja como id y se
+  busca en las dos columnas (los ids son UUID: el de una propia no coincide
+  con el de una predeterminada).
+
+### Cafeína y descripción (migración 95)
+
+Los alimentos de las dos listas tienen además:
+
+- **`cafeinaPor100`**: miligramos de cafeína **por 100 g, o por 100 ml** si el
+  alimento se mide en ml —la misma convención que los macros
+  (`docs/MEDIDAS-ALIMENTOS.md`)—. Un gel de 40 g con 40 mg de cafeína lleva
+  100. Null es SIN DATO y no 0: casi ningún alimento lo informa. No negativa
+  (CHECK en la base) y con un tope (`CAFEINA_MAXIMA_POR_100`) que deja pasar
+  un suplemento de cafeína concentrada pero no un error de tipeo.
+- **`descripcion`**: texto libre (qué es, cómo se toma, qué trae), hasta
+  `LARGO_MAXIMO_DESCRIPCION_ALIMENTO` caracteres.
+
+Se cargan en el formulario del alimento y por la planilla (columnas «Cafeína
+(mg)» y «Descripción»; el encabezado de la cafeína lleva una nota que dice que
+va por 100). El buscador las muestra al elegir un alimento. Open Food Facts
+no las trae: quedan sin dato.
+
+Al **reemplazar** la lista, una fila sin cafeína o sin descripción conserva
+las que ya tenía el alimento, como la categoría y la imagen: una planilla
+vieja, sin esas columnas, no borra lo que se cargó a mano. Para quitarlas se
+edita el alimento.
+
+**Ojo con «Descripción» en la planilla**: fue siempre un sinónimo del NOMBRE
+(hay planillas que titulan así la columna del alimento). El lector busca
+primero un encabezado de nombre de verdad («Nombre», «Alimento», «Insumo»,
+«Producto»); solo si no hay ninguno, «Descripción» hace de nombre. Con los
+dos, cada uno va a su lugar aunque «Descripción» venga antes.
+
+La cafeína se COPIA, como los macros, a los alimentos de las ingestas de una
+planificación deportiva (migración 96), que la suman por ingesta, por hora y
+en mg/kg (`docs/PLANIFICACION-DEPORTIVA.md`). A los planes y las recetas no
+se copia: ahí no se suma.
 
 ### Imágenes (migración 84)
 
@@ -304,8 +385,9 @@ Como una copia idéntica no aporta nada, se AVISA sin bloquear:
 
 Cuando se elige un alimento, sus datos se **copian** a donde se lo usa: la
 opción del plan (`items_opcion_comida`), el ingrediente de la receta
-(`ingredientes_receta`, `ingredientes_receta_base`) y la comida del plan
-semanal (`items_comida_semanal`). Es duplicación deliberada —el mismo patrón
+(`ingredientes_receta`, `ingredientes_receta_base`), la comida del plan
+semanal (`items_comida_semanal`) y la ingesta de una planificación deportiva
+(`alimentos_ingesta`, migración 94). Es duplicación deliberada —el mismo patrón
 que una factura que copia el precio del producto el día de la venta—: un plan
 entregado a un paciente es un documento y no puede cambiar porque alguien
 corrija o borre un alimento. Por eso:
@@ -376,6 +458,12 @@ de la plataforma…», que copia y deja la copia elegida).
 
 - **Nunca agregues `nutricionistaId` a las tablas del catálogo** ni las sumes a
   `MODELOS_INQUILINO`: la extensión las filtraría y ningún consultorio las vería.
+  Vale también para `categorias_alimento_base`; las propias SÍ son de
+  inquilino (`categorias_alimento_propias`).
+- **Nunca dejes que un alimento de la plataforma lleve una categoría propia**:
+  esa categoría es de un consultorio y el alimento es de todos. Lo impide
+  `CategoriasDisponibles` (el catálogo solo ve las predeterminadas) y la tabla,
+  que no tiene la columna.
 - **Nunca referencies una receta base desde un plan o un paciente**: se copia.
   Una FK a `recetas_base` desde una tabla de inquilino haría que un cambio del
   admin reescriba planes ya entregados.

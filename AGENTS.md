@@ -51,6 +51,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/MEDIDAS-ALIMENTOS.md`  | g, ml y medidas caseras («1 taza = 240 ml»): en el alimento, en el plan y en la planilla |
 | `docs/BIBLIOTECA.md`         | Materiales para pacientes, sus carpetas y el buscador |
 | `docs/PLANES-SEMANALES.md`   | El menú de la semana, sus metas propias, sus alternativas y su página |
+| `docs/PLANIFICACION-DEPORTIVA.md` | La estrategia de una competencia (carreras): ingestas por minuto, g/h y su competencia |
 | `docs/ANTROPOMETRIA.md`      | Ecuaciones de grasa, distribución y sitios de pliegue |
 | `docs/BIOIMPEDANCIA.md`      | La balanza: mediciones, dashboard y metas; por qué no se mezcla con la antropometría |
 | `docs/HISTORIA-CLINICA.md`   | Evoluciones, campos personalizados y el alta por documento |
@@ -511,9 +512,15 @@ copias.
 
 Un alimento no se carga dos veces en la misma lista: mismo nombre y marca, sin
 mayúsculas, tildes ni espacios de más (`claveIdentidad`, única por consultorio
-y global en el catálogo, migración 83). Los alimentos tienen una CATEGORÍA de
-lista fija (enum, para filtrar el buscador; las recetas siguen con etiquetas
-libres) y una IMAGEN que no es un `Archivo`: es una clave en la fila del
+y global en el catálogo, migración 83). Los alimentos tienen una CATEGORÍA
+(para filtrar el buscador; las recetas siguen con etiquetas libres): las
+PREDETERMINADAS las administra el SUPERADMIN (`categorias_alimento_base`, sin
+inquilino) y cada consultorio crea las suyas (`categorias_alimento_propias`),
+que no puede llamar como una predeterminada ni usar en un alimento de la
+plataforma; un consultorio no edita ni borra las predeterminadas (migración
+93, fueron un enum hasta ahí). Llevan también CAFEÍNA (mg por 100 g/ml, como
+los macros) y una DESCRIPCIÓN (migración 95), que reemplazar la lista con una
+planilla que no las trae no borra. Y una IMAGEN que no es un `Archivo`: es una clave en la fila del
 alimento, servida por `/api/alimentos/[id]/imagen` y
 `/api/catalogo/alimentos/[id]/imagen` (migración 84). Se sube a mano o dentro
 del Excel (columna «Imagen»), y las dos pasan por la misma regla
@@ -560,6 +567,31 @@ aparte y sigue siendo un historial. Se abre en su propia página
 (`/dashboard/planes/semanales/[id]`), como un plan.
 
 Ver `docs/PLANES-SEMANALES.md`.
+
+### Planificación deportiva
+
+La estrategia nutricional de una COMPETENCIA —qué tomar y a qué minuto—,
+empezando por las carreras de running y trail (migración 94). Es otro
+agregado y no una modalidad de plan: describe un evento, con objetivos POR
+HORA de carrera. Lo común a cualquier deporte (nombre, carpeta, la línea de
+tiempo de ingestas) vive en `planificaciones_deportivas` y lo propio de cada
+deporte en su tabla 1 a 1 (`planificaciones_carrera`): un deporte nuevo es un
+valor del enum y otra tabla, no columnas nuevas.
+
+Cada ingesta va en **minutos desde la largada** (negativo = antes de largar)
+y lleva alimentos COPIADOS, como el plan semanal. Los g/h y ml/h suman solo
+lo que cae entre la largada y la llegada estimada; los líquidos son los
+alimentos en ml. La cafeína (copiada como los macros, migración 96) suma
+antes y durante para el total y los mg/kg, con el peso guardado en la
+planificación. El formulario muestra el mismo resumen con un espejo del
+dominio, y `resumen.test.ts` compara los dos.
+
+Se gestiona como los planes: generales que se asignan a varios, o creadas
+desde la ficha del paciente (pestaña Deporte), que van a la carpeta con su
+nombre y quedan asignadas. La asignación lleva una **competencia opcional de su
+calendario**, que tiene que ser DE ese paciente. El paciente las ve en «Mis
+competencias», que aparece en su menú solo si tiene alguna. Ver
+`docs/PLANIFICACION-DEPORTIVA.md`.
 
 ### Antropometría y composición corporal
 
@@ -707,7 +739,8 @@ mapas.
 `/api/*` —que no pasan por el middleware—. Lo que se agrega en uno va en el otro.
 
 **Edición concurrente (lost update).** Los formularios que escriben un registro
-ENTERO —paciente, receta y plan— mandan el `actualizadoEn` que leyeron, y la
+ENTERO —paciente, receta, plan y planificación deportiva— mandan el
+`actualizadoEn` que leyeron, y la
 condición viaja hasta el `where` del UPDATE
 (`infraestructura/repositorios/base/edicionConcurrente.ts`). Si la fila ya no
 está en esa versión no entra ninguna escritura y sale
@@ -882,7 +915,8 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   el respaldo del consultorio lo mandaría a «Sin paciente/Otros» sin ningún
   error. Y nunca generar el ZIP desde el `pull()` de un `ReadableStream`: corre
   sin el alcance del inquilino (`docs/RESPALDO.md`)
-- Nunca convertir `alimentoOrigenId` en una FK ni hacer que editar un
+- Nunca convertir `alimentoOrigenId` (opción del plan, ingrediente, comida
+  semanal, alimento de una ingesta) en una FK ni hacer que editar un
   alimento propague sus macros a los planes que lo usan: el plan entregado es
   un documento y la copia es a propósito. Actualizar desde la fuente, si algún
   día hace falta, es una acción explícita sobre un plan. Y todo camino nuevo
@@ -895,6 +929,15 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   densidad no hay equivalencia; las declara el alimento. Y todo camino nuevo
   que copie un alimento tiene que llevar `unidadBase` y sus medidas, o un
   líquido queda sumado como si fuera en gramos sin que nada falle
+- Nunca agregar `nutricionistaId` a `categorias_alimento_base` ni dejar que un
+  consultorio la escriba: es de la plataforma y la gestiona el SUPERADMIN. Las
+  del consultorio van en `categorias_alimento_propias`, y la categoría de un
+  alimento se resuelve con `CategoriasDisponibles`, que es lo que impide una
+  propia en un alimento de la plataforma o un id de otro consultorio
+- Nunca sumar al g/h de una planificación deportiva lo que se toma antes de
+  largar o después de la llegada estimada, ni tocar esa cuenta sin su espejo
+  del formulario. Y nunca atar una asignación a la competencia de otro
+  paciente: va `verificarCompetenciaDelPaciente`
 - Nunca comparar alimentos por `nombreNormalizado` para decidir si ya están:
   ese campo es para BUSCAR (solo minúsculas). La identidad es
   `claveIdentidad` (nombre + marca, sin tildes ni espacios de más), y es la
@@ -991,7 +1034,9 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   el servicio (`ServicioTurno`), como la sede del turno
 - Nunca comparar la fecha de un `Turno` contra una medianoche LOCAL: es un DATE
   a medianoche UTC, y al oeste de Greenwich los turnos de hoy quedan "antes de
-  hoy". Va `IRelojFecha.hoy()`
+  hoy". Va `IRelojFecha.hoy()`. Lo mismo en la pantalla con cualquier DATE (una
+  `Competencia`): va `esFechaPasada` (`lib/formato`), no
+  `hoy.setHours(0, 0, 0, 0)` — la carrera de hoy figuraba como terminada
 - Nunca filtrar una columna TIMESTAMP con `lte: hasta` en las estadísticas: el
   `hasta` que mandan las pantallas es un DÍA (medianoche UTC), así que todo lo
   que pasó HOY queda afuera. Con `Turno.fecha`, que es un DATE, `lte` está bien;
