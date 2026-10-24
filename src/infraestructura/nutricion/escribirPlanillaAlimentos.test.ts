@@ -5,7 +5,16 @@ import {
   type AlimentoParaPlanilla,
 } from "./escribirPlanillaAlimentos";
 import { parsearPlanillaAlimentos } from "./parsearPlanillaAlimentos";
-import { CATEGORIAS_ALIMENTO } from "@/dominio/entidades/AlimentoPropio";
+
+/** Nombres de categoría, predeterminadas y propias: la planilla los lleva como texto. */
+const CATEGORIAS = [
+  "Carnes",
+  "Lácteos",
+  "Frutos secos y semillas",
+  "Geles deportivos",
+  "Bebidas isotónicas",
+  "Mis snacks",
+];
 
 const LECHE: AlimentoParaPlanilla = {
   nombre: "Leche descremada",
@@ -14,7 +23,9 @@ const LECHE: AlimentoParaPlanilla = {
   proteinasPor100: 3.4,
   carbohidratosPor100: 5,
   grasasPor100: 0.4,
-  categoria: "LACTEOS",
+  cafeinaPor100: null,
+  descripcion: "Descremada, en sachet",
+  categoria: { nombre: "Lácteos" },
   unidadBase: "MILILITRO",
   medidas: [
     { nombre: "taza", cantidad: 240 },
@@ -29,6 +40,9 @@ const SIN_DATOS: AlimentoParaPlanilla = {
   proteinasPor100: null,
   carbohidratosPor100: null,
   grasasPor100: null,
+  // La yerba trae cafeína aunque no traiga macros.
+  cafeinaPor100: 1150,
+  descripcion: null,
   categoria: null,
   unidadBase: "GRAMO",
   medidas: [],
@@ -57,7 +71,9 @@ describe("escribirPlanillaAlimentos", () => {
         proteinasPor100: 3.4,
         carbohidratosPor100: 5,
         grasasPor100: 0.4,
-        categoria: "LACTEOS",
+        cafeinaPor100: null,
+        descripcion: "Descremada, en sachet",
+        categoria: "Lácteos",
         unidadBase: "MILILITRO",
         medidas: [
           { nombre: "taza", cantidad: 240 },
@@ -72,6 +88,8 @@ describe("escribirPlanillaAlimentos", () => {
         proteinasPor100: null,
         carbohidratosPor100: null,
         grasasPor100: null,
+        cafeinaPor100: 1150,
+        descripcion: null,
         categoria: null,
         unidadBase: "GRAMO",
         medidas: [],
@@ -83,14 +101,14 @@ describe("escribirPlanillaAlimentos", () => {
     const filas = await idaYVuelta([
       {
         nombre: "Alimentos",
-        alimentos: CATEGORIAS_ALIMENTO.map((categoria) => ({
+        alimentos: CATEGORIAS.map((nombre) => ({
           ...SIN_DATOS,
-          nombre: `Alimento ${categoria}`,
-          categoria,
+          nombre: `Alimento ${nombre}`,
+          categoria: { nombre },
         })),
       },
     ]);
-    expect(filas.map((f) => f.categoria)).toEqual([...CATEGORIAS_ALIMENTO]);
+    expect(filas.map((f) => f.categoria)).toEqual(CATEGORIAS);
   });
 
   it("la importación lee solo la primera pestaña (la lista propia)", async () => {
@@ -126,12 +144,31 @@ describe("escribirPlanillaAlimentos: columna Imagen", () => {
     type CargaXlsx = Parameters<typeof libro.xlsx.load>[0];
     await libro.xlsx.load(Buffer.from(contenido) as unknown as CargaXlsx);
     const hoja = libro.worksheets[0]!;
-    const encabezado = hoja.getRow(1).getCell(10);
+    // La última columna (L): antes de ella van «Cafeína» y «Descripción».
+    const encabezado = hoja.getRow(1).getCell(12);
 
     expect(encabezado.value).toBe("Imagen");
     // La nota puede quedar como texto o como texto enriquecido: alcanza con
     // que diga el tope.
     expect(JSON.stringify(encabezado.note)).toMatch(/2 MB/);
-    expect(hoja.getRow(2).getCell(10).value ?? null).toBeNull();
+    expect(hoja.getRow(2).getCell(12).value ?? null).toBeNull();
+  });
+
+  it("trae «Cafeína (mg)» con una nota que dice que va por 100, y «Descripción»", async () => {
+    const contenido = await escribirPlanillaAlimentos([
+      { nombre: "Alimentos", alimentos: [SIN_DATOS] },
+    ]);
+    const libro = new ExcelJS.Workbook();
+    type CargaXlsx = Parameters<typeof libro.xlsx.load>[0];
+    await libro.xlsx.load(Buffer.from(contenido) as unknown as CargaXlsx);
+    const encabezados = libro.worksheets[0]!.getRow(1);
+    const valores = Array.from({ length: 12 }, (_, i) => {
+      const valor = encabezados.getCell(i + 1).value;
+      return typeof valor === "string" ? valor : null;
+    });
+    expect(valores).toContain("Cafeína (mg)");
+    expect(valores).toContain("Descripción");
+    const cafeina = encabezados.getCell(valores.indexOf("Cafeína (mg)") + 1);
+    expect(JSON.stringify(cafeina.note)).toMatch(/por 100 g/);
   });
 });

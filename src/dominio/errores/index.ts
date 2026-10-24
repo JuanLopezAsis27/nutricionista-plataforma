@@ -44,3 +44,5 @@ export { ErrorGrupoPlanDuplicado } from "./ErrorGrupoPlanDuplicado";
 export { ErrorPlanSemanalNoEncontrado } from "./ErrorPlanSemanalNoEncontrado";
 export { ErrorPlanSemanalDuplicado } from "./ErrorPlanSemanalDuplicado";
 export { ErrorInvitacionInvalida } from "./ErrorInvitacionInvalida";
+export { ErrorCategoriaAlimentoDuplicada } from "./ErrorCategoriaAlimentoDuplicada";
+export { ErrorCategoriaAlimentoNoEncontrada } from "./ErrorCategoriaAlimentoNoEncontrada";

@@ -28,6 +28,7 @@ import { UsoIAPlataforma } from "@/componentes/superadmin/UsoIAPlataforma";
 import { CatalogoRecetas } from "@/componentes/superadmin/CatalogoRecetas";
 import { ImportadorAlimentos } from "@/componentes/alimentos/ImportadorAlimentos";
 import { ListaAlimentosPropios } from "@/componentes/alimentos/ListaAlimentosPropios";
+import { GestorCategoriasAlimento } from "@/componentes/alimentos/GestorCategoriasAlimento";
 import { FormularioPassword } from "@/componentes/perfil/FormularioPassword";
 
 /**
@@ -119,6 +120,7 @@ export default function PaginaAdmin() {
         <TabsContent value="alimentos" className="mt-4 space-y-4">
           <ImportadorAlimentos origen="plataforma" />
           <ListaAlimentosPropios origen="plataforma" />
+          <GestorCategoriasAlimento plataforma />
         </TabsContent>
 
         <TabsContent value="recetas" className="mt-4">

@@ -10,7 +10,10 @@ import { respuestaPlanilla } from "@/servidor/respuestaPlanilla";
 
 export const runtime = "nodejs";
 
-/** Filas de ejemplo: un sólido, un líquido en ml y uno con medida casera. */
+/**
+ * Filas de ejemplo: un sólido, un líquido en ml, uno con medida casera y un
+ * gel con cafeína y descripción (migración 95).
+ */
 const EJEMPLOS: AlimentoParaPlanilla[] = [
   {
     nombre: "Pechuga de pollo",
@@ -19,7 +22,9 @@ const EJEMPLOS: AlimentoParaPlanilla[] = [
     proteinasPor100: 31,
     carbohidratosPor100: 0,
     grasasPor100: 3.6,
-    categoria: "CARNES",
+    cafeinaPor100: null,
+    descripcion: null,
+    categoria: { nombre: "Carnes" },
     unidadBase: "GRAMO",
     medidas: [],
   },
@@ -30,7 +35,9 @@ const EJEMPLOS: AlimentoParaPlanilla[] = [
     proteinasPor100: 3.4,
     carbohidratosPor100: 5,
     grasasPor100: 0.4,
-    categoria: "LACTEOS",
+    cafeinaPor100: null,
+    descripcion: null,
+    categoria: { nombre: "Lácteos" },
     unidadBase: "MILILITRO",
     medidas: [
       { nombre: "taza", cantidad: 240 },
@@ -44,9 +51,26 @@ const EJEMPLOS: AlimentoParaPlanilla[] = [
     proteinasPor100: 12.6,
     carbohidratosPor100: 0.7,
     grasasPor100: 9.5,
-    categoria: "HUEVOS",
+    cafeinaPor100: null,
+    descripcion: null,
+    categoria: { nombre: "Huevos" },
     unidadBase: "GRAMO",
     medidas: [{ nombre: "unidad", cantidad: 50 }],
+  },
+  {
+    nombre: "Gel de carbohidratos con cafeína",
+    marca: null,
+    caloriasPor100: 250,
+    proteinasPor100: 0,
+    carbohidratosPor100: 62.5,
+    grasasPor100: 0,
+    // 40 mg en un gel de 40 g: 100 mg por 100 g.
+    cafeinaPor100: 100,
+    descripcion:
+      "Gel de 40 g con 25 g de carbohidratos y 40 mg de cafeína. Tomar con agua.",
+    categoria: { nombre: "Geles deportivos" },
+    unidadBase: "GRAMO",
+    medidas: [{ nombre: "unidad", cantidad: 40 }],
   },
 ];
 

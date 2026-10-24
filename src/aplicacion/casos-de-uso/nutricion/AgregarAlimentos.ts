@@ -1,6 +1,7 @@
 import type { IAlimentoPropioRepositorio } from "@/dominio/repositorios/IAlimentoPropioRepositorio";
 import type { AlimentoPropio } from "@/dominio/entidades/AlimentoPropio";
 import type { ImagenSubida, ImagenesDeAlimentos } from "./imagenesDeAlimentos";
+import type { CategoriasDisponibles } from "../categorias-alimento/CategoriasDisponibles";
 import {
   leerAlimentosDeLaPlanilla,
   subirImagenesDeLaPlanilla,
@@ -57,10 +58,18 @@ export class AgregarAlimentos {
     private readonly catalogo: IAlimentoPropioRepositorio | null = null,
     /** Dónde guardar las imágenes de la planilla. Sin esto, se ignoran. */
     private readonly imagenes: ImagenesDeAlimentos | null = null,
+    /**
+     * Las categorías que puede llevar un alimento de esta lista, para leer la
+     * columna «Categoría» (migración 93). Sin esto, la columna se ignora.
+     */
+    private readonly categorias: CategoriasDisponibles | null = null,
   ) {}
 
   async ejecutar(filas: FilaDePlanilla[]): Promise<ResultadoAgregadoAlimentos> {
-    const { porClave, repetidos } = leerAlimentosDeLaPlanilla(filas);
+    const { porClave, repetidos } = leerAlimentosDeLaPlanilla(
+      filas,
+      (await this.categorias?.todas()) ?? [],
+    );
 
     const existentes = new Map(
       (await this.repositorio.listar()).map((a) => [a.claveIdentidad, a]),

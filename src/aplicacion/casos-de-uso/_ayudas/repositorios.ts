@@ -1,4 +1,6 @@
 import { vi } from "vitest";
+import type { ICategoriaAlimentoRepositorio } from "@/dominio/repositorios/ICategoriaAlimentoRepositorio";
+import type { CategoriaAlimento } from "@/dominio/entidades/CategoriaAlimento";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
@@ -915,6 +917,45 @@ export function mockNotificacionRepositorio(
     marcarVista: vi.fn(async () => {}),
     marcarTodasVistas: vi.fn(async () => 0),
     marcarVistasDePaciente: vi.fn(async () => 0),
+    ...parcial,
+  };
+}
+
+/**
+ * Lista de categorías de alimento EN MEMORIA (migración 93): guarda lo que se
+ * crea y lo devuelve, para probar nombres repetidos y el orden sin armar cada
+ * método a mano.
+ */
+export function mockCategoriaAlimentoRepositorio(
+  iniciales: CategoriaAlimento[] = [],
+  parcial: Partial<ICategoriaAlimentoRepositorio> = {},
+): ICategoriaAlimentoRepositorio {
+  const lista = [...iniciales];
+  return {
+    crear: vi.fn(async (c: CategoriaAlimento) => {
+      lista.push(c);
+      return c;
+    }),
+    actualizar: vi.fn(async (c: CategoriaAlimento) => {
+      const i = lista.findIndex((x) => x.id === c.id);
+      if (i >= 0) lista[i] = c;
+      return c;
+    }),
+    eliminar: vi.fn(async (id: string) => {
+      const i = lista.findIndex((x) => x.id === id);
+      if (i >= 0) lista.splice(i, 1);
+    }),
+    obtenerPorId: vi.fn(
+      async (id: string) => lista.find((c) => c.id === id) ?? null,
+    ),
+    listar: vi.fn(async () =>
+      [...lista].sort(
+        (a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre),
+      ),
+    ),
+    existeNombre: vi.fn(async (clave: string, excluirId?: string) =>
+      lista.some((c) => c.claveNombre === clave && c.id !== excluirId),
+    ),
     ...parcial,
   };
 }

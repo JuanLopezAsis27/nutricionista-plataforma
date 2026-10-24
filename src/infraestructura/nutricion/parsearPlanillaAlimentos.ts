@@ -2,7 +2,6 @@ import ExcelJS from "exceljs";
 import JSZip from "jszip";
 import type { FilaAlimentoPropioDto } from "@/aplicacion/dtos/alimentoPropio.dto";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
-import { categoriaDesdeTexto } from "@/dominio/entidades/AlimentoPropio";
 import {
   medidasDesdeTexto,
   unidadBaseDesdeTexto,
@@ -44,7 +43,9 @@ const MIME_DE_EXTENSION: Record<string, string> = {
  * macros...}`. Detecta las columnas por el encabezado (flexible con acentos,
  * mayúsculas y sinónimos). Las macros se interpretan POR 100 g, o por 100 ml si
  * la columna opcional «Unidad» dice ml; la columna opcional «Medidas» trae las
- * medidas caseras («taza = 240; cucharada = 15», migración 90). No lanza por
+ * medidas caseras («taza = 240; cucharada = 15», migración 90), y las opcionales
+ * «Cafeína (mg)» —por 100 g/ml, como los macros— y «Descripción» (migración
+ * 95). No lanza por
  * filas sueltas inválidas: las omite; sí lanza si no encuentra columna de nombre.
  *
  * En un xlsx, cada fila puede traer además una IMAGEN: la que esté en esa fila
@@ -90,10 +91,21 @@ export async function parsearPlanillaAlimentos(
       proteinasPor100: numero(celdas[col.proteinas]),
       carbohidratosPor100: numero(celdas[col.carbohidratos]),
       grasasPor100: numero(celdas[col.grasas]),
+      // Opcionales (migración 95). Vacías = la planilla no las trae, y al
+      // reemplazar la lista queda lo que ya tenía el alimento.
+      cafeinaPor100: col.cafeina >= 0 ? numero(celdas[col.cafeina]) : null,
+      descripcion:
+        col.descripcion >= 0
+          ? (celdas[col.descripcion] ?? "").trim() || null
+          : null,
       // Opcional (migración 84): una planilla vieja sin la columna sigue
-      // sirviendo, y un rubro que no se reconoce entra sin categoría.
+      // sirviendo. Va el TEXTO: cuál categoría es lo decide el caso de uso
+      // contra las de la lista (migración 93), y una que no se reconoce
+      // entra sin categoría.
       categoria:
-        col.categoria >= 0 ? categoriaDesdeTexto(celdas[col.categoria]) : null,
+        col.categoria >= 0
+          ? (celdas[col.categoria] ?? "").trim() || null
+          : null,
       // Opcionales (migración 90), con la misma tolerancia que la categoría:
       // una unidad que no se reconoce queda sin dato (gramos, o la que ya
       // tenía el alimento) y una medida que no se entiende se descarta.
@@ -132,6 +144,8 @@ interface Columnas {
   proteinas: number;
   carbohidratos: number;
   grasas: number;
+  cafeina: number;
+  descripcion: number;
   categoria: number;
   unidad: number;
   medidas: number;
@@ -142,13 +156,25 @@ function mapearColumnas(encabezado: string[]): Columnas {
   const buscar = (claves: string[]): number =>
     encabezado.findIndex((h) => claves.some((c) => h.includes(c)));
   const unidad = buscar(["unidad"]);
+  // «Descripción» fue siempre un sinónimo del NOMBRE (hay planillas que llaman
+  // así a la columna del alimento), y desde la migración 95 es además una
+  // columna propia. Primero se busca un encabezado de nombre de verdad; solo
+  // si no hay ninguno, «Descripción» hace de nombre y no de descripción.
+  const nombrePropio = buscar(["nombre", "alimento", "insumo", "producto"]);
+  const nombre = nombrePropio >= 0 ? nombrePropio : buscar(["descripcion"]);
   return {
-    nombre: buscar(["nombre", "alimento", "insumo", "producto", "descripcion"]),
+    nombre,
     marca: buscar(["marca"]),
     calorias: buscar(["caloria", "kcal", "energia"]),
     proteinas: buscar(["proteina", "prot"]),
     carbohidratos: buscar(["carbohidrato", "carbo", "hidrato", "carbs", "hc"]),
     grasas: buscar(["grasa", "lipido", "fat"]),
+    cafeina: buscar(["cafeina", "cafeína", "caffeine"]),
+    descripcion: encabezado.findIndex(
+      (h, i) =>
+        i !== nombre &&
+        ["descripcion", "detalle", "observacion"].some((c) => h.includes(c)),
+    ),
     categoria: buscar(["categoria", "rubro", "grupo"]),
     unidad,
     // «Unidad de medida» es la unidad, no las medidas: se excluye esa columna.

@@ -4,11 +4,8 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, ImagePlus } from "lucide-react";
 import type { AlimentoPropioSalidaDto } from "@/aplicacion/dtos/alimentoPropio.dto";
-import {
-  CATEGORIAS_ALIMENTO,
-  NOMBRES_CATEGORIA_ALIMENTO,
-  type CategoriaAlimento,
-} from "@/dominio/entidades/AlimentoPropio";
+import type { CategoriaAlimentoSalidaDto } from "@/aplicacion/dtos/categoriaAlimento.dto";
+import { useCategoriasAlimento } from "@/lib/hooks/useCategoriasAlimento";
 import {
   useAlimentosPropios,
   FUENTE_DE_ORIGEN,
@@ -19,6 +16,8 @@ import { useDebounce } from "@/lib/hooks/useDebounce";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { Label } from "@/componentes/ui/label";
+import { Textarea } from "@/componentes/ui/textarea";
+import { LARGO_MAXIMO_DESCRIPCION_ALIMENTO } from "@/dominio/entidades/AlimentoPropio";
 import {
   Dialog,
   DialogContent,
@@ -62,11 +61,14 @@ interface Borrador {
   proteinasPor100: string;
   carbohidratosPor100: string;
   grasasPor100: string;
+  /** mg por 100 g/ml (migración 95). */
+  cafeinaPor100: string;
+  descripcion: string;
   /** Si los macros son por 100 g o por 100 ml (migración 90). */
   unidadBase: UnidadBaseAlimento;
   /** Medidas caseras propias; la cantidad como texto, como los macros. */
   medidas: { nombre: string; cantidad: string }[];
-  /** Una de CATEGORIAS_ALIMENTO, o SIN_CATEGORIA. */
+  /** Id de una categoría (predeterminada o propia), o SIN_CATEGORIA. */
   categoria: string;
   imagenVersion: string | null;
 }
@@ -80,6 +82,8 @@ function borradorVacio(): Borrador {
     proteinasPor100: "",
     carbohidratosPor100: "",
     grasasPor100: "",
+    cafeinaPor100: "",
+    descripcion: "",
     unidadBase: "GRAMO",
     medidas: [],
     categoria: SIN_CATEGORIA,
@@ -97,12 +101,14 @@ function aBorrador(a: AlimentoPropioSalidaDto): Borrador {
     carbohidratosPor100:
       a.carbohidratosPor100 != null ? String(a.carbohidratosPor100) : "",
     grasasPor100: a.grasasPor100 != null ? String(a.grasasPor100) : "",
+    cafeinaPor100: a.cafeinaPor100 != null ? String(a.cafeinaPor100) : "",
+    descripcion: a.descripcion ?? "",
     unidadBase: a.unidadBase,
     medidas: a.medidas.map((m) => ({
       nombre: m.nombre,
       cantidad: String(m.cantidad),
     })),
-    categoria: a.categoria ?? SIN_CATEGORIA,
+    categoria: a.categoria?.id ?? SIN_CATEGORIA,
     imagenVersion: a.imagenVersion,
   };
 }
@@ -166,6 +172,7 @@ export function ListaAlimentosPropios({
   const soloLectura = origen === "predeterminados";
   const fuente = FUENTE_DE_ORIGEN[origen];
   const [categoria, setCategoria] = useState<string>(SIN_CATEGORIA);
+  const { categorias } = useCategoriasAlimento(origen);
 
   const [pagina, setPagina] = useState(1);
   const [busqueda, setBusqueda] = useState("");
@@ -190,10 +197,7 @@ export function ListaAlimentosPropios({
     pagina,
     porPagina: POR_PAGINA,
     busqueda: busquedaDebounced || undefined,
-    categoria:
-      categoria === SIN_CATEGORIA
-        ? undefined
-        : (categoria as CategoriaAlimento),
+    categoriaId: categoria === SIN_CATEGORIA ? undefined : categoria,
   });
 
   const columnasDeDatos: ColumnaTabla<AlimentoPropioSalidaDto>[] = [
@@ -207,15 +211,24 @@ export function ListaAlimentosPropios({
             nombre={a.nombre}
             className="h-8 w-8"
           />
-          <span className="font-medium">{a.nombre}</span>
+          <span className="min-w-0">
+            <span className="block font-medium">{a.nombre}</span>
+            {a.descripcion && (
+              <span
+                className="block max-w-64 truncate text-xs text-muted-foreground"
+                title={a.descripcion}
+              >
+                {a.descripcion}
+              </span>
+            )}
+          </span>
         </span>
       ),
     },
     {
       clave: "categoria",
       encabezado: "Categoría",
-      render: (a) =>
-        a.categoria ? NOMBRES_CATEGORIA_ALIMENTO[a.categoria] : "—",
+      render: (a) => a.categoria?.nombre ?? "—",
     },
     { clave: "marca", encabezado: "Marca", render: (a) => a.marca ?? "—" },
     {
@@ -309,9 +322,9 @@ export function ListaAlimentosPropios({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={SIN_CATEGORIA}>Todas las categorías</SelectItem>
-            {CATEGORIAS_ALIMENTO.map((c) => (
-              <SelectItem key={c} value={c}>
-                {NOMBRES_CATEGORIA_ALIMENTO[c]}
+            {categorias.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.nombre}
               </SelectItem>
             ))}
           </SelectContent>
@@ -342,6 +355,7 @@ export function ListaAlimentosPropios({
 
       <DialogoAlimento
         borrador={borrador}
+        categorias={categorias}
         guardando={crear.isPending || actualizar.isPending}
         fuente={fuente}
         cambiarImagen={cambiarImagen}
@@ -373,12 +387,15 @@ export function ListaAlimentosPropios({
               datos.grasasPor100.trim() === ""
                 ? null
                 : Number(datos.grasasPor100),
+            cafeinaPor100:
+              datos.cafeinaPor100.trim() === ""
+                ? null
+                : Number(datos.cafeinaPor100),
+            descripcion: datos.descripcion.trim() || null,
             unidadBase: datos.unidadBase,
             medidas: medidasDelBorrador(datos),
-            categoria:
-              datos.categoria === SIN_CATEGORIA
-                ? null
-                : (datos.categoria as CategoriaAlimento),
+            categoriaId:
+              datos.categoria === SIN_CATEGORIA ? null : datos.categoria,
           };
           if (datos.id) {
             actualizar.mutate(
@@ -472,6 +489,7 @@ type CambiarImagen = (
 
 function DialogoAlimento({
   borrador,
+  categorias,
   guardando,
   fuente,
   cambiarImagen,
@@ -482,6 +500,7 @@ function DialogoAlimento({
   onGuardar,
 }: {
   borrador: Borrador | null;
+  categorias: CategoriaAlimentoSalidaDto[];
   guardando: boolean;
   fuente: "PROPIO" | "BASE";
   cambiarImagen: CambiarImagen;
@@ -520,6 +539,7 @@ function DialogoAlimento({
           </p>
         )}
         <FormularioAlimento
+          categorias={categorias}
           buscarCoincidencia={buscarCoincidencia}
           avisarCoincidencia={avisarCoincidencia}
           inicial={borrador}
@@ -620,12 +640,14 @@ function ImagenDelAlimento({
 
 function FormularioAlimento({
   inicial,
+  categorias,
   guardando,
   onGuardar,
   buscarCoincidencia,
   avisarCoincidencia,
 }: {
   inicial: Borrador;
+  categorias: CategoriaAlimentoSalidaDto[];
   guardando: boolean;
   onGuardar: (datos: Borrador) => void;
   buscarCoincidencia: BuscarCoincidencia;
@@ -698,9 +720,9 @@ function FormularioAlimento({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={SIN_CATEGORIA}>Sin categoría</SelectItem>
-            {CATEGORIAS_ALIMENTO.map((c) => (
-              <SelectItem key={c} value={c}>
-                {NOMBRES_CATEGORIA_ALIMENTO[c]}
+            {categorias.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.propia ? `${c.nombre} (mía)` : c.nombre}
               </SelectItem>
             ))}
           </SelectContent>
@@ -773,6 +795,36 @@ function FormularioAlimento({
             onChange={(e) => setB({ ...b, grasasPor100: e.target.value })}
           />
         </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="cafeina">Cafeína (mg/{cien})</Label>
+          <Input
+            id="cafeina"
+            type="number"
+            min={0}
+            placeholder="Sin dato"
+            value={b.cafeinaPor100}
+            onChange={(e) => setB({ ...b, cafeinaPor100: e.target.value })}
+          />
+          <p className="text-xs text-muted-foreground">
+            Por {cien}, como los macros: un gel de 40 g con 40 mg de cafeína
+            lleva 100.
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="descripcion">Descripción (opcional)</Label>
+        <Textarea
+          id="descripcion"
+          rows={2}
+          maxLength={LARGO_MAXIMO_DESCRIPCION_ALIMENTO}
+          placeholder="Qué es, cómo se toma, qué trae…"
+          value={b.descripcion}
+          onChange={(e) => setB({ ...b, descripcion: e.target.value })}
+        />
       </div>
 
       <div className="space-y-2">

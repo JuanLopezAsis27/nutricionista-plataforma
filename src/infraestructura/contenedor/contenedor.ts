@@ -82,6 +82,12 @@ import { QuitarImagenAlimento } from "@/aplicacion/casos-de-uso/nutricion/Quitar
 import { ObtenerImagenAlimento } from "@/aplicacion/casos-de-uso/nutricion/ObtenerImagenAlimento";
 import { ContarUsosDeAlimento } from "@/aplicacion/casos-de-uso/nutricion/ContarUsosDeAlimento";
 import { BuscarCoincidenciaEnCatalogo } from "@/aplicacion/casos-de-uso/nutricion/BuscarCoincidenciaEnCatalogo";
+import type { CategoriasDisponibles } from "@/aplicacion/casos-de-uso/categorias-alimento/CategoriasDisponibles";
+import {
+  categoriasDeLista,
+  crearServicioCategoriasConsultorio,
+  crearServicioCategoriasPlataforma,
+} from "./modulos/categorias-alimento";
 import { limitadorLogin } from "@/infraestructura/seguridad/LimitadorIntentos";
 
 // --- Reexportes del núcleo que consume la presentación --------------------------
@@ -324,6 +330,8 @@ function servicioDeListaDeAlimentos(
   prefijoImagenes: string,
   /** El catálogo de la plataforma, para los avisos de coincidencia. Null en el catálogo mismo. */
   catalogo: IAlimentoPropioRepositorio | null,
+  /** Las categorías que pueden llevar sus alimentos (migración 93). */
+  categorias: CategoriasDisponibles,
 ): ServicioAlimentosPropios {
   const almacenamiento = nucleo.almacenamiento();
   // La misma regla para la imagen subida a mano y la que llega en un Excel.
@@ -333,13 +341,13 @@ function servicioDeListaDeAlimentos(
     prefijoImagenes,
   );
   return new ServicioAlimentosPropios(
-    new ImportarAlimentos(repositorio, catalogo, imagenes),
-    new AgregarAlimentos(repositorio, catalogo, imagenes),
+    new ImportarAlimentos(repositorio, catalogo, imagenes, categorias),
+    new AgregarAlimentos(repositorio, catalogo, imagenes, categorias),
     new ObtenerTodosLosAlimentos(repositorio),
     new ObtenerEstadoAlimentosPropios(repositorio),
     new VaciarAlimentosPropios(repositorio),
-    new CrearAlimentoPropio(repositorio),
-    new ActualizarAlimentoPropio(repositorio),
+    new CrearAlimentoPropio(repositorio, categorias),
+    new ActualizarAlimentoPropio(repositorio, categorias),
     new EliminarAlimentoPropio(repositorio),
     new ListarAlimentosPropios(repositorio),
     new CambiarImagenAlimento(repositorio, imagenes),
@@ -356,6 +364,10 @@ export const servicioAlimentosPropios = perezoso(() =>
     nucleo.repositorioAlimentoPropio(),
     "alimentos-propios",
     nucleo.repositorioAlimentoBase(),
+    categoriasDeLista({
+      predeterminadas: nucleo.repositorioCategoriaAlimentoBase(),
+      propias: nucleo.repositorioCategoriaAlimentoPropia(),
+    }),
   ),
 );
 
@@ -365,7 +377,29 @@ export const servicioAlimentosBase = perezoso(() =>
     nucleo.repositorioAlimentoBase(),
     "alimentos-base",
     null,
+    categoriasDeLista({
+      predeterminadas: nucleo.repositorioCategoriaAlimentoBase(),
+      propias: null,
+    }),
   ),
+);
+
+/**
+ * Categorías de alimento del consultorio: ve las predeterminadas y las suyas,
+ * y gestiona solo las suyas (migración 93).
+ */
+export const servicioCategoriasAlimento = perezoso(() =>
+  crearServicioCategoriasConsultorio({
+    predeterminadas: nucleo.repositorioCategoriaAlimentoBase(),
+    propias: nucleo.repositorioCategoriaAlimentoPropia(),
+  }),
+);
+
+/** Categorías predeterminadas de alimento: las administra el SUPERADMIN. */
+export const servicioCategoriasAlimentoBase = perezoso(() =>
+  crearServicioCategoriasPlataforma({
+    predeterminadas: nucleo.repositorioCategoriaAlimentoBase(),
+  }),
 );
 
 /** Recetas predeterminadas de la plataforma y su copia a cada recetario. */

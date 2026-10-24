@@ -1,4 +1,4 @@
-import type { CategoriaAlimento } from "../entidades/AlimentoPropio";
+import type { CategoriaDeAlimento } from "../entidades/CategoriaAlimento";
 import type {
   MedidaAlimento,
   UnidadBaseAlimento,
@@ -24,13 +24,17 @@ export interface AlimentoNutricional {
   proteinasPor100: number | null;
   carbohidratosPor100: number | null;
   grasasPor100: number | null;
+  /** mg de cafeína por 100 g/ml, si la lista lo trae (migración 95). */
+  cafeinaPor100: number | null;
+  /** La descripción del alimento, si la lista la trae (migración 95). */
+  descripcion: string | null;
   /**
    * Id del alimento en su lista (PROPIO o BASE), para pedir su imagen. Null
    * en una fuente externa, que no tiene imágenes nuestras.
    */
   id: string | null;
-  /** Rubro, si la fuente lo conoce (solo las listas propias, migración 84). */
-  categoria: CategoriaAlimento | null;
+  /** Rubro, si la fuente lo conoce (solo las listas cargadas, migración 93). */
+  categoria: CategoriaDeAlimento | null;
   /** Versión de su imagen, o null si no tiene (ver `AlimentoPropio.imagenVersion`). */
   imagenVersion: string | null;
   /** Si los macros son por 100 g o por 100 ml (migración 90). */
@@ -70,10 +74,11 @@ export interface IProveedorDatosNutricionales {
     limite?: number,
     criterio?: CriterioAlimentos,
     /**
-     * Solo los de ese rubro. Con categoría el término puede venir vacío («ver
-     * los lácteos»). Una fuente que no conoce nuestras categorías (Open Food
-     * Facts) devuelve [] cuando se pide una: no puede cumplir el filtro.
+     * Solo los de esa categoría (su id: predeterminada o propia). Con
+     * categoría el término puede venir vacío («ver los lácteos»). Una fuente
+     * que no conoce nuestras categorías (Open Food Facts) devuelve [] cuando
+     * se pide una: no puede cumplir el filtro.
      */
-    categoria?: CategoriaAlimento,
+    categoriaId?: string,
   ): Promise<AlimentoNutricional[]>;
 }

@@ -111,9 +111,6 @@ enum ModalidadPlan {
   PDF
 }
 
-/// Rubro de un alimento (migración 84). Lista FIJA y no etiquetas libres: es
-/// lo que se filtra en el buscador de todos los consultorios, y «Lácteos»,
-/// «lacteos» y «Lácteo» serían tres filtros. Los valores solo se agregan.
 /// En qué se mide un alimento (migración 90): sus macros son por 100 g o por
 /// 100 ml, como las tablas de FatSecret. El resto de las medidas («1 taza»,
 /// «1 cucharada») se expresa en esta unidad. Ver docs/MEDIDAS-ALIMENTOS.md.
@@ -122,25 +119,10 @@ enum UnidadBaseAlimento {
   MILILITRO
 }
 
-enum CategoriaAlimento {
-  CARNES
-  PESCADOS
-  HUEVOS
-  LACTEOS
-  CEREALES
-  LEGUMBRES
-  VERDURAS
-  FRUTAS
-  FRUTOS_SECOS
-  ACEITES_GRASAS
-  AZUCARES_DULCES
-  BEBIDAS
-  SUPLEMENTOS
-  OTROS
-  /// Migración 86. Al final: los valores de un enum de Postgres solo se
-  /// agregan. El orden en pantalla lo da CATEGORIAS_ALIMENTO, no este.
-  EMBUTIDOS
-}
+/// Las categorías de alimento fueron un enum (migraciones 84 y 86) y pasaron a
+/// TABLAS en la migración 93: las predeterminadas las administra el SUPERADMIN
+/// (`CategoriaAlimentoBase`) y cada consultorio suma las suyas
+/// (`CategoriaAlimentoPropia`). Ver docs/CATALOGO-BASE.md, «Categorías».
 
 /// Cómo se lee una meta diaria del plan (migración 82). APROXIMADO es la
 /// lectura de siempre (±10 %) y el default de las metas que ya existían;
@@ -385,6 +367,7 @@ model Nutricionista {
   promptsIA                   PromptIA[]
   retroalimentaciones         RetroalimentacionInsight[]
   alimentosPropios            AlimentoPropio[]
+  categoriasAlimentoPropias   CategoriaAlimentoPropia[]
   historiasClinicas           HistoriaClinica[]
   camposHistoriaClinica       CampoHistoriaClinica[]
   evoluciones                 Evolucion[]
@@ -421,28 +404,28 @@ model Nutricionista {
 
   // Hijas del agregado: heredan el inquilino de su padre, pero lo llevan
   // materializado para que la extensión pueda filtrarlas por id directo.
-  archivos             Archivo[]
-  mensajes             Mensaje[]
-  comidasConsumidas    ComidaConsumida[]
-  actividadesFisicas   ActividadFisica[]
-  comidasPlan          ComidaPlan[]
-  opcionesComida       OpcionComida[]
-  equivalenciasPlan    EquivalenciaPlan[]
-  recomendacionesPlan  RecomendacionPlan[]
-  recetasDelPlan       RecetaDelPlan[]
-  ingredientesReceta   IngredienteReceta[]
-  estrategias          Estrategia[]
-  historialObjetivos   HistorialObjetivo[]
-  asignacionesPlan     AsignacionPlan[]
-  desasignacionesPlan  DesasignacionPlan[]
-  asignacionesReceta   AsignacionReceta[]
-  asignacionesMaterial AsignacionMaterial[]
-  franjasPlanSemanal   FranjaPlanSemanal[]
-  metasDiaPlanSemanal  MetaDiaPlanSemanal[]
-  comidasSemanales     ComidaSemanal[]
-  itemsComidaSemanal   ItemComidaSemanal[]
-  asignacionesSemanal  AsignacionPlanSemanal[]
-  itemsOpcionComida    ItemOpcionComida[]
+  archivos                  Archivo[]
+  mensajes                  Mensaje[]
+  comidasConsumidas         ComidaConsumida[]
+  actividadesFisicas        ActividadFisica[]
+  comidasPlan               ComidaPlan[]
+  opcionesComida            OpcionComida[]
+  equivalenciasPlan         EquivalenciaPlan[]
+  recomendacionesPlan       RecomendacionPlan[]
+  recetasDelPlan            RecetaDelPlan[]
+  ingredientesReceta        IngredienteReceta[]
+  estrategias               Estrategia[]
+  historialObjetivos        HistorialObjetivo[]
+  asignacionesPlan          AsignacionPlan[]
+  desasignacionesPlan       DesasignacionPlan[]
+  asignacionesReceta        AsignacionReceta[]
+  asignacionesMaterial      AsignacionMaterial[]
+  franjasPlanSemanal        FranjaPlanSemanal[]
+  metasDiaPlanSemanal       MetaDiaPlanSemanal[]
+  comidasSemanales          ComidaSemanal[]
+  itemsComidaSemanal        ItemComidaSemanal[]
+  asignacionesSemanal       AsignacionPlanSemanal[]
+  itemsOpcionComida         ItemOpcionComida[]
 
   @@map("nutricionistas")
 }
@@ -549,42 +532,42 @@ model Paciente {
   creadoEn                  DateTime       @default(now())
   actualizadoEn             DateTime       @updatedAt
 
-  turnos                  Turno[]
-  historiaClinica         HistoriaClinica?
-  evoluciones             Evolucion[]
-  antropometrias          Antropometria[]
-  objetivosComposicion    ObjetivoComposicion[]
-  bioimpedancias          Bioimpedancia[]
-  objetivosBioimpedancia  ObjetivoBioimpedancia[]
-  laboratorios            Laboratorio[]
-  archivos                Archivo[]
-  registrosDiarios        RegistroDiario[]
-  asignacionesPlan        AsignacionPlan[]
-  desasignacionesPlan     DesasignacionPlan[]
-  asignacionesSemanal     AsignacionPlanSemanal[]
-  asignacionesReceta      AsignacionReceta[]
-  objetivos               Objetivo[]
-  perfilDeportivo         PerfilDeportivo?
-  competencias            Competencia[]
-  asignacionesMaterial    AsignacionMaterial[]
-  suplementos             Suplemento[]
-  alertasSeguimiento      AlertaSeguimiento[]
-  notificaciones          Notificacion[]
-  conversacion            Conversacion?
-  conversacionesIA        ConversacionIA[]
-  analisisComida          AnalisisComida[]
-  metricasDispositivo     MetricaDispositivo[]
-  mensajesWhatsapp        MensajeWhatsapp[]
-  recordatoriosWhatsapp   RecordatorioWhatsapp[]
-  invitacionesPortal      InvitacionPortal[]
+  turnos                    Turno[]
+  historiaClinica           HistoriaClinica?
+  evoluciones               Evolucion[]
+  antropometrias            Antropometria[]
+  objetivosComposicion      ObjetivoComposicion[]
+  bioimpedancias            Bioimpedancia[]
+  objetivosBioimpedancia    ObjetivoBioimpedancia[]
+  laboratorios              Laboratorio[]
+  archivos                  Archivo[]
+  registrosDiarios          RegistroDiario[]
+  asignacionesPlan          AsignacionPlan[]
+  desasignacionesPlan       DesasignacionPlan[]
+  asignacionesSemanal       AsignacionPlanSemanal[]
+  asignacionesReceta        AsignacionReceta[]
+  objetivos                 Objetivo[]
+  perfilDeportivo           PerfilDeportivo?
+  competencias              Competencia[]
+  asignacionesMaterial      AsignacionMaterial[]
+  suplementos               Suplemento[]
+  alertasSeguimiento        AlertaSeguimiento[]
+  notificaciones            Notificacion[]
+  conversacion              Conversacion?
+  conversacionesIA          ConversacionIA[]
+  analisisComida            AnalisisComida[]
+  metricasDispositivo       MetricaDispositivo[]
+  mensajesWhatsapp          MensajeWhatsapp[]
+  recordatoriosWhatsapp     RecordatorioWhatsapp[]
+  invitacionesPortal        InvitacionPortal[]
   /// La carpeta de planes que se le auto-creó al pedir "crear plan para este
   /// paciente" desde su ficha (migración 56). Null si nunca se usó ese flujo.
-  carpetaPlan             GrupoPlan?
-  nutricionista           Nutricionista           @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
-  usuario                 Usuario?                @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  carpetaPlan               GrupoPlan?
+  nutricionista             Nutricionista             @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  usuario                   Usuario?                  @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
   // SetNull: archivar una sede no puede dejar fichas apuntando a un
   // establecimiento que ya no se ofrece. Perder la preferencia no rompe nada.
-  establecimientoHabitual Establecimiento?        @relation(fields: [establecimientoHabitualId], references: [id], onDelete: SetNull)
+  establecimientoHabitual   Establecimiento?          @relation(fields: [establecimientoHabitualId], references: [id], onDelete: SetNull)
 
   @@unique([nutricionistaId, id])
   // Una ficha por consultorio y por cuenta.
@@ -667,8 +650,8 @@ model Competencia {
   creadoEn        DateTime               @default(now())
   actualizadoEn   DateTime               @updatedAt
 
-  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
-  nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  paciente        Paciente                  @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nutricionista   Nutricionista             @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@index([nutricionistaId, pacienteId, fecha])
   @@map("competencias")
@@ -1404,7 +1387,7 @@ model RetroalimentacionInsight {
 /// inquilino tiene al menos uno, la búsqueda de ingredientes usa SU lista y se
 /// desactiva la búsqueda externa. Macros por 100 g. Tenant-scoped por nutricionistaId.
 model AlimentoPropio {
-  id                  String             @id @default(uuid(4))
+  id                  String                   @id @default(uuid(4))
   nutricionistaId     String
   nombre              String
   nombreNormalizado   String // minúsculas/trim, para búsqueda case-insensitive
@@ -1412,26 +1395,37 @@ model AlimentoPropio {
   /// dos alimentos sean el mismo (migración 83). Ver AlimentoPropio.claveIdentidad.
   claveIdentidad      String
   marca               String?
-  caloriasPor100      Decimal?           @db.Decimal(7, 2)
-  proteinasPor100     Decimal?           @db.Decimal(7, 2)
-  carbohidratosPor100 Decimal?           @db.Decimal(7, 2)
-  grasasPor100        Decimal?           @db.Decimal(7, 2)
+  caloriasPor100      Decimal?                 @db.Decimal(7, 2)
+  proteinasPor100     Decimal?                 @db.Decimal(7, 2)
+  carbohidratosPor100 Decimal?                 @db.Decimal(7, 2)
+  grasasPor100        Decimal?                 @db.Decimal(7, 2)
+  /// Miligramos de cafeína por 100 g (o 100 ml), como los macros (migración 95).
+  cafeinaPor100       Decimal?                 @db.Decimal(7, 2)
+  /// Texto libre: qué es, cómo se usa, qué trae (migración 95).
+  descripcion         String?
   /// Si los macros son por 100 g o por 100 ml (migración 90).
-  unidadBase          UnidadBaseAlimento @default(GRAMO)
+  unidadBase          UnidadBaseAlimento       @default(GRAMO)
   /// Medidas caseras del alimento (migración 90): `[{ nombre, cantidad }]`,
   /// «1 <nombre> = <cantidad> g/ml». Ver docs/MEDIDAS-ALIMENTOS.md.
-  medidas             Json               @default("[]")
-  /// Rubro del alimento, para filtrar la búsqueda (migración 84).
-  categoria           CategoriaAlimento?
+  medidas             Json                     @default("[]")
+  /// Rubro del alimento, para filtrar la búsqueda (migración 93): una
+  /// categoría PREDETERMINADA de la plataforma (`categoriaId`) o una PROPIA del
+  /// consultorio (`categoriaPropiaId`), nunca las dos (CHECK en la base).
+  /// SET NULL: borrar la categoría deja al alimento sin categoría.
+  categoriaId         String?
+  categoriaPropiaId   String?
   /// Clave en el bucket de su imagen (migración 84). No es un `Archivo`: ver
   /// docs/CATALOGO-BASE.md, «Imágenes».
   imagenClave         String?
-  creadoEn            DateTime           @default(now())
-  nutricionista       Nutricionista      @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  creadoEn            DateTime                 @default(now())
+  nutricionista       Nutricionista            @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  categoria           CategoriaAlimentoBase?   @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  categoriaPropia     CategoriaAlimentoPropia? @relation(fields: [categoriaPropiaId], references: [id], onDelete: SetNull)
 
   @@unique([nutricionistaId, claveIdentidad])
   @@index([nutricionistaId, nombreNormalizado])
-  @@index([nutricionistaId, categoria])
+  @@index([nutricionistaId, categoriaId])
+  @@index([nutricionistaId, categoriaPropiaId])
   @@map("alimentos_propios")
 }
 
@@ -1446,28 +1440,76 @@ model AlimentoPropio {
 /// MODELOS_INQUILINO): es de todos y de nadie. Un consultorio lo LEE; lo que
 /// agrega el profesional va a `alimentos_propios` y es solo suyo.
 model AlimentoBase {
-  id                  String             @id @default(uuid(4))
+  id                  String                 @id @default(uuid(4))
   nombre              String
   nombreNormalizado   String
   /// Ver AlimentoPropio.claveIdentidad. Única en toda la plataforma.
-  claveIdentidad      String             @unique
+  claveIdentidad      String                 @unique
   marca               String?
-  caloriasPor100      Decimal?           @db.Decimal(7, 2)
-  proteinasPor100     Decimal?           @db.Decimal(7, 2)
-  carbohidratosPor100 Decimal?           @db.Decimal(7, 2)
-  grasasPor100        Decimal?           @db.Decimal(7, 2)
+  caloriasPor100      Decimal?               @db.Decimal(7, 2)
+  proteinasPor100     Decimal?               @db.Decimal(7, 2)
+  carbohidratosPor100 Decimal?               @db.Decimal(7, 2)
+  grasasPor100        Decimal?               @db.Decimal(7, 2)
+  /// Ver AlimentoPropio.cafeinaPor100 y descripcion (migración 95).
+  cafeinaPor100       Decimal?               @db.Decimal(7, 2)
+  descripcion         String?
   /// Ver AlimentoPropio.unidadBase y medidas (migración 90).
-  unidadBase          UnidadBaseAlimento @default(GRAMO)
-  medidas             Json               @default("[]")
-  /// Ver AlimentoPropio.categoria e imagenClave (migración 84).
-  categoria           CategoriaAlimento?
+  unidadBase          UnidadBaseAlimento     @default(GRAMO)
+  medidas             Json                   @default("[]")
+  /// Solo categorías de la plataforma: una propia es de un consultorio y
+  /// este alimento es de todos (migración 93).
+  categoriaId         String?
+  /// Ver AlimentoPropio.imagenClave (migración 84).
   imagenClave         String?
-  creadoEn            DateTime           @default(now())
-  actualizadoEn       DateTime           @updatedAt
+  creadoEn            DateTime               @default(now())
+  actualizadoEn       DateTime               @updatedAt
+  categoria           CategoriaAlimentoBase? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
 
   @@index([nombreNormalizado])
-  @@index([categoria])
+  @@index([categoriaId])
   @@map("alimentos_base")
+}
+
+/// Categoría PREDETERMINADA de alimento (migración 93): la administra el
+/// SUPERADMIN y la ven todos los consultorios. Como `alimentos_base`, NO es
+/// tabla de inquilino. Un consultorio no la puede editar ni borrar: suma las
+/// suyas en `CategoriaAlimentoPropia`.
+///
+/// `claveNombre` es el nombre sin mayúsculas, tildes ni espacios de más: lo
+/// que hace que «Lácteos» y «lacteos» sean la misma categoría (único).
+/// `orden` es el orden en que se ofrecen como filtro.
+model CategoriaAlimentoBase {
+  id            String   @id @default(uuid(4))
+  nombre        String
+  claveNombre   String   @unique
+  orden         Int      @default(0)
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  alimentosBase    AlimentoBase[]
+  alimentosPropios AlimentoPropio[]
+
+  @@map("categorias_alimento_base")
+}
+
+/// Categoría PROPIA de un consultorio (migración 93): la crea el profesional
+/// para ordenar SUS alimentos («Geles con cafeína», «Sin TACC de la zona»).
+/// Solo la usan los alimentos de su lista; los de la plataforma llevan
+/// categorías de la plataforma.
+model CategoriaAlimentoPropia {
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
+  nombre          String
+  /// Ver CategoriaAlimentoBase.claveNombre. Única por consultorio.
+  claveNombre     String
+  creadoEn        DateTime @default(now())
+  actualizadoEn   DateTime @updatedAt
+
+  alimentos     AlimentoPropio[]
+  nutricionista Nutricionista    @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@unique([nutricionistaId, claveNombre])
+  @@map("categorias_alimento_propias")
 }
 
 /// Receta PREDETERMINADA de la plataforma. Un consultorio no la usa en su

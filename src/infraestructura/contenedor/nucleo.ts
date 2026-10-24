@@ -70,6 +70,8 @@ import { PrismaRepositorioAxioma } from "@/infraestructura/repositorios/PrismaRe
 import { PrismaRepositorioMetricaDispositivo } from "@/infraestructura/repositorios/PrismaRepositorioMetricaDispositivo";
 import { PrismaRepositorioAlimentoPropio } from "@/infraestructura/repositorios/PrismaRepositorioAlimentoPropio";
 import { PrismaRepositorioAlimentoBase } from "@/infraestructura/repositorios/PrismaRepositorioAlimentoBase";
+import { PrismaRepositorioCategoriaAlimentoBase } from "@/infraestructura/repositorios/PrismaRepositorioCategoriaAlimentoBase";
+import { PrismaRepositorioCategoriaAlimentoPropia } from "@/infraestructura/repositorios/PrismaRepositorioCategoriaAlimentoPropia";
 import { PrismaRepositorioRecetaBase } from "@/infraestructura/repositorios/PrismaRepositorioRecetaBase";
 import { PrismaRepositorioUsosDeAlimento } from "@/infraestructura/repositorios/PrismaRepositorioUsosDeAlimento";
 import { PrismaRepositorioRetroalimentacionInsight } from "@/infraestructura/repositorios/PrismaRepositorioRetroalimentacionInsight";
@@ -339,6 +341,14 @@ export const repositorioAlimentoPropio = perezoso(
 /** Alimentos predeterminados de la plataforma (sin inquilino, migración 82). */
 export const repositorioAlimentoBase = perezoso(
   () => new PrismaRepositorioAlimentoBase(prisma()),
+);
+/** Categorías predeterminadas de alimento (sin inquilino, migración 93). */
+export const repositorioCategoriaAlimentoBase = perezoso(
+  () => new PrismaRepositorioCategoriaAlimentoBase(prisma()),
+);
+/** Categorías de alimento propias de cada consultorio (migración 93). */
+export const repositorioCategoriaAlimentoPropia = perezoso(
+  () => new PrismaRepositorioCategoriaAlimentoPropia(prisma()),
 );
 /** Recetas predeterminadas de la plataforma (sin inquilino, migración 82). */
 export const repositorioRecetaBase = perezoso(

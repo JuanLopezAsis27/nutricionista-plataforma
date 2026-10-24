@@ -1,17 +1,41 @@
 import { z } from "zod";
-import { CATEGORIAS_ALIMENTO } from "@/dominio/entidades/AlimentoPropio";
+import {
+  CAFEINA_MAXIMA_POR_100,
+  LARGO_MAXIMO_DESCRIPCION_ALIMENTO,
+} from "@/dominio/entidades/AlimentoPropio";
+import {
+  categoriaAlimentoSalidaDto,
+  idCategoriaAlimentoDto,
+} from "./categoriaAlimento.dto";
 import {
   medidasAlimentoDto,
   medidaAlimentoDto,
   unidadBaseAlimentoDto,
 } from "./medidasAlimento.dto";
 
-/** Rubro del alimento (migración 84). */
-const categoria = z.enum(CATEGORIAS_ALIMENTO).nullable().optional();
+/**
+ * Categoría elegida en el formulario, por id (migración 93): una
+ * predeterminada o una propia. Null = sin categoría; ausente = no tocarla.
+ */
+const categoriaId = idCategoriaAlimentoDto.nullable().optional();
 
 /** DTOs de los alimentos propios del nutricionista (Excel de macros). */
 
 const macro = z.number().min(0).max(2000).nullable().optional();
+
+/** mg de cafeína por 100 g/ml (migración 95). */
+const cafeina = z
+  .number()
+  .min(0)
+  .max(CAFEINA_MAXIMA_POR_100)
+  .nullable()
+  .optional();
+
+const descripcion = z
+  .string()
+  .max(LARGO_MAXIMO_DESCRIPCION_ALIMENTO)
+  .nullable()
+  .optional();
 
 /** Una fila de la planilla, ya parseada. */
 export const filaAlimentoPropioDto = z.object({
@@ -21,11 +45,18 @@ export const filaAlimentoPropioDto = z.object({
   proteinasPor100: macro,
   carbohidratosPor100: macro,
   grasasPor100: macro,
+  /** Null = la planilla no lo dice: al reemplazar, queda la que tenía. */
+  cafeinaPor100: cafeina,
+  descripcion,
   /** Null = la planilla no lo dice (sin columna o celda vacía). */
   unidadBase: unidadBaseAlimentoDto.nullable().optional(),
   /** Vacío = la planilla no trae medidas para esta fila. */
   medidas: medidasAlimentoDto.optional(),
-  categoria,
+  /**
+   * El TEXTO de la columna «Categoría». Lo resuelve el caso de uso contra las
+   * categorías de la lista (`categoriaDesdeTexto`): el parser no las conoce.
+   */
+  categoria: z.string().max(200).nullable().optional(),
 });
 export type FilaAlimentoPropioDto = z.infer<typeof filaAlimentoPropioDto>;
 
@@ -81,9 +112,11 @@ export const crearAlimentoPropioDto = z.object({
   proteinasPor100: macro,
   carbohidratosPor100: macro,
   grasasPor100: macro,
+  cafeinaPor100: cafeina,
+  descripcion,
   unidadBase: unidadBaseAlimentoDto.optional(),
   medidas: medidasAlimentoDto.optional(),
-  categoria,
+  categoriaId,
 });
 export type CrearAlimentoPropioDto = z.infer<typeof crearAlimentoPropioDto>;
 
@@ -99,7 +132,8 @@ export const idAlimentoPropioDto = z.object({ id: z.string().min(1) });
 
 export const listarAlimentosPropiosDto = z.object({
   busqueda: z.string().optional(),
-  categoria: z.enum(CATEGORIAS_ALIMENTO).optional(),
+  /** Solo los de esa categoría (predeterminada o propia). */
+  categoriaId: idCategoriaAlimentoDto.optional(),
   pagina: z.number().int().positive().default(1),
   porPagina: z.number().int().positive().max(100).default(20),
 });
@@ -115,9 +149,12 @@ export const alimentoPropioSalidaDto = z.object({
   proteinasPor100: z.number().nullable(),
   carbohidratosPor100: z.number().nullable(),
   grasasPor100: z.number().nullable(),
+  /** mg por 100 g/ml; null sin dato. */
+  cafeinaPor100: z.number().nullable(),
+  descripcion: z.string().nullable(),
   unidadBase: unidadBaseAlimentoDto,
   medidas: z.array(medidaAlimentoDto),
-  categoria: z.enum(CATEGORIAS_ALIMENTO).nullable(),
+  categoria: categoriaAlimentoSalidaDto.nullable(),
   /**
    * Cambia con cada imagen nueva; null si no tiene. La pantalla arma la URL
    * de la imagen con el id y esta versión (ver `urlImagenAlimento`).

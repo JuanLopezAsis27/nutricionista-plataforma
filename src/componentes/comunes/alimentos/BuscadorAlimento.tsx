@@ -6,12 +6,8 @@ import {
   LIMITE_MAXIMO_BUSQUEDA_ALIMENTOS,
   type AlimentoNutricionalSalidaDto,
 } from "@/aplicacion/dtos/nutricion.dto";
-import {
-  CATEGORIAS_ALIMENTO,
-  NOMBRES_CATEGORIA_ALIMENTO,
-  type CategoriaAlimento,
-} from "@/dominio/entidades/AlimentoPropio";
 import { useNutricion } from "@/lib/hooks/useNutricion";
+import { useCategoriasAlimento } from "@/lib/hooks/useCategoriasAlimento";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utilidades";
@@ -55,8 +51,10 @@ const ETIQUETA_FUENTE: Record<string, string> = {
  * lo que arma las recetas predeterminadas.
  *
  * Con una categoría elegida no hace falta escribir: es «mostrame los lácteos».
- * Open Food Facts no conoce nuestras categorías, así que con un filtro puesto
- * solo aparecen alimentos de las listas cargadas.
+ * Las categorías son las predeterminadas de la plataforma y, en un
+ * consultorio, también las suyas (migración 93). Open Food Facts no conoce
+ * nuestras categorías, así que con un filtro puesto solo aparecen alimentos
+ * de las listas cargadas.
  *
  * Con «Todas» y sin escribir, el modal no arranca vacío: muestra los primeros
  * alimentos de las listas cargadas (los propios primero, por nombre) y
@@ -107,8 +105,12 @@ function ModalBuscadorAlimento({
   onCerrar: () => void;
 }) {
   const { buscarAlimento } = useNutricion();
+  const { categorias } = useCategoriasAlimento(
+    enCatalogo ? "plataforma" : "consultorio",
+  );
   const [termino, setTermino] = useState("");
-  const [categoria, setCategoria] = useState<CategoriaAlimento | null>(null);
+  /** Id de la categoría elegida como filtro, o null para «Todas». */
+  const [categoria, setCategoria] = useState<string | null>(null);
   const [limite, setLimite] = useState(TANDA);
   const debounced = useDebounce(termino.trim(), 350);
   // Una sola letra no es una búsqueda: se sigue hojeando.
@@ -131,14 +133,14 @@ function ModalBuscadorAlimento({
     {
       termino: busqueda,
       limite,
-      categoria: categoria ?? undefined,
+      categoriaId: categoria ?? undefined,
     },
     { ...opciones, enabled: !enCatalogo },
   );
   const delCatalogo = trpc.superadmin.listarAlimentosBase.useQuery(
     {
       busqueda: busqueda || undefined,
-      categoria: categoria ?? undefined,
+      categoriaId: categoria ?? undefined,
       pagina: 1,
       porPagina: limite,
     },
@@ -188,13 +190,14 @@ function ModalBuscadorAlimento({
           >
             Todas
           </FiltroCategoria>
-          {CATEGORIAS_ALIMENTO.map((c) => (
+          {categorias.map((c) => (
             <FiltroCategoria
-              key={c}
-              activo={categoria === c}
-              onClick={() => setCategoria(categoria === c ? null : c)}
+              key={c.id}
+              activo={categoria === c.id}
+              propia={c.propia}
+              onClick={() => setCategoria(categoria === c.id ? null : c.id)}
             >
-              {NOMBRES_CATEGORIA_ALIMENTO[c]}
+              {c.nombre}
             </FiltroCategoria>
           ))}
         </div>
@@ -239,9 +242,19 @@ function ModalBuscadorAlimento({
                         )}
                       </span>
                       <span className="block text-xs text-muted-foreground">
-                        {macrosEnTexto(alimento)} (por{" "}
-                        {porCien(alimento.unidadBase)})
+                        {macrosEnTexto(alimento)}
+                        {alimento.cafeinaPor100 != null &&
+                          ` · ${String(alimento.cafeinaPor100).replace(".", ",")} mg cafeína`}{" "}
+                        (por {porCien(alimento.unidadBase)})
                       </span>
+                      {alimento.descripcion && (
+                        <span
+                          className="line-clamp-2 block text-xs text-muted-foreground"
+                          title={alimento.descripcion}
+                        >
+                          {alimento.descripcion}
+                        </span>
+                      )}
                       {alimento.medidas.length > 0 && (
                         <span className="block truncate text-xs text-muted-foreground">
                           {alimento.medidas
@@ -255,7 +268,7 @@ function ModalBuscadorAlimento({
                       <span className="flex flex-wrap gap-1">
                         {alimento.categoria && (
                           <Badge variant="secondary" className="text-[0.65rem]">
-                            {NOMBRES_CATEGORIA_ALIMENTO[alimento.categoria]}
+                            {alimento.categoria.nombre}
                           </Badge>
                         )}
                         {!enCatalogo && (
@@ -312,10 +325,13 @@ function ModalBuscadorAlimento({
 
 function FiltroCategoria({
   activo,
+  propia = false,
   onClick,
   children,
 }: {
   activo: boolean;
+  /** Las propias del consultorio van con borde punteado: no son de todos. */
+  propia?: boolean;
   onClick: () => void;
   children: React.ReactNode;
 }) {
@@ -326,6 +342,7 @@ function FiltroCategoria({
       onClick={onClick}
       className={cn(
         "rounded-full border px-2.5 py-0.5 text-xs transition-colors",
+        propia && "border-dashed",
         activo
           ? "border-primary bg-primary text-primary-foreground"
           : "hover:bg-accent",

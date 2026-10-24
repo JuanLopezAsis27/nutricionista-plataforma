@@ -4,79 +4,7 @@ import {
   type MedidaAlimento,
   type UnidadBaseAlimento,
 } from "./medidasAlimento";
-
-/**
- * Rubros de un alimento (migración 84), en el orden en que se ofrecen como
- * filtro. Lista FIJA y no etiquetas libres: es lo que se filtra en el
- * buscador de todos los consultorios, y con texto libre «Lácteos», «lacteos»
- * y «Lácteo» serían tres filtros. Los valores solo se agregan (son un enum de
- * la base).
- */
-export const CATEGORIAS_ALIMENTO = [
-  "CARNES",
-  // Migración 86. En la base quedó al final del enum (solo se agrega); acá va
-  // junto a las carnes, que es donde se lo busca.
-  "EMBUTIDOS",
-  "PESCADOS",
-  "HUEVOS",
-  "LACTEOS",
-  "CEREALES",
-  "LEGUMBRES",
-  "VERDURAS",
-  "FRUTAS",
-  "FRUTOS_SECOS",
-  "ACEITES_GRASAS",
-  "AZUCARES_DULCES",
-  "BEBIDAS",
-  "SUPLEMENTOS",
-  "OTROS",
-] as const;
-export type CategoriaAlimento = (typeof CATEGORIAS_ALIMENTO)[number];
-
-/** Cómo se lee cada categoría en pantalla y en la planilla. */
-export const NOMBRES_CATEGORIA_ALIMENTO: Record<CategoriaAlimento, string> = {
-  CARNES: "Carnes",
-  EMBUTIDOS: "Embutidos",
-  PESCADOS: "Pescados y mariscos",
-  HUEVOS: "Huevos",
-  LACTEOS: "Lácteos",
-  CEREALES: "Cereales y derivados",
-  LEGUMBRES: "Legumbres",
-  VERDURAS: "Verduras",
-  FRUTAS: "Frutas",
-  FRUTOS_SECOS: "Frutos secos y semillas",
-  ACEITES_GRASAS: "Aceites y grasas",
-  AZUCARES_DULCES: "Azúcares y dulces",
-  BEBIDAS: "Bebidas",
-  SUPLEMENTOS: "Suplementos",
-  OTROS: "Otros",
-};
-
-/**
- * La categoría que nombra un texto libre (la columna «Categoría» de una
- * planilla), o null si no nombra ninguna. Acepta el nombre en pantalla
- * («Lácteos»), el código («LACTEOS»), su primera palabra («Pescados») y el
- * singular («lácteo», «fruta»), sin mayúsculas ni tildes. Un texto que no
- * reconoce no es un error: el alimento entra sin categoría.
- */
-export function categoriaDesdeTexto(
-  texto: string | null | undefined,
-): CategoriaAlimento | null {
-  const buscado = normalizarTextoAlimento(texto).replace(/s$/, "");
-  if (buscado === "") return null;
-  return (
-    CATEGORIAS_ALIMENTO.find((categoria) => {
-      const nombre = normalizarTextoAlimento(
-        NOMBRES_CATEGORIA_ALIMENTO[categoria],
-      );
-      const codigo = normalizarTextoAlimento(categoria.replace(/_/g, " "));
-      const primera = nombre.split(" ")[0] ?? "";
-      return [nombre, codigo, primera].some(
-        (candidato) => candidato.replace(/s$/, "") === buscado,
-      );
-    }) ?? null
-  );
-}
+import type { CategoriaDeAlimento } from "./CategoriaAlimento";
 
 /** Formatos de imagen que acepta un alimento, y su extensión en el bucket. */
 export const FORMATOS_IMAGEN_ALIMENTO: Record<string, string> = {
@@ -108,6 +36,16 @@ export const LADO_MAXIMO_IMAGEN_ALIMENTO = 512;
  */
 export const PIXELES_MAXIMOS_IMAGEN_ALIMENTO = 24_000_000;
 
+/** Largo máximo de la descripción de un alimento: es una ficha, no un artículo. */
+export const LARGO_MAXIMO_DESCRIPCION_ALIMENTO = 1000;
+
+/**
+ * Tope de la cafeína por 100 g/ml (migración 95). Un gel con cafeína anda en
+ * 100-300 mg/100 g y el café molido en 1200; el tope deja pasar un suplemento
+ * de cafeína concentrada sin aceptar un error de tipeo de seis cifras.
+ */
+export const CAFEINA_MAXIMA_POR_100 = 99_999;
+
 /** Estado de un alimento propio (macros por 100 g o por 100 ml). */
 export interface PropiedadesAlimentoPropio {
   id: string;
@@ -117,11 +55,23 @@ export interface PropiedadesAlimentoPropio {
   proteinasPor100: number | null;
   carbohidratosPor100: number | null;
   grasasPor100: number | null;
+  /**
+   * Miligramos de cafeína por 100 g (o por 100 ml), como los macros
+   * (migración 95). Null es sin dato, no 0.
+   */
+  cafeinaPor100: number | null;
+  /** Texto libre: qué es, cómo se toma, qué trae (migración 95). */
+  descripcion: string | null;
   /** Si los macros son por 100 g o por 100 ml (migración 90). */
   unidadBase: UnidadBaseAlimento;
   /** Medidas caseras propias: «1 taza = 240» en la unidad base. */
   medidas: MedidaAlimento[];
-  categoria: CategoriaAlimento | null;
+  /**
+   * Predeterminada de la plataforma o propia del consultorio (migración 93).
+   * Un alimento de la plataforma solo lleva predeterminadas: lo verifica el
+   * caso de uso, que es el que sabe de qué lista es.
+   */
+  categoria: CategoriaDeAlimento | null;
   /** Clave en el bucket de su imagen, o null si no tiene. */
   imagenClave: string | null;
 }
@@ -134,10 +84,13 @@ export interface DatosNuevoAlimentoPropio {
   proteinasPor100?: number | null;
   carbohidratosPor100?: number | null;
   grasasPor100?: number | null;
+  /** mg por 100 g/ml (migración 95). */
+  cafeinaPor100?: number | null;
+  descripcion?: string | null;
   /** Por defecto GRAMO. */
   unidadBase?: UnidadBaseAlimento | null;
   medidas?: ReadonlyArray<MedidaAlimento> | null;
-  categoria?: CategoriaAlimento | null;
+  categoria?: CategoriaDeAlimento | null;
 }
 
 /**
@@ -164,6 +117,8 @@ export class AlimentoPropio {
       proteinasPor100: macro(datos.proteinasPor100, "proteínas"),
       carbohidratosPor100: macro(datos.carbohidratosPor100, "carbohidratos"),
       grasasPor100: macro(datos.grasasPor100, "grasas"),
+      cafeinaPor100: cafeina(datos.cafeinaPor100),
+      descripcion: descripcion(datos.descripcion),
       unidadBase: datos.unidadBase ?? "GRAMO",
       medidas: normalizarMedidas(datos.medidas, nombre),
       categoria: datos.categoria ?? null,
@@ -199,6 +154,11 @@ export class AlimentoPropio {
           this.props.carbohidratosPor100,
         ),
         grasasPor100: fusionar(cambios.grasasPor100, this.props.grasasPor100),
+        cafeinaPor100: fusionar(
+          cambios.cafeinaPor100,
+          this.props.cafeinaPor100,
+        ),
+        descripcion: fusionar(cambios.descripcion, this.props.descripcion),
         unidadBase: fusionar(cambios.unidadBase, this.props.unidadBase),
         medidas: fusionar(cambios.medidas, this.props.medidas),
         categoria: fusionar(cambios.categoria, this.props.categoria),
@@ -300,4 +260,28 @@ function macro(
     throw new ErrorValidacion(`El valor de ${etiqueta} no puede ser negativo.`);
   }
   return Math.round(valor * 10) / 10;
+}
+
+/** Cafeína en mg por 100 g/ml: no negativa y con un tope razonable. */
+function cafeina(valor: number | null | undefined): number | null {
+  if (valor == null) return null;
+  if (!Number.isFinite(valor) || valor < 0) {
+    throw new ErrorValidacion("La cafeína no puede ser negativa.");
+  }
+  if (valor > CAFEINA_MAXIMA_POR_100) {
+    throw new ErrorValidacion(
+      "La cafeína va en miligramos por 100 g (o 100 ml): el valor es demasiado alto.",
+    );
+  }
+  return Math.round(valor * 100) / 100;
+}
+
+function descripcion(valor: string | null | undefined): string | null {
+  const limpio = limpiarTexto(valor);
+  if (limpio && limpio.length > LARGO_MAXIMO_DESCRIPCION_ALIMENTO) {
+    throw new ErrorValidacion(
+      `La descripción del alimento no puede superar los ${LARGO_MAXIMO_DESCRIPCION_ALIMENTO} caracteres.`,
+    );
+  }
+  return limpio;
 }

@@ -86,6 +86,9 @@ export const MODELOS_INQUILINO = new Set<string>([
   "PlanSemanal",
   "RegistroUsoIA",
   "InvitacionPortal",
+  // Migración 93: las categorías PROPIAS (las predeterminadas son de la
+  // plataforma y no llevan inquilino, como alimentos_base).
+  "CategoriaAlimentoPropia",
 
   // Hijas del agregado (migración 27). Antes quedaban fuera del filtro: se
   // llegaba a ellas por id directo sin ningún control de inquilino. Los casos

@@ -16,6 +16,12 @@ import {
   listarAlimentosPropiosDto,
 } from "@/aplicacion/dtos/alimentoPropio.dto";
 import {
+  crearCategoriaAlimentoDto,
+  renombrarCategoriaAlimentoDto,
+  eliminarCategoriaAlimentoDto,
+  moverCategoriaAlimentoDto,
+} from "@/aplicacion/dtos/categoriaAlimento.dto";
+import {
   crearRecetaBaseDto,
   actualizarRecetaBaseDto,
   idRecetaBaseDto,
@@ -132,6 +138,43 @@ export const routerSuperAdmin = crearRouter({
     await ctx.servicios.alimentosBase.vaciar();
     return { ok: true };
   }),
+
+  // Categorías PREDETERMINADAS (migración 93): las ven todos los consultorios.
+  categoriasAlimentoBase: superadminProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.categoriasAlimentoBase.listar();
+  }),
+
+  crearCategoriaAlimentoBase: superadminProcedimiento
+    .input(crearCategoriaAlimentoDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.categoriasAlimentoBase.crear(input.nombre);
+    }),
+
+  renombrarCategoriaAlimentoBase: superadminProcedimiento
+    .input(renombrarCategoriaAlimentoDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.categoriasAlimentoBase.renombrar(
+        input.id,
+        input.nombre,
+      );
+    }),
+
+  eliminarCategoriaAlimentoBase: superadminProcedimiento
+    .input(eliminarCategoriaAlimentoDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.categoriasAlimentoBase.eliminar(input.id);
+      return { eliminado: true };
+    }),
+
+  moverCategoriaAlimentoBase: superadminProcedimiento
+    .input(moverCategoriaAlimentoDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.categoriasAlimentoBase.mover(
+        input.id,
+        input.direccion,
+      );
+      return { ok: true };
+    }),
 
   listarRecetasBase: superadminProcedimiento
     .input(listarRecetasBaseDto)

@@ -1,9 +1,7 @@
 import ExcelJS from "exceljs";
 import {
-  NOMBRES_CATEGORIA_ALIMENTO,
   LADO_MAXIMO_IMAGEN_ALIMENTO,
   TAMANO_MAXIMO_IMAGEN_ALIMENTO,
-  type CategoriaAlimento,
 } from "@/dominio/entidades/AlimentoPropio";
 import {
   medidasATexto,
@@ -27,7 +25,11 @@ export interface AlimentoParaPlanilla {
   proteinasPor100: number | null;
   carbohidratosPor100: number | null;
   grasasPor100: number | null;
-  categoria: CategoriaAlimento | null;
+  /** mg por 100 g/ml (migración 95). */
+  cafeinaPor100: number | null;
+  descripcion: string | null;
+  /** Se escribe su NOMBRE: es lo que la importación vuelve a reconocer. */
+  categoria: { nombre: string } | null;
   unidadBase: UnidadBaseAlimento;
   medidas: ReadonlyArray<MedidaAlimento>;
 }
@@ -51,18 +53,32 @@ const COLUMNAS: Partial<ExcelJS.Column>[] = [
   { header: "Proteínas", key: "proteinas", width: 12 },
   { header: "Carbohidratos", key: "carbohidratos", width: 14 },
   { header: "Grasas", key: "grasas", width: 12 },
-  // Opcional: Carnes, Lácteos, Cereales, Frutas… (NOMBRES_CATEGORIA_ALIMENTO).
+  // Opcional (migración 95): mg por 100 g/ml, como los macros.
+  { header: "Cafeína (mg)", key: "cafeina", width: 13 },
+  // Opcional: el nombre de una categoría predeterminada o propia (Carnes,
+  // Lácteos, Geles deportivos…). La importación la busca por ese nombre.
   { header: "Categoría", key: "categoria", width: 22 },
   // Opcionales (migración 90): «g» o «ml» (los macros son por 100 de esa
   // unidad; vacío = g) y las medidas caseras, separadas por «;».
   { header: "Unidad", key: "unidad", width: 10 },
   { header: "Medidas", key: "medidas", width: 40 },
+  // Opcional (migración 95): texto libre.
+  { header: "Descripción", key: "descripcion", width: 45 },
   // Opcional: la imagen se inserta EN la celda (o sobre ella), no se escribe.
   { header: "Imagen", key: "imagen", width: 14 },
 ];
 
 /** La columna «Imagen» (base 1, como las numera exceljs). */
 const COLUMNA_IMAGEN = COLUMNAS.findIndex((c) => c.key === "imagen") + 1;
+
+/** La columna «Cafeína (mg)» (base 1). */
+const COLUMNA_CAFEINA = COLUMNAS.findIndex((c) => c.key === "cafeina") + 1;
+
+/** La nota del encabezado «Cafeína»: que va por 100, como los macros. */
+const NOTA_CAFEINA =
+  "Opcional. Miligramos de cafeína por 100 g (o por 100 ml si la Unidad es " +
+  "ml), igual que los macros. Un gel de 40 g con 40 mg de cafeína: 100. " +
+  "Vacía: sin dato (al reemplazar la lista, conserva la que ya tenía).";
 
 /** La nota del encabezado «Imagen»: cómo se carga y qué se acepta. */
 const NOTA_IMAGEN =
@@ -94,6 +110,7 @@ export async function escribirPlanillaAlimentos(
     hoja.columns = COLUMNAS;
     hoja.getRow(1).font = { bold: true };
     hoja.getRow(1).getCell(COLUMNA_IMAGEN).note = NOTA_IMAGEN;
+    hoja.getRow(1).getCell(COLUMNA_CAFEINA).note = NOTA_CAFEINA;
     hoja.autoFilter = {
       from: { row: 1, column: 1 },
       to: { row: 1, column: COLUMNAS.length },
@@ -121,7 +138,9 @@ function aFila(a: AlimentoParaPlanilla): Record<string, string | number> {
     proteinas: a.proteinasPor100 ?? "",
     carbohidratos: a.carbohidratosPor100 ?? "",
     grasas: a.grasasPor100 ?? "",
-    categoria: a.categoria ? NOMBRES_CATEGORIA_ALIMENTO[a.categoria] : "",
+    cafeina: a.cafeinaPor100 ?? "",
+    descripcion: a.descripcion ?? "",
+    categoria: a.categoria?.nombre ?? "",
     unidad: SIMBOLO_UNIDAD_BASE[a.unidadBase],
     medidas: medidasATexto(a.medidas, a.unidadBase),
   };
