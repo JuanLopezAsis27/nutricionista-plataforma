@@ -43,6 +43,8 @@ import { PrismaRepositorioRegistroDiario } from "@/infraestructura/repositorios/
 import { PrismaRepositorioReceta } from "@/infraestructura/repositorios/PrismaRepositorioReceta";
 import { PrismaRepositorioPlan } from "@/infraestructura/repositorios/PrismaRepositorioPlan";
 import { PrismaRepositorioPlanSemanal } from "@/infraestructura/repositorios/PrismaRepositorioPlanSemanal";
+import { PrismaRepositorioPlanificacionDeportiva } from "@/infraestructura/repositorios/PrismaRepositorioPlanificacionDeportiva";
+import { PrismaRepositorioGrupoPlanificacion } from "@/infraestructura/repositorios/PrismaRepositorioGrupoPlanificacion";
 import { PrismaRepositorioGrupoPlan } from "@/infraestructura/repositorios/PrismaRepositorioGrupoPlan";
 import { PrismaRepositorioGrupoReceta } from "@/infraestructura/repositorios/PrismaRepositorioGrupoReceta";
 import { PrismaRepositorioGrupoMaterial } from "@/infraestructura/repositorios/PrismaRepositorioGrupoMaterial";
@@ -255,6 +257,14 @@ export const repositorioPlan = perezoso(
 );
 export const repositorioPlanSemanal = perezoso(
   () => new PrismaRepositorioPlanSemanal(prisma()),
+);
+/** Planificaciones deportivas y sus asignaciones (migración 94). */
+export const repositorioPlanificacionDeportiva = perezoso(
+  () => new PrismaRepositorioPlanificacionDeportiva(prisma()),
+);
+/** Carpetas de planificaciones deportivas (migración 94). */
+export const repositorioGrupoPlanificacion = perezoso(
+  () => new PrismaRepositorioGrupoPlanificacion(prisma()),
 );
 export const repositorioGrupoPlan = perezoso(
   () => new PrismaRepositorioGrupoPlan(prisma()),

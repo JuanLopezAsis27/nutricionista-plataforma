@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Trophy,
   CalendarDays,
@@ -8,10 +9,11 @@ import {
   Pencil,
   Trash2,
   Dumbbell,
+  Medal,
 } from "lucide-react";
 import type { CompetenciaSalidaDto } from "@/aplicacion/dtos/deportivo.dto";
 import { useDeportivo } from "@/lib/hooks/useDeportivo";
-import { formatearFecha } from "@/lib/formato";
+import { esFechaPasada, formatearFecha } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Badge } from "@/componentes/ui/badge";
 import { Skeleton } from "@/componentes/ui/skeleton";
@@ -25,6 +27,13 @@ import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
 import { ETIQUETA_NIVEL, ETIQUETA_FASE } from "./seccion/comun";
 import { FormularioPerfil } from "./seccion/FormularioPerfil";
 import { FormularioCompetencia } from "./seccion/FormularioCompetencia";
+import { usePlanificacionDeportiva } from "@/lib/hooks/usePlanificacionDeportiva";
+import { SeccionPlanificacionesDelPaciente } from "@/componentes/planificacion-deportiva/SeccionPlanificacionesDelPaciente";
+import {
+  rutaDeporteDelPaciente,
+  rutaNuevaPlanificacion,
+  rutaPlanificacion,
+} from "@/componentes/planificacion-deportiva/rutas";
 
 // Los esquemas se reexportan porque `coherencia-formularios-2.test.ts` los
 // importa desde acá, que sigue siendo el punto de entrada del módulo.
@@ -35,6 +44,13 @@ export function SeccionDeportiva({ pacienteId }: { pacienteId: string }) {
     useDeportivo();
   const consultaPerfil = obtenerPerfil({ pacienteId });
   const consultaCompetencias = listarCompetencias({ pacienteId });
+  // Qué competencias ya tienen su planificación (migración 94): la fila lo
+  // dice y lleva a ella, en vez de ofrecer planificarla otra vez.
+  const { delPaciente } = usePlanificacionDeportiva();
+  const planificaciones = delPaciente({ pacienteId }).data ?? [];
+  const planificacionDe = (competenciaId: string) =>
+    planificaciones.find((p) => p.competencia?.id === competenciaId)
+      ?.planificacion ?? null;
 
   const [perfilAbierto, setPerfilAbierto] = useState(false);
   const [compAbierta, setCompAbierta] = useState(false);
@@ -47,8 +63,6 @@ export function SeccionDeportiva({ pacienteId }: { pacienteId: string }) {
 
   const perfil = consultaPerfil.data ?? null;
   const competencias = consultaCompetencias.data ?? [];
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
 
   return (
     <div className="space-y-8">
@@ -141,7 +155,8 @@ export function SeccionDeportiva({ pacienteId }: { pacienteId: string }) {
         ) : (
           <ul className="divide-y rounded-md border">
             {competencias.map((comp) => {
-              const pasada = new Date(comp.fecha) < hoy;
+              const pasada = esFechaPasada(comp.fecha);
+              const planificada = planificacionDe(comp.id);
               return (
                 <li
                   key={comp.id}
@@ -167,7 +182,28 @@ export function SeccionDeportiva({ pacienteId }: { pacienteId: string }) {
                       {comp.resultado && ` · Resultado: ${comp.resultado}`}
                     </p>
                   </div>
-                  <span className="flex shrink-0 gap-1">
+                  <span className="flex shrink-0 items-center gap-1">
+                    {planificada ? (
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={rutaPlanificacion(planificada.id)}>
+                          <Medal className="h-4 w-4" /> Ver planificación
+                        </Link>
+                      </Button>
+                    ) : (
+                      !pasada && (
+                        <Button asChild variant="outline" size="sm">
+                          <Link
+                            href={rutaNuevaPlanificacion({
+                              pacienteId,
+                              competenciaId: comp.id,
+                              volver: rutaDeporteDelPaciente(pacienteId),
+                            })}
+                          >
+                            <Medal className="h-4 w-4" /> Planificar
+                          </Link>
+                        </Button>
+                      )
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
@@ -194,6 +230,9 @@ export function SeccionDeportiva({ pacienteId }: { pacienteId: string }) {
           </ul>
         )}
       </div>
+
+      {/* Planificaciones deportivas: lo que se come en cada competencia. */}
+      <SeccionPlanificacionesDelPaciente pacienteId={pacienteId} />
 
       {/* Diálogos */}
       <Dialog open={perfilAbierto} onOpenChange={setPerfilAbierto}>

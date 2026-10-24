@@ -53,6 +53,7 @@ import { crearServicioSuperAdmin } from "./modulos/superadmin";
 import { crearServicioIA } from "./modulos/ia";
 import { crearServicioAutenticacion } from "./modulos/autenticacion";
 import { crearServicioDeportivo } from "./modulos/deportivo";
+import { crearServicioPlanificacionDeportiva } from "./modulos/planificacion-deportiva";
 import { crearServicioNutricion } from "./modulos/nutricion";
 import {
   crearServicioCredenciales,
@@ -537,6 +538,19 @@ export const servicioTracking = perezoso(() =>
 /** Métricas de dispositivo (wearables): importación, consulta y opt-in por día. */
 export const servicioMetricas = perezoso(() =>
   crearServicioMetricas({ metricas: nucleo.repositorioMetrica() }),
+);
+
+/**
+ * Planificación deportiva (migración 94): planificaciones por deporte
+ * (carreras), sus carpetas y sus asignaciones a pacientes y competencias.
+ */
+export const servicioPlanificacionDeportiva = perezoso(() =>
+  crearServicioPlanificacionDeportiva({
+    planificaciones: nucleo.repositorioPlanificacionDeportiva(),
+    grupos: nucleo.repositorioGrupoPlanificacion(),
+    pacientes: nucleo.repositorioPaciente(),
+    competencias: nucleo.repositorioCompetencia(),
+  }),
 );
 
 /** Módulo deportivo: perfil del deportista + calendario de competencias. */

@@ -46,3 +46,5 @@ export { ErrorPlanSemanalDuplicado } from "./ErrorPlanSemanalDuplicado";
 export { ErrorInvitacionInvalida } from "./ErrorInvitacionInvalida";
 export { ErrorCategoriaAlimentoDuplicada } from "./ErrorCategoriaAlimentoDuplicada";
 export { ErrorCategoriaAlimentoNoEncontrada } from "./ErrorCategoriaAlimentoNoEncontrada";
+export { ErrorPlanificacionNoEncontrada } from "./ErrorPlanificacionNoEncontrada";
+export { ErrorPlanificacionDuplicada } from "./ErrorPlanificacionDuplicada";

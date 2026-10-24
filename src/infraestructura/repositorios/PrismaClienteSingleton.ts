@@ -89,6 +89,9 @@ export const MODELOS_INQUILINO = new Set<string>([
   // Migración 93: las categorías PROPIAS (las predeterminadas son de la
   // plataforma y no llevan inquilino, como alimentos_base).
   "CategoriaAlimentoPropia",
+  // Migración 94: planificación deportiva.
+  "PlanificacionDeportiva",
+  "GrupoPlanificacion",
 
   // Hijas del agregado (migración 27). Antes quedaban fuera del filtro: se
   // llegaba a ellas por id directo sin ningún control de inquilino. Los casos
@@ -116,6 +119,10 @@ export const MODELOS_INQUILINO = new Set<string>([
   "AsignacionPlanSemanal",
   "AsignacionReceta",
   "AsignacionMaterial",
+  "PlanificacionCarrera",
+  "IngestaPlanificacion",
+  "AlimentoIngesta",
+  "AsignacionPlanificacion",
 ]);
 
 /**

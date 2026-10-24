@@ -368,6 +368,8 @@ model Nutricionista {
   retroalimentaciones         RetroalimentacionInsight[]
   alimentosPropios            AlimentoPropio[]
   categoriasAlimentoPropias   CategoriaAlimentoPropia[]
+  planificacionesDeportivas   PlanificacionDeportiva[]
+  gruposPlanificacion         GrupoPlanificacion[]
   historiasClinicas           HistoriaClinica[]
   camposHistoriaClinica       CampoHistoriaClinica[]
   evoluciones                 Evolucion[]
@@ -426,6 +428,10 @@ model Nutricionista {
   itemsComidaSemanal        ItemComidaSemanal[]
   asignacionesSemanal       AsignacionPlanSemanal[]
   itemsOpcionComida         ItemOpcionComida[]
+  planificacionesCarrera    PlanificacionCarrera[]
+  ingestasPlanificacion     IngestaPlanificacion[]
+  alimentosIngesta          AlimentoIngesta[]
+  asignacionesPlanificacion AsignacionPlanificacion[]
 
   @@map("nutricionistas")
 }
@@ -563,6 +569,10 @@ model Paciente {
   /// La carpeta de planes que se le auto-creó al pedir "crear plan para este
   /// paciente" desde su ficha (migración 56). Null si nunca se usó ese flujo.
   carpetaPlan               GrupoPlan?
+  /// La carpeta de planificaciones deportivas que se le auto-creó al crearle
+  /// una desde su ficha (migración 94), igual que `carpetaPlan`.
+  carpetaPlanificacion      GrupoPlanificacion?
+  asignacionesPlanificacion AsignacionPlanificacion[]
   nutricionista             Nutricionista             @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
   usuario                   Usuario?                  @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
   // SetNull: archivar una sede no puede dejar fichas apuntando a un
@@ -650,6 +660,8 @@ model Competencia {
   creadoEn        DateTime               @default(now())
   actualizadoEn   DateTime               @updatedAt
 
+  /// Las planificaciones deportivas asignadas para ESTA competencia.
+  planificaciones AsignacionPlanificacion[]
   paciente        Paciente                  @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
   nutricionista   Nutricionista             @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
@@ -2670,6 +2682,197 @@ model AsignacionPlanSemanal {
   @@index([nutricionistaId, planSemanalId])
   @@index([nutricionistaId, activa])
   @@map("asignaciones_plan_semanal")
+}
+
+// ---------------------------------------------------------------------------
+// Planificación deportiva (migración 94)
+// ---------------------------------------------------------------------------
+
+/// De qué deporte es una planificación. Cada tipo trae sus datos propios en
+/// una tabla 1 a 1 (CARRERA → `planificaciones_carrera`); lo común —nombre,
+/// carpeta, la línea de tiempo de ingestas— vive en la planificación. Los
+/// valores solo se agregan.
+enum TipoPlanificacionDeportiva {
+  CARRERA
+}
+
+/// Carrera de calle (running) o de montaña (trail running).
+enum ModalidadCarrera {
+  CALLE
+  TRAIL
+}
+
+/// Planificación nutricional de una competencia deportiva: qué se ingiere y
+/// CUÁNDO durante el evento. No es una modalidad de `PlanNutricional`: aquel
+/// describe la alimentación de un día; esta, la de una carrera. Un paciente
+/// puede tener los dos.
+///
+/// Se gestiona como un plan: carpetas (la del paciente se arma sola al crearla
+/// desde su ficha) y asignaciones a pacientes, cada una opcionalmente atada a
+/// una competencia de su calendario. Ver docs/PLANIFICACION-DEPORTIVA.md.
+model PlanificacionDeportiva {
+  id               String                     @id @default(uuid(4))
+  nutricionistaId  String
+  nombre           String
+  descripcion      String?
+  tipo             TipoPlanificacionDeportiva
+  /// Carpeta en la que está guardada (opcional). Ver GrupoPlanificacion.
+  grupoId          String?
+  /// Peso del deportista (kg) con el que se calcula la cafeína en mg/kg
+  /// (migración 96). Al crearla desde la ficha arranca con el último peso del
+  /// paciente; una general lleva un peso de referencia, o ninguno.
+  pesoReferenciaKg Decimal?                   @db.Decimal(5, 2)
+  creadoEn         DateTime                   @default(now())
+  actualizadoEn    DateTime                   @updatedAt
+
+  /// Con tipo CARRERA: sus datos (la entidad exige que estén).
+  carrera       PlanificacionCarrera?
+  ingestas      IngestaPlanificacion[]
+  asignaciones  AsignacionPlanificacion[]
+  nutricionista Nutricionista             @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  /// Borrar la carpeta NO borra las planificaciones: quedan sueltas.
+  grupo         GrupoPlanificacion?       @relation(fields: [grupoId], references: [id], onDelete: SetNull)
+
+  /// Mismo motivo que en los planes: el nombre es lo que se ve al elegir una
+  /// para asignar, y dos llamadas igual son indistinguibles ahí.
+  @@unique([nutricionistaId, nombre])
+  @@index([nutricionistaId, grupoId])
+  @@map("planificaciones_deportivas")
+}
+
+/// Los datos de una CARRERA (running o trail): 1 a 1 con su planificación.
+/// La duración estimada es la que da los totales POR HORA de las ingestas.
+model PlanificacionCarrera {
+  planificacionId         String           @id
+  nutricionistaId         String
+  modalidad               ModalidadCarrera @default(CALLE)
+  distanciaKm             Decimal          @db.Decimal(6, 2)
+  /// Minutos. Las ingestas «durante» son las que caen entre 0 y este valor.
+  duracionEstimadaMin     Int
+  desnivelPositivoM       Int?
+  desnivelNegativoM       Int?
+  /// Hora de largada (HH:mm). Con ella, cada ingesta dice también la hora del día.
+  horaLargada             String?
+  temperaturaEstimadaC    Decimal?         @db.Decimal(4, 1)
+  /// Objetivos POR HORA de carrera, contra los que se comparan las ingestas.
+  carbohidratosObjetivoGH Decimal?         @db.Decimal(6, 1)
+  liquidosObjetivoMlH     Int?
+  /// Informativo: los alimentos no traen sodio, así que no se suma.
+  sodioObjetivoMgH        Int?
+  /// Texto libre: dónde están y qué ofrecen los puestos de abastecimiento.
+  puestosAbastecimiento   String?
+  /// Texto libre: carga de carbohidratos, desayuno del día de la carrera…
+  estrategiaPrevia        String?
+  /// Texto libre: qué hacer después de la llegada.
+  recuperacion            String?
+
+  planificacion PlanificacionDeportiva @relation(fields: [planificacionId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista          @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@index([nutricionistaId])
+  @@map("planificaciones_carrera")
+}
+
+/// Un MOMENTO de ingesta: cuándo (minutos desde la largada; negativo = antes
+/// de largar) y, si se quiere, en qué kilómetro, con lo que se toma ahí (un
+/// gel y 150 ml de agua son una sola ingesta).
+model IngestaPlanificacion {
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
+  planificacionId String
+  minuto          Int
+  km              Decimal? @db.Decimal(6, 2)
+  notas           String?
+  orden           Int      @default(0)
+
+  planificacion PlanificacionDeportiva @relation(fields: [planificacionId], references: [id], onDelete: Cascade)
+  alimentos     AlimentoIngesta[]
+  nutricionista Nutricionista          @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@index([nutricionistaId, planificacionId])
+  @@map("ingestas_planificacion")
+}
+
+/// Alimento de una ingesta: la misma COPIA que guardan las comidas del plan
+/// semanal (nombre, cantidad, macros por 100, medida y `alimentoOrigenId`).
+/// Un plan entregado es un documento: editar el gel en la lista no lo cambia.
+model AlimentoIngesta {
+  id                  String             @id @default(uuid(4))
+  nutricionistaId     String
+  ingestaId           String
+  nombre              String
+  cantidadGramos      Decimal?           @db.Decimal(8, 1)
+  caloriasPor100      Decimal?           @db.Decimal(7, 2)
+  proteinasPor100     Decimal?           @db.Decimal(7, 2)
+  carbohidratosPor100 Decimal?           @db.Decimal(7, 2)
+  grasasPor100        Decimal?           @db.Decimal(7, 2)
+  /// mg de cafeína por 100 g/ml, COPIADOS del alimento como los macros
+  /// (migración 96).
+  cafeinaPor100       Decimal?           @db.Decimal(7, 2)
+  /// Ver ItemComidaSemanal (migración 90). Un alimento en MILILITRO suma a
+  /// los líquidos de la carrera.
+  unidadBase          UnidadBaseAlimento @default(GRAMO)
+  medidas             Json               @default("[]")
+  medida              String?
+  cantidadMedida      Decimal?           @db.Decimal(8, 2)
+  cantidadPorMedida   Decimal?           @db.Decimal(8, 1)
+  fuente              String?
+  referenciaExterna   String?
+  /// Ver ItemComidaSemanal.alimentoOrigenId: sin FK a propósito.
+  alimentoOrigenId    String?
+  orden               Int                @default(0)
+
+  ingesta       IngestaPlanificacion @relation(fields: [ingestaId], references: [id], onDelete: Cascade)
+  nutricionista Nutricionista        @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@index([nutricionistaId, ingestaId])
+  @@index([nutricionistaId, alimentoOrigenId])
+  @@map("alimentos_ingesta")
+}
+
+/// Carpeta de planificaciones deportivas: la misma idea que `GrupoPlan`. La
+/// que arma «crear desde la ficha del paciente» lleva su `pacienteId` para
+/// reencontrarla en la próxima creación sin adivinar por nombre.
+model GrupoPlanificacion {
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
+  nombre          String
+  descripcion     String?
+  /// SET NULL si el paciente se borra: la carpeta y su contenido quedan.
+  pacienteId      String?  @unique
+  creadoEn        DateTime @default(now())
+  actualizadoEn   DateTime @updatedAt
+
+  planificaciones PlanificacionDeportiva[]
+  nutricionista   Nutricionista            @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+  paciente        Paciente?                @relation(fields: [pacienteId], references: [id], onDelete: SetNull)
+
+  @@unique([nutricionistaId, nombre])
+  @@map("grupos_planificacion")
+}
+
+/// Una planificación asignada a un paciente: es lo que el paciente ve en su
+/// portal. Vínculo puro, como `AsignacionPlan` (desasignar borra la fila),
+/// con UNA competencia opcional de su calendario: «esta planificación es para
+/// la Maratón de Buenos Aires». SET NULL si la competencia se borra: la
+/// planificación sigue asignada, solo deja de estar atada a esa fecha.
+model AsignacionPlanificacion {
+  id              String   @id @default(uuid(4))
+  nutricionistaId String
+  planificacionId String
+  pacienteId      String
+  competenciaId   String?
+  creadoEn        DateTime @default(now())
+
+  planificacion PlanificacionDeportiva @relation(fields: [planificacionId], references: [id], onDelete: Cascade)
+  paciente      Paciente               @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  competencia   Competencia?           @relation(fields: [competenciaId], references: [id], onDelete: SetNull)
+  nutricionista Nutricionista          @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
+
+  @@unique([planificacionId, pacienteId])
+  @@index([nutricionistaId, pacienteId])
+  @@index([competenciaId])
+  @@map("asignaciones_planificacion")
 }
 
 // ---------------------------------------------------------------------------

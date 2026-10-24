@@ -49,6 +49,25 @@ import { SeccionDeportiva } from "@/componentes/deportivo/SeccionDeportiva";
 import { ObjetivosPaciente } from "@/componentes/objetivos/ObjetivosPaciente";
 import { MensajesDePaciente } from "@/componentes/mensajeria/MensajesDePaciente";
 
+/** Las pestañas de la ficha que se pueden abrir con `?pestana=`. */
+const PESTANAS = [
+  "evaluacion",
+  "antropometria",
+  "bioimpedancia",
+  "progreso",
+  "objetivos",
+  "diario",
+  "turnos",
+  "plan",
+  "suplementos",
+  "deporte",
+  "mensajes",
+] as const;
+
+function pestanaInicial(valor: string | null): string {
+  return PESTANAS.find((p) => p === valor) ?? "evaluacion";
+}
+
 export default function PaginaDetallePaciente() {
   const params = useParams<{ id: string }>();
   const id = params.id;
@@ -180,7 +199,9 @@ export default function PaginaDetallePaciente() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="evaluacion">
+      {/* `?pestana=` abre una pestaña al llegar: volver de una planificación
+          deportiva deja al profesional en «Deporte», donde la creó. */}
+      <Tabs defaultValue={pestanaInicial(buscar.get("pestana"))}>
         <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="evaluacion">Evaluación</TabsTrigger>
           <TabsTrigger value="antropometria">Antropometría</TabsTrigger>

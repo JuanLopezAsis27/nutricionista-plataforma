@@ -78,6 +78,18 @@ export function aFechaISO(fecha: Date | string | null | undefined): string {
   return new Date(fecha).toISOString().slice(0, 10);
 }
 
+/**
+ * ¿Una columna DATE (una competencia, un turno) ya pasó? HOY no cuenta como
+ * pasado.
+ *
+ * Compara DÍAS y no instantes: el DATE llega como medianoche UTC, y contra la
+ * medianoche LOCAL —`hoy.setHours(0, 0, 0, 0)`— al oeste de Greenwich el día
+ * de hoy queda «antes de hoy»: la carrera de hoy figuraba como terminada.
+ */
+export function esFechaPasada(fecha: Date | string): boolean {
+  return aFechaISO(fecha) < hoyLocalISO();
+}
+
 const ZONA_ARGENTINA = "America/Argentina/Buenos_Aires";
 
 // en-CA formatea como YYYY-MM-DD, ideal para comparar e inicializar inputs date.

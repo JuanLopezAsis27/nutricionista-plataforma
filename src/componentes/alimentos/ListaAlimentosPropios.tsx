@@ -446,6 +446,7 @@ function textoUsos(
         recetas: number;
         planesSemanales: number;
         recetasPlataforma: number;
+        planificaciones: number;
         consultorios: number;
       }
     | undefined,
@@ -459,6 +460,12 @@ function textoUsos(
     usos.recetas > 0 && plural(usos.recetas, "receta", "recetas"),
     usos.planesSemanales > 0 &&
       plural(usos.planesSemanales, "plan semanal", "planes semanales"),
+    usos.planificaciones > 0 &&
+      plural(
+        usos.planificaciones,
+        "planificación deportiva",
+        "planificaciones deportivas",
+      ),
     usos.recetasPlataforma > 0 &&
       plural(
         usos.recetasPlataforma,
