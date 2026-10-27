@@ -10,6 +10,7 @@ import {
   Trash2,
   Dumbbell,
   Medal,
+  Link2,
 } from "lucide-react";
 import type { CompetenciaSalidaDto } from "@/aplicacion/dtos/deportivo.dto";
 import { useDeportivo } from "@/lib/hooks/useDeportivo";
@@ -29,6 +30,8 @@ import { FormularioPerfil } from "./seccion/FormularioPerfil";
 import { FormularioCompetencia } from "./seccion/FormularioCompetencia";
 import { usePlanificacionDeportiva } from "@/lib/hooks/usePlanificacionDeportiva";
 import { SeccionPlanificacionesDelPaciente } from "@/componentes/planificacion-deportiva/SeccionPlanificacionesDelPaciente";
+import { DialogoAsignarPlanificacion } from "@/componentes/planificacion-deportiva/DialogosPlanificacion";
+import { planificacionSegunPerfil } from "@/componentes/planificacion-deportiva/segunPerfil";
 import {
   rutaDeporteDelPaciente,
   rutaNuevaPlanificacion,
@@ -60,9 +63,18 @@ export function SeccionDeportiva({ pacienteId }: { pacienteId: string }) {
   const [compEliminar, setCompEliminar] = useState<CompetenciaSalidaDto | null>(
     null,
   );
+  // La competencia para la que se asigna una planificación que ya existe.
+  const [compAsignar, setCompAsignar] = useState<CompetenciaSalidaDto | null>(
+    null,
+  );
 
   const perfil = consultaPerfil.data ?? null;
   const competencias = consultaCompetencias.data ?? [];
+  // Qué se puede planificar lo dice su deporte (migración 98): si no tiene
+  // planificación, las competencias no ofrecen planificar ni asignar.
+  const puedePlanificar =
+    !consultaPerfil.isLoading &&
+    planificacionSegunPerfil(perfil).estado !== "NO_DISPONIBLE";
 
   return (
     <div className="space-y-8">
@@ -91,7 +103,7 @@ export function SeccionDeportiva({ pacienteId }: { pacienteId: string }) {
           </p>
         ) : (
           <div className="grid gap-2 rounded-md border p-4 text-sm sm:grid-cols-2">
-            <Dato etiqueta="Deporte" valor={perfil.deporte} />
+            <Dato etiqueta="Deporte" valor={perfil.deporte.nombre} />
             <Dato etiqueta="Disciplina" valor={perfil.disciplina} />
             <Dato etiqueta="Nivel" valor={ETIQUETA_NIVEL[perfil.nivel]} />
             <Dato etiqueta="Fase" valor={ETIQUETA_FASE[perfil.fase]} />
@@ -190,18 +202,29 @@ export function SeccionDeportiva({ pacienteId }: { pacienteId: string }) {
                         </Link>
                       </Button>
                     ) : (
-                      !pasada && (
-                        <Button asChild variant="outline" size="sm">
-                          <Link
-                            href={rutaNuevaPlanificacion({
-                              pacienteId,
-                              competenciaId: comp.id,
-                              volver: rutaDeporteDelPaciente(pacienteId),
-                            })}
+                      !pasada &&
+                      puedePlanificar && (
+                        <>
+                          <Button asChild variant="outline" size="sm">
+                            <Link
+                              href={rutaNuevaPlanificacion({
+                                pacienteId,
+                                competenciaId: comp.id,
+                                volver: rutaDeporteDelPaciente(pacienteId),
+                              })}
+                            >
+                              <Medal className="h-4 w-4" /> Planificar
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Asignarle una planificación que ya existe"
+                            onClick={() => setCompAsignar(comp)}
                           >
-                            <Medal className="h-4 w-4" /> Planificar
-                          </Link>
-                        </Button>
+                            <Link2 className="h-4 w-4" /> Asignar existente
+                          </Button>
+                        </>
                       )
                     )}
                     <Button
@@ -233,6 +256,15 @@ export function SeccionDeportiva({ pacienteId }: { pacienteId: string }) {
 
       {/* Planificaciones deportivas: lo que se come en cada competencia. */}
       <SeccionPlanificacionesDelPaciente pacienteId={pacienteId} />
+
+      {/* Se monta de nuevo por competencia: arranca con ESA elegida. */}
+      <DialogoAsignarPlanificacion
+        key={compAsignar?.id ?? "ninguna"}
+        abierto={compAsignar !== null}
+        pacienteId={pacienteId}
+        competenciaIdInicial={compAsignar?.id ?? null}
+        onCerrar={() => setCompAsignar(null)}
+      />
 
       {/* Diálogos */}
       <Dialog open={perfilAbierto} onOpenChange={setPerfilAbierto}>

@@ -4,13 +4,15 @@ import {
   FASES_TEMPORADA,
 } from "@/dominio/entidades/PerfilDeportivo";
 import { IMPORTANCIAS_COMPETENCIA } from "@/dominio/entidades/Competencia";
+import { deporteSalidaDto } from "./deporte.dto";
 
 /** DTOs del módulo deportivo (perfil del deportista + calendario de competencias). */
 
 // --- Perfil deportivo ------------------------------------------------------
 export const guardarPerfilDeportivoDto = z.object({
   pacienteId: z.string().min(1),
-  deporte: z.string().min(1, "Indicá el deporte").max(80),
+  /** De la lista de la plataforma (migración 97); ya no es texto libre. */
+  deporteId: z.string().min(1, "Elegí el deporte").max(64),
   disciplina: z.string().max(80).optional().nullable(),
   nivel: z.enum(NIVELES_DEPORTIVOS).optional(),
   fase: z.enum(FASES_TEMPORADA).optional(),
@@ -34,7 +36,7 @@ export type GuardarPerfilDeportivoDto = z.infer<
 export const perfilDeportivoSalidaDto = z.object({
   id: z.string(),
   pacienteId: z.string(),
-  deporte: z.string(),
+  deporte: deporteSalidaDto,
   disciplina: z.string().nullable(),
   nivel: z.enum(NIVELES_DEPORTIVOS),
   fase: z.enum(FASES_TEMPORADA),

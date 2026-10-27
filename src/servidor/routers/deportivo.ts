@@ -18,6 +18,12 @@ import {
  * perfil y calendario (pacienteId tomado de la sesión).
  */
 export const routerDeportivo = crearRouter({
+  // --- Lista de deportes de la plataforma (migración 97) -------------------
+  // Para el buscador del perfil. Se administra en el router del SUPERADMIN.
+  deportes: nutricionistaProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.deportes.listar();
+  }),
+
   // --- Nutricionista (por pacienteId) --------------------------------------
   obtenerPerfil: nutricionistaProcedimiento
     .input(idPacienteDeportivoDto)

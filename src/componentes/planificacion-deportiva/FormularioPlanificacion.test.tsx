@@ -125,4 +125,20 @@ describe("FormularioPlanificacion", () => {
       alimentoOrigenId: "ali-gel",
     });
   });
+
+  it("una duración escrita como «3» se marca y no deja la llegada en el minuto 3", async () => {
+    renderizar();
+    const campo = screen.getByLabelText("Duración estimada (h:mm)");
+    await userEvent.type(campo, "3");
+    await userEvent.click(
+      screen.getByRole("button", { name: /Agregar ingesta/ }),
+    );
+    expect(screen.getByText(/tres horas es 3:00/)).toBeTruthy();
+    expect(screen.queryByText(/Cae después de la llegada/)).toBeNull();
+
+    // Escrita bien, dice cómo la leyó.
+    await userEvent.type(campo, ":00");
+    expect(screen.getByText("3:00 h")).toBeTruthy();
+    expect(screen.queryByText(/tres horas es 3:00/)).toBeNull();
+  });
 });

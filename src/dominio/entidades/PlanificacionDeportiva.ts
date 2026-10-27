@@ -34,6 +34,47 @@ export const ETIQUETA_MODALIDAD_CARRERA: Record<ModalidadCarrera, string> = {
   TRAIL: "Trail running",
 };
 
+/**
+ * Qué planificación le corresponde a un DEPORTE de la lista de la plataforma
+ * (migración 98): el tipo y, dentro del tipo, con qué arranca. Es lo que hace
+ * que la planificación «se ajuste al perfil deportivo»: un paciente de trail
+ * running empieza con una carrera de trail; uno de fútbol, por ahora, no
+ * tiene planificación (su deporte no tiene formato).
+ *
+ * Un deporte nuevo de planificación (ciclismo, triatlón) es un valor más acá,
+ * en `DEFINICION_FORMATO` y en el enum de la base, con su propio bloque de
+ * arranque. Los valores solo se agregan.
+ */
+export const FORMATOS_PLANIFICACION = [
+  "CARRERA_CALLE",
+  "CARRERA_TRAIL",
+] as const;
+export type FormatoPlanificacion = (typeof FORMATOS_PLANIFICACION)[number];
+
+/** Cómo arranca una planificación de ese formato. */
+export interface DefinicionFormato {
+  tipo: TipoPlanificacion;
+  etiqueta: string;
+  /** Con tipo CARRERA: la modalidad con que arranca (se puede cambiar). */
+  carrera: { modalidad: ModalidadCarrera } | null;
+}
+
+export const DEFINICION_FORMATO: Record<
+  FormatoPlanificacion,
+  DefinicionFormato
+> = {
+  CARRERA_CALLE: {
+    tipo: "CARRERA",
+    etiqueta: "Running (calle)",
+    carrera: { modalidad: "CALLE" },
+  },
+  CARRERA_TRAIL: {
+    tipo: "CARRERA",
+    etiqueta: "Trail running",
+    carrera: { modalidad: "TRAIL" },
+  },
+};
+
 /** Hasta cuánto antes de la largada puede ir una ingesta: 12 h (la cena previa no, el desayuno sí). */
 export const MINUTOS_MAXIMOS_ANTES_DE_LARGAR = 720;
 /** Una carrera de hasta 7 días cubre los ultra por etapas sin dejar pasar un error de tipeo. */
@@ -728,7 +769,7 @@ function normalizarIngesta(
   }
   if (carrera && minuto > carrera.duracionEstimadaMin) {
     throw new ErrorValidacion(
-      `Hay una ingesta después de la llegada estimada (${formatearMinutos(minuto)} de carrera). Lo de después de llegar va en «Recuperación».`,
+      `Hay una ingesta a los ${formatearMinutos(minuto)} de carrera, después de la llegada estimada (${formatearMinutos(carrera.duracionEstimadaMin)}). Lo de después de llegar va en «Recuperación».`,
     );
   }
 

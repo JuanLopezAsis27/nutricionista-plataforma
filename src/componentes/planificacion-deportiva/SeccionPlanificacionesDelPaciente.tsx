@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Medal, Plus, Link2, Eye, Pencil, X, Trophy } from "lucide-react";
 import { ETIQUETA_MODALIDAD_CARRERA } from "@/dominio/entidades/PlanificacionDeportiva";
 import { usePlanificacionDeportiva } from "@/lib/hooks/usePlanificacionDeportiva";
+import { useDeportivo } from "@/lib/hooks/useDeportivo";
 import { formatearFecha } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { Badge } from "@/componentes/ui/badge";
@@ -18,6 +19,7 @@ import {
   rutaPlanificacion,
 } from "./rutas";
 import { numero, textoDuracion } from "./presentacion";
+import { planificacionSegunPerfil, textoSinPlanificacion } from "./segunPerfil";
 
 /**
  * Las planificaciones deportivas del paciente, en su pestaña «Deporte», junto
@@ -27,6 +29,10 @@ import { numero, textoDuracion } from "./presentacion";
  *
  * Están separadas de la pestaña «Planes» a propósito: un plan nutricional es
  * la alimentación de todos los días; esto es lo que se come en una carrera.
+ *
+ * Lo que se ofrece sigue al PERFIL DEPORTIVO (migración 98): si su deporte
+ * tiene planificación, «Nueva» arranca con esa; si no tiene (fútbol, por
+ * ahora), no se ofrece crear ni asignar, y las que ya tiene se siguen viendo.
  */
 export function SeccionPlanificacionesDelPaciente({
   pacienteId,
@@ -35,6 +41,11 @@ export function SeccionPlanificacionesDelPaciente({
 }) {
   const { delPaciente, desasignar } = usePlanificacionDeportiva();
   const consulta = delPaciente({ pacienteId });
+  const { obtenerPerfil } = useDeportivo();
+  const perfil = obtenerPerfil({ pacienteId });
+  const segunPerfil = planificacionSegunPerfil(perfil.data);
+  const puedePlanificar =
+    !perfil.isLoading && segunPerfil.estado !== "NO_DISPONIBLE";
   const [asignar, setAsignar] = useState(false);
   const [aQuitar, setAQuitar] = useState<{
     id: string;
@@ -49,25 +60,51 @@ export function SeccionPlanificacionesDelPaciente({
         <h3 className="flex items-center gap-2 font-semibold">
           <Medal className="h-4 w-4 text-primary" /> Planificaciones deportivas
         </h3>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => setAsignar(true)}>
-            <Link2 className="h-4 w-4" /> Asignar existente
-          </Button>
-          <Button asChild size="sm">
-            <Link href={rutaNuevaPlanificacion({ pacienteId, volver })}>
-              <Plus className="h-4 w-4" /> Nueva
-            </Link>
-          </Button>
-        </div>
+        {puedePlanificar && (
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setAsignar(true)}
+            >
+              <Link2 className="h-4 w-4" /> Asignar existente
+            </Button>
+            <Button asChild size="sm">
+              <Link href={rutaNuevaPlanificacion({ pacienteId, volver })}>
+                <Plus className="h-4 w-4" /> Nueva
+              </Link>
+            </Button>
+          </div>
+        )}
       </div>
+
+      {segunPerfil.estado === "DISPONIBLE" && (
+        <p className="text-xs text-muted-foreground">
+          Según su perfil ({segunPerfil.deporte}), las nuevas arrancan como{" "}
+          <strong>{segunPerfil.definicion.etiqueta}</strong>.
+        </p>
+      )}
+      {segunPerfil.estado === "SIN_PERFIL" && !perfil.isLoading && (
+        <p className="text-xs text-muted-foreground">
+          Cargá su perfil deportivo y la planificación va a arrancar según su
+          deporte.
+        </p>
+      )}
+      {segunPerfil.estado === "NO_DISPONIBLE" && (
+        <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+          {textoSinPlanificacion(segunPerfil.deporte)}
+        </p>
+      )}
 
       {consulta.isLoading ? (
         <Skeleton className="h-20 w-full" />
       ) : planificaciones.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Sin planificaciones. Creá una para una competencia de su calendario
-          (botón «Planificar» de cada competencia) o una general.
-        </p>
+        puedePlanificar && (
+          <p className="text-sm text-muted-foreground">
+            Sin planificaciones. Creá una para una competencia de su calendario
+            (botón «Planificar» de cada competencia) o una general.
+          </p>
+        )
       ) : (
         <ul className="divide-y rounded-md border">
           {planificaciones.map(({ planificacion: p, competencia }) => (

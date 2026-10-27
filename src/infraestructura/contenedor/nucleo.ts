@@ -51,6 +51,7 @@ import { PrismaRepositorioGrupoMaterial } from "@/infraestructura/repositorios/P
 import { PrismaRepositorioGrabacionConsulta } from "@/infraestructura/repositorios/PrismaRepositorioGrabacionConsulta";
 import { PrismaRepositorioObjetivo } from "@/infraestructura/repositorios/PrismaRepositorioObjetivo";
 import { PrismaRepositorioPerfilDeportivo } from "@/infraestructura/repositorios/PrismaRepositorioPerfilDeportivo";
+import { PrismaRepositorioDeporte } from "@/infraestructura/repositorios/PrismaRepositorioDeporte";
 import { PrismaRepositorioCompetencia } from "@/infraestructura/repositorios/PrismaRepositorioCompetencia";
 import { PrismaRepositorioMaterial } from "@/infraestructura/repositorios/PrismaRepositorioMaterial";
 import { PrismaRepositorioSuplemento } from "@/infraestructura/repositorios/PrismaRepositorioSuplemento";
@@ -359,6 +360,10 @@ export const repositorioCategoriaAlimentoBase = perezoso(
 /** Categorías de alimento propias de cada consultorio (migración 93). */
 export const repositorioCategoriaAlimentoPropia = perezoso(
   () => new PrismaRepositorioCategoriaAlimentoPropia(prisma()),
+);
+/** Deportes de la plataforma (sin inquilino, migración 97). */
+export const repositorioDeporte = perezoso(
+  () => new PrismaRepositorioDeporte(prisma()),
 );
 /** Recetas predeterminadas de la plataforma (sin inquilino, migración 82). */
 export const repositorioRecetaBase = perezoso(

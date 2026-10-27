@@ -22,6 +22,12 @@ import {
   moverCategoriaAlimentoDto,
 } from "@/aplicacion/dtos/categoriaAlimento.dto";
 import {
+  crearDeporteDto,
+  renombrarDeporteDto,
+  eliminarDeporteDto,
+  cambiarPlanificacionDeporteDto,
+} from "@/aplicacion/dtos/deporte.dto";
+import {
   crearRecetaBaseDto,
   actualizarRecetaBaseDto,
   idRecetaBaseDto,
@@ -174,6 +180,41 @@ export const routerSuperAdmin = crearRouter({
         input.direccion,
       );
       return { ok: true };
+    }),
+
+  // Deportes (migración 97): la lista de la que sale el deporte de cada perfil
+  // deportivo, en todos los consultorios. Solo se administra desde acá.
+  deportes: superadminProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.deportes.listar();
+  }),
+
+  crearDeporte: superadminProcedimiento
+    .input(crearDeporteDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.deportes.crear(input.nombre);
+    }),
+
+  renombrarDeporte: superadminProcedimiento
+    .input(renombrarDeporteDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.deportes.renombrar(input.id, input.nombre);
+    }),
+
+  eliminarDeporte: superadminProcedimiento
+    .input(eliminarDeporteDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.deportes.eliminar(input.id);
+      return { eliminado: true };
+    }),
+
+  // Qué planificación le corresponde a cada deporte (migración 98).
+  cambiarPlanificacionDeporte: superadminProcedimiento
+    .input(cambiarPlanificacionDeporteDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.deportes.cambiarPlanificacion(
+        input.id,
+        input.formatoPlanificacion,
+      );
     }),
 
   listarRecetasBase: superadminProcedimiento

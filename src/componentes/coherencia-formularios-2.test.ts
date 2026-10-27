@@ -220,7 +220,7 @@ describe("FormularioTurno / FormularioReprogramar vs turno.dto", () => {
 
 describe("SeccionDeportiva vs deportivo.dto", () => {
   const base = {
-    deporte: "Judo",
+    deporteId: "dpt-judo",
     disciplina: "",
     nivel: "COMPETITIVO" as const,
     fase: "PRETEMPORADA" as const,
@@ -238,7 +238,7 @@ describe("SeccionDeportiva vs deportivo.dto", () => {
     expect(
       guardarPerfilDeportivoDto.safeParse({
         pacienteId: "pac-1",
-        deporte: "Judo",
+        deporteId: "dpt-judo",
         pesoCategoriaKg: 5,
       }).success,
     ).toBe(false);

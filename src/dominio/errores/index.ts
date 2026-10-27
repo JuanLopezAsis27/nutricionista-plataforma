@@ -48,3 +48,6 @@ export { ErrorCategoriaAlimentoDuplicada } from "./ErrorCategoriaAlimentoDuplica
 export { ErrorCategoriaAlimentoNoEncontrada } from "./ErrorCategoriaAlimentoNoEncontrada";
 export { ErrorPlanificacionNoEncontrada } from "./ErrorPlanificacionNoEncontrada";
 export { ErrorPlanificacionDuplicada } from "./ErrorPlanificacionDuplicada";
+export { ErrorDeporteDuplicado } from "./ErrorDeporteDuplicado";
+export { ErrorDeporteNoEncontrado } from "./ErrorDeporteNoEncontrado";
+export { ErrorDeporteEnUso } from "./ErrorDeporteEnUso";

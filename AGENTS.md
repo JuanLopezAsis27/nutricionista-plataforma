@@ -51,7 +51,7 @@ módulo va en `/docs`, y desde acá se lo enlaza:
 | `docs/MEDIDAS-ALIMENTOS.md`  | g, ml y medidas caseras («1 taza = 240 ml»): en el alimento, en el plan y en la planilla |
 | `docs/BIBLIOTECA.md`         | Materiales para pacientes, sus carpetas y el buscador |
 | `docs/PLANES-SEMANALES.md`   | El menú de la semana, sus metas propias, sus alternativas y su página |
-| `docs/PLANIFICACION-DEPORTIVA.md` | La estrategia de una competencia (carreras): ingestas por minuto, g/h y su competencia |
+| `docs/PLANIFICACION-DEPORTIVA.md` | La estrategia de una competencia (carreras): ingestas por minuto, g/h y su competencia; la lista de deportes del perfil |
 | `docs/ANTROPOMETRIA.md`      | Ecuaciones de grasa, distribución y sitios de pliegue |
 | `docs/BIOIMPEDANCIA.md`      | La balanza: mediciones, dashboard y metas; por qué no se mezcla con la antropometría |
 | `docs/HISTORIA-CLINICA.md`   | Evoluciones, campos personalizados y el alta por documento |
@@ -588,7 +588,16 @@ dominio, y `resumen.test.ts` compara los dos.
 
 Se gestiona como los planes: generales que se asignan a varios, o creadas
 desde la ficha del paciente (pestaña Deporte), que van a la carpeta con su
-nombre y quedan asignadas. La asignación lleva una **competencia opcional de su
+nombre y quedan asignadas. El **deporte del perfil deportivo** sale de una
+lista de la PLATAFORMA (`deportes`, migración 97, sin inquilino) que solo
+administra el SUPERADMIN: no hay deportes propios de un consultorio, se elige
+con un buscador y uno en uso no se borra (RESTRICT), se renombra. Cada
+deporte dice además **qué planificación le corresponde**
+(`formatoPlanificacion`, migración 98: running → carrera de calle, trail →
+de trail), y la ficha ofrece planificar según el deporte del perfil: uno sin
+planificación no ofrece crear ni asignar. Es lo que se ofrece, no una regla
+del servidor; sumar otro deporte es un `TipoPlanificacionDeportiva` con su
+tabla y un `FormatoPlanificacion` más. La asignación lleva una **competencia opcional de su
 calendario**, que tiene que ser DE ese paciente. El paciente las ve en «Mis
 competencias», que aparece en su menú solo si tiene alguna. Ver
 `docs/PLANIFICACION-DEPORTIVA.md`.
@@ -938,6 +947,9 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   largar o después de la llegada estimada, ni tocar esa cuenta sin su espejo
   del formulario. Y nunca atar una asignación a la competencia de otro
   paciente: va `verificarCompetenciaDelPaciente`
+- Nunca agregar `nutricionistaId` a `deportes` ni dejar que un consultorio la
+  escriba, ni volver el deporte del perfil a texto libre: es la lista de la
+  plataforma (migración 97) y la administra el SUPERADMIN
 - Nunca comparar alimentos por `nombreNormalizado` para decidir si ya están:
   ese campo es para BUSCAR (solo minúsculas). La identidad es
   `claveIdentidad` (nombre + marca, sin tildes ni espacios de más), y es la

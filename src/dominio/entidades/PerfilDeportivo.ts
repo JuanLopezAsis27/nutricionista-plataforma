@@ -1,4 +1,5 @@
 import { ErrorValidacion } from "../errores/ErrorValidacion";
+import type { ReferenciaDeporte } from "./Deporte";
 
 /** Nivel competitivo del deportista. */
 export const NIVELES_DEPORTIVOS = [
@@ -21,8 +22,11 @@ export type FaseTemporada = (typeof FASES_TEMPORADA)[number];
 /** Datos para crear/editar el perfil deportivo de un paciente. */
 export interface DatosPerfilDeportivo {
   pacienteId: string;
-  /** Deporte principal (atletismo, fútbol, boxeo, tenis…). */
-  deporte: string;
+  /**
+   * Deporte principal, de la lista de la plataforma (migración 97). El caso de
+   * uso lo resuelve por id: acá llega ya verificado.
+   */
+  deporte: ReferenciaDeporte;
   /** Disciplina/prueba dentro del deporte (maratón, mediofondo, peso welter…). */
   disciplina?: string | null;
   nivel?: NivelDeportivo;
@@ -44,7 +48,7 @@ export interface DatosPerfilDeportivo {
 export interface PropiedadesPerfilDeportivo {
   id: string;
   pacienteId: string;
-  deporte: string;
+  deporte: ReferenciaDeporte;
   disciplina: string | null;
   nivel: NivelDeportivo;
   fase: FaseTemporada;
@@ -79,10 +83,14 @@ export class PerfilDeportivo {
         "El perfil deportivo debe pertenecer a un paciente.",
       );
     }
-    const deporte = datos.deporte?.trim() ?? "";
-    if (deporte.length === 0) {
-      throw new ErrorValidacion("Indicá el deporte.");
+    if (!datos.deporte?.id) {
+      throw new ErrorValidacion("Elegí el deporte.");
     }
+    const deporte: ReferenciaDeporte = {
+      id: datos.deporte.id,
+      nombre: datos.deporte.nombre,
+      formatoPlanificacion: datos.deporte.formatoPlanificacion ?? null,
+    };
     const nivel = datos.nivel ?? "AMATEUR";
     if (!NIVELES_DEPORTIVOS.includes(nivel)) {
       throw new ErrorValidacion("El nivel deportivo no es válido.");
@@ -149,12 +157,12 @@ export class PerfilDeportivo {
   get pacienteId(): string {
     return this.props.pacienteId;
   }
-  get deporte(): string {
+  get deporte(): ReferenciaDeporte {
     return this.props.deporte;
   }
 
   aPrimitivos(): PropiedadesPerfilDeportivo {
-    return { ...this.props };
+    return { ...this.props, deporte: { ...this.props.deporte } };
   }
 }
 

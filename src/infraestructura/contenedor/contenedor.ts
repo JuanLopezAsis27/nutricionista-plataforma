@@ -52,7 +52,10 @@ import { crearServicioMetricas } from "./modulos/metricas";
 import { crearServicioSuperAdmin } from "./modulos/superadmin";
 import { crearServicioIA } from "./modulos/ia";
 import { crearServicioAutenticacion } from "./modulos/autenticacion";
-import { crearServicioDeportivo } from "./modulos/deportivo";
+import {
+  crearServicioDeportes,
+  crearServicioDeportivo,
+} from "./modulos/deportivo";
 import { crearServicioPlanificacionDeportiva } from "./modulos/planificacion-deportiva";
 import { crearServicioNutricion } from "./modulos/nutricion";
 import {
@@ -559,6 +562,15 @@ export const servicioDeportivo = perezoso(() =>
     perfiles: nucleo.repositorioPerfilDeportivo(),
     competencias: nucleo.repositorioCompetencia(),
     pacientes: nucleo.repositorioPaciente(),
+    deportes: nucleo.repositorioDeporte(),
+  }),
+);
+
+/** La lista de deportes de la plataforma: la administra el SUPERADMIN. */
+export const servicioDeportes = perezoso(() =>
+  crearServicioDeportes({
+    deportes: nucleo.repositorioDeporte(),
+    perfiles: nucleo.repositorioPerfilDeportivo(),
   }),
 );
 

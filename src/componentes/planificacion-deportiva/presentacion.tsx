@@ -103,6 +103,7 @@ export function TarjetaResumen({
   resumen,
   objetivos,
   pesoKg = null,
+  duracionMin = null,
   compacta = false,
 }: {
   resumen: ResumenParaMostrar;
@@ -113,6 +114,12 @@ export function TarjetaResumen({
   };
   /** El peso con el que se calculó el mg/kg, para decirlo. */
   pesoKg?: number | null;
+  /**
+   * La duración estimada por la que se dividió, para decirla: un «por hora»
+   * sin su divisor a la vista no se puede revisar (una duración leída como
+   * 3 minutos daba 17.680 kcal/h y nada decía por qué).
+   */
+  duracionMin?: number | null;
   compacta?: boolean;
 }) {
   const { durante, antes, cafeina } = resumen;
@@ -218,9 +225,11 @@ export function TarjetaResumen({
         )}
 
       <p className="text-xs text-muted-foreground">
-        {antes.cantidad > 0
-          ? `Antes de largar: ${antes.cantidad} ${antes.cantidad === 1 ? "ingesta" : "ingestas"} · ${numero(antes.macros.carbohidratosG, " g")} de carbohidratos${antes.liquidosMl != null ? ` · ${numero(antes.liquidosMl, " ml")}` : ""}${cafeina.antesMg != null ? ` · ${numero(cafeina.antesMg, " mg")} de cafeína` : ""}. No cuentan para los valores por hora (la cafeína sí suma al total).`
-          : "Los valores por hora suman solo lo que se toma entre la largada y la llegada estimada."}
+        {duracionMin != null && duracionMin > 0
+          ? `Por hora = lo que se toma entre la largada y la llegada, dividido por la duración estimada (${textoDuracion(duracionMin)}).`
+          : "Sin duración estimada no hay valores por hora."}
+        {antes.cantidad > 0 &&
+          ` Antes de largar: ${antes.cantidad} ${antes.cantidad === 1 ? "ingesta" : "ingestas"} · ${numero(antes.macros.carbohidratosG, " g")} de carbohidratos${antes.liquidosMl != null ? ` · ${numero(antes.liquidosMl, " ml")}` : ""}${cafeina.antesMg != null ? ` · ${numero(cafeina.antesMg, " mg")} de cafeína` : ""}. No cuentan para los valores por hora (la cafeína sí suma al total).`}
         {objetivos.sodioMgH != null &&
           ` Sodio: objetivo de ${numero(objetivos.sodioMgH, " mg/h")} (los alimentos no traen sodio, así que no se suma).`}
       </p>

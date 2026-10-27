@@ -76,16 +76,21 @@ export function claveNueva(): string {
   return `ingesta-${Date.now()}-${contador}`;
 }
 
+/**
+ * Una planificación en blanco. `modalidad` es con la que arranca: la del
+ * deporte del paciente cuando se crea desde su ficha (migración 98), o calle.
+ */
 export function formularioVacio(
   nombre = "",
   pesoKg: number | null = null,
+  modalidad: ModalidadCarrera = "CALLE",
 ): FormularioPlanificacion {
   return {
     tipo: "CARRERA",
     nombre,
     descripcion: "",
     pesoReferenciaKg: pesoKg != null ? String(pesoKg) : "",
-    modalidad: "CALLE",
+    modalidad,
     distanciaKm: "",
     duracion: "",
     desnivelPositivoM: "",
@@ -152,6 +157,21 @@ export function minutosDesdeTexto(texto: string): number | null {
   }
   const minutos = Number(t);
   return Number.isInteger(minutos) && minutos >= 0 ? minutos : null;
+}
+
+/**
+ * La duración de la carrera: SOLO horas y minutos («3:30», «3h», «3h30»).
+ *
+ * Un número suelto no se acepta, al revés que en el tiempo de una ingesta:
+ * ahí «45» son 45 minutos (un gel a los 45), pero en la duración «3» se
+ * escribe pensando en 3 horas. Leído como minutos, la llegada quedaba en el
+ * minuto 3 —cualquier ingesta caía «después de llegar»— y los valores por
+ * hora se dividían por 0,05 h (884 kcal daban 17.680 kcal/h).
+ */
+export function duracionDesdeTexto(texto: string): number | null {
+  const t = texto.trim().toLowerCase();
+  if (!t.includes(":") && !t.includes("h")) return null;
+  return minutosDesdeTexto(t);
 }
 
 /** 95 → «1:35». */
@@ -229,7 +249,7 @@ export function paraGuardar(f: FormularioPlanificacion): ContenidoParaGuardar {
     carrera: {
       modalidad: f.modalidad,
       distanciaKm: aNumero(f.distanciaKm) ?? 0,
-      duracionEstimadaMin: minutosDesdeTexto(f.duracion) ?? 0,
+      duracionEstimadaMin: duracionDesdeTexto(f.duracion) ?? 0,
       desnivelPositivoM: entero(f.desnivelPositivoM),
       desnivelNegativoM: entero(f.desnivelNegativoM),
       horaLargada: f.horaLargada.trim() || null,
@@ -273,9 +293,11 @@ export function erroresDelFormulario(f: FormularioPlanificacion): string[] {
   if (distancia == null || distancia <= 0) {
     errores.push("Indicá la distancia de la carrera en km.");
   }
-  const duracion = minutosDesdeTexto(f.duracion);
+  const duracion = duracionDesdeTexto(f.duracion);
   if (duracion == null || duracion <= 0) {
-    errores.push("Indicá la duración estimada como h:mm (por ejemplo, 3:45).");
+    errores.push(
+      "Indicá la duración estimada como h:mm (por ejemplo, 3:45; tres horas es 3:00).",
+    );
   }
   // Un número opcional mal escrito («70kg», «60 g/h») viajaría como «sin
   // dato» y se perdería en silencio: se marca antes de mandar.

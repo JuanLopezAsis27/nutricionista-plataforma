@@ -125,6 +125,7 @@ export function VistaPlanificacion({
               sodioMgH: c?.sodioObjetivoMgH ?? null,
             }}
             pesoKg={p.pesoReferenciaKg}
+            duracionMin={c?.duracionEstimadaMin ?? null}
           />
         </CardContent>
       </Card>

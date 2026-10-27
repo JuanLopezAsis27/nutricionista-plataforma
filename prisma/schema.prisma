@@ -617,14 +617,43 @@ model Suplemento {
   @@map("suplementos")
 }
 
+/// Un deporte de la lista de la PLATAFORMA (migración 97): «Atletismo»,
+/// «Fútbol», «Trail running». Sin `nutricionistaId` y fuera de
+/// `MODELOS_INQUILINO`, como `categorias_alimento_base`: lo administra el
+/// SUPERADMIN y lo eligen todos los consultorios. No hay deportes propios de
+/// un consultorio.
+///
+/// `claveNombre` es el nombre sin mayúsculas, tildes ni espacios de más
+/// (único): «Fútbol» y «futbol» son el mismo deporte.
+///
+/// `formatoPlanificacion` (migración 98) dice qué planificación deportiva le
+/// corresponde a quien hace este deporte: «Running» → una carrera de calle,
+/// «Trail running» → una de trail. Null = todavía no hay planificación para
+/// ese deporte, y la ficha no la ofrece.
+model Deporte {
+  id                   String                @id @default(uuid(4))
+  nombre               String
+  claveNombre          String                @unique
+  formatoPlanificacion FormatoPlanificacion?
+  creadoEn             DateTime              @default(now())
+  actualizadoEn        DateTime              @updatedAt
+
+  perfiles PerfilDeportivo[]
+
+  @@map("deportes")
+}
+
 /// Perfil deportivo del paciente (uno por paciente): caracteriza al deportista
 /// (deporte, disciplina, nivel, fase de temporada, carga de entrenamiento,
 /// categoría de peso) para ajustar su plan y el contexto del asistente.
+///
+/// El deporte sale de la lista de la plataforma (migración 97; antes era texto
+/// libre). RESTRICT: un deporte en uso no se borra, se renombra.
 model PerfilDeportivo {
   id                      String         @id @default(uuid(4))
   nutricionistaId         String
   pacienteId              String         @unique
-  deporte                 String
+  deporteId               String
   disciplina              String?
   nivel                   NivelDeportivo @default(AMATEUR)
   fase                    FaseTemporada  @default(PRETEMPORADA)
@@ -638,9 +667,11 @@ model PerfilDeportivo {
   actualizadoEn           DateTime       @updatedAt
 
   paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  deporte       Deporte       @relation(fields: [deporteId], references: [id], onDelete: Restrict)
   nutricionista Nutricionista @relation(fields: [nutricionistaId], references: [id], onDelete: Restrict)
 
   @@index([nutricionistaId])
+  @@index([deporteId])
   @@map("perfiles_deportivos")
 }
 
@@ -2700,6 +2731,15 @@ enum TipoPlanificacionDeportiva {
 enum ModalidadCarrera {
   CALLE
   TRAIL
+}
+
+/// Qué planificación le corresponde a un DEPORTE de la lista (migración 98):
+/// el tipo y, dentro del tipo, con qué arranca (la modalidad de la carrera).
+/// Un deporte nuevo de planificación es un valor más. Los valores solo se
+/// agregan.
+enum FormatoPlanificacion {
+  CARRERA_CALLE
+  CARRERA_TRAIL
 }
 
 /// Planificación nutricional de una competencia deportiva: qué se ingiere y

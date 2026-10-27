@@ -47,10 +47,10 @@ import {
 import {
   alimentoVacio,
   claveNueva,
+  duracionDesdeTexto,
   erroresDelFormulario,
   ingestaVacia,
   minutoDeIngesta,
-  minutosDesdeTexto,
   paraGuardar,
   textoDeMinutos,
   type AlimentoFormulario,
@@ -64,7 +64,12 @@ import {
   liquidosDeIngestaEnFormulario,
   resumenEnVivo,
 } from "./formulario/resumen";
-import { TarjetaResumen, numero, textoRitmo } from "./presentacion";
+import {
+  TarjetaResumen,
+  numero,
+  textoDuracion,
+  textoRitmo,
+} from "./presentacion";
 
 interface Props {
   inicial: Formulario;
@@ -103,12 +108,21 @@ export function FormularioPlanificacion({
   const [f, setF] = useState<Formulario>(inicial);
   const [errores, setErrores] = useState<string[]>([]);
   const resumen = resumenEnVivo(f);
-  const duracion = minutosDesdeTexto(f.duracion);
+  const duracion = duracionDesdeTexto(f.duracion);
   const distancia = aNumero(f.distanciaKm);
   const ritmo =
     duracion != null && distancia != null && distancia > 0
       ? textoRitmo(duracion / distancia)
       : null;
+  // Debajo del campo se dice cómo se leyó: todo lo «por hora» se divide por esto.
+  const duracionInvalida =
+    f.duracion.trim() !== "" && (duracion == null || duracion <= 0);
+  const ayudaDuracion =
+    duracion != null && duracion > 0
+      ? [textoDuracion(duracion), ritmo && `Ritmo ${ritmo}`]
+          .filter(Boolean)
+          .join(" · ")
+      : undefined;
 
   function cambiar<K extends keyof Formulario>(campo: K, valor: Formulario[K]) {
     setF((actual) => ({ ...actual, [campo]: valor }));
@@ -237,7 +251,12 @@ export function FormularioPlanificacion({
             <Campo
               etiqueta="Duración estimada (h:mm)"
               id="duracion"
-              ayuda={ritmo ? `Ritmo: ${ritmo}` : undefined}
+              ayuda={ayudaDuracion}
+              error={
+                duracionInvalida
+                  ? "Escribila como h:mm: tres horas es 3:00."
+                  : undefined
+              }
             >
               <Input
                 id="duracion"
@@ -391,6 +410,7 @@ export function FormularioPlanificacion({
               sodioMgH: aNumero(f.sodioObjetivoMgH),
             }}
             pesoKg={aNumero(f.pesoReferenciaKg)}
+            duracionMin={duracion}
           />
 
           {f.ingestas.length === 0 ? (
@@ -609,8 +629,8 @@ function EditorIngesta({
 
       {despuesDeLlegar && (
         <p className="mt-2 text-xs text-destructive">
-          Cae después de la llegada estimada. Lo de después de llegar va en
-          «Recuperación».
+          Cae después de la llegada estimada ({textoDuracion(duracion)} de
+          carrera). Lo de después de llegar va en «Recuperación».
         </p>
       )}
 
@@ -739,12 +759,15 @@ function Campo({
   etiqueta,
   id,
   ayuda,
+  error,
   icono,
   children,
 }: {
   etiqueta: string;
   id: string;
   ayuda?: string;
+  /** Reemplaza a la ayuda: el valor escrito no se entiende. */
+  error?: string;
   icono?: ReactNode;
   children: ReactNode;
 }) {
@@ -755,7 +778,11 @@ function Campo({
         {etiqueta}
       </Label>
       {children}
-      {ayuda && <p className="text-xs text-muted-foreground">{ayuda}</p>}
+      {error ? (
+        <p className="text-xs text-destructive">{error}</p>
+      ) : (
+        ayuda && <p className="text-xs text-muted-foreground">{ayuda}</p>
+      )}
     </div>
   );
 }

@@ -13,7 +13,8 @@ import { numeroEnRango } from "@/lib/validacionListas";
 
 /** Esquemas del módulo deportivo. Exportados para el test de coherencia. */
 export const esquemaPerfil = z.object({
-  deporte: z.string().min(1, "Indicá el deporte").max(80),
+  // De la lista de la plataforma (migración 97), elegido con el buscador.
+  deporteId: z.string().min(1, "Elegí el deporte"),
   disciplina: z.string().max(80),
   nivel: z.enum(NIVELES_DEPORTIVOS),
   fase: z.enum(FASES_TEMPORADA),

@@ -46,6 +46,14 @@ desniveles, hora de largada, temperatura, objetivos por hora (carbohidratos
 g/h, líquidos ml/h, sodio mg/h) y tres textos libres (estrategia previa,
 puestos de abastecimiento, recuperación).
 
+La **duración se escribe con horas y minutos** («3:30», «3h», «3h30») y un
+número suelto se rechaza (`duracionDesdeTexto`). En el tiempo de una ingesta
+«45» sí son 45 minutos, pero en la duración «3» se escribe pensando en horas:
+cuando se leía como minutos, la llegada quedaba en el minuto 3 —toda ingesta
+caía «después de llegar»— y 884 kcal daban 17.680 kcal/h. Por eso, además,
+debajo del campo se muestra cómo se leyó («3:00 h · Ritmo 4:16 /km») y la
+tarjeta del resumen dice por qué duración divide los valores por hora.
+
 ## El tiempo de cada ingesta
 
 Cada ingesta se guarda en **minutos desde la largada** (`minuto`), que es como
@@ -171,8 +179,86 @@ sus competencias es (opcional; SET NULL si la competencia se borra).
   muestra las primeras 20: con una página fija, las que quedaban afuera no se
   podían asignar desde la ficha.
 - En la pestaña Deporte, cada competencia próxima ofrece **«Planificar»**
-  (abre el alta ya atada a ella, con su nombre) o **«Ver planificación»** si ya
-  tiene una. Debajo del calendario, la lista de planificaciones del paciente.
+  (abre el alta ya atada a ella, con su nombre) y **«Asignar existente»** (el
+  mismo diálogo de asignar, con esa competencia ya elegida), o **«Ver
+  planificación»** si ya tiene una. Debajo del calendario, la lista de
+  planificaciones del paciente. Qué se ofrece depende de su deporte (ver
+  abajo).
+
+## El deporte del perfil: una lista de la plataforma (migración 97)
+
+El deporte del perfil deportivo era texto libre y cada profesional lo escribía
+a su manera («running», «Running calle», «atletismo»). Ahora sale de la tabla
+`deportes`, que es **de la plataforma**: sin `nutricionistaId`, fuera de
+`MODELOS_INQUILINO`, como `categorias_alimento_base`.
+
+- **Solo la administra el SUPERADMIN**, en `/admin` → Deportes (crear,
+  renombrar, borrar; `superadmin.crearDeporte` y compañía). **No hay deportes
+  propios de un consultorio**: si falta uno, se le pide al administrador. El
+  consultorio solo la lee (`deportivo.deportes`).
+- En el perfil se elige con un **buscador** (`SelectorConBuscador`, en
+  `componentes/comunes`): la lista es corta, viaja entera y se filtra en la
+  pantalla, palabra por palabra y sin tildes («trail run» → «Trail running»).
+- `perfiles_deportivos.deporteId` es obligatorio y la FK es **RESTRICT**: un
+  deporte en uso no se borra. `EliminarDeporte` lo mira antes y dice cuántos
+  perfiles lo usan (cuenta los de todos los consultorios: el SUPERADMIN corre
+  con alcance global, que es para leer). Lo que se hace con uno en uso que
+  quedó mal escrito es **renombrarlo**: los perfiles lo llevan por id y el
+  nombre nuevo aparece en todos.
+- El nombre es único sin mayúsculas, tildes ni espacios de más
+  (`Deporte.claveNombre`, índice único). `GuardarPerfilDeportivo` busca el
+  deporte por id antes de escribir, para que un id que ya no existe dé un
+  mensaje y no un choque contra la FK.
+- El perfil lleva `deporte: { id, nombre }` (el nombre viene del join): la
+  ficha y el asistente IA leen `deporte.nombre`.
+
+**La migración no pierde nada de lo cargado.** Crea una lista inicial de 33
+deportes y cada texto distinto que no esté en ella se convierte en un deporte
+más (después se renombra si hace falta). Dos textos que solo difieren en
+mayúsculas, tildes o espacios son el mismo deporte, con la escritura más
+usada; un deporte en blanco va a «Otro». La clave se calcula en SQL con
+`translate`, mayúsculas acentuadas incluidas, porque con un locale `C`
+`lower()` no las toca.
+
+## La planificación según el perfil deportivo (migración 98)
+
+Cada deporte de la lista dice **qué planificación le corresponde**
+(`deportes.formatoPlanificacion`), y la ficha del paciente ofrece según el
+deporte de su perfil. Lo configura el SUPERADMIN en `/admin` → Deportes, con
+un selector por deporte. La migración dejó puestos Running y Atletismo →
+calle, Trail running → trail; el resto, sin planificación.
+
+Un **formato** es el tipo de planificación más con qué arranca dentro del
+tipo (`FORMATOS_PLANIFICACION` y `DEFINICION_FORMATO`, en
+`PlanificacionDeportiva.ts`). Hoy son dos y los dos son de carrera:
+`CARRERA_CALLE` y `CARRERA_TRAIL`. No es la modalidad repetida: cuando haya
+ciclismo, su formato dirá `tipo: CICLISMO` y con qué arranca el ciclismo.
+
+Lo que ofrece la ficha (`segunPerfil.ts`, que solo lee el DTO del perfil):
+
+| Perfil del paciente                | Qué ofrece                                                  |
+| ---------------------------------- | ----------------------------------------------------------- |
+| Sin perfil deportivo               | Todo, y la modalidad se elige a mano. Un aviso sugiere cargar el perfil |
+| Deporte con planificación          | «Nueva», «Planificar» y «Asignar existente»; el alta arranca con su modalidad |
+| Deporte sin planificación (fútbol) | Nada para crear ni asignar: un aviso lo dice. Las que ya tiene se siguen viendo |
+
+- **La modalidad es con la que ARRANCA, no una regla.** Un corredor de calle
+  que hace una carrera de trail la cambia en el formulario.
+- **El servidor no lo exige**: es lo que la ficha ofrece, no un invariante.
+  Desde el módulo se puede asignar cualquier planificación a cualquiera (el
+  futbolista que corre un 10K). Si algún día tiene que ser regla, va en
+  `CrearPlanificacionParaPaciente`, no en la pantalla.
+- Si el alta se abre por URL para un paciente cuyo deporte no tiene
+  planificación, muestra el aviso en vez del formulario.
+- Cambiar el formato de un deporte no toca planificaciones ya hechas: cambia
+  con qué arranca la próxima.
+
+**Para sumar un deporte nuevo de planificación** (ciclismo, triatlón): un
+valor en `TipoPlanificacionDeportiva` y su tabla de detalle (como
+`planificaciones_carrera`), un valor en el enum `FormatoPlanificacion` (base
+y dominio) con su `DEFINICION_FORMATO`, y que el alta elija el formulario por
+`definicion.tipo`. Después, en `/admin`, se le asigna a los deportes que
+correspondan.
 
 ## Qué ve el paciente
 
@@ -200,8 +286,20 @@ con hora del día y km, y los textos de antes y después.
 - **Nunca sumes al valor por hora lo de antes de largar** ni lo de después de
   la llegada: los g/h son de la carrera. Y si tocás esa cuenta, tocá el espejo
   del formulario (`resumen.test.ts` es lo único que las mantiene iguales).
+- **Nunca leas la duración con `minutosDesdeTexto`**: va `duracionDesdeTexto`,
+  que no acepta un número suelto. «3» leído como 3 minutos no falla: divide
+  todo por 0,05 h y manda las ingestas «después de la llegada».
 - **Nunca ates una asignación a la competencia de otro paciente**: pasá por
   `verificarCompetenciaDelPaciente`.
+- **Nunca decidas en una pantalla qué planificación le toca a un deporte**:
+  lo dice `deporte.formatoPlanificacion`, que configura el SUPERADMIN. Un
+  `if (deporte === "Running")` en la ficha se rompe con el primer
+  renombrado. Y un formato nuevo va en los dos enums (base y
+  `FORMATOS_PLANIFICACION`) y en `DEFINICION_FORMATO`.
+- **Nunca le agregues `nutricionistaId` a `deportes` ni dejes que un
+  consultorio la escriba**: es de la plataforma. Y nunca vuelvas el deporte
+  del perfil a texto libre «para que el profesional sume el suyo»: es
+  justamente lo que la lista vino a evitar.
 - **Todo camino nuevo que copie un alimento a una ingesta tiene que llevar
   `alimentoOrigenId`, `unidadBase` y `cafeinaPor100`**: sin el primero sus
   usos no se cuentan (`PrismaRepositorioUsosDeAlimento` ya cuenta las

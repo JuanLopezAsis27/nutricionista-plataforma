@@ -4,6 +4,7 @@ import {
   alimentoVacio,
   erroresDelFormulario,
   formularioVacio,
+  duracionDesdeTexto,
   ingestaVacia,
   minutosDesdeTexto,
   paraGuardar,
@@ -124,6 +125,26 @@ describe("resumen en vivo ↔ dominio", () => {
     expect(minutosDesdeTexto("1h05")).toBe(65);
     expect(minutosDesdeTexto("1:75")).toBeNull();
     expect(minutosDesdeTexto("")).toBeNull();
+  });
+
+  it("la duración exige horas y minutos: «3» no son 3 minutos", () => {
+    expect(duracionDesdeTexto("3:30")).toBe(210);
+    expect(duracionDesdeTexto("3h")).toBe(180);
+    expect(duracionDesdeTexto("3h30")).toBe(210);
+    expect(duracionDesdeTexto("0:50")).toBe(50);
+    expect(duracionDesdeTexto("3")).toBeNull();
+    expect(duracionDesdeTexto("45")).toBeNull();
+  });
+
+  it("con la duración como número suelto no inventa valores por hora ni ingestas «después de llegar»", () => {
+    // Antes: «3» se leía como 3 minutos y 884 kcal daban 17.680 kcal/h.
+    const f = { ...formulario(), duracion: "3" };
+    const vivo = resumenEnVivo(f);
+    expect(vivo.durante.porHora.calorias).toBeNull();
+    expect(vivo.durante.cantidad).toBe(3);
+    expect(erroresDelFormulario(f)).toContain(
+      "Indicá la duración estimada como h:mm (por ejemplo, 3:45; tres horas es 3:00).",
+    );
   });
 });
 

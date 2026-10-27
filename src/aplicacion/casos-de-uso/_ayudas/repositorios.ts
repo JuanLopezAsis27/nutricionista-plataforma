@@ -83,6 +83,8 @@ import { PlanNutricional } from "@/dominio/entidades/PlanNutricional";
 import type { PlanSemanal } from "@/dominio/entidades/PlanSemanal";
 import { Objetivo } from "@/dominio/entidades/Objetivo";
 import { PerfilDeportivo } from "@/dominio/entidades/PerfilDeportivo";
+import type { Deporte } from "@/dominio/entidades/Deporte";
+import type { IDeporteRepositorio } from "@/dominio/repositorios/IDeporteRepositorio";
 import { Competencia } from "@/dominio/entidades/Competencia";
 import { MaterialBiblioteca } from "@/dominio/entidades/MaterialBiblioteca";
 import { Suplemento } from "@/dominio/entidades/Suplemento";
@@ -557,7 +559,42 @@ export function mockPerfilDeportivoRepositorio(
     obtenerPorPaciente: vi.fn(async () => null),
     guardar: vi.fn(async (p: PerfilDeportivo) => p),
     eliminarPorPaciente: vi.fn(async () => {}),
+    contarPorDeporte: vi.fn(async () => 0),
     ...parcial,
+  };
+}
+
+/**
+ * Lista de deportes de la plataforma EN MEMORIA (migración 97), para probar
+ * nombres repetidos sin armar cada método a mano.
+ */
+export function mockDeporteRepositorio(
+  iniciales: Deporte[] = [],
+): IDeporteRepositorio {
+  const lista = [...iniciales];
+  return {
+    crear: vi.fn(async (d: Deporte) => {
+      lista.push(d);
+      return d;
+    }),
+    actualizar: vi.fn(async (d: Deporte) => {
+      const i = lista.findIndex((x) => x.id === d.id);
+      if (i >= 0) lista[i] = d;
+      return d;
+    }),
+    eliminar: vi.fn(async (id: string) => {
+      const i = lista.findIndex((x) => x.id === id);
+      if (i >= 0) lista.splice(i, 1);
+    }),
+    obtenerPorId: vi.fn(
+      async (id: string) => lista.find((d) => d.id === id) ?? null,
+    ),
+    listar: vi.fn(async () =>
+      [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre)),
+    ),
+    existeNombre: vi.fn(async (clave: string, excluirId?: string) =>
+      lista.some((d) => d.claveNombre === clave && d.id !== excluirId),
+    ),
   };
 }
 

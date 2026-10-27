@@ -10,8 +10,8 @@ import {
 } from "@/componentes/comunes/alimentos/macros";
 import { gramosEnFormulario } from "@/componentes/comunes/alimentos/cantidad";
 import {
+  duracionDesdeTexto,
   minutoDeIngesta,
-  minutosDesdeTexto,
   type FormularioPlanificacion,
   type IngestaFormulario,
 } from "./esquema";
@@ -81,7 +81,7 @@ export function liquidosDeIngestaEnFormulario(
 }
 
 export function resumenEnVivo(f: FormularioPlanificacion): ResumenEnVivo {
-  const duracion = minutosDesdeTexto(f.duracion);
+  const duracion = duracionDesdeTexto(f.duracion);
   const conMinuto = f.ingestas
     .map((ingesta) => ({ ingesta, minuto: minutoDeIngesta(ingesta) }))
     .filter(

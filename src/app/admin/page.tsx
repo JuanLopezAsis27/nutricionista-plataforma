@@ -29,13 +29,14 @@ import { CatalogoRecetas } from "@/componentes/superadmin/CatalogoRecetas";
 import { ImportadorAlimentos } from "@/componentes/alimentos/ImportadorAlimentos";
 import { ListaAlimentosPropios } from "@/componentes/alimentos/ListaAlimentosPropios";
 import { GestorCategoriasAlimento } from "@/componentes/alimentos/GestorCategoriasAlimento";
+import { GestorDeportes } from "@/componentes/superadmin/GestorDeportes";
 import { FormularioPassword } from "@/componentes/perfil/FormularioPassword";
 
 /**
  * Panel del SUPERADMIN: las cuentas de nutricionista, la IA de la plataforma
  * (claves que comparten todos los consultorios, su saldo y su uso) y el
- * catálogo predeterminado de alimentos y recetas, y el cambio de su propia
- * contraseña.
+ * catálogo predeterminado de alimentos y recetas, la lista de deportes del
+ * perfil deportivo y el cambio de su propia contraseña.
  */
 export default function PaginaAdmin() {
   const { listarNutricionistas, crearNutricionista, cambiarEstado } =
@@ -91,6 +92,7 @@ export default function PaginaAdmin() {
           <TabsTrigger value="config-ia">Configuración de IA</TabsTrigger>
           <TabsTrigger value="alimentos">Alimentos predeterminados</TabsTrigger>
           <TabsTrigger value="recetas">Recetas predeterminadas</TabsTrigger>
+          <TabsTrigger value="deportes">Deportes</TabsTrigger>
           <TabsTrigger value="mi-cuenta">Mi contraseña</TabsTrigger>
         </TabsList>
 
@@ -125,6 +127,12 @@ export default function PaginaAdmin() {
 
         <TabsContent value="recetas" className="mt-4">
           <CatalogoRecetas />
+        </TabsContent>
+
+        {/* Deportes (migración 97): de acá sale el deporte del perfil
+            deportivo en todos los consultorios. */}
+        <TabsContent value="deportes" className="mt-4">
+          <GestorDeportes />
         </TabsContent>
 
         <TabsContent value="uso-ia" className="mt-4">
