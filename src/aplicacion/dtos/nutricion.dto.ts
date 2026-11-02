@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { CATEGORIAS_ALIMENTO } from "@/dominio/entidades/AlimentoPropio";
+import {
+  categoriaAlimentoSalidaDto,
+  idCategoriaAlimentoDto,
+} from "./categoriaAlimento.dto";
 import {
   medidaAlimentoDto,
   unidadBaseAlimentoDto,
@@ -27,9 +30,10 @@ export const buscarAlimentoDto = z
       .min(1)
       .max(LIMITE_MAXIMO_BUSQUEDA_ALIMENTOS)
       .optional(),
-    categoria: z.enum(CATEGORIAS_ALIMENTO).optional(),
+    /** Id de una categoría predeterminada o propia (migración 93). */
+    categoriaId: idCategoriaAlimentoDto.optional(),
   })
-  .refine((d) => d.categoria || d.termino.trim().length !== 1, {
+  .refine((d) => d.categoriaId || d.termino.trim().length !== 1, {
     message: "Escribí al menos 2 caracteres",
     path: ["termino"],
   });
@@ -44,8 +48,11 @@ export const alimentoNutricionalSalidaDto = z.object({
   proteinasPor100: z.number().nullable(),
   carbohidratosPor100: z.number().nullable(),
   grasasPor100: z.number().nullable(),
+  /** mg por 100 g/ml (migración 95); null sin dato. */
+  cafeinaPor100: z.number().nullable(),
+  descripcion: z.string().nullable(),
   id: z.string().nullable(),
-  categoria: z.enum(CATEGORIAS_ALIMENTO).nullable(),
+  categoria: categoriaAlimentoSalidaDto.nullable(),
   imagenVersion: z.string().nullable(),
   unidadBase: unidadBaseAlimentoDto,
   medidas: z.array(medidaAlimentoDto),

@@ -8,6 +8,7 @@ import {
   FASES_TEMPORADA,
 } from "@/dominio/entidades/PerfilDeportivo";
 import { useDeportivo } from "@/lib/hooks/useDeportivo";
+import { SelectorConBuscador } from "@/componentes/comunes/SelectorConBuscador";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { Textarea } from "@/componentes/ui/textarea";
@@ -39,12 +40,14 @@ export function FormularioPerfil({
   perfil: PerfilDeportivoSalidaDto | null;
   onTerminado: () => void;
 }) {
-  const { guardarPerfil } = useDeportivo();
+  const { guardarPerfil, deportes } = useDeportivo();
+  // La lista es de la plataforma y corta: viaja entera y se filtra acá.
+  const consultaDeportes = deportes(undefined, { staleTime: 5 * 60_000 });
 
   const form = useForm<DatosPerfil>({
     resolver: zodResolver(esquemaPerfil),
     defaultValues: {
-      deporte: perfil?.deporte ?? "",
+      deporteId: perfil?.deporte.id ?? "",
       disciplina: perfil?.disciplina ?? "",
       nivel: perfil?.nivel ?? "AMATEUR",
       fase: perfil?.fase ?? "PRETEMPORADA",
@@ -62,7 +65,7 @@ export function FormularioPerfil({
     guardarPerfil.mutate(
       {
         pacienteId,
-        deporte: datos.deporte,
+        deporteId: datos.deporteId,
         disciplina: datos.disciplina.trim() || null,
         nivel: datos.nivel,
         fase: datos.fase,
@@ -83,12 +86,20 @@ export function FormularioPerfil({
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField
             control={form.control}
-            name="deporte"
+            name="deporteId"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Deporte</FormLabel>
                 <FormControl>
-                  <Input placeholder="Atletismo, fútbol, boxeo…" {...field} />
+                  <SelectorConBuscador
+                    opciones={consultaDeportes.data ?? []}
+                    cargando={consultaDeportes.isLoading}
+                    valor={field.value || null}
+                    onCambiar={field.onChange}
+                    placeholder="Elegí el deporte…"
+                    placeholderBusqueda="Buscar deporte…"
+                    sinResultados="No está en la lista. Los deportes los carga el administrador de la plataforma."
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

@@ -15,7 +15,9 @@ import {
  * metadata.xml y richData/*.
  */
 
-const COLUMNA_IMAGEN = 9; // J, base 0: la última columna del modelo
+// L, base 0: la última columna del modelo (con «Cafeína» y «Descripción»,
+// migración 95, pasó de la J a la L).
+const COLUMNA_IMAGEN = 11;
 
 function alimento(nombre: string): AlimentoParaPlanilla {
   return {
@@ -25,6 +27,8 @@ function alimento(nombre: string): AlimentoParaPlanilla {
     proteinasPor100: null,
     carbohidratosPor100: null,
     grasasPor100: null,
+    cafeinaPor100: null,
+    descripcion: null,
     categoria: null,
     unidadBase: "GRAMO",
     medidas: [],
@@ -80,7 +84,7 @@ function sobreLaCelda(
 
 /**
  * El modelo con Arroz (fila 2) y Pollo (fila 3) y la misma imagen COLOCADA EN
- * cada celda de `celdas` (de la columna J), con las partes que escribe Excel
+ * cada celda de `celdas` (de la columna L), con las partes que escribe Excel
  * 365. `partes` reemplaza alguna de ellas.
  */
 async function planillaConImagenEnCelda(
@@ -126,7 +130,7 @@ const PAQUETE = "http://schemas.openxmlformats.org/package/2006/relationships";
  * El modelo con Arroz (fila 2) y Pollo (fila 3) como lo guarda openpyxl
  * (Python), con lo que exceljs no sabía abrir: las notas del encabezado en
  * `xl/comments/comment1.xml`, las relaciones con rutas absolutas y, con
- * `imagen`, un dibujo SIN el prefijo `xdr:` con la imagen en la columna J de
+ * `imagen`, un dibujo SIN el prefijo `xdr:` con la imagen en la columna L de
  * `fila`. `tabla` le suma una tabla, también con ruta absoluta. Es la forma
  * de la planilla con la que se encontró el problema.
  */
@@ -217,7 +221,7 @@ describe("parsearPlanillaAlimentos: imágenes", () => {
       extension: "png",
     });
     // Un rango: <twoCellAnchor>, y no el <oneCellAnchor> que sale con `ext`.
-    hoja.addImage(id, "J2:J2");
+    hoja.addImage(id, "L2:L2");
 
     const { imagenes } = await leer(libro);
 
@@ -272,7 +276,7 @@ describe("parsearPlanillaAlimentos: imágenes", () => {
     const imagen = await png(99);
 
     const { filas, imagenes } = await parsearPlanillaAlimentos(
-      await planillaConImagenEnCelda(imagen, ["J3"]),
+      await planillaConImagenEnCelda(imagen, ["L3"]),
       "alimentos.xlsx",
     );
 
@@ -284,7 +288,7 @@ describe("parsearPlanillaAlimentos: imágenes", () => {
 
   it("en celda, la misma imagen en dos filas también comparte los bytes", async () => {
     const { imagenes } = await parsearPlanillaAlimentos(
-      await planillaConImagenEnCelda(await png(99), ["J2", "J3"]),
+      await planillaConImagenEnCelda(await png(99), ["L2", "L3"]),
       "alimentos.xlsx",
     );
 
@@ -298,7 +302,7 @@ describe("parsearPlanillaAlimentos: imágenes", () => {
     const inicio = performance.now();
 
     const { filas, imagenes } = await parsearPlanillaAlimentos(
-      await planillaConImagenEnCelda(await png(99), ["J3"], {
+      await planillaConImagenEnCelda(await png(99), ["L3"], {
         "xl/richData/rdrichvalue.xml": `<rv ${"a".repeat(1_500_000)}/>`,
       }),
       "alimentos.xlsx",
@@ -313,7 +317,7 @@ describe("parsearPlanillaAlimentos: imágenes", () => {
     const valores = `<rvData><rv s="0"><v>0</v><v>5</v></rv>${" ".repeat(2 * 1024 * 1024)}</rvData>`;
 
     const { filas, imagenes } = await parsearPlanillaAlimentos(
-      await planillaConImagenEnCelda(await png(99), ["J3"], {
+      await planillaConImagenEnCelda(await png(99), ["L3"], {
         "xl/richData/rdrichvalue.xml": valores,
       }),
       "alimentos.xlsx",
@@ -367,5 +371,43 @@ describe("parsearPlanillaAlimentos: planillas armadas con openpyxl", () => {
     );
 
     expect(filas.map((f) => f.nombre)).toEqual(["Arroz", "Pollo"]);
+  });
+});
+
+describe("parsearPlanillaAlimentos — cafeína y descripción (migración 95)", () => {
+  const csv = (texto: string) =>
+    parsearPlanillaAlimentos(Buffer.from(texto, "utf-8"), "alimentos.csv");
+
+  it("lee la cafeína (por 100) y la descripción", async () => {
+    const { filas } = await csv(
+      "Nombre;Carbohidratos;Cafeína (mg);Descripción\n" +
+        "Gel;62,5;100;Tomar con agua\n" +
+        "Arroz;28;;\n",
+    );
+    expect(filas[0]).toMatchObject({
+      nombre: "Gel",
+      cafeinaPor100: 100,
+      descripcion: "Tomar con agua",
+    });
+    expect(filas[1]).toMatchObject({
+      nombre: "Arroz",
+      cafeinaPor100: null,
+      descripcion: null,
+    });
+  });
+
+  it("una columna «Descripción» no le gana a la de «Nombre», aunque venga antes", async () => {
+    const { filas } = await csv(
+      "Descripción;Nombre;Calorías\nBlanco, de grano largo;Arroz;130\n",
+    );
+    expect(filas[0]).toMatchObject({
+      nombre: "Arroz",
+      descripcion: "Blanco, de grano largo",
+    });
+  });
+
+  it("sin columna de nombre, «Descripción» sigue siendo el nombre (planillas viejas)", async () => {
+    const { filas } = await csv("Descripción;Calorías\nArroz;130\n");
+    expect(filas[0]).toMatchObject({ nombre: "Arroz", descripcion: null });
   });
 });

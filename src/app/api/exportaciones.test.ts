@@ -33,6 +33,13 @@ vi.mock("@/infraestructura/persistencia/erroresPrisma", () => ({
 const paciente = { id: "pac-1", nombre: "Ana", apellido: "García" };
 const medicion = { id: "med-1", fecha: new Date("2026-07-01T00:00:00Z") };
 const plan = { id: "plan-1", nombre: "Plan base", comidas: [] };
+const planificacion = { id: "pd-1", nombre: "Media maratón" };
+const competencia = {
+  id: "com-1",
+  nombre: "Media de Buenos Aires",
+  fecha: new Date("2026-08-23T00:00:00Z"),
+  lugar: null,
+};
 
 const servicios = {
   paciente: {
@@ -54,6 +61,10 @@ const servicios = {
     obtenerPlanPorId: vi.fn(async () => plan),
   },
   receta: { obtenerRecetaPorId: vi.fn() },
+  planificacion: {
+    obtener: vi.fn(async (id: string) => ({ ...planificacion, id })),
+    delPaciente: vi.fn(async () => [{ planificacion, competencia }]),
+  },
 };
 vi.mock("@/infraestructura/contenedor/contenedor", () => ({
   servicioPaciente: () => servicios.paciente,
@@ -63,6 +74,7 @@ vi.mock("@/infraestructura/contenedor/contenedor", () => ({
   servicioEstablecimiento: () => servicios.establecimiento,
   servicioPlan: () => servicios.plan,
   servicioReceta: () => servicios.receta,
+  servicioPlanificacionDeportiva: () => servicios.planificacion,
 }));
 
 // Los generadores de documentos no se prueban acá.
@@ -79,6 +91,10 @@ vi.mock("@/infraestructura/pdf/MedicionAntropometricaPdf", () => ({
 vi.mock("@/infraestructura/pdf/PlanNutricionalPdf", () => ({
   renderizarPlanPdf: pdf,
 }));
+const renderizarPlanificacionPdf = vi.fn(pdf);
+vi.mock("@/infraestructura/pdf/PlanificacionDeportivaPdf", () => ({
+  renderizarPlanificacionPdf,
+}));
 vi.mock("@/infraestructura/excel/MedicionesExcel", () => ({
   generarExcelMediciones: async () => new Uint8Array([1]),
 }));
@@ -91,6 +107,8 @@ const pacientesExcel = await import("./pacientes/excel/route");
 const turnosExcel = await import("./turnos/excel/route");
 const planPdf = await import("./planes/[id]/pdf/route");
 const medicionPdf = await import("./antropometria/[id]/pdf/route");
+const planificacionPdf =
+  await import("./planificacion-deportiva/[id]/pdf/route");
 
 const NUTRI: Sesion = { id: "usr-n", rol: "NUTRICIONISTA", pacienteId: null };
 const PACIENTE: Sesion = { id: "usr-p", rol: "PACIENTE", pacienteId: "pac-1" };
@@ -211,6 +229,65 @@ describe("plan en PDF", () => {
     sesion = NUTRI;
     expect((await llamar("plan-9")).status).toBe(200);
     expect(servicios.plan.obtenerPlanesDelPaciente).not.toHaveBeenCalled();
+  });
+});
+
+describe("planificación deportiva en PDF", () => {
+  const llamar = (id = "pd-1", query = "") =>
+    planificacionPdf.GET(
+      pedido(`/api/planificacion-deportiva/${id}/pdf${query}`),
+      conId(id),
+    );
+
+  it("sin sesión responde 401", async () => {
+    expect((await llamar()).status).toBe(401);
+    expect(renderizarPlanificacionPdf).not.toHaveBeenCalled();
+  });
+
+  it("un paciente baja una que tiene ASIGNADA, con su competencia", async () => {
+    sesion = PACIENTE;
+
+    const respuesta = await llamar();
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.headers.get("Cache-Control")).toBe("no-store");
+    expect(servicios.planificacion.delPaciente).toHaveBeenCalledWith("pac-1");
+    expect(renderizarPlanificacionPdf).toHaveBeenCalledWith(
+      expect.objectContaining({ nombrePaciente: "Ana García", competencia }),
+    );
+  });
+
+  it("un paciente NO baja una que no tiene asignada, y ni se la lee", async () => {
+    sesion = PACIENTE;
+
+    expect((await llamar("pd-de-otro")).status).toBe(403);
+    expect(servicios.planificacion.obtener).not.toHaveBeenCalled();
+    expect(renderizarPlanificacionPdf).not.toHaveBeenCalled();
+  });
+
+  it("una sesión sin ficha (SUPERADMIN) recibe 403", async () => {
+    sesion = ADMIN;
+    expect((await llamar()).status).toBe(403);
+    expect(renderizarPlanificacionPdf).not.toHaveBeenCalled();
+  });
+
+  it("el profesional baja cualquiera de su consultorio, sin paciente", async () => {
+    sesion = NUTRI;
+
+    expect((await llamar("pd-9")).status).toBe(200);
+    expect(servicios.planificacion.obtener).toHaveBeenCalledWith("pd-9");
+    expect(servicios.planificacion.delPaciente).not.toHaveBeenCalled();
+    expect(renderizarPlanificacionPdf).toHaveBeenCalledWith(
+      expect.objectContaining({ nombrePaciente: null, competencia: null }),
+    );
+  });
+
+  it("desde la ficha lleva el paciente y la competencia para la que se la asignó", async () => {
+    sesion = NUTRI;
+
+    expect((await llamar("pd-1", "?paciente=pac-1")).status).toBe(200);
+    expect(renderizarPlanificacionPdf).toHaveBeenCalledWith(
+      expect.objectContaining({ nombrePaciente: "Ana García", competencia }),
+    );
   });
 });
 

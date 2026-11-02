@@ -47,6 +47,8 @@ describe("ProveedorOpenFoodFacts", () => {
       proteinasPor100: 7,
       carbohidratosPor100: 78,
       grasasPor100: 0.6,
+      cafeinaPor100: null,
+      descripcion: null,
       id: null,
       categoria: null,
       imagenVersion: null,

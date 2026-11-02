@@ -1,4 +1,12 @@
 import { vi } from "vitest";
+import type { IPlanificacionDeportivaRepositorio } from "@/dominio/repositorios/IPlanificacionDeportivaRepositorio";
+import type {
+  IAsignacionPlanificacionRepositorio,
+  AsignacionPlanificacion,
+} from "@/dominio/repositorios/IAsignacionPlanificacionRepositorio";
+import type { PlanificacionDeportiva } from "@/dominio/entidades/PlanificacionDeportiva";
+import type { ICategoriaAlimentoRepositorio } from "@/dominio/repositorios/ICategoriaAlimentoRepositorio";
+import type { CategoriaAlimento } from "@/dominio/entidades/CategoriaAlimento";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { ITurnoRepositorio } from "@/dominio/repositorios/ITurnoRepositorio";
 import type { IUsuarioRepositorio } from "@/dominio/repositorios/IUsuarioRepositorio";
@@ -75,6 +83,8 @@ import { PlanNutricional } from "@/dominio/entidades/PlanNutricional";
 import type { PlanSemanal } from "@/dominio/entidades/PlanSemanal";
 import { Objetivo } from "@/dominio/entidades/Objetivo";
 import { PerfilDeportivo } from "@/dominio/entidades/PerfilDeportivo";
+import type { Deporte } from "@/dominio/entidades/Deporte";
+import type { IDeporteRepositorio } from "@/dominio/repositorios/IDeporteRepositorio";
 import { Competencia } from "@/dominio/entidades/Competencia";
 import { MaterialBiblioteca } from "@/dominio/entidades/MaterialBiblioteca";
 import { Suplemento } from "@/dominio/entidades/Suplemento";
@@ -549,7 +559,42 @@ export function mockPerfilDeportivoRepositorio(
     obtenerPorPaciente: vi.fn(async () => null),
     guardar: vi.fn(async (p: PerfilDeportivo) => p),
     eliminarPorPaciente: vi.fn(async () => {}),
+    contarPorDeporte: vi.fn(async () => 0),
     ...parcial,
+  };
+}
+
+/**
+ * Lista de deportes de la plataforma EN MEMORIA (migración 97), para probar
+ * nombres repetidos sin armar cada método a mano.
+ */
+export function mockDeporteRepositorio(
+  iniciales: Deporte[] = [],
+): IDeporteRepositorio {
+  const lista = [...iniciales];
+  return {
+    crear: vi.fn(async (d: Deporte) => {
+      lista.push(d);
+      return d;
+    }),
+    actualizar: vi.fn(async (d: Deporte) => {
+      const i = lista.findIndex((x) => x.id === d.id);
+      if (i >= 0) lista[i] = d;
+      return d;
+    }),
+    eliminar: vi.fn(async (id: string) => {
+      const i = lista.findIndex((x) => x.id === id);
+      if (i >= 0) lista.splice(i, 1);
+    }),
+    obtenerPorId: vi.fn(
+      async (id: string) => lista.find((d) => d.id === id) ?? null,
+    ),
+    listar: vi.fn(async () =>
+      [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre)),
+    ),
+    existeNombre: vi.fn(async (clave: string, excluirId?: string) =>
+      lista.some((d) => d.claveNombre === clave && d.id !== excluirId),
+    ),
   };
 }
 
@@ -916,5 +961,154 @@ export function mockNotificacionRepositorio(
     marcarTodasVistas: vi.fn(async () => 0),
     marcarVistasDePaciente: vi.fn(async () => 0),
     ...parcial,
+  };
+}
+
+/**
+ * Lista de categorías de alimento EN MEMORIA (migración 93): guarda lo que se
+ * crea y lo devuelve, para probar nombres repetidos y el orden sin armar cada
+ * método a mano.
+ */
+export function mockCategoriaAlimentoRepositorio(
+  iniciales: CategoriaAlimento[] = [],
+  parcial: Partial<ICategoriaAlimentoRepositorio> = {},
+): ICategoriaAlimentoRepositorio {
+  const lista = [...iniciales];
+  return {
+    crear: vi.fn(async (c: CategoriaAlimento) => {
+      lista.push(c);
+      return c;
+    }),
+    actualizar: vi.fn(async (c: CategoriaAlimento) => {
+      const i = lista.findIndex((x) => x.id === c.id);
+      if (i >= 0) lista[i] = c;
+      return c;
+    }),
+    eliminar: vi.fn(async (id: string) => {
+      const i = lista.findIndex((x) => x.id === id);
+      if (i >= 0) lista.splice(i, 1);
+    }),
+    obtenerPorId: vi.fn(
+      async (id: string) => lista.find((c) => c.id === id) ?? null,
+    ),
+    listar: vi.fn(async () =>
+      [...lista].sort(
+        (a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre),
+      ),
+    ),
+    existeNombre: vi.fn(async (clave: string, excluirId?: string) =>
+      lista.some((c) => c.claveNombre === clave && c.id !== excluirId),
+    ),
+    ...parcial,
+  };
+}
+
+/**
+ * Planificaciones deportivas y sus asignaciones EN MEMORIA (migración 94):
+ * la misma instancia cumple los dos puertos, como la implementación de Prisma.
+ */
+export function mockPlanificacionDeportivaRepositorio(
+  iniciales: PlanificacionDeportiva[] = [],
+): IPlanificacionDeportivaRepositorio &
+  IAsignacionPlanificacionRepositorio & {
+    planificaciones: PlanificacionDeportiva[];
+    asignaciones: AsignacionPlanificacion[];
+  } {
+  const planificaciones = [...iniciales];
+  const asignaciones: AsignacionPlanificacion[] = [];
+  const buscar = (id: string) =>
+    planificaciones.find((p) => p.id === id) ?? null;
+  return {
+    planificaciones,
+    asignaciones,
+    crear: vi.fn(async (p: PlanificacionDeportiva) => {
+      planificaciones.push(p);
+      return p;
+    }),
+    actualizar: vi.fn(async (p: PlanificacionDeportiva) => {
+      const i = planificaciones.findIndex((x) => x.id === p.id);
+      if (i >= 0) planificaciones[i] = p;
+      return p;
+    }),
+    eliminar: vi.fn(async (id: string) => {
+      const i = planificaciones.findIndex((x) => x.id === id);
+      if (i >= 0) planificaciones.splice(i, 1);
+    }),
+    obtenerPorId: vi.fn(async (id: string) => buscar(id)),
+    listar: vi.fn(async () => [...planificaciones]),
+    contar: vi.fn(async () => planificaciones.length),
+    existeNombre: vi.fn(async (nombre: string, excluirId?: string) =>
+      planificaciones.some(
+        (p) =>
+          p.nombre.toLowerCase() === nombre.toLowerCase() && p.id !== excluirId,
+      ),
+    ),
+    moverAGrupo: vi.fn(async (id: string, grupoId: string | null) => {
+      const p = buscar(id);
+      if (p) {
+        planificaciones[planificaciones.indexOf(p)] = p.conGrupo(grupoId);
+      }
+    }),
+    asignar: vi.fn(async (a: AsignacionPlanificacion) => {
+      const i = asignaciones.findIndex(
+        (x) =>
+          x.planificacionId === a.planificacionId &&
+          x.pacienteId === a.pacienteId,
+      );
+      if (i >= 0) asignaciones[i] = a;
+      else asignaciones.push(a);
+      return a;
+    }),
+    desasignar: vi.fn(async (planificacionId: string, pacienteId: string) => {
+      const i = asignaciones.findIndex(
+        (x) =>
+          x.planificacionId === planificacionId && x.pacienteId === pacienteId,
+      );
+      if (i >= 0) asignaciones.splice(i, 1);
+    }),
+    obtenerAsignacion: vi.fn(
+      async (planificacionId: string, pacienteId: string) =>
+        asignaciones.find(
+          (x) =>
+            x.planificacionId === planificacionId &&
+            x.pacienteId === pacienteId,
+        ) ?? null,
+    ),
+    listarDePaciente: vi.fn(async (pacienteId: string) =>
+      asignaciones
+        .filter((a) => a.pacienteId === pacienteId)
+        .flatMap((a) => {
+          const planificacion = buscar(a.planificacionId);
+          return planificacion
+            ? [{ ...a, planificacion, competencia: null }]
+            : [];
+        }),
+    ),
+    contarDePaciente: vi.fn(
+      async (pacienteId: string) =>
+        asignaciones.filter((a) => a.pacienteId === pacienteId).length,
+    ),
+    listarDePlanificacion: vi.fn(async (planificacionId: string) =>
+      asignaciones
+        .filter((a) => a.planificacionId === planificacionId)
+        .map((a) => ({
+          ...a,
+          pacienteNombre: "Ana",
+          pacienteApellido: "García",
+          competencia: null,
+        })),
+    ),
+    contarPacientes: vi.fn(async (ids: string[]) => {
+      const conteo = new Map<string, number>();
+      for (const a of asignaciones) {
+        if (ids.includes(a.planificacionId)) {
+          conteo.set(
+            a.planificacionId,
+            (conteo.get(a.planificacionId) ?? 0) + 1,
+          );
+        }
+      }
+      return conteo;
+    }),
   };
 }

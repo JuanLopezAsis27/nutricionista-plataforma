@@ -14,6 +14,8 @@ export interface UsosDeAlimento {
   planes: number;
   recetas: number;
   planesSemanales: number;
+  /** Planificaciones deportivas que lo llevan en alguna ingesta (migración 94). */
+  planificaciones: number;
   /** Recetas predeterminadas de la plataforma que lo llevan. */
   recetasPlataforma: number;
   /** En cuántos consultorios aparece (solo tiene sentido con alcance global). */

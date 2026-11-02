@@ -14,17 +14,25 @@ import {
   MessageSquare,
   Sparkles,
   UserRound,
+  Medal,
 } from "lucide-react";
 import { SidebarNav, type EnlaceNav } from "@/componentes/layout/SidebarNav";
 import { ToggleTema } from "@/componentes/comunes/ToggleTema";
 import { BotonInstalarHeader } from "@/componentes/pwa/BotonInstalarHeader";
 import { useMensajeria } from "@/lib/hooks/useMensajeria";
+import { usePlanificacionDeportiva } from "@/lib/hooks/usePlanificacionDeportiva";
 import { SelectorConsultorio } from "@/componentes/consultorios/SelectorConsultorio";
 
 /** Barra lateral del portal del paciente (colapsable, con menú móvil). */
 export function BarraLateralPaciente({ email }: { email: string }) {
   const { misNoLeidos } = useMensajeria();
   const sinLeer = misNoLeidos().data ?? 0;
+  // «Mis competencias» aparece solo si le asignaron alguna planificación
+  // deportiva (migración 94): a quien no compite, una entrada vacía en el
+  // menú lo confunde.
+  // Se pregunta cuántas y no se traen: el menú se dibuja en cada pantalla.
+  const { cuantasMias } = usePlanificacionDeportiva();
+  const compite = (cuantasMias(undefined, { staleTime: 60_000 }).data ?? 0) > 0;
 
   const enlaces: EnlaceNav[] = [
     { href: "/mi-inicio", etiqueta: "Inicio", icono: Home, exacto: true },
@@ -43,6 +51,15 @@ export function BarraLateralPaciente({ email }: { email: string }) {
     },
     { href: "/mi-plan", etiqueta: "Mi plan", icono: ClipboardList },
     { href: "/mi-semana", etiqueta: "Mi semana", icono: CalendarRange },
+    ...(compite
+      ? [
+          {
+            href: "/mis-competencias",
+            etiqueta: "Mis competencias",
+            icono: Medal,
+          },
+        ]
+      : []),
     { href: "/mis-objetivos", etiqueta: "Mis objetivos", icono: Target },
     { href: "/mis-recetas", etiqueta: "Mis recetas", icono: BookOpen },
     { href: "/mi-material", etiqueta: "Mi material", icono: Library },

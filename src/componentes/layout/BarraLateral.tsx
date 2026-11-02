@@ -13,6 +13,7 @@ import {
   Sparkles,
   Settings,
   Apple,
+  Medal,
 } from "lucide-react";
 import { SidebarNav, type EnlaceNav } from "@/componentes/layout/SidebarNav";
 import { ToggleTema } from "@/componentes/comunes/ToggleTema";
@@ -45,6 +46,11 @@ export function BarraLateral({ email }: { email: string }) {
       etiqueta: "Planes",
       icono: ClipboardList,
       grupo: "Contenido",
+    },
+    {
+      href: "/dashboard/planificacion-deportiva",
+      etiqueta: "Planificación deportiva",
+      icono: Medal,
     },
     { href: "/dashboard/recetas", etiqueta: "Recetario", icono: BookOpen },
     { href: "/dashboard/alimentos", etiqueta: "Alimentos", icono: Apple },

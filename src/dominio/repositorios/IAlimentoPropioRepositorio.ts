@@ -1,13 +1,10 @@
-import type {
-  AlimentoPropio,
-  CategoriaAlimento,
-} from "../entidades/AlimentoPropio";
+import type { AlimentoPropio } from "../entidades/AlimentoPropio";
 
 /** Criterios opcionales de paginación y búsqueda para listar la gestión. */
 export interface FiltroAlimentosPropios {
   busqueda?: string;
-  /** Solo los de esa categoría (migración 84). */
-  categoria?: CategoriaAlimento;
+  /** Solo los de esa categoría, por id: predeterminada o propia (migración 93). */
+  categoriaId?: string;
   limite?: number;
   desplazamiento?: number;
 }
@@ -62,7 +59,7 @@ export interface IAlimentoPropioRepositorio {
   buscar(
     termino: string,
     limite: number,
-    categoria?: CategoriaAlimento,
+    categoriaId?: string,
   ): Promise<AlimentoPropio[]>;
   /** Cantidad de alimentos cargados (con el mismo filtro que `listar`). */
   contar(filtro?: FiltroAlimentosPropios): Promise<number>;

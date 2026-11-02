@@ -447,7 +447,11 @@ export function perfilDeportivoEjemplo(
   return PerfilDeportivo.crear(
     {
       pacienteId: "pac-1",
-      deporte: "Atletismo",
+      deporte: {
+        id: "dpt-atletismo",
+        nombre: "Atletismo",
+        formatoPlanificacion: "CARRERA_CALLE",
+      },
       disciplina: "Maratón",
       nivel: "COMPETITIVO",
       fase: "COMPETENCIA",

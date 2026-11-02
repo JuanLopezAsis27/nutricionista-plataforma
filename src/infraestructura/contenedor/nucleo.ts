@@ -43,12 +43,15 @@ import { PrismaRepositorioRegistroDiario } from "@/infraestructura/repositorios/
 import { PrismaRepositorioReceta } from "@/infraestructura/repositorios/PrismaRepositorioReceta";
 import { PrismaRepositorioPlan } from "@/infraestructura/repositorios/PrismaRepositorioPlan";
 import { PrismaRepositorioPlanSemanal } from "@/infraestructura/repositorios/PrismaRepositorioPlanSemanal";
+import { PrismaRepositorioPlanificacionDeportiva } from "@/infraestructura/repositorios/PrismaRepositorioPlanificacionDeportiva";
+import { PrismaRepositorioGrupoPlanificacion } from "@/infraestructura/repositorios/PrismaRepositorioGrupoPlanificacion";
 import { PrismaRepositorioGrupoPlan } from "@/infraestructura/repositorios/PrismaRepositorioGrupoPlan";
 import { PrismaRepositorioGrupoReceta } from "@/infraestructura/repositorios/PrismaRepositorioGrupoReceta";
 import { PrismaRepositorioGrupoMaterial } from "@/infraestructura/repositorios/PrismaRepositorioGrupoMaterial";
 import { PrismaRepositorioGrabacionConsulta } from "@/infraestructura/repositorios/PrismaRepositorioGrabacionConsulta";
 import { PrismaRepositorioObjetivo } from "@/infraestructura/repositorios/PrismaRepositorioObjetivo";
 import { PrismaRepositorioPerfilDeportivo } from "@/infraestructura/repositorios/PrismaRepositorioPerfilDeportivo";
+import { PrismaRepositorioDeporte } from "@/infraestructura/repositorios/PrismaRepositorioDeporte";
 import { PrismaRepositorioCompetencia } from "@/infraestructura/repositorios/PrismaRepositorioCompetencia";
 import { PrismaRepositorioMaterial } from "@/infraestructura/repositorios/PrismaRepositorioMaterial";
 import { PrismaRepositorioSuplemento } from "@/infraestructura/repositorios/PrismaRepositorioSuplemento";
@@ -70,6 +73,8 @@ import { PrismaRepositorioAxioma } from "@/infraestructura/repositorios/PrismaRe
 import { PrismaRepositorioMetricaDispositivo } from "@/infraestructura/repositorios/PrismaRepositorioMetricaDispositivo";
 import { PrismaRepositorioAlimentoPropio } from "@/infraestructura/repositorios/PrismaRepositorioAlimentoPropio";
 import { PrismaRepositorioAlimentoBase } from "@/infraestructura/repositorios/PrismaRepositorioAlimentoBase";
+import { PrismaRepositorioCategoriaAlimentoBase } from "@/infraestructura/repositorios/PrismaRepositorioCategoriaAlimentoBase";
+import { PrismaRepositorioCategoriaAlimentoPropia } from "@/infraestructura/repositorios/PrismaRepositorioCategoriaAlimentoPropia";
 import { PrismaRepositorioRecetaBase } from "@/infraestructura/repositorios/PrismaRepositorioRecetaBase";
 import { PrismaRepositorioUsosDeAlimento } from "@/infraestructura/repositorios/PrismaRepositorioUsosDeAlimento";
 import { PrismaRepositorioRetroalimentacionInsight } from "@/infraestructura/repositorios/PrismaRepositorioRetroalimentacionInsight";
@@ -254,6 +259,14 @@ export const repositorioPlan = perezoso(
 export const repositorioPlanSemanal = perezoso(
   () => new PrismaRepositorioPlanSemanal(prisma()),
 );
+/** Planificaciones deportivas y sus asignaciones (migración 94). */
+export const repositorioPlanificacionDeportiva = perezoso(
+  () => new PrismaRepositorioPlanificacionDeportiva(prisma()),
+);
+/** Carpetas de planificaciones deportivas (migración 94). */
+export const repositorioGrupoPlanificacion = perezoso(
+  () => new PrismaRepositorioGrupoPlanificacion(prisma()),
+);
 export const repositorioGrupoPlan = perezoso(
   () => new PrismaRepositorioGrupoPlan(prisma()),
 );
@@ -339,6 +352,18 @@ export const repositorioAlimentoPropio = perezoso(
 /** Alimentos predeterminados de la plataforma (sin inquilino, migración 82). */
 export const repositorioAlimentoBase = perezoso(
   () => new PrismaRepositorioAlimentoBase(prisma()),
+);
+/** Categorías predeterminadas de alimento (sin inquilino, migración 93). */
+export const repositorioCategoriaAlimentoBase = perezoso(
+  () => new PrismaRepositorioCategoriaAlimentoBase(prisma()),
+);
+/** Categorías de alimento propias de cada consultorio (migración 93). */
+export const repositorioCategoriaAlimentoPropia = perezoso(
+  () => new PrismaRepositorioCategoriaAlimentoPropia(prisma()),
+);
+/** Deportes de la plataforma (sin inquilino, migración 97). */
+export const repositorioDeporte = perezoso(
+  () => new PrismaRepositorioDeporte(prisma()),
 );
 /** Recetas predeterminadas de la plataforma (sin inquilino, migración 82). */
 export const repositorioRecetaBase = perezoso(

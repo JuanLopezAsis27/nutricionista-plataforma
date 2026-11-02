@@ -127,6 +127,7 @@ describe("origen de los alimentos copiados", () => {
       recetas: 1,
       planesSemanales: 0,
       recetasPlataforma: 0,
+      planificaciones: 0,
       consultorios: 1,
     };
     const contar = vi.fn(async () => usos);

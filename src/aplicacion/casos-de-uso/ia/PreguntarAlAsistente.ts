@@ -275,7 +275,7 @@ export class PreguntarAlAsistente {
           return JSON.stringify({
             perfil: p
               ? {
-                  deporte: p.deporte,
+                  deporte: p.deporte.nombre,
                   disciplina: p.disciplina,
                   nivel: p.nivel,
                   faseTemporada: p.fase,

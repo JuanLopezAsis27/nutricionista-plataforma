@@ -1,8 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
+import type { AlimentoPropio } from "@/dominio/entidades/AlimentoPropio";
 import {
+  CategoriaAlimento,
   categoriaDesdeTexto,
-  type AlimentoPropio,
-} from "@/dominio/entidades/AlimentoPropio";
+  type CategoriaDeAlimento,
+} from "@/dominio/entidades/CategoriaAlimento";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 import { ErrorAlimentoPropioNoEncontrado } from "@/dominio/errores/ErrorAlimentoPropioNoEncontrado";
 import {
@@ -17,7 +19,11 @@ import { QuitarImagenAlimento } from "./QuitarImagenAlimento";
 import { ObtenerImagenAlimento } from "./ObtenerImagenAlimento";
 import { ImportarAlimentos } from "./ImportarAlimentos";
 import { LimpiarArchivosHuerfanos } from "../archivos/LimpiarArchivosHuerfanos";
-import { mockArchivoRepositorio } from "../_ayudas-test";
+import {
+  mockArchivoRepositorio,
+  mockCategoriaAlimentoRepositorio,
+} from "../_ayudas-test";
+import { CategoriasDisponibles } from "../categorias-alimento/CategoriasDisponibles";
 
 /**
  * Tests de las categorías y las imágenes de los alimentos (migración 84).
@@ -30,23 +36,56 @@ import { mockArchivoRepositorio } from "../_ayudas-test";
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0]);
 
+/** Las categorías de una lista: predeterminadas y, al final, una propia. */
+function categoria(
+  id: string,
+  nombre: string,
+  propia = false,
+): CategoriaAlimento {
+  return CategoriaAlimento.crear({ nombre }, propia, id);
+}
+
+const PREDETERMINADAS = [
+  categoria("c-lacteos", "Lácteos"),
+  categoria("c-pescados", "Pescados y mariscos"),
+  categoria("c-frutas", "Frutas"),
+  categoria("c-frutos-secos", "Frutos secos y semillas"),
+  categoria("c-embutidos", "Embutidos"),
+  categoria("c-cereales", "Cereales y derivados"),
+  categoria("c-legumbres", "Legumbres"),
+  categoria("c-geles", "Geles deportivos"),
+];
+const REFERENCIAS: CategoriaDeAlimento[] = [
+  ...PREDETERMINADAS.map((c) => c.referencia),
+  categoria("c-mis-geles", "Geles", true).referencia,
+];
+
+function idDe(texto: string | null): string | null {
+  return categoriaDesdeTexto(texto, REFERENCIAS)?.id ?? null;
+}
+
 describe("categoriaDesdeTexto", () => {
   it("reconoce el nombre, el código, la primera palabra y el singular", () => {
-    expect(categoriaDesdeTexto("Lácteos")).toBe("LACTEOS");
-    expect(categoriaDesdeTexto("LACTEOS")).toBe("LACTEOS");
-    expect(categoriaDesdeTexto("lácteo")).toBe("LACTEOS");
-    expect(categoriaDesdeTexto("Pescados")).toBe("PESCADOS");
-    expect(categoriaDesdeTexto("fruta")).toBe("FRUTAS");
-    expect(categoriaDesdeTexto("frutos secos")).toBe("FRUTOS_SECOS");
-    // Migración 86.
-    expect(categoriaDesdeTexto("Embutidos")).toBe("EMBUTIDOS");
-    expect(categoriaDesdeTexto("embutido")).toBe("EMBUTIDOS");
+    expect(idDe("Lácteos")).toBe("c-lacteos");
+    expect(idDe("LACTEOS")).toBe("c-lacteos");
+    expect(idDe("lácteo")).toBe("c-lacteos");
+    expect(idDe("Pescados")).toBe("c-pescados");
+    expect(idDe("fruta")).toBe("c-frutas");
+    expect(idDe("frutos secos")).toBe("c-frutos-secos");
+    expect(idDe("FRUTOS_SECOS")).toBe("c-frutos-secos");
+    expect(idDe("embutido")).toBe("c-embutidos");
+  });
+
+  it("el nombre exacto gana sobre la primera palabra de otra", () => {
+    // «Geles» es la propia, aunque «Geles deportivos» empiece igual.
+    expect(idDe("Geles")).toBe("c-mis-geles");
+    expect(idDe("geles deportivos")).toBe("c-geles");
   });
 
   it("un rubro desconocido o vacío es sin categoría, no un error", () => {
-    expect(categoriaDesdeTexto("Snacks raros")).toBeNull();
-    expect(categoriaDesdeTexto("")).toBeNull();
-    expect(categoriaDesdeTexto(null)).toBeNull();
+    expect(idDe("Snacks raros")).toBeNull();
+    expect(idDe("")).toBeNull();
+    expect(idDe(null)).toBeNull();
   });
 });
 
@@ -169,7 +208,7 @@ describe("ImportarAlimentos conserva lo cargado a mano", () => {
   it("un alimento que ya estaba conserva su imagen y su categoría si la planilla no trae", async () => {
     const anterior = alimentoPropioEjemplo({
       nombre: "Arroz",
-      categoria: "CEREALES",
+      categoria: PREDETERMINADAS[5]!.referencia,
     }).conImagen("alimentos-propios/ali-1/foto.png");
     const reemplazarTodos = vi.fn(async (a: AlimentoPropio[]) => a.length);
 
@@ -178,17 +217,22 @@ describe("ImportarAlimentos conserva lo cargado a mano", () => {
         listar: vi.fn(async () => [anterior]),
         reemplazarTodos,
       }),
+      null,
+      null,
+      new CategoriasDisponibles([
+        mockCategoriaAlimentoRepositorio(PREDETERMINADAS),
+      ]),
     ).ejecutar([
       { nombre: "arroz", caloriasPor100: 128 },
-      { nombre: "Leche", categoria: "LACTEOS" },
+      { nombre: "Leche", categoriaTexto: "Lácteos" },
     ]);
 
     const [arroz, leche] = reemplazarTodos.mock.calls[0]![0];
     expect(arroz!.imagenClave).toBe("alimentos-propios/ali-1/foto.png");
-    expect(arroz!.aPrimitivos().categoria).toBe("CEREALES");
+    expect(arroz!.aPrimitivos().categoria?.id).toBe("c-cereales");
     expect(arroz!.aPrimitivos().caloriasPor100).toBe(128);
     expect(leche!.imagenClave).toBeNull();
-    expect(leche!.aPrimitivos().categoria).toBe("LACTEOS");
+    expect(leche!.aPrimitivos().categoria?.id).toBe("c-lacteos");
   });
 
   it("la categoría de la planilla gana sobre la anterior", async () => {
@@ -196,14 +240,22 @@ describe("ImportarAlimentos conserva lo cargado a mano", () => {
     await new ImportarAlimentos(
       mockAlimentoPropioRepositorio({
         listar: vi.fn(async () => [
-          alimentoPropioEjemplo({ nombre: "Maní", categoria: "LEGUMBRES" }),
+          alimentoPropioEjemplo({
+            nombre: "Maní",
+            categoria: PREDETERMINADAS[6]!.referencia,
+          }),
         ]),
         reemplazarTodos,
       }),
-    ).ejecutar([{ nombre: "Maní", categoria: "FRUTOS_SECOS" }]);
-    expect(reemplazarTodos.mock.calls[0]![0][0]!.aPrimitivos().categoria).toBe(
-      "FRUTOS_SECOS",
-    );
+      null,
+      null,
+      new CategoriasDisponibles([
+        mockCategoriaAlimentoRepositorio(PREDETERMINADAS),
+      ]),
+    ).ejecutar([{ nombre: "Maní", categoriaTexto: "Frutos secos" }]);
+    expect(
+      reemplazarTodos.mock.calls[0]![0][0]!.aPrimitivos().categoria?.id,
+    ).toBe("c-frutos-secos");
   });
 });
 

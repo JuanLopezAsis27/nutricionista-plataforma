@@ -1,15 +1,13 @@
 import type { IAlimentoPropioRepositorio } from "@/dominio/repositorios/IAlimentoPropioRepositorio";
-import type {
-  AlimentoPropio,
-  CategoriaAlimento,
-} from "@/dominio/entidades/AlimentoPropio";
+import type { AlimentoPropio } from "@/dominio/entidades/AlimentoPropio";
 
 /** Parámetros de paginación/búsqueda de la gestión manual. */
 export interface ParametrosPaginacionAlimentosPropios {
   pagina: number;
   porPagina: number;
   busqueda?: string;
-  categoria?: CategoriaAlimento;
+  /** Id de una categoría predeterminada o propia. */
+  categoriaId?: string;
 }
 
 /** Resultado paginado de entidades AlimentoPropio. */
@@ -31,17 +29,17 @@ export class ListarAlimentosPropios {
   ): Promise<AlimentosPropiosPaginados> {
     // Los filtros se enumeran a mano: el que no esté acá se descarta en
     // silencio (le pasó al listado de planes con la carpeta).
-    const { pagina, porPagina, busqueda, categoria } = params;
+    const { pagina, porPagina, busqueda, categoriaId } = params;
     const desplazamiento = (pagina - 1) * porPagina;
 
     const [alimentos, total] = await Promise.all([
       this.repositorio.listar({
         busqueda,
-        categoria,
+        categoriaId,
         limite: porPagina,
         desplazamiento,
       }),
-      this.repositorio.contar({ busqueda, categoria }),
+      this.repositorio.contar({ busqueda, categoriaId }),
     ]);
 
     const paginas = Math.max(1, Math.ceil(total / porPagina));

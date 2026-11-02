@@ -44,6 +44,8 @@ export function useDeportivo() {
 
   return {
     obtenerPerfil: trpc.deportivo.obtenerPerfil.useQuery,
+    /** La lista de deportes de la plataforma (migración 97), para el buscador. */
+    deportes: trpc.deportivo.deportes.useQuery,
     listarCompetencias: trpc.deportivo.listarCompetencias.useQuery,
     miPerfil: trpc.deportivo.miPerfil.useQuery,
     misCompetencias: trpc.deportivo.misCompetencias.useQuery,

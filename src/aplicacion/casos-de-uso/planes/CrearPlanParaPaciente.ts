@@ -1,13 +1,10 @@
 import type { IGrupoPlanRepositorio } from "@/dominio/repositorios/IGrupoPlanRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { PlanNutricional } from "@/dominio/entidades/PlanNutricional";
-import { GrupoPlan } from "@/dominio/entidades/GrupoPlan";
 import { ErrorPacienteNoEncontrado } from "@/dominio/errores/ErrorPacienteNoEncontrado";
 import { CrearPlan, type DatosCrearPlan } from "./CrearPlan";
 import { AsignarPlanAPaciente } from "./AsignarPlanAPaciente";
-
-/** Cuántos sufijos se prueban antes de rendirse: «Julia Pérez (2)»…«(50)». */
-const MAX_INTENTOS_DE_NOMBRE = 50;
+import { obtenerOCrearCarpetaDelPaciente } from "../grupos-plan/carpetaDelPaciente";
 
 /** Entrada: el plan completo (como en `CrearPlan`) + a quién asignárselo. */
 export interface DatosCrearPlanParaPaciente extends Omit<
@@ -28,9 +25,8 @@ export interface DatosCrearPlanParaPaciente extends Omit<
  *
  * Todos los planes que se le creen a ESE paciente por acá cae en la MISMA
  * carpeta —la que lleva su nombre—: la primera vez se crea, las siguientes se
- * reutiliza (`GrupoPlan.pacienteId`, migración 56). Reencontrarla por nombre de
- * texto sería frágil (dos pacientes homónimos, un cambio de apellido); por eso
- * la carpeta queda atada al paciente y no a su nombre.
+ * reutiliza (`GrupoPlan.pacienteId`, migración 56). Ver
+ * `obtenerOCrearCarpetaDelPaciente`.
  */
 export class CrearPlanParaPaciente {
   constructor(
@@ -46,7 +42,8 @@ export class CrearPlanParaPaciente {
       throw new ErrorPacienteNoEncontrado(datos.pacienteId);
     }
 
-    const carpeta = await this.obtenerOCrearCarpeta(
+    const carpeta = await obtenerOCrearCarpetaDelPaciente(
+      this.grupos,
       datos.pacienteId,
       paciente.nombreCompleto,
     );
@@ -65,35 +62,5 @@ export class CrearPlanParaPaciente {
     });
 
     return plan;
-  }
-
-  /** La carpeta que ya tiene el paciente, o una nueva con su nombre. */
-  private async obtenerOCrearCarpeta(
-    pacienteId: string,
-    nombreCompleto: string,
-  ): Promise<GrupoPlan> {
-    const existente = await this.grupos.obtenerPorPaciente(pacienteId);
-    if (existente) return existente;
-
-    // El nombre del paciente puede chocar con una carpeta que alguien ya
-    // armó a mano (u homónimos): se numera, como el nombre de un plan
-    // clonado, en vez de fallar en un flujo que no tiene dónde escribir uno
-    // distinto.
-    for (let intento = 1; intento <= MAX_INTENTOS_DE_NOMBRE; intento += 1) {
-      const nombre =
-        intento === 1 ? nombreCompleto : `${nombreCompleto} (${intento})`;
-      if (!(await this.grupos.existeNombre(nombre))) {
-        return this.grupos.crear(
-          GrupoPlan.crear({ nombre, pacienteId }, crypto.randomUUID()),
-        );
-      }
-    }
-    // Virtualmente inalcanzable, pero deja el tipo de retorno sin `| null`.
-    return this.grupos.crear(
-      GrupoPlan.crear(
-        { nombre: nombreCompleto, pacienteId },
-        crypto.randomUUID(),
-      ),
-    );
   }
 }

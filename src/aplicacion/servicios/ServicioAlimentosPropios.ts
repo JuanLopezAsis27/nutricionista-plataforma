@@ -124,11 +124,16 @@ export class ServicioAlimentosPropios {
       proteinasPor100: f.proteinasPor100 ?? null,
       carbohidratosPor100: f.carbohidratosPor100 ?? null,
       grasasPor100: f.grasasPor100 ?? null,
+      // Null = la planilla no las trae: al reemplazar, el caso de uso
+      // conserva las que ya tenía el alimento (migración 95).
+      cafeinaPor100: f.cafeinaPor100 ?? null,
+      descripcion: f.descripcion ?? null,
       // Null / vacío = la planilla no lo trae: al reemplazar, el caso de uso
       // conserva lo que ya tenía el alimento (migración 90).
       unidadBase: f.unidadBase ?? null,
       medidas: f.medidas ?? [],
-      categoria: f.categoria ?? null,
+      // El texto de la columna: el caso de uso lo busca entre las categorías.
+      categoriaTexto: f.categoria ?? null,
       imagen: imagenes.get(indice) ?? null,
     }));
   }
@@ -160,9 +165,11 @@ export class ServicioAlimentosPropios {
       proteinasPor100: datos.proteinasPor100 ?? null,
       carbohidratosPor100: datos.carbohidratosPor100 ?? null,
       grasasPor100: datos.grasasPor100 ?? null,
+      cafeinaPor100: datos.cafeinaPor100 ?? null,
+      descripcion: datos.descripcion ?? null,
       unidadBase: datos.unidadBase ?? "GRAMO",
       medidas: datos.medidas ?? [],
-      categoria: datos.categoria ?? null,
+      categoriaId: datos.categoriaId ?? null,
     });
     return ServicioAlimentosPropios.aSalida(alimento);
   }

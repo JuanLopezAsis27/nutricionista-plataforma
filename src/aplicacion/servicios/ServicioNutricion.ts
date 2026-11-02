@@ -28,7 +28,7 @@ export class ServicioNutricion {
       datos.termino,
       datos.limite ?? 10,
       criterio,
-      datos.categoria,
+      datos.categoriaId,
     );
   }
 

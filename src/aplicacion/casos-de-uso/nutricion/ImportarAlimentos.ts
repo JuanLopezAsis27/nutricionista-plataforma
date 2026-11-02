@@ -1,6 +1,7 @@
 import type { IAlimentoPropioRepositorio } from "@/dominio/repositorios/IAlimentoPropioRepositorio";
 import type { AlimentoPropio } from "@/dominio/entidades/AlimentoPropio";
 import type { ImagenSubida, ImagenesDeAlimentos } from "./imagenesDeAlimentos";
+import type { CategoriasDisponibles } from "../categorias-alimento/CategoriasDisponibles";
 import {
   leerAlimentosDeLaPlanilla,
   subirImagenesDeLaPlanilla,
@@ -40,8 +41,10 @@ export interface ResultadoImportacionAlimentos {
  * CATEGORÍA si la planilla no trae una. Sin esto, cada Excel nuevo borraría
  * las fotos y las categorías que se fueron poniendo de a una.
  *
- * Con la misma regla, la UNIDAD BASE y las MEDIDAS (migración 90): si la
- * planilla no las trae para esa fila, quedan las que ya tenía el alimento.
+ * Con la misma regla, la UNIDAD BASE y las MEDIDAS (migración 90), y la
+ * CAFEÍNA y la DESCRIPCIÓN (migración 95): si la planilla no las trae para esa
+ * fila, quedan las que ya tenía el alimento. Una planilla vieja, sin esas
+ * columnas, no borra lo que se cargó a mano.
  *
  * Las IMÁGENES de la planilla se suben antes de escribir (las filas entran ya
  * apuntando a su imagen); si la escritura falla, se borran. Una imagen que
@@ -55,12 +58,20 @@ export class ImportarAlimentos {
     private readonly catalogo: IAlimentoPropioRepositorio | null = null,
     /** Dónde guardar las imágenes de la planilla. Sin esto, se ignoran. */
     private readonly imagenes: ImagenesDeAlimentos | null = null,
+    /**
+     * Las categorías que puede llevar un alimento de esta lista, para leer la
+     * columna «Categoría» (migración 93). Sin esto, la columna se ignora.
+     */
+    private readonly categorias: CategoriasDisponibles | null = null,
   ) {}
 
   async ejecutar(
     filas: FilaDePlanilla[],
   ): Promise<ResultadoImportacionAlimentos> {
-    const { porClave, repetidos } = leerAlimentosDeLaPlanilla(filas);
+    const { porClave, repetidos } = leerAlimentosDeLaPlanilla(
+      filas,
+      (await this.categorias?.todas()) ?? [],
+    );
 
     const anteriores = new Map(
       (await this.repositorio.listar()).map((a) => [a.claveIdentidad, a]),
@@ -72,8 +83,11 @@ export class ImportarAlimentos {
       const anterior = anteriores.get(alimento.claveIdentidad);
       if (!anterior) return alimento;
       const previo = anterior.aPrimitivos();
+      const nuevo = alimento.aPrimitivos();
       return alimento
         .actualizar({
+          cafeinaPor100: nuevo.cafeinaPor100 ?? previo.cafeinaPor100,
+          descripcion: nuevo.descripcion ?? previo.descripcion,
           categoria: alimento.aPrimitivos().categoria ?? previo.categoria,
           unidadBase: fila.unidadBase ?? previo.unidadBase,
           medidas: fila.medidas?.length ? fila.medidas : previo.medidas,
