@@ -517,6 +517,8 @@ export const servicioRespaldo = perezoso(() =>
     pacientes: nucleo.repositorioPaciente(),
     asignaciones: nucleo.repositorioPlan(),
     archivos: nucleo.repositorioUbicacionArchivos(),
+    planificaciones: nucleo.repositorioPlanificacionDeportiva(),
+    asignacionesPlanificacion: nucleo.repositorioPlanificacionDeportiva(),
   }),
 );
 

@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Medal, Plus, Link2, Eye, Pencil, X, Trophy } from "lucide-react";
+import {
+  Medal,
+  Plus,
+  Link2,
+  Eye,
+  FileDown,
+  Pencil,
+  X,
+  Trophy,
+} from "lucide-react";
 import { ETIQUETA_MODALIDAD_CARRERA } from "@/dominio/entidades/PlanificacionDeportiva";
 import { usePlanificacionDeportiva } from "@/lib/hooks/usePlanificacionDeportiva";
 import { useDeportivo } from "@/lib/hooks/useDeportivo";
@@ -16,6 +25,7 @@ import {
   rutaDeporteDelPaciente,
   rutaEditarPlanificacion,
   rutaNuevaPlanificacion,
+  rutaPdfPlanificacion,
   rutaPlanificacion,
 } from "./rutas";
 import { numero, textoDuracion } from "./presentacion";
@@ -144,6 +154,15 @@ export function SeccionPlanificacionesDelPaciente({
                   <Link href={rutaPlanificacion(p.id)}>
                     <Eye className="h-4 w-4" />
                   </Link>
+                </Button>
+                <Button asChild variant="ghost" size="icon" title="PDF">
+                  <a
+                    href={rutaPdfPlanificacion(p.id, pacienteId)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <FileDown className="h-4 w-4" />
+                  </a>
                 </Button>
                 <Button asChild variant="ghost" size="icon" title="Editar">
                   <Link href={rutaEditarPlanificacion(p.id, volver)}>

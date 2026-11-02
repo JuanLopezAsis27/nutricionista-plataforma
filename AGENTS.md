@@ -598,7 +598,9 @@ de trail), y la ficha ofrece planificar según el deporte del perfil: uno sin
 planificación no ofrece crear ni asignar. Es lo que se ofrece, no una regla
 del servidor; sumar otro deporte es un `TipoPlanificacionDeportiva` con su
 tabla y un `FormatoPlanificacion` más. La asignación lleva una **competencia opcional de su
-calendario**, que tiene que ser DE ese paciente. El paciente las ve en «Mis
+calendario**, que tiene que ser DE ese paciente. Se baja en **PDF**
+(`/api/planificacion-deportiva/[id]/pdf`, con la competencia si viene de la
+ficha) y entra al respaldo del consultorio. El paciente las ve en «Mis
 competencias», que aparece en su menú solo si tiene alguna. Ver
 `docs/PLANIFICACION-DEPORTIVA.md`.
 

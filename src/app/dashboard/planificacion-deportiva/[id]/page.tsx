@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Copy,
+  FileDown,
   Medal,
   Pencil,
   Trash2,
@@ -31,6 +32,7 @@ import {
   RUTA_PLANIFICACION,
   rutaDeporteDelPaciente,
   rutaEditarPlanificacion,
+  rutaPdfPlanificacion,
   rutaPlanificacion,
 } from "@/componentes/planificacion-deportiva/rutas";
 
@@ -83,6 +85,11 @@ export default function PaginaPlanificacion() {
           </Link>
         </Button>
         <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm">
+            <a href={rutaPdfPlanificacion(id)} target="_blank" rel="noreferrer">
+              <FileDown className="h-4 w-4" /> PDF
+            </a>
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setAsignar(true)}>
             <UserPlus className="h-4 w-4" /> Asignar
           </Button>

@@ -45,6 +45,17 @@ export function volverSeguro(valor: string | null | undefined): string | null {
     : null;
 }
 
+/**
+ * El PDF de una planificación. Con `pacienteId` (desde la ficha) lleva su
+ * nombre y la competencia para la que se la asignó.
+ */
+export function rutaPdfPlanificacion(id: string, pacienteId?: string): string {
+  const base = `/api/planificacion-deportiva/${id}/pdf`;
+  return pacienteId
+    ? `${base}?paciente=${encodeURIComponent(pacienteId)}`
+    : base;
+}
+
 /** La pestaña «Deporte» de la ficha de un paciente. */
 export function rutaDeporteDelPaciente(pacienteId: string): string {
   return `/dashboard/pacientes/${pacienteId}?pestana=deporte`;

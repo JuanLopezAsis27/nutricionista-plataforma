@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Medal } from "lucide-react";
+import { ArrowLeft, FileDown, Medal } from "lucide-react";
 import { usePlanificacionDeportiva } from "@/lib/hooks/usePlanificacionDeportiva";
 import { Button } from "@/componentes/ui/button";
 import { Skeleton } from "@/componentes/ui/skeleton";
 import { EncabezadoPortal } from "@/componentes/layout/EncabezadoPortal";
 import { VistaPlanificacion } from "@/componentes/planificacion-deportiva/VistaPlanificacion";
+import { rutaPdfPlanificacion } from "@/componentes/planificacion-deportiva/rutas";
 
 /**
  * Una planificación de competencia del paciente, en su propia pantalla.
@@ -49,7 +50,20 @@ export default function PaginaMiCompetencia() {
         icono={Medal}
         titulo={asignacion.planificacion.nombre}
         descripcion="Lo que tenés que tomar antes y durante la carrera."
-        acciones={volver}
+        acciones={
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" size="sm">
+              <a
+                href={rutaPdfPlanificacion(asignacion.planificacion.id)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FileDown className="h-4 w-4" /> PDF
+              </a>
+            </Button>
+            {volver}
+          </div>
+        }
       />
       <VistaPlanificacion
         planificacion={asignacion.planificacion}

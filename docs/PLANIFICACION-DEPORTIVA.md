@@ -281,6 +281,37 @@ con hora del día y km, y los textos de antes y después.
   de ella, y una planificación que no le asignaron no está.
 - Se asigna = se ve. No hay borrador: lo que no está listo, no se asigna.
 
+## El PDF
+
+`GET /api/planificacion-deportiva/[id]/pdf` baja la planificación en PDF con
+el membrete del consultorio: lo mismo que `VistaPlanificacion`, en papel. La
+línea de tiempo va como TABLA (cuándo, hora, km, qué tomar, qué aporta), que
+es lo que el corredor imprime y lleva; su encabezado se repite en cada
+página. El documento es `infraestructura/pdf/PlanificacionDeportivaPdf.tsx`.
+
+| Desde | Botón | Qué lleva |
+| ----- | ----- | --------- |
+| La página de la planificación | «PDF» | Solo la planificación |
+| La ficha del paciente (Deporte) | Ícono de PDF en cada una | `?paciente=`: su nombre y la competencia para la que se la asignaron |
+| El portal (Mis competencias) | «PDF» | Lo mismo que ve el paciente |
+| El respaldo del consultorio | — | Ver abajo |
+
+- **Autorización como el PDF del plan**: el profesional baja cualquiera de su
+  consultorio; el paciente, solo una de `delPaciente` (la lista de las suyas
+  es la autorización, como en el portal), y la que no tiene no se lee. El
+  SUPERADMIN no tiene ficha: 403. Lo cubre `api/exportaciones.test.ts`.
+- **El formato de los números es el de la pantalla** (`numero`,
+  `textoDuracion`, `textoRitmo`, copiados de `presentacion.tsx`): la
+  infraestructura no puede importar componentes, y el PDF tiene que decir
+  «51,3 g/h» igual que la vista.
+- **La Helvetica estándar no tiene «≈», «−» ni «≥»** (react-pdf la imprime
+  como basura): el km estimado va «25,6 aprox.» y el desnivel negativo con
+  guion.
+- **En el respaldo** (`docs/RESPALDO.md`) cada paciente lleva las suyas en
+  `Planificaciones deportivas/`, con su competencia, y las que no tiene nadie
+  van a `Sin paciente/Planificaciones deportivas/`: una general sin asignar
+  también es trabajo del profesional.
+
 ## Al tocar esto
 
 - **Nunca sumes al valor por hora lo de antes de largar** ni lo de después de
@@ -315,3 +346,7 @@ con hora del día y km, y los textos de antes y después.
   (los dos recrean los hijos dentro de la misma transacción).
 - Las tablas hijas llevan `nutricionistaId` materializado y están en
   `MODELOS_INQUILINO`, como las del plan semanal.
+- **Lo que se agrega a la vista va también al PDF**
+  (`PlanificacionDeportivaPdf.tsx`): son dos dibujos de lo mismo y nada los
+  compara. Un dato que la pantalla muestra y el papel no, el corredor no lo
+  tiene en la carrera.

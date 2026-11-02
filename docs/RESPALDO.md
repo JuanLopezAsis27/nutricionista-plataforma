@@ -15,6 +15,7 @@ respaldo-2026-10-04.zip
 │       ├── Mediciones.xlsx     antropometría, una fila por consulta
 │       ├── Diario.xlsx         días, comidas y actividad; «Foto» → Diario/
 │       ├── Planes/             cada plan asignado en PDF + sus archivos
+│       ├── Planificaciones deportivas/  cada una en PDF, con su competencia
 │       ├── Diario/             2026-07-01 Desayuno.jpg
 │       ├── Laboratorios/       2026-03-10 Perfil lipídico/analisis.pdf
 │       ├── Fotos de progreso/  2026-07-01 frente.jpg
@@ -24,6 +25,7 @@ respaldo-2026-10-04.zip
     ├── Recetas/<receta>/       fotos y documentos del recetario
     ├── Biblioteca/<material>/  materiales de la biblioteca
     ├── Planes/<plan>/          archivos de planes que no tiene nadie
+    ├── Planificaciones deportivas/  las generales que no tiene nadie, en PDF
     └── Otros/                  huérfanos: logo, fotos de perfil, subidas a medias
 ```
 
@@ -82,10 +84,18 @@ modalidad APP se dibujan en PDF (`servidor/pdfPlan.ts`, el mismo que baja el
 botón del plan); los de modalidad PDF ya SON sus archivos y viajan como tales.
 
 **Los mismos documentos que la app.** La evaluación (`servidor/pdfEvaluacion.ts`),
-el plan (`servidor/pdfPlan.ts`), las mediciones (`MedicionesExcel`) y la lista
+el plan (`servidor/pdfPlan.ts`), la planificación deportiva
+(`PlanificacionDeportivaPdf`), las mediciones (`MedicionesExcel`) y la lista
 de pacientes (`servidor/excelPacientes.ts`) son las mismas funciones que usan
 sus botones de descarga, así que respetan la misma configuración (secciones del
 PDF, ecuaciones visibles). Se extrajeron de las rutas para eso.
+
+**Las planificaciones deportivas, en la carpeta de quien las tiene.** Como un
+plan compartido, una planificación asignada a varios va a la carpeta de cada
+uno, y cada PDF lleva la competencia para la que se la asignaron a ESE
+paciente (el índice la guarda junto a la ruta). Las que no tiene nadie (las
+generales) van a «Sin paciente»: al revés que un plan de la app sin asignar,
+que hoy no entra.
 
 **Nombres que sobreviven a cualquier sistema.** `segmento()` saca los
 caracteres que Windows prohíbe, el punto final y corta en 80 caracteres;
@@ -97,7 +107,9 @@ distintas; los archivados llevan « (archivado)».
 ## Qué NO incluye
 
 - **Bioimpedancia, turnos, mensajes, plan semanal, objetivos**: el pedido fue
-  evaluación, mediciones, planes y diario. Sumar uno es agregar una entrada en
+  evaluación, mediciones, planes y diario (y después, las planificaciones
+  deportivas).
+- **Los planes de la app que no tiene nadie**: solo se dibujan los asignados. Sumar uno es agregar una entrada en
   `documentosDelPaciente()` y su ruta en `PacienteEnRespaldo`.
 - **Lo que no está en `archivos`**: las imágenes de los alimentos viven en una
   clave propia de la fila del alimento (migración 84) y no son de ningún
