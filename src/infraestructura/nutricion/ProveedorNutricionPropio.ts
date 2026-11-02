@@ -4,7 +4,6 @@ import type {
   CriterioAlimentos,
 } from "@/dominio/servicios/IProveedorDatosNutricionales";
 import type { IAlimentoPropioRepositorio } from "@/dominio/repositorios/IAlimentoPropioRepositorio";
-import type { CategoriaAlimento } from "@/dominio/entidades/AlimentoPropio";
 import { filtrarAlimentos } from "./filtrarAlimentos";
 
 /**
@@ -27,13 +26,13 @@ export class ProveedorNutricionPropio implements IProveedorDatosNutricionales {
     termino: string,
     limite = 10,
     criterio?: CriterioAlimentos,
-    categoria?: CategoriaAlimento,
+    categoriaId?: string,
   ): Promise<AlimentoNutricional[]> {
     // Una sola letra no es una búsqueda (traería media lista): se hojea,
     // igual que con el término vacío. Con categoría, es «los lácteos».
     const t = termino.trim().length >= 2 ? termino.trim() : "";
 
-    const encontrados = await this.repositorio.buscar(t, limite, categoria);
+    const encontrados = await this.repositorio.buscar(t, limite, categoriaId);
     const alimentos: AlimentoNutricional[] = encontrados.map((a) => {
       const p = a.aPrimitivos();
       return {
@@ -45,6 +44,8 @@ export class ProveedorNutricionPropio implements IProveedorDatosNutricionales {
         proteinasPor100: p.proteinasPor100,
         carbohidratosPor100: p.carbohidratosPor100,
         grasasPor100: p.grasasPor100,
+        cafeinaPor100: p.cafeinaPor100,
+        descripcion: p.descripcion,
         id: p.id,
         categoria: p.categoria,
         imagenVersion: a.imagenVersion,

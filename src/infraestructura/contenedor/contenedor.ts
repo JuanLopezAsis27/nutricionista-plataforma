@@ -52,7 +52,11 @@ import { crearServicioMetricas } from "./modulos/metricas";
 import { crearServicioSuperAdmin } from "./modulos/superadmin";
 import { crearServicioIA } from "./modulos/ia";
 import { crearServicioAutenticacion } from "./modulos/autenticacion";
-import { crearServicioDeportivo } from "./modulos/deportivo";
+import {
+  crearServicioDeportes,
+  crearServicioDeportivo,
+} from "./modulos/deportivo";
+import { crearServicioPlanificacionDeportiva } from "./modulos/planificacion-deportiva";
 import { crearServicioNutricion } from "./modulos/nutricion";
 import {
   crearServicioCredenciales,
@@ -82,6 +86,12 @@ import { QuitarImagenAlimento } from "@/aplicacion/casos-de-uso/nutricion/Quitar
 import { ObtenerImagenAlimento } from "@/aplicacion/casos-de-uso/nutricion/ObtenerImagenAlimento";
 import { ContarUsosDeAlimento } from "@/aplicacion/casos-de-uso/nutricion/ContarUsosDeAlimento";
 import { BuscarCoincidenciaEnCatalogo } from "@/aplicacion/casos-de-uso/nutricion/BuscarCoincidenciaEnCatalogo";
+import type { CategoriasDisponibles } from "@/aplicacion/casos-de-uso/categorias-alimento/CategoriasDisponibles";
+import {
+  categoriasDeLista,
+  crearServicioCategoriasConsultorio,
+  crearServicioCategoriasPlataforma,
+} from "./modulos/categorias-alimento";
 import { limitadorLogin } from "@/infraestructura/seguridad/LimitadorIntentos";
 
 // --- Reexportes del núcleo que consume la presentación --------------------------
@@ -324,6 +334,8 @@ function servicioDeListaDeAlimentos(
   prefijoImagenes: string,
   /** El catálogo de la plataforma, para los avisos de coincidencia. Null en el catálogo mismo. */
   catalogo: IAlimentoPropioRepositorio | null,
+  /** Las categorías que pueden llevar sus alimentos (migración 93). */
+  categorias: CategoriasDisponibles,
 ): ServicioAlimentosPropios {
   const almacenamiento = nucleo.almacenamiento();
   // La misma regla para la imagen subida a mano y la que llega en un Excel.
@@ -333,13 +345,13 @@ function servicioDeListaDeAlimentos(
     prefijoImagenes,
   );
   return new ServicioAlimentosPropios(
-    new ImportarAlimentos(repositorio, catalogo, imagenes),
-    new AgregarAlimentos(repositorio, catalogo, imagenes),
+    new ImportarAlimentos(repositorio, catalogo, imagenes, categorias),
+    new AgregarAlimentos(repositorio, catalogo, imagenes, categorias),
     new ObtenerTodosLosAlimentos(repositorio),
     new ObtenerEstadoAlimentosPropios(repositorio),
     new VaciarAlimentosPropios(repositorio),
-    new CrearAlimentoPropio(repositorio),
-    new ActualizarAlimentoPropio(repositorio),
+    new CrearAlimentoPropio(repositorio, categorias),
+    new ActualizarAlimentoPropio(repositorio, categorias),
     new EliminarAlimentoPropio(repositorio),
     new ListarAlimentosPropios(repositorio),
     new CambiarImagenAlimento(repositorio, imagenes),
@@ -356,6 +368,10 @@ export const servicioAlimentosPropios = perezoso(() =>
     nucleo.repositorioAlimentoPropio(),
     "alimentos-propios",
     nucleo.repositorioAlimentoBase(),
+    categoriasDeLista({
+      predeterminadas: nucleo.repositorioCategoriaAlimentoBase(),
+      propias: nucleo.repositorioCategoriaAlimentoPropia(),
+    }),
   ),
 );
 
@@ -365,7 +381,29 @@ export const servicioAlimentosBase = perezoso(() =>
     nucleo.repositorioAlimentoBase(),
     "alimentos-base",
     null,
+    categoriasDeLista({
+      predeterminadas: nucleo.repositorioCategoriaAlimentoBase(),
+      propias: null,
+    }),
   ),
+);
+
+/**
+ * Categorías de alimento del consultorio: ve las predeterminadas y las suyas,
+ * y gestiona solo las suyas (migración 93).
+ */
+export const servicioCategoriasAlimento = perezoso(() =>
+  crearServicioCategoriasConsultorio({
+    predeterminadas: nucleo.repositorioCategoriaAlimentoBase(),
+    propias: nucleo.repositorioCategoriaAlimentoPropia(),
+  }),
+);
+
+/** Categorías predeterminadas de alimento: las administra el SUPERADMIN. */
+export const servicioCategoriasAlimentoBase = perezoso(() =>
+  crearServicioCategoriasPlataforma({
+    predeterminadas: nucleo.repositorioCategoriaAlimentoBase(),
+  }),
 );
 
 /** Recetas predeterminadas de la plataforma y su copia a cada recetario. */
@@ -479,6 +517,8 @@ export const servicioRespaldo = perezoso(() =>
     pacientes: nucleo.repositorioPaciente(),
     asignaciones: nucleo.repositorioPlan(),
     archivos: nucleo.repositorioUbicacionArchivos(),
+    planificaciones: nucleo.repositorioPlanificacionDeportiva(),
+    asignacionesPlanificacion: nucleo.repositorioPlanificacionDeportiva(),
   }),
 );
 
@@ -505,12 +545,34 @@ export const servicioMetricas = perezoso(() =>
   crearServicioMetricas({ metricas: nucleo.repositorioMetrica() }),
 );
 
+/**
+ * Planificación deportiva (migración 94): planificaciones por deporte
+ * (carreras), sus carpetas y sus asignaciones a pacientes y competencias.
+ */
+export const servicioPlanificacionDeportiva = perezoso(() =>
+  crearServicioPlanificacionDeportiva({
+    planificaciones: nucleo.repositorioPlanificacionDeportiva(),
+    grupos: nucleo.repositorioGrupoPlanificacion(),
+    pacientes: nucleo.repositorioPaciente(),
+    competencias: nucleo.repositorioCompetencia(),
+  }),
+);
+
 /** Módulo deportivo: perfil del deportista + calendario de competencias. */
 export const servicioDeportivo = perezoso(() =>
   crearServicioDeportivo({
     perfiles: nucleo.repositorioPerfilDeportivo(),
     competencias: nucleo.repositorioCompetencia(),
     pacientes: nucleo.repositorioPaciente(),
+    deportes: nucleo.repositorioDeporte(),
+  }),
+);
+
+/** La lista de deportes de la plataforma: la administra el SUPERADMIN. */
+export const servicioDeportes = perezoso(() =>
+  crearServicioDeportes({
+    deportes: nucleo.repositorioDeporte(),
+    perfiles: nucleo.repositorioPerfilDeportivo(),
   }),
 );
 

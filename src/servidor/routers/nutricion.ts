@@ -7,6 +7,11 @@ import {
   listarAlimentosPropiosDto,
   coincidenciaEnCatalogoDto,
 } from "@/aplicacion/dtos/alimentoPropio.dto";
+import {
+  crearCategoriaAlimentoDto,
+  renombrarCategoriaAlimentoDto,
+  eliminarCategoriaAlimentoDto,
+} from "@/aplicacion/dtos/categoriaAlimento.dto";
 
 /**
  * Router de datos nutricionales (presentación → aplicación).
@@ -82,5 +87,35 @@ export const routerNutricion = crearRouter({
     .input(listarAlimentosPropiosDto)
     .query(async ({ ctx, input }) => {
       return await ctx.servicios.alimentosBase.listar(input);
+    }),
+
+  // --- Categorías de alimento (migración 93) ---------------------------------
+  // El consultorio VE las predeterminadas y las suyas, y gestiona solo las
+  // suyas: renombrar o borrar una predeterminada sale como no encontrada.
+
+  categoriasAlimento: nutricionistaProcedimiento.query(async ({ ctx }) => {
+    return await ctx.servicios.categoriasAlimento.listar();
+  }),
+
+  crearCategoriaAlimento: nutricionistaProcedimiento
+    .input(crearCategoriaAlimentoDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.categoriasAlimento.crear(input.nombre);
+    }),
+
+  renombrarCategoriaAlimento: nutricionistaProcedimiento
+    .input(renombrarCategoriaAlimentoDto)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.servicios.categoriasAlimento.renombrar(
+        input.id,
+        input.nombre,
+      );
+    }),
+
+  eliminarCategoriaAlimento: nutricionistaProcedimiento
+    .input(eliminarCategoriaAlimentoDto)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.servicios.categoriasAlimento.eliminar(input.id);
+      return { eliminado: true };
     }),
 });

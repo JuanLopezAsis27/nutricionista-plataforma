@@ -4,6 +4,7 @@ import { Apple } from "lucide-react";
 import { ImportadorAlimentos } from "@/componentes/alimentos/ImportadorAlimentos";
 import { ListaAlimentosPropios } from "@/componentes/alimentos/ListaAlimentosPropios";
 import { CriteriosIngredientes } from "@/componentes/alimentos/CriteriosIngredientes";
+import { GestorCategoriasAlimento } from "@/componentes/alimentos/GestorCategoriasAlimento";
 
 /**
  * Los alimentos del consultorio: su lista propia, la de la plataforma y los
@@ -28,6 +29,7 @@ export default function PaginaAlimentos() {
 
       <ImportadorAlimentos />
       <ListaAlimentosPropios />
+      <GestorCategoriasAlimento />
       {/* Los de la plataforma se USAN (aparecen en el buscador) pero no se
           editan: lo que agrega el profesional va a su propia lista. */}
       <section className="space-y-3 rounded-lg border p-4">

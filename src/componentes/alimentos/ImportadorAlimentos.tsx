@@ -134,12 +134,14 @@ export function ImportadorAlimentos({
           Columnas esperadas (con encabezado, en cualquier orden):{" "}
           <code>Nombre</code>, <code>Marca</code> (opcional),{" "}
           <code>Calorías</code>, <code>Proteínas</code>,{" "}
-          <code>Carbohidratos</code>, <code>Grasas</code> y{" "}
-          <code>Categoría</code> (opcional: Carnes, Lácteos, Cereales, Frutas…).
-          Los valores se toman por 100 g, o por 100 ml si la columna opcional{" "}
-          <code>Unidad</code> dice <code>ml</code> (leche, aceite, jugos). La
-          columna opcional <code>Medidas</code> trae las medidas caseras
-          separadas por punto y coma, en g o ml según la unidad:{" "}
+          <code>Carbohidratos</code>, <code>Grasas</code>,{" "}
+          <code>Cafeína (mg)</code> (opcional), <code>Categoría</code>{" "}
+          (opcional: Carnes, Lácteos, Geles deportivos…) y{" "}
+          <code>Descripción</code> (opcional, texto libre). Los valores —la
+          cafeína también, en mg— se toman por 100 g, o por 100 ml si la columna
+          opcional <code>Unidad</code> dice <code>ml</code> (leche, aceite,
+          jugos). La columna opcional <code>Medidas</code> trae las medidas
+          caseras separadas por punto y coma, en g o ml según la unidad:{" "}
           <code>1 taza = 240; 1 cucharada = 15</code> o{" "}
           <code>1 unidad = 50</code>. En la columna opcional <code>Imagen</code>{" "}
           va la foto del alimento, insertada en la celda (Insertar › Imágenes ›

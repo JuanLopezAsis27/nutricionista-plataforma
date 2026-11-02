@@ -4,10 +4,7 @@ import type {
   CriterioAlimentos,
 } from "@/dominio/servicios/IProveedorDatosNutricionales";
 import type { IAlimentoPropioRepositorio } from "@/dominio/repositorios/IAlimentoPropioRepositorio";
-import {
-  claveIdentidadAlimento,
-  type CategoriaAlimento,
-} from "@/dominio/entidades/AlimentoPropio";
+import { claveIdentidadAlimento } from "@/dominio/entidades/AlimentoPropio";
 
 /** Una lista de alimentos cargada, con el repositorio que dice si tiene algo. */
 export interface ListaDeAlimentos {
@@ -39,16 +36,16 @@ export class ProveedorNutricionDespachador implements IProveedorDatosNutricional
     termino: string,
     limite = 10,
     criterio?: CriterioAlimentos,
-    categoria?: CategoriaAlimento,
+    categoriaId?: string,
   ): Promise<AlimentoNutricional[]> {
     const conDatos = await this.listasConDatos();
     if (conDatos.length === 0) {
-      return this.externo.buscar(termino, limite, criterio, categoria);
+      return this.externo.buscar(termino, limite, criterio, categoriaId);
     }
 
     const resultados = await Promise.all(
       conDatos.map((lista) =>
-        lista.proveedor.buscar(termino, limite, criterio, categoria),
+        lista.proveedor.buscar(termino, limite, criterio, categoriaId),
       ),
     );
     const vistos = new Set<string>();

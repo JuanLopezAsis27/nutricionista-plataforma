@@ -1,7 +1,13 @@
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
 import type { IAsignacionPlanRepositorio } from "@/dominio/repositorios/IAsignacionPlanRepositorio";
 import type { IUbicacionArchivosRepositorio } from "@/dominio/repositorios/IUbicacionArchivosRepositorio";
+import type { IPlanificacionDeportivaRepositorio } from "@/dominio/repositorios/IPlanificacionDeportivaRepositorio";
+import type {
+  CompetenciaDeAsignacion,
+  IAsignacionPlanificacionRepositorio,
+} from "@/dominio/repositorios/IAsignacionPlanificacionRepositorio";
 import {
+  CARPETA_SIN_PACIENTE,
   carpetaDePaciente,
   rutasDeArchivo,
   RutasUnicas,
@@ -21,6 +27,17 @@ export interface PacienteEnRespaldo {
    * `archivos`, como cualquier otro.
    */
   planes: { planId: string; ruta: string }[];
+  /**
+   * Sus planificaciones deportivas, que se dibujan en PDF como las ve en su
+   * portal: con la competencia para la que se la asignaron.
+   */
+  planificaciones: PlanificacionEnRespaldo[];
+}
+
+export interface PlanificacionEnRespaldo {
+  planificacionId: string;
+  ruta: string;
+  competencia: CompetenciaDeAsignacion | null;
 }
 
 export interface IndiceRespaldo {
@@ -28,6 +45,11 @@ export interface IndiceRespaldo {
   pacientes: PacienteEnRespaldo[];
   /** Un archivo del bucket puede ir a varias rutas: un plan compartido. */
   archivos: { archivoId: string; ruta: string }[];
+  /**
+   * Las planificaciones deportivas que no tiene nadie (las generales sin
+   * asignar): son trabajo del profesional y van a «Sin paciente».
+   */
+  planificacionesSinPaciente: { planificacionId: string; ruta: string }[];
 }
 
 /**
@@ -44,6 +66,8 @@ export class ArmarIndiceRespaldo {
     private readonly pacientes: IPacienteRepositorio,
     private readonly asignaciones: IAsignacionPlanRepositorio,
     private readonly archivos: IUbicacionArchivosRepositorio,
+    private readonly planificaciones: IPlanificacionDeportivaRepositorio,
+    private readonly asignacionesPlanificacion: IAsignacionPlanificacionRepositorio,
   ) {}
 
   async ejecutar(): Promise<IndiceRespaldo> {
@@ -52,6 +76,7 @@ export class ArmarIndiceRespaldo {
 
     const carpetas = new Map<string, string>();
     const enRespaldo: PacienteEnRespaldo[] = [];
+    const planificacionesAsignadas = new Set<string>();
     for (const paciente of pacientes) {
       const carpeta = rutas.reservarCarpeta(
         carpetaDePaciente({
@@ -65,6 +90,11 @@ export class ArmarIndiceRespaldo {
       const planes = await this.asignaciones.listarPlanesDePaciente(
         paciente.id,
       );
+      const planificaciones =
+        await this.asignacionesPlanificacion.listarDePaciente(paciente.id);
+      for (const a of planificaciones) {
+        planificacionesAsignadas.add(a.planificacionId);
+      }
       enRespaldo.push({
         id: paciente.id,
         carpeta,
@@ -79,8 +109,24 @@ export class ArmarIndiceRespaldo {
               `${carpeta}/Planes/${segmento(plan.nombre)}.pdf`,
             ),
           })),
+        planificaciones: planificaciones.map((a) => ({
+          planificacionId: a.planificacionId,
+          ruta: rutas.reservar(
+            `${carpeta}/Planificaciones deportivas/${segmento(a.planificacion.nombre)}.pdf`,
+          ),
+          competencia: a.competencia,
+        })),
       });
     }
+
+    const planificacionesSinPaciente = (await this.planificaciones.listar())
+      .filter((p) => !planificacionesAsignadas.has(p.id))
+      .map((p) => ({
+        planificacionId: p.id,
+        ruta: rutas.reservar(
+          `${CARPETA_SIN_PACIENTE}/Planificaciones deportivas/${segmento(p.nombre)}.pdf`,
+        ),
+      }));
 
     const archivos = (await this.archivos.listar()).flatMap((archivo) =>
       rutasDeArchivo(archivo, carpetas).map((ruta) => ({
@@ -90,6 +136,6 @@ export class ArmarIndiceRespaldo {
     );
 
     enRespaldo.sort((a, b) => a.carpeta.localeCompare(b.carpeta, "es"));
-    return { pacientes: enRespaldo, archivos };
+    return { pacientes: enRespaldo, archivos, planificacionesSinPaciente };
   }
 }

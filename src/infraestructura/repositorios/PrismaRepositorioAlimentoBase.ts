@@ -1,20 +1,14 @@
-import type {
-  PrismaClient,
-  AlimentoBase as AlimentoBaseFila,
-} from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
 import type {
   IAlimentoPropioRepositorio,
   FiltroAlimentosPropios,
 } from "@/dominio/repositorios/IAlimentoPropioRepositorio";
-import type {
-  AlimentoPropio,
-  CategoriaAlimento,
-} from "@/dominio/entidades/AlimentoPropio";
-import { RepositorioPrismaBase } from "./base/RepositorioPrismaBase";
+import type { AlimentoPropio } from "@/dominio/entidades/AlimentoPropio";
 import {
   datosDeAlimento,
   mapearFilaAlimento,
-  dondeAlimento,
+  dondeAlimentoBase,
+  INCLUIR_CATEGORIAS_BASE,
 } from "./base/filasAlimento";
 
 const TAMANO_LOTE = 500; // filas por INSERT (evita el límite de parámetros de PG)
@@ -31,13 +25,23 @@ const TAMANO_LOTE = 500; // filas por INSERT (evita el límite de parámetros de
  *
  * Sin inquilino: `alimentos_base` no está en MODELOS_INQUILINO. Lo lee todo
  * consultorio; lo escribe solo el SUPERADMIN.
+ *
+ * Solo lleva categorías PREDETERMINADAS (no tiene la columna de la propia):
+ * `datosDeAlimento` descarta una propia que llegara por error.
  */
-export class PrismaRepositorioAlimentoBase
-  extends RepositorioPrismaBase<AlimentoBaseFila, AlimentoPropio>
-  implements IAlimentoPropioRepositorio
-{
-  constructor(private readonly prisma: PrismaClient) {
-    super(prisma.alimentoBase);
+export class PrismaRepositorioAlimentoBase implements IAlimentoPropioRepositorio {
+  constructor(private readonly prisma: PrismaClient) {}
+
+  async obtenerPorId(id: string): Promise<AlimentoPropio | null> {
+    const fila = await this.prisma.alimentoBase.findUnique({
+      where: { id },
+      include: INCLUIR_CATEGORIAS_BASE,
+    });
+    return fila ? mapearFilaAlimento(fila) : null;
+  }
+
+  async eliminar(id: string): Promise<void> {
+    await this.prisma.alimentoBase.delete({ where: { id } });
   }
 
   async reemplazarTodos(alimentos: AlimentoPropio[]): Promise<number> {
@@ -77,6 +81,7 @@ export class PrismaRepositorioAlimentoBase
   async crear(alimento: AlimentoPropio): Promise<AlimentoPropio> {
     const fila = await this.prisma.alimentoBase.create({
       data: datosDeAlimento(alimento),
+      include: INCLUIR_CATEGORIAS_BASE,
     });
     return mapearFilaAlimento(fila);
   }
@@ -86,6 +91,7 @@ export class PrismaRepositorioAlimentoBase
     const fila = await this.prisma.alimentoBase.update({
       where: { id },
       data: datos,
+      include: INCLUIR_CATEGORIAS_BASE,
     });
     return mapearFilaAlimento(fila);
   }
@@ -93,6 +99,7 @@ export class PrismaRepositorioAlimentoBase
   async obtenerPorClave(clave: string): Promise<AlimentoPropio | null> {
     const fila = await this.prisma.alimentoBase.findUnique({
       where: { claveIdentidad: clave },
+      include: INCLUIR_CATEGORIAS_BASE,
     });
     return fila ? mapearFilaAlimento(fila) : null;
   }
@@ -113,25 +120,28 @@ export class PrismaRepositorioAlimentoBase
 
   async listar(filtro?: FiltroAlimentosPropios): Promise<AlimentoPropio[]> {
     const filas = await this.prisma.alimentoBase.findMany({
-      where: dondeAlimento(filtro),
+      where: dondeAlimentoBase(filtro),
+      include: INCLUIR_CATEGORIAS_BASE,
       orderBy: { nombreNormalizado: "asc" },
       take: filtro?.limite,
       skip: filtro?.desplazamiento,
     });
-    return this.mapearTodas(filas);
+    return filas.map(mapearFilaAlimento);
   }
 
   async buscar(
     termino: string,
     limite: number,
-    categoria?: CategoriaAlimento,
+    categoriaId?: string,
   ): Promise<AlimentoPropio[]> {
     // Sin término ni categoría es hojear: los primeros `limite` por nombre.
-    return this.listar({ busqueda: termino, categoria, limite });
+    return this.listar({ busqueda: termino, categoriaId, limite });
   }
 
   contar(filtro?: FiltroAlimentosPropios): Promise<number> {
-    return this.prisma.alimentoBase.count({ where: dondeAlimento(filtro) });
+    return this.prisma.alimentoBase.count({
+      where: dondeAlimentoBase(filtro),
+    });
   }
 
   async vaciar(): Promise<void> {
@@ -144,9 +154,5 @@ export class PrismaRepositorioAlimentoBase
       select: { imagenClave: true },
     });
     return filas.flatMap((f) => (f.imagenClave ? [f.imagenClave] : []));
-  }
-
-  protected override mapear(fila: AlimentoBaseFila): AlimentoPropio {
-    return mapearFilaAlimento(fila);
   }
 }

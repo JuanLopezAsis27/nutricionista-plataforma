@@ -1,4 +1,3 @@
-import type { CategoriaAlimento } from "@/dominio/entidades/AlimentoPropio";
 import type {
   IProveedorDatosNutricionales,
   AlimentoNutricional,
@@ -41,11 +40,11 @@ export class ProveedorOpenFoodFacts implements IProveedorDatosNutricionales {
     termino: string,
     limite = 10,
     criterio?: CriterioAlimentos,
-    categoria?: CategoriaAlimento,
+    categoriaId?: string,
   ): Promise<AlimentoNutricional[]> {
     // No puede cumplir un filtro por nuestras categorías: mejor nada que
     // resultados de cualquier rubro bajo el filtro «Lácteos».
-    if (categoria) return [];
+    if (categoriaId) return [];
     const consulta = termino.trim();
     if (consulta.length < 2) return [];
 
@@ -117,6 +116,10 @@ export class ProveedorOpenFoodFacts implements IProveedorDatosNutricionales {
       // nuestras (las suyas son de otro origen y la CSP las bloquea).
       id: null,
       categoria: null,
+      // Open Food Facts no trae una cafeína confiable ni una descripción
+      // nuestra: quedan sin dato.
+      cafeinaPor100: null,
+      descripcion: null,
       imagenVersion: null,
       // Sus `_100g` se toman por 100 g: Open Food Facts no dice de forma
       // confiable si un producto se informa por 100 ml, y sin medidas el

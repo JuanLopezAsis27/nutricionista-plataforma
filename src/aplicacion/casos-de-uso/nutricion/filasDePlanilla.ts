@@ -2,6 +2,10 @@ import {
   AlimentoPropio,
   type DatosNuevoAlimentoPropio,
 } from "@/dominio/entidades/AlimentoPropio";
+import {
+  categoriaDesdeTexto,
+  type CategoriaDeAlimento,
+} from "@/dominio/entidades/CategoriaAlimento";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 import type { ImagenSubida, ImagenesDeAlimentos } from "./imagenesDeAlimentos";
 
@@ -10,8 +14,17 @@ export const MAXIMO_FILAS_PLANILLA = 20000;
 /** Imágenes que se procesan a la vez al importar: el bucket puede estar lejos. */
 const SUBIDAS_EN_PARALELO = 4;
 
-/** Una fila de la planilla, con la imagen que traía en su celda (si traía). */
-export interface FilaDePlanilla extends DatosNuevoAlimentoPropio {
+/**
+ * Una fila de la planilla, con la imagen que traía en su celda (si traía).
+ *
+ * La categoría llega como TEXTO («Lácteos», «geles»): cuál es se decide
+ * contra las categorías de la lista (migración 93), que el parser no conoce.
+ */
+export interface FilaDePlanilla extends Omit<
+  DatosNuevoAlimentoPropio,
+  "categoria"
+> {
+  categoriaTexto?: string | null;
   imagen?: ImagenSubida | null;
 }
 
@@ -46,6 +59,8 @@ export interface ResumenImagenes {
  * (`AgregarAlimentos`): las dos leen la planilla con las mismas reglas.
  *
  * - Una fila sin nombre se ignora; las macros las valida la entidad.
+ * - La categoría se busca por su texto entre `categorias`; un texto que no
+ *   nombra ninguna deja al alimento sin categoría, sin cortar nada.
  * - Al menos una fila válida es obligatoria (una planilla vacía es un error
  *   de archivo, no una lista vacía).
  * - El mismo alimento dos veces (misma `claveIdentidad`) no corta nada: queda
@@ -54,6 +69,7 @@ export interface ResumenImagenes {
  */
 export function leerAlimentosDeLaPlanilla(
   filas: FilaDePlanilla[],
+  categorias: ReadonlyArray<CategoriaDeAlimento> = [],
 ): AlimentosDeLaPlanilla {
   if (filas.length > MAXIMO_FILAS_PLANILLA) {
     throw new ErrorValidacion(
@@ -66,7 +82,13 @@ export function leerAlimentosDeLaPlanilla(
   let validas = 0;
   for (const fila of filas) {
     if (!fila.nombre || fila.nombre.trim() === "") continue; // fila vacía → se ignora
-    const alimento = AlimentoPropio.crear(fila, crypto.randomUUID());
+    const alimento = AlimentoPropio.crear(
+      {
+        ...fila,
+        categoria: categoriaDesdeTexto(fila.categoriaTexto, categorias),
+      },
+      crypto.randomUUID(),
+    );
     porClave.set(alimento.claveIdentidad, { alimento, fila });
     validas++;
   }

@@ -8,10 +8,12 @@ import {
   servicioEvaluacion,
   servicioPaciente,
   servicioPlan,
+  servicioPlanificacionDeportiva,
   servicioRespaldo,
 } from "@/infraestructura/contenedor/contenedor";
 import { generarExcelMediciones } from "@/infraestructura/excel/MedicionesExcel";
 import { generarExcelDiario } from "@/infraestructura/excel/DiarioExcel";
+import { renderizarPlanificacionPdf } from "@/infraestructura/pdf/PlanificacionDeportivaPdf";
 import type { PacienteSalidaDto } from "@/aplicacion/dtos/paciente.dto";
 import type { ConfiguracionSalidaDto } from "@/aplicacion/dtos/configuracion.dto";
 import type { PacienteEnRespaldo } from "@/aplicacion/casos-de-uso/respaldo/ArmarIndiceRespaldo";
@@ -99,6 +101,19 @@ export async function armarRespaldo(): Promise<Readable> {
         }
       }
 
+      for (const {
+        planificacionId,
+        ruta,
+      } of indice.planificacionesSinPaciente) {
+        await agregar(ruta, async () =>
+          renderizarPlanificacionPdf({
+            planificacion:
+              await servicioPlanificacionDeportiva().obtener(planificacionId),
+            config,
+          }),
+        );
+      }
+
       for (const { archivoId, ruta } of indice.archivos) {
         await agregar(ruta, async () => {
           const { contenido } = await servicioArchivo().abrirLectura(archivoId);
@@ -172,6 +187,21 @@ function documentosDelPaciente(
           config,
         }),
     ]),
+    // El mismo PDF que baja el botón de la planificación, con la competencia
+    // para la que se la asignaron, como la ve en su portal.
+    ...paciente.planificaciones.map(
+      ({ planificacionId, ruta, competencia }): [string, Contenido] => [
+        ruta,
+        async () =>
+          renderizarPlanificacionPdf({
+            planificacion:
+              await servicioPlanificacionDeportiva().obtener(planificacionId),
+            nombrePaciente: nombre,
+            competencia,
+            config,
+          }),
+      ],
+    ),
   ];
 }
 
@@ -232,13 +262,15 @@ function leeme(
     "  Mediciones.xlsx      Las mediciones antropométricas, una fila por consulta.",
     "  Diario.xlsx          El diario; la columna «Foto» dice qué archivo de Diario/ es.",
     "  Planes/              Los planes asignados (en PDF) y sus archivos.",
+    "  Planificaciones deportivas/  Las de sus competencias, en PDF.",
     "  Diario/              Las fotos de las comidas.",
     "  Laboratorios/        Los adjuntos de cada laboratorio.",
     "  Fotos de progreso/   Las fotos del antes y después.",
     "  Grabaciones/         El audio de las consultas grabadas.",
     "  Archivos/            Los demás archivos de la ficha.",
     "Sin paciente/        Lo que no es de un paciente: recetas, biblioteca,",
-    "                     planes sin asignar y otros (logo, fotos de perfil).",
+    "                     planes y planificaciones deportivas sin asignar y",
+    "                     otros (logo, fotos de perfil).",
   ];
   if (fallidos.length > 0) {
     lineas.push(

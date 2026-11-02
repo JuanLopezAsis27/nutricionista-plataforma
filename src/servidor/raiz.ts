@@ -31,6 +31,7 @@ import { routerIntegraciones } from "./routers/integraciones";
 import { routerIA } from "./routers/ia";
 import { routerAutenticacion } from "./routers/autenticacion";
 import { routerDeportivo } from "./routers/deportivo";
+import { routerPlanificacionDeportiva } from "./routers/planificacionDeportiva";
 import { routerWhatsapp } from "./routers/whatsapp";
 import { routerRecordatorios } from "./routers/recordatorios";
 
@@ -72,6 +73,7 @@ export const routerApp = crearRouter({
   ia: routerIA,
   autenticacion: routerAutenticacion,
   deportivo: routerDeportivo,
+  planificacionDeportiva: routerPlanificacionDeportiva,
   whatsapp: routerWhatsapp,
   recordatorios: routerRecordatorios,
 });
