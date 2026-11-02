@@ -170,39 +170,43 @@ function detalleDeIssue(issue: ZodIssue): string {
 
   switch (issue.code) {
     case "invalid_type":
-      return issue.received === "undefined" || issue.received === "null"
-        ? "no puede quedar vacío"
+      // Zod 4 no deja en el issue el valor recibido: lo dice solo su mensaje
+      // («Invalid input: expected string, received undefined»).
+      if (/received (undefined|null)$/.test(issue.message)) {
+        return "no puede quedar vacío";
+      }
+      // Una fecha inválida también llega como `invalid_type` desde Zod 4.
+      return issue.expected === "date"
+        ? "no es una fecha válida"
         : `tiene que ser ${nombreDeTipo(issue.expected)}`;
     case "too_small":
-      if (issue.type === "string") {
+      if (issue.origin === "string") {
         return issue.minimum === 1
           ? "no puede quedar vacío"
           : `necesita al menos ${issue.minimum} caracteres`;
       }
-      if (issue.type === "array") {
+      if (issue.origin === "array") {
         return `necesita al menos ${issue.minimum} ${issue.minimum === 1n || issue.minimum === 1 ? "elemento" : "elementos"}`;
       }
       return issue.inclusive
         ? `tiene que ser ${issue.minimum} o más`
         : `tiene que ser mayor que ${issue.minimum}`;
     case "too_big":
-      if (issue.type === "string") {
+      if (issue.origin === "string") {
         return `no puede pasar de ${issue.maximum} caracteres`;
       }
-      if (issue.type === "array") {
+      if (issue.origin === "array") {
         return `no puede tener más de ${issue.maximum} elementos`;
       }
       return issue.inclusive
         ? `tiene que ser ${issue.maximum} o menos`
         : `tiene que ser menor que ${issue.maximum}`;
-    case "invalid_enum_value":
-      return `tiene un valor que no está permitido (${issue.received})`;
-    case "invalid_string":
-      return issue.validation === "email"
+    case "invalid_value":
+      return "tiene un valor que no está permitido";
+    case "invalid_format":
+      return issue.format === "email"
         ? "no parece un email válido"
         : "tiene un formato que no se reconoce";
-    case "invalid_date":
-      return "no es una fecha válida";
     case "unrecognized_keys":
       return `trae datos que no corresponden (${issue.keys.join(", ")})`;
     default:

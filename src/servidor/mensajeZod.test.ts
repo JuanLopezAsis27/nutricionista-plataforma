@@ -93,4 +93,44 @@ describe("mensajeDesdeZod", () => {
       "no puede quedar vacío",
     );
   });
+
+  // Los issues de Zod 4 cambiaron de forma (`origin`, `invalid_value`,
+  // `invalid_format`, sin `received`): cada código traducido, con su caso.
+  it("traduce los demás motivos de Zod sin dejar el inglés", () => {
+    const casos: [z.ZodTypeAny, unknown, string][] = [
+      [z.object({ nombre: z.string() }), { nombre: 3 }, "tiene que ser texto"],
+      [z.object({ email: z.email() }), { email: "x" }, "no parece un email"],
+      [
+        z.object({ fecha: z.date() }),
+        { fecha: new Date("no") },
+        "no es una fecha válida",
+      ],
+      [
+        z.object({ modalidad: z.enum(["CALLE", "TRAIL"]) }),
+        { modalidad: "PISTA" },
+        "no está permitido",
+      ],
+      [
+        z.object({ nombre: z.string().max(3) }),
+        { nombre: "abcd" },
+        "no puede pasar de 3 caracteres",
+      ],
+      [
+        z.object({ notas: z.array(z.string()).min(2) }),
+        { notas: [] },
+        "necesita al menos 2 elementos",
+      ],
+      [
+        z.object({ a: z.number() }).strict(),
+        { a: 1, b: 2 },
+        "trae datos que no corresponden (b)",
+      ],
+    ];
+
+    for (const [esquema, valor, esperado] of casos) {
+      const mensaje = mensajeDesdeZod(errorDe(esquema, valor));
+      expect(mensaje).toContain(esperado);
+      expect(mensaje).not.toMatch(/Invalid|Too |expected/);
+    }
+  });
 });

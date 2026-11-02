@@ -29,14 +29,20 @@ describe("Deporte", () => {
   });
 
   it("exige un nombre corto", () => {
-    expect(() => Deporte.crear({ nombre: "   " }, "d1")).toThrow(ErrorValidacion);
-    expect(() => Deporte.crear({ nombre: "x".repeat(81) }, "d1")).toThrow(ErrorValidacion);
+    expect(() => Deporte.crear({ nombre: "   " }, "d1")).toThrow(
+      ErrorValidacion,
+    );
+    expect(() => Deporte.crear({ nombre: "x".repeat(81) }, "d1")).toThrow(
+      ErrorValidacion,
+    );
   });
 });
 
 describe("CrearDeporte y RenombrarDeporte", () => {
   it("no deja dos deportes con el mismo nombre", async () => {
-    const deportes = mockDeporteRepositorio([Deporte.crear({ nombre: "Fútbol" }, "d1")]);
+    const deportes = mockDeporteRepositorio([
+      Deporte.crear({ nombre: "Fútbol" }, "d1"),
+    ]);
     await expect(
       new CrearDeporte(deportes).ejecutar("futbol"),
     ).rejects.toBeInstanceOf(ErrorDeporteDuplicado);
@@ -80,7 +86,9 @@ describe("CambiarPlanificacionDeDeporte (migración 98)", () => {
     const conTrail = await cambiar.ejecutar("d1", "CARRERA_TRAIL");
     expect(conTrail.formatoPlanificacion).toBe("CARRERA_TRAIL");
     expect(conTrail.nombre).toBe("Trail running");
-    expect((await cambiar.ejecutar("d1", null)).formatoPlanificacion).toBeNull();
+    expect(
+      (await cambiar.ejecutar("d1", null)).formatoPlanificacion,
+    ).toBeNull();
     await expect(cambiar.ejecutar("nada", null)).rejects.toBeInstanceOf(
       ErrorDeporteNoEncontrado,
     );
@@ -103,7 +111,9 @@ describe("CambiarPlanificacionDeDeporte (migración 98)", () => {
 
 describe("EliminarDeporte", () => {
   it("no borra un deporte que usa algún perfil, y dice cuántos", async () => {
-    const deportes = mockDeporteRepositorio([Deporte.crear({ nombre: "Rugby" }, "d1")]);
+    const deportes = mockDeporteRepositorio([
+      Deporte.crear({ nombre: "Rugby" }, "d1"),
+    ]);
     const perfiles = mockPerfilDeportivoRepositorio({
       contarPorDeporte: vi.fn(async () => 3),
     });
@@ -115,7 +125,9 @@ describe("EliminarDeporte", () => {
   });
 
   it("borra uno sin uso", async () => {
-    const deportes = mockDeporteRepositorio([Deporte.crear({ nombre: "Golf" }, "d1")]);
+    const deportes = mockDeporteRepositorio([
+      Deporte.crear({ nombre: "Golf" }, "d1"),
+    ]);
     await new EliminarDeporte(
       deportes,
       mockPerfilDeportivoRepositorio(),

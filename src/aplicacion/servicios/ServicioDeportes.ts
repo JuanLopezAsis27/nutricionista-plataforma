@@ -41,7 +41,6 @@ export class ServicioDeportes {
     id: string,
     formato: FormatoPlanificacion | null,
   ): Promise<DeporteSalidaDto> {
-    return (await this.cambiarPlanificacionUC.ejecutar(id, formato))
-      .referencia;
+    return (await this.cambiarPlanificacionUC.ejecutar(id, formato)).referencia;
   }
 }
