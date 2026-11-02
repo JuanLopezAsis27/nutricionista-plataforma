@@ -123,6 +123,26 @@ El `cause` se conserva: es lo que lee el `errorFormatter` para mandar
 traductor solo reemplaza los mensajes **por defecto de Zod**, que son los que
 están en inglés; los reconoce por cómo arrancan.
 
+### Zod 4
+
+El proyecto pasó de Zod 3 a Zod 4 (4.6.7) porque la auditoría del CI marcó un
+aviso alto en todas las versiones anteriores a la 4.6.6 (GHSA-mrhx-c7xc-m3w5:
+un array grande sin límite agota la memoria al validar). En Zod 3 no hay
+versión corregida.
+
+Lo único que rompió fue este traductor, porque los issues cambiaron de forma:
+`type` pasó a ser `origin`, `invalid_enum_value` es `invalid_value`,
+`invalid_string` es `invalid_format` (con `format`), una fecha inválida llega
+como `invalid_type` con `expected: "date"`, y el issue ya no trae el valor
+recibido: «no puede quedar vacío» se deduce del mensaje por defecto
+(`…received undefined`). `mensajeZod.test.ts` tiene un caso por cada código.
+Otros dos cambios que no rompen el compilador:
+
+- `z.record(z.enum(...), …)` exige todas las claves del enum.
+- `.uuid()` es estricto con la versión y la variante. Nuestros ids son UUID
+  v4 de Prisma y lo cumplen. Para un id que no sea un UUID estándar va
+  `z.guid()`.
+
 ## El rango del lote lo aplica el DOMINIO, no el esquema
 
 El caso que originó lo anterior tenía un segundo problema, más grave que el
