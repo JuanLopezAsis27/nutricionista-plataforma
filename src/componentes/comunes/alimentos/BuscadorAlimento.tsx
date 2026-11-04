@@ -217,7 +217,13 @@ function ModalBuscadorAlimento({
                   : "Todavía no hay alimentos cargados: escribí para buscar."}
             </p>
           ) : (
-            <ul className="grid gap-2 sm:grid-cols-2">
+            // Todas las tarjetas miden lo mismo: `auto-rows-fr` iguala las filas
+            // a la más alta y `h-full` estira el botón hasta el borde de su
+            // celda. Sin eso cada una medía según lo que trae (descripción,
+            // medidas, macros que pasan a dos líneas) y la grilla quedaba
+            // despareja. El contenido va arriba para que los nombres de una
+            // misma fila queden alineados.
+            <ul className="grid auto-rows-fr gap-2 sm:grid-cols-2">
               {resultados.map((alimento, i) => (
                 <li
                   key={`${alimento.fuente}-${alimento.id ?? alimento.referenciaExterna ?? alimento.nombre}-${i}`}
@@ -225,7 +231,7 @@ function ModalBuscadorAlimento({
                   <button
                     type="button"
                     onClick={() => onElegir(alimento)}
-                    className="flex w-full items-center gap-3 rounded-md border p-2 text-left text-sm transition-colors hover:border-primary hover:bg-accent"
+                    className="flex h-full w-full items-start gap-3 rounded-md border p-2 text-left text-sm transition-colors hover:border-primary hover:bg-accent"
                   >
                     <ImagenAlimento
                       url={urlImagenAlimento(alimento)}
