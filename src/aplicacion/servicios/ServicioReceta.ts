@@ -2,6 +2,7 @@ import type { CrearReceta } from "@/aplicacion/casos-de-uso/recetas/CrearReceta"
 import type { ObtenerRecetas } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetas";
 import type { ObtenerRecetasPaginado } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetasPaginado";
 import type { ObtenerRecetaPorId } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetaPorId";
+import type { ObtenerRecetasPorIds } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetasPorIds";
 import type { ActualizarReceta } from "@/aplicacion/casos-de-uso/recetas/ActualizarReceta";
 import type { EliminarReceta } from "@/aplicacion/casos-de-uso/recetas/EliminarReceta";
 import type { EliminarArchivoDeReceta } from "@/aplicacion/casos-de-uso/recetas/EliminarArchivoDeReceta";
@@ -59,6 +60,7 @@ export class ServicioReceta {
     private readonly eliminarGrupoUC: EliminarGrupoReceta,
     private readonly obtenerGruposUC: ObtenerGruposReceta,
     private readonly compartirConTodosUC: CompartirRecetaConTodos,
+    private readonly obtenerPorIdsUC: ObtenerRecetasPorIds,
   ) {}
 
   async crearReceta(datos: CrearRecetaDto): Promise<RecetaSalidaDto> {
@@ -83,6 +85,17 @@ export class ServicioReceta {
   async obtenerRecetaPorId(id: string): Promise<RecetaSalidaDto> {
     const receta = await this.obtenerPorIdUC.ejecutar(id);
     return ServicioReceta.aSalida(receta);
+  }
+
+  /**
+   * Varias recetas en una lectura, en el orden pedido. Las que no existen se
+   * omiten (no lanza, al revés que `obtenerRecetaPorId`).
+   */
+  async obtenerRecetasPorIds(
+    ids: readonly string[],
+  ): Promise<RecetaSalidaDto[]> {
+    const recetas = await this.obtenerPorIdsUC.ejecutar(ids);
+    return recetas.map(ServicioReceta.aSalida);
   }
 
   async actualizarReceta(datos: ActualizarRecetaDto): Promise<RecetaSalidaDto> {

@@ -50,20 +50,18 @@ describe("SincronizarRecetasDePlan", () => {
 
     await casoUso.ejecutar("pla-1");
 
-    // Dos recetas únicas (rec-1 aparece en dos franjas) por dos pacientes.
-    expect(recetas.asignarAPaciente).toHaveBeenCalledTimes(4);
-    for (const pacienteId of ["pac-1", "pac-2"]) {
-      expect(recetas.asignarAPaciente).toHaveBeenCalledWith(
-        "rec-1",
-        pacienteId,
-        expect.any(String),
-      );
-      expect(recetas.asignarAPaciente).toHaveBeenCalledWith(
-        "rec-2",
-        pacienteId,
-        expect.any(String),
-      );
-    }
+    // Dos recetas únicas (rec-1 aparece en dos franjas), UNA escritura por
+    // receta para todos los pacientes: nunca una por receta y paciente.
+    expect(recetas.asignarAPacientes).toHaveBeenCalledTimes(2);
+    expect(recetas.asignarAPacientes).toHaveBeenCalledWith("rec-1", [
+      "pac-1",
+      "pac-2",
+    ]);
+    expect(recetas.asignarAPacientes).toHaveBeenCalledWith("rec-2", [
+      "pac-1",
+      "pac-2",
+    ]);
+    expect(recetas.asignarAPaciente).not.toHaveBeenCalled();
   });
 
   it("no hace nada si el plan no usa recetas", async () => {
@@ -78,7 +76,7 @@ describe("SincronizarRecetasDePlan", () => {
 
     await casoUso.ejecutar("pla-1");
 
-    expect(recetas.asignarAPaciente).not.toHaveBeenCalled();
+    expect(recetas.asignarAPacientes).not.toHaveBeenCalled();
   });
 
   it("no hace nada si nadie tiene el plan asignado", async () => {
@@ -93,7 +91,7 @@ describe("SincronizarRecetasDePlan", () => {
 
     await casoUso.ejecutar("pla-1");
 
-    expect(recetas.asignarAPaciente).not.toHaveBeenCalled();
+    expect(recetas.asignarAPacientes).not.toHaveBeenCalled();
   });
 
   it("lanza ErrorPlanNoEncontrado si el plan no existe", async () => {

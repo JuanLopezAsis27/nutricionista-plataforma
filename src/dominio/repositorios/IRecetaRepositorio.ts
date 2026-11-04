@@ -38,6 +38,13 @@ export interface IRecetaRepositorio {
   ): Promise<Receta>;
   eliminar(id: string): Promise<void>;
   obtenerPorId(id: string): Promise<Receta | null>;
+  /**
+   * Varias recetas por id en UNA consulta (más una por relación incluida, no
+   * por receta). Es para lo que ya apunta a recetas, como las opciones de un
+   * plan. Los ids que no existen —o son de otro consultorio— no vuelven; el
+   * orden no está garantizado.
+   */
+  obtenerPorIds(ids: readonly string[]): Promise<Receta[]>;
   /** La copia de una receta de la plataforma en este recetario, si ya existe. */
   obtenerPorRecetaBase(recetaBaseId: string): Promise<Receta | null>;
   listar(filtro?: FiltroRecetas): Promise<Receta[]>;

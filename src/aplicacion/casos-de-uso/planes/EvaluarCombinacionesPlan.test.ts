@@ -32,8 +32,8 @@ const tortilla = Receta.crear(
 
 function casoDeUso() {
   const recetas = mockRecetaRepositorio({
-    obtenerPorId: vi.fn(async (id: string) =>
-      id === "rec-1" ? tortilla : null,
+    obtenerPorIds: vi.fn(async (ids: readonly string[]) =>
+      ids.includes("rec-1") ? [tortilla] : [],
     ),
   });
   return { uc: new EvaluarCombinacionesPlan(recetas), recetas };
@@ -102,16 +102,23 @@ describe("EvaluarCombinacionesPlan", () => {
     ]);
   });
 
-  it("lee cada receta una sola vez aunque se repita en varias opciones", async () => {
+  it("lee todas las recetas en UNA consulta, sin repetir ids", async () => {
+    // Corre cada vez que el formulario se queda quieto: una lectura por
+    // receta multiplicaba las consultas por el tamaño del plan.
     const { uc, recetas } = casoDeUso();
     await uc.ejecutar({
       metas,
       comidas: [
-        { nombre: "Almuerzo", opciones: [{ recetaId: "rec-1" }] },
+        {
+          nombre: "Almuerzo",
+          opciones: [{ recetaId: "rec-1" }, { recetaId: "rec-2" }],
+        },
         { nombre: "Cena", opciones: [{ recetaId: "rec-1" }] },
       ],
     });
-    expect(recetas.obtenerPorId).toHaveBeenCalledTimes(1);
+    expect(recetas.obtenerPorIds).toHaveBeenCalledTimes(1);
+    expect(recetas.obtenerPorIds).toHaveBeenCalledWith(["rec-1", "rec-2"]);
+    expect(recetas.obtenerPorId).not.toHaveBeenCalled();
   });
 
   it("una receta que ya no existe no aporta y no rompe la evaluación", async () => {

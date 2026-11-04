@@ -51,7 +51,7 @@ export function crearServicioPlan(deps: {
     new ArchivarPlan(deps.planes),
     new CrearPlanDesdePlantilla(deps.planes),
     asignarUC,
-    new AsignarPlanAVariosPacientes(asignarUC),
+    new AsignarPlanAVariosPacientes(deps.planes, deps.planes, deps.pacientes),
     new CrearPlanParaPaciente(crearUC, asignarUC, deps.grupos, deps.pacientes),
     new DesasignarPlanDePaciente(deps.planes),
     new ObtenerPlanesDelPaciente(deps.planes),

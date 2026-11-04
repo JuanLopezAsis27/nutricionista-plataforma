@@ -1041,6 +1041,17 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   ahí el formato se pide por prompt (no hay `response_format`), y con solo las
   claves de primer nivel el modelo inventa los nombres anidados y el
   normalizador los descarta en silencio
+- Nunca leer de a uno, dentro de un bucle, lo que ya viene referenciado por id
+  (el paciente de cada recordatorio, las recetas de un plan): va
+  `obtenerPorIds` del repositorio (pacientes, turnos, recetas) y un `Map` por
+  id. Sin `relationJoins`, Prisma hace además una consulta por cada `include`,
+  así que leer una receta son cuatro. La excepción es el bucle que MANDA algo
+  en cada vuelta (`EnviarRecordatoriosMasivos`): ahí el turno se relee a
+  propósito justo antes de mandar, porque leído al principio del lote uno
+  cancelado mientras tanto recibe el aviso igual. Y nunca resolver «el último
+  de cada uno» con un `take` global: unos pocos con mucho volumen llenan el
+  cupo y los demás desaparecen sin error (pasó en la bandeja de WhatsApp; va
+  `groupBy` + `_max`)
 - Nunca resolver en la pantalla el nombre de algo que ya viene referenciado
   (el paciente de un turno) con un listado paginado: se queda con la primera
   página y deja afuera a los archivados. Así los turnos del paciente 101 salían

@@ -97,7 +97,9 @@ export class EvaluarCombinacionesPlan {
   }
 
   /**
-   * Una lectura por receta distinta. Una que ya no existe (o es de otro
+   * Todas las recetas del borrador en UNA lectura: esto corre cada vez que el
+   * formulario se queda quieto, y una lectura por receta multiplicaba las
+   * consultas por el tamaño del plan. Una que ya no existe (o es de otro
    * consultorio: el repositorio filtra por inquilino) simplemente no aporta.
    */
   private async leerRecetas(
@@ -109,14 +111,9 @@ export class EvaluarCombinacionesPlan {
         if (opcion.recetaId) ids.add(opcion.recetaId);
       }
     }
-    const recetas = new Map<string, Receta>();
-    await Promise.all(
-      [...ids].map(async (id) => {
-        const receta = await this.recetas.obtenerPorId(id);
-        if (receta) recetas.set(id, receta);
-      }),
-    );
-    return recetas;
+    if (ids.size === 0) return new Map();
+    const recetas = await this.recetas.obtenerPorIds([...ids]);
+    return new Map(recetas.map((receta) => [receta.id, receta]));
   }
 }
 

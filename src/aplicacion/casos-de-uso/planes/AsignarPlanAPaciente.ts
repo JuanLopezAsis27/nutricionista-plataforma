@@ -4,6 +4,7 @@ import type {
   AsignacionPlan,
 } from "@/dominio/repositorios/IPlanRepositorio";
 import type { IPacienteRepositorio } from "@/dominio/repositorios/IPacienteRepositorio";
+import type { PlanNutricional } from "@/dominio/entidades/PlanNutricional";
 import { ErrorPacienteNoEncontrado } from "@/dominio/errores/ErrorPacienteNoEncontrado";
 import { ErrorPlanNoEncontrado } from "@/dominio/errores/ErrorPlanNoEncontrado";
 import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
@@ -12,6 +13,25 @@ import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
 export interface DatosAsignarPlan {
   planId: string;
   pacienteId: string;
+}
+
+/**
+ * Qué plan se puede asignar: uno que existe y no es una plantilla. Vive acá,
+ * una sola vez, porque la usan la asignación a un paciente y la de varios
+ * (`AsignarPlanAVariosPacientes`), que lee el plan UNA vez para todo el lote.
+ */
+export function verificarPlanAsignable(
+  plan: PlanNutricional | null,
+  planId: string,
+): asserts plan is PlanNutricional {
+  if (!plan) {
+    throw new ErrorPlanNoEncontrado(planId);
+  }
+  if (plan.esPlantilla) {
+    throw new ErrorValidacion(
+      "No se puede asignar una plantilla directamente: creá un plan desde ella primero.",
+    );
+  }
 }
 
 /**
@@ -41,14 +61,7 @@ export class AsignarPlanAPaciente {
     }
 
     const plan = await this.planes.obtenerPorId(datos.planId);
-    if (!plan) {
-      throw new ErrorPlanNoEncontrado(datos.planId);
-    }
-    if (plan.esPlantilla) {
-      throw new ErrorValidacion(
-        "No se puede asignar una plantilla directamente: creá un plan desde ella primero.",
-      );
-    }
+    verificarPlanAsignable(plan, datos.planId);
 
     return this.asignaciones.asignarAPaciente({
       id: crypto.randomUUID(),

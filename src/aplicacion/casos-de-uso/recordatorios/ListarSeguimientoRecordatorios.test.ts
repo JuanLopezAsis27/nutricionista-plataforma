@@ -73,13 +73,13 @@ function armar({
       ultimosEntrantesPorPacientes,
     }),
     mockPacienteRepositorio({
-      obtenerPorId: vi.fn(
-        async (id) => pacientes.find((p) => p.id === id) ?? null,
+      obtenerPorIds: vi.fn(async (ids) =>
+        pacientes.filter((p) => ids.includes(p.id)),
       ),
     }),
     mockTurnoRepositorio({
-      obtenerPorId: vi.fn(
-        async (id) => turnos.find((t) => t.id === id) ?? null,
+      obtenerPorIds: vi.fn(async (ids) =>
+        turnos.filter((t) => ids.includes(t.id)),
       ),
     }),
     mockProveedorWhatsapp({

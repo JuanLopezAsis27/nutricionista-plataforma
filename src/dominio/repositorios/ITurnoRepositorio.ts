@@ -26,6 +26,12 @@ export interface ITurnoRepositorio {
   actualizar(turno: Turno): Promise<Turno>;
   obtenerPorId(id: string): Promise<Turno | null>;
   /**
+   * Varios turnos por id en UNA consulta. Es para lo que ya apunta a turnos
+   * (los recordatorios de una bandeja): pedirlos de a uno es una consulta por
+   * fila. Los ids que no existen no vuelven; el orden no está garantizado.
+   */
+  obtenerPorIds(ids: readonly string[]): Promise<Turno[]>;
+  /**
    * Borra el turno definitivamente. Es la EXCEPCIÓN a la baja lógica del
    * módulo: solo para turnos cancelados sin cobro, que no son historia de
    * nada (ver `EliminarTurno`). Los recordatorios se van en cascada.

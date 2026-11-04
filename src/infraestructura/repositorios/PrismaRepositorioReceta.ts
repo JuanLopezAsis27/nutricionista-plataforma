@@ -149,6 +149,15 @@ export class PrismaRepositorioReceta implements IRecetaRepositorio {
     return fila ? mapearReceta(fila) : null;
   }
 
+  async obtenerPorIds(ids: readonly string[]): Promise<Receta[]> {
+    if (ids.length === 0) return [];
+    const filas = await this.prisma.receta.findMany({
+      where: { id: { in: [...ids] } },
+      include: INCLUIR,
+    });
+    return filas.map((fila) => mapearReceta(fila));
+  }
+
   async obtenerPorRecetaBase(recetaBaseId: string): Promise<Receta | null> {
     // Único por consultorio (migración 82): el filtro de inquilino de la
     // extensión lo acota al consultorio actual.

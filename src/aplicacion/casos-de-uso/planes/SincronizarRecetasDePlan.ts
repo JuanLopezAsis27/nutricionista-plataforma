@@ -42,15 +42,15 @@ export class SincronizarRecetasDePlan {
 
     const asignaciones =
       await this.asignaciones.listarAsignacionesDePlan(planId);
+    if (asignaciones.length === 0) return;
+    const pacienteIds = asignaciones.map((a) => a.pacienteId);
 
-    for (const asignacion of asignaciones) {
-      for (const recetaId of recetaIds) {
-        await this.recetas.asignarAPaciente(
-          recetaId,
-          asignacion.pacienteId,
-          crypto.randomUUID(),
-        );
-      }
+    // Una escritura por receta para todos los pacientes, no una por receta Y
+    // paciente: esto corre en cada guardado del plan, y un plan con veinte
+    // pacientes y ocho recetas eran 160 upserts seguidos. Los que ya la tenían
+    // se saltean (idempotente).
+    for (const recetaId of recetaIds) {
+      await this.recetas.asignarAPacientes(recetaId, pacienteIds);
     }
   }
 }

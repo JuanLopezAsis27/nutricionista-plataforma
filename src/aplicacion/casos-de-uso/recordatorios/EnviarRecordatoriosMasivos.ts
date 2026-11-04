@@ -169,6 +169,11 @@ export class EnviarRecordatoriosMasivos {
     };
 
     for (const turnoId of datos.turnoIds) {
+      // El turno se lee en cada vuelta, justo antes de mandarle, y no todos
+      // juntos antes del bucle: es a propósito. Cada vuelta MANDA (email y
+      // WhatsApp) y un lote de cien puede tardar más de un minuto; leído al
+      // principio, un turno que el paciente cancela mientras tanto recibiría
+      // igual el recordatorio, porque los dos envíos deciden por su estado.
       const turno = await this.turnos.obtenerPorId(turnoId);
       if (!turno) {
         detalles.push(sinPaciente(turnoId, "El turno ya no existe."));

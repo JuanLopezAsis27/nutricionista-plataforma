@@ -7,6 +7,7 @@ import { CrearReceta } from "@/aplicacion/casos-de-uso/recetas/CrearReceta";
 import { ObtenerRecetas } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetas";
 import { ObtenerRecetasPaginado } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetasPaginado";
 import { ObtenerRecetaPorId } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetaPorId";
+import { ObtenerRecetasPorIds } from "@/aplicacion/casos-de-uso/recetas/ObtenerRecetasPorIds";
 import { ActualizarReceta } from "@/aplicacion/casos-de-uso/recetas/ActualizarReceta";
 import { EliminarReceta } from "@/aplicacion/casos-de-uso/recetas/EliminarReceta";
 import { EliminarArchivoDeReceta } from "@/aplicacion/casos-de-uso/recetas/EliminarArchivoDeReceta";
@@ -54,5 +55,6 @@ export function crearServicioReceta(deps: {
     new EliminarGrupoReceta(deps.gruposReceta),
     new ObtenerGruposReceta(deps.gruposReceta),
     new CompartirRecetaConTodos(deps.recetas, deps.pacientes),
+    new ObtenerRecetasPorIds(deps.recetas),
   );
 }

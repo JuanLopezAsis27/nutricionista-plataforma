@@ -31,17 +31,12 @@ export async function renderizarPlanConRecetas(datos: {
       ),
     ),
   ];
-  let recetas: RecetaSalidaDto[] = [];
-  if (config.pdfMostrarRecetas && recetaIds.length > 0) {
-    const resueltas = await Promise.all(
-      recetaIds.map((rid) =>
-        servicioReceta()
-          .obtenerRecetaPorId(rid)
-          .catch(() => null),
-      ),
-    );
-    recetas = resueltas.filter((r): r is RecetaSalidaDto => r !== null);
-  }
+  // En una sola lectura: de a una era una consulta por receta, y el respaldo
+  // dibuja este PDF por cada plan. Las borradas se omiten.
+  const recetas: RecetaSalidaDto[] =
+    config.pdfMostrarRecetas && recetaIds.length > 0
+      ? await servicioReceta().obtenerRecetasPorIds(recetaIds)
+      : [];
 
   return renderizarPlanPdf({ plan, nombrePaciente, recetas, config });
 }

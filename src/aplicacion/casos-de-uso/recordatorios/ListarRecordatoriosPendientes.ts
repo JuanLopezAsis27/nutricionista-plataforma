@@ -40,14 +40,25 @@ export class ListarRecordatoriosPendientes {
 
   async ejecutar(): Promise<RecordatorioPendiente[]> {
     const pendientes = await this.recordatorios.pendientesDeConfirmar();
+    if (pendientes.length === 0) return [];
+
+    // Pacientes y turnos de toda la bandeja en dos consultas, no dos por fila.
+    const [pacientes, turnos] = await Promise.all([
+      this.pacientes.obtenerPorIds([
+        ...new Set(pendientes.map((r) => r.pacienteId)),
+      ]),
+      this.turnos.obtenerPorIds([...new Set(pendientes.map((r) => r.turnoId))]),
+    ]);
+    const pacientePorId = new Map(pacientes.map((p) => [p.id, p]));
+    const turnoPorId = new Map(turnos.map((t) => [t.id, t]));
     const salida: RecordatorioPendiente[] = [];
 
     for (const recordatorio of pendientes) {
       const datos = recordatorio.aPrimitivos();
-      const paciente = await this.pacientes.obtenerPorId(datos.pacienteId);
+      const paciente = pacientePorId.get(datos.pacienteId);
       if (!paciente) continue;
 
-      const turno = await this.turnos.obtenerPorId(datos.turnoId);
+      const turno = turnoPorId.get(datos.turnoId);
       // El turno que se canceló después de preparar el aviso ya no necesita
       // recordatorio: mostrarlo sería invitar a mandar un mensaje equivocado.
       if (

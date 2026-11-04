@@ -46,7 +46,9 @@ function armar(opciones: {
     listarEntreFechas: vi.fn(async () => turnos),
   });
   const repoPacientes = mockPacienteRepositorio({
-    obtenerPorId: vi.fn(async (id: string) => pacientes[id] ?? null),
+    obtenerPorIds: vi.fn(async (ids: readonly string[]) =>
+      ids.flatMap((id) => pacientes[id] ?? []),
+    ),
   });
   const repoConfig = mockConfiguracionRepositorio({
     obtener: vi.fn(async () =>
@@ -280,9 +282,9 @@ describe("ListarTurnosParaRecordar — el estado de los avisos", () => {
 });
 
 describe("ListarTurnosParaRecordar — eficiencia y configuración", () => {
-  it("pide cada paciente UNA vez aunque tenga varios turnos", async () => {
-    // Un mismo paciente puede tener dos turnos en la ventana. Sin la caché,
-    // una consola de 40 turnos hace 40 consultas de paciente.
+  it("pide los pacientes en UNA consulta, sin repetir ids", async () => {
+    // Un mismo paciente puede tener varios turnos en la ventana. Pedirlos de
+    // a uno era una consulta por paciente para pintar la consola.
     const { caso, repoPacientes } = armar({
       turnos: [
         turnoEjemplo({ fecha: enDias(1) }, "t-1"),
@@ -295,7 +297,9 @@ describe("ListarTurnosParaRecordar — eficiencia y configuración", () => {
     const lista = await caso.ejecutar();
 
     expect(lista).toHaveLength(3);
-    expect(repoPacientes.obtenerPorId).toHaveBeenCalledTimes(1);
+    expect(repoPacientes.obtenerPorIds).toHaveBeenCalledTimes(1);
+    expect(repoPacientes.obtenerPorIds).toHaveBeenCalledWith(["pac-1"]);
+    expect(repoPacientes.obtenerPorId).not.toHaveBeenCalled();
   });
 
   it("no consulta avisos ni configuración si no hay turnos", async () => {
@@ -304,7 +308,7 @@ describe("ListarTurnosParaRecordar — eficiencia y configuración", () => {
     const { caso, repoPacientes } = armar({ turnos: [] });
 
     expect(await caso.ejecutar()).toEqual([]);
-    expect(repoPacientes.obtenerPorId).not.toHaveBeenCalled();
+    expect(repoPacientes.obtenerPorIds).not.toHaveBeenCalled();
   });
 
   it("normaliza el teléfono con el prefijo del consultorio", async () => {
