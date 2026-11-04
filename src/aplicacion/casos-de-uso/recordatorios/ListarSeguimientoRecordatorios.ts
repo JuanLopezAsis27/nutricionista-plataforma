@@ -101,16 +101,24 @@ export class ListarSeguimientoRecordatorios {
           new Map<string, MensajeWhatsapp>(),
           new Map<string, MensajeWhatsapp>(),
         ];
+    // Pacientes y turnos de toda la selección en dos consultas, no dos por
+    // fila: son hasta `limite` filas.
+    const [pacientes, turnos] = await Promise.all([
+      this.pacientes.obtenerPorIds(pacienteIds),
+      this.turnos.obtenerPorIds(seleccion.map((r) => r.turnoId)),
+    ]);
+    const pacientePorId = new Map(pacientes.map((p) => [p.id, p]));
+    const turnoPorId = new Map(turnos.map((t) => [t.id, t]));
 
     const ahora = this.reloj.ahora().getTime();
     const filas: SeguimientoRecordatorio[] = [];
 
     for (const recordatorio of seleccion) {
       const datos = recordatorio.aPrimitivos();
-      const paciente = await this.pacientes.obtenerPorId(datos.pacienteId);
+      const paciente = pacientePorId.get(datos.pacienteId);
       if (!paciente) continue;
 
-      const turno = await this.turnos.obtenerPorId(datos.turnoId);
+      const turno = turnoPorId.get(datos.turnoId);
       const ultimo = ultimos.get(datos.pacienteId) ?? null;
       const entrante = ultimosEntrantes.get(datos.pacienteId) ?? null;
 

@@ -92,6 +92,14 @@ export class PrismaRepositorioTurno
     }
   }
 
+  async obtenerPorIds(ids: readonly string[]): Promise<Turno[]> {
+    if (ids.length === 0) return [];
+    const filas = await this.prisma.turno.findMany({
+      where: { id: { in: [...ids] } },
+    });
+    return filas.map((fila) => mapearTurno(fila));
+  }
+
   async obtenerEnFecha(fecha: Date): Promise<Turno[]> {
     const filas = await this.prisma.turno.findMany({
       where: { fecha: soloFecha(fecha) },

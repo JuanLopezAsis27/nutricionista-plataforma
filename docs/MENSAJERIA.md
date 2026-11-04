@@ -216,3 +216,22 @@ a Pacientes y buscarlo de nuevo.
 La tarjeta **«Mensajes sin leer»** del inicio ahora enlaza a
 `/dashboard/mensajes?paciente=…`, el deep-link que la bandeja ya sabía abrir. El
 motivo del clic es **esa** conversación; mandaba a la bandeja vacía.
+
+### El último mensaje de cada conversación de WhatsApp
+
+La bandeja necesita el último mensaje de CADA paciente con WhatsApp
+(`resumenPorPaciente`), y Seguimiento el de los que recibieron un aviso
+(`ultimosPorPacientes`, `ultimosEntrantesPorPacientes`). Las tres pasan por
+`ultimosPor` de `PrismaRepositorioMensajeWhatsapp`, que lo resuelve en **dos
+consultas sin importar cuántos pacientes sean**: un `groupBy` por paciente con
+el `_max` de `creadoEn`, y después esas filas puntuales (`OR` de pares
+paciente + fecha; desempata por `id`).
+
+Antes traía «los `pacientes × 50` mensajes más nuevos de todos juntos» y se
+quedaba con el primero de cada paciente. Eso evitaba el N+1 pero tenía un
+techo: cuando unas pocas conversaciones activas juntaban más mensajes que el
+cupo, los pacientes cuyo último mensaje era más viejo **desaparecían de la
+bandeja**, sin ningún error. La comparación por igualdad contra el `_max` es
+exacta porque `creadoEn` es `TIMESTAMP(3)`, la misma precisión que el `Date`
+de JS. Va con el cliente de Prisma y no con un `DISTINCT ON` a mano para que el
+filtro de inquilino lo siga poniendo la extensión (`$queryRaw` no la pasa).

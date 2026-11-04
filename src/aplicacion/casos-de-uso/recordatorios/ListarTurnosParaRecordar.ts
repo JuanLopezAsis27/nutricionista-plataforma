@@ -89,19 +89,19 @@ export class ListarTurnosParaRecordar {
       ConfiguracionConsultorio.porDefecto();
     const prefijo = config.whatsappPrefijoPais ?? PREFIJO_PAIS_POR_DEFECTO;
 
-    // Los pacientes se piden una vez cada uno: un mismo paciente puede tener
-    // varios turnos en la ventana.
-    const cache = new Map<string, Paciente | null>();
+    // Los pacientes de toda la ventana en UNA consulta: un mismo paciente puede
+    // tener varios turnos, y pedirlos de a uno era una consulta por paciente.
+    const pacientePorId = new Map(
+      (
+        await this.pacientes.obtenerPorIds([
+          ...new Set(turnos.map((t) => t.pacienteId)),
+        ])
+      ).map((p): [string, Paciente] => [p.id, p]),
+    );
     const salida: TurnoParaRecordar[] = [];
 
     for (const turno of turnos) {
-      if (!cache.has(turno.pacienteId)) {
-        cache.set(
-          turno.pacienteId,
-          await this.pacientes.obtenerPorId(turno.pacienteId),
-        );
-      }
-      const paciente = cache.get(turno.pacienteId) ?? null;
+      const paciente = pacientePorId.get(turno.pacienteId) ?? null;
       if (!paciente || paciente.estaArchivado) continue;
 
       const avisos = (avisosPorTurno.get(turno.id) ?? []).map(

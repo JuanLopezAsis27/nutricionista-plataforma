@@ -95,9 +95,11 @@ describe("ListarRecordatoriosPendientes", () => {
         pendientesDeConfirmar: vi.fn(async () => [pendiente()]),
       }),
       mockPacienteRepositorio({
-        obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+        obtenerPorIds: vi.fn(async () => [pacienteEjemplo()]),
       }),
-      mockTurnoRepositorio({ obtenerPorId: vi.fn(async () => turno) }),
+      mockTurnoRepositorio({
+        obtenerPorIds: vi.fn(async () => (turno ? [turno] : [])),
+      }),
     );
   }
 

@@ -60,7 +60,7 @@ const servicios = {
     obtenerPlanesDelPaciente: vi.fn(async () => [{ id: "plan-1" }]),
     obtenerPlanPorId: vi.fn(async () => plan),
   },
-  receta: { obtenerRecetaPorId: vi.fn() },
+  receta: { obtenerRecetasPorIds: vi.fn(async () => []) },
   planificacion: {
     obtener: vi.fn(async (id: string) => ({ ...planificacion, id })),
     delPaciente: vi.fn(async () => [{ planificacion, competencia }]),

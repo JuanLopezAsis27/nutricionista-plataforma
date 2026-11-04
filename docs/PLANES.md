@@ -153,6 +153,11 @@ texto— y quien la pasa decide a dónde lleva.
 recetas le llegan a quien sigue el plan hoy: es el único camino para que un
 plan PDF comparta recetas con el paciente en absoluto.
 
+Corre en **cada guardado** del plan y en cada asignación, así que escribe UNA
+vez por receta para todos los pacientes (`asignarAPacientes`, un `createMany`
+con `skipDuplicates`), no una por receta y paciente: con veinte pacientes y
+ocho recetas eran 160 upserts seguidos al apretar Guardar.
+
 ## Cómo lo ve el paciente
 
 `GET /api/archivos/[id]/ver` — sirve el archivo **en línea y desde la app**.
@@ -185,6 +190,12 @@ Un anexo nunca va arriba: eso es lo que llevó a separar las dos modalidades.
 
 `GET /api/planes/[id]/pdf` **genera** un PDF con el membrete del consultorio a
 partir del plan cargado. No tiene nada que ver con los archivos subidos.
+
+Las recetas que imprime (si `pdfMostrarRecetas`) se leen todas juntas
+(`ServicioReceta.obtenerRecetasPorIds`), en el orden en que aparecen en las
+franjas; una receta borrada se omite. De a una eran cuatro consultas por receta
+—Prisma hace una por cada `include`—, y el respaldo dibuja este PDF por cada
+plan de cada paciente.
 
 Por eso el botón "PDF" solo aparece en modalidad APP: generar el plan cargado de
 un plan que ya ES un PDF da un documento vacío.
@@ -499,10 +510,19 @@ no una.
 pero con el paciente sin fijar (`planId` fijo, sin `pacienteIdFijo`) pasa a un
 selector MÚLTIPLE: es una tanda ("asignarle este plan a estos cinco"), y forzar
 una asignación por vez ahí sería el mismo viaje de ida y vuelta que ya se sacó
-del resto del módulo. Cada asignación es independiente en el servidor
-(`AsignarPlanAVariosPacientes` reusa `AsignarPlanAPaciente` paciente por
-paciente): uno que falle —no existe, es una plantilla— no aborta a los demás, y
-el mensaje final cuenta cuántos anduvieron y cuántos no.
+del resto del módulo. Cada asignación es independiente en el servidor: uno que
+falle —no existe, es una plantilla— no aborta a los demás, y el mensaje final
+cuenta cuántos anduvieron y cuántos no.
+
+`AsignarPlanAVariosPacientes` lee el plan y los pacientes UNA vez para toda la
+tanda y después escribe una asignación por paciente. Hasta acá reusaba
+`AsignarPlanAPaciente` paciente por paciente, y eso releía el plan completo
+—unas diez consultas, una por cada `include`— por cada uno: con 18
+pacientes eran 288 consultas y ahora son 101, casi todas las escrituras.
+La regla de qué plan se puede asignar sigue en un solo lugar
+(`verificarPlanAsignable`, en `AsignarPlanAPaciente.ts`) y los chequeos van
+en el mismo orden —primero el paciente, después el plan—, así que cada
+paciente recibe el mismo motivo que asignándolo de a uno; un test lo compara.
 
 Ese mismo diálogo muestra, debajo del formulario, la lista de **quiénes ya
 tienen asignado este plan** (`PacientesDelPlan`, la misma que
@@ -594,8 +614,10 @@ cumplen las metas**, la mejor destacada.
 
 - La cuenta la hace el servidor: `planes.evaluarCombinaciones` recibe el
   BORRADOR (no hace falta guardar) y `EvaluarCombinacionesPlan` lee las recetas
-  del recetario para sus macros por porción. La pantalla solo pide con un
-  retraso de 600 ms y conserva el resultado anterior mientras llega el nuevo.
+  del recetario para sus macros por porción, todas en UNA lectura
+  (`recetas.obtenerPorIds`): corre con cada pausa del formulario. La pantalla
+  solo pide con un retraso de 600 ms y conserva el resultado anterior mientras
+  llega el nuevo.
 - El orden lo decide `mejoresCombinaciones` (`dominio/servicios/
   combinacionesPlan.ts`): un puntaje que suma, por macro con meta, el desvío
   relativo; lo que INCUMPLE pesa ×10, el desvío dentro de un APROXIMADO pesa
@@ -638,10 +660,10 @@ cumplen las metas**, la mejor destacada.
   parámetro, con el mismo contrato que `archivoIds`: es el estado final, y lo
   que no está en la lista se DESVINCULA (no se borra — una receta tiene dueño
   propio, a diferencia de un archivo del plan).
-- `CrearPlanParaPaciente` y `AsignarPlanAVariosPacientes` reusan `CrearPlan` y
-  `AsignarPlanAPaciente` en vez de reimplementar la asignación: si cambia lo que
-  hay que validar antes de asignar, cambia en un solo lugar y los dos flujos lo
-  heredan.
+- `CrearPlanParaPaciente` reusa `CrearPlan` y `AsignarPlanAPaciente`, y
+  `AsignarPlanAVariosPacientes` usa la misma `verificarPlanAsignable`, en vez de
+  reimplementar la asignación: si cambia lo que hay que validar antes de
+  asignar, cambia en un solo lugar y los tres flujos lo heredan.
 - La asignación es un vínculo, no una entidad con vida propia. Si mañana hace
   falta una fecha o una nota ahí, preguntate primero si no es del PLAN o del
   PASADO (`DesasignacionPlan`): meterle estado a `AsignacionPlan` es lo que

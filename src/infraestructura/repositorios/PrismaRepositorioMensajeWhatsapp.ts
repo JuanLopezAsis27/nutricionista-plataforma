@@ -134,26 +134,22 @@ export class PrismaRepositorioMensajeWhatsapp implements IMensajeWhatsappReposit
   }
 
   /**
-   * Tres consultas en total, no una por paciente: quiénes tienen mensajes, el
-   * último de cada uno (con `ultimosPor`, que ya resolvía eso para la bandeja
-   * de seguimiento) y los sin leer agrupados.
+   * Tres consultas en total, no una por paciente: el último mensaje de cada
+   * paciente que tiene alguno (dos, con `ultimosPor`) y los sin leer
+   * agrupados.
    */
   async resumenPorPaciente(): Promise<ResumenWhatsappPaciente[]> {
-    const [conMensajes, sinLeer] = await Promise.all([
-      this.prisma.mensajeWhatsapp.groupBy({ by: ["pacienteId"] }),
+    const [ultimos, sinLeer] = await Promise.all([
+      this.ultimosPor(null, undefined),
       this.prisma.mensajeWhatsapp.groupBy({
         by: ["pacienteId"],
         where: { direccion: "ENTRANTE", leidoEn: null },
         _count: { _all: true },
       }),
     ]);
-    const pacienteIds = conMensajes.map((g) => g.pacienteId);
-    const ultimos = await this.ultimosPor(pacienteIds, undefined);
     const noLeidos = new Map(sinLeer.map((g) => [g.pacienteId, g._count._all]));
     const resumen: ResumenWhatsappPaciente[] = [];
-    for (const pacienteId of pacienteIds) {
-      const ultimo = ultimos.get(pacienteId);
-      if (!ultimo) continue;
+    for (const [pacienteId, ultimo] of ultimos) {
       resumen.push({
         pacienteId,
         ultimoMensajeTexto: ultimo.cuerpo,
@@ -165,27 +161,45 @@ export class PrismaRepositorioMensajeWhatsapp implements IMensajeWhatsappReposit
   }
 
   /**
-   * Último mensaje de cada paciente en UNA consulta.
+   * Último mensaje de cada paciente en DOS consultas, sin importar cuántos
+   * sean: la fecha del último de cada uno (`groupBy` con `_max`) y después
+   * esas filas puntuales. `null` en `pacienteIds` es «todos los que tienen
+   * mensajes» (la bandeja).
    *
-   * Se ordena descendente y se queda con el primero de cada paciente, en vez
-   * de hacer un `findFirst` por fila: la bandeja de seguimiento muestra
-   * decenas de conversaciones y esa diferencia es la que decide si la pantalla
-   * abre o se arrastra. El `take` acota lo que puede traer una conversación
-   * muy activa.
+   * No un `findFirst` por paciente —la bandeja muestra decenas de
+   * conversaciones—, pero tampoco «los N×50 más nuevos de todos y el primero
+   * de cada uno», que es como estuvo: unas pocas conversaciones muy activas
+   * llenaban ese cupo y las demás desaparecían de la bandeja sin ningún error.
+   * Va con el cliente de Prisma y no con SQL a mano para que el filtro de
+   * inquilino lo siga poniendo la extensión.
    */
   private async ultimosPor(
-    pacienteIds: string[],
+    pacienteIds: string[] | null,
     direccion: "ENTRANTE" | "SALIENTE" | undefined,
   ): Promise<Map<string, MensajeWhatsapp>> {
-    if (pacienteIds.length === 0) return new Map();
+    if (pacienteIds !== null && pacienteIds.length === 0) return new Map();
+    const deDireccion = direccion ? { direccion } : {};
+
+    const maximos = await this.prisma.mensajeWhatsapp.groupBy({
+      by: ["pacienteId"],
+      where: {
+        ...(pacienteIds !== null ? { pacienteId: { in: pacienteIds } } : {}),
+        ...deDireccion,
+      },
+      _max: { creadoEn: true },
+    });
+    const pares = maximos.flatMap((g) =>
+      g._max.creadoEn
+        ? [{ pacienteId: g.pacienteId, creadoEn: g._max.creadoEn }]
+        : [],
+    );
+    if (pares.length === 0) return new Map();
 
     const filas = await this.prisma.mensajeWhatsapp.findMany({
-      where: {
-        pacienteId: { in: pacienteIds },
-        ...(direccion ? { direccion } : {}),
-      },
-      orderBy: { creadoEn: "desc" },
-      take: pacienteIds.length * 50,
+      where: { OR: pares, ...deDireccion },
+      // Dos mensajes del mismo paciente en el mismo milisegundo: gana uno
+      // siempre el mismo.
+      orderBy: [{ creadoEn: "desc" }, { id: "desc" }],
     });
 
     const mapa = new Map<string, MensajeWhatsapp>();
