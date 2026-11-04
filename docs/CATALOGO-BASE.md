@@ -344,7 +344,10 @@ planilla no trae una (si trae, gana la de la planilla).
 
 `BuscadorAlimento` es un botón que abre un modal con el campo de búsqueda, los
 chips de categoría y los resultados con imagen, macros, categoría y de qué
-lista vienen. Elegir uno lo agrega y cierra. Lo usan el formulario de receta,
+lista vienen. Las tarjetas miden todas lo mismo (`auto-rows-fr` en la grilla
+y el botón a `h-full`): con la descripción, que es opcional y ocupa hasta dos
+líneas, cada una tomaba su propio alto y la grilla quedaba despareja. Elegir
+uno lo agrega y cierra. Lo usan el formulario de receta,
 las opciones del plan, el plan semanal y las recetas de la plataforma (en
 este último, con `enCatalogo`, busca solo en el catálogo).
 
