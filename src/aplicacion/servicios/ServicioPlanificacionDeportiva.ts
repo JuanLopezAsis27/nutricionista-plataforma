@@ -18,6 +18,7 @@ import type { CompetenciaDeAsignacion } from "@/dominio/repositorios/IAsignacion
 import type { GrupoPlan } from "@/dominio/entidades/GrupoPlan";
 import {
   cafeinaDeIngesta,
+  sodioDeIngesta,
   formatearMinutos,
   horaDeIngesta,
   kmEstimadoDeIngesta,
@@ -241,6 +242,7 @@ function aSalida(
         carbohidratosPor100: alimento.carbohidratosPor100,
         grasasPor100: alimento.grasasPor100,
         cafeinaPor100: alimento.cafeinaPor100,
+        sodioPor100: alimento.sodioPor100,
         fuente: alimento.fuente,
         referenciaExterna: alimento.referenciaExterna,
         alimentoOrigenId: alimento.alimentoOrigenId,
@@ -254,6 +256,7 @@ function aSalida(
       macros: macrosDeIngesta(ingesta),
       liquidosMl: liquidosDeIngesta(ingesta),
       cafeinaMg: cafeinaDeIngesta(ingesta),
+      sodioMg: sodioDeIngesta(ingesta),
     })),
     resumen: planificacion.resumen,
     creadoEn: p.creadoEn,

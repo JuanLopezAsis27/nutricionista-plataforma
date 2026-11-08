@@ -265,3 +265,77 @@ describe("PlanificacionDeportiva — cafeína (migración 96)", () => {
     expect(copia.resumen.cafeina.totalMg).toBe(120);
   });
 });
+
+describe("PlanificacionDeportiva — sodio (migración 99)", () => {
+  /** Isotónica con 45 mg de sodio por 100 ml: 90 mg en 200 ml. */
+  const ISOTONICA_SODIO = { ...ISOTONICA, sodioPor100: 45 };
+  /** Cápsula de sal de 1 g con 215 mg de sodio. */
+  const CAPSULA = {
+    nombre: "Cápsula de sales",
+    cantidadGramos: 1,
+    sodioPor100: 21_500,
+  };
+
+  function conSodio(sodioObjetivoMgH: number | null) {
+    return maraton({
+      carrera: {
+        modalidad: "CALLE",
+        distanciaKm: 42.2,
+        duracionEstimadaMin: 180,
+        sodioObjetivoMgH,
+      },
+      ingestas: [
+        { minuto: -15, alimentos: [ISOTONICA_SODIO] },
+        { minuto: 60, alimentos: [GEL, ISOTONICA_SODIO, CAPSULA] },
+        { minuto: 120, alimentos: [ISOTONICA_SODIO, CAPSULA] },
+      ],
+    });
+  }
+
+  it("suma el sodio de antes y de durante; por hora, solo lo de la carrera", () => {
+    const r = conSodio(null).resumen;
+    // Durante: 2 isotónicas (180 mg) + 2 cápsulas (430 mg) en 3 h.
+    expect(r.durante.sodioMg).toBe(610);
+    expect(r.durante.porHora.sodioMg).toBe(203);
+    expect(r.antes.sodioMg).toBe(90);
+    // Sin objetivo no hay contra qué comparar.
+    expect(r.sodio).toBeNull();
+  });
+
+  it("compara contra el objetivo de sodio por hora con ±10 %", () => {
+    expect(conSodio(400).resumen.sodio).toBe("DEBAJO");
+    expect(conSodio(200).resumen.sodio).toBe("CUMPLE");
+    expect(conSodio(150).resumen.sodio).toBe("ENCIMA");
+  });
+
+  it("sin ningún alimento con sodio no hay dato (no es 0) ni comparación", () => {
+    const r = maraton({
+      carrera: {
+        modalidad: "CALLE",
+        distanciaKm: 42.2,
+        duracionEstimadaMin: 180,
+        sodioObjetivoMgH: 400,
+      },
+    }).resumen;
+    expect(r.durante.sodioMg).toBeNull();
+    expect(r.durante.porHora.sodioMg).toBeNull();
+    expect(r.sodio).toBeNull();
+  });
+
+  it("la copia del alimento conserva su sodio", () => {
+    const copia = conSodio(400).duplicar("pla-9", "Copia", generarId);
+    expect(copia.ingestas[1]!.alimentos.map((a) => a.sodioPor100)).toEqual([
+      null,
+      45,
+      21_500,
+    ]);
+  });
+
+  it("rechaza el sodio negativo", () => {
+    expect(() =>
+      maraton({
+        ingestas: [{ minuto: 30, alimentos: [{ ...GEL, sodioPor100: -1 }] }],
+      }),
+    ).toThrow(ErrorValidacion);
+  });
+});

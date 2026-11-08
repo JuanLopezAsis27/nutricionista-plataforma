@@ -50,6 +50,8 @@ export const alimentoNutricionalSalidaDto = z.object({
   grasasPor100: z.number().nullable(),
   /** mg por 100 g/ml (migración 95); null sin dato. */
   cafeinaPor100: z.number().nullable(),
+  /** mg por 100 g/ml (migración 99); null sin dato. */
+  sodioPor100: z.number().nullable(),
   descripcion: z.string().nullable(),
   id: z.string().nullable(),
   categoria: categoriaAlimentoSalidaDto.nullable(),

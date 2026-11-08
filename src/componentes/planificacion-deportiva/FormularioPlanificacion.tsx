@@ -60,6 +60,7 @@ import {
 } from "./formulario/esquema";
 import {
   cafeinaDeIngestaEnFormulario,
+  sodioDeIngestaEnFormulario,
   horaDelDia,
   liquidosDeIngestaEnFormulario,
   resumenEnVivo,
@@ -351,11 +352,7 @@ export function FormularioPlanificacion({
               onChange={(e) => cambiar("liquidosObjetivoMlH", e.target.value)}
             />
           </Campo>
-          <Campo
-            etiqueta="Sodio (mg/h)"
-            id="obj-sodio"
-            ayuda="Informativo: los alimentos no traen sodio."
-          >
+          <Campo etiqueta="Sodio (mg/h)" id="obj-sodio">
             <Input
               id="obj-sodio"
               inputMode="numeric"
@@ -536,6 +533,7 @@ function EditorIngesta({
   const macros = calcularTotales(ingesta.alimentos);
   const liquidos = liquidosDeIngestaEnFormulario(ingesta);
   const cafeina = cafeinaDeIngestaEnFormulario(ingesta);
+  const sodio = sodioDeIngestaEnFormulario(ingesta);
 
   function cambiarAlimento(
     indice: number,
@@ -667,7 +665,7 @@ function EditorIngesta({
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
             </div>
-            <div className="mt-2 grid grid-cols-3 gap-2 pr-10 sm:grid-cols-5">
+            <div className="mt-2 grid grid-cols-3 gap-2 pr-10 sm:grid-cols-6">
               {(
                 [
                   ["caloriasPor100", `kcal/${porCien(alimento.unidadBase)}`],
@@ -675,6 +673,7 @@ function EditorIngesta({
                   ["carbohidratosPor100", `C/${porCien(alimento.unidadBase)}`],
                   ["grasasPor100", `G/${porCien(alimento.unidadBase)}`],
                   ["cafeinaPor100", `Caf. mg/${porCien(alimento.unidadBase)}`],
+                  ["sodioPor100", `Sodio mg/${porCien(alimento.unidadBase)}`],
                 ] as const
               ).map(([campo, etiqueta]) => (
                 <div key={campo} className="space-y-1">
@@ -713,6 +712,7 @@ function EditorIngesta({
                     carbohidratosPor100: textoDe(a.carbohidratosPor100),
                     grasasPor100: textoDe(a.grasasPor100),
                     cafeinaPor100: textoDe(a.cafeinaPor100),
+                    sodioPor100: textoDe(a.sodioPor100),
                     fuente: a.fuente ?? "MANUAL",
                     referenciaExterna: a.referenciaExterna ?? "",
                     alimentoOrigenId: a.id ?? "",
@@ -738,6 +738,7 @@ function EditorIngesta({
               macros.calorias != null && `${macros.calorias} kcal`,
               liquidos != null && `${liquidos} ml`,
               cafeina != null && `${numero(cafeina)} mg cafeína`,
+              sodio != null && `${numero(sodio)} mg sodio`,
             ]
               .filter(Boolean)
               .join(" · ") || "Sin macros"}

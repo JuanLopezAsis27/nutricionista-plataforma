@@ -12,7 +12,8 @@ export const runtime = "nodejs";
 
 /**
  * Filas de ejemplo: un sólido, un líquido en ml, uno con medida casera y un
- * gel con cafeína y descripción (migración 95).
+ * gel con cafeína y descripción (migración 95). Todos con su sodio en mg por
+ * 100 g/ml (migración 99).
  */
 const EJEMPLOS: AlimentoParaPlanilla[] = [
   {
@@ -23,6 +24,7 @@ const EJEMPLOS: AlimentoParaPlanilla[] = [
     carbohidratosPor100: 0,
     grasasPor100: 3.6,
     cafeinaPor100: null,
+    sodioPor100: 74,
     descripcion: null,
     categoria: { nombre: "Carnes" },
     unidadBase: "GRAMO",
@@ -36,6 +38,7 @@ const EJEMPLOS: AlimentoParaPlanilla[] = [
     carbohidratosPor100: 5,
     grasasPor100: 0.4,
     cafeinaPor100: null,
+    sodioPor100: 44,
     descripcion: null,
     categoria: { nombre: "Lácteos" },
     unidadBase: "MILILITRO",
@@ -52,6 +55,7 @@ const EJEMPLOS: AlimentoParaPlanilla[] = [
     carbohidratosPor100: 0.7,
     grasasPor100: 9.5,
     cafeinaPor100: null,
+    sodioPor100: 142,
     descripcion: null,
     categoria: { nombre: "Huevos" },
     unidadBase: "GRAMO",
@@ -66,8 +70,10 @@ const EJEMPLOS: AlimentoParaPlanilla[] = [
     grasasPor100: 0,
     // 40 mg en un gel de 40 g: 100 mg por 100 g.
     cafeinaPor100: 100,
+    // 50 mg en el mismo gel: 125 mg por 100 g.
+    sodioPor100: 125,
     descripcion:
-      "Gel de 40 g con 25 g de carbohidratos y 40 mg de cafeína. Tomar con agua.",
+      "Gel de 40 g con 25 g de carbohidratos, 40 mg de cafeína y 50 mg de sodio. Tomar con agua.",
     categoria: { nombre: "Geles deportivos" },
     unidadBase: "GRAMO",
     medidas: [{ nombre: "unidad", cantidad: 40 }],

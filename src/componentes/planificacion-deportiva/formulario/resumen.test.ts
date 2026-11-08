@@ -40,6 +40,8 @@ function gel(unidades: string): AlimentoFormulario {
     grasasPor100: "0",
     // 40 mg por gel de 40 g.
     cafeinaPor100: "100",
+    // 50 mg por gel de 40 g.
+    sodioPor100: "125",
   };
 }
 
@@ -51,6 +53,7 @@ function isotonica(ml: string): AlimentoFormulario {
     cantidadGramos: ml,
     caloriasPor100: "24",
     carbohidratosPor100: "6",
+    sodioPor100: "45",
   };
 }
 
@@ -62,6 +65,7 @@ function formulario(): FormularioPlanificacion {
     horaLargada: "08:00",
     carbohidratosObjetivoGH: "45",
     liquidosObjetivoMlH: "350",
+    sodioObjetivoMgH: "400",
     pesoReferenciaKg: "62,5",
     ingestas: [
       {
@@ -104,6 +108,12 @@ describe("resumen en vivo ↔ dominio", () => {
     // Y la cafeína no es un caso trivial: hay antes, durante y peso.
     expect(entidad.resumen.cafeina.antesMg).toBe(40);
     expect(entidad.resumen.cafeina.mgPorKg).not.toBeNull();
+    // Ni el sodio: gel en «unidad», isotónica en ml y uno antes de largar.
+    // Durante: 50 + 67,5 + 75 + 90 = 282,5 mg en 1:45 → 161 mg/h.
+    expect(entidad.resumen.durante.sodioMg).toBe(282.5);
+    expect(entidad.resumen.durante.porHora.sodioMg).toBe(161);
+    expect(entidad.resumen.antes.sodioMg).toBe(50);
+    expect(entidad.resumen.sodio).toBe("DEBAJO");
   });
 
   it("sin duración no hay valores por hora, en los dos", () => {

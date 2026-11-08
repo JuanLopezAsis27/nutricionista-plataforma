@@ -250,7 +250,9 @@ function ModalBuscadorAlimento({
                       <span className="block text-xs text-muted-foreground">
                         {macrosEnTexto(alimento)}
                         {alimento.cafeinaPor100 != null &&
-                          ` · ${String(alimento.cafeinaPor100).replace(".", ",")} mg cafeína`}{" "}
+                          ` · ${String(alimento.cafeinaPor100).replace(".", ",")} mg cafeína`}
+                        {alimento.sodioPor100 != null &&
+                          ` · ${String(alimento.sodioPor100).replace(".", ",")} mg sodio`}{" "}
                         (por {porCien(alimento.unidadBase)})
                       </span>
                       {alimento.descripcion && (

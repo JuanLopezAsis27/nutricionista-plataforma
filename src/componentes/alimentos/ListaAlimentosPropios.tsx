@@ -63,6 +63,8 @@ interface Borrador {
   grasasPor100: string;
   /** mg por 100 g/ml (migración 95). */
   cafeinaPor100: string;
+  /** mg por 100 g/ml (migración 99). */
+  sodioPor100: string;
   descripcion: string;
   /** Si los macros son por 100 g o por 100 ml (migración 90). */
   unidadBase: UnidadBaseAlimento;
@@ -83,6 +85,7 @@ function borradorVacio(): Borrador {
     carbohidratosPor100: "",
     grasasPor100: "",
     cafeinaPor100: "",
+    sodioPor100: "",
     descripcion: "",
     unidadBase: "GRAMO",
     medidas: [],
@@ -102,6 +105,7 @@ function aBorrador(a: AlimentoPropioSalidaDto): Borrador {
       a.carbohidratosPor100 != null ? String(a.carbohidratosPor100) : "",
     grasasPor100: a.grasasPor100 != null ? String(a.grasasPor100) : "",
     cafeinaPor100: a.cafeinaPor100 != null ? String(a.cafeinaPor100) : "",
+    sodioPor100: a.sodioPor100 != null ? String(a.sodioPor100) : "",
     descripcion: a.descripcion ?? "",
     unidadBase: a.unidadBase,
     medidas: a.medidas.map((m) => ({
@@ -391,6 +395,10 @@ export function ListaAlimentosPropios({
               datos.cafeinaPor100.trim() === ""
                 ? null
                 : Number(datos.cafeinaPor100),
+            sodioPor100:
+              datos.sodioPor100.trim() === ""
+                ? null
+                : Number(datos.sodioPor100),
             descripcion: datos.descripcion.trim() || null,
             unidadBase: datos.unidadBase,
             medidas: medidasDelBorrador(datos),
@@ -818,6 +826,20 @@ function FormularioAlimento({
           <p className="text-xs text-muted-foreground">
             Por {cien}, como los macros: un gel de 40 g con 40 mg de cafeína
             lleva 100.
+          </p>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="sodio">Sodio (mg/{cien})</Label>
+          <Input
+            id="sodio"
+            type="number"
+            min={0}
+            placeholder="Sin dato"
+            value={b.sodioPor100}
+            onChange={(e) => setB({ ...b, sodioPor100: e.target.value })}
+          />
+          <p className="text-xs text-muted-foreground">
+            El sodio, no la sal: 1 g de sal son 400 mg de sodio.
           </p>
         </div>
       </div>

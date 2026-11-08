@@ -114,7 +114,7 @@ export interface DetalleCarrera {
   /** Objetivos por hora de carrera. */
   carbohidratosObjetivoGH: number | null;
   liquidosObjetivoMlH: number | null;
-  /** Informativo: los alimentos no traen sodio y no se suma. */
+  /** Se compara contra el sodio de las ingestas (migración 99). */
   sodioObjetivoMgH: number | null;
   puestosAbastecimiento: string | null;
   estrategiaPrevia: string | null;
@@ -135,6 +135,8 @@ export interface AlimentoDeIngesta extends CantidadDeAlimento {
   grasasPor100: number | null;
   /** mg de cafeína por 100 g/ml, copiados del alimento (migración 96). */
   cafeinaPor100: number | null;
+  /** mg de sodio por 100 g/ml, copiados igual (migración 99). */
+  sodioPor100: number | null;
   fuente: string | null;
   referenciaExterna: string | null;
   /** Id del alimento del que se copió (migración 85): solo dice dónde se usa. */
@@ -200,6 +202,7 @@ export interface DatosAlimentoIngesta extends DatosCantidadDeAlimento {
   carbohidratosPor100?: number | null;
   grasasPor100?: number | null;
   cafeinaPor100?: number | null;
+  sodioPor100?: number | null;
   fuente?: string | null;
   referenciaExterna?: string | null;
   alimentoOrigenId?: string | null;
@@ -241,17 +244,26 @@ export interface ResumenIngestas {
     macros: Macros;
     /** ml de los alimentos medidos en mililitros (agua, isotónica). */
     liquidosMl: number | null;
+    /** mg de sodio (migración 99); null si ningún alimento trae el dato. */
+    sodioMg: number | null;
     porHora: {
       calorias: number | null;
       carbohidratosG: number | null;
       liquidosMl: number | null;
+      sodioMg: number | null;
     };
   };
   /** Lo que se toma antes de largar (minutos negativos). */
-  antes: { cantidad: number; macros: Macros; liquidosMl: number | null };
+  antes: {
+    cantidad: number;
+    macros: Macros;
+    liquidosMl: number | null;
+    sodioMg: number | null;
+  };
   /** Contra los objetivos por hora; null si no hay objetivo o no hay dato. */
   carbohidratos: EstadoObjetivo | null;
   liquidos: EstadoObjetivo | null;
+  sodio: EstadoObjetivo | null;
   /**
    * El lapso más largo sin ingerir nada durante la carrera, contando desde la
    * largada y hasta la llegada estimada (min). Null sin duración.
@@ -416,6 +428,7 @@ export class PlanificacionDeportiva {
 
     const macrosDurante = sumarIngestas(durante);
     const liquidosDurante = liquidosDe(durante);
+    const sodioDurante = sodioDe(durante);
     const horas = duracion != null && duracion > 0 ? duracion / 60 : null;
     const porHora = (valor: number | null): number | null =>
       valor != null && horas != null ? redondear1(valor / horas) : null;
@@ -426,6 +439,7 @@ export class PlanificacionDeportiva {
         cantidad: durante.length,
         macros: macrosDurante,
         liquidosMl: liquidosDurante,
+        sodioMg: sodioDurante,
         porHora: {
           calorias:
             porHoraCalorias != null ? Math.round(porHoraCalorias) : null,
@@ -434,12 +448,17 @@ export class PlanificacionDeportiva {
             const v = porHora(liquidosDurante);
             return v != null ? Math.round(v) : null;
           })(),
+          sodioMg: (() => {
+            const v = porHora(sodioDurante);
+            return v != null ? Math.round(v) : null;
+          })(),
         },
       },
       antes: {
         cantidad: antes.length,
         macros: sumarIngestas(antes),
         liquidosMl: liquidosDe(antes),
+        sodioMg: sodioDe(antes),
       },
       carbohidratos: compararConObjetivo(
         porHora(macrosDurante.carbohidratosG),
@@ -448,6 +467,10 @@ export class PlanificacionDeportiva {
       liquidos: compararConObjetivo(
         porHora(liquidosDurante),
         this.props.carrera?.liquidosObjetivoMlH ?? null,
+      ),
+      sodio: compararConObjetivo(
+        porHora(sodioDurante),
+        this.props.carrera?.sodioObjetivoMgH ?? null,
       ),
       intervaloMaximoMin: intervaloMaximo(durante, duracion),
       cafeina: resumenCafeina(
@@ -501,12 +524,31 @@ export function liquidosDeIngesta(
 export function cafeinaDeIngesta(
   ingesta: Pick<Ingesta, "alimentos">,
 ): number | null {
+  return miligramosDeIngesta(ingesta, (a) => a.cafeinaPor100);
+}
+
+/**
+ * mg de sodio de UNA ingesta (migración 99), con la misma cuenta que la
+ * cafeína. Null si ningún alimento trae el dato.
+ */
+export function sodioDeIngesta(
+  ingesta: Pick<Ingesta, "alimentos">,
+): number | null {
+  return miligramosDeIngesta(ingesta, (a) => a.sodioPor100);
+}
+
+/** Cantidad × mg por 100 de cada alimento que trae el dato; null si ninguno. */
+function miligramosDeIngesta(
+  ingesta: Pick<Ingesta, "alimentos">,
+  porCien: (alimento: AlimentoDeIngesta) => number | null,
+): number | null {
   let total = 0;
   let hay = false;
   for (const a of ingesta.alimentos) {
-    if (a.cafeinaPor100 == null || a.cantidadGramos == null) continue;
+    const valor = porCien(a);
+    if (valor == null || a.cantidadGramos == null) continue;
     if (a.cantidadGramos <= 0) continue;
-    total += (a.cafeinaPor100 * a.cantidadGramos) / 100;
+    total += (valor * a.cantidadGramos) / 100;
     hay = true;
   }
   return hay ? redondear1(total) : null;
@@ -594,6 +636,15 @@ function sumarIngestas(ingestas: Ingesta[]): Macros {
 function cafeinaDe(ingestas: Ingesta[]): number | null {
   const valores = ingestas
     .map(cafeinaDeIngesta)
+    .filter((v): v is number => v != null);
+  return valores.length > 0
+    ? redondear1(valores.reduce((a, b) => a + b, 0))
+    : null;
+}
+
+function sodioDe(ingestas: Ingesta[]): number | null {
+  const valores = ingestas
+    .map(sodioDeIngesta)
     .filter((v): v is number => v != null);
   return valores.length > 0
     ? redondear1(valores.reduce((a, b) => a + b, 0))
@@ -832,6 +883,7 @@ function normalizarAlimento(
     carbohidratosPor100: macro(datos.carbohidratosPor100, nombre),
     grasasPor100: macro(datos.grasasPor100, nombre),
     cafeinaPor100: macro(datos.cafeinaPor100, nombre),
+    sodioPor100: macro(datos.sodioPor100, nombre),
     fuente: texto(datos.fuente),
     referenciaExterna: texto(datos.referenciaExterna),
     alimentoOrigenId: texto(datos.alimentoOrigenId),

@@ -29,6 +29,8 @@ export interface AlimentoFormulario extends CantidadEnFormulario {
   grasasPor100: string;
   /** mg por 100 g/ml (migración 96). */
   cafeinaPor100: string;
+  /** mg por 100 g/ml (migración 99). */
+  sodioPor100: string;
   fuente: string;
   referenciaExterna: string;
   alimentoOrigenId: string;
@@ -127,6 +129,7 @@ export function alimentoVacio(): AlimentoFormulario {
     carbohidratosPor100: "",
     grasasPor100: "",
     cafeinaPor100: "",
+    sodioPor100: "",
     fuente: "MANUAL",
     referenciaExterna: "",
     alimentoOrigenId: "",
@@ -224,6 +227,7 @@ export function formularioDesdeGuardado(
         carbohidratosPor100: texto(a.carbohidratosPor100),
         grasasPor100: texto(a.grasasPor100),
         cafeinaPor100: texto(a.cafeinaPor100),
+        sodioPor100: texto(a.sodioPor100),
         fuente: a.fuente ?? "MANUAL",
         referenciaExterna: a.referenciaExterna ?? "",
         alimentoOrigenId: a.alimentoOrigenId ?? "",
@@ -273,6 +277,7 @@ export function paraGuardar(f: FormularioPlanificacion): ContenidoParaGuardar {
         carbohidratosPor100: aNumero(a.carbohidratosPor100),
         grasasPor100: aNumero(a.grasasPor100),
         cafeinaPor100: aNumero(a.cafeinaPor100),
+        sodioPor100: aNumero(a.sodioPor100),
         fuente: a.fuente || null,
         referenciaExterna: a.referenciaExterna || null,
         alimentoOrigenId: a.alimentoOrigenId || null,

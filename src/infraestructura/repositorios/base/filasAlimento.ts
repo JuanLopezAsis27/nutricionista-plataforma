@@ -39,6 +39,7 @@ export interface FilaAlimento {
   carbohidratosPor100: Prisma.Decimal | null;
   grasasPor100: Prisma.Decimal | null;
   cafeinaPor100: Prisma.Decimal | null;
+  sodioPor100: Prisma.Decimal | null;
   descripcion: string | null;
   unidadBase: "GRAMO" | "MILILITRO";
   medidas: Prisma.JsonValue;
@@ -71,6 +72,7 @@ export function datosDeAlimento(alimento: AlimentoPropio) {
     carbohidratosPor100: p.carbohidratosPor100,
     grasasPor100: p.grasasPor100,
     cafeinaPor100: p.cafeinaPor100,
+    sodioPor100: p.sodioPor100,
     descripcion: p.descripcion,
     unidadBase: p.unidadBase,
     medidas: medidasAJson(p.medidas),
@@ -98,6 +100,7 @@ export function mapearFilaAlimento(fila: FilaAlimento): AlimentoPropio {
     carbohidratosPor100: aNumero(fila.carbohidratosPor100),
     grasasPor100: aNumero(fila.grasasPor100),
     cafeinaPor100: aNumero(fila.cafeinaPor100),
+    sodioPor100: aNumero(fila.sodioPor100),
     descripcion: fila.descripcion,
     unidadBase: fila.unidadBase,
     medidas: medidasDeJson(fila.medidas),

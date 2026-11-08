@@ -46,6 +46,13 @@ export const LARGO_MAXIMO_DESCRIPCION_ALIMENTO = 1000;
  */
 export const CAFEINA_MAXIMA_POR_100 = 99_999;
 
+/**
+ * Tope del sodio por 100 g/ml (migración 99): la sal de mesa, que es casi
+ * 40 % sodio (39.300 mg/100 g). Nada que se coma tiene más; un valor mayor es
+ * un error de tipeo, o la sal cargada en gramos en vez del sodio en mg.
+ */
+export const SODIO_MAXIMO_POR_100 = 40_000;
+
 /** Estado de un alimento propio (macros por 100 g o por 100 ml). */
 export interface PropiedadesAlimentoPropio {
   id: string;
@@ -60,6 +67,11 @@ export interface PropiedadesAlimentoPropio {
    * (migración 95). Null es sin dato, no 0.
    */
   cafeinaPor100: number | null;
+  /**
+   * Miligramos de sodio por 100 g (o por 100 ml), como la cafeína
+   * (migración 99). Null es sin dato, no 0.
+   */
+  sodioPor100: number | null;
   /** Texto libre: qué es, cómo se toma, qué trae (migración 95). */
   descripcion: string | null;
   /** Si los macros son por 100 g o por 100 ml (migración 90). */
@@ -86,6 +98,8 @@ export interface DatosNuevoAlimentoPropio {
   grasasPor100?: number | null;
   /** mg por 100 g/ml (migración 95). */
   cafeinaPor100?: number | null;
+  /** mg por 100 g/ml (migración 99). */
+  sodioPor100?: number | null;
   descripcion?: string | null;
   /** Por defecto GRAMO. */
   unidadBase?: UnidadBaseAlimento | null;
@@ -118,6 +132,7 @@ export class AlimentoPropio {
       carbohidratosPor100: macro(datos.carbohidratosPor100, "carbohidratos"),
       grasasPor100: macro(datos.grasasPor100, "grasas"),
       cafeinaPor100: cafeina(datos.cafeinaPor100),
+      sodioPor100: sodio(datos.sodioPor100),
       descripcion: descripcion(datos.descripcion),
       unidadBase: datos.unidadBase ?? "GRAMO",
       medidas: normalizarMedidas(datos.medidas, nombre),
@@ -158,6 +173,7 @@ export class AlimentoPropio {
           cambios.cafeinaPor100,
           this.props.cafeinaPor100,
         ),
+        sodioPor100: fusionar(cambios.sodioPor100, this.props.sodioPor100),
         descripcion: fusionar(cambios.descripcion, this.props.descripcion),
         unidadBase: fusionar(cambios.unidadBase, this.props.unidadBase),
         medidas: fusionar(cambios.medidas, this.props.medidas),
@@ -271,6 +287,20 @@ function cafeina(valor: number | null | undefined): number | null {
   if (valor > CAFEINA_MAXIMA_POR_100) {
     throw new ErrorValidacion(
       "La cafeína va en miligramos por 100 g (o 100 ml): el valor es demasiado alto.",
+    );
+  }
+  return Math.round(valor * 100) / 100;
+}
+
+/** Sodio en mg por 100 g/ml: no negativo y no más que la sal de mesa. */
+function sodio(valor: number | null | undefined): number | null {
+  if (valor == null) return null;
+  if (!Number.isFinite(valor) || valor < 0) {
+    throw new ErrorValidacion("El sodio no puede ser negativo.");
+  }
+  if (valor > SODIO_MAXIMO_POR_100) {
+    throw new ErrorValidacion(
+      "El sodio va en miligramos por 100 g (o 100 ml): el valor es más alto que el de la sal de mesa.",
     );
   }
   return Math.round(valor * 100) / 100;

@@ -22,6 +22,7 @@ const alimento = (nombre: string, fuente: string): AlimentoNutricional => ({
   carbohidratosPor100: null,
   grasasPor100: null,
   cafeinaPor100: null,
+  sodioPor100: null,
   descripcion: null,
   id: null,
   categoria: null,

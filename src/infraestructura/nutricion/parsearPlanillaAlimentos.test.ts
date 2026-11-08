@@ -15,9 +15,9 @@ import {
  * metadata.xml y richData/*.
  */
 
-// L, base 0: la última columna del modelo (con «Cafeína» y «Descripción»,
-// migración 95, pasó de la J a la L).
-const COLUMNA_IMAGEN = 11;
+// M, base 0: la última columna del modelo (con «Cafeína» y «Descripción»,
+// migración 95, pasó de la J a la L; con «Sodio», migración 99, a la M).
+const COLUMNA_IMAGEN = 12;
 
 function alimento(nombre: string): AlimentoParaPlanilla {
   return {
@@ -28,6 +28,7 @@ function alimento(nombre: string): AlimentoParaPlanilla {
     carbohidratosPor100: null,
     grasasPor100: null,
     cafeinaPor100: null,
+    sodioPor100: null,
     descripcion: null,
     categoria: null,
     unidadBase: "GRAMO",
@@ -394,6 +395,17 @@ describe("parsearPlanillaAlimentos — cafeína y descripción (migración 95)",
       cafeinaPor100: null,
       descripcion: null,
     });
+  });
+
+  it("lee el sodio (por 100); sin la columna, queda sin dato", async () => {
+    const { filas } = await csv(
+      "Nombre;Sodio (mg);Cafeína (mg)\n" + "Isotónica;45;\n" + "Arroz;;\n",
+    );
+    expect(filas[0]).toMatchObject({ nombre: "Isotónica", sodioPor100: 45 });
+    expect(filas[1]).toMatchObject({ nombre: "Arroz", sodioPor100: null });
+
+    const { filas: viejas } = await csv("Nombre;Calorías\nArroz;130\n");
+    expect(viejas[0]).toMatchObject({ sodioPor100: null });
   });
 
   it("una columna «Descripción» no le gana a la de «Nombre», aunque venga antes", async () => {

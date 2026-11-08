@@ -519,8 +519,9 @@ inquilino) y cada consultorio crea las suyas (`categorias_alimento_propias`),
 que no puede llamar como una predeterminada ni usar en un alimento de la
 plataforma; un consultorio no edita ni borra las predeterminadas (migración
 93, fueron un enum hasta ahí). Llevan también CAFEÍNA (mg por 100 g/ml, como
-los macros) y una DESCRIPCIÓN (migración 95), que reemplazar la lista con una
-planilla que no las trae no borra. Y una IMAGEN que no es un `Archivo`: es una clave en la fila del
+los macros) y una DESCRIPCIÓN (migración 95), y SODIO (mg por 100 g/ml,
+migración 99; el sodio, no la sal), que reemplazar la lista con una planilla
+que no los trae no borra. Y una IMAGEN que no es un `Archivo`: es una clave en la fila del
 alimento, servida por `/api/alimentos/[id]/imagen` y
 `/api/catalogo/alimentos/[id]/imagen` (migración 84). Se sube a mano o dentro
 del Excel (columna «Imagen»), y las dos pasan por la misma regla
@@ -583,8 +584,10 @@ y lleva alimentos COPIADOS, como el plan semanal. Los g/h y ml/h suman solo
 lo que cae entre la largada y la llegada estimada; los líquidos son los
 alimentos en ml. La cafeína (copiada como los macros, migración 96) suma
 antes y durante para el total y los mg/kg, con el peso guardado en la
-planificación. El formulario muestra el mismo resumen con un espejo del
-dominio, y `resumen.test.ts` compara los dos.
+planificación. El sodio (copiado igual, migración 99) va como los líquidos:
+sus mg/h, solo de durante, se comparan contra el objetivo de sodio por hora.
+El formulario muestra el mismo resumen con un espejo del dominio, y
+`resumen.test.ts` compara los dos.
 
 Se gestiona como los planes: generales que se asignan a varios, o creadas
 desde la ficha del paciente (pestaña Deporte), que van a la carpeta con su
@@ -945,9 +948,9 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
   del consultorio van en `categorias_alimento_propias`, y la categoría de un
   alimento se resuelve con `CategoriasDisponibles`, que es lo que impide una
   propia en un alimento de la plataforma o un id de otro consultorio
-- Nunca sumar al g/h de una planificación deportiva lo que se toma antes de
-  largar o después de la llegada estimada, ni tocar esa cuenta sin su espejo
-  del formulario. Y nunca atar una asignación a la competencia de otro
+- Nunca sumar al g/h (ni a los ml/h o mg/h de sodio) de una planificación
+  deportiva lo que se toma antes de largar o después de la llegada estimada,
+  ni tocar esa cuenta sin su espejo del formulario. Y nunca atar una asignación a la competencia de otro
   paciente: va `verificarCompetenciaDelPaciente`
 - Nunca agregar `nutricionistaId` a `deportes` ni dejar que un consultorio la
   escriba, ni volver el deporte del perfil a texto libre: es la lista de la

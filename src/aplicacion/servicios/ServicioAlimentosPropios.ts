@@ -125,8 +125,9 @@ export class ServicioAlimentosPropios {
       carbohidratosPor100: f.carbohidratosPor100 ?? null,
       grasasPor100: f.grasasPor100 ?? null,
       // Null = la planilla no las trae: al reemplazar, el caso de uso
-      // conserva las que ya tenía el alimento (migración 95).
+      // conserva las que ya tenía el alimento (migraciones 95 y 99).
       cafeinaPor100: f.cafeinaPor100 ?? null,
+      sodioPor100: f.sodioPor100 ?? null,
       descripcion: f.descripcion ?? null,
       // Null / vacío = la planilla no lo trae: al reemplazar, el caso de uso
       // conserva lo que ya tenía el alimento (migración 90).
@@ -166,6 +167,7 @@ export class ServicioAlimentosPropios {
       carbohidratosPor100: datos.carbohidratosPor100 ?? null,
       grasasPor100: datos.grasasPor100 ?? null,
       cafeinaPor100: datos.cafeinaPor100 ?? null,
+      sodioPor100: datos.sodioPor100 ?? null,
       descripcion: datos.descripcion ?? null,
       unidadBase: datos.unidadBase ?? "GRAMO",
       medidas: datos.medidas ?? [],

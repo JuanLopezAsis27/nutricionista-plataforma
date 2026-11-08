@@ -45,6 +45,7 @@ export class ProveedorNutricionPropio implements IProveedorDatosNutricionales {
         carbohidratosPor100: p.carbohidratosPor100,
         grasasPor100: p.grasasPor100,
         cafeinaPor100: p.cafeinaPor100,
+        sodioPor100: p.sodioPor100,
         descripcion: p.descripcion,
         id: p.id,
         categoria: p.categoria,

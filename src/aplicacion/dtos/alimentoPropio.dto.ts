@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   CAFEINA_MAXIMA_POR_100,
   LARGO_MAXIMO_DESCRIPCION_ALIMENTO,
+  SODIO_MAXIMO_POR_100,
 } from "@/dominio/entidades/AlimentoPropio";
 import {
   categoriaAlimentoSalidaDto,
@@ -31,6 +32,9 @@ const cafeina = z
   .nullable()
   .optional();
 
+/** mg de sodio por 100 g/ml (migración 99). */
+const sodio = z.number().min(0).max(SODIO_MAXIMO_POR_100).nullable().optional();
+
 const descripcion = z
   .string()
   .max(LARGO_MAXIMO_DESCRIPCION_ALIMENTO)
@@ -47,6 +51,8 @@ export const filaAlimentoPropioDto = z.object({
   grasasPor100: macro,
   /** Null = la planilla no lo dice: al reemplazar, queda la que tenía. */
   cafeinaPor100: cafeina,
+  /** Ídem: null es que la planilla no lo dice. */
+  sodioPor100: sodio,
   descripcion,
   /** Null = la planilla no lo dice (sin columna o celda vacía). */
   unidadBase: unidadBaseAlimentoDto.nullable().optional(),
@@ -113,6 +119,7 @@ export const crearAlimentoPropioDto = z.object({
   carbohidratosPor100: macro,
   grasasPor100: macro,
   cafeinaPor100: cafeina,
+  sodioPor100: sodio,
   descripcion,
   unidadBase: unidadBaseAlimentoDto.optional(),
   medidas: medidasAlimentoDto.optional(),
@@ -151,6 +158,8 @@ export const alimentoPropioSalidaDto = z.object({
   grasasPor100: z.number().nullable(),
   /** mg por 100 g/ml; null sin dato. */
   cafeinaPor100: z.number().nullable(),
+  /** mg por 100 g/ml; null sin dato. */
+  sodioPor100: z.number().nullable(),
   descripcion: z.string().nullable(),
   unidadBase: unidadBaseAlimentoDto,
   medidas: z.array(medidaAlimentoDto),
