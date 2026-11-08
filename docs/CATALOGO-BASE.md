@@ -94,8 +94,8 @@ hasta 20 MB (era 8; una planilla con fotos pesa más) y el nginx de producción
 admite 26.
 
 **Las columnas del modelo**: Nombre, Marca, Calorías, Proteínas,
-Carbohidratos, Grasas, Cafeína (mg), Categoría, Unidad, Medidas, Descripción
-e Imagen. Todas salvo el nombre son opcionales, y el lector las reconoce por
+Carbohidratos, Grasas, Cafeína (mg), Sodio (mg), Categoría, Unidad, Medidas,
+Descripción e Imagen. Todas salvo el nombre son opcionales, y el lector las reconoce por
 el encabezado en cualquier orden.
 
 **Imágenes en la planilla.** La última columna del modelo es «Imagen», con
@@ -290,6 +290,24 @@ La cafeína se COPIA, como los macros, a los alimentos de las ingestas de una
 planificación deportiva (migración 96), que la suman por ingesta, por hora y
 en mg/kg (`docs/PLANIFICACION-DEPORTIVA.md`). A los planes y las recetas no
 se copia: ahí no se suma.
+
+### Sodio (migración 99)
+
+**`sodioPor100`**, en las dos listas: miligramos de sodio por 100 g (o por
+100 ml), con la misma convención y las mismas reglas que la cafeína —null es
+SIN DATO, no 0; al reemplazar la lista, una fila sin sodio conserva el que
+tenía—. Se carga en el formulario del alimento, en la planilla (columna
+«Sodio (mg)», con una nota en el encabezado) y el buscador lo muestra.
+
+- **Es el sodio, no la sal.** Muchas etiquetas informan sal en gramos: 1 g de
+  sal son 400 mg de sodio. Por eso el tope (`SODIO_MAXIMO_POR_100`, 40.000)
+  es la sal de mesa (≈ 39.300 mg/100 g): nada que se coma tiene más, y un
+  valor mayor suele ser la sal cargada en el lugar del sodio.
+- **Open Food Facts sí lo trae** (`sodium_100g`, en GRAMOS): el proveedor lo
+  pasa a mg. La cafeína de ahí sigue sin dato.
+- Como la cafeína, se COPIA a los alimentos de las ingestas de una
+  planificación deportiva, donde se compara contra el objetivo de sodio por
+  hora (`docs/PLANIFICACION-DEPORTIVA.md`). A planes y recetas no se copia.
 
 ### Imágenes (migración 84)
 

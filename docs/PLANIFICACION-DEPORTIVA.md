@@ -88,9 +88,14 @@ la estrategia no.
   en el objetivo, encima.
 - El **mayor tramo sin ingerir**, contando desde la largada y hasta la llegada:
   la pantalla avisa si pasa de una hora.
-- **El sodio es informativo**: los alimentos no traen sodio, así que el
-  objetivo se muestra pero no se compara. Sumarlo pide agregar el sodio a los
-  alimentos (columna, planilla y buscador) — es el paso siguiente natural.
+- **Sodio** (migración 99) = cantidad × `sodioPor100` de cada alimento que
+  lo trae, COPIADO del alimento como los macros
+  (`alimentos_ingesta.sodioPor100`). Va como los líquidos: los **mg/h** son
+  solo lo de durante y se comparan contra el objetivo de sodio por hora; lo de
+  antes de largar se informa aparte. Null es SIN DATO: si ningún alimento
+  trae sodio no hay mg/h ni comparación (no es «0 mg/h, por debajo»). Hasta
+  la migración 99 el objetivo era informativo, porque los alimentos no
+  traían el dato.
 
 ## Cafeína (migración 96)
 
@@ -332,10 +337,10 @@ página. El documento es `infraestructura/pdf/PlanificacionDeportivaPdf.tsx`.
   del perfil a texto libre «para que el profesional sume el suyo»: es
   justamente lo que la lista vino a evitar.
 - **Todo camino nuevo que copie un alimento a una ingesta tiene que llevar
-  `alimentoOrigenId`, `unidadBase` y `cafeinaPor100`**: sin el primero sus
-  usos no se cuentan (`PrismaRepositorioUsosDeAlimento` ya cuenta las
-  planificaciones); sin el segundo, una isotónica deja de sumar líquidos; sin
-  el tercero, el gel con cafeína deja de sumar cafeína. Ninguno de los tres
+  `alimentoOrigenId`, `unidadBase`, `cafeinaPor100` y `sodioPor100`**: sin
+  el primero sus usos no se cuentan (`PrismaRepositorioUsosDeAlimento` ya
+  cuenta las planificaciones); sin el segundo, una isotónica deja de sumar
+  líquidos; sin los otros dos, el gel deja de sumar cafeína y sodio. Ninguno
   falla: el número sale mal en silencio.
 - **Nunca leas el peso del mg/kg del paciente en cada vista**: es de la
   planificación (`pesoReferenciaKg`). Y la cafeína de antes de largar cuenta
