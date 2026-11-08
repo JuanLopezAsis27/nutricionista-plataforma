@@ -16,6 +16,7 @@ function alimento(p: Partial<AlimentoNutricional>): AlimentoNutricional {
     carbohidratosPor100: 10,
     grasasPor100: 5,
     cafeinaPor100: null,
+    sodioPor100: null,
     descripcion: null,
     id: null,
     categoria: null,

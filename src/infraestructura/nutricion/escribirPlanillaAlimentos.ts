@@ -27,6 +27,8 @@ export interface AlimentoParaPlanilla {
   grasasPor100: number | null;
   /** mg por 100 g/ml (migración 95). */
   cafeinaPor100: number | null;
+  /** mg por 100 g/ml (migración 99). */
+  sodioPor100: number | null;
   descripcion: string | null;
   /** Se escribe su NOMBRE: es lo que la importación vuelve a reconocer. */
   categoria: { nombre: string } | null;
@@ -55,6 +57,8 @@ const COLUMNAS: Partial<ExcelJS.Column>[] = [
   { header: "Grasas", key: "grasas", width: 12 },
   // Opcional (migración 95): mg por 100 g/ml, como los macros.
   { header: "Cafeína (mg)", key: "cafeina", width: 13 },
+  // Opcional (migración 99): mg por 100 g/ml, como la cafeína.
+  { header: "Sodio (mg)", key: "sodio", width: 12 },
   // Opcional: el nombre de una categoría predeterminada o propia (Carnes,
   // Lácteos, Geles deportivos…). La importación la busca por ese nombre.
   { header: "Categoría", key: "categoria", width: 22 },
@@ -79,6 +83,17 @@ const NOTA_CAFEINA =
   "Opcional. Miligramos de cafeína por 100 g (o por 100 ml si la Unidad es " +
   "ml), igual que los macros. Un gel de 40 g con 40 mg de cafeína: 100. " +
   "Vacía: sin dato (al reemplazar la lista, conserva la que ya tenía).";
+
+/** La columna «Sodio (mg)» (base 1). */
+const COLUMNA_SODIO = COLUMNAS.findIndex((c) => c.key === "sodio") + 1;
+
+/** La nota del encabezado «Sodio»: miligramos de SODIO, no gramos de sal. */
+const NOTA_SODIO =
+  "Opcional. Miligramos de sodio por 100 g (o por 100 ml si la Unidad es " +
+  "ml), igual que los macros. Una isotónica con 45 mg en 100 ml: 45. Es el " +
+  "sodio, no la sal: si la etiqueta dice sal en gramos, 1 g de sal son " +
+  "400 mg de sodio. Vacía: sin dato (al reemplazar la lista, conserva el " +
+  "que ya tenía).";
 
 /** La nota del encabezado «Imagen»: cómo se carga y qué se acepta. */
 const NOTA_IMAGEN =
@@ -111,6 +126,7 @@ export async function escribirPlanillaAlimentos(
     hoja.getRow(1).font = { bold: true };
     hoja.getRow(1).getCell(COLUMNA_IMAGEN).note = NOTA_IMAGEN;
     hoja.getRow(1).getCell(COLUMNA_CAFEINA).note = NOTA_CAFEINA;
+    hoja.getRow(1).getCell(COLUMNA_SODIO).note = NOTA_SODIO;
     hoja.autoFilter = {
       from: { row: 1, column: 1 },
       to: { row: 1, column: COLUMNAS.length },
@@ -139,6 +155,7 @@ function aFila(a: AlimentoParaPlanilla): Record<string, string | number> {
     carbohidratos: a.carbohidratosPor100 ?? "",
     grasas: a.grasasPor100 ?? "",
     cafeina: a.cafeinaPor100 ?? "",
+    sodio: a.sodioPor100 ?? "",
     descripcion: a.descripcion ?? "",
     categoria: a.categoria?.nombre ?? "",
     unidad: SIMBOLO_UNIDAD_BASE[a.unidadBase],

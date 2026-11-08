@@ -119,6 +119,8 @@ export class ProveedorOpenFoodFacts implements IProveedorDatosNutricionales {
       // Open Food Facts no trae una cafeína confiable ni una descripción
       // nuestra: quedan sin dato.
       cafeinaPor100: null,
+      // El sodio sí lo informa, en GRAMOS por 100 g: va a miligramos.
+      sodioPor100: miligramos(n["sodium_100g"]),
       descripcion: null,
       imagenVersion: null,
       // Sus `_100g` se toman por 100 g: Open Food Facts no dice de forma
@@ -136,6 +138,14 @@ export class ProveedorOpenFoodFacts implements IProveedorDatosNutricionales {
       alimento.grasasPor100 == null;
     return sinDatos ? null : alimento;
   }
+}
+
+/** Un valor de nutriments en gramos, pasado a miligramos (sin decimales). */
+function miligramos(valor: number | string | undefined): number | null {
+  if (valor == null || valor === "") return null;
+  const n = typeof valor === "number" ? valor : Number(valor);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return Math.round(n * 1000);
 }
 
 /** Convierte un valor de nutriments (number|string) a number no negativo o null. */

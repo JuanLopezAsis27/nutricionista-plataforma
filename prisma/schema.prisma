@@ -1444,6 +1444,8 @@ model AlimentoPropio {
   grasasPor100        Decimal?                 @db.Decimal(7, 2)
   /// Miligramos de cafeína por 100 g (o 100 ml), como los macros (migración 95).
   cafeinaPor100       Decimal?                 @db.Decimal(7, 2)
+  /// Miligramos de sodio por 100 g (o 100 ml), como la cafeína (migración 99).
+  sodioPor100         Decimal?                 @db.Decimal(7, 2)
   /// Texto libre: qué es, cómo se usa, qué trae (migración 95).
   descripcion         String?
   /// Si los macros son por 100 g o por 100 ml (migración 90).
@@ -1495,6 +1497,8 @@ model AlimentoBase {
   grasasPor100        Decimal?               @db.Decimal(7, 2)
   /// Ver AlimentoPropio.cafeinaPor100 y descripcion (migración 95).
   cafeinaPor100       Decimal?               @db.Decimal(7, 2)
+  /// Ver AlimentoPropio.sodioPor100 (migración 99).
+  sodioPor100         Decimal?               @db.Decimal(7, 2)
   descripcion         String?
   /// Ver AlimentoPropio.unidadBase y medidas (migración 90).
   unidadBase          UnidadBaseAlimento     @default(GRAMO)
@@ -2797,7 +2801,8 @@ model PlanificacionCarrera {
   /// Objetivos POR HORA de carrera, contra los que se comparan las ingestas.
   carbohidratosObjetivoGH Decimal?         @db.Decimal(6, 1)
   liquidosObjetivoMlH     Int?
-  /// Informativo: los alimentos no traen sodio, así que no se suma.
+  /// Se compara contra el sodio de las ingestas (migración 99; antes era
+  /// informativo, porque los alimentos no traían sodio).
   sodioObjetivoMgH        Int?
   /// Texto libre: dónde están y qué ofrecen los puestos de abastecimiento.
   puestosAbastecimiento   String?
@@ -2849,6 +2854,9 @@ model AlimentoIngesta {
   /// mg de cafeína por 100 g/ml, COPIADOS del alimento como los macros
   /// (migración 96).
   cafeinaPor100       Decimal?           @db.Decimal(7, 2)
+  /// mg de sodio por 100 g/ml, COPIADOS igual (migración 99). Es lo que se
+  /// compara contra `PlanificacionCarrera.sodioObjetivoMgH`.
+  sodioPor100         Decimal?           @db.Decimal(7, 2)
   /// Ver ItemComidaSemanal (migración 90). Un alimento en MILILITRO suma a
   /// los líquidos de la carrera.
   unidadBase          UnidadBaseAlimento @default(GRAMO)

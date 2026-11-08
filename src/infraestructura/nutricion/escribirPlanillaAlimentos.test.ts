@@ -24,6 +24,7 @@ const LECHE: AlimentoParaPlanilla = {
   carbohidratosPor100: 5,
   grasasPor100: 0.4,
   cafeinaPor100: null,
+  sodioPor100: 44,
   descripcion: "Descremada, en sachet",
   categoria: { nombre: "Lácteos" },
   unidadBase: "MILILITRO",
@@ -42,6 +43,7 @@ const SIN_DATOS: AlimentoParaPlanilla = {
   grasasPor100: null,
   // La yerba trae cafeína aunque no traiga macros.
   cafeinaPor100: 1150,
+  sodioPor100: null,
   descripcion: null,
   categoria: null,
   unidadBase: "GRAMO",
@@ -72,6 +74,7 @@ describe("escribirPlanillaAlimentos", () => {
         carbohidratosPor100: 5,
         grasasPor100: 0.4,
         cafeinaPor100: null,
+        sodioPor100: 44,
         descripcion: "Descremada, en sachet",
         categoria: "Lácteos",
         unidadBase: "MILILITRO",
@@ -89,6 +92,7 @@ describe("escribirPlanillaAlimentos", () => {
         carbohidratosPor100: null,
         grasasPor100: null,
         cafeinaPor100: 1150,
+        sodioPor100: null,
         descripcion: null,
         categoria: null,
         unidadBase: "GRAMO",
@@ -144,17 +148,17 @@ describe("escribirPlanillaAlimentos: columna Imagen", () => {
     type CargaXlsx = Parameters<typeof libro.xlsx.load>[0];
     await libro.xlsx.load(Buffer.from(contenido) as unknown as CargaXlsx);
     const hoja = libro.worksheets[0]!;
-    // La última columna (L): antes de ella van «Cafeína» y «Descripción».
-    const encabezado = hoja.getRow(1).getCell(12);
+    // La última columna (M): antes de ella van «Cafeína», «Sodio» y «Descripción».
+    const encabezado = hoja.getRow(1).getCell(13);
 
     expect(encabezado.value).toBe("Imagen");
     // La nota puede quedar como texto o como texto enriquecido: alcanza con
     // que diga el tope.
     expect(JSON.stringify(encabezado.note)).toMatch(/2 MB/);
-    expect(hoja.getRow(2).getCell(12).value ?? null).toBeNull();
+    expect(hoja.getRow(2).getCell(13).value ?? null).toBeNull();
   });
 
-  it("trae «Cafeína (mg)» con una nota que dice que va por 100, y «Descripción»", async () => {
+  it("trae «Cafeína (mg)» y «Sodio (mg)» con una nota que dice que van por 100, y «Descripción»", async () => {
     const contenido = await escribirPlanillaAlimentos([
       { nombre: "Alimentos", alimentos: [SIN_DATOS] },
     ]);
@@ -162,13 +166,17 @@ describe("escribirPlanillaAlimentos: columna Imagen", () => {
     type CargaXlsx = Parameters<typeof libro.xlsx.load>[0];
     await libro.xlsx.load(Buffer.from(contenido) as unknown as CargaXlsx);
     const encabezados = libro.worksheets[0]!.getRow(1);
-    const valores = Array.from({ length: 12 }, (_, i) => {
+    const valores = Array.from({ length: 13 }, (_, i) => {
       const valor = encabezados.getCell(i + 1).value;
       return typeof valor === "string" ? valor : null;
     });
     expect(valores).toContain("Cafeína (mg)");
+    expect(valores).toContain("Sodio (mg)");
     expect(valores).toContain("Descripción");
     const cafeina = encabezados.getCell(valores.indexOf("Cafeína (mg)") + 1);
     expect(JSON.stringify(cafeina.note)).toMatch(/por 100 g/);
+    const sodio = encabezados.getCell(valores.indexOf("Sodio (mg)") + 1);
+    expect(JSON.stringify(sodio.note)).toMatch(/por 100 g/);
+    expect(JSON.stringify(sodio.note)).toMatch(/no la sal/);
   });
 });

@@ -94,6 +94,8 @@ export async function parsearPlanillaAlimentos(
       // Opcionales (migración 95). Vacías = la planilla no las trae, y al
       // reemplazar la lista queda lo que ya tenía el alimento.
       cafeinaPor100: col.cafeina >= 0 ? numero(celdas[col.cafeina]) : null,
+      // Opcional (migración 99), con la misma regla que la cafeína.
+      sodioPor100: col.sodio >= 0 ? numero(celdas[col.sodio]) : null,
       descripcion:
         col.descripcion >= 0
           ? (celdas[col.descripcion] ?? "").trim() || null
@@ -145,6 +147,7 @@ interface Columnas {
   carbohidratos: number;
   grasas: number;
   cafeina: number;
+  sodio: number;
   descripcion: number;
   categoria: number;
   unidad: number;
@@ -170,6 +173,7 @@ function mapearColumnas(encabezado: string[]): Columnas {
     carbohidratos: buscar(["carbohidrato", "carbo", "hidrato", "carbs", "hc"]),
     grasas: buscar(["grasa", "lipido", "fat"]),
     cafeina: buscar(["cafeina", "cafeína", "caffeine"]),
+    sodio: buscar(["sodio", "sodium"]),
     descripcion: encabezado.findIndex(
       (h, i) =>
         i !== nombre &&

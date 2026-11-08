@@ -26,6 +26,8 @@ export interface AlimentoNutricional {
   grasasPor100: number | null;
   /** mg de cafeína por 100 g/ml, si la lista lo trae (migración 95). */
   cafeinaPor100: number | null;
+  /** mg de sodio por 100 g/ml, si la lista lo trae (migración 99). */
+  sodioPor100: number | null;
   /** La descripción del alimento, si la lista la trae (migración 95). */
   descripcion: string | null;
   /**

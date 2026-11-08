@@ -27,6 +27,8 @@ describe("ProveedorOpenFoodFacts", () => {
                 proteins_100g: 7,
                 carbohydrates_100g: 78,
                 fat_100g: 0.6,
+                // En GRAMOS: 0,005 g son 5 mg.
+                sodium_100g: 0.005,
               },
             },
           ],
@@ -48,6 +50,7 @@ describe("ProveedorOpenFoodFacts", () => {
       carbohidratosPor100: 78,
       grasasPor100: 0.6,
       cafeinaPor100: null,
+      sodioPor100: 5,
       descripcion: null,
       id: null,
       categoria: null,

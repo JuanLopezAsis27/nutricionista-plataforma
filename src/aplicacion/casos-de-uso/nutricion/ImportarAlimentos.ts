@@ -87,6 +87,7 @@ export class ImportarAlimentos {
       return alimento
         .actualizar({
           cafeinaPor100: nuevo.cafeinaPor100 ?? previo.cafeinaPor100,
+          sodioPor100: nuevo.sodioPor100 ?? previo.sodioPor100,
           descripcion: nuevo.descripcion ?? previo.descripcion,
           categoria: alimento.aPrimitivos().categoria ?? previo.categoria,
           unidadBase: fila.unidadBase ?? previo.unidadBase,
