@@ -18,8 +18,8 @@ import {
 
 /**
  * El resumen de la planificación MIENTRAS SE EDITA: g/h de carbohidratos, ml/h
- * de líquidos y el lapso más largo sin ingerir, a medida que se cargan los
- * geles.
+ * de líquidos, mg/h de sodio y el lapso más largo sin ingerir, a medida que se
+ * cargan los geles.
  *
  * Es el espejo de `PlanificacionDeportiva.resumen`: la presentación no puede
  * llamar al dominio, y el profesional decide mirando estos números. Las dos
@@ -33,15 +33,23 @@ export interface ResumenEnVivo {
     cantidad: number;
     macros: Macros;
     liquidosMl: number | null;
+    sodioMg: number | null;
     porHora: {
       calorias: number | null;
       carbohidratosG: number | null;
       liquidosMl: number | null;
+      sodioMg: number | null;
     };
   };
-  antes: { cantidad: number; macros: Macros; liquidosMl: number | null };
+  antes: {
+    cantidad: number;
+    macros: Macros;
+    liquidosMl: number | null;
+    sodioMg: number | null;
+  };
   carbohidratos: EstadoObjetivo | null;
   liquidos: EstadoObjetivo | null;
+  sodio: EstadoObjetivo | null;
   intervaloMaximoMin: number | null;
   cafeina: {
     antesMg: number | null;
@@ -56,10 +64,25 @@ export interface ResumenEnVivo {
 export function cafeinaDeIngestaEnFormulario(
   ingesta: Pick<IngestaFormulario, "alimentos">,
 ): number | null {
+  return miligramosEnFormulario(ingesta, "cafeinaPor100");
+}
+
+/** mg de sodio de una ingesta (espejo de `sodioDeIngesta`). */
+export function sodioDeIngestaEnFormulario(
+  ingesta: Pick<IngestaFormulario, "alimentos">,
+): number | null {
+  return miligramosEnFormulario(ingesta, "sodioPor100");
+}
+
+/** Cantidad × mg por 100 de cada alimento que trae el dato; null si ninguno. */
+function miligramosEnFormulario(
+  ingesta: Pick<IngestaFormulario, "alimentos">,
+  campo: "cafeinaPor100" | "sodioPor100",
+): number | null {
   let total = 0;
   let hay = false;
   for (const a of ingesta.alimentos) {
-    const porCien = aNumero(a.cafeinaPor100);
+    const porCien = aNumero(a[campo]);
     const cantidad = gramosEnFormulario(a);
     if (porCien == null || cantidad == null || cantidad <= 0) continue;
     total += (porCien * cantidad) / 100;
@@ -102,44 +125,57 @@ export function resumenEnVivo(f: FormularioPlanificacion): ResumenEnVivo {
     return valores.length > 0 ? valores.reduce((a, b) => a + b, 0) : null;
   };
 
-  const cafeinaDe = (lista: typeof conMinuto): number | null => {
+  const miligramosDe = (
+    lista: typeof conMinuto,
+    deIngesta: (ingesta: IngestaFormulario) => number | null,
+  ): number | null => {
     const valores = lista
-      .map(({ ingesta }) => cafeinaDeIngestaEnFormulario(ingesta))
+      .map(({ ingesta }) => deIngesta(ingesta))
       .filter((v): v is number => v != null);
     return valores.length > 0
       ? redondear1(valores.reduce((a, b) => a + b, 0))
       : null;
   };
+  const cafeinaDe = (lista: typeof conMinuto): number | null =>
+    miligramosDe(lista, cafeinaDeIngestaEnFormulario);
+  const sodioDe = (lista: typeof conMinuto): number | null =>
+    miligramosDe(lista, sodioDeIngestaEnFormulario);
 
   const macrosDurante = macrosDe(durante);
   const liquidosDurante = liquidosDe(durante);
+  const sodioDurante = sodioDe(durante);
   const horas = duracion != null && duracion > 0 ? duracion / 60 : null;
   const porHora = (valor: number | null): number | null =>
     valor != null && horas != null ? redondear1(valor / horas) : null;
   const calorias = porHora(macrosDurante.calorias);
   const liquidos = porHora(liquidosDurante);
+  const sodio = porHora(sodioDurante);
 
   return {
     durante: {
       cantidad: durante.length,
       macros: macrosDurante,
       liquidosMl: liquidosDurante,
+      sodioMg: sodioDurante,
       porHora: {
         calorias: calorias != null ? Math.round(calorias) : null,
         carbohidratosG: porHora(macrosDurante.carbohidratosG),
         liquidosMl: liquidos != null ? Math.round(liquidos) : null,
+        sodioMg: sodio != null ? Math.round(sodio) : null,
       },
     },
     antes: {
       cantidad: antes.length,
       macros: macrosDe(antes),
       liquidosMl: liquidosDe(antes),
+      sodioMg: sodioDe(antes),
     },
     carbohidratos: compararConObjetivo(
       porHora(macrosDurante.carbohidratosG),
       aNumero(f.carbohidratosObjetivoGH),
     ),
     liquidos: compararConObjetivo(liquidos, aNumero(f.liquidosObjetivoMlH)),
+    sodio: compararConObjetivo(sodio, aNumero(f.sodioObjetivoMgH)),
     intervaloMaximoMin: intervaloMaximo(
       durante.map(({ minuto }) => minuto),
       duracion,

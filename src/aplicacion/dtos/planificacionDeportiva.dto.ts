@@ -33,6 +33,8 @@ export const alimentoIngestaDto = z.object({
   grasasPor100: macroPor100,
   /** mg por 100 g/ml, copiados del alimento (migración 96). */
   cafeinaPor100: z.number().min(0).max(99999).optional().nullable(),
+  /** mg por 100 g/ml, copiados del alimento (migración 99). */
+  sodioPor100: z.number().min(0).max(99999).optional().nullable(),
   fuente: z.string().max(40).optional().nullable(),
   referenciaExterna: z.string().max(200).optional().nullable(),
   alimentoOrigenId: z.string().max(64).nullable().optional(),
@@ -173,6 +175,7 @@ export const alimentoIngestaSalidaDto = z.object({
   carbohidratosPor100: z.number().nullable(),
   grasasPor100: z.number().nullable(),
   cafeinaPor100: z.number().nullable(),
+  sodioPor100: z.number().nullable(),
   fuente: z.string().nullable(),
   referenciaExterna: z.string().nullable(),
   alimentoOrigenId: z.string().nullable(),
@@ -195,6 +198,8 @@ export const ingestaSalidaDto = z.object({
   liquidosMl: z.number().nullable(),
   /** mg de cafeína de la ingesta; null si ningún alimento trae el dato. */
   cafeinaMg: z.number().nullable(),
+  /** mg de sodio de la ingesta; null si ningún alimento trae el dato. */
+  sodioMg: z.number().nullable(),
 });
 
 export const carreraSalidaDto = z.object({
@@ -220,19 +225,23 @@ export const resumenIngestasSalidaDto = z.object({
     cantidad: z.number(),
     macros: macrosSalidaDto,
     liquidosMl: z.number().nullable(),
+    sodioMg: z.number().nullable(),
     porHora: z.object({
       calorias: z.number().nullable(),
       carbohidratosG: z.number().nullable(),
       liquidosMl: z.number().nullable(),
+      sodioMg: z.number().nullable(),
     }),
   }),
   antes: z.object({
     cantidad: z.number(),
     macros: macrosSalidaDto,
     liquidosMl: z.number().nullable(),
+    sodioMg: z.number().nullable(),
   }),
   carbohidratos: estadoObjetivoDto,
   liquidos: estadoObjetivoDto,
+  sodio: estadoObjetivoDto,
   intervaloMaximoMin: z.number().nullable(),
   cafeina: z.object({
     antesMg: z.number().nullable(),

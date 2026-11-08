@@ -239,6 +239,7 @@ function aporte(ingesta: IngestaSalidaDto): string {
     ingesta.macros.calorias != null && `${ingesta.macros.calorias} kcal`,
     ingesta.liquidosMl != null && `${ingesta.liquidosMl} ml`,
     ingesta.cafeinaMg != null && `${numero(ingesta.cafeinaMg)} mg de cafeína`,
+    ingesta.sodioMg != null && `${numero(ingesta.sodioMg)} mg de sodio`,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -327,6 +328,17 @@ function PlanificacionDeportivaPdf({
       estado: p.resumen.liquidos,
     },
     {
+      titulo: "Sodio",
+      valor: numero(durante.porHora.sodioMg, " mg/h"),
+      detalle:
+        c?.sodioObjetivoMgH != null
+          ? `Objetivo ${numero(c.sodioObjetivoMgH, " mg/h")}`
+          : durante.sodioMg != null
+            ? `${numero(durante.sodioMg, " mg")} en total`
+            : "Ningún alimento trae sodio",
+      estado: p.resumen.sodio,
+    },
+    {
       titulo: "Energía",
       valor: numero(durante.porHora.calorias, " kcal/h"),
       detalle: `${numero(durante.macros.calorias, " kcal")} en total`,
@@ -373,9 +385,7 @@ function PlanificacionDeportivaPdf({
       ? `Por hora = lo que se toma entre la largada y la llegada, dividido por la duración estimada (${textoDuracion(duracion)}).`
       : "Sin duración estimada no hay valores por hora.",
     antes.cantidad > 0 &&
-      `Antes de largar: ${antes.cantidad} ${antes.cantidad === 1 ? "ingesta" : "ingestas"} · ${numero(antes.macros.carbohidratosG, " g")} de carbohidratos${antes.liquidosMl != null ? ` · ${numero(antes.liquidosMl, " ml")}` : ""}${cafeina.antesMg != null ? ` · ${numero(cafeina.antesMg, " mg")} de cafeína` : ""}. No cuentan para los valores por hora (la cafeína sí suma al total).`,
-    c?.sodioObjetivoMgH != null &&
-      `Sodio: objetivo de ${numero(c.sodioObjetivoMgH, " mg/h")} (los alimentos no traen sodio, así que no se suma).`,
+      `Antes de largar: ${antes.cantidad} ${antes.cantidad === 1 ? "ingesta" : "ingestas"} · ${numero(antes.macros.carbohidratosG, " g")} de carbohidratos${antes.liquidosMl != null ? ` · ${numero(antes.liquidosMl, " ml")}` : ""}${antes.sodioMg != null ? ` · ${numero(antes.sodioMg, " mg")} de sodio` : ""}${cafeina.antesMg != null ? ` · ${numero(cafeina.antesMg, " mg")} de cafeína` : ""}. No cuentan para los valores por hora (la cafeína sí suma al total).`,
   ]
     .filter(Boolean)
     .join(" ");

@@ -7,6 +7,7 @@ import {
   Wheat,
   AlertTriangle,
   Coffee,
+  Pill,
 } from "lucide-react";
 import {
   CAFEINA_MG_KG_HABITUAL,
@@ -70,19 +71,23 @@ export interface ResumenParaMostrar {
     cantidad: number;
     macros: { calorias: number | null; carbohidratosG: number | null };
     liquidosMl: number | null;
+    sodioMg: number | null;
     porHora: {
       calorias: number | null;
       carbohidratosG: number | null;
       liquidosMl: number | null;
+      sodioMg: number | null;
     };
   };
   antes: {
     cantidad: number;
     macros: { carbohidratosG: number | null };
     liquidosMl: number | null;
+    sodioMg: number | null;
   };
   carbohidratos: EstadoObjetivo | null;
   liquidos: EstadoObjetivo | null;
+  sodio: EstadoObjetivo | null;
   intervaloMaximoMin: number | null;
   cafeina: {
     antesMg: number | null;
@@ -132,7 +137,7 @@ export function TarjetaResumen({
           "grid gap-2",
           compacta
             ? "grid-cols-2"
-            : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
+            : "grid-cols-2 sm:grid-cols-3 xl:grid-cols-6",
         )}
       >
         <Indicador
@@ -156,6 +161,19 @@ export function TarjetaResumen({
               : `${numero(durante.liquidosMl, " ml")} en total`
           }
           estado={resumen.liquidos}
+        />
+        <Indicador
+          icono={Pill}
+          titulo="Sodio"
+          valor={numero(durante.porHora.sodioMg, " mg/h")}
+          detalle={
+            objetivos.sodioMgH != null
+              ? `Objetivo ${numero(objetivos.sodioMgH, " mg/h")}`
+              : durante.sodioMg != null
+                ? `${numero(durante.sodioMg, " mg")} en total`
+                : "Ningún alimento trae sodio"
+          }
+          estado={resumen.sodio}
         />
         <Indicador
           icono={Flame}
@@ -229,9 +247,7 @@ export function TarjetaResumen({
           ? `Por hora = lo que se toma entre la largada y la llegada, dividido por la duración estimada (${textoDuracion(duracionMin)}).`
           : "Sin duración estimada no hay valores por hora."}
         {antes.cantidad > 0 &&
-          ` Antes de largar: ${antes.cantidad} ${antes.cantidad === 1 ? "ingesta" : "ingestas"} · ${numero(antes.macros.carbohidratosG, " g")} de carbohidratos${antes.liquidosMl != null ? ` · ${numero(antes.liquidosMl, " ml")}` : ""}${cafeina.antesMg != null ? ` · ${numero(cafeina.antesMg, " mg")} de cafeína` : ""}. No cuentan para los valores por hora (la cafeína sí suma al total).`}
-        {objetivos.sodioMgH != null &&
-          ` Sodio: objetivo de ${numero(objetivos.sodioMgH, " mg/h")} (los alimentos no traen sodio, así que no se suma).`}
+          ` Antes de largar: ${antes.cantidad} ${antes.cantidad === 1 ? "ingesta" : "ingestas"} · ${numero(antes.macros.carbohidratosG, " g")} de carbohidratos${antes.liquidosMl != null ? ` · ${numero(antes.liquidosMl, " ml")}` : ""}${antes.sodioMg != null ? ` · ${numero(antes.sodioMg, " mg")} de sodio` : ""}${cafeina.antesMg != null ? ` · ${numero(cafeina.antesMg, " mg")} de cafeína` : ""}. No cuentan para los valores por hora (la cafeína sí suma al total).`}
       </p>
     </div>
   );

@@ -198,7 +198,8 @@ export function VistaPlanificacion({
                   )}
                   {(ingesta.macros.carbohidratosG != null ||
                     ingesta.liquidosMl != null ||
-                    ingesta.cafeinaMg != null) && (
+                    ingesta.cafeinaMg != null ||
+                    ingesta.sodioMg != null) && (
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {[
                         ingesta.macros.carbohidratosG != null &&
@@ -209,6 +210,8 @@ export function VistaPlanificacion({
                           `${ingesta.liquidosMl} ml`,
                         ingesta.cafeinaMg != null &&
                           `${numero(ingesta.cafeinaMg)} mg de cafeína`,
+                        ingesta.sodioMg != null &&
+                          `${numero(ingesta.sodioMg)} mg de sodio`,
                       ]
                         .filter(Boolean)
                         .join(" · ")}
