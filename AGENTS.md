@@ -348,9 +348,14 @@ El horario se mira por el FIN del turno, no por el inicio. El día de la semana 
 lee SIEMPRE en UTC (`getUTCDay()`): `Turno.fecha` es un `DATE` que llega como
 medianoche UTC.
 
+La máquina de estados es `TRANSICIONES_TURNO` (exportada desde la entidad;
+las pantallas la usan en vez de copiarla). COMPLETADO vuelve a CONFIRMADO, para
+deshacer un completado marcado sin querer; CANCELADO es el único estado final.
+
 Cancelar es baja LÓGICA (que alguien no vino es información clínica y de
-cobranza). `EliminarTurno` es borrado real y exige estado CANCELADO y sin cobro:
-un turno con precio ya entró en las estadísticas de ingresos.
+cobranza). `EliminarTurno` es borrado real y exige estado CANCELADO, nada más:
+ni la fecha ni el cobro lo frenan. Si tenía cobro se va con él y deja de contar
+en los ingresos; la confirmación de la pantalla lo advierte.
 
 Ver `docs/AGENDA.md` y `docs/CALENDARIO-TURNOS.md`.
 

@@ -15,11 +15,12 @@ import {
   X,
 } from "lucide-react";
 import type { TurnoSalidaDto } from "@/aplicacion/dtos/turno.dto";
-import type { EstadoTurno } from "@/dominio/entidades/Turno";
+import { TRANSICIONES_TURNO } from "@/dominio/entidades/Turno";
 import { useTurnos } from "@/lib/hooks/useTurnos";
 import { aHora, aMinutos } from "@/lib/agenda";
 import {
-  ETIQUETAS_ESTADO_TURNO,
+  avisoCobroAlBorrarTurno,
+  etiquetaTransicionTurno,
   formatearFechaLarga,
   formatearMoneda,
 } from "@/lib/formato";
@@ -27,14 +28,6 @@ import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { EstadoBadge } from "@/componentes/comunes/EstadoBadge";
 import { InfoCancelacion } from "@/componentes/turnos/InfoCancelacion";
-
-/** Transiciones de estado permitidas (espejo de la máquina del dominio). */
-const TRANSICIONES: Record<EstadoTurno, EstadoTurno[]> = {
-  PENDIENTE: ["CONFIRMADO", "CANCELADO"],
-  CONFIRMADO: ["COMPLETADO", "CANCELADO"],
-  COMPLETADO: [],
-  CANCELADO: [],
-};
 
 interface PropsDetalleTurno {
   turno: TurnoSalidaDto;
@@ -85,13 +78,13 @@ export function DetalleTurno({
   );
   const [pagado, setPagado] = useState(turno.pagado);
 
-  const transiciones = TRANSICIONES[turno.estado];
+  const transiciones = TRANSICIONES_TURNO[turno.estado];
   const modificable =
     turno.estado === "PENDIENTE" || turno.estado === "CONFIRMADO";
-  // El cobro lo vuelve a bloquear el dominio; acá se esconde el botón para no
-  // ofrecer algo que va a fallar.
-  const borrable =
-    turno.estado === "CANCELADO" && turno.precio == null && !turno.pagado;
+  // Un cancelado se borra siempre, sea de cuando sea y tenga o no cobro: el
+  // cobro se va con él, y la confirmación lo dice.
+  const borrable = turno.estado === "CANCELADO";
+  const avisoCobro = avisoCobroAlBorrarTurno(turno);
 
   const horaFin = aHora(aMinutos(turno.hora) + turno.duracionMinutos);
 
@@ -181,7 +174,7 @@ export function DetalleTurno({
             disabled={actualizarEstado.isPending}
             onClick={() => actualizarEstado.mutate({ id: turno.id, estado })}
           >
-            {ETIQUETAS_ESTADO_TURNO[estado]}
+            {etiquetaTransicionTurno(turno.estado, estado)}
           </Button>
         ))}
       </div>
@@ -306,6 +299,11 @@ export function DetalleTurno({
                 Se borra para siempre, junto con los recordatorios que se le
                 hayan mandado.
               </p>
+              {avisoCobro && (
+                <p className="text-xs font-medium text-destructive">
+                  {avisoCobro}
+                </p>
+              )}
               <div className="flex justify-end gap-1.5">
                 <Button
                   variant="outline"

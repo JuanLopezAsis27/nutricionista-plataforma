@@ -17,6 +17,31 @@ export type EstadoTurno = (typeof ESTADOS_TURNO)[number];
 export const ORIGENES_CANCELACION = ["PACIENTE", "CONSULTORIO"] as const;
 export type OrigenCancelacion = (typeof ORIGENES_CANCELACION)[number];
 
+/**
+ * Máquina de estados del turno. Transiciones permitidas:
+ *   PENDIENTE  → CONFIRMADO | CANCELADO
+ *   CONFIRMADO → COMPLETADO | CANCELADO
+ *   COMPLETADO → CONFIRMADO
+ *   CANCELADO  → (ninguna, estado final)
+ *
+ * COMPLETADO → CONFIRMADO es la vuelta atrás de un click equivocado: marcar
+ * completado es un botón al lado de otro, y una consulta que no pasó no puede
+ * quedar contada como atendida. Vuelve a CONFIRMADO y no a PENDIENTE porque
+ * para completarlo tuvo que estar confirmado. Nada se dispara al completar
+ * (asistencia y estadísticas leen el estado), así que no hay nada que deshacer.
+ *
+ * Es una constante exportada para que la pantalla ofrezca los mismos botones
+ * que el dominio acepta, en vez de mantener una copia que se desfasa.
+ */
+export const TRANSICIONES_TURNO: Readonly<
+  Record<EstadoTurno, ReadonlyArray<EstadoTurno>>
+> = {
+  PENDIENTE: ["CONFIRMADO", "CANCELADO"],
+  CONFIRMADO: ["COMPLETADO", "CANCELADO"],
+  COMPLETADO: ["CONFIRMADO"],
+  CANCELADO: [],
+};
+
 /** Datos necesarios para agendar un turno nuevo. */
 export interface DatosNuevoTurno {
   pacienteId: string;
@@ -113,31 +138,15 @@ export class Turno {
   }
 
   /**
-   * Máquina de estados del turno. Transiciones permitidas:
-   *   PENDIENTE  → CONFIRMADO | CANCELADO
-   *   CONFIRMADO → COMPLETADO | CANCELADO
-   *   CANCELADO  → (ninguna, estado final)
-   *   COMPLETADO → (ninguna, estado final)
-   */
-  private static readonly TRANSICIONES: Record<
-    EstadoTurno,
-    ReadonlyArray<EstadoTurno>
-  > = {
-    PENDIENTE: ["CONFIRMADO", "CANCELADO"],
-    CONFIRMADO: ["COMPLETADO", "CANCELADO"],
-    CANCELADO: [],
-    COMPLETADO: [],
-  };
-
-  /**
-   * Cambia el estado validando que la transición sea legal.
+   * Cambia el estado validando que la transición sea legal
+   * (`TRANSICIONES_TURNO`).
    *
    * Pasar a CANCELADO por acá registra la cancelación como del CONSULTORIO:
    * es el camino de la agenda. La del paciente entra por
    * `cancelarPorElPaciente`, que es lo único que la marca como suya.
    */
   cambiarEstado(nuevoEstado: EstadoTurno, ahora: Date = new Date()): void {
-    const permitidos = Turno.TRANSICIONES[this.props.estado];
+    const permitidos = TRANSICIONES_TURNO[this.props.estado];
     if (!permitidos.includes(nuevoEstado)) {
       throw new ErrorValidacion(
         `Transición de estado no permitida: ${this.props.estado} → ${nuevoEstado}.`,

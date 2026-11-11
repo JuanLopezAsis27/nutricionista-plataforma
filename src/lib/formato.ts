@@ -124,6 +124,37 @@ export const ETIQUETAS_ESTADO_TURNO: Record<EstadoTurno, string> = {
   COMPLETADO: "Completado",
 };
 
+/**
+ * Texto del botón que lleva un turno de `desde` a `hacia`. Casi siempre es el
+ * nombre del estado al que va; la excepción es deshacer un completado, que con
+ * un «Confirmado» suelto al lado de la etiqueta «Completado» no se entiende.
+ */
+export function etiquetaTransicionTurno(
+  desde: EstadoTurno,
+  hacia: EstadoTurno,
+): string {
+  if (desde === "COMPLETADO" && hacia === "CONFIRMADO") {
+    return "Volver a confirmado";
+  }
+  return ETIQUETAS_ESTADO_TURNO[hacia];
+}
+
+/**
+ * Lo que se pierde, además del turno, al borrar un cancelado con cobro: el
+ * cobro deja de contar en los ingresos. `null` si no tiene cobro.
+ */
+export function avisoCobroAlBorrarTurno(turno: {
+  precio: number | null;
+  pagado: boolean;
+}): string | null {
+  if (turno.precio == null && !turno.pagado) return null;
+  const monto =
+    turno.precio != null
+      ? `${formatearMoneda(turno.precio)}${turno.pagado ? ", pagado" : ", sin pagar"}`
+      : "pagado";
+  return `Tiene un cobro registrado (${monto}): se borra con el turno y deja de contar en los ingresos.`;
+}
+
 const formateadorNumero = new Intl.NumberFormat("es-AR", {
   maximumFractionDigits: 1,
 });

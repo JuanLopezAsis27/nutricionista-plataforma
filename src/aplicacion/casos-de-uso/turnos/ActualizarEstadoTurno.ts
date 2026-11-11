@@ -7,8 +7,9 @@ import { ErrorTurnoNoEncontrado } from "@/dominio/errores/ErrorTurnoNoEncontrado
  *
  * Verifica que el turno exista y delega la validación de la transición en la
  * entidad (Turno.cambiarEstado aplica la máquina de estados: PENDIENTE →
- * CONFIRMADO|CANCELADO, CONFIRMADO → COMPLETADO|CANCELADO, y CANCELADO/
- * COMPLETADO como estados finales). Lanza ErrorValidacion si es inválida.
+ * CONFIRMADO|CANCELADO, CONFIRMADO → COMPLETADO|CANCELADO, COMPLETADO →
+ * CONFIRMADO para deshacer un completado por error, y CANCELADO como estado
+ * final). Lanza ErrorValidacion si es inválida.
  */
 export class ActualizarEstadoTurno {
   constructor(private readonly turnos: ITurnoRepositorio) {}

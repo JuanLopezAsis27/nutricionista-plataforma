@@ -100,7 +100,8 @@ export const routerTurnos = crearRouter({
 
   /**
    * Borra un turno cancelado. Distinto de `cancelar`, que es baja lógica: esto
-   * lo saca de la agenda para siempre y solo aplica a cancelados sin cobro.
+   * lo saca de la agenda para siempre y solo aplica a cancelados (con su
+   * cobro, si tenía).
    */
   eliminar: nutricionistaProcedimiento
     .input(cancelarTurnoDto)

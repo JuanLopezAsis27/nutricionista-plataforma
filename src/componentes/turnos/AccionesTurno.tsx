@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Mic, Pencil, X, Trash2 } from "lucide-react";
 import type { TurnoSalidaDto } from "@/aplicacion/dtos/turno.dto";
 import { useTurnos } from "@/lib/hooks/useTurnos";
+import { avisoCobroAlBorrarTurno } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import { SelectorEstado } from "@/componentes/turnos/SelectorEstado";
 import { ModalConfirmacion } from "@/componentes/comunes/ModalConfirmacion";
@@ -16,16 +17,16 @@ interface PropsAccionesTurno {
 }
 
 /**
- * Acciones sobre un turno: cambiar estado (confirmar/completar/cancelar),
- * cancelar rápido, modificar (reprogramar) y —solo si ya está cancelado y sin
- * cobro— borrarlo de la agenda. Reutilizado en la lista y en el detalle del
- * día del calendario.
+ * Acciones sobre un turno: cambiar estado (confirmar/completar/cancelar, o
+ * volver a confirmado un completado), cancelar rápido, modificar
+ * (reprogramar) y —solo si ya está cancelado— borrarlo de la agenda.
+ * Reutilizado en la lista y en el detalle del día del calendario.
  *
  * Cancelar y borrar son cosas distintas y la UI las separa: cancelar deja
  * constancia de que alguien no vino, que es información clínica y de cobranza;
  * borrar es para el turno que se cargó mal y solo ensucia la grilla. Por eso el
- * tacho aparece recién sobre un turno cancelado, y el dominio además exige que
- * no tenga cobro registrado.
+ * tacho aparece recién sobre un turno cancelado. Si tiene cobro, se va con él:
+ * la confirmación lo advierte.
  *
  * El recordatorio por WhatsApp NO está acá. Avisar es una tarea de secretaría
  * —se elige a quién, con qué texto y se confirma cuál salió— y desde la grilla
@@ -43,10 +44,8 @@ export function AccionesTurno({
 
   const modificable =
     turno.estado === "PENDIENTE" || turno.estado === "CONFIRMADO";
-  // El cobro lo vuelve a bloquear el dominio; acá se esconde el botón para no
-  // ofrecer algo que va a fallar.
-  const borrable =
-    turno.estado === "CANCELADO" && turno.precio == null && !turno.pagado;
+  const borrable = turno.estado === "CANCELADO";
+  const avisoCobro = avisoCobroAlBorrarTurno(turno);
 
   return (
     <div className="flex items-center justify-end gap-1">
@@ -101,7 +100,7 @@ export function AccionesTurno({
       <ModalConfirmacion
         abierto={confirmando}
         titulo="Borrar el turno"
-        descripcion="Se borra de la agenda para siempre, junto con los recordatorios que se le hayan mandado. Esta acción no se puede deshacer."
+        descripcion={`Se borra de la agenda para siempre, junto con los recordatorios que se le hayan mandado.${avisoCobro ? ` ${avisoCobro}` : ""} Esta acción no se puede deshacer.`}
         cargando={eliminar.isPending}
         onCancelar={() => setConfirmando(false)}
         onConfirmar={() =>
