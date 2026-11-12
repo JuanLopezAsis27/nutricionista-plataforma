@@ -1956,7 +1956,13 @@ model ObjetivoComposicion {
   /// ecuación. Comparar un % graso de Yuhasz contra uno de Durnin & Womersley
   /// no mide progreso, mide el cambio de fórmula.
   metodoGrasa     MetodoGrasa?
-  valorObjetivo   Decimal             @db.Decimal(7, 2)
+  /// La meta es UN valor (`valorObjetivo`) o UN rango (`valorMinimo` y
+  /// `valorMaximo`), nunca las dos cosas: lo exige un CHECK (migración 100).
+  /// Un valor se cumple al pasarse en la dirección buscada; un rango, solo
+  /// estando adentro.
+  valorObjetivo   Decimal?            @db.Decimal(7, 2)
+  valorMinimo     Decimal?            @db.Decimal(7, 2)
+  valorMaximo     Decimal?            @db.Decimal(7, 2)
   fechaObjetivo   DateTime?           @db.Date
   estado          EstadoObjetivo      @default(EN_CURSO)
   notas           String?

@@ -44,7 +44,11 @@ export class GuardarObjetivoComposicion {
     const objetivo = existente
       ? existente.actualizar({
           metodoGrasa: datos.metodoGrasa ?? null,
-          valorObjetivo: datos.valorObjetivo,
+          meta: {
+            valorObjetivo: datos.valorObjetivo,
+            valorMinimo: datos.valorMinimo,
+            valorMaximo: datos.valorMaximo,
+          },
           fechaObjetivo: datos.fechaObjetivo ?? null,
           notas: datos.notas ?? null,
           estado: datos.estado,

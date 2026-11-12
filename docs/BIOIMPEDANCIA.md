@@ -73,9 +73,10 @@ otro número que el que el paciente vio en la balanza.
 
 - **La proyección de metas.** `proyectarMeta` (`dominio/servicios/
   proyeccionComposicion.ts`) es la misma regla para las dos: el progreso se
-  mide desde que la meta existe, el estado contra la última medición, el ritmo
-  por regresión, y el valor proyectado se descarta si se sale del rango de la
-  variable. `proyectarObjetivo` quedó como envoltorio de la antropometría.
+  mide desde que la meta existe, el estado contra la última medición (que
+  además no puede haber quedado peor que la partida ni que la anterior), el
+  ritmo por regresión, y el valor proyectado se descarta si se sale del rango
+  de la variable. `proyectarObjetivo` quedó como envoltorio de la antropometría.
 - **La tarjeta de la meta** (`componentes/antropometria/TarjetaMeta.tsx`), que
   dibuja esa proyección. Lo propio de la antropometría (los pliegues
   proyectados) entra por `children`.

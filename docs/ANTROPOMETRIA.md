@@ -347,6 +347,76 @@ de negocio: Prisma no admite null en una clave compuesta única. Quién decide s
 la meta se replantea o se crea es el caso de uso, que busca la combinación
 primero.
 
+### Un valor o un rango
+
+La meta es **un valor** (`valorObjetivo`) o **un rango** (`valorMinimo` y
+`valorMaximo`), nunca las dos cosas (migración 100, con un CHECK que lo
+sostiene en la base además de la entidad). No son la misma lectura con otra
+tolerancia:
+
+- **Un valor** es un «hasta acá» con dirección. Pasarse en la dirección
+  buscada es cumplir: bajar a 11 kg cuando la meta era 12.
+- **Un rango** es un «quedarse entre». Se cumple solo estando adentro, y
+  pasarse del otro borde vuelve a estar fuera del objetivo. Es lo que hace
+  falta cuando alejarse de más es tan malo como no llegar: con un valor solo,
+  un % graso que sigue bajando por debajo de lo sano figuraba como logrado.
+
+Con un rango, la proyección (`proyectarMeta`) mide todo **hasta el borde más
+cercano** al valor actual (`valorBuscado`): la brecha, el ritmo necesario, la
+fecha de llegada y los estados salen de esa brecha igual que con un valor,
+porque para entrar alcanza con cruzar el borde. Lo único que cambia es el
+progreso: no es la fracción de un camino entre dos puntos sino **cuánto se
+acortó la distancia al rango** desde la partida (100 es estar adentro). Un
+paciente que arrancó 5 kg debajo y hoy está 2 kg arriba no hizo el 100 %:
+quedó a 2 kg. Si arrancó adentro y salió, el progreso es 0.
+
+Los pliegues proyectados y la torta de masas también apuntan al borde que
+falta cruzar; si ya está adentro, no hay pliegues que proyectar y el gajo se
+dibuja sólido.
+
+Las pantallas nombran la meta con `textoMeta`
+(`componentes/antropometria/textoMeta.ts`): «12 kg» o «entre 12 y 15 kg». Es
+uno solo para la tarjeta del consultorio, la del portal y el objetivo
+cualitativo vinculado, porque una pantalla que se olvide del rango muestra
+un «—». La meta se puede pasar de valor a rango (y al revés) editándola: se
+reemplaza entera, nunca un borde suelto.
+
+Las metas de la **bioimpedancia** siguen siendo de un valor: comparten
+`proyectarMeta` y `TarjetaMeta`, que aceptan el rango sin exigirlo.
+
+### Cuándo «se aleja»
+
+El ritmo es una recta por mínimos cuadrados sobre toda la serie desde la
+partida, y una recta tarda en darse vuelta: tres consultas bajando y una
+subiendo siguen dando una pendiente hacia la meta. Mientras el estado salía
+solo de esa pendiente, un paciente que acababa de empeorar figuraba «En
+camino».
+
+Por eso el estado mira también la **última medición** (`retroceso` en la
+proyección) y es ALEJANDOSE si quedó más lejos de la meta que:
+
+- **la de partida** (`DESDE_EL_INICIO`): hoy está peor que cuando se planteó;
+- **la anterior** (`DESDE_LA_ANTERIOR`): el último paso fue para atrás.
+
+Le gana a EN_CAMINO y a ATRASADO; no a ALCANZADO (una meta cumplida sigue
+cumplida aunque la última haya empeorado un poco) ni a VENCIDO. No hay
+tolerancia: cualquier empeoramiento cuenta.
+
+«Más lejos» es cuánto le falta a cada medición para cumplir, y no es lo mismo
+en las dos formas de meta:
+
+- Con un **valor**, en la dirección que hoy hay que recorrer. Una anterior que
+  se había pasado de largo cumplía, así que cuenta como más cerca que una
+  actual que volvió a no cumplir.
+- Con un **rango**, la distancia al rango, que es lo que mide su progreso.
+  Cruzarlo entero (de 12 a 18 con un rango de 15 a 17) es quedar más cerca, a
+  1 y no a 3: no es retroceso, aunque la tendencia ahora sí vaya al revés.
+
+El ritmo, la fecha estimada y la proyección a la fecha meta siguen saliendo de
+la recta: son la tendencia, no el último paso. Por eso, con retroceso, la
+tarjeta del consultorio dice primero por qué se aleja; sin esa línea se leía
+«Se aleja del objetivo» al lado de «A este ritmo llega el…».
+
 ## Σ 6 y Σ 8
 
 `sumatoria6Pliegues` es la de la planilla habitual. `sumatoria8Pliegues` suma
@@ -529,6 +599,10 @@ debajo.
 - Un sitio nuevo entra solo a la importación por planilla si está en
   `CAMPOS_PLANTILLA`: de ahí salen tanto el esquema JSON que se le pide al
   modelo como los campos editables de la revisión.
+- La meta de un objetivo son TRES columnas que se escriben juntas
+  (`valorObjetivo`, `valorMinimo`, `valorMaximo`), en el `create` y en el
+  `update` del repositorio: pasar de un valor a un rango tiene que dejar el
+  otro en null, o el CHECK lo rechaza.
 - Una variable objetivable nueva va en `VARIABLES_COMPOSICION`,
   `RANGOS_VARIABLE`, `ORIGEN_DE_VARIABLE`, el `switch` de `valorDeVariable` y
   —si apunta a una de las cinco masas— en `MASA_DE_VARIABLE` de

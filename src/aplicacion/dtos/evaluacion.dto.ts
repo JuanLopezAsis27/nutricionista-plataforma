@@ -504,7 +504,11 @@ export interface ObjetivoComposicionDto {
   metodoGrasa: MetodoGrasa | null;
   /** Nombre de la meta ya compuesto: incluye la ecuación cuando la hay. */
   descripcion: string;
-  valorObjetivo: number;
+  /** La meta de un valor; null si es un rango. */
+  valorObjetivo: number | null;
+  /** Los bordes de un rango; null si la meta es un valor. */
+  valorMinimo: number | null;
+  valorMaximo: number | null;
   fechaObjetivo: Date | null;
   estado: EstadoObjetivo;
   notas: string | null;
@@ -540,7 +544,11 @@ export const guardarObjetivoComposicionDto = z.object({
   pacienteId: z.string().min(1),
   variable: z.enum(VARIABLES_COMPOSICION),
   metodoGrasa: z.enum(METODOS_GRASA).optional().nullable(),
-  valorObjetivo: z.number().finite(),
+  // Un valor o un rango (mínimo + máximo): cuál de los dos, y que no vengan
+  // mezclados, lo valida la entidad, que es la que sabe leer cada uno.
+  valorObjetivo: z.number().finite().optional().nullable(),
+  valorMinimo: z.number().finite().optional().nullable(),
+  valorMaximo: z.number().finite().optional().nullable(),
   fechaObjetivo: z.coerce.date().optional().nullable(),
   notas: z.string().max(1000).optional().nullable(),
   estado: z.enum(ESTADOS_OBJETIVO).optional(),

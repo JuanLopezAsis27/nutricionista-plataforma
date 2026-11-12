@@ -22,8 +22,10 @@ import {
 } from "@/dominio/servicios/composicionCorporal";
 import { filtrarMetodosVisibles } from "@/dominio/servicios/grasaPorPliegues";
 import {
+  dentroDelRango,
   proyectarObjetivo,
   proyectarPlieguesParaMeta,
+  valorBuscado,
   valorDeVariable,
   type ProyeccionObjetivo,
   type PuntoSerie,
@@ -147,7 +149,7 @@ export class ObtenerComposicionCorporal {
         proyeccion: proyectarObjetivo(
           {
             variable: objetivo.variable,
-            valorObjetivo: objetivo.valorObjetivo,
+            ...objetivo.meta,
             fechaObjetivo: objetivo.fechaObjetivo,
             // El progreso se mide desde que la meta existe, no desde la
             // primera medición del paciente.
@@ -173,11 +175,27 @@ function proyectarPlieguesDelObjetivo(
 ): ProyeccionPliegues | null {
   if (ultima == null) return null;
 
+  // Con un rango, los pliegues se proyectan al borde que falta cruzar: para
+  // entrar alcanza con llegar ahí. Si ya está adentro no hay nada que mover.
+  const meta = objetivo.meta;
+  let buscado = meta.valorObjetivo ?? null;
+  if (meta.rango != null) {
+    const actual = valorDeVariable(
+      objetivo.variable,
+      ultima.medicion.medidasComposicion(),
+      ultima.resultado,
+      objetivo.metodoGrasa,
+    );
+    if (actual == null || dentroDelRango(meta.rango, actual)) return null;
+    buscado = valorBuscado(meta, actual);
+  }
+  if (buscado == null) return null;
+
   return proyectarPlieguesParaMeta(
     {
       variable: objetivo.variable,
       metodoGrasa: objetivo.metodoGrasa,
-      valorObjetivo: objetivo.valorObjetivo,
+      valorObjetivo: buscado,
     },
     ultima.medicion.medidasComposicion(),
     {

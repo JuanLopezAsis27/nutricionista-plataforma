@@ -664,8 +664,11 @@ los derivados de la planilla (Σ pliegues, kg bajados, % graso) se ignoran a
 propósito: los recalcula el dominio.
 
 `ObjetivoComposicion` es la meta cuantitativa, una sola vigente por paciente y
-variable. Dos reglas que ya se rompieron una vez: **el progreso se mide desde que
-la meta existe**, no desde la primera medición del paciente (el ESTADO, en
+variable. Es **un valor o un rango** (migración 100): el valor se cumple al
+pasarse en la dirección buscada; el rango, solo estando adentro, y su
+proyección se mide hasta el borde más cercano. Dos reglas que ya se rompieron
+una vez: **el progreso se mide desde que la meta existe**, no desde la primera
+medición del paciente (el ESTADO, en
 cambio, se lee siempre contra la última medición; el RITMO es una tercera cosa,
 propiedad del paciente y no de la meta); y el valor proyectado se descarta cuando
 la recta se sale del rango admisible de la variable.
@@ -1011,6 +1014,18 @@ a mano en los routers: vive en `@/dominio/servicios/politicaAcceso`
 - Nunca guardar el valor de un campo personalizado sin su etiqueta: un campo
   cuya definición se borre después quedaría como un texto colgado de una clave
   que ya no resuelve contra nada
+- Nunca nombrar una migración `100_…`, `101_…`: Prisma ordena las carpetas
+  con `localeCompare`, no por número, y `100_` cae entre `10_` y `11_` (una
+  base nueva la corre antes de tiempo). Desde la 100 van con una `a`
+  adelante: `a100_`, `a101_`…, que ordenan después de todas las de dos
+  dígitos
+- Nunca dar por cumplida una meta de RANGO por haberse pasado del borde:
+  eso es la lectura de una meta de valor. El rango se cumple solo adentro
+  (`avanceHaciaRango`)
+- Nunca decidir el estado de una meta solo por la pendiente de la serie: una
+  recta tarda en darse vuelta, y un paciente que acababa de empeorar figuraba
+  «En camino». Una última medición peor que la partida o que la anterior es
+  ALEJANDOSE (`retroceso`)
 - Nunca programar un cron de pg-boss sin `tz`: sin eso lo interpreta en UTC, y
   `TZ` en el `.env` no lo arregla (afecta a `Date` en el proceso, no al
   planificador, que calcula la próxima corrida en la base). Va `ZONA_HORARIA`

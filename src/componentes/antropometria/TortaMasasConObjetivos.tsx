@@ -8,8 +8,10 @@ import type {
   MedicionComposicionDto,
 } from "@/aplicacion/dtos/evaluacion.dto";
 import type { VariableComposicion } from "@/dominio/entidades/ObjetivoComposicion";
+import { valorBuscado } from "@/dominio/servicios/proyeccionComposicion";
 import { formatearMedida } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
+import { metaDeProyeccion } from "./textoMeta";
 import {
   MASAS,
   ETIQUETAS_MASA,
@@ -88,11 +90,20 @@ export function TortaMasasConObjetivos({
     });
     const destino = meta ? MASA_DE_VARIABLE[meta.variable] : undefined;
 
-    const objetivoKg =
+    // Con un rango, el gajo apunta al borde que falta cruzar (o se queda
+    // como está si ya cae adentro): lo que hay que mover para entrar.
+    const buscado =
       meta && destino
+        ? valorBuscado(
+            metaDeProyeccion(meta.proyeccion),
+            destino.enPorcentaje ? masa.porcentaje : masa.kg,
+          )
+        : null;
+    const objetivoKg =
+      buscado != null && destino
         ? destino.enPorcentaje
-          ? (meta.valorObjetivo * pesoEstructurado) / 100
-          : meta.valorObjetivo
+          ? (buscado * pesoEstructurado) / 100
+          : buscado
         : null;
 
     return {
