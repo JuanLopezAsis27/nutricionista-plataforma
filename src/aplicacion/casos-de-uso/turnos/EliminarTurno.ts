@@ -11,15 +11,18 @@ import { ErrorValidacion } from "@/dominio/errores/ErrorValidacion";
  * cobranza. Pero un turno que se cargó mal, o que se canceló apenas creado,
  * solo ensucia la agenda: para esos está este borrado.
  *
- * Dos condiciones, y las dos son deliberadas:
+ * **Solo turnos CANCELADOS**, y es la única condición. Borrar uno pendiente o
+ * confirmado sería hacer desaparecer un compromiso vigente sin que nadie lo
+ * cancele; y borrar uno COMPLETADO borraría la constancia de una consulta que
+ * pasó. No mira la fecha ni la hora: un cancelado de hace un mes se borra
+ * igual que uno de mañana.
  *
- *   1. **Solo turnos CANCELADOS.** Borrar uno pendiente o confirmado sería
- *      hacer desaparecer un compromiso vigente sin que nadie lo cancele; y
- *      borrar uno COMPLETADO borraría la constancia de una consulta que pasó.
- *   2. **Sin cobro registrado.** Un turno con precio o marcado como pagado ya
- *      entró en las estadísticas de ingresos: borrarlo descuadra la caja de un
- *      mes cerrado. Primero hay que sacarle el cobro, que es una decisión
- *      explícita y visible.
+ * **Tampoco mira el cobro, a pedido del profesional.** Hasta acá un cancelado
+ * con precio o pagado no se podía borrar —ya contaba en los ingresos— y la
+ * pantalla escondía el botón sin decir por qué: desde afuera parecía que el
+ * turno «ya no se podía borrar después de cierta fecha». El cobro se va con
+ * el turno y deja de contar en las estadísticas; la pantalla lo advierte en
+ * la confirmación, que es donde se decide.
  *
  * Los recordatorios del turno se van con él (la FK es ON DELETE CASCADE): son
  * el registro de un aviso sobre algo que ya no existe. El evento del
@@ -40,11 +43,6 @@ export class EliminarTurno {
     if (turno.estado !== "CANCELADO") {
       throw new ErrorValidacion(
         "Solo se pueden borrar turnos cancelados. Cancelalo primero.",
-      );
-    }
-    if (turno.precio != null || turno.pagado) {
-      throw new ErrorValidacion(
-        "Este turno tiene un cobro registrado. Quitale el cobro antes de borrarlo.",
       );
     }
 

@@ -44,13 +44,20 @@ export class PrismaRepositorioObjetivoComposicion
         variable: datos.variable,
         metodoGrasa: datos.metodoGrasa,
         valorObjetivo: datos.valorObjetivo,
+        valorMinimo: datos.valorMinimo,
+        valorMaximo: datos.valorMaximo,
         fechaObjetivo: soloFecha(datos.fechaObjetivo),
         estado: datos.estado,
         notas: datos.notas,
       },
+      // Los tres valores van SIEMPRE juntos: pasar de un valor a un rango
+      // tiene que dejar el otro en null, o el CHECK de la migración 100 lo
+      // rechaza.
       update: {
         metodoGrasa: datos.metodoGrasa,
         valorObjetivo: datos.valorObjetivo,
+        valorMinimo: datos.valorMinimo,
+        valorMaximo: datos.valorMaximo,
         fechaObjetivo: soloFecha(datos.fechaObjetivo),
         estado: datos.estado,
         notas: datos.notas,
@@ -101,13 +108,20 @@ export function mapearObjetivoComposicion(
     metodoGrasa: esMetodoGrasaVigente(fila.metodoGrasa)
       ? fila.metodoGrasa
       : null,
-    valorObjetivo: Number(fila.valorObjetivo),
+    valorObjetivo: aNumeroONull(fila.valorObjetivo),
+    valorMinimo: aNumeroONull(fila.valorMinimo),
+    valorMaximo: aNumeroONull(fila.valorMaximo),
     fechaObjetivo: fila.fechaObjetivo,
     estado: fila.estado,
     notas: fila.notas,
     creadoEn: fila.creadoEn,
     actualizadoEn: fila.actualizadoEn,
   });
+}
+
+/** Decimal de Prisma → number, respetando el null (`Number(null)` es 0). */
+function aNumeroONull(valor: { toString(): string } | null): number | null {
+  return valor == null ? null : Number(valor);
 }
 
 /** Normaliza a medianoche UTC: la fecha objetivo es un día, no un instante. */

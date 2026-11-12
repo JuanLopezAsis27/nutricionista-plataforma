@@ -49,7 +49,7 @@ export function BarraLateral({ email }: { email: string }) {
     },
     {
       href: "/dashboard/planificacion-deportiva",
-      etiqueta: "Planificación deportiva",
+      etiqueta: "Planificación de carrera",
       icono: Medal,
     },
     { href: "/dashboard/recetas", etiqueta: "Recetario", icono: BookOpen },

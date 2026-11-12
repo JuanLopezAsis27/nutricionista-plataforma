@@ -8,6 +8,7 @@ import { PRIORIDADES_OBJETIVO } from "@/dominio/entidades/Objetivo";
 import { useObjetivos } from "@/lib/hooks/useObjetivos";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
 import { aFechaISO, formatearNumero } from "@/lib/formato";
+import { textoMeta } from "@/componentes/antropometria/textoMeta";
 import { ETIQUETAS_PRIORIDAD } from "./etiquetas";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
@@ -183,10 +184,8 @@ export function FormularioObjetivo({
                   </SelectItem>
                   {metas.map((meta) => (
                     <SelectItem key={meta.id} value={meta.id}>
-                      {meta.descripcion}: {formatearNumero(meta.valorObjetivo)}
-                      {meta.proyeccion.unidad
-                        ? ` ${meta.proyeccion.unidad}`
-                        : ""}
+                      {meta.descripcion}:{" "}
+                      {textoMeta(meta.proyeccion, formatearNumero)}
                     </SelectItem>
                   ))}
                 </SelectContent>

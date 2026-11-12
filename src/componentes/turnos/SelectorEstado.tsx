@@ -1,8 +1,11 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import type { EstadoTurno } from "@/dominio/entidades/Turno";
-import { ETIQUETAS_ESTADO_TURNO } from "@/lib/formato";
+import {
+  TRANSICIONES_TURNO,
+  type EstadoTurno,
+} from "@/dominio/entidades/Turno";
+import { etiquetaTransicionTurno } from "@/lib/formato";
 import { Button } from "@/componentes/ui/button";
 import {
   DropdownMenu,
@@ -10,14 +13,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/componentes/ui/dropdown-menu";
-
-/** Transiciones de estado permitidas (espejo de la máquina del dominio). */
-const TRANSICIONES: Record<EstadoTurno, EstadoTurno[]> = {
-  PENDIENTE: ["CONFIRMADO", "CANCELADO"],
-  CONFIRMADO: ["COMPLETADO", "CANCELADO"],
-  COMPLETADO: [],
-  CANCELADO: [],
-};
 
 interface PropsSelectorEstado {
   estadoActual: EstadoTurno;
@@ -27,14 +22,15 @@ interface PropsSelectorEstado {
 
 /**
  * Dropdown para cambiar el estado de un turno. Solo ofrece las transiciones
- * válidas; si el estado es final (COMPLETADO/CANCELADO) se muestra deshabilitado.
+ * válidas —las del dominio, `TRANSICIONES_TURNO`—; si no hay ninguna
+ * (CANCELADO) se muestra deshabilitado.
  */
 export function SelectorEstado({
   estadoActual,
   onCambiar,
   deshabilitado = false,
 }: PropsSelectorEstado) {
-  const opciones = TRANSICIONES[estadoActual];
+  const opciones = TRANSICIONES_TURNO[estadoActual];
   const sinOpciones = opciones.length === 0;
 
   return (
@@ -53,7 +49,7 @@ export function SelectorEstado({
         <DropdownMenuContent align="end">
           {opciones.map((estado) => (
             <DropdownMenuItem key={estado} onClick={() => onCambiar(estado)}>
-              {ETIQUETAS_ESTADO_TURNO[estado]}
+              {etiquetaTransicionTurno(estadoActual, estado)}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>

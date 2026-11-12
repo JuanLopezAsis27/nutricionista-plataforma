@@ -60,6 +60,7 @@ import { Fila } from "./dashboard/piezas";
 import { useTemaComposicion } from "./useTemaComposicion";
 import { TarjetasMediciones } from "./TarjetasMediciones";
 import type { TemaComposicion } from "./paleta";
+import { textoMeta } from "./textoMeta";
 
 const ETIQUETAS_RIESGO_CINTURA: Record<RiesgoCinturaCadera, string> = {
   BAJO: "Riesgo bajo",
@@ -553,6 +554,7 @@ function TarjetaObjetivoPaciente({
   const unidad = p.unidad ? ` ${p.unidad}` : "";
   const falta = p.brecha != null ? Math.abs(p.brecha) : null;
   const hayQueBajar = p.brecha != null && p.brecha < 0;
+  const esRango = p.rango != null;
 
   return (
     <Card>
@@ -560,8 +562,7 @@ function TarjetaObjetivoPaciente({
         <div>
           <p className="text-sm font-semibold">{p.etiqueta}</p>
           <p className="text-xs text-muted-foreground">
-            Meta: {formatearMedida(p.valorObjetivo)}
-            {unidad}
+            Meta: {textoMeta(p)}
             {p.fechaObjetivo && ` · para el ${formatearFecha(p.fechaObjetivo)}`}
           </p>
         </div>
@@ -574,11 +575,12 @@ function TarjetaObjetivoPaciente({
               {formatearMedida(falta)}
               {unidad}
             </span>{" "}
-            {hayQueBajar ? "por bajar" : "por subir"} para llegar.
+            {hayQueBajar ? "por bajar" : "por subir"}{" "}
+            {esRango ? "para entrar al rango." : "para llegar."}
           </p>
         ) : (
           <p className="text-sm font-semibold" style={{ color }}>
-            Ya llegaste a la meta.
+            {esRango ? "Estás dentro del rango." : "Ya llegaste a la meta."}
           </p>
         )}
 
@@ -619,7 +621,9 @@ function TarjetaObjetivoPaciente({
           style={{ backgroundColor: `${color}14`, color }}
         >
           <Icono className="h-4 w-4 shrink-0" aria-hidden />
-          {estado.etiqueta}
+          {esRango && p.estado === "ALCANZADO"
+            ? "Dentro del rango"
+            : estado.etiqueta}
         </p>
 
         {objetivo.proyeccionPliegues && (

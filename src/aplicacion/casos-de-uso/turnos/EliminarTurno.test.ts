@@ -36,7 +36,7 @@ function armar(turno: ReturnType<typeof turnoEjemplo> | null) {
 }
 
 describe("EliminarTurno", () => {
-  it("borra un turno cancelado y sin cobro", async () => {
+  it("borra un turno cancelado", async () => {
     const { caso, turnos } = armar(cancelado());
 
     await caso.ejecutar("tur-1");
@@ -62,17 +62,41 @@ describe("EliminarTurno", () => {
     expect(turnos.eliminar).not.toHaveBeenCalled();
   });
 
-  // Un turno cobrado ya entró en las estadísticas de ingresos: borrarlo
-  // descuadraría la caja de un mes que quizá ya está cerrado.
-  it("no borra un turno con precio registrado", async () => {
+  // El cobro ya no frena el borrado: se va con el turno. La pantalla lo
+  // advierte en la confirmación; antes escondía el botón sin decir por qué.
+  it("borra un cancelado con precio registrado", async () => {
     const { caso, turnos } = armar(cancelado({ precio: 15000, pagado: false }));
 
-    await expect(caso.ejecutar("tur-1")).rejects.toThrow(ErrorValidacion);
-    expect(turnos.eliminar).not.toHaveBeenCalled();
+    await caso.ejecutar("tur-1");
+
+    expect(turnos.eliminar).toHaveBeenCalledWith("tur-1");
   });
 
-  it("no borra un turno marcado como pagado", async () => {
+  it("borra un cancelado marcado como pagado", async () => {
     const { caso, turnos } = armar(cancelado({ precio: 15000, pagado: true }));
+
+    await caso.ejecutar("tur-1");
+
+    expect(turnos.eliminar).toHaveBeenCalledWith("tur-1");
+  });
+
+  // Ni la fecha ni la hora: un cancelado de hace meses se borra igual.
+  it("borra un cancelado de una fecha pasada", async () => {
+    const turno = turnoEjemplo({ fecha: new Date("2025-01-10") });
+    turno.cambiarEstado("CANCELADO");
+    const { caso, turnos } = armar(turno);
+
+    await caso.ejecutar("tur-1");
+
+    expect(turnos.eliminar).toHaveBeenCalledWith("tur-1");
+  });
+
+  // Que haya pasado la consulta es justo lo que hace valioso al completado.
+  it("no borra un turno completado", async () => {
+    const turno = turnoEjemplo();
+    turno.cambiarEstado("CONFIRMADO");
+    turno.cambiarEstado("COMPLETADO");
+    const { caso, turnos } = armar(turno);
 
     await expect(caso.ejecutar("tur-1")).rejects.toThrow(ErrorValidacion);
     expect(turnos.eliminar).not.toHaveBeenCalled();

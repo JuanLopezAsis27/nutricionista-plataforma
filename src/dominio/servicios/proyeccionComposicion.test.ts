@@ -3,6 +3,7 @@ import {
   proyectarObjetivo,
   proyectarPlieguesParaMeta,
   admiteProyeccionDePliegues,
+  valorBuscado,
   type PuntoSerie,
 } from "./proyeccionComposicion";
 import {
@@ -673,5 +674,201 @@ describe("proyectarPlieguesParaMeta", () => {
         { ...CONTEXTO, sexo: null },
       ),
     ).toBeNull();
+  });
+});
+
+describe("proyectarObjetivo — meta en rango", () => {
+  const RANGO = { minimo: 15, maximo: 17 };
+
+  it("adentro del rango está alcanzado, sin brecha", () => {
+    const p = proyectarObjetivo(
+      { variable: "MASA_ADIPOSA_KG", rango: RANGO, fechaObjetivo: null },
+      [{ fecha: new Date("2026-02-22T00:00:00Z"), valor: 16 }],
+      HOY,
+    );
+    expect(p.estado).toBe("ALCANZADO");
+    expect(p.brecha).toBe(0);
+    expect(p.progresoPorcentaje).toBe(100);
+    expect(p.valorObjetivo).toBeNull();
+    expect(p.rango).toEqual(RANGO);
+  });
+
+  it("la brecha y el progreso se miden hasta el borde más cercano", () => {
+    // De 20 a 18,5: estaba a 3 kg del máximo y quedó a 1,5.
+    const p = proyectarObjetivo(
+      { variable: "MASA_ADIPOSA_KG", rango: RANGO, fechaObjetivo: null },
+      BAJANDO,
+      HOY,
+    );
+    expect(p.brecha).toBe(-1.5);
+    expect(p.progresoPorcentaje).toBe(50);
+    expect(p.estado).toBe("EN_CAMINO");
+  });
+
+  it("con fecha, el ritmo necesario apunta al borde y no al medio", () => {
+    const p = proyectarObjetivo(
+      {
+        variable: "MASA_ADIPOSA_KG",
+        rango: RANGO,
+        fechaObjetivo: new Date("2026-03-29T00:00:00Z"),
+      },
+      BAJANDO,
+      HOY,
+    );
+    // 1,5 kg en 4 semanas.
+    expect(p.ritmoSemanalNecesario).toBe(-0.375);
+    expect(p.estado).toBe("EN_CAMINO");
+  });
+
+  it("pasarse del otro borde NO es cumplir, a diferencia de un valor", () => {
+    const sePaso: PuntoSerie[] = [
+      { fecha: new Date("2026-02-01T00:00:00Z"), valor: 20 },
+      { fecha: new Date("2026-02-08T00:00:00Z"), valor: 17 },
+      { fecha: new Date("2026-02-15T00:00:00Z"), valor: 14 },
+      { fecha: new Date("2026-02-22T00:00:00Z"), valor: 12 },
+    ];
+    const enRango = proyectarObjetivo(
+      { variable: "MASA_ADIPOSA_KG", rango: RANGO, fechaObjetivo: null },
+      sePaso,
+      HOY,
+    );
+    // Quedó 3 kg debajo del mínimo y sigue bajando: se aleja.
+    expect(enRango.brecha).toBe(3);
+    expect(enRango.estado).toBe("ALEJANDOSE");
+    // Estaba a 3 kg del rango y sigue a 3: cruzarlo entero no es avance.
+    expect(enRango.progresoPorcentaje).toBe(0);
+
+    const comoValor = proyectarObjetivo(
+      { variable: "MASA_ADIPOSA_KG", valorObjetivo: 17, fechaObjetivo: null },
+      sePaso,
+      HOY,
+    );
+    expect(comoValor.estado).toBe("ALCANZADO");
+  });
+
+  it("si arrancó adentro y salió, no acredita progreso", () => {
+    const p = proyectarObjetivo(
+      { variable: "MASA_ADIPOSA_KG", rango: RANGO, fechaObjetivo: null },
+      [
+        { fecha: new Date("2026-02-01T00:00:00Z"), valor: 16 },
+        { fecha: new Date("2026-02-22T00:00:00Z"), valor: 18 },
+      ],
+      HOY,
+    );
+    expect(p.estado).toBe("ALEJANDOSE");
+    expect(p.progresoPorcentaje).toBe(0);
+    expect(p.brecha).toBe(-1);
+  });
+});
+
+describe("valorBuscado", () => {
+  it("con un valor, es la meta", () => {
+    expect(valorBuscado({ valorObjetivo: 12 }, 20)).toBe(12);
+  });
+
+  it("con un rango, es el borde más cercano o el propio valor si ya está adentro", () => {
+    const rango = { minimo: 15, maximo: 17 };
+    expect(valorBuscado({ rango }, 20)).toBe(17);
+    expect(valorBuscado({ rango }, 10)).toBe(15);
+    expect(valorBuscado({ rango }, 16)).toBe(16);
+  });
+});
+
+describe("proyectarObjetivo — se aleja aunque la tendencia vaya bien", () => {
+  /** Una serie semanal desde el 1/2, con los valores dados. */
+  const semanal = (...valores: number[]): PuntoSerie[] =>
+    valores.map((valor, i) => ({
+      fecha: new Date(Date.UTC(2026, 1, 1 + i * 7)),
+      valor,
+    }));
+  const META_15 = {
+    variable: "MASA_ADIPOSA_KG" as const,
+    valorObjetivo: 15,
+    fechaObjetivo: null,
+  };
+
+  it("si la última quedó peor que la anterior, se aleja", () => {
+    // La recta sigue bajando (tres consultas de cuatro bajaron), pero la
+    // última subió: antes figuraba «en camino».
+    const p = proyectarObjetivo(META_15, semanal(20, 19, 18, 18.6), HOY);
+    expect(p.ritmoSemanal).toBeLessThan(0);
+    expect(p.retroceso).toBe("DESDE_LA_ANTERIOR");
+    expect(p.estado).toBe("ALEJANDOSE");
+  });
+
+  it("si hoy está peor que cuando se planteó la meta, se aleja", () => {
+    const p = proyectarObjetivo(META_15, semanal(20, 17, 16, 15.5, 20.2), HOY);
+    expect(p.ritmoSemanal).toBeLessThan(0);
+    expect(p.retroceso).toBe("DESDE_EL_INICIO");
+    expect(p.estado).toBe("ALEJANDOSE");
+  });
+
+  it("le gana a ATRASADO: con fecha, empeorar no es «ir lento»", () => {
+    const p = proyectarObjetivo(
+      { ...META_15, fechaObjetivo: new Date("2026-03-29T00:00:00Z") },
+      semanal(20, 19, 18, 18.6),
+      HOY,
+    );
+    expect(p.estado).toBe("ALEJANDOSE");
+  });
+
+  it("una anterior que ya se había pasado de largo cuenta como más cerca", () => {
+    // Meta: bajar a 18. Llegó a 17,5 (cumplía) y volvió a 18,3: le falta
+    // menos que a la de 19, pero ya no cumple.
+    const p = proyectarObjetivo(
+      { ...META_15, valorObjetivo: 18 },
+      semanal(20, 19, 17.5, 18.3),
+      HOY,
+    );
+    expect(p.retroceso).toBe("DESDE_LA_ANTERIOR");
+    expect(p.estado).toBe("ALEJANDOSE");
+  });
+
+  it("con un rango, se mide la distancia al rango", () => {
+    const rango = { minimo: 15, maximo: 17 };
+    // De 17,8 (a 0,8 del máximo) a 18,2 (a 1,2): se alejó.
+    const p = proyectarObjetivo(
+      { variable: "MASA_ADIPOSA_KG", rango, fechaObjetivo: null },
+      semanal(20, 18.5, 17.8, 18.2),
+      HOY,
+    );
+    expect(p.ritmoSemanal).toBeLessThan(0);
+    expect(p.retroceso).toBe("DESDE_LA_ANTERIOR");
+    expect(p.estado).toBe("ALEJANDOSE");
+
+    // Cruzarlo entero de 12 a 18 es quedar más cerca (a 1 y no a 3).
+    const cruzo = proyectarObjetivo(
+      { variable: "MASA_ADIPOSA_KG", rango, fechaObjetivo: null },
+      semanal(12, 18),
+      HOY,
+    );
+    expect(cruzo.retroceso).toBeNull();
+  });
+
+  it("si mejora en cada medición, no hay retroceso", () => {
+    const p = proyectarObjetivo(META_15, BAJANDO, HOY);
+    expect(p.retroceso).toBeNull();
+    expect(p.estado).toBe("EN_CAMINO");
+  });
+
+  it("una meta alcanzada sigue alcanzada aunque la última haya empeorado", () => {
+    // Meta 19: llegó a 18 y subió a 18,5, que sigue por debajo.
+    const p = proyectarObjetivo(
+      { ...META_15, valorObjetivo: 19 },
+      semanal(20, 18, 18.5),
+      HOY,
+    );
+    expect(p.retroceso).toBeNull();
+    expect(p.estado).toBe("ALCANZADO");
+  });
+
+  it("una fecha vencida sigue diciendo VENCIDO", () => {
+    const p = proyectarObjetivo(
+      { ...META_15, fechaObjetivo: new Date("2026-02-20T00:00:00Z") },
+      semanal(20, 19, 18, 18.6),
+      HOY,
+    );
+    expect(p.retroceso).toBe("DESDE_LA_ANTERIOR");
+    expect(p.estado).toBe("VENCIDO");
   });
 });

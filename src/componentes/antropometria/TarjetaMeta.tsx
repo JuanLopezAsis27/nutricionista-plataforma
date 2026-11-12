@@ -16,12 +16,14 @@ import {
 import type {
   EstadoProyeccion,
   ProyeccionMeta,
+  RetrocesoMeta,
 } from "@/dominio/servicios/proyeccionComposicion";
 import { formatearFecha, formatearMedida } from "@/lib/formato";
 import { cn } from "@/lib/utilidades";
 import { Button } from "@/componentes/ui/button";
 import { Card, CardContent } from "@/componentes/ui/card";
 import type { TemaComposicion } from "./paleta";
+import { textoMeta } from "./textoMeta";
 
 /**
  * La tarjeta de UNA meta numérica: de dónde salió, dónde está, a dónde va y
@@ -100,6 +102,11 @@ export function TarjetaMeta({
   const color = estado.color(tema);
   const unidad = p.unidad ? ` ${p.unidad}` : "";
   const hayQueBajar = p.brecha != null && p.brecha < 0;
+  // Un rango no se «alcanza» y se deja: se cumple mientras se esté adentro.
+  const etiquetaEstado =
+    p.rango != null && p.estado === "ALCANZADO"
+      ? "Dentro del rango"
+      : estado.etiqueta;
 
   return (
     <Card>
@@ -111,8 +118,7 @@ export function TarjetaMeta({
               {descripcion}
             </p>
             <p className="text-xs text-muted-foreground">
-              Meta: {formatearMedida(p.valorObjetivo)}
-              {unidad}
+              Meta: {textoMeta(p)}
               {p.fechaObjetivo &&
                 ` · para el ${formatearFecha(p.fechaObjetivo)}`}
             </p>
@@ -149,7 +155,9 @@ export function TarjetaMeta({
               {unidad}
             </span>
             <span className="tabular-nums">
-              Meta {formatearMedida(p.valorObjetivo)}
+              {p.rango != null
+                ? `Rango ${formatearMedida(p.rango.minimo)}–${formatearMedida(p.rango.maximo)}`
+                : `Meta ${formatearMedida(p.valorObjetivo)}`}
               {unidad}
             </span>
           </div>
@@ -175,6 +183,7 @@ export function TarjetaMeta({
                   {unidad}
                 </span>{" "}
                 {hayQueBajar ? "por bajar" : "por subir"}
+                {p.rango != null && " para entrar al rango"}
               </>
             )}
           </p>
@@ -193,7 +202,7 @@ export function TarjetaMeta({
           />
           <div className="min-w-0 space-y-0.5">
             <p className="font-semibold" style={{ color }}>
-              {estado.etiqueta}
+              {etiquetaEstado}
             </p>
             <Explicacion proyeccion={p} unidad={unidad} />
           </div>
@@ -202,6 +211,13 @@ export function TarjetaMeta({
     </Card>
   );
 }
+
+/** Por qué se aleja, cuando lo dice la última medición y no la tendencia. */
+const TEXTO_RETROCESO: Record<RetrocesoMeta, string> = {
+  DESDE_EL_INICIO: "Hoy está más lejos del objetivo que cuando se planteó.",
+  DESDE_LA_ANTERIOR:
+    "La última medición quedó más lejos del objetivo que la anterior.",
+};
 
 /** El "qué hacer" en una frase: ritmo actual contra el ritmo que hace falta. */
 function Explicacion({
@@ -214,7 +230,9 @@ function Explicacion({
   if (p.estado === "ALCANZADO") {
     return (
       <p className="text-muted-foreground">
-        Se puede plantear la siguiente meta.
+        {p.rango != null
+          ? "El objetivo se cumple mientras se mantenga entre los dos valores."
+          : "Se puede plantear la siguiente meta."}
       </p>
     );
   }
@@ -230,6 +248,13 @@ function Explicacion({
   const Flecha = p.ritmoSemanal < 0 ? TrendingDown : TrendingUp;
   return (
     <div className="space-y-0.5 text-muted-foreground">
+      {/* Va primero: el ritmo de abajo es la tendencia de toda la serie y
+          puede seguir apuntando a la meta aunque la última haya empeorado. */}
+      {p.retroceso && (
+        <p className="font-medium text-foreground">
+          {TEXTO_RETROCESO[p.retroceso]}
+        </p>
+      )}
       <p className="flex items-center gap-1">
         <Flecha className="h-3 w-3 shrink-0" aria-hidden />
         Ritmo actual:{" "}

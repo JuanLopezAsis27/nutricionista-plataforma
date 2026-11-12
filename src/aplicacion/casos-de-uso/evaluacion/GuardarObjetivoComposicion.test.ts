@@ -151,4 +151,89 @@ describe("GuardarObjetivoComposicion", () => {
       }),
     ).rejects.toBeInstanceOf(ErrorValidacion);
   });
+
+  describe("meta en rango", () => {
+    const casoUso = (
+      existente: ReturnType<typeof objetivoComposicionEjemplo> | null = null,
+    ) =>
+      new GuardarObjetivoComposicion(
+        mockObjetivoComposicionRepositorio({
+          obtenerPorVariable: vi.fn(async () => existente),
+        }),
+        mockPacienteRepositorio({
+          obtenerPorId: vi.fn(async () => pacienteEjemplo()),
+        }),
+      );
+
+    it("guarda el mínimo y el máximo, sin valor", async () => {
+      const objetivo = await casoUso().ejecutar({
+        pacienteId: "pac-1",
+        variable: "PORCENTAJE_GRASA",
+        metodoGrasa: "YUHASZ_CARTER",
+        valorMinimo: 12,
+        valorMaximo: 15,
+      });
+
+      const datos = objetivo.aPrimitivos();
+      expect(datos.valorObjetivo).toBeNull();
+      expect(datos.valorMinimo).toBe(12);
+      expect(datos.valorMaximo).toBe(15);
+      expect(objetivo.meta).toEqual({ rango: { minimo: 12, maximo: 15 } });
+    });
+
+    it.each([
+      [
+        "un valor y un rango a la vez",
+        { valorObjetivo: 14, valorMinimo: 12, valorMaximo: 15 },
+      ],
+      ["un rango con un solo borde", { valorMinimo: 12 }],
+      ["el mínimo igual al máximo", { valorMinimo: 12, valorMaximo: 12 }],
+      ["el mínimo mayor que el máximo", { valorMinimo: 15, valorMaximo: 12 }],
+      [
+        "un borde fuera del rango de la variable",
+        { valorMinimo: 1, valorMaximo: 15 },
+      ],
+      ["ni valor ni rango", {}],
+    ])("rechaza %s", async (_caso, valores) => {
+      await expect(
+        casoUso().ejecutar({
+          pacienteId: "pac-1",
+          variable: "PORCENTAJE_GRASA",
+          metodoGrasa: "YUHASZ_CARTER",
+          ...valores,
+        }),
+      ).rejects.toBeInstanceOf(ErrorValidacion);
+    });
+
+    it("replantear una meta de valor como rango deja el valor en null, y al revés", async () => {
+      const deValor = objetivoComposicionEjemplo({
+        variable: "MASA_ADIPOSA_KG",
+        valorObjetivo: 15,
+      });
+
+      const comoRango = await casoUso(deValor).ejecutar({
+        pacienteId: "pac-1",
+        variable: "MASA_ADIPOSA_KG",
+        valorMinimo: 14,
+        valorMaximo: 16,
+      });
+      expect(comoRango.id).toBe(deValor.id);
+      expect(comoRango.aPrimitivos()).toMatchObject({
+        valorObjetivo: null,
+        valorMinimo: 14,
+        valorMaximo: 16,
+      });
+
+      const otraVezValor = await casoUso(comoRango).ejecutar({
+        pacienteId: "pac-1",
+        variable: "MASA_ADIPOSA_KG",
+        valorObjetivo: 13,
+      });
+      expect(otraVezValor.aPrimitivos()).toMatchObject({
+        valorObjetivo: 13,
+        valorMinimo: null,
+        valorMaximo: null,
+      });
+    });
+  });
 });

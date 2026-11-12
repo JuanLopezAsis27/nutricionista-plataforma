@@ -252,6 +252,23 @@ describe("mapearObjetivoComposicion", () => {
     expect(datos.variable).toBe("MASA_GRASA");
     expect(datos.estado).toBe("ACTIVO");
     expect(datos.notas).toBe("meta de temporada");
+    expect(datos.valorMinimo).toBeNull();
+    expect(datos.valorMaximo).toBeNull();
+  });
+
+  it("lee cada borde del rango de su columna y deja el valor en null", () => {
+    // Valores distintos entre sí: un cruce entre columnas vecinas se ve.
+    const datos = mapearObjetivoComposicion({
+      ...fila,
+      valorObjetivo: null,
+      valorMinimo: decimal(12.5),
+      valorMaximo: decimal(15.25),
+    }).aPrimitivos();
+
+    // null y no 0: `Number(null)` daría una meta de valor 0.
+    expect(datos.valorObjetivo).toBeNull();
+    expect(datos.valorMinimo).toBe(12.5);
+    expect(datos.valorMaximo).toBe(15.25);
   });
 });
 

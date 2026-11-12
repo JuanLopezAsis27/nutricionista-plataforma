@@ -5,6 +5,7 @@ import {
   METODOS_GRASA,
   type MetodoGrasa,
 } from "../servicios/grasaPorPliegues";
+import type { MetaNumerica } from "../servicios/proyeccionComposicion";
 
 /**
  * Variables de composición corporal sobre las que se puede plantear una meta.
@@ -203,13 +204,24 @@ export function definicionVariable(variable: VariableComposicion): {
   return RANGOS_VARIABLE[variable];
 }
 
+/**
+ * El número de la meta: UN valor (`valorObjetivo`) o UN rango (`valorMinimo`
+ * y `valorMaximo`), nunca las dos cosas. Ver `MetaNumerica`: un valor se da
+ * por cumplido al pasarse en la dirección buscada; un rango, solo estando
+ * adentro.
+ */
+export interface ValoresMetaComposicion {
+  valorObjetivo?: number | null;
+  valorMinimo?: number | null;
+  valorMaximo?: number | null;
+}
+
 /** Datos para crear o reemplazar un objetivo de composición. */
-export interface DatosObjetivoComposicion {
+export interface DatosObjetivoComposicion extends ValoresMetaComposicion {
   pacienteId: string;
   variable: VariableComposicion;
   /** Obligatorio en las variables de grasa; null en el resto. */
   metodoGrasa?: MetodoGrasa | null;
-  valorObjetivo: number;
   fechaObjetivo?: Date | null;
   notas?: string | null;
 }
@@ -220,7 +232,11 @@ export interface PropiedadesObjetivoComposicion {
   pacienteId: string;
   variable: VariableComposicion;
   metodoGrasa: MetodoGrasa | null;
-  valorObjetivo: number;
+  /** La meta de un valor; null si es un rango. */
+  valorObjetivo: number | null;
+  /** Los bordes de un rango; los dos null si la meta es un valor. */
+  valorMinimo: number | null;
+  valorMaximo: number | null;
   fechaObjetivo: Date | null;
   estado: EstadoObjetivo;
   notas: string | null;
@@ -230,7 +246,8 @@ export interface PropiedadesObjetivoComposicion {
 
 /**
  * Entidad de dominio ObjetivoComposicion: una meta numérica sobre una
- * variable de composición corporal ("masa adiposa a 12 kg para el 30/11").
+ * variable de composición corporal ("masa adiposa a 12 kg para el 30/11", o
+ * "% graso entre 12 y 15").
  *
  * A diferencia de `Objetivo` —que es cualitativo y lleva estrategias e
  * historial— este es puramente cuantitativo: existe para que el dashboard
@@ -250,7 +267,7 @@ export class ObjetivoComposicion {
     if (!VARIABLES_COMPOSICION.includes(datos.variable)) {
       throw new ErrorValidacion("La variable del objetivo no es válida.");
     }
-    validarValor(datos.variable, datos.valorObjetivo);
+    const valores = validarValores(datos.variable, datos);
     const metodoGrasa = validarMetodo(
       datos.variable,
       datos.metodoGrasa ?? null,
@@ -261,7 +278,7 @@ export class ObjetivoComposicion {
       pacienteId: datos.pacienteId,
       variable: datos.variable,
       metodoGrasa,
-      valorObjetivo: datos.valorObjetivo,
+      ...valores,
       fechaObjetivo: datos.fechaObjetivo ?? null,
       estado: "EN_CURSO",
       notas: datos.notas?.trim() || null,
@@ -276,20 +293,31 @@ export class ObjetivoComposicion {
     return new ObjetivoComposicion(props);
   }
 
-  /** Versión inmutable con los cambios aplicados y los invariantes revalidados. */
+  /**
+   * Versión inmutable con los cambios aplicados y los invariantes revalidados.
+   *
+   * La meta se reemplaza ENTERA (`meta`): pasar de un valor a un rango deja
+   * el valor en null, y al revés. Cambiar un solo borde dejaría combinaciones
+   * que no son ni una cosa ni la otra.
+   */
   actualizar(
     cambios: {
       metodoGrasa?: MetodoGrasa | null;
-      valorObjetivo?: number;
+      meta?: ValoresMetaComposicion;
       fechaObjetivo?: Date | null;
       notas?: string | null;
       estado?: EstadoObjetivo;
     },
     ahora: Date = new Date(),
   ): ObjetivoComposicion {
-    if (cambios.valorObjetivo !== undefined) {
-      validarValor(this.props.variable, cambios.valorObjetivo);
-    }
+    const valores =
+      cambios.meta !== undefined
+        ? validarValores(this.props.variable, cambios.meta)
+        : {
+            valorObjetivo: this.props.valorObjetivo,
+            valorMinimo: this.props.valorMinimo,
+            valorMaximo: this.props.valorMaximo,
+          };
     if (
       cambios.estado !== undefined &&
       !ESTADOS_OBJETIVO.includes(cambios.estado)
@@ -304,7 +332,7 @@ export class ObjetivoComposicion {
           ? cambios.metodoGrasa
           : this.props.metodoGrasa,
       ),
-      valorObjetivo: cambios.valorObjetivo ?? this.props.valorObjetivo,
+      ...valores,
       fechaObjetivo:
         cambios.fechaObjetivo !== undefined
           ? cambios.fechaObjetivo
@@ -337,8 +365,16 @@ export class ObjetivoComposicion {
       ? `${etiqueta} · ${DEFINICIONES_METODO[this.props.metodoGrasa].etiqueta}`
       : etiqueta;
   }
-  get valorObjetivo(): number {
+  /** La meta de un valor; null si es un rango. */
+  get valorObjetivo(): number | null {
     return this.props.valorObjetivo;
+  }
+  /** La meta como la lee la proyección: un valor o un rango. */
+  get meta(): MetaNumerica {
+    const { valorObjetivo, valorMinimo, valorMaximo } = this.props;
+    return valorMinimo != null && valorMaximo != null
+      ? { rango: { minimo: valorMinimo, maximo: valorMaximo } }
+      : { valorObjetivo: valorObjetivo! };
   }
   get fechaObjetivo(): Date | null {
     return this.props.fechaObjetivo;
@@ -370,6 +406,49 @@ function validarMetodo(
     throw new ErrorValidacion("El método de estimación de grasa no es válido.");
   }
   return metodo;
+}
+
+/**
+ * Un valor o un rango, nunca los dos ni ninguno. Del rango se exigen los dos
+ * bordes: con uno solo es un valor, que ya tiene su propia lectura.
+ */
+function validarValores(
+  variable: VariableComposicion,
+  valores: ValoresMetaComposicion,
+): {
+  valorObjetivo: number | null;
+  valorMinimo: number | null;
+  valorMaximo: number | null;
+} {
+  const valor = valores.valorObjetivo ?? null;
+  const minimo = valores.valorMinimo ?? null;
+  const maximo = valores.valorMaximo ?? null;
+  const hayRango = minimo != null || maximo != null;
+
+  if (valor != null && hayRango) {
+    throw new ErrorValidacion(
+      "La meta es un valor o un rango, no las dos cosas a la vez.",
+    );
+  }
+  if (valor != null) {
+    validarValor(variable, valor);
+    return { valorObjetivo: valor, valorMinimo: null, valorMaximo: null };
+  }
+  if (minimo == null || maximo == null) {
+    throw new ErrorValidacion(
+      hayRango
+        ? "El rango necesita un mínimo y un máximo."
+        : "Indicá el valor a alcanzar o el rango en el que tiene que quedar.",
+    );
+  }
+  validarValor(variable, minimo);
+  validarValor(variable, maximo);
+  if (minimo >= maximo) {
+    throw new ErrorValidacion(
+      "El mínimo del rango tiene que ser menor que el máximo.",
+    );
+  }
+  return { valorObjetivo: null, valorMinimo: minimo, valorMaximo: maximo };
 }
 
 function validarValor(variable: VariableComposicion, valor: number): void {

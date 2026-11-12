@@ -20,6 +20,7 @@ import type {
 import { useObjetivos } from "@/lib/hooks/useObjetivos";
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
 import { formatearFecha, formatearNumero } from "@/lib/formato";
+import { textoMeta } from "@/componentes/antropometria/textoMeta";
 import { cn } from "@/lib/utilidades";
 import {
   ETIQUETAS_PRIORIDAD,
@@ -475,10 +476,7 @@ function MetaVinculada({
           {formatearNumero(p.valorActual)}
           {unidad}
           <span className="mx-1 text-muted-foreground">→</span>
-          <span className="font-semibold">
-            {formatearNumero(p.valorObjetivo)}
-            {unidad}
-          </span>
+          <span className="font-semibold">{textoMeta(p, formatearNumero)}</span>
         </span>
         {falta != null && falta > 0 && (
           <span className="text-xs text-muted-foreground">

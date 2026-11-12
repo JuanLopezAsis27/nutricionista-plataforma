@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -26,6 +26,7 @@ import {
 import { useEvaluacion } from "@/lib/hooks/useEvaluacion";
 import { useConfiguracion } from "@/lib/hooks/useConfiguracion";
 import { aFechaISO, formatearMedida } from "@/lib/formato";
+import { cn } from "@/lib/utilidades";
 import { Button } from "@/componentes/ui/button";
 import { Input } from "@/componentes/ui/input";
 import { Slider } from "@/componentes/ui/slider";
@@ -48,14 +49,46 @@ import {
   SelectLabel,
 } from "@/componentes/ui/select";
 
+/**
+ * Las dos formas de la meta. Un VALOR se da por cumplido al pasarse en la
+ * dirección buscada; un RANGO, solo estando adentro (ver `MetaNumerica`).
+ */
+const TIPOS_META = [
+  {
+    valor: "VALOR",
+    etiqueta: "Un valor",
+    ayuda:
+      "Pasarse en la dirección buscada también cuenta como logrado: bajar a 11 cuando la meta era 12 es cumplirla.",
+  },
+  {
+    valor: "RANGO",
+    etiqueta: "Un rango",
+    ayuda:
+      "Se cumple solo estando entre el mínimo y el máximo: pasarse del otro lado vuelve a estar fuera del objetivo.",
+  },
+] as const;
+
 export const esquema = z.object({
   variable: z.enum(VARIABLES_COMPOSICION),
   metodoGrasa: z.enum(METODOS_GRASA),
-  valorObjetivo: z.string().min(1, "Indicá el valor a alcanzar"),
+  tipoMeta: z.enum(["VALOR", "RANGO"]),
+  // Ninguno de los tres números es obligatorio ACÁ: cuáles se piden depende
+  // de `tipoMeta`, y un campo obligatorio que no se dibuja deja el botón
+  // mudo. Los valida `leerMeta`, sobre el campo que está en pantalla.
+  valorObjetivo: z.string(),
+  valorMinimo: z.string(),
+  valorMaximo: z.string(),
   fechaObjetivo: z.string(),
   notas: z.string().max(1000),
 });
 type DatosFormulario = z.infer<typeof esquema>;
+
+/** Los tres números de la meta, ya leídos: uno solo o los dos del rango. */
+interface ValoresMeta {
+  valorObjetivo: number | null;
+  valorMinimo: number | null;
+  valorMaximo: number | null;
+}
 
 /** Una meta ya planteada: variable más la ecuación con la que se sigue. */
 export interface CombinacionObjetivo {
@@ -137,9 +170,18 @@ export function FormularioObjetivoComposicion({
     defaultValues: {
       variable: objetivoInicial?.variable ?? disponibles[0] ?? "PESO",
       metodoGrasa: objetivoInicial?.metodoGrasa ?? "YUHASZ_CARTER",
+      tipoMeta: objetivoInicial?.valorMinimo != null ? "RANGO" : "VALOR",
       valorObjetivo:
         objetivoInicial?.valorObjetivo != null
           ? String(objetivoInicial.valorObjetivo)
+          : "",
+      valorMinimo:
+        objetivoInicial?.valorMinimo != null
+          ? String(objetivoInicial.valorMinimo)
+          : "",
+      valorMaximo:
+        objetivoInicial?.valorMaximo != null
+          ? String(objetivoInicial.valorMaximo)
           : "",
       fechaObjetivo: objetivoInicial?.fechaObjetivo
         ? aFechaISO(objetivoInicial.fechaObjetivo)
@@ -161,7 +203,10 @@ export function FormularioObjetivoComposicion({
         (!pideMetodo || v.metodoGrasa === metodoGrasa),
     )?.valor ?? null;
 
+  const tipoMeta = form.watch("tipoMeta");
   const valorNumero = aNumeroONull(form.watch("valorObjetivo"));
+  const minimoNumero = aNumeroONull(form.watch("valorMinimo"));
+  const maximoNumero = aNumeroONull(form.watch("valorMaximo"));
 
   const { setValue } = form;
   /**
@@ -172,6 +217,8 @@ export function FormularioObjetivoComposicion({
   useEffect(() => {
     if (editando) return;
     setValue("valorObjetivo", actual != null ? String(actual) : "");
+    setValue("valorMinimo", "");
+    setValue("valorMaximo", "");
   }, [variable, metodoGrasa, actual, editando, setValue]);
 
   const rango = rangoDelSlider(actual, definicion.min, definicion.max);
@@ -180,25 +227,60 @@ export function FormularioObjetivoComposicion({
     actual != null && valorNumero != null ? valorNumero - actual : null;
   const unidad = definicion.unidad ? ` ${definicion.unidad}` : "";
 
-  function alEnviar(datos: DatosFormulario) {
-    const valor = aNumeroONull(datos.valorObjetivo);
-    if (valor == null) {
-      form.setError("valorObjetivo", { message: "Tiene que ser un número" });
-      return;
+  /**
+   * Lee los números de la meta según su tipo y marca el error en el campo
+   * que está en pantalla. Null si alguno no sirve.
+   */
+  function leerMeta(datos: DatosFormulario): ValoresMeta | null {
+    const fueraDeRango = `Entre ${definicion.min} y ${definicion.max}${unidad}`;
+    const leer = (
+      campo: "valorObjetivo" | "valorMinimo" | "valorMaximo",
+      vacio: string,
+    ): number | null => {
+      const texto = datos[campo].trim();
+      const valor = aNumeroONull(texto);
+      if (valor == null) {
+        form.setError(campo, {
+          message: texto ? "Tiene que ser un número" : vacio,
+        });
+        return null;
+      }
+      if (valor < definicion.min || valor > definicion.max) {
+        form.setError(campo, { message: fueraDeRango });
+        return null;
+      }
+      return valor;
+    };
+
+    if (datos.tipoMeta === "VALOR") {
+      const valor = leer("valorObjetivo", "Indicá el valor a alcanzar");
+      return valor == null
+        ? null
+        : { valorObjetivo: valor, valorMinimo: null, valorMaximo: null };
     }
-    if (valor < definicion.min || valor > definicion.max) {
-      form.setError("valorObjetivo", {
-        message: `Entre ${definicion.min} y ${definicion.max}${unidad}`,
+
+    const minimo = leer("valorMinimo", "Indicá el mínimo");
+    const maximo = leer("valorMaximo", "Indicá el máximo");
+    if (minimo == null || maximo == null) return null;
+    if (minimo >= maximo) {
+      form.setError("valorMaximo", {
+        message: "Tiene que ser mayor que el mínimo",
       });
-      return;
+      return null;
     }
+    return { valorObjetivo: null, valorMinimo: minimo, valorMaximo: maximo };
+  }
+
+  function alEnviar(datos: DatosFormulario) {
+    const meta = leerMeta(datos);
+    if (meta == null) return;
 
     guardarObjetivoComposicion.mutate(
       {
         pacienteId,
         variable: datos.variable,
         metodoGrasa: pideMetodo ? datos.metodoGrasa : null,
-        valorObjetivo: valor,
+        ...meta,
         fechaObjetivo: datos.fechaObjetivo
           ? new Date(datos.fechaObjetivo)
           : null,
@@ -308,85 +390,169 @@ export function FormularioObjetivoComposicion({
           />
         )}
 
-        {/* La meta se fija moviéndose DESDE el valor de hoy, no escribiendo un
-            número en el aire: así se ve la distancia que se está proponiendo. */}
         <FormField
           control={form.control}
-          name="valorObjetivo"
+          name="tipoMeta"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Valor a alcanzar</FormLabel>
-              <div className="space-y-3 rounded-md border p-3">
-                <div className="flex items-center justify-between gap-3">
-                  {actual != null ? (
-                    <span className="text-sm text-muted-foreground">
-                      Hoy{" "}
-                      <span className="font-semibold tabular-nums text-foreground">
-                        {formatearMedida(actual)}
-                        {unidad}
-                      </span>
-                    </span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">
-                      Sin medición para esta variable
-                    </span>
-                  )}
-                  <ArrowRight
-                    className="h-4 w-4 shrink-0 text-muted-foreground"
-                    aria-hidden
-                  />
-                  <div className="flex items-center gap-1.5">
-                    <FormControl>
-                      <Input
-                        inputMode="decimal"
-                        className="h-9 w-24 text-right font-semibold tabular-nums"
-                        aria-label="Valor objetivo"
-                        {...field}
-                      />
-                    </FormControl>
-                    {definicion.unidad && (
-                      <span className="text-sm text-muted-foreground">
-                        {definicion.unidad}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <Slider
-                  aria-label={`Valor objetivo de ${definicion.etiqueta}`}
-                  min={rango.min}
-                  max={rango.max}
-                  step={paso}
-                  value={acotar(valorNumero ?? actual ?? rango.min, rango)}
-                  onValueChange={(valor) =>
-                    field.onChange(String(redondearAlPaso(valor, paso)))
-                  }
-                />
-
-                <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-                  <span className="tabular-nums">
-                    {formatearMedida(rango.min)}
-                  </span>
-                  {brecha != null && Math.abs(brecha) > 1e-9 ? (
-                    <span className="font-medium text-foreground">
-                      {brecha > 0 ? "Subir" : "Bajar"}{" "}
-                      <span className="tabular-nums">
-                        {formatearMedida(Math.abs(brecha))}
-                        {unidad}
-                      </span>
-                    </span>
-                  ) : (
-                    <span>Arrastrá o escribí el valor</span>
-                  )}
-                  <span className="tabular-nums">
-                    {formatearMedida(rango.max)}
-                  </span>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <FormLabel>Tipo de meta</FormLabel>
+                <div
+                  className="flex rounded-lg border p-0.5"
+                  role="radiogroup"
+                  aria-label="Tipo de meta"
+                >
+                  {TIPOS_META.map((opcion) => (
+                    <button
+                      key={opcion.valor}
+                      type="button"
+                      role="radio"
+                      aria-checked={field.value === opcion.valor}
+                      onClick={() => {
+                        field.onChange(opcion.valor);
+                        form.clearErrors([
+                          "valorObjetivo",
+                          "valorMinimo",
+                          "valorMaximo",
+                        ]);
+                      }}
+                      className={cn(
+                        "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                        field.value === opcion.valor
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {opcion.etiqueta}
+                    </button>
+                  ))}
                 </div>
               </div>
-              <FormMessage />
+              <p className="text-xs text-muted-foreground">
+                {TIPOS_META.find((t) => t.valor === field.value)?.ayuda}
+              </p>
             </FormItem>
           )}
         />
+
+        {tipoMeta === "RANGO" ? (
+          <BloqueRango
+            actual={actual}
+            minimo={minimoNumero}
+            maximo={maximoNumero}
+            definicion={definicion}
+          >
+            {(["valorMinimo", "valorMaximo"] as const).map((nombre) => (
+              <FormField
+                key={nombre}
+                control={form.control}
+                name={nombre}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">
+                      {nombre === "valorMinimo" ? "Mínimo" : "Máximo"}
+                    </FormLabel>
+                    <div className="flex items-center gap-1.5">
+                      <FormControl>
+                        <Input
+                          inputMode="decimal"
+                          className="h-9 text-right font-semibold tabular-nums"
+                          {...field}
+                        />
+                      </FormControl>
+                      {definicion.unidad && (
+                        <span className="text-sm text-muted-foreground">
+                          {definicion.unidad}
+                        </span>
+                      )}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
+          </BloqueRango>
+        ) : (
+          /* La meta se fija moviéndose DESDE el valor de hoy, no escribiendo un
+            número en el aire: así se ve la distancia que se está proponiendo. */
+          <FormField
+            control={form.control}
+            name="valorObjetivo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Valor a alcanzar</FormLabel>
+                <div className="space-y-3 rounded-md border p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    {actual != null ? (
+                      <span className="text-sm text-muted-foreground">
+                        Hoy{" "}
+                        <span className="font-semibold tabular-nums text-foreground">
+                          {formatearMedida(actual)}
+                          {unidad}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        Sin medición para esta variable
+                      </span>
+                    )}
+                    <ArrowRight
+                      className="h-4 w-4 shrink-0 text-muted-foreground"
+                      aria-hidden
+                    />
+                    <div className="flex items-center gap-1.5">
+                      <FormControl>
+                        <Input
+                          inputMode="decimal"
+                          className="h-9 w-24 text-right font-semibold tabular-nums"
+                          aria-label="Valor objetivo"
+                          {...field}
+                        />
+                      </FormControl>
+                      {definicion.unidad && (
+                        <span className="text-sm text-muted-foreground">
+                          {definicion.unidad}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <Slider
+                    aria-label={`Valor objetivo de ${definicion.etiqueta}`}
+                    min={rango.min}
+                    max={rango.max}
+                    step={paso}
+                    value={acotar(valorNumero ?? actual ?? rango.min, rango)}
+                    onValueChange={(valor) =>
+                      field.onChange(String(redondearAlPaso(valor, paso)))
+                    }
+                  />
+
+                  <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                    <span className="tabular-nums">
+                      {formatearMedida(rango.min)}
+                    </span>
+                    {brecha != null && Math.abs(brecha) > 1e-9 ? (
+                      <span className="font-medium text-foreground">
+                        {brecha > 0 ? "Subir" : "Bajar"}{" "}
+                        <span className="tabular-nums">
+                          {formatearMedida(Math.abs(brecha))}
+                          {unidad}
+                        </span>
+                      </span>
+                    ) : (
+                      <span>Arrastrá o escribí el valor</span>
+                    )}
+                    <span className="tabular-nums">
+                      {formatearMedida(rango.max)}
+                    </span>
+                  </div>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={form.control}
@@ -442,6 +608,106 @@ export function FormularioObjetivoComposicion({
         </div>
       </form>
     </Form>
+  );
+}
+
+/**
+ * La meta como rango: los dos campos (que llegan como `children`, porque son
+ * del formulario) y, debajo, una barra con el rango y dónde está hoy el
+ * paciente. Es la versión de rango del «moverse desde el valor de hoy»: se ve
+ * si ya está adentro o cuánto le falta al borde más cercano.
+ */
+function BloqueRango({
+  actual,
+  minimo,
+  maximo,
+  definicion,
+  children,
+}: {
+  actual: number | null;
+  minimo: number | null;
+  maximo: number | null;
+  definicion: { min: number; max: number; unidad: string };
+  children: ReactNode;
+}) {
+  const unidad = definicion.unidad ? ` ${definicion.unidad}` : "";
+  const valido = minimo != null && maximo != null && minimo < maximo;
+
+  // La escala de la barra: el mismo encuadre que el slider de un valor,
+  // estirado para que entren los dos bordes que se escribieron.
+  const base = rangoDelSlider(actual, definicion.min, definicion.max);
+  const desde = Math.max(
+    definicion.min,
+    Math.min(base.min, minimo ?? base.min, maximo ?? base.min),
+  );
+  const hasta = Math.min(
+    definicion.max,
+    Math.max(base.max, minimo ?? base.max, maximo ?? base.max),
+  );
+  const posicion = (valor: number): number =>
+    hasta > desde
+      ? acotar(((valor - desde) / (hasta - desde)) * 100, { min: 0, max: 100 })
+      : 0;
+
+  let lectura: string;
+  if (!valido) {
+    lectura =
+      minimo != null && maximo != null
+        ? "El mínimo tiene que ser menor que el máximo"
+        : "Escribí el mínimo y el máximo";
+  } else if (actual == null) {
+    lectura = "Sin medición para comparar";
+  } else if (actual < minimo) {
+    lectura = `Subir ${formatearMedida(minimo - actual)}${unidad} para entrar`;
+  } else if (actual > maximo) {
+    lectura = `Bajar ${formatearMedida(actual - maximo)}${unidad} para entrar`;
+  } else {
+    lectura = "Hoy ya está dentro del rango";
+  }
+
+  return (
+    <div className="space-y-3 rounded-md border p-3">
+      <p className="text-sm text-muted-foreground">
+        {actual != null ? (
+          <>
+            Hoy{" "}
+            <span className="font-semibold tabular-nums text-foreground">
+              {formatearMedida(actual)}
+              {unidad}
+            </span>
+          </>
+        ) : (
+          <span className="text-xs">Sin medición para esta variable</span>
+        )}
+      </p>
+
+      <div className="grid grid-cols-2 gap-3">{children}</div>
+
+      <div className="space-y-1.5" aria-hidden>
+        <div className="relative h-2.5 w-full rounded-full bg-muted">
+          {valido && (
+            <span
+              className="absolute inset-y-0 rounded-full bg-primary/40"
+              style={{
+                left: `${posicion(minimo)}%`,
+                width: `${posicion(maximo) - posicion(minimo)}%`,
+              }}
+            />
+          )}
+          {actual != null && (
+            <span
+              className="absolute top-1/2 h-4 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground"
+              style={{ left: `${posicion(actual)}%` }}
+            />
+          )}
+        </div>
+        <div className="flex justify-between text-[11px] tabular-nums text-muted-foreground">
+          <span>{formatearMedida(desde)}</span>
+          <span>{formatearMedida(hasta)}</span>
+        </div>
+      </div>
+      <p className="text-center text-[11px] font-medium">{lectura}</p>
+    </div>
   );
 }
 

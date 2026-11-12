@@ -297,3 +297,50 @@ en la del cancelado:
   más larga que la del cancelado y había un turno pegado, el hueco no
   alcanzaba. El calendario manda ahora la duración del cancelado
   (`duracionInicial` del formulario).
+
+## Deshacer un completado y borrar un cancelado
+
+Dos arreglos al mismo tipo de problema: el globo hacía fácil equivocarse y
+difícil volver atrás.
+
+### Un completado vuelve a confirmado
+
+«Completado» es un botón al lado de «Cancelado», y se tocaba sin querer.
+COMPLETADO era un estado final, así que una consulta que no pasó quedaba
+contada como atendida (asistencia, estadísticas) sin forma de corregirla.
+
+Ahora la máquina de estados admite **COMPLETADO → CONFIRMADO** y nada más: no
+a PENDIENTE —para completarlo tuvo que estar confirmado— ni a CANCELADO —si en
+realidad no vino, se vuelve a confirmado y desde ahí se cancela—. No hay nada
+que deshacer al volver: completar no dispara nada, y la asistencia y las
+estadísticas leen el estado. El botón dice **«Volver a confirmado»**
+(`etiquetaTransicionTurno`, `lib/formato.ts`): un «Confirmado» suelto al lado
+de la etiqueta «Completado» no se entendía. Vale también para el lote: llevar
+a «Confirmado» una selección vuelve atrás los completados que tenga.
+
+El enlace del recordatorio NO puede hacer esa vuelta: `ConfirmarAsistenciaTurno`
+solo acepta un PENDIENTE, así que un enlace viejo no reabre una consulta ya
+atendida.
+
+**La máquina es una sola** (`TRANSICIONES_TURNO`, exportada desde
+`dominio/entidades/Turno.ts`). El globo (`DetalleTurno`) y el desplegable de la
+lista (`SelectorEstado`) tenían cada uno su copia «espejo»; con tres copias,
+agregar esta transición en una sola dejaba una pantalla ofreciendo menos (o
+más) de lo que el servidor acepta.
+
+### Un cancelado se borra siempre
+
+`EliminarTurno` exigía CANCELADO **y sin cobro**, y la pantalla escondía el
+tacho cuando había cobro, sin decir por qué. Como el cobro se suele cargar el
+día de la consulta, desde afuera parecía que un cancelado «ya no se podía
+borrar pasada cierta fecha u hora». Nunca hubo una regla de fecha: era el
+cobro.
+
+Ahora la única condición es CANCELADO. Si tiene cobro, se va con el turno y
+deja de contar en los ingresos (un pagado contaba como cobrado aunque el turno
+estuviera cancelado). La confirmación lo advierte con el monto
+(`avisoCobroAlBorrarTurno`), en el globo y en el modal de la lista.
+
+Borrar y volver a ocupar el horario siguen siendo dos caminos aparte: el
+cancelado ofrece **«Agendar otro turno a las HH:mm»** mientras su horario no
+empezó (`horarioReocupable`, ver arriba) y el borrado en cualquier momento.
